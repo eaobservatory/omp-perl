@@ -79,9 +79,9 @@ use OMP::ProjQuery;
 # Options
 my ($help, $man, $debug);
 my $status = GetOptions("help" => \$help,
-			"man" => \$man,
-			"debug" => \$debug,
-		       );
+                        "man" => \$man,
+                        "debug" => \$debug,
+                       );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -210,9 +210,9 @@ if ($debug) {
 #print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
     my $msg = MIME::Lite->new( From => 'flex@eaobservatory.org',
-			       To => $support,
-			       Subject => $subject,
-			       Data => $text, );
+                               To => $support,
+                               Subject => $subject,
+                               Data => $text, );
 
     MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
 

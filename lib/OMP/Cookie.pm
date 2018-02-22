@@ -62,10 +62,10 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-	   Name => $class->default_name,
-	   CGI => undef,
-	   Cookie => undef,
-	  };
+           Name => $class->default_name,
+           CGI => undef,
+           Cookie => undef,
+          };
 
   # create the object (else we cant use accessor methods)
   my $object = bless $c, $class;
@@ -145,7 +145,7 @@ Return the default cookie name.
     my $self = shift;
     if (@_) {
       throw OMP::Error::BadArgs("Value can't be a reference")
-	unless (not ref($_[0]));
+        unless (not ref($_[0]));
       $DEFAULT_NAME = $_[0];
     }
     return $DEFAULT_NAME;
@@ -193,9 +193,9 @@ sub flushCookie {
 
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
-			    -value=>'null',
-			    -domain=>$domain,
-			    -expires=>'-5m',);
+                            -value=>'null',
+                            -domain=>$domain,
+                            -expires=>'-5m',);
 
   $self->cookie($cookie);
   return;
@@ -274,9 +274,9 @@ sub setCookie {
 
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
-			    -value=>\%contents,
-			    -domain=>$domain,
-			    -expires=>$exptime);
+                            -value=>\%contents,
+                            -domain=>$domain,
+                            -expires=>$exptime);
 
   $self->cookie($cookie);
   return;

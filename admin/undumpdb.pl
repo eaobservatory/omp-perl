@@ -26,23 +26,23 @@ chdir $dumpdir
 
 # Define the name and position of any TEXT columns (array index)
 my %text_column = (
-		   ompmsbdone => {comment => 8},
-		   ompfeedback => {text => 9},
-		   ompfaultbody => {text => 5},
-		   ompshiftlog => {text => 3},
-		   ompobslog => {commenttext => 8},
-		  );
+                   ompmsbdone => {comment => 8},
+                   ompfeedback => {text => 9},
+                   ompfaultbody => {text => 5},
+                   ompshiftlog => {text => 3},
+                   ompobslog => {commenttext => 8},
+                  );
 
 # Define the position of an identity column so we can ignore
 # it and let sybase generate a new ID for the row
 my %identity_column = (
-		       ompfeedback => 0,
-		       ompfaultbody => 0,
-		       ompmsbdone => 0,
-		       ompshiftlog => 0,
-		       ompobslog => 0,
-		       ompfaultassoc => 0,
-		      );
+                       ompfeedback => 0,
+                       ompfaultbody => 0,
+                       ompmsbdone => 0,
+                       ompshiftlog => 0,
+                       ompobslog => 0,
+                       ompfaultassoc => 0,
+                      );
 
 
 my @tab;
@@ -64,9 +64,9 @@ for my $tab (@tab) {
 
     if (exists $text_column{$tab}) {
       for my $column (keys %{$text_column{$tab}}) {
-	my $column_pos = $text_column{$tab}->{$column};
-	my $text = $data[$column_pos];
-	$data[$column_pos] = {TEXT => $text, COLUMN => $column};
+        my $column_pos = $text_column{$tab}->{$column};
+        my $text = $data[$column_pos];
+        $data[$column_pos] = {TEXT => $text, COLUMN => $column};
       }
     }
 

@@ -124,9 +124,9 @@ my $pdevice = "/xserve";  # screen
 my $hdevice = "";         # no hardcopy
 
 my $ostatus = GetOptions(   "help"        => \$help,
-			    "man"         => \$man,
-			    "version"     => \$version,
-			    "debug"       => \$debug,
+                            "man"         => \$man,
+                            "version"     => \$version,
+                            "debug"       => \$debug,
                             "tel=s"       => \$tel,
                             "statsmode=s" => \$statsmode,
                             "xut"         => \$utx,
@@ -286,8 +286,8 @@ while ($ut <= $endut) {
 
   # Get the accounting objects from the OMP
   my $nr = OMP::NightRep->new(date => $iut,
-			      telescope => $tel,
-			      delta_day => $delta,);
+                              telescope => $tel,
+                              delta_day => $delta,);
   my %acct = $nr->accounting_db(1);
 
   my $total = 0;
@@ -342,7 +342,7 @@ while ($ut <= $endut) {
     if (exists $acct{$tel.$queue}) {
       $time = $acct{$tel.$queue}->{total}->hours;
       if ($acct{$tel.$queue}->{pending}) {
-	$pending += $acct{$tel.$queue}->{pending}->hours;
+        $pending += $acct{$tel.$queue}->{pending}->hours;
       }
       $total += $time unless $queue =~ /EXTENDED/;
     }

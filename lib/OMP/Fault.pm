@@ -390,7 +390,7 @@ my %DATA = (
                                     Translator => TRANSLATOR,
                                     "Monitor/Console" => MONITOR_CONSOLE,
                                     "Hedwig" => HEDWIG,
-				    "JSA/CADC" => JSA_CADC,
+                                    "JSA/CADC" => JSA_CADC,
                                     "Other/Unknown" => SYSTEMOTHER,
                                    },
                          TYPE => {
@@ -413,7 +413,7 @@ my %DATA = (
                                     "ORAC-DR/PICARD" => ORAC_DR,
                                     SMURF => SMURF,
                                     OTHER => SYSTEMOTHER,
-				    "JSA Processing" => JSAPROC,
+                                    "JSA Processing" => JSAPROC,
                                    },
                          TYPE => {
                                   Bug => BUG,

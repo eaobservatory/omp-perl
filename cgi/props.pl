@@ -23,4 +23,4 @@ my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 
 $cgi->write_page_proposals( \&OMP::CGIPage::Project::proposals,
-			    \&OMP::CGIPage::Project::proposals);
+                            \&OMP::CGIPage::Project::proposals);

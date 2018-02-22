@@ -48,10 +48,10 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-	   CGI => undef,
-	   Password => undef,
-	   ProjectID => undef,
-	  };
+           CGI => undef,
+           Password => undef,
+           ProjectID => undef,
+          };
 
   my $object = bless $c, $class;
 

@@ -180,8 +180,8 @@ for my $msb ( $sp->msb ) {
       # exists so compare
       my $dist = $c->distance( $targets{$c->name}->[0] );
       if ($dist->arcsec > 1) {
-	print "-->>>> Target " .$c->name ." duplicated but with coordinates that differ by ". sprintf("%.1f",$dist->arcsec) ." arcsec\n";
-	push(@{ $targets{$c->name} }, $c);
+        print "-->>>> Target " .$c->name ." duplicated but with coordinates that differ by ". sprintf("%.1f",$dist->arcsec) ." arcsec\n";
+        push(@{ $targets{$c->name} }, $c);
       }
     } else {
       push(@targnames, $c->name);
@@ -197,10 +197,10 @@ for my $n (@targnames) {
   for my $c (@{$targets{$n}}) {
     my ($ra,$dec) = $c->radec;
     printf("%-20s %s  %s   %6.3f   %s\n",
-	   $n,
-	   $ra, $dec,
-	   $c->airmass,
-	   $c->type);
+           $n,
+           $ra, $dec,
+           $c->airmass,
+           $c->type);
   }
 }
 

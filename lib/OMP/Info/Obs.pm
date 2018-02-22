@@ -386,7 +386,7 @@ sub hdrs_to_obs {
       my %obsidss = %{ $merged->{$obsid}{obsidss_files}};
       $obs->obsidss( keys %obsidss );
       for my $ss (keys %obsidss) {
-	$obs->subsystem_filenames( $ss => $obsidss{$ss});
+        $obs->subsystem_filenames( $ss => $obsidss{$ss});
       }
     }
 
@@ -451,7 +451,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               number_of_cycles => '$',
                               object => '$',
                               obsid => '$',
-			      obsidss => '@',
+                              obsidss => '@',
                               order => '$',
                               pol => '$',
                               pol_in => '$',

@@ -157,9 +157,9 @@ sub _post_process_hash {
       my $new = "(remaining-pending)";
       my $break = 0.01;
       if ($href->{status}->[0] =~ /^active$/i) {
-	$href->{$new} = new OMP::Range( Min => $break);
+        $href->{$new} = new OMP::Range( Min => $break);
       } else {
-	$href->{$new} = new OMP::Range( Max => $break);
+        $href->{$new} = new OMP::Range( Max => $break);
       }
 
       # Remove the status column
@@ -174,7 +174,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) },
-			   [qw/projectid telescope support coi semester person pi country/]);
+                           [qw/projectid telescope support coi semester person pi country/]);
 
   # These entries are in more than one table so we have to 
   # explicitly choose the project table
@@ -206,7 +206,7 @@ sub _post_process_hash {
   if (exists $href->{coi}) {
     my $U = $prefix . $counter;
     $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
-		     "$U.capacity" => ['COI']};
+                     "$U.capacity" => ['COI']};
     $counter++;
   }
 
@@ -214,7 +214,7 @@ sub _post_process_hash {
   if (exists $href->{support}) {
     my $U = $prefix . $counter;
     $href->{support} = { _JOIN => 'AND', "$U.userid" => $href->{support}, 
-			 "$U.capacity" => ['SUPPORT']};
+                         "$U.capacity" => ['SUPPORT']};
     $counter++;
   }
 
@@ -233,10 +233,10 @@ sub _post_process_hash {
   if (exists $href->{person}) {
     my $U = $prefix . $counter;
     $href->{person} = {
-		       _JOIN => 'AND',
-		       auser => {"$U.userid" => $href->{person}},
-		       acapacity => { "$U.capacity"=> ['COI','PI']},
-		      };
+                       _JOIN => 'AND',
+                       auser => {"$U.userid" => $href->{person}},
+                       acapacity => { "$U.capacity"=> ['COI','PI']},
+                      };
     $counter++;
   }
 

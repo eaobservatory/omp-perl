@@ -287,10 +287,10 @@ sub _insert_shiftlog {
                "COLUMN" => "text" );
 
   $self->_db_insert_data( $SHIFTLOGTABLE,
-			  { COLUMN => 'author',
-			    QUOTE => 1,
-			    POSN => 1
-			  },
+                          { COLUMN => 'author',
+                            QUOTE => 1,
+                            POSN => 1
+                          },
                           undef,
                           $date,
                           $author->userid,

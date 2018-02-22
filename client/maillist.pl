@@ -63,9 +63,9 @@ $| = 1; # Make unbuffered
 # Options
 my ($country, $telescope, $help, $man, $version);
 my $status = GetOptions(
-			"country=s" => \$country,
-			"telescope=s" => \$telescope,
-			"help" => \$help,
+                        "country=s" => \$country,
+                        "telescope=s" => \$telescope,
+                        "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                        );
@@ -93,7 +93,7 @@ $xmlquery .= "</ProjQuery>";
 
 # Get projects
 my $projects = OMP::ProjServer->listProjects( $xmlquery,
-					      'object');
+                                              'object');
 my %email_users;
 
 for my $project (@$projects) {

@@ -86,16 +86,16 @@ while (<>) {
 
   # Now need to create some project details:
   my @details = ("$file[0]??",
-		 $file[1],
-		 '',
-		 $file[1],
-		 "Support scientist testing",
-		 1,
-		 ["EAO"],
+                 $file[1],
+                 '',
+                 $file[1],
+                 "Support scientist testing",
+                 1,
+                 ["EAO"],
                  0,
-		 "EAO",
-		 "omptest",  # Password should be supplied by user
-		 10000,
+                 "EAO",
+                 "omptest",  # Password should be supplied by user
+                 10000,
                  $tel,
                  undef, undef,
                  undef, undef,
@@ -103,7 +103,7 @@ while (<>) {
                  undef, undef,
                  1,
                  undef, undef,
-		);
+                );
 
   print join("--",@details),"\n";
 

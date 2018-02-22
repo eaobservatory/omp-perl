@@ -55,8 +55,8 @@ sub safeFetchSciProg {
     # Use the lower-level method to fetch the science program so we
     # can disable the feedback comment associated with this action
     my $db = new OMP::MSBDB( Password => $password,
-			     ProjectID => $projectid,
-			     DB => new OMP::DBbackend, );
+                             ProjectID => $projectid,
+                             DB => new OMP::DBbackend, );
     $sp = $db->fetchSciProg(1);
   } catch OMP::Error::UnknownProject with {
     print "<p>Science program for <em>$projectid</em> not present in database<p>";
@@ -93,8 +93,8 @@ sub safeProgramDetails {
   my $msbsum;
   try {
     $msbsum = OMP::SpServer->programDetails($projectid,
-					    $password,
-					    $type);
+                                            $password,
+                                            $type);
   } catch OMP::Error::UnknownProject with {
     print "<p>Science program for <em>$projectid</em> not present in database<p>"
       unless $quiet;

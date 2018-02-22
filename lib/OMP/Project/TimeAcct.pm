@@ -11,7 +11,7 @@ OMP::Project::TimeAcct - Time spent observing a project for a given UT date
   $t = new OMP::Project::TimeAcct(
                          projectid => 'm02bu104',
                          date    => OMP::DateTools->parse_date('2002-08-15'),
-			 timespent => new Time::Seconds(3600),
+                         timespent => new Time::Seconds(3600),
                          confirmed => 1);
 
 =head1 DESCRIPTION
@@ -72,11 +72,11 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $t = bless {
-		 Date => undef,
-		 TimeSpent => undef,
-		 ProjectID => undef,
-		 Confirmed => 0,
-		}, $class;
+                 Date => undef,
+                 TimeSpent => undef,
+                 ProjectID => undef,
+                 Confirmed => 0,
+                }, $class;
 
   # Deal with arguments
   if (@_) {
@@ -315,19 +315,19 @@ sub summarizeTimeAcct {
     } elsif ($format eq 'bydate') {
       # store using UT date
       if (! exists $results{$ut}) {
-	$results{$ut} = {};
+        $results{$ut} = {};
       }
       $ref = $results{$ut};
     } elsif ($format eq 'byproject') {
       # store using project ID
       if (! exists $results{$p}) {
-	$results{$p} = {};
+        $results{$p} = {};
       }
       $ref = $results{$p};
     } elsif ($format eq 'byprojdate') {
       # store using project ID AND ut date
       if (! exists $results{$p}{$ut}) {
-	$results{$p}{$ut} = {};
+        $results{$p}{$ut} = {};
       }
       $ref = $results{$p}{$ut};
     } else {

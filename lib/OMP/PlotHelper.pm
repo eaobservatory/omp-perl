@@ -124,28 +124,28 @@ sub bin_up {
       # through the bins until we find one that the value belongs in
 
       $result[$bin_num]->[1] = 0                 # Set bin Y value to zero if nothing
-	unless (defined $result[$bin_num]->[1]); # went in this bin.
+        unless (defined $result[$bin_num]->[1]); # went in this bin.
 
       $result[$bin_num]->[0] = $bin_mid          # Set the X value if it wasn't set
-	unless (defined $result[$bin_num]->[0]); # earlier
+        unless (defined $result[$bin_num]->[0]); # earlier
 
       # Move to the next bin
       $bin_size = $self->_get_bin_size($size, ++$bin_num); # Increase bin number
 
       if (defined $bin_size) {
-	$low_val += $bin_size;
-	$high_val += $bin_size;
-	$bin_mid = $low_val + ($bin_size / 2);
+        $low_val += $bin_size;
+        $high_val += $bin_size;
+        $bin_mid = $low_val + ($bin_size / 2);
       } else {
-	# $bin_size was undefined - we're out of bins, so stop.
-	last;
+        # $bin_size was undefined - we're out of bins, so stop.
+        last;
       }
     }
 
     if (defined $bin_size) {
       # Set the X value
       $result[$bin_num]->[0] = $bin_mid
-	unless (defined $result[$bin_num]->[0]);
+        unless (defined $result[$bin_num]->[0]);
 
       # Found a bin that the value belongs in
       # Add the y value to the bin
@@ -153,11 +153,11 @@ sub bin_up {
       # If method is 'max' store the value to the bin
       # only if it is greater than the bin's current value.
       if ($method eq 'max') {
-	$result[$bin_num]->[1] = $val->[1]
-	  unless ($result[$bin_num]->[1] > $val->[1]);
+        $result[$bin_num]->[1] = $val->[1]
+          unless ($result[$bin_num]->[1] > $val->[1]);
       } else {
-	$result[$bin_num]->[1] += $val->[1];
-	$count[$bin_num]++;
+        $result[$bin_num]->[1] += $val->[1];
+        $count[$bin_num]++;
       }
     } else {
       # Stop if we're out of bins
@@ -169,7 +169,7 @@ sub bin_up {
   if ($method eq 'average') {
     for (my $i = 0; $i <= $#result; $i++) {
       $result[$i]->[1] = $result[$i]->[1] / $count[$i]
-	unless ($result[$i]->[1] == 0);
+        unless ($result[$i]->[1] == 0);
     }
   }
 
@@ -237,9 +237,9 @@ sub bin_up_by_date {
 
   # Call bin_up to do the rest
   return $self->bin_up(size => $days,
-		       method => $method,
-		       startnum => $start_date,
-		       values => \@values,);
+                       method => $method,
+                       startnum => $start_date,
+                       values => \@values,);
 }
 
 =back

@@ -28,8 +28,8 @@ $cgi->html_title("OMP Fault System: Update fault");
 # authentication
 if (OMP::NetTools->is_host_local) {
   $cgi->write_page('update_fault_content',
-		   'update_fault_output');
+                   'update_fault_output');
 } else {
   $cgi->write_page_staff('update_fault_content',
-			 'update_fault_output');
+                         'update_fault_output');
 }

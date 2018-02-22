@@ -80,12 +80,12 @@ sub fb_msb_output {
     try {
       # Get the user object
       my $user = OMP::UserServer->getUser($q->param('author')) or
-	throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
+        throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
 
       # Create the comment object
       my $comment = new OMP::Info::Comment( author => $user,
-					    text => $q->param('comment'),
-					    status => OMP__DONE_COMMENT );
+                                            text => $q->param('comment'),
+                                            status => OMP__DONE_COMMENT );
 
       OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
       print $q->h2("MSB comment successfully submitted");
@@ -155,8 +155,8 @@ sub msb_hist_content {
     my $xml = "<MSBDoneQuery><projectid>$projectid</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
 
     $commentref = OMP::MSBServer->observedMSBs({projectid => $projectid,
-					       returnall => 1,
-					       format => 'data'});
+                                               returnall => 1,
+                                               format => 'data'});
   } else {
     # show current
     $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
@@ -177,19 +177,19 @@ sub msb_hist_content {
   print $q->startform(-name=>'sortform'),
         "<b>Show </b>",
 
-	# we want to show this page again, not the output page, so
-	# we'll include this hidden param
-	$q->hidden(-name=>'show_content',
-		   -default=>'show_content'),
+        # we want to show this page again, not the output page, so
+        # we'll include this hidden param
+        $q->hidden(-name=>'show_content',
+                   -default=>'show_content'),
 
-	$q->popup_menu(-name=>'show',
-		       -values=>[qw/all observed/],
-		       -default=>'all',
-		       -onChange=>'mysubmit()'),
+        $q->popup_menu(-name=>'show',
+                       -values=>[qw/all observed/],
+                       -default=>'all',
+                       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
         $q->submit("Refresh"),
         $q->endform,
-	$q->p;
+        $q->p;
 
   # Get the science program (if available)
   my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid, $cookie{password} );
@@ -256,13 +256,13 @@ sub observed_output {
     try {
       # Get the user object
       my $user = OMP::UserServer->getUser($q->param('author')) or
-	throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
-	
+        throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
+
       # Create the comment object
       my $comment = new OMP::Info::Comment( author => $user,
-					    text => $q->param('comment'),
-					    status => OMP__DONE_COMMENT );
-	
+                                            text => $q->param('comment'),
+                                            status => OMP__DONE_COMMENT );
+
       OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
 
       print $q->h2("MSB comment successfully submitted");
@@ -291,18 +291,18 @@ sub observed_output {
 
     my $dbconnection = new OMP::DBbackend;
     my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
-						   returnall => 1,
-						   format => 'data'});
+                                                   returnall => 1,
+                                                   format => 'data'});
 
     # Now keep only the comments that are for the telescope we want
     # to see observed msbs for
     my @msbs;
     for my $msb (@$commentref) {
       my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
-				    DB => $dbconnection );
+                                    DB => $dbconnection );
       my $proj = $projdb->projectDetailsNoAuth( 'object' );
       if (uc $proj->telescope eq uc $telescope) {
-	push @msbs, $msb;
+        push @msbs, $msb;
       }
     }
 

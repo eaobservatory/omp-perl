@@ -17,8 +17,8 @@ my $pass = OMP::Password->get_verified_password({
 
 # Connect to the database and create a proj db object
 my $db = new OMP::ProjDB( DB => new OMP::DBbackend,
-			  Password => $pass,
-			);
+                          Password => $pass,
+                        );
 
 while (<>) {
   chomp;

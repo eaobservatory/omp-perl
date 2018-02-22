@@ -65,9 +65,9 @@ sub new {
 
   my $f = bless {
                  Date => undef,
-		 TimeLost => undef,
-		 TimeLostTechnical => undef,
-		 TimeLostNonTechnical => undef,
+                 TimeLost => undef,
+                 TimeLostTechnical => undef,
+                 TimeLostNonTechnical => undef,
                 }, $class;
 
   # If we have a "faults" argument we grab the information
@@ -83,10 +83,10 @@ sub new {
     foreach my $fault ( @{$args{faults}} ) {
       my $loss = new Time::Seconds($fault->timelost * ONE_HOUR);
       if ($fault->typeText =~ /human/i or $fault->statusText =~ /not a fault/i) {
-	# Fault is non-technical
-	$timelost_nontech += $loss;
+        # Fault is non-technical
+        $timelost_nontech += $loss;
       } else {
-	$timelost_technical += $loss;
+        $timelost_technical += $loss;
       }
       $timelost += $loss;
       $date = $fault->faultdate;

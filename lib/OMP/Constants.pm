@@ -29,17 +29,17 @@ require Exporter;
 
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/ OMP__FB_INFO OMP__FB_IMPORTANT
-	     OMP__FB_HIDDEN OMP__FB_DELETE
-	     OMP__FB_SUPPORT OMP__FB_MSG_SP_SUBMITTED
-	     OMP__FB_MSG_SP_RETRIEVED OMP__FB_MSG_COMMENT
-	     OMP__FB_MSG_DATA_OBTAINED OMP__FB_MSG_DATA_REQUESTED
-	     OMP__FB_MSG_MSB_OBSERVED OMP__FB_MSG_MSB_SUMMARY
-	     OMP__FB_MSG_PASSWD_ISSUED OMP__FB_MSG_TIME_ADJUST_CONFIRM
-	     OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
-	     OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
-	     OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
-	     OMP__FB_MSG_PROJECT_ENABLED
-	     /;
+             OMP__FB_HIDDEN OMP__FB_DELETE
+             OMP__FB_SUPPORT OMP__FB_MSG_SP_SUBMITTED
+             OMP__FB_MSG_SP_RETRIEVED OMP__FB_MSG_COMMENT
+             OMP__FB_MSG_DATA_OBTAINED OMP__FB_MSG_DATA_REQUESTED
+             OMP__FB_MSG_MSB_OBSERVED OMP__FB_MSG_MSB_SUMMARY
+             OMP__FB_MSG_PASSWD_ISSUED OMP__FB_MSG_TIME_ADJUST_CONFIRM
+             OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
+             OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
+             OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
+             OMP__FB_MSG_PROJECT_ENABLED
+             /;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
@@ -52,20 +52,20 @@ my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
                   OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
                   OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS /;
 my @logging = qw/ OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
-		  OMP__LOG_INFO OMP__LOG_DEBUG /;
+                  OMP__LOG_INFO OMP__LOG_DEBUG /;
 
 @EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap, @logging);
 
 %EXPORT_TAGS = (
-		'all' =>[ @EXPORT_OK ],
-		'status'=>\@status,
-		'fb' =>\@fb,
-		'msb' => \@msb,
-		'done'=> \@done,
-		'logging' => \@logging,
-		'obs' => \@obs,
-		'timegap' => \@timegap,
-	       );
+                'all' =>[ @EXPORT_OK ],
+                'status'=>\@status,
+                'fb' =>\@fb,
+                'msb' => \@msb,
+                'done'=> \@done,
+                'logging' => \@logging,
+                'obs' => \@obs,
+                'timegap' => \@timegap,
+               );
 
 Exporter::export_tags( keys %EXPORT_TAGS);
 

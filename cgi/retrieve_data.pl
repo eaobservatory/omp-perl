@@ -25,5 +25,5 @@ $cgi->html_title( "OMP Data retrieval" );
 
 # Now write the page
 $cgi->write_page( \&OMP::CGIPage::PkgData::request_data,
-		  \&OMP::CGIPage::PkgData::request_data
-		);
+                  \&OMP::CGIPage::PkgData::request_data
+                );

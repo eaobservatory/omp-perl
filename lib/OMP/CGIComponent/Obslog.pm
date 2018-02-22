@@ -66,10 +66,10 @@ our %css = (
 
 # Labels for observation status.
 our %status_label = ( OMP__OBS_GOOD() => 'Good',
-		      OMP__OBS_QUESTIONABLE() => 'Questionable',
-		      OMP__OBS_BAD() => 'Bad',
-		      OMP__OBS_JUNK() => 'Junk',
-		      OMP__OBS_REJECTED() => "Rejected",
+                      OMP__OBS_QUESTIONABLE() => 'Questionable',
+                      OMP__OBS_BAD() => 'Bad',
+                      OMP__OBS_JUNK() => 'Junk',
+                      OMP__OBS_REJECTED() => "Rejected",
     ) ;
 
 =head1 Routines

@@ -165,10 +165,10 @@ sub _post_process_hash {
     #if ($key eq 'faultid') {
       # Need to loop over each fault
     #  $href->{$key} = [
-#		       map {
-#			 new OMP::Range(Min => ($_ - 0.0005),
-#					Max => ($_ + 0.0005))
-#		       } @{ $href->{$key} } ];
+#                      map {
+#                        new OMP::Range(Min => ($_ - 0.0005),
+#                                       Max => ($_ + 0.0005))
+#                      } @{ $href->{$key} } ];
 
 #    }
 

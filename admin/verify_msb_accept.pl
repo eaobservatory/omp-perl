@@ -141,10 +141,10 @@ if(defined($opt{tel})) {
 # What does the done table say?
 OMP::General->log_message( "Verifying MSB acceptance for date $ut on telescope $telescope" );
 my $output = OMP::MSBServer->observedMSBs( {
-					    date => $ut,
-					    returnall => 0,
-					    format => 'object',
-					   });
+                                            date => $ut,
+                                            returnall => 0,
+                                            format => 'object',
+                                           });
 
 # Need to convert the OMP::Info::MSB with comments to a time
 # series. [yes this was how they were stored originally]
@@ -156,8 +156,8 @@ for my $msb (@$output) {
   $TITLES{$msb->checksum} = $msb->title;
   for my $c ($msb->comments) {
     my $newmsb = $msb->new( checksum => $msb->checksum,
-			    projectid => $msb->projectid,
-			  );
+                            projectid => $msb->projectid,
+                          );
     $newmsb->comments( $c );
 
     push(@msbs, $newmsb);
@@ -172,10 +172,10 @@ for my $msb (@sorted_msbdb) {
   print "[".$msb->projectid."] ".$msb->checksum . " -> ". 
     $msb->comments->[0]->date->datetime. 
       " [".(defined $msb->comments->[0]->author ? 
-	    $msb->comments->[0]->author->userid : 'UNKNOWN')."/".
-	$msb->comments->[0]->status 
-	  ."/". $msb->comments->[0]->text
-	    ."]\n";
+            $msb->comments->[0]->author->userid : 'UNKNOWN')."/".
+        $msb->comments->[0]->status 
+          ."/". $msb->comments->[0]->text
+            ."]\n";
 }
 
 
@@ -190,9 +190,9 @@ if ($opt{'disk'}) {
 }
 
 my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
-				   date => $ut,
-				   ignorebad => $opt{'ignorebad'},
-				 );
+                                   date => $ut,
+                                   ignorebad => $opt{'ignorebad'},
+                                 );
 
 # Go through looking for MSBs
 my @sorted_msbhdr;
@@ -231,8 +231,8 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
       my $obsnum = join ', ', @prevobsnum;
       print "[$prevproj] $previd -> $prevdate $obsnum\n";
       push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
-			     msbid => $previd,
-			     msbtid => $prevtid,
+                             msbid => $previd,
+                             msbtid => $prevtid,
                              obsnum => $obsnum,
                            } );
       @prevobsnum = ();
@@ -254,7 +254,7 @@ if ($prevlid && $prevlid ne 'CAL') {
   my $obsnum = join ', ', @prevobsnum;
   print "[$prevproj] $previd -> $prevdate $obsnum\n" unless $previd eq 'CAL';
   push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
-			 msbid => $previd, msbtid => $prevtid,
+                         msbid => $previd, msbtid => $prevtid,
                          obsnum => $obsnum,
                        } );
 }
@@ -378,7 +378,7 @@ for my $i ( 0..$#sorted_msbhdr ) {
       push(@missing, $msb);
       if (defined $msb->{msbtid}) {
         print "\t------>>>>> Trans Id ".$msb->{msbtid}.
-	  " has no corresponding ACCEPT/REJECT in the database <<<<<\n";
+          " has no corresponding ACCEPT/REJECT in the database <<<<<\n";
       } else {
         print "\t----->>>>>> MSB has no corresponding ACCEPT/REJECT in the database\n";
       }
@@ -437,26 +437,26 @@ if (@missing) {
       my $continue = $term->readline("\tAccept [Aa] / Reject [Rr] / Skip [] ");
       my $accept;
       if ($continue =~ /^A/i) {
-	$accept = 1;
+        $accept = 1;
       } elsif ($continue =~ /^R/i) {
-	$accept = 0;
+        $accept = 0;
       }
       next unless defined $accept;
       my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
 
       my $c = new OMP::Info::Comment( author => $validated,
-				      date => $date,
-				      tid => $msbtid,
-				      status => $status );
+                                      date => $date,
+                                      tid => $msbtid,
+                                      status => $status );
 
       if ($accept) {
-	print "\tAccepting MSB. Please wait.\n";
-	$msbdb->projectid( $projectid );
-	$msbdb->doneMSB( $id, $c, { adjusttime => 0, nodecrement => $opt{'nodecrement'} } );
+        print "\tAccepting MSB. Please wait.\n";
+        $msbdb->projectid( $projectid );
+        $msbdb->doneMSB( $id, $c, { adjusttime => 0, nodecrement => $opt{'nodecrement'} } );
       } else {
-	$c->text("This MSB was observed but was not accepted by the observer/TSS. No reason was given.");
-	$msbdone->projectid( $projectid );
-	$msbdone->addMSBcomment( $id, $c );
+        $c->text("This MSB was observed but was not accepted by the observer/TSS. No reason was given.");
+        $msbdone->projectid( $projectid );
+        $msbdone->addMSBcomment( $id, $c );
       }
       OMP::General->log_message( "ompmsbcheck: Processed MSB $msbtid ($accept) for date $date" );
 
@@ -482,7 +482,7 @@ sub print_msb {
     $msbid = $msb->checksum;
     $date = $msb->comments->[0]->date->datetime;
     $user = (defined $msb->comments->[0]->author ? 
-	    $msb->comments->[0]->author->userid : 'UNKNOWN');
+            $msb->comments->[0]->author->userid : 'UNKNOWN');
     $comment = $msb->comments->[0]->text;
     $type = 'MSB';
   } else {

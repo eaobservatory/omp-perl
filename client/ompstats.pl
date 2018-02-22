@@ -72,11 +72,11 @@ my $verbose;
 my $help;
 my $man;
 my $result = GetOptions("tel=s" => \$tel,
-			"sem=s" => \@sems,
-			"verbose" => \$verbose,
-		        "h|help" => \$help,
-			"man" => \$man,
-		       );
+                        "sem=s" => \@sems,
+                        "verbose" => \$verbose,
+                        "h|help" => \$help,
+                        "man" => \$man,
+                       );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -89,8 +89,8 @@ my ($startdate, $enddate) = OMP::DateTools->semester_boundary(semester=>\@sems, 
 
 # Create the night report
 my $nr = new OMP::NightRep(date => $startdate->ymd,
-			   date_end => $enddate->ymd,
-			   telescope => $tel,);
+                           date_end => $enddate->ymd,
+                           telescope => $tel,);
 
 print "Retrieving time accounts...\n"
   if ($verbose);

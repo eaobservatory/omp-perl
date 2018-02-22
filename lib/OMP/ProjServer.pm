@@ -63,9 +63,9 @@ sub issuePassword {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                            );
 
     $db->issuePassword();
 
@@ -122,8 +122,8 @@ sub listProjects {
   $mode = "xml" unless $mode;
 
   OMP::General->log_message("ProjServer::listProjects: \n".
-			    "Query: $xmlquery\n" .
-			    "Output format: $mode\n");
+                            "Query: $xmlquery\n" .
+                            "Output format: $mode\n");
 
 
   my @projects;
@@ -135,8 +135,8 @@ sub listProjects {
                                  );
 
     my $db = new OMP::ProjDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     @projects = $db->listProjects( $query );
 
@@ -196,10 +196,10 @@ sub projectDetails {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			     Password => $password,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                             Password => $password,
+                            );
 
     $summary = $db->projectDetails( $mode );
 
@@ -253,9 +253,9 @@ sub projectDetailsNoAuth {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                            );
 
     $summary = $db->projectDetailsNoAuth( $mode );
 
@@ -299,9 +299,9 @@ sub verifyProject {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                            );
 
     $there = $db->verifyProject();
 
@@ -329,11 +329,11 @@ sub verifyProject {
 Add details of a project to the database.
 
   OMP::ProjServer->addProject($password, $force, $projectid, $pi,
-			      $coi, $support,
-			      $title, $tagpriority, $country, $tagadj,
-			      $semester, $proj_password, $allocated
+                              $coi, $support,
+                              $title, $tagpriority, $country, $tagadj,
+                              $semester, $proj_password, $allocated
                               $telescope, $taumin, $taumax, 
-			      $seemin, $seemax, $cloudmin, $cloudmax,
+                              $seemin, $seemax, $cloudmin, $cloudmax,
                               $skymin, $skymax,
                               $state, $pi_affiliation, $coi_affiliation,
                              );
@@ -381,7 +381,7 @@ sub addProject {
     my @coi;
     if ($project[2]) {
       @coi = map { $userdb->getUser($_) 
-		     or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
+                     or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
         split /[:,]/, $project[2];
     }
     if (defined $project[22]) {
@@ -460,30 +460,30 @@ sub addProject {
 
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
-				projectid => $project[0],
-    				pi => $pi,
-				coi => \@coi,
-				support => \@support,
-				title => $project[4],
-				primaryqueue => $primary,
-				queue => \%queue,
-				tagadjustment => \%tagadj,
-				semester => $project[8],
-				password => $project[9],
-				allocated => $project[10],
-				telescope => $project[11],
-				taurange => $taurange,
-				seeingrange => $seerange,
-				cloudrange => $cloudrange,
-				skyrange => $skyrange,
-				state => $project[20],
-			       );
+                                projectid => $project[0],
+                                pi => $pi,
+                                coi => \@coi,
+                                support => \@support,
+                                title => $project[4],
+                                primaryqueue => $primary,
+                                queue => \%queue,
+                                tagadjustment => \%tagadj,
+                                semester => $project[8],
+                                password => $project[9],
+                                allocated => $project[10],
+                                telescope => $project[11],
+                                taurange => $taurange,
+                                seeingrange => $seerange,
+                                cloudrange => $cloudrange,
+                                skyrange => $skyrange,
+                                state => $project[20],
+                               );
 
     my $db = new OMP::ProjDB(
-			     Password => $password,
-			     DB => $class->dbConnection,
-			     ProjectID => $proj->projectid,
-			    );
+                             Password => $password,
+                             DB => $class->dbConnection,
+                             ProjectID => $proj->projectid,
+                            );
 
     $db->addProject( $proj, $force );
 
@@ -527,10 +527,10 @@ sub verifyPassword {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			     Password => $password,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                             Password => $password,
+                            );
 
     $ok = $db->verifyPassword();
 
@@ -572,9 +572,9 @@ sub getTelescope {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                            );
 
     $tel = $db->getTelescope();
 
@@ -619,9 +619,9 @@ sub verifyTelescope {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
-			     DB => $class->dbConnection,
-			    );
+                             ProjectID => $projectid,
+                             DB => $class->dbConnection,
+                            );
 
     $ismatch = $db->verifyTelescope($tel);
 

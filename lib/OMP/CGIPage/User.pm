@@ -43,8 +43,8 @@ $| = 1;
 @EXPORT_OK = (qw/details project_users project_users_output list_users edit_details/);
 
 %EXPORT_TAGS = (
-		'all' =>[ @EXPORT_OK ],
-	       );
+                'all' =>[ @EXPORT_OK ],
+               );
 
 Exporter::export_tags(qw/ all /);
 
@@ -98,11 +98,11 @@ sub details {
   my @support;
   try {
     my $db = new OMP::ProjDB(ProjectID => $cookie{projectid},
-			     DB => new OMP::DBbackend,);
+                             DB => new OMP::DBbackend,);
 
     my $xml = "<ProjQuery>".
       "<person>".$user->userid."</person>".
-	"</ProjQuery>";
+        "</ProjQuery>";
 
     my $query = new OMP::ProjQuery( XML => $xml );
 
@@ -111,7 +111,7 @@ sub details {
     # Get projects the user supports
     $xml = "<ProjQuery>".
       "<support>".$user->userid."</support>".
-	"</ProjQuery>";
+        "</ProjQuery>";
 
     $query = new OMP::ProjQuery( XML => $xml );
 
@@ -135,7 +135,7 @@ sub details {
 
     for ($project->coi) {
       if ($_->userid eq $user->userid) {
-	push @{$capacities{"Co-Investigator"}}, $project;
+        push @{$capacities{"Co-Investigator"}}, $project;
       }
     }
   }
@@ -151,14 +151,14 @@ sub details {
       print "<table><tr><td></td><td>Receives email</td>";
 
       for (@{$capacities{$_}}) {
-	print "<tr><td><a href=$url/projecthome.pl?urlprojid=".$_->projectid.">".
-	  $_->projectid."</a></td>";
+        print "<tr><td><a href=$url/projecthome.pl?urlprojid=".$_->projectid.">".
+          $_->projectid."</a></td>";
 
-	if ($_->contactable($user->userid)) {
-	  print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/mail.gif alt='Receives project emails' border=0></a></td>";
-	} else {
-	  print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
-	}
+        if ($_->contactable($user->userid)) {
+          print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/mail.gif alt='Receives project emails' border=0></a></td>";
+        } else {
+          print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
+        }
       }
 
       print "</table>";
@@ -170,11 +170,11 @@ sub details {
   my $xml = "<FaultQuery>".
     "<author>".$user->userid."</author>".
       "<date delta=\"-14\">$today</date>".
-	"</FaultQuery>";
+        "</FaultQuery>";
   my $faultquery = new OMP::FaultQuery(XML => $xml);
 
   my $faults = OMP::FaultServer->queryFaults($faultquery,
-					     "object");
+                                             "object");
 
   # Sort by category
   my %faults;
@@ -186,8 +186,8 @@ sub details {
     print "<td>Category</td><td align=center>Subject</td>";
     for my $category (sort keys %faults) {
       for (@{$faults{$category}}) {
-	print "<tr><td>" . $_->category ."</td>";
-	print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
+        print "<tr><td>" . $_->category ."</td>";
+        print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
       }
     }
     print "</table><br>";
@@ -325,8 +325,8 @@ sub project_users {
     #Make sure they have an email address
     if ($_->email) {
       print $q->checkbox(-name=>$userid,
-			 -checked=>$contactable{$userid},
-			 -label=>"",);
+                         -checked=>$contactable{$userid},
+                         -label=>"",);
     } else {
       print "<small>no email</small>";
     }
@@ -335,9 +335,9 @@ sub project_users {
 
   print "<tr><td colspan=2 align=right>";
   print $q->hidden(-name=>'show_output',
-		   -default=>1,);
+                   -default=>1,);
   print $q->submit(-name=>"update_contacts",
-		   -value=>"Update",);
+                   -value=>"Update",);
   print "</table>";
   print $q->endform;
 }
@@ -384,7 +384,7 @@ sub project_users_output {
     # entire project back to database)
     my $db = new OMP::ProjDB( ProjectID => $cookie{projectid},
                               'Password' => $cookie{'password'},
-			      DB => new OMP::DBbackend, );
+                              DB => new OMP::DBbackend, );
 
     try {
 
@@ -440,14 +440,14 @@ sub edit_details {
     if ( $q->param("name") ) {
       # we were given a value
       if ($q->param("name") =~ /^([\w\s\.\-\(\)']+)$/) {
-	$from_form{name} = $1;
+        $from_form{name} = $1;
         # trim leading space
         $from_form{name} =~ s/^\s*//;
         $from_form{name} =~ s/\s*$//;
       } else {
-	# did not pass test so do not update
-	$doupdate = 0;
-	print "The name you provided [".$q->param("name")."] is invalid.<br>";
+        # did not pass test so do not update
+        $doupdate = 0;
+        print "The name you provided [".$q->param("name")."] is invalid.<br>";
       }  
     } elsif ($user->name) {
       # there is currently a value but none was supplied
@@ -458,11 +458,11 @@ sub edit_details {
     if ( $q->param("email") ) {
       # we were given a value
       if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
-	$from_form{email} = $1;
+        $from_form{email} = $1;
       } else {
-	# did not pass test so do not update
-	$doupdate = 0;
-	print "The email you provided [".$q->param("email")."] is invalid.<br>";
+        # did not pass test so do not update
+        $doupdate = 0;
+        print "The email you provided [".$q->param("email")."] is invalid.<br>";
       }  
     } elsif ($user->email) {
       # there is currently a value but none was supplied
@@ -473,11 +473,11 @@ sub edit_details {
     if ( $q->param("cadcuser") ) {
       # we were given a value
       if ($q->param("cadcuser") =~ /^(\w+)$/) {
-	$from_form{cadcuser} = $1;
+        $from_form{cadcuser} = $1;
       } else {
-	# did not pass test so do not update
-	$doupdate = 0;
-	print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
+        # did not pass test so do not update
+        $doupdate = 0;
+        print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
       }  
     } elsif ($user->cadcuser) {
       # there is currently a value but none was supplied
@@ -512,12 +512,12 @@ sub edit_details {
       # Store changes
       if ($changed) {
         try {
-  	  OMP::UserServer->updateUser( $user );
-	  print "User details for ".$user->userid." have been updated.<br>";
+          OMP::UserServer->updateUser( $user );
+          print "User details for ".$user->userid." have been updated.<br>";
         } otherwise {
-	  my $E = shift;
-	  print "An error has occurred: $E<br>";
-	  print "User details were not updated.";
+          my $E = shift;
+          print "An error has occurred: $E<br>";
+          print "User details were not updated.";
         };
       } else {
         print "No change to supplied details.<br>\n";
@@ -529,19 +529,19 @@ sub edit_details {
   print $q->startform;
   print "<tr><td>Name:</td><td colspan=2>";
   print $q->textfield(-name=>"name",
-		      -default=>$user->name,
-		      -size=>24,
-		      -maxlength=>255,);
+                      -default=>$user->name,
+                      -size=>24,
+                      -maxlength=>255,);
   print "</td><tr><td>Email:</td><td>";
   print $q->textfield(-name=>"email",
-		      -default=>$user->email,
-		      -size=>32,
-		      -maxlength=>64,);
+                      -default=>$user->email,
+                      -size=>32,
+                      -maxlength=>64,);
   print "</td><tr><td>CADC ID:</td><td>";
   print $q->textfield(-name=>"cadcuser",
-		      -default=>$user->cadcuser,
-		      -size=>32,
-		      -maxlength=>64,);
+                      -default=>$user->cadcuser,
+                      -size=>32,
+                      -maxlength=>64,);
   print "</td><td>";
   print $q->submit(-name=>"edit", -label=>"Change Details");
   print $q->endform;

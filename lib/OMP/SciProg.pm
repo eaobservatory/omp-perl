@@ -43,9 +43,9 @@ use overload '""' => "stringify";
 The constructor takes an XML representation of the science
 program as argument and returns a new object.
 
-		$sp = new OMP::SciProg( XML => $xml );
+                $sp = new OMP::SciProg( XML => $xml );
 
-		$sp = new OMP::SciProg( FILE => $xmlfile );
+                $sp = new OMP::SciProg( FILE => $xmlfile );
 
 The argument hash can either refer to an XML string or
 an XML file. If neither is supplied no object will be
@@ -111,11 +111,11 @@ sub new {
 
   # Now create our Science Program hash
   my $sp = {
-	    Parser => $parser,
-	    Tree => $tree,
-	    MSBS => [],
-	    REFS => {},
-	   };
+            Parser => $parser,
+            Tree => $tree,
+            MSBS => [],
+            REFS => {},
+           };
 
   # and create the object
   bless $sp, $class;
@@ -172,15 +172,15 @@ sub projectID {
 
       # There is a chance that we have simply a bare SpObs
       unless (defined $root) {
-	($root) = $self->_tree->findnodes('.//SpObs');
-	# So that we do not have trouble later on we do not want to insert 
-	# a 'projectID' node into the SpObs since that matches a method name
-	# in the recursive node traversal
-	$nodename = 'project';
+        ($root) = $self->_tree->findnodes('.//SpObs');
+        # So that we do not have trouble later on we do not want to insert 
+        # a 'projectID' node into the SpObs since that matches a method name
+        # in the recursive node traversal
+        $nodename = 'project';
       }
 
       throw OMP::Error::SpBadStructure("Error obtaining root node in projectID discovery")
-	unless defined $root;
+        unless defined $root;
 
       $el = new XML::LibXML::Element( $nodename );
       $root->appendChild( $el );
@@ -706,10 +706,10 @@ sub locate_msbs {
 
   # Populate the static arguments for the MSB constuctor
   my %EXTRAS = (
-		OTVERSION => $self->ot_version,
-		PROJECTID => $self->projectID,
-		REFS => scalar $self->refs,
-	       );
+                OTVERSION => $self->ot_version,
+                PROJECTID => $self->projectID,
+                REFS => scalar $self->refs,
+               );
 
   # Only have a telescope entry if we know the telescope
   my $tel = $self->telescope;
@@ -734,19 +734,19 @@ sub locate_msbs {
 
       # "targets" contains the array of targets that we have found
       for my $targ (@{ $results{targets} } ) {
-	push(@objs, new OMP::MSB( TREE => $msbnode,
-				  PARSER => $self->_parser,
-				  %EXTRAS,
-				  OVERRIDE => $targ,
-				)
-	    );
+        push(@objs, new OMP::MSB( TREE => $msbnode,
+                                  PARSER => $self->_parser,
+                                  %EXTRAS,
+                                  OVERRIDE => $targ,
+                                )
+            );
       }
 
     } else {
       # Not a survey, just create the object and store it
       push(@objs, new OMP::MSB( TREE => $msbnode, 
-				PARSER => $self->_parser,
-				%EXTRAS ));
+                                PARSER => $self->_parser,
+                                %EXTRAS ));
     }
   }
 
@@ -767,8 +767,8 @@ sub locate_msbs {
       # container (we can not delete the MSB xml without removing all
       # the related MSBs)
       if (!$msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
-	$msb->_tree->unbindNode();
-	$unbound = 1;
+        $msb->_tree->unbindNode();
+        $unbound = 1;
       }
     } else {
       $unique{$checksum} = $msb;
@@ -1039,9 +1039,9 @@ sub cloneMSBs {
 
     # Warn if we do not have an exact match
     push(@info,
-	 "Number of blank targets in MSB '".$msb->msbtitle.
-	 "' is not divisible into the number of targets supplied.",
-	 "Some targets will be missing.")
+         "Number of blank targets in MSB '".$msb->msbtitle.
+         "' is not divisible into the number of targets supplied.",
+         "Some targets will be missing.")
       if scalar(@sources) % $blanks != 0;
 
     # Calculate the max number we can support [as an index]
@@ -1063,7 +1063,7 @@ sub cloneMSBs {
 
       # Make sure we replaced the correct number
       throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
-	unless $c == $blanks;
+        unless $c == $blanks;
 
       # Insert the clone node in the correct place
       $msb->_tree->parentNode->insertAfter($clone->_tree, $msb->_tree);
@@ -1081,7 +1081,7 @@ sub cloneMSBs {
     my $pluraltarg = ($blanks == 1 ? '' : 's');
     my $pluralrep  = ($nrepeats == 1 ? '' : 's');
     push(@info,"Cloned MSB with title '" . $msb->msbtitle . 
-	 "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
+         "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
 
 
   }

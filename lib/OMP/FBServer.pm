@@ -86,7 +86,7 @@ sub addComment {
   try {
 
     my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-				  DB => $class->dbConnection, );
+                                  DB => $class->dbConnection, );
 
     $db->addComment( $comment );
 
@@ -141,7 +141,7 @@ sub getComments {
   try {
 
     my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-				  Password => $password,
+                                  Password => $password,
                                   DB => $class->dbConnection, );
 
     $commentref = $db->getComments( %args );

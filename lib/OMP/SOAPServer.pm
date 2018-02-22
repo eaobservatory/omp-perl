@@ -104,7 +104,7 @@ sub throwException {
     ->faultstring("$Estring")
       # Rebless the error into a sanitized class and add code key
       ->faultdetail(bless {%$E, code => $Enum} => $Eclass)
-	->faultactor(OMP::Config->getData('omp-url') . '/');
+        ->faultactor(OMP::Config->getData('omp-url') . '/');
 
 }
 
@@ -134,27 +134,27 @@ sub _get_faultcode {
 
   # Translation table
   my %lut = (
-	     Authentication => 'Client.Authentication',
-	     BadArgs => 'Client.BadArgs',
-	     DBConnection => 'Server.DBConnection',
-	     DBError => 'Server.DBError',
-	     DBLocked => 'Server.DBLocked',
-	     DBMalformedQuery => 'Client.DBMalformedQuery',
-	     FatalError => 'Server.UnknownError',
-	     InvalidUser => 'Client.InvalidUser',
-	     MSBBadConstraint => 'Client.MSBBadConstraint',
-	     MSBMalformedQuery => 'Client.MSBMalformedQuery',
-	     MSBMissing => 'Client.MSBMissing',
-	     MSBMissingObserve => 'Client.MSBMissingObserve',
-	     ProjectExists => 'Client.ProjectExists',
-	     SpBadStructure => 'Client.SpBadStructure',
-	     SpChangedOnDisk => 'Server.SpChangedOnDisk',
-	     SpEmpty => 'Client.SpEmpty',
-	     SpRetrieveFail => 'Server.SpRetrieveFail',
-	     SpStoreFail => 'Server.SpStoreFail',
-	     TranslateFail => 'Server.TranslateFail',
-	     UnknownProject => 'Client.UnknownProject',
-	    );
+             Authentication => 'Client.Authentication',
+             BadArgs => 'Client.BadArgs',
+             DBConnection => 'Server.DBConnection',
+             DBError => 'Server.DBError',
+             DBLocked => 'Server.DBLocked',
+             DBMalformedQuery => 'Client.DBMalformedQuery',
+             FatalError => 'Server.UnknownError',
+             InvalidUser => 'Client.InvalidUser',
+             MSBBadConstraint => 'Client.MSBBadConstraint',
+             MSBMalformedQuery => 'Client.MSBMalformedQuery',
+             MSBMissing => 'Client.MSBMissing',
+             MSBMissingObserve => 'Client.MSBMissingObserve',
+             ProjectExists => 'Client.ProjectExists',
+             SpBadStructure => 'Client.SpBadStructure',
+             SpChangedOnDisk => 'Server.SpChangedOnDisk',
+             SpEmpty => 'Client.SpEmpty',
+             SpRetrieveFail => 'Server.SpRetrieveFail',
+             SpStoreFail => 'Server.SpStoreFail',
+             TranslateFail => 'Server.TranslateFail',
+             UnknownProject => 'Client.UnknownProject',
+            );
 
   my $faultcode;
   if (exists $lut{$parts[-1]}) {

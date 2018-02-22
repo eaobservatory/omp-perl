@@ -71,12 +71,12 @@ sub new {
 
   # initialize the hash
   my $resp = {
-	      Author => undef,
-	      Text => undef,
-	      Date => undef,
-	      IsFault => 0,
-	      RespID => undef,
-	     };
+              Author => undef,
+              Text => undef,
+              Date => undef,
+              IsFault => 0,
+              RespID => undef,
+             };
 
   bless $resp, $class;
 

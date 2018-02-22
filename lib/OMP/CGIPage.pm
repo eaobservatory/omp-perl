@@ -66,15 +66,15 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-	   CGI => undef,
-	   Cookie => [],
-	   PrivateURL => OMP::Config->getData('omp-private'),
-	   PublicURL => OMP::Config->getData('omp-url'),
-	   RSSFeed => {},
-	   Theme => undef,
-	   Title => 'OMP Feedback System',
-	   User => undef,
-	  };
+           CGI => undef,
+           Cookie => [],
+           PrivateURL => OMP::Config->getData('omp-private'),
+           PublicURL => OMP::Config->getData('omp-url'),
+           RSSFeed => {},
+           Theme => undef,
+           Title => 'OMP Feedback System',
+           User => undef,
+          };
 
   # create the object (else we cant use accessor methods)
   my $object = bless $c, $class;
@@ -160,18 +160,18 @@ sub cookie {
     if (ref($cookie) eq 'ARRAY') {
       # Multiple cookies.  Replace existing cookies with these ones
       for (@{$cookie}) {
-	croak "Incorrect type. Must be a OMP::Cookie object"
-	  unless UNIVERSAL::isa( $_, "OMP::Cookie");
+        croak "Incorrect type. Must be a OMP::Cookie object"
+          unless UNIVERSAL::isa( $_, "OMP::Cookie");
       }
 
       @cookies = @{$cookie};
     } else {
       # Single cookie.  Place it in our cookie array.
       croak "Incorrect type. Must be a OMP::Cookie object"
-	unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
+        unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
 
       @cookies = @{$self->{Cookie}}
-	if (defined $self->{Cookie}->[0]);
+        if (defined $self->{Cookie}->[0]);
 
       push(@cookies, $cookie);
     }
@@ -305,14 +305,14 @@ sub _make_theme {
     # This is in a different place on hihi than it is on malama
 
     my @themefile = (OMP::Config->getData('www-theme'),
-		     "/JACpublic/JAC/software/omp/LookAndFeelConfig",
-		     "/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+                     "/JACpublic/JAC/software/omp/LookAndFeelConfig",
+                     "/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
     my $themefile;
 
     foreach (@themefile) {
       if (-e $_) {
-	$themefile = $_;
-	last;
+        $themefile = $_;
+        last;
       }
     }
 
@@ -379,19 +379,19 @@ sub _write_staff_login {
   print $q->startform;
 
   print $q->hidden(-name=>'login_form',
-		   -default=>1,);
+                   -default=>1,);
   print $q->hidden(-name=>'show_content',
-		   -default=>1);
+                   -default=>1);
   print $q->br;
   print "Username: </td><td>";
   print $q->textfield(-name=>'userid',
-		      -size=>17,
-		      -maxlength=>30);
+                      -size=>17,
+                      -maxlength=>30);
   print $q->br;
   print "</td><tr><td>Staff Password: </td><td>";
   print $q->password_field(-name=>'password',
-			   -size=>17,
-			   -maxlength=>30);
+                           -size=>17,
+                           -maxlength=>30);
   print "</td><td>";
   print $q->submit("Submit");
   print $q->endform;
@@ -423,19 +423,19 @@ sub _write_admin_login {
   print $q->startform;
 
   print $q->hidden(-name=>'login_form',
-		   -default=>1,);
+                   -default=>1,);
   print $q->hidden(-name=>'show_content',
-		   -default=>1);
+                   -default=>1);
   print $q->br;
   print "Username: </td><td>";
   print $q->textfield(-name=>'userid',
-		      -size=>17,
-		      -maxlength=>30);
+                      -size=>17,
+                      -maxlength=>30);
   print $q->br;
   print "</td><tr><td>Admin Password: </td><td>";
   print $q->password_field(-name=>'password',
-			   -size=>17,
-			   -maxlength=>30);
+                           -size=>17,
+                           -maxlength=>30);
   print "</td><td>";
   print $q->submit("Submit");
   print $q->endform;
@@ -610,22 +610,22 @@ sub write_page_proposals {
 
       # Store the password and project id for verification
       if ($q->param('login_form')) {
-	$cookie{projectid} = $q->param('projectid');
-	$cookie{password} = $q->param('password');
+        $cookie{projectid} = $q->param('projectid');
+        $cookie{password} = $q->param('password');
       }
 
       # Verify a password of some sort
       my $verify;
       if (exists $cookie{projectid} and exists $cookie{password}) {
-	$verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
+        $verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
       } else {
-	$self->_write_login($q->url_param('urlprojid'));
-	return;
+        $self->_write_login($q->url_param('urlprojid'));
+        return;
       }
 
       if (! $verify) {
-	$self->_write_login($q->url_param('urlprojid'));
-	return;
+        $self->_write_login($q->url_param('urlprojid'));
+        return;
       }
 
     }
@@ -895,7 +895,7 @@ sub _get_param {
     for my $cookie (@cookies) {
       my %cookie = $cookie->getCookie;
       $value = $cookie{$name}
-	if (exists $cookie{$name});
+        if (exists $cookie{$name});
     }
   }
 
@@ -1018,13 +1018,13 @@ sub _sidebar {
   $theme->SetMoreLinksTitle("<font color=#ffffff>Project $projectid</font>");
 
   my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl'>$cookie{projectid} Project home</a>",
-		      "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
-		      "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
-		      "<a class='sidemain' href='spregion.pl'>Program regions</a>",
-		      "<a class='sidemain' href='fbcomment.pl'>Add comment</a>",
-		      "<a class='sidemain' href='msbhist.pl'>MSB History</a>",
-		      "<a class='sidemain' href='projusers.pl'>Contacts</a>",
-		      "<a class='sidemain' href='/'>OMP home</a>",);
+                      "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
+                      "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
+                      "<a class='sidemain' href='spregion.pl'>Program regions</a>",
+                      "<a class='sidemain' href='fbcomment.pl'>Add comment</a>",
+                      "<a class='sidemain' href='msbhist.pl'>MSB History</a>",
+                      "<a class='sidemain' href='projusers.pl'>Contacts</a>",
+                      "<a class='sidemain' href='/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
@@ -1107,7 +1107,7 @@ sub _write_header {
 
   if ($cookie->[0]) {
     print $q->header( -cookie => $cookie,
-		      -expires => '-1d' );
+                      -expires => '-1d' );
   } else {
     print $q->header( -expires => '-1d' );
   }
@@ -1139,9 +1139,9 @@ sub _write_header {
 
   # These links will go under the 'JAC Divisions' heading
   my @links = ("<a class='sidemain' HREF='http://www.eaobservatory.org/'>EAO Home</a>",
-	       "<a class='sidemain' HREF='http://www.eaobservatory.org/jcmt/'>JCMT</a>",
-	       "<a class='sidemain' HREF='http://www.ukirt.hawaii.edu/'>UKIRT</a>",
-	       "<a class='sidemain' HREF='http://www.eao.hawaii.edu/weather/'>Weather</a>",
+               "<a class='sidemain' HREF='http://www.eaobservatory.org/jcmt/'>JCMT</a>",
+               "<a class='sidemain' HREF='http://www.ukirt.hawaii.edu/'>UKIRT</a>",
+               "<a class='sidemain' HREF='http://www.eao.hawaii.edu/weather/'>Weather</a>",
 
 );
 
@@ -1152,7 +1152,7 @@ sub _write_header {
 
   print $theme->StartHTML(),
         $theme->MakeHeader(),
-	$theme->MakeTopBottomBar();
+        $theme->MakeTopBottomBar();
 
 }
 
@@ -1201,23 +1201,23 @@ sub _write_login {
     # from the login form, so we'll be sure to run the form_content callback and not
     # form_output.
         $q->hidden(-name=>'login_form',
-		   -default=>1,),
-	$q->hidden(-name=>'show_content',
-		   -default=>1),
+                   -default=>1,),
+        $q->hidden(-name=>'show_content',
+                   -default=>1),
         $q->br,
-	"Project ID: </td><td colspan='2'>",
-	$q->textfield(-name=>'projectid',
-		      -default=>$projectid,
-		      -size=>17,
-		      -maxlength=>30),
-	$q->br,
-	"</td><tr><td>Password: </td><td>",
-	$q->password_field(-name=>'password',
-			   -size=>17,
-			   -maxlength=>30),
-	"</td><td>",
-	$q->submit("Submit"),
-	$q->endform;
+        "Project ID: </td><td colspan='2'>",
+        $q->textfield(-name=>'projectid',
+                      -default=>$projectid,
+                      -size=>17,
+                      -maxlength=>30),
+        $q->br,
+        "</td><tr><td>Password: </td><td>",
+        $q->password_field(-name=>'password',
+                           -size=>17,
+                           -maxlength=>30),
+        "</td><td>",
+        $q->submit("Submit"),
+        $q->endform;
   print "</td></table>";
 
   $self->_write_footer();

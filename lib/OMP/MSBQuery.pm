@@ -137,7 +137,7 @@ sub airmass {
     if (defined $airmass) {
       # we had an elevation and an airmass
       $airmass->intersection( $airmass_el )
-	or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect: airmass $airmass and from el: $airmass_el");
+        or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect: airmass $airmass and from el: $airmass_el");
     } else {
       # We only had an elevation
       $airmass = $airmass_el;
@@ -251,12 +251,12 @@ sub constraints {
 
   # Default values
   my %constraints = (
-		     observability => 1,
-		     remaining => 1,
-		     allocation => 1,
-		     state => 1,
+                     observability => 1,
+                     remaining => 1,
+                     allocation => 1,
+                     state => 1,
                      zoa => 1,
-		    );
+                    );
 
   # Go through the disableconstraint array making a hash
   if (exists $href->{disableconstraint}) {
@@ -264,13 +264,13 @@ sub constraints {
       $con = lc( $con );
       # immediately drop out if we hit "all"
       if ($con eq "all" ) {
-	for my $key (keys %constraints) {
-	  $constraints{$key} = 0;
-	}
-	last;
+        for my $key (keys %constraints) {
+          $constraints{$key} = 0;
+        }
+        last;
       } elsif (exists $constraints{$con}) {
-	# If it is in the allowed constraints list set to false
-	$constraints{$con} = 0;
+        # If it is in the allowed constraints list set to false
+        $constraints{$con} = 0;
       }
     }
   }
@@ -422,7 +422,7 @@ sub sql {
   my $top_sql = "SELECT
          DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
             FROM $msbtable M,$obstable O, $projtable P " .
-	     join(" ", @join_tables)
+             join(" ", @join_tables)
           ."  WHERE M.msbid = O.msbid
               AND P.projectid = M.projectid $u_sql";
 
@@ -606,27 +606,27 @@ sub _post_process_hash {
 
       my $factor = 1; # multiplication factor
       if ($units =~ /^h/) {
-	$factor = 3600;
+        $factor = 3600;
       } elsif ($units =~ /^m/) {
-	$factor = 60;
+        $factor = 60;
       }
 
       # Now scale all values by this factor
       # 99% of the time we have an OMP::Range object here
       if (UNIVERSAL::isa($href->{timeest},"OMP::Range")) {
-	my @minmax = $href->{timeest}->minmax;
-	for (@minmax) {
-	  $_ *= $factor if defined $_;
-	}
-	$href->{timeest}->minmax(@minmax);
+        my @minmax = $href->{timeest}->minmax;
+        for (@minmax) {
+          $_ *= $factor if defined $_;
+        }
+        $href->{timeest}->minmax(@minmax);
       } elsif (ref($href->{timeest}) eq 'HASH') {
-	for (keys %{ $href->{timeest} }) {
-	  $href->{timeest}->{$_} *= $factor;
-	}
+        for (keys %{ $href->{timeest} }) {
+          $href->{timeest}->{$_} *= $factor;
+        }
       } elsif (ref($href->{timeest}) eq 'ARRAY') {
-	for (@{ $href->{timeest}}) {
-	  $_ *= $factor;
-	}
+        for (@{ $href->{timeest}}) {
+          $_ *= $factor;
+        }
       }
     }
   }
@@ -652,7 +652,7 @@ sub _post_process_hash {
     next if $key =~ /^_/;
 
     if ($key eq "seeing" or $key eq "tau" or $key eq "date"
-	    or $key eq 'sky' or $key eq 'cloud' or $key eq 'moon') {
+            or $key eq 'sky' or $key eq 'cloud' or $key eq 'moon') {
       # Convert to two independent ranges
 
       # Note that taumin indicates a MAX for the supplied value
@@ -661,29 +661,29 @@ sub _post_process_hash {
 
       # Loop over min and max
       for my $type (qw/ min max /) {
-	$href->{"$key$type"} = new OMP::Range( $outkey{$type} =>
-					       $href->{$key}->[0]);
+        $href->{"$key$type"} = new OMP::Range( $outkey{$type} =>
+                                               $href->{$key}->[0]);
       }
 
       # And remove the old key (unless it is the reference date)
       delete $href->{$key} unless $key eq "date";
 
     } elsif ($key eq 'projectid' && ! $href->{_attr}->{projectid}->{full}
-	    ) {
+            ) {
       # Expand project IDs unless we know that the project ID is
       # already fully expanded.
 
       # Get the telescope and date if we know it
       my %options;
       $options{telescope} = $href->{telescope}->[0] 
-	if exists $href->{telescope};
+        if exists $href->{telescope};
       $options{date} = $href->{date}->[0]
-	if exists $href->{date}->[0];
+        if exists $href->{date}->[0];
 
       # Translate project IDs
       for my $pid (@{ $href->{$key}}) {
-	$pid = OMP::General->infer_projectid(%options,
-					     projectid => $pid);
+        $pid = OMP::General->infer_projectid(%options,
+                                             projectid => $pid);
       }
 
     }
@@ -712,8 +712,8 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
-			   [qw/projectid telescope semester country name
-			    pi coi instrument person /]);
+                           [qw/projectid telescope semester country name
+                            pi coi instrument person /]);
 
 
   # These entries are in more than one table so we have to 
@@ -741,10 +741,10 @@ sub _post_process_hash {
     for my $mm (qw/ min max /) {
       my $key = $base . $mm;
       if (exists $href->{$key}) {
-	for my $tab (qw/ M. P. /) {
-	  $href->{"$tab$key"} = $href->{$key};
-	}
-	delete $href->{$key};
+        for my $tab (qw/ M. P. /) {
+          $href->{"$tab$key"} = $href->{$key};
+        }
+        delete $href->{$key};
       }
     }
   }
@@ -759,7 +759,7 @@ sub _post_process_hash {
   if (exists $href->{coi}) {
     my $U = $prefix . $counter;
     $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
-		     "$U.capacity" => ['COI']};
+                     "$U.capacity" => ['COI']};
     $counter++;
   }
 
@@ -772,10 +772,10 @@ sub _post_process_hash {
   if (exists $href->{person}) {
     my $U = $prefix . $counter;
     $href->{person} = {
-		       _JOIN => 'AND',
-		       auser => {"$U.userid" => $href->{person}},
-		       acapacity => { "$U.capacity"=> ['COI','PI']},
-		      };
+                       _JOIN => 'AND',
+                       auser => {"$U.userid" => $href->{person}},
+                       acapacity => { "$U.capacity"=> ['COI','PI']},
+                      };
     $counter++;
   }
 

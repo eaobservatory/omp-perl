@@ -183,50 +183,50 @@ sub CreateAccessors {
 
   my $SCALAR = q{
 #line 1 OMP::Info::Base::SCALAR
-		 sub METHOD {
-		   my $self = shift;
-		   if (@_) { 
-		     my $argument = shift;
+                 sub METHOD {
+                   my $self = shift;
+                   if (@_) { 
+                     my $argument = shift;
          if (defined $argument) {
-		       CLASS_CHECK;
+                       CLASS_CHECK;
          }
-		     $self->{METHOD} = $argument;
-		   }
-		   return $self->{METHOD};
-		 }
-	       };
+                     $self->{METHOD} = $argument;
+                   }
+                   return $self->{METHOD};
+                 }
+               };
 
   my $ARRAY = q{
 #line 1 OMP::Info::Base::ARRAY
-		sub METHOD {
-		  my $self = shift;
-		  $self->{METHOD} = [] unless $self->{METHOD};
-		  if (@_) {
-		    my @new;
-		    if (ref($_[0]) eq 'ARRAY') {
-		      @new = @{$_[0]};
-		    } else {
-		      @new = @_;
-		    }
-		    ARRAY_CLASS_CHECK;
-		    @{ $self->{METHOD} } = @new;
-		  }
-		  if (wantarray) {
-		    return @{ $self->{METHOD} };
-		  } else {
-		    return $self->{METHOD};
-		  }
-		}
-	      };
+                sub METHOD {
+                  my $self = shift;
+                  $self->{METHOD} = [] unless $self->{METHOD};
+                  if (@_) {
+                    my @new;
+                    if (ref($_[0]) eq 'ARRAY') {
+                      @new = @{$_[0]};
+                    } else {
+                      @new = @_;
+                    }
+                    ARRAY_CLASS_CHECK;
+                    @{ $self->{METHOD} } = @new;
+                  }
+                  if (wantarray) {
+                    return @{ $self->{METHOD} };
+                  } else {
+                    return $self->{METHOD};
+                  }
+                }
+              };
 
   my $HASH = q{
 #line 1 OMP::Info::Base::HASH
-	       sub METHOD {
-		 my $self = shift;
-		 $self->{METHOD} = {} unless $self->{METHOD};
-		 if (@_) {
+               sub METHOD {
+                 my $self = shift;
+                 $self->{METHOD} = {} unless $self->{METHOD};
+                 if (@_) {
        if (defined $_[0]) {
-  		   my %new;
+                   my %new;
          if (ref($_[0]) eq 'HASH') {
            %new = %{$_[0]};
          } else {
@@ -243,42 +243,42 @@ sub CreateAccessors {
          $self->{METHOD} = undef;
          return undef;
        }
-		 }
-		 if (wantarray) {
-		   return (defined $self->{METHOD} ? %{ $self->{METHOD} } : () );
-		 } else {
+                 }
+                 if (wantarray) {
+                   return (defined $self->{METHOD} ? %{ $self->{METHOD} } : () );
+                 } else {
        $self->{METHOD} = {} if !defined $self->{METHOD};
-		   return $self->{METHOD};
-		 }
-	       }
-	     };
+                   return $self->{METHOD};
+                 }
+               }
+             };
 
   my $CLASS_CHECK = q{
 #line 1 OMP::Info::Base::class_check
-		      unless (UNIVERSAL::isa($argument, 'CLASS')) {
-			croak "Argument for 'METHOD' must be of class CLASS and not class '". 
-			  (defined $argument ? (ref($argument) ? ref($argument) : $argument) : '<undef>') ."'";
-		      }
-		     };
+                      unless (UNIVERSAL::isa($argument, 'CLASS')) {
+                        croak "Argument for 'METHOD' must be of class CLASS and not class '". 
+                          (defined $argument ? (ref($argument) ? ref($argument) : $argument) : '<undef>') ."'";
+                      }
+                     };
 
   my $ARRAY_CLASS_CHECK = q{
 #line 1 OMP::Info::Base::array_class_check
-			    for my $argument (@new) {
-			      CLASS_CHECK;
-			    }
-			   };
+                            for my $argument (@new) {
+                              CLASS_CHECK;
+                            }
+                           };
 
   my $HASH_CLASS_CHECK = q{
 #line 1 OMP::Info::Base::hash_class_check
-			   for my $key (keys %new) {
-			     my $argument = $new{$key};
-			     CLASS_CHECK;
-			   }
-			  };
+                           for my $key (keys %new) {
+                             my $argument = $new{$key};
+                             CLASS_CHECK;
+                           }
+                          };
 
   my $REFCHECK = q{ croak "Argument for method 'METHOD' can not be a reference"
-		      if ref($argument);
-		  };
+                      if ref($argument);
+                  };
   my $UPCASE = $REFCHECK . q{ $argument = uc($argument); };
   my $DOWNCASE = $REFCHECK . q{ $argument = lc($argument); };
 
@@ -297,16 +297,16 @@ sub CreateAccessors {
 
       # Remove the CHECK block
       if ($TYPE =~ /__UC__/) {
-	# upper case
-	$code =~ s/CLASS_CHECK/$UPCASE/;
+        # upper case
+        $code =~ s/CLASS_CHECK/$UPCASE/;
       } elsif ($TYPE =~ /__LC__/) {
-	# lower case
-	$code =~ s/CLASS_CHECK/$DOWNCASE/;
+        # lower case
+        $code =~ s/CLASS_CHECK/$DOWNCASE/;
       } elsif ($TYPE =~ /__ANY__/) {
-	$code =~ s/CLASS_CHECK//;
+        $code =~ s/CLASS_CHECK//;
       } else {
-	# Check references
-	$code =~ s/CLASS_CHECK/$REFCHECK/;
+        # Check references
+        $code =~ s/CLASS_CHECK/$REFCHECK/;
       }
 
     } elsif ($TYPE =~ /^\@/) {
@@ -315,11 +315,11 @@ sub CreateAccessors {
 
       # Using a class?
       if ($TYPE =~ /^\@(.+)/) {
-	$class = $1;
-	$code =~ s/ARRAY_CLASS_CHECK/$ARRAY_CLASS_CHECK/;
-	$code =~ s/CLASS_CHECK/$CLASS_CHECK/;
+        $class = $1;
+        $code =~ s/ARRAY_CLASS_CHECK/$ARRAY_CLASS_CHECK/;
+        $code =~ s/CLASS_CHECK/$CLASS_CHECK/;
       } else {
-	$code =~ s/ARRAY_CLASS_CHECK//;
+        $code =~ s/ARRAY_CLASS_CHECK//;
       }
     } elsif ($TYPE =~ /^\%/) {
 
@@ -327,11 +327,11 @@ sub CreateAccessors {
 
       # Using a class?
       if ($TYPE =~ /^\%(.+)/) {
-	$class = $1;
-	$code =~ s/HASH_CLASS_CHECK/$HASH_CLASS_CHECK/;
-	$code =~ s/CLASS_CHECK/$CLASS_CHECK/;
+        $class = $1;
+        $code =~ s/HASH_CLASS_CHECK/$HASH_CLASS_CHECK/;
+        $code =~ s/CLASS_CHECK/$CLASS_CHECK/;
       } else {
-	$code =~ s/HASH_CLASS_CHECK//;
+        $code =~ s/HASH_CLASS_CHECK//;
       }
 
     } elsif ($TYPE =~ /^\w/) {

@@ -25,4 +25,4 @@ my $ompcgi = new OMP::CGIPage( CGI => $q );
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: List Projects");
 $ompcgi->write_page( \&OMP::CGIPage::Feedback::add_comment_content,
-		     \&OMP::CGIPage::Feedback::add_comment_output );
+                     \&OMP::CGIPage::Feedback::add_comment_output );

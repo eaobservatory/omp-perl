@@ -29,11 +29,11 @@ $cgi->html_title("Observing Report " . $q->url_param('utdate'));
 # authentication
 if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIPage::ObsReport::night_report,
-			   \&OMP::CGIPage::ObsReport::night_report );
+                           \&OMP::CGIPage::ObsReport::night_report );
 } else {
   $cgi->write_page_staff( \&OMP::CGIPage::ObsReport::night_report,
-			  \&OMP::CGIPage::ObsReport::night_report,
-			  "noauth",);
+                          \&OMP::CGIPage::ObsReport::night_report,
+                          "noauth",);
 }
 
 

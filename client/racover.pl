@@ -104,9 +104,9 @@ my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "semester=s" => \$semester,
-			"instrument=s" => \$instrument,
-			"country=s" => \$country,
-			"project=s" => \@projects,
+                        "instrument=s" => \$instrument,
+                        "country=s" => \$country,
+                        "project=s" => \@projects,
                         "tel=s" => \$tel,
                        );
 
@@ -284,7 +284,7 @@ for my $i (0..$#rahist) {
   }
 
   Graphics::PLplot::plptex( ( $xmin + $i + 0.5), ($rahist[$i]+(0.01*$ymax)),
-	  1, 0.0, 0.5, $text);
+          1, 0.0, 0.5, $text);
 
   # Annotate every other
   Graphics::PLplot::plmtex("b",1,(($i+1) * ($binsz) - (0.5*$binsz)), 0.5, ($xmin+$i))

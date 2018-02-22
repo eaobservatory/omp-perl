@@ -23,4 +23,4 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Password request page");
 $cgi->write_page_noauth( \&OMP::CGIPage::Project::issuepwd,
-			 \&OMP::CGIPage::Project::issuepwd );
+                         \&OMP::CGIPage::Project::issuepwd );

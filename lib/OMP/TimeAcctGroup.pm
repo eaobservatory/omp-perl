@@ -66,22 +66,22 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $tg = bless {
-		  Accounts => [],
-		  TotalTime => undef,
-		  TotalTimeNonExt => undef,
-		  CalTime => undef,
-		  ClearTime => undef,
-		  ConfirmedTime => undef,
-		  ECTime => undef,
-		  ExtTime => undef,
-		  FaultLoss => undef,
-		  ObservedTime => undef,
-		  OtherTime => undef,
-		  ScienceTime => undef,
-		  ShutdownTime => undef,
-		  Telescope => undef,
-		  WeatherLoss => undef,
-		 }, $class;
+                  Accounts => [],
+                  TotalTime => undef,
+                  TotalTimeNonExt => undef,
+                  CalTime => undef,
+                  ClearTime => undef,
+                  ConfirmedTime => undef,
+                  ECTime => undef,
+                  ExtTime => undef,
+                  FaultLoss => undef,
+                  ObservedTime => undef,
+                  OtherTime => undef,
+                  ScienceTime => undef,
+                  ShutdownTime => undef,
+                  Telescope => undef,
+                  WeatherLoss => undef,
+                 }, $class;
 
   if (@_) {
     $tg->populate( %args );
@@ -127,7 +127,7 @@ sub accounts {
     # with a defined epoch
     for (@accounts) {
       throw OMP::Error::BadArgs("Account must be an object of class OMP::Project::TimeAcct")
-	unless UNIVERSAL::isa($_, "OMP::Project::TimeAcct");
+        unless UNIVERSAL::isa($_, "OMP::Project::TimeAcct");
       throw OMP::Error::BadArgs("Account must have a valid date, not undef")
         unless defined $_->date;
     }
@@ -689,8 +689,8 @@ sub completion_stats {
     my $tdb = new OMP::TimeAcctDB(DB=>$self->db);
     my $xml = "<TimeAcctQuery>".
       "<date><max>".$lowdate->datetime."</max></date>".
-	join("",map {"<projectid>$_</projectid>"} keys %projectids).
-	  "</TimeAcctQuery>";
+        join("",map {"<projectid>$_</projectid>"} keys %projectids).
+          "</TimeAcctQuery>";
     my $query = new OMP::TimeAcctQuery(XML=>$xml);
     my @offset_accts = $tdb->queryTimeSpent( $query );
     my $offset_grp = $self->new(accounts=>\@offset_accts);
@@ -719,19 +719,19 @@ sub completion_stats {
   }
 
   my %returnhash = (
-		    science => \@sci_cumul,
-		    fault => \@fault,
-		    ec => \@ec,
-		    weather => \@weather,
-		    __ALLOC__ => $alloc,
-		    __OFFSET__ => $offset,
-		   );
+                    science => \@sci_cumul,
+                    fault => \@fault,
+                    ec => \@ec,
+                    weather => \@weather,
+                    __ALLOC__ => $alloc,
+                    __OFFSET__ => $offset,
+                   );
 
   for my $stat (keys %returnhash) {
     next if $stat eq 'science' or $stat =~ /^__/;
     @{$returnhash{$stat}} = OMP::PlotHelper->bin_up(size => 7,
-						    method => 'sum',
-						    values => $returnhash{$stat});
+                                                    method => 'sum',
+                                                    values => $returnhash{$stat});
   }
 
   return %returnhash;
@@ -766,7 +766,7 @@ sub group_by_ut {
   # Convert each group into an OMP::TimeAcctGroup object
   for my $ut (keys %accts) {
     $accts{$ut} = $self->new(accounts=>$accts{$ut},
-			     telescope => $self->telescope);
+                             telescope => $self->telescope);
   }
 
   return %accts;
@@ -835,7 +835,7 @@ sub remdupe {
     my $exists = 0;
     for my $unique (@unique_acct) {
       if ($old == $unique) {
-	$exists = 1;
+        $exists = 1;
       }
     }
     push @unique_acct, $old
@@ -1037,8 +1037,8 @@ sub _get_telescope {
   my @accts = $self->_get_non_special_accts;
   if (@accts) {
     my $db = new OMP::ProjDB(DB=>$self->db,
-			     ProjectID=>$accts[0]->projectid,
-			    );
+                             ProjectID=>$accts[0]->projectid,
+                            );
     return $db->getTelescope();
   }
   return undef;
