@@ -421,7 +421,7 @@ sub obs_table {
 
         if ( scalar @msb_comment ) {
 
-          print qq[<tr class="$rowclass"><td class="msb-comment-nightrep $css_status" colspan="$ncols"><p>],
+          print qq[<tr class="$rowclass"><td class="msb-comment-nightrep" colspan="$ncols"><p>],
             join '</p><p>',
              @msb_comment;
 
