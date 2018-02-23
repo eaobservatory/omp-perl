@@ -32,6 +32,7 @@ use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/ :msb /;
+use OMP::SciProg;
 use OMP::SiteQuality;
 use OMP::TLEDB qw/standardize_tle_name/;
 use Astro::Coords;
@@ -110,6 +111,10 @@ and internal priority will be read from this node. The remaining
 counter will be used when an MSB is accepted in preference to any
 remaining counter attached to the MSB XML.
 
+The NO_FIX_UP key can be used to suppress "fix up" actions which
+would normally occur on constructing the MSB object, including
+setting the obs counter.
+
 If parsed, the MSB is checked for well formedness. The XML form of the
 MSB is assumed to be self-contained (no external references).
 
@@ -172,14 +177,16 @@ sub new {
   $msb->telescope( $args{TELESCOPE} )
     if (exists $args{TELESCOPE} && defined $args{TELESCOPE});
 
-  # Force the setting of an obscounter in each
-  # SpObs so that we can use it to label our observations
-  # Do this early since it never hurts and we want to ensure
-  # that it is available - does not trigger a large overhead
-  $msb->_set_obs_counter();
+  unless ($args{'NO_FIX_UP'}) {
+    # Force the setting of an obscounter in each
+    # SpObs so that we can use it to label our observations
+    # Do this early since it never hurts and we want to ensure
+    # that it is available - does not trigger a large overhead
+    $msb->_set_obs_counter();
 
-  # fix up any problems
-  $msb->_fixup_msb;
+    # fix up any problems
+    $msb->_fixup_msb;
+  }
 
   return $msb;
 }
@@ -1419,21 +1426,11 @@ sub hasBeenObserved {
     # If the number of remaining items is 0 we need to go
     # and find all the MSBs that are left and fix up their
     # "remaining" attributes so that they will no longer be accepted
-    # This code is identical to that in OMP::SciProg so we should
-    # be doing this in a cleverer way.
-    # For now KLUGE KLUGE KLUGE
     if ($n == 0) {
       print "Attempting to REMOVE remaining MSBs\n" if $DEBUG;
-      my @msbs = $SpOR->findnodes(".//SpMSB");
-      print "Located ".@msbs." SpMSB...\n" if $DEBUG;
-      my $count = @msbs;
-      push(@msbs, $SpOR->findnodes('.//SpObs[@msb="true"]'));
-      print "Located ". (@msbs - $count). " SpObs...\n" if $DEBUG;
 
-      for (@msbs) {
-        # Eek this should be happening on little OMP::MSB objects
-        my $rem = $_->getAttribute( "remaining" );
-        $_->setAttribute("remaining",($rem*-1)) if $rem > 0;
+      foreach (OMP::SciProg::_get_msbs_within_node($SpOR, {'NO_FIX_UP' => 1})) {
+        $_->remaining(OMP__MSB_REMOVED);
       }
     }
 

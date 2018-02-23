@@ -687,25 +687,9 @@ all but the first MSB from the tree.
 sub locate_msbs {
   my $self = shift;
 
-  # Find all the SpMSB elements
-  my @spmsb = $self->_tree->findnodes("//SpMSB");
-
-  # Find all the SpObs elements that are not in SpMSB
-  # We believe the MSB attribute
-  my @spobs = $self->_tree->findnodes('//SpObs[@msb="true"]');
-
-  # occassionally we get some spurious hits here (have not found
-  # out why) so go through and remove spobs that have an SpMSB
-  # parent [this is the safest way if we do not trust the msb attribute
-  # - it may be that we should never trust the attribute and always
-  # get every SpObs and then remove spurious ones.
-  for (@spobs) {
-    my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
-    push(@spmsb, $_) unless $parent;
-  }
-
-  # Populate the static arguments for the MSB constuctor
+  # Prepare the static arguments for the MSB constuctor
   my %EXTRAS = (
+                PARSER => $self->_parser,
                 OTVERSION => $self->ot_version,
                 PROJECTID => $self->projectID,
                 REFS => scalar $self->refs,
@@ -715,40 +699,7 @@ sub locate_msbs {
   my $tel = $self->telescope;
   $EXTRAS{TELESCOPE} = $tel if defined $tel;
 
-  # Loop over each MSB creating the MSB objects.
-  # Trick here is that for MSBs that are within Survey containers
-  # we need to create multiple MSB objects
-  # This means we will not be using a simple map
-  my @objs;
-  for my $msbnode (@spmsb) {
-    # Look for a survey container ancestor
-    my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
-    if ($sc) {
-      # We need to extract the TargetList information from the survey
-      # container and iterate over the target information
-      my ($tl) = $sc->findnodes('.//TargetList');
-      throw OMP::Error::SpBadStructure("No Target List specified for Survey container") unless defined $tl;
-
-      # parse the target list
-      my %results = OMP::MSB->TargetList( $tl );
-
-      # "targets" contains the array of targets that we have found
-      for my $targ (@{ $results{targets} } ) {
-        push(@objs, new OMP::MSB( TREE => $msbnode,
-                                  PARSER => $self->_parser,
-                                  %EXTRAS,
-                                  OVERRIDE => $targ,
-                                )
-            );
-      }
-
-    } else {
-      # Not a survey, just create the object and store it
-      push(@objs, new OMP::MSB( TREE => $msbnode,
-                                PARSER => $self->_parser,
-                                %EXTRAS ));
-    }
-  }
+  my @objs = _get_msbs_within_node($self->_tree(), \%EXTRAS);
 
   # Remove duplicates
   # Build up a hash keyed by checksum
@@ -800,6 +751,73 @@ sub locate_msbs {
   $self->msb(@objs)
     if @objs;
 
+}
+
+=item B<_get_msbs_within_node>
+
+Find and return the MSBs within a given node of the science program.
+
+  my @msbs = _get_msbs_within_node($node, \%msb_extra);
+
+This is a helper routine for C<locate_msbs>.
+
+=cut
+
+sub _get_msbs_within_node {
+  my $node = shift;
+  my $msb_extra = shift;
+
+  # Find all the SpMSB elements
+  my @spmsb = $node->findnodes(".//SpMSB");
+
+  # Find all the SpObs elements that are not in SpMSB
+  # We believe the MSB attribute
+  my @spobs = $node->findnodes('.//SpObs[@msb="true"]');
+
+  # occassionally we get some spurious hits here (have not found
+  # out why) so go through and remove spobs that have an SpMSB
+  # parent [this is the safest way if we do not trust the msb attribute
+  # - it may be that we should never trust the attribute and always
+  # get every SpObs and then remove spurious ones.
+  for (@spobs) {
+    my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
+    push(@spmsb, $_) unless $parent;
+  }
+
+  # Loop over each MSB creating the MSB objects.
+  # Trick here is that for MSBs that are within Survey containers
+  # we need to create multiple MSB objects
+  # This means we will not be using a simple map
+  my @objs;
+  for my $msbnode (@spmsb) {
+    # Look for a survey container ancestor
+    my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
+    if ($sc) {
+      # We need to extract the TargetList information from the survey
+      # container and iterate over the target information
+      my ($tl) = $sc->findnodes('.//TargetList');
+      throw OMP::Error::SpBadStructure("No Target List specified for Survey container") unless defined $tl;
+
+      # parse the target list
+      my %results = OMP::MSB->TargetList( $tl );
+
+      # "targets" contains the array of targets that we have found
+      for my $targ (@{ $results{targets} } ) {
+        push(@objs, new OMP::MSB( TREE => $msbnode,
+                                  %$msb_extra,
+                                  OVERRIDE => $targ,
+                                )
+            );
+      }
+
+    } else {
+      # Not a survey, just create the object and store it
+      push(@objs, new OMP::MSB( TREE => $msbnode,
+                                %$msb_extra ));
+    }
+  }
+
+  return @objs;
 }
 
 =item B<locate_refs>
