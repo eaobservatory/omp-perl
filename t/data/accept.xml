@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.eao.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>accept.xml</meta_gui_filename>
+  <country>TEST</country>
+  <ot_version>20180222</ot_version>
+  <pi>TEST</pi>
+  <projectID>TEST</projectID>
+  <telescope>jcmt</telescope>
+  <title>Test Program</title>
+  <SpMSB remaining="10" type="og" subtype="msb">
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>MSB A</title>
+    <totalDuration units="seconds">0.0</totalDuration>
+  </SpMSB>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <title>OR Folder</title>
+    <SpMSB remaining="10" type="og" subtype="msb">
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB B</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+    <SpMSB remaining="10" type="og" subtype="msb">
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB C</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+  </SpOR>
+</SpProg>
