@@ -1375,8 +1375,8 @@ sub hasBeenObserved {
     my ($SpAND) = $self->_tree->findnodes('ancestor-or-self::SpAND');
     my ($SpSC)  = $self->_tree->findnodes('ancestor-or-self::SpSurveyContainer');
     my ($SpSCAnd);
-    $SpSCAnd = $SpSC->findnodes('ancestor-or-self::SpAND')
-      if $SpSCAnd;
+    ($SpSCAnd) = $SpSC->findnodes('ancestor-or-self::SpAND')
+      if $SpSC;
 
     # Now we need to move the MSB or the enclosing SpAND/Survey to
     # just after the SpOR
