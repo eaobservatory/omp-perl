@@ -181,8 +181,8 @@ while ($ut <= $endut) {
 
   print "Date: $iut\n";
   my $nr = OMP::NightRep->new(date => $iut,
-			      telescope => $tel,
-			      delta_day => $delta,);
+                              telescope => $tel,
+                              delta_day => $delta,);
 
   my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
 
@@ -236,7 +236,7 @@ while ($ut <= $endut) {
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->{total}->hours;
       if ($acct{$tel.$proj}->{pending}) {
-	$pending += $acct{$tel.$proj}->{pending}->hours;
+        $pending += $acct{$tel.$proj}->{pending}->hours;
       }
       $total += $time unless ($proj eq 'EXTENDED' or $proj eq '_SHUTDOWN');
     }

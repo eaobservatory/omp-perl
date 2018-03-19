@@ -68,10 +68,10 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $f = bless {
-		 FaultArray => [],
-		 TimeLost => undef,
-		 TimeLostNonTechnical => undef,
-		 TimeLostTechnical => undef,
+                 FaultArray => [],
+                 TimeLost => undef,
+                 TimeLostNonTechnical => undef,
+                 TimeLostTechnical => undef,
                  Categories => [],
                 }, $class;
 
@@ -119,7 +119,7 @@ sub faults {
     # Make sure the faults are OMP::Fault objects
     for (@faults) {
       throw OMP::Error::BadArgs("Fault must be an object of class OMP::Fault")
-	unless UNIVERSAL::isa($_, "OMP::Fault");
+        unless UNIVERSAL::isa($_, "OMP::Fault");
     }
 
     # Store the fault objects (sorted)
@@ -167,7 +167,7 @@ sub timelost {
       # Set the new time lost value
       my $time = shift;
       $time = new Time::Seconds( $time )
-	unless UNIVERSAL::isa($time, "Time::Seconds");
+        unless UNIVERSAL::isa($time, "Time::Seconds");
       $self->{TimeLost} = $time;
     }
   } elsif (! defined $self->{TimeLost}) {
@@ -180,11 +180,11 @@ sub timelost {
     for my $fault ( @faults ) {
       my $loss = new Time::Seconds($fault->timelost * ONE_HOUR);
       if ($fault->typeText =~ /human/i or $fault->statusText =~ /not a fault/i) {
-	
-	# Fault is non-technical
-	$timelost_nontech += $loss;
+
+        # Fault is non-technical
+        $timelost_nontech += $loss;
       } else {
-	$timelost_technical += $loss;
+        $timelost_technical += $loss;
       }
       $timelost += $loss;
     }
@@ -225,7 +225,7 @@ sub timelostTechnical {
     } else {
       my $time = shift;
       $time = new Time::Seconds( $time )
-	unless UNIVERSAL::isa($time, "Time::Seconds");
+        unless UNIVERSAL::isa($time, "Time::Seconds");
       $self->{TimeLostTechnical} = $time;
     }
   }
@@ -259,7 +259,7 @@ sub timelostNonTechnical {
     } else {
       my $time = shift;
       $time = new Time::Seconds( $time )
-	unless UNIVERSAL::isa($time, "Time::Seconds");
+        unless UNIVERSAL::isa($time, "Time::Seconds");
       $self->{TimeLostNonTechnical} = $time;
     }
   }
@@ -300,8 +300,8 @@ sub categories {
       # Make sure categories are valid
       my %validcats = map {$_, undef} OMP::Fault->categories;
       for (@categories) {
-	throw OMP::Error::BadArgs("Category names must be valid.")
-	  unless exists($validcats{$_});
+        throw OMP::Error::BadArgs("Category names must be valid.")
+          unless exists($validcats{$_});
       }
       @{$self->{Categories}} = @categories;
     }
@@ -478,7 +478,7 @@ sub faultRateStats {
   my %defaults = (bin => 1,
                   filed => 0,
                   stardate => undef,
-		  loss => 0,
+                  loss => 0,
                   average => 0,);
 
   %args = (%defaults, %args);
@@ -506,9 +506,9 @@ sub faultRateStats {
 
   # Bin up
   my @stats = OMP::PlotHelper->bin_up_by_date(days => $args{bin},
-					      method => ($args{average} ? 'average' : 'sum'),
-					      values => \@coords,
-					      startdate => $args{startdate},);
+                                              method => ($args{average} ? 'average' : 'sum'),
+                                              values => \@coords,
+                                              startdate => $args{startdate},);
 
   return @stats;
 }
@@ -543,9 +543,9 @@ sub timeacct {
   for my $ut (sort keys %faults_by_ut) {
     my $fgroup = $self->new(faults=>$faults_by_ut{$ut});
     my $acct = new OMP::Project::TimeAcct(projectid => '__FAULT__',
-					  date => OMP::DateTools->parse_date($ut),
-					  timespent => $fgroup->timelost,
-					  confirmed => 1,);
+                                          date => OMP::DateTools->parse_date($ut),
+                                          timespent => $fgroup->timelost,
+                                          confirmed => 1,);
     push @acct, $acct;
   }
   if (wantarray) {
@@ -610,8 +610,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

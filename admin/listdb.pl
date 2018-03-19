@@ -21,7 +21,7 @@ my $dbh = $db->handle;
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompmsb ompobs ompsciprog ompfeedback ompmsbdone 
+  @tab = qw/ompproj ompmsb ompobs ompsciprog ompfeedback ompmsbdone
   ompfault ompfaultbody ompuser ompprojuser ompprojqueue /;
 
 foreach my $tab (@tab) {

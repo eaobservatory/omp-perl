@@ -414,7 +414,7 @@ sub obs_summary {
   my $obs = new JAC::OCS::Config::ObsSummary;
 
   $obs->mapping_mode( $info{mapping_mode} );
-  $obs->switching_mode( defined $info{switching_mode} 
+  $obs->switching_mode( defined $info{switching_mode}
                         ? $info{switching_mode} : 'none' );
   $obs->type( $info{obs_type} );
 
@@ -484,7 +484,7 @@ sub tcs_config {
   # go to the chop position for its CAL automatically
   # Only do this if we have a target.
   my %tags = $tcs->getAllTargetInfo;
-  if (exists $tags{SCIENCE} && 
+  if (exists $tags{SCIENCE} &&
       !exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/) {
     # The REFERENCE should be the chop off position for now
     my $ref = new JAC::OCS::Config::TCS::BASE;
@@ -761,7 +761,7 @@ sub observing_area {
     my @el;
     if ($obsmode eq 'scan') {
       $oa->skydip_mode( "continuous" );
-      @el = map { Astro::Coords::Angle->new($_, units =>"deg") } 
+      @el = map { Astro::Coords::Angle->new($_, units =>"deg") }
         ($maxel,$minel);
       $oa->skydip_velocity( OMP::Config->getData($self->cfgkey. ".skydip_velocity") );
     } elsif ($obsmode eq 'stare') {
@@ -967,7 +967,7 @@ sub secondary_mirror {
   # Configure the chop parameters
   if ($sw_mode eq 'chop') {
     throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
-      unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
+      unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} &&
               defined $info{CHOP_SYSTEM} );
 
     $smu->chop( THROW => $info{CHOP_THROW},
@@ -1017,7 +1017,7 @@ sub secondary_mirror {
     # maximum amount of time we want to spend per chop position and the constraint
     # that n_jigs_on must be divisible into the total number of jiggle positions.
 
-    # Additionally, if we have been asked to use independent offs we have to 
+    # Additionally, if we have been asked to use independent offs we have to
     # do only one step per chop
 
     # Let's say this is maximum time between chops in seconds
@@ -1138,7 +1138,7 @@ sub instrument_config {
   my $inst = lc($self->ocs_frontend($info{instrument}));
   throw OMP::Error::FatalError('No instrument defined so cannot configure!')
     unless defined $inst;
- 
+
   # wiring file name
   my $file = File::Spec->catfile( $self->wiredir, 'frontend',
                                   "instrument_$inst.ent");
@@ -1218,7 +1218,7 @@ sub header_config {
                                 );
 
   # Get all the items that we are to be processed by the translator
-  my @items = $hdr->item( sub { 
+  my @items = $hdr->item( sub {
                             defined $_[0]->source
                               &&  $_[0]->source eq 'DERIVED'
                                 && defined $_[0]->task
@@ -1621,7 +1621,7 @@ RXA3 becomes RXA.
 Takes the OMP instrument name as argument. Returned string is upper cased.
 Returns undef if the frontend is not recognized.
 
-If the second argument is true, a version is returned that has the "x" 
+If the second argument is true, a version is returned that has the "x"
 in lower case
 
   $fe = $trans->ocs_frontend( $ompfe, 1);
@@ -1645,7 +1645,7 @@ Calculate the total number of steps in a pattern given a number of
 points in the pattern and the size of a chunk and optionally the
 number of steps in the off beam.
 
-  $nsteps = $self->calc_jiggle_times( $njigpnts, $jigs_per_on, $steps_per_off ); 
+  $nsteps = $self->calc_jiggle_times( $njigpnts, $jigs_per_on, $steps_per_off );
 
 Note the scalar context. If the number of steps per off is not given,
 it is calculated and returned along with the total duration.
@@ -1701,7 +1701,7 @@ sub calc_jiggle_times {
 
 =item B<jig_info>
 
-Return information relating to the selected jiggle pattern as a 
+Return information relating to the selected jiggle pattern as a
 C<JCMT::SMU::Jiggle> object.
 
   $jig = $trans->jig_info( %info );
@@ -1746,7 +1746,7 @@ sub jig_info {
   # obtin path to actual file
   my $file = File::Spec->catfile( $self->wiredir,'smu',$jigfiles{$info{jigglePattern}});
 
-  # Need to read the pattern 
+  # Need to read the pattern
   my $jig = new JCMT::SMU::Jiggle( File => $file );
 
   # set the scale and other parameters
@@ -1884,7 +1884,7 @@ sub tracking_receptor_or_subarray {
 
   # Get the actual receptors in use for this observation
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
     unless defined $inst;
 
   # Go through the preferred receptors looking for a match
@@ -1985,13 +1985,13 @@ Not a method. Could probably use the slurp function.
 sub _read_file {
   my $self = shift;
   my $file = shift;
-  open (my $fh, '<', $file) or 
+  open (my $fh, '<', $file) or
     throw OMP::Error::FatalError( "Unable to open file $file: $!");
 
   local $/ = undef;
   my $str = <$fh>;
 
-  close($fh) or 
+  close($fh) or
     throw OMP::Error::FatalError( "Unable to close file $file: $!");
   return $str;
 }

@@ -24,8 +24,8 @@ use File::Spec;
 BEGIN {
   # location of test configurations
   $ENV{OMP_CFG_DIR} = File::Spec->rel2abs(File::Spec->catdir(File::Spec->curdir,
-							     "t","configs"
-							    ));
+                                                             "t","configs"
+                                                            ));
 
   # Make sure hosts and domains are predictable
   $ENV{OMP_NOGETHOST} = 1;

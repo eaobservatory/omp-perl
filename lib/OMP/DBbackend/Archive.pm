@@ -72,12 +72,12 @@ sub loginhash {
   # will choose the correct one.
 
   my %details = (
-		 driver   => OMP::Config->getData("hdr_database.driver"),
-		 server   => OMP::Config->getData("hdr_database.server"),
-		 database => OMP::Config->getData("hdr_database.database"),
-		 user     => OMP::Config->getData("hdr_database.user"),
-		 password => OMP::Config->getData("hdr_database.password"),
-		);
+                 driver   => OMP::Config->getData("hdr_database.driver"),
+                 server   => OMP::Config->getData("hdr_database.server"),
+                 database => OMP::Config->getData("hdr_database.database"),
+                 user     => OMP::Config->getData("hdr_database.user"),
+                 password => OMP::Config->getData("hdr_database.password"),
+                );
 
   # possible override
   $details{server} = $ENV{OMP_ARCDBSERVER}

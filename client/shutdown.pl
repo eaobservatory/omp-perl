@@ -90,7 +90,7 @@ my $status = GetOptions("help" => \$help,
                         "version" => \$version,
                         "tel=s" => \$tel,
                         "ut" => \$ut,
-			"debug" => \$DEBUG,
+                        "debug" => \$DEBUG,
                        );
 
 pod2usage(1) if $help;
@@ -210,16 +210,16 @@ while ($currentdt <= $enddt) {
 
   # Create TimeAcct (use special $tel_SHUTDOWN category)
   my $t = new OMP::Project::TimeAcct(projectid => "${tel}_SHUTDOWN",
-				     date      => $starttimetp,
-				     timespent => $shutlen,
-				     confirmed => 1,);
+                                     date      => $starttimetp,
+                                     timespent => $shutlen,
+                                     confirmed => 1,);
 
   push (@taccts, $t);
 
   # Create shiftlog comments
   my $comment = new OMP::Info::Comment(author => $user,
-				       text   => $shutreason,
-				       date   => $starttimetp);
+                                       text   => $shutreason,
+                                       date   => $starttimetp);
 
   push (@shiftcomms, $comment);
 

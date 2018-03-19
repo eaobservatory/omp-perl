@@ -65,7 +65,7 @@ gets all the faults with that faultid]
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
+  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) ==1;
 
   my ($usertable) = @_;
@@ -134,7 +134,7 @@ sub _post_process_hash {
   # If we are dealing with a these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) }, 
+  $self->_process_elements($href, sub { uc(shift) },
                            [qw/ userid alias /]);
 
 
@@ -251,8 +251,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

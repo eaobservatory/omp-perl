@@ -35,9 +35,9 @@ my $faults = OMP::FaultServer->queryFaults($xml, 'object');
 # Create the RSS channel
 my $rss = new XML::RSS(version => '1.0');
 $rss->channel(title => "OMP Fault System",
-	      link => $base_url . "/queryfault.pl",
-	      description => "OMP Fault System",
-	     );
+              link => $base_url . "/queryfault.pl",
+              description => "OMP Fault System",
+             );
 
 # Add faults to the channel
 for my $fault (@$faults) {
@@ -48,9 +48,9 @@ for my $fault (@$faults) {
   my $desc = substr($fault->responses->[0]->text, 0, 87);
 
   $rss->add_item(title => $title,
-		 description => $desc,
-		 link => $link,
-		);
+                 description => $desc,
+                 link => $link,
+                );
 }
 
 # Output the XML file

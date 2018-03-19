@@ -26,7 +26,7 @@ A compact way of handling information associated with an MSB. This
 includes possible comments and information on component observations.
 
 
-This class should not be confused with C<OMP::MSB>. That class 
+This class should not be confused with C<OMP::MSB>. That class
 is based around the Science Program XML representation of an MSB
 and not for general purpose MSB information.
 
@@ -69,15 +69,15 @@ Create the accessor methods from a signature of their contents.
 =cut
 
 __PACKAGE__->CreateAccessors( projectid => '$__UC__',
-			      msbid => '$',
+                              msbid => '$',
                               tau => 'OMP::Range',
                               checksum => '$',
                               seeing => 'OMP::Range',
                               priority => '$',
-			      schedpri => '$',
+                              schedpri => '$',
                               affiliation => '$',
                               moon =>  'OMP::Range',
-			      sky => 'OMP::Range',
+                              sky => 'OMP::Range',
                               timeest => '$',
                               title => '$',
                               datemin => 'Time::Piece',
@@ -85,18 +85,18 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               telescope => '$',
                               cloud => 'OMP::Range',
                               observations => '@OMP::Info::Obs',
- 	                      wavebands => '$',
- 	                      targets => '$',
- 	                      instruments => '$',
-			      coordstypes => '$',
-			      nrepeats => '$',
-			      elevation => 'OMP::Range',
+                              wavebands => '$',
+                              targets => '$',
+                              instruments => '$',
+                              coordstypes => '$',
+                              nrepeats => '$',
+                              elevation => 'OMP::Range',
                               remaining => '$',
-			      completion => '$',
+                              completion => '$',
                               comments => '@OMP::Info::Comment',
                               approach => '$',
                              );
-#' for the emacs color coding 
+#' for the emacs color coding
 
 =end __PRIVATE__
 
@@ -346,11 +346,11 @@ sub ha {
   my $self = shift;
   # Ask the observations
   my @ha = $self->_process_coords( sub {
-				     my $c = shift;
-				     return sprintf("%.1f",
-						    $c->ha( format => "h",
-							   normalize => 1));
-				   });
+                                     my $c = shift;
+                                     return sprintf("%.1f",
+                                                    $c->ha( format => "h",
+                                                           normalize => 1));
+                                   });
   return join("/",@ha);
 }
 
@@ -371,10 +371,10 @@ sub airmass {
   my $self = shift;
   # Ask the observations
   my @am = $self->_process_coords( sub {
-				     my $c = shift;
-				     return sprintf("%.3f",
-						    $c->airmass);
-				   });
+                                     my $c = shift;
+                                     return sprintf("%.3f",
+                                                    $c->airmass);
+                                   });
   return join("/",@am);
 }
 
@@ -395,11 +395,11 @@ sub ra {
   my $self = shift;
   # Ask the observations
   my @ra = $self->_process_coords( sub {
-				     my $c = shift;
-				     return sprintf("%.1f",
-						    $c->ra_app( format => "h",
-							       normalize => 1));
-				   });
+                                     my $c = shift;
+                                     return sprintf("%.1f",
+                                                    $c->ra_app( format => "h",
+                                                               normalize => 1));
+                                   });
   return join("/",@ra);
 }
 
@@ -420,10 +420,10 @@ sub dec {
   my $self = shift;
   # Ask the observations
   my @dec = $self->_process_coords( sub {
-				     my $c = shift;
-				     return sprintf("%.1f",
-						    $c->dec_app( format => "d")),
-				   });
+                                     my $c = shift;
+                                     return sprintf("%.1f",
+                                                    $c->dec_app( format => "d")),
+                                   });
   return join("/",@dec);
 }
 
@@ -444,10 +444,10 @@ sub az {
   my $self = shift;
   # Ask the observations
   my @az = $self->_process_coords( sub {
-				     my $c = shift;
-				     return sprintf("%.0f",
-						    $c->az( format => "d")),
-				   });
+                                     my $c = shift;
+                                     return sprintf("%.0f",
+                                                    $c->az( format => "d")),
+                                   });
   return join("/",@az);
 }
 
@@ -478,9 +478,9 @@ sub coordstype {
       return $cache;
     } else {
       # Ask the observations
-      my @types = map { $_->coords->type } 
-	grep { defined $_->coords } 
-	  $self->observations;
+      my @types = map { $_->coords->type }
+        grep { defined $_->coords }
+          $self->observations;
       @types = $self->_compress_array( @types );
       return join("/", @types);
     }
@@ -549,7 +549,7 @@ context default result if 'xml'.
 Allowed formats are:
 
  'textshort' - short text summary (one line)
- 'textshorthdr' - header for short text summary 
+ 'textshorthdr' - header for short text summary
  'textlong'  - long text summary
  'xmlshort' - XML summary where observations are compressed
  'xml' - XML summary where Observations are explicitly separate
@@ -648,7 +648,7 @@ sub summary {
 
   # These are the scalar/objects
   my @elements = qw/ projectid checksum tau seeing priority moon timeest title
-		     elevation datemin datemax telescope cloud sky remaining
+                     elevation datemin datemax telescope cloud sky remaining
                      msbid approach schedpri completion affiliation /;
 
   # Include astrometry elements unless 'noast' option is being used
@@ -724,12 +724,12 @@ sub summary {
   if ($format eq 'textshort' ) {
 
     # Substr each string using the supplied widths.
-    my @sub = map { 
+    my @sub = map {
       my $key;
       if (exists $summary{$keys[$_]} && defined $summary{$keys[$_]}) {
-	$key = $summary{$keys[$_]};
+        $key = $summary{$keys[$_]};
       } else {
-	$key = '';
+        $key = '';
       }
       substr($key,0,$width[$_])
     } 0..$#width;
@@ -798,9 +798,9 @@ sub summary {
     for my $obs (@obs) {
       $obscount++;
       push(@text,
-	   "<TR bgcolor='#7979aa'>","<td>$obscount</td>",
-	   map { "<td>" . $obs->$_() . "</td>" 
-	       } (qw/ instrument target coords waveband/));
+           "<TR bgcolor='#7979aa'>","<td>$obscount</td>",
+           map { "<td>" . $obs->$_() . "</td>"
+               } (qw/ instrument target coords waveband/));
     }
 
     push(@text, "</TABLE>");
@@ -835,7 +835,7 @@ sub summary {
 
     # XML version
     my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{msbid}\"" 
+    $xml .= "id=\"$summary{msbid}\""
       if exists $summary{msbid} and defined $summary{msbid};
     $xml .= ">\n";
 
@@ -848,10 +848,10 @@ sub summary {
 
       # Allow OMP::Range objects to stringify in the summary
       if (ref($summary{$key})) {
-	next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
+        next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
 
-	# Now we know we have to escape the > and < and &
-	$summary{$key} = OMP::Display::escape_entity( $summary{$key}."" );
+        # Now we know we have to escape the > and < and &
+        $summary{$key} = OMP::Display::escape_entity( $summary{$key}."" );
       }
 
       # Currently Matt needs the msbid to be included
@@ -865,14 +865,14 @@ sub summary {
     # Now add in the observations if we are doing the long version
     if ($format !~ /short/) {
       for (@obs) {
-	$xml .= '    '.$_->summary("xml");
+        $xml .= '    '.$_->summary("xml");
       }
     }
 
     # And the comments
     if ($format !~ /short/) {
       for ($self->comments) {
-	$xml .= '     '.$_->summary('xml');
+        $xml .= '     '.$_->summary('xml');
       }
     }
 
@@ -1081,18 +1081,18 @@ sub getResultColumns {
   if ($tel eq 'JCMT') {
     @order = qw/ projectid priority schedpri affiliation completion instrument waveband title target
                  ra dec coordstype ha az airmass tau pol type
-	         timeest remaining obscount
+                 timeest remaining obscount
                  checksum msbid /;
   } elsif ($tel eq 'UKIRT') {
     @order = qw/ projectid priority schedpri completion instrument waveband title target
-		 ra dec coordstype ha airmass tau seeing cloud moon sky pol type
-		 timeest remaining obscount disperser
+                 ra dec coordstype ha airmass tau seeing cloud moon sky pol type
+                 timeest remaining obscount disperser
                  checksum msbid /;
   } else {
     # Generic order
     @order = qw/ projectid priority schedpri completion instrument waveband title target
                  ra dec coordstype ha airmass tau seeing pol type
-	         timeest remaining obscount
+                 timeest remaining obscount
                  checksum msbid /;
   }
 
@@ -1113,36 +1113,36 @@ Uses a telescope name to control the column information.
 
 # best to use a single data structure for this
 my %coltypes = (
-		schedpri => 'Float',
+                schedpri => 'Float',
                 affiliation => 'String',
-		remaining => 'Integer',
-		projectid => 'String',
-		priority => 'Float',
-		instrument => 'String',
-		waveband => 'String',
-		title => 'String',
-		target => 'String',
-		ra => 'String',
-		ha => 'String',
-		dec => 'String',
+                remaining => 'Integer',
+                projectid => 'String',
+                priority => 'Float',
+                instrument => 'String',
+                waveband => 'String',
+                title => 'String',
+                target => 'String',
+                ra => 'String',
+                ha => 'String',
+                dec => 'String',
                 az => 'String',
                 el => 'String',
-		airmass => 'String',
-		pol => 'Boolean',  # Boolean?
-		type => 'String',
-		coordstype => 'String',
-		timeest => 'String',  # can keep this as hours?
-		obscount => 'Integer',
-		checksum => 'String',
-		msbid => 'Integer',
-		moon => 'String',
-		tau => 'String',
-		cloud => 'String',
-		sky => 'String',
-		seeing => 'String',
-		disperser => 'String',
-		completion => 'Float',
-	       );
+                airmass => 'String',
+                pol => 'Boolean',  # Boolean?
+                type => 'String',
+                coordstype => 'String',
+                timeest => 'String',  # can keep this as hours?
+                obscount => 'Integer',
+                checksum => 'String',
+                msbid => 'Integer',
+                moon => 'String',
+                tau => 'String',
+                cloud => 'String',
+                sky => 'String',
+                seeing => 'String',
+                disperser => 'String',
+                completion => 'Float',
+               );
 
 sub getTypeColumns {
   my $class = shift;

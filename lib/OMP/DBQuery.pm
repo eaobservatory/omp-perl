@@ -41,6 +41,9 @@ our $VERSION = '2.000';
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 500;
 
+# Hash of column names which are also MySQL reserved words - these must
+# be quoted in SQL queries.
+our %RESERVED_WORDS = map {$_ => 1} qw/condition/;
 
 # Overloading
 use overload '""' => "stringify";
@@ -730,11 +733,18 @@ a LIKE query implies a request to match a sub-string. The substring
 probably should not have a "%" included since the code does not
 contain a means of escaping the per cent.
 
+If the column name appears in C<%RESERVED_WORDS>, then it is
+enclosed in backticks.
+
 =cut
 
 sub _querify {
   my $self = shift;
   my ($name, $value, $cmp) = @_;
+
+  if ($RESERVED_WORDS{$name}) {
+    $name = '`' . $name . '`';
+  }
 
   # Default comparator is "equal"
   $cmp = "equal" unless defined $cmp;

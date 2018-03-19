@@ -28,9 +28,9 @@ $cgi->html_title("Fault Summary");
 # authentication
 if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIComponent::Fault::fault_summary_form,
-			   \&OMP::CGIPage::Fault::fault_summary_content);
+                           \&OMP::CGIPage::Fault::fault_summary_content);
 } else {
   $cgi->write_page_staff( \&OMP::CGIComponent::Fault::fault_summary_form,
-			  \&OMP::CGIPage::Fault::fault_summary_content,
-			  "noauth" );
+                          \&OMP::CGIPage::Fault::fault_summary_content,
+                          "noauth" );
 }

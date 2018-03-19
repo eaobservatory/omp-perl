@@ -5,7 +5,7 @@ package OMP::WORF::UFTI_UKDHS;
 OMP::WORF::UFTI_DHS - UFTI_DHS (UFTI data taken with the ORAC DHS)
 specific functions for WORF
 
-=head1 
+=head1
 
 SYNOPSIS
 

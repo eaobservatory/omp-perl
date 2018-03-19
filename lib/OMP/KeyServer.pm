@@ -19,7 +19,7 @@ be submitted more than once you would generate a new unique key when the
 form is displayed (and embed the key as one of the form paramters).
 Once the form is submitted you verify the key (check that it exists
 in the key database) and then remove the key once you have completed
-the operations associated with the submit.  This way if the user 
+the operations associated with the submit.  This way if the user
 attempts to resubmit the form later
 on (such as by reposting the parameters by using their browser back/forward
 buttons) you could stop any action from being taken by the resulting
@@ -185,8 +185,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

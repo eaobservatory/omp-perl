@@ -38,8 +38,8 @@ $| = 1;
 @EXPORT_OK = (qw/public_url private_url/);
 
 %EXPORT_TAGS = (
-		'all' =>[ @EXPORT_OK ],
-	       );
+                'all' =>[ @EXPORT_OK ],
+               );
 
 Exporter::export_tags(qw/ all /);
 

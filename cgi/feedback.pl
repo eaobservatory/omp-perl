@@ -23,4 +23,4 @@ my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 
 $cgi->write_page( \&OMP::CGIPage::Feedback::fb_output,
-		  \&OMP::CGIPage::Feedback::fb_output );
+                  \&OMP::CGIPage::Feedback::fb_output );

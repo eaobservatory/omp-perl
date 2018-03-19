@@ -64,10 +64,10 @@ for my $line (<>) {
   my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
 
   my $c = new OMP::Info::Comment( text => ($comment ? $comment : undef),
-				  author => $user,
-				  date=> $date,
-				  status => $status,
-				);
+                                  author => $user,
+                                  date=> $date,
+                                  status => $status,
+                                );
 
    print $date->datetime, ": $proj : $checksum : $user - $status\n";
 

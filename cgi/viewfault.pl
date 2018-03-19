@@ -28,8 +28,8 @@ $cgi->html_title("OMP Fault System: View Fault " . $q->url_param('id'));
 # authentication
 if (OMP::NetTools->is_host_local) {
   $cgi->write_page('view_fault_content',
-		   'view_fault_output');
+                   'view_fault_output');
 } else {
   $cgi->write_page_staff('view_fault_content',
-			 'view_fault_output');
+                         'view_fault_output');
 }

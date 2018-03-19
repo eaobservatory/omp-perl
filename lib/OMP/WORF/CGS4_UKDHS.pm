@@ -5,7 +5,7 @@ package OMP::WORF::CGS4_UKDHS;
 OMP::WORF::CGS4_UKDHS - CGS4_UKDHS (CGS4 with ORAC DHS) specific
 functions for WORF
 
-=head1 
+=head1
 
 SYNOPSIS
 

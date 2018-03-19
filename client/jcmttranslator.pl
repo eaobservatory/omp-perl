@@ -98,7 +98,7 @@ use Getopt::Long;
 # run relative to the client directory. Also set config directory.
 use FindBin;
 use constant OMPLIB => File::Spec->catdir("$FindBin::RealBin",
-					  File::Spec->updir, 'lib' );
+                                          File::Spec->updir, 'lib' );
 use lib OMPLIB;
 
 BEGIN {
@@ -122,17 +122,17 @@ use OMP::Error qw/ :try /;
 my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose,
    $version, $log);
 my $status = GetOptions("help" => \$help,
-			"man" => \$man,
-			"debug" => \$debug,
-			"cwd" => \$cwd,
-			"sim" => \$sim,
-			"old" => \$old,
-			"tempdir" => \$tempdir,
-			"transdir=s" => \$transdir,
-			"verbose" => \$verbose,
-			"version" => \$version,
-			"log" => \$log,
-		       );
+                        "man" => \$man,
+                        "debug" => \$debug,
+                        "cwd" => \$cwd,
+                        "sim" => \$sim,
+                        "old" => \$old,
+                        "tempdir" => \$tempdir,
+                        "transdir=s" => \$transdir,
+                        "verbose" => \$verbose,
+                        "version" => \$version,
+                        "log" => \$log,
+                       );
 
 pod2usage(1) if !$status;
 
@@ -208,7 +208,7 @@ my $xml;
 }
 
 my $filename = OMP::TransServer->translate( $xml, { simulate => $sim,
-						    log => $log});
+                                                    log => $log});
 
 die "Nothing was translated. Was the science program empty?"
   unless $filename;

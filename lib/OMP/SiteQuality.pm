@@ -101,29 +101,29 @@ use constant OMP__SEEING_INF => 5000;
 # if these suddenly become floating point numbers the from_db
 # routine needs to be made cleverer.
 %DBRANGES = (
-	     TAU => [ 0, OMP__TAU_INF ],
-	     SEEING => [ 0, OMP__SEEING_INF ],
-	     SKY => [ -1 * OMP__SKYBRIGHT_INF,
-		      OMP__SKYBRIGHT_INF ],
-	     CLOUD => [ 0, 100],
-	     MOON => [ 0, 100 ],
-	    );
+             TAU => [ 0, OMP__TAU_INF ],
+             SEEING => [ 0, OMP__SEEING_INF ],
+             SKY => [ -1 * OMP__SKYBRIGHT_INF,
+                      OMP__SKYBRIGHT_INF ],
+             CLOUD => [ 0, 100],
+             MOON => [ 0, 100 ],
+            );
 
 # these are the default min/max ranges from the viewpoint of the user
 %OMPRANGES = (
-	      TAU => [ 0, undef ],
-	      SEEING => [ 0, undef ],
-	      SKY => [ undef, undef ],
-	      CLOUD => [ 0, 100],
-	      MOON => [ 0, 100 ],
-	     );
+              TAU => [ 0, undef ],
+              SEEING => [ 0, undef ],
+              SKY => [ undef, undef ],
+              CLOUD => [ 0, 100],
+              MOON => [ 0, 100 ],
+             );
 
 # These are the textual descriptions of the common cloud ranges
 %CLOUDTERMS = (
-	       Photometric => [0, 0],
-	       Cirrus => [1, OMP__CLOUD_CIRRUS_MAX],
-	       Thick => [OMP__CLOUD_CIRRUS_MAX+1, 100],
-	      );
+               Photometric => [0, 0],
+               Cirrus => [1, OMP__CLOUD_CIRRUS_MAX],
+               Thick => [OMP__CLOUD_CIRRUS_MAX+1, 100],
+              );
 
 =head1 FUNCTIONS
 
@@ -216,7 +216,7 @@ sub from_db {
     # note that we format and then convert to number for equality test
     $range->$m( $OMPRANGES{$cat}->[$i] )
        if (defined $range->$m() &&
-	   sprintf($fmt,$range->$m()) == sprintf($fmt,$DBRANGES{$cat}->[$i]));
+           sprintf($fmt,$range->$m()) == sprintf($fmt,$DBRANGES{$cat}->[$i]));
 
     # increment index into DBRANGES array
     $i++;
@@ -238,7 +238,7 @@ sub from_db {
 
   # if the default min range is 0, set the pos_def flag
   $range->pos_def( 1 ) if (defined $OMPRANGES{$cat}->[0] &&
-			   $OMPRANGES{$cat}->[0] == 0);
+                           $OMPRANGES{$cat}->[0] == 0);
 
   return $range;
 }
@@ -262,9 +262,9 @@ sub default_range {
     if !exists $OMPRANGES{$cat};
 
   my $def = new OMP::Range( Min => $OMPRANGES{$cat}->[0],
-			    Max => $OMPRANGES{$cat}->[1],
-			    PosDef => ( defined $OMPRANGES{$cat}->[0] && $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
-			  );
+                            Max => $OMPRANGES{$cat}->[1],
+                            PosDef => ( defined $OMPRANGES{$cat}->[0] && $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
+                          );
 
   return (wantarray ? $def->minmax : $def );
 }
@@ -307,8 +307,8 @@ sub is_default {
 
   # create the default range
   my $def = new OMP::Range( Min => $OMPRANGES{$cat}->[0],
-			    Max => $OMPRANGES{$cat}->[1],
-			  );
+                            Max => $OMPRANGES{$cat}->[1],
+                          );
 
   return $range->equate( $def );
 }
@@ -439,24 +439,24 @@ sub determine_tauband {
     if (exists $details{TAU}) {
       my $cso = $details{TAU};
       throw OMP::Error::FatalError("CSO TAU supplied but not defined. Unable to determine band")
-	unless defined $cso;
+        unless defined $cso;
 
       # do not use the OMP::Range objects here (yet KLUGE) because
       # OMP::Range can not yet do >= with the contains method
       if ($cso >= 0 && $cso <= 0.05) {
-	$band = 1;
+        $band = 1;
       } elsif ($cso > 0.05 && $cso <= 0.08) {
-	$band = 2;
+        $band = 2;
       } elsif ($cso > 0.08 && $cso <= 0.12) {
-	$band = 3;
+        $band = 3;
       } elsif ($cso > 0.12 && $cso <= 0.2) {
-	$band = 4;
+        $band = 4;
       } elsif ($cso > 0.2 && $cso <= 0.32) {
-	$band = 5;
+        $band = 5;
       } elsif ($cso > 0.32) {
-	$band = 6;
+        $band = 6;
       } else {
-	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
+        throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
       }
 
     } elsif (exists $details{TAURANGE}) {
@@ -498,16 +498,16 @@ Returns undef if the band is not known.
 {
   # Specify the bands
   my %bands = (
-	       0   => new OMP::Range( Min => 0 ),
-	       1   => new OMP::Range( Min => 0,    Max => 0.05),
-	       2   => new OMP::Range( Min => 0.05, Max => 0.08),
-	       3   => new OMP::Range( Min => 0.08, Max => 0.12),
-	       4   => new OMP::Range( Min => 0.12, Max => 0.20),
-	       5   => new OMP::Range( Min => 0.20, Max => 0.32),
-	       6   => new OMP::Range( Min => 0.32 ),
-	       '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
-	       '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
-	      );
+               0   => new OMP::Range( Min => 0 ),
+               1   => new OMP::Range( Min => 0,    Max => 0.05),
+               2   => new OMP::Range( Min => 0.05, Max => 0.08),
+               3   => new OMP::Range( Min => 0.08, Max => 0.12),
+               4   => new OMP::Range( Min => 0.12, Max => 0.20),
+               5   => new OMP::Range( Min => 0.20, Max => 0.32),
+               6   => new OMP::Range( Min => 0.32 ),
+               '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
+               '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
+              );
 
   sub get_tauband_range {
     my $tel = shift;
@@ -519,14 +519,14 @@ Returns undef if the band is not known.
 
       my ($min, $max) = (50,-50);
       for my $band (@bands) {
-	if (exists $bands{$band}) {
-	  my ($bmin, $bmax) = $bands{$band}->minmax;
-	  $min = $bmin if $bmin < $min;
-	  # Take into account unbounded upper limit
-	  $max = $bmax if (!defined $bmax || $bmax > $max);
-	} else {
-	  return undef;
-	}
+        if (exists $bands{$band}) {
+          my ($bmin, $bmax) = $bands{$band}->minmax;
+          $min = $bmin if $bmin < $min;
+          # Take into account unbounded upper limit
+          $max = $bmax if (!defined $bmax || $bmax > $max);
+        } else {
+          return undef;
+        }
 
       }
 
@@ -556,7 +556,7 @@ The ranges are represented by C<OMP::Range> objects.
 
 sub get_cloud_text {
   my %cloudtxt = map {$_, new OMP::Range( Min => $CLOUDTERMS{$_}->[0],
-					  Max => $CLOUDTERMS{$_}->[1])} keys %CLOUDTERMS;
+                                          Max => $CLOUDTERMS{$_}->[1])} keys %CLOUDTERMS;
   return %cloudtxt;
 }
 

@@ -54,8 +54,8 @@ sub fileFault {
   try {
 
     my $db = new OMP::FaultDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $newid = $db->fileFault($fault);
 
@@ -98,8 +98,8 @@ sub respondFault {
   try {
 
     my $db = new OMP::FaultDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $db->respondFault($faultid, $response);
 
@@ -137,8 +137,8 @@ sub closeFault {
   try {
 
     my $db = new OMP::FaultDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $db->closeFault($faultid);
 
@@ -266,8 +266,8 @@ sub getFault {
   try {
 
     my $db = new OMP::FaultDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $fault = $db->getFault($faultid);
 
@@ -331,8 +331,8 @@ sub queryFaults {
     my $query = new OMP::FaultQuery( XML => $xmlquery );
 
     my $db = new OMP::FaultDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     @faults = $db->queryFaults( $query );
 
@@ -377,8 +377,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

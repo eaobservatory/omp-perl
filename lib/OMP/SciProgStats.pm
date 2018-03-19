@@ -77,13 +77,13 @@ sub ra_coverage {
 
     for my $obs ($msb->obssum) {
       # skip if we are specifically looking for one instrument
-      next if (defined $args{instrument} && 
-	       $obs->{instrument} ne $args{instrument});
+      next if (defined $args{instrument} &&
+               $obs->{instrument} ne $args{instrument});
 
       my $target = $obs->{coords};
       if ($target->type ne 'RADEC') {
-	# warn "Target ". $target->name ." in project ". $proj->projectid . " is non-sidereal. Skipping\n";
-	next;
+        # warn "Target ". $target->name ." in project ". $proj->projectid . " is non-sidereal. Skipping\n";
+        next;
       }
       my $ra = $target->ra( format => 'h' );
       $ra = int( $ra + 0.5);

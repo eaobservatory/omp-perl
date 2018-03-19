@@ -2,7 +2,7 @@
 #
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Non-interactive (command-line) routine to do a pencil-beam search in
-# the OMP for targets around a position certain position or around 
+# the OMP for targets around a position certain position or around
 # targets from a particular project. Basically a user interface for
 # the OMP::FindTarget::find_and_display_targets function.
 # This version connects directly to the OMP to retrieve source
@@ -80,7 +80,7 @@ if (defined($help)) {
  This routine performs a pencil-beam search for targets around a specfied
  specified position or around targets from a specified projects.
 
- Use: $program [-ra ra -dec dec | -proj projid] [-sep separation] 
+ Use: $program [-ra ra -dec dec | -proj projid] [-sep separation]
                [-tel telescope] [-sem semester]
 
 \t\t-ra  \tRight Ascension in J2000. (No default)
@@ -89,7 +89,7 @@ if (defined($help)) {
 \t\t     \tEither specify a RA and Dec or specify a project;
 \t\t     \tIf a project is specified, RA and Dec are ignored.
 \t\t-sep \tRadius in arcsecs for search beam. (Default 600).
-\t\t-sem \tSemester [ 07A | ... | all ]. (Default: current). 
+\t\t-sem \tSemester [ 07A | ... | all ]. (Default: current).
 \t\t-tel \tTelescope name: [ UKIRT | JCMT | all ]. (Default: UKIRT).
 \t\t-help\tThis help
 \t\t-debug\tSwitch on some debug output
@@ -176,7 +176,7 @@ if ( $ttel =~ /^u/i ) {
 } elsif ( $ttel =~ /^j/i ) {
   $tel = "JCMT";
 } elsif ( $ttel =~ /^a/i ) {
-  $tel = "";                    # Wildcard is default 
+  $tel = "";                    # Wildcard is default
 } elsif ( defined $ttel ) {
   die qq {
 --------------------------------------------------------------

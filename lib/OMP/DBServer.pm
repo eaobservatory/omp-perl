@@ -66,9 +66,9 @@ L<OMP::DBbackend>, L<OMP::MSBServer>, L<OMP::SpServer>.
 
 =head1 NOTES
 
-This is probably a design flaw but as the system has evolved the 
+This is probably a design flaw but as the system has evolved the
 caching of the database connection has worked for the generic
-server interfaces but all the DB classes can be independently 
+server interfaces but all the DB classes can be independently
 instantiated with their own DB connection object which subverts
 the caching since OMP::DBbackend is called directly. This is partly
 my fault because I did not publicise the
@@ -77,7 +77,7 @@ my fault because I did not publicise the
 
 interface enough and everyone used the DBbackend connection. Too
 late to change this now so OMP::DBbackend now also does connection
-caching. If someone is feeling really keen they could remove 
+caching. If someone is feeling really keen they could remove
 all the DBbackend references from the code....
 
 =head1 COPYRIGHT
@@ -96,8 +96,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

@@ -71,17 +71,17 @@ if($query->param('instrument')) {
 
 # The 'instrument' parameter must match one of the strings listed
 # in the @instrument array. If it doesn't, set it to an empty string.
-  
+
   # first, strip out anything that's not a letter or a number
-  
+
   my $t_instrument = $query->param('instrument');
   $t_instrument =~ s/[^a-zA-Z0-9]//g;
-  
+
   # this parameter needs to match exactly one of the strings listed
   # in @instruments
-  
+
   my $match = 0;
-  
+
   foreach my $t_inst (@instruments) {
     if($t_instrument eq $t_inst) {
       $q_instrument = $t_inst;
@@ -103,7 +103,7 @@ if( ( length( $q_file . '' ) != 0 ) &&
 
 # Now this is the real meat. Configure %ENV using
 # ORAC::Inst::Defn::orac_configure_for_instrument.
-  
+
   my %options;
   $options{'ut'} = $ut;
   orac_configure_for_instrument( uc( $q_instrument ), \%options );

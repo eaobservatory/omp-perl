@@ -173,7 +173,7 @@ sub top_button_bar {
   my $w = shift;
 
   $w->Button( -text => 'Exit', -command => sub { exit; }
-	    )->pack(-side => 'left');
+            )->pack(-side => 'left');
 
 }
 
@@ -191,15 +191,15 @@ sub project_window {
   # If we have warnings insert them
   # Create lots of messages
   my $wf = $w->Frame(-relief => 'groove',
-		     -borderwidth => 2)->pack(-side=>'top',-fill=>'x');
+                     -borderwidth => 2)->pack(-side=>'top',-fill=>'x');
   if (@$warnings) {
     $wf->Label(-text => 'Warnings from header analysis')->pack(-side => 'top',
-							      -fill => 'x');
+                                                              -fill => 'x');
     my $i = 0;
     for (@$warnings) {
       chomp($_);
       $wf->Label(-text => "#$i".": $_",
-		-relief=> 'sunken')->pack(-side => 'top');
+                -relief=> 'sunken')->pack(-side => 'top');
       $i++;
     }
   }
@@ -218,7 +218,7 @@ sub project_window {
     for my $proj (keys %final) {
       next if $proj =~ /EXTENDED/;
       if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/) {
-	$total_time += $final{$proj};
+        $total_time += $final{$proj};
       }
     }
   };
@@ -247,13 +247,13 @@ sub project_window {
 
   # Now put up the WEATHER, UNKNOWN
   my %strings = ( WEATHER => "Time lost to weather",
-		  OTHER => 'Other time',
-		);
+                  OTHER => 'Other time',
+                );
   for my $label ( qw/WEATHER OTHER/ ) {
     my $proj = $tel . $label;
     my $times = (exists $times{$proj} ? $times{$proj} : {});
     add_project( $f, 1, $strings{$label}, $times, \$final{$proj},
-	       $sums);
+               $sums);
   }
 
   # Fault time is not editable
@@ -267,12 +267,12 @@ sub project_window {
 
 
   # And finally extended time if we determined that we had extended
-  # time (difficult to imagine extended time if we have no data 
+  # time (difficult to imagine extended time if we have no data
   # taken in extended time)
   my $exttime = (exists $times{$tel."EXTENDED"} ? $times{$tel."EXTENDED"}
-		 : {});
-  add_project( $f, 1,"Extended time", $exttime, 
-	       \$final{$tel."EXTENDED"},$sums);
+                 : {});
+  add_project( $f, 1,"Extended time", $exttime,
+               \$final{$tel."EXTENDED"},$sums);
 
   # And force a summation
   $sums->();
@@ -280,23 +280,23 @@ sub project_window {
   # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
   my $bf = $w->Frame()->pack(-side => 'top');
   $bf->Button(-text => "CONFIRM",
-	      -command => sub { &confirm_totals($nr,%final);
-				&confirm_popup($w);
-				&redraw_main_window($w);
-			      }
-	     )->pack(-side =>'right');
+              -command => sub { &confirm_totals($nr,%final);
+                                &confirm_popup($w);
+                                &redraw_main_window($w);
+                              }
+             )->pack(-side =>'right');
   $bf->Button(-text => "CONFIRM and MAIL",
-	      -command => sub {&confirm_totals($nr,%final);
-			       &confirm_popup($w);
-			       &redraw_main_window($w);
-			       $nr->mail_report;
-			     }
-	     )->pack(-side =>'right');
+              -command => sub {&confirm_totals($nr,%final);
+                               &confirm_popup($w);
+                               &redraw_main_window($w);
+                               $nr->mail_report;
+                             }
+             )->pack(-side =>'right');
   $bf->Button(-text => "ADD PROJECT",
-	      -command => sub {
-		&request_extra_project( $f, \%final, $sums);
-	      }
-	     )->pack(-side =>'right');
+              -command => sub {
+                &request_extra_project( $f, \%final, $sums);
+              }
+             )->pack(-side =>'right');
 
   # Something to view the faults, the shift log?
 
@@ -325,20 +325,20 @@ sub project_window {
 
     # Label
     $w->Label( -text => $proj.":" )->grid(-row=>$Row, -column=>0,
-					  -sticky => 'e');
+                                          -sticky => 'e');
 
     # Decide on the default value
     # Choose DATA over DB unless DB is confirmed.
     if (exists $times->{DB} && $times->{DB}->confirmed) {
       # Confirmed overrides data headers
       $$varref = sprintf($hfmt,
-			 _round_to_ohfive($times->{DB}->timespent->hours));
+                         _round_to_ohfive($times->{DB}->timespent->hours));
     } elsif (exists $times->{DATA}) {
       $$varref = sprintf($hfmt,
-			 _round_to_ohfive($times->{DATA}->timespent->hours));
+                         _round_to_ohfive($times->{DATA}->timespent->hours));
     } elsif (exists $times->{DB}) {
       $$varref = sprintf($hfmt,
-			 _round_to_ohfive($times->{DB}->timespent->hours));
+                         _round_to_ohfive($times->{DB}->timespent->hours));
     } else {
       # Empty
       $$varref = '';
@@ -348,13 +348,13 @@ sub project_window {
     if ($editable) {
       # Create the entry widget
       my $ent = $w->Entry( -width => 10, -textvariable => $varref
-			 )->grid(-row=>$Row,
-				 -column => 1);
+                         )->grid(-row=>$Row,
+                                 -column => 1);
 
       # Bind "leave" and "enter" to update the total
       if (defined $cb) {
-	$ent->bind("<Leave>",$cb);
-	$ent->bind("<Return>",$cb);
+        $ent->bind("<Leave>",$cb);
+        $ent->bind("<Return>",$cb);
       }
     } else {
       $w->Label( -textvariable => $varref)->grid(-row=>$Row, -column=>1);
@@ -364,17 +364,17 @@ sub project_window {
     if (exists $times->{DB}) {
       my $status = "ESTIMATED";
       if ($times->{DB}->confirmed) {
-	$status = "CONFIRMED";
+        $status = "CONFIRMED";
       }
       $w->Label(-text => $status)->grid(-row=>$Row, -column=>2);
 
       # Now also add the MSB estimate if it is an estimate
       # Note that we put it after the DATA estimate
       if (!$times->{DB}->confirmed) {
-      	my $hrs = sprintf($hfmt, 
-			  _round_to_ohfive($times->{DB}->timespent->hours));
-	$w->Label(-text => "$hrs hrs from MSB acceptance")->grid(-row=>$Row,
-								 -column=>4);
+        my $hrs = sprintf($hfmt,
+                          _round_to_ohfive($times->{DB}->timespent->hours));
+        $w->Label(-text => "$hrs hrs from MSB acceptance")->grid(-row=>$Row,
+                                                                 -column=>4);
       }
 
     } elsif (exists $times->{DATA} && !$times->{DATA}->confirmed) {
@@ -382,10 +382,10 @@ sub project_window {
     }
 
     if (exists $times->{DATA}) {
-      my $hrs = sprintf($hfmt, 
-			_round_to_ohfive($times->{DATA}->timespent->hours));
+      my $hrs = sprintf($hfmt,
+                        _round_to_ohfive($times->{DATA}->timespent->hours));
       $w->Label(-text => "$hrs hrs from data headers")->grid(-row=>$Row,
-							     -column=>3);
+                                                             -column=>3);
     }
 
   }
@@ -420,15 +420,15 @@ sub generate_project_info {
   # Kluge for testing outside the DB system
   if ($DEBUG) {
     return (['some calibrations are useless'],
-	    m02bu53 => { DB => new OMP::Project::TimeAcct(projectid =>'m02bu53',
-							  timespent => new Time::Seconds(3600)),
-			 DATA => new OMP::Project::TimeAcct(timespent=> new Time::Seconds(3000)),
-		       },
-	    m02bu32 => { DB => new OMP::Project::TimeAcct(projectid =>'m02bu32',
-							  timespent => new Time::Seconds(7000)),
-			 DATA => new OMP::Project::TimeAcct(timespent=> new Time::Seconds(7500)),
-		       },
-	   );
+            m02bu53 => { DB => new OMP::Project::TimeAcct(projectid =>'m02bu53',
+                                                          timespent => new Time::Seconds(3600)),
+                         DATA => new OMP::Project::TimeAcct(timespent=> new Time::Seconds(3000)),
+                       },
+            m02bu32 => { DB => new OMP::Project::TimeAcct(projectid =>'m02bu32',
+                                                          timespent => new Time::Seconds(7000)),
+                         DATA => new OMP::Project::TimeAcct(timespent=> new Time::Seconds(7500)),
+                       },
+           );
   }
 
   # Ask for accounting information
@@ -452,7 +452,7 @@ sub confirm_popup {
 
   require Tk::DialogBox;
   my $dbox = $w->DialogBox(-title=> "Times accepted",
-			  -buttons => ["OK"]);
+                          -buttons => ["OK"]);
   $dbox->add("Label",-text => "Time Confirmed")->pack(-side =>'top');
   $dbox->Show;
 }
@@ -484,10 +484,10 @@ sub confirm_totals {
 
     # Create a new object
     my $time = new OMP::Project::TimeAcct( projectid => $proj,
-					   timespent => $timespent,
-					   date=> $date,
-					   confirmed => 1,
-					 );
+                                           timespent => $timespent,
+                                           date=> $date,
+                                           confirmed => 1,
+                                         );
 
     # Store it in array
     push(@acct, $time);
@@ -519,7 +519,7 @@ sub request_extra_project {
   require Tk::DialogBox;
 
   my $d = $w->DialogBox( -title => "New Project",
-			 -buttons => ["Accept","Cancel"]);
+                         -buttons => ["Accept","Cancel"]);
   my $proj;
   $d->add("Entry", -width => 10, -textvariable => \$proj)->pack(-side=>'top');
 
@@ -536,13 +536,13 @@ sub request_extra_project {
     my $p = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
     if ($p->state) {
       my $dialog = $w->DialogBox(-title => "Project: $proj",
-				 -buttons => ["Accept","Cancel"]);
+                                 -buttons => ["Accept","Cancel"]);
 
       # All information
       $dialog->add("Label", -text => "Title: ". $p->title
-		  )->pack(-side=>'top');
+                  )->pack(-side=>'top');
       $dialog->add("Label", -text => "PI: ". $p->pi
-		  )->pack(-side=>'top');
+                  )->pack(-side=>'top');
 
       $but = $dialog->Show;
       # Cancel if we have changed our mind
@@ -554,20 +554,20 @@ sub request_extra_project {
     } else {
       require Tk::Dialog;
       my $dialog = $w->Dialog( -text => "This project exists but is disabled",
-			       -title => "Selected project unavailable",
-			       -buttons => ["OK"],
-			       -bitmap => 'error',
-			     );
+                               -title => "Selected project unavailable",
+                               -buttons => ["OK"],
+                               -bitmap => 'error',
+                             );
       $dialog->Show;
     }
   } else {
     # Not yay
     require Tk::Dialog;
     my $dialog = $w->Dialog( -text => "This project does not exist.",
-			     -title => "Error verifying project",
-			     -buttons => ["OK"],
-			     -bitmap => 'error',
-			   );
+                             -title => "Error verifying project",
+                             -buttons => ["OK"],
+                             -bitmap => 'error',
+                           );
 
     $dialog->Show;
   }

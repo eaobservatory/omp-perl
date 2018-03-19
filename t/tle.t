@@ -14,7 +14,7 @@ is(standardize_tle_name(' nOrAd 42 '), 'NORAD00042',
 
 # Various bad names.
 foreach my $target (
-        'nombat 5565',      # Not a valid catalog name 
+        'nombat 5565',      # Not a valid catalog name
         'norad 444333',     # Too many digits
         'norad',            # No digits
         'x norad 4',        # Leading junk

@@ -44,7 +44,7 @@ our @EXPORT = qw( shiftlog_page_submit parse_query
                   display_shift_comments display_shift_table
                   display_comment_form display_shift_form
                   display_telescope_form submit_comment print_header
-		  display_date_form );
+                  display_date_form );
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
                     );
@@ -254,7 +254,7 @@ sub display_shift_table {
 
       # Call author "anonymous" if name is not defined
       ($author) and $author = $author->name
-	or $author = "Anonymous";
+        or $author = "Anonymous";
 
       # Get the text
       my $text = $c->text;
@@ -270,7 +270,7 @@ sub display_shift_table {
       print "<tr class=\"row_$bgcolor\" valign=top>";
       print "<td class=\"time_a\">$author</td>";
       print "<td class=\"" . $timecellclass . "_$bgcolor\">".
-	$local->strftime("%H:%M:%S %Z") ."</td>";
+        $local->strftime("%H:%M:%S %Z") ."</td>";
       print "<td class=subject>$text</td>";
 
       # Alternate bg color

@@ -50,7 +50,7 @@ my $MISS_CONFIG_KEY =
 my $MISS_DIRECTORY =
   qr{ \b
       n[o']t \s+ open \s+ dir .+?
-      \b 
+      \b
       No \s+ such \s+ file
       \b
     }xis;

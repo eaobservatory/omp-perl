@@ -663,7 +663,7 @@ sub fe_config {
     my $instname = lc($self->ocs_frontend($info{instrument}));
     throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
       unless defined $instname;
- 
+
     # wiring file name
     my $file = File::Spec->catfile( $self->wiredir, 'frontend',
                                     "sideband_$instname.txt");
@@ -676,7 +676,7 @@ sub fe_config {
       # sideband should be used. We read each line until we get a skyfreq
       # that is higher than our required value and then use the value from the previous
       # line
-      open my $fh, '<', $file or 
+      open my $fh, '<', $file or
         throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
 
       # Get sky frequency in GHz
@@ -723,7 +723,7 @@ sub fe_config {
   $fe->sideband( $sb );
 
   # FE XML expects rest frequency in GHz
-  # If the first subsytem has been moved from the centre of the 
+  # If the first subsytem has been moved from the centre of the
   # band we need to adjust the tuning request to compensate
   # The sense of the shift depends on the sideband
   my $restfreq = $fc{restFrequency} / 1e9; # to GHz
@@ -757,7 +757,7 @@ sub fe_config {
   $fe->freq_off_scale( $freq_off );
 
 
-  # store the frontend name in the Frontend config so that we can get the 
+  # store the frontend name in the Frontend config so that we can get the
   # task name
   $fe->frontend( $inst->name );
 
@@ -827,7 +827,7 @@ sub rotator_config {
   my $inst = $cfg->instrument_setup();
   throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
 
-  return if (defined $inst->focal_station && 
+  return if (defined $inst->focal_station &&
              $inst->focal_station !~ /NASMYTH/);
 
   # get the tcs
@@ -879,7 +879,7 @@ sub rotator_config {
       # forcing FPLANE system)
       $scan_adj = rad2deg(atan2(1,4));
 
-      # we have to make sure that the k-mirror is rotated relative to the 
+      # we have to make sure that the k-mirror is rotated relative to the
       # scan angle and not the map angle. For "auto" mode these will be the same
       # but for others they may not be. Problem occurs when multiple scan PAs
       # are specified and they are not at 90 degrees to each other.
@@ -962,7 +962,7 @@ sub rotator_config {
   # science observations.
 # 20090304: Disable bouncing since HARP seems to have 15/16 working receptors
 # Leave code in place to make it easy to change our minds.
-#  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' && 
+#  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' &&
 #      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
 #    $slew = "LONGEST_SLEW";
 #  } els
@@ -1077,7 +1077,7 @@ sub jos_config {
 
   # Always start at the first TCS index (row or offset)
   # - if a science observation
-  $jos->start_index( 1 ) 
+  $jos->start_index( 1 )
     if $info{obs_type} =~ /science|skydip/;
 
   # Now parameters depends on that recipe name
@@ -1866,7 +1866,7 @@ sub spw_list {
       # array of OMP::Range objects
       @baselines = map { new JAC::OCS::Config::Interval( Min => $_->min,
                                                          Max => $_->max,
-                                                         Units => $_->units); 
+                                                         Units => $_->units);
                        } @{$dr{baseline}};
     } else {
       # scalar fraction implies two baseline regions
@@ -1892,7 +1892,7 @@ sub spw_list {
 
     # Create an array of IF objects suitable for use in the spectral
     # window object(s). The ref channel and the if freq are per-sideband
-    my @ifcoords = map { 
+    my @ifcoords = map {
       new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if_per_subband}->[$_],
                                             nchannels => $ss->{nchan_per_sub},
                                             channel_width => $ss->{channwidth},
@@ -1926,10 +1926,10 @@ sub spw_list {
 
       @baselines = (
                     new JAC::OCS::Config::Interval( Units => 'pixel',
-                                                    Min => $offset, 
+                                                    Min => $offset,
                                                     Max => ($nchan_bl+$offset)),
                     new JAC::OCS::Config::Interval( Units => 'pixel',
-                                                    Min => ($nchan_full 
+                                                    Min => ($nchan_full
                                                             - $offset - $nchan_bl),
                                                     Max => ($nchan_full-$offset)),
                    );
@@ -2006,7 +2006,7 @@ sub spw_list {
   my $spwlist = new JAC::OCS::Config::ACSIS::SPWList;
   $spwlist->spectral_windows( %spws );
 
-  # Store the data fiels. Just assume these are okay but probably need a template 
+  # Store the data fiels. Just assume these are okay but probably need a template
   # file
   $spwlist->data_fields( spw_id => "SPEC_WINDOW_ID",
                          doppler => 'FE.DOPPLER',
@@ -2138,7 +2138,7 @@ sub cubes {
 
   # Get the instrument footprint
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
     unless defined $inst;
   my @footprint = $inst->receptor_offsets( $fe->active_receptors );
 
@@ -2245,7 +2245,7 @@ sub cubes {
     my $grid_coord;
 
     # The size and number of pixels depends on the observing mode.
-    # For scan, we have a regular grid but the 
+    # For scan, we have a regular grid but the
     my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
     if ($info{obs_type} eq 'skydip') {
       # Skydips do not need anything clever for display
@@ -2391,7 +2391,7 @@ sub cubes {
     # Assume also that AZEL jiggles want AZEL maps (this includes POINTINGs)
     if ($info{obs_type} =~ /focus/i ) {
       $cube->tcs_coord( 'AZEL' );
-    } elsif ( (defined $info{jiggleSystem} && $info{jiggleSystem} eq 'AZEL') || 
+    } elsif ( (defined $info{jiggleSystem} && $info{jiggleSystem} eq 'AZEL') ||
               (defined $grid_coord && $grid_coord eq 'AZEL') ) {
       # For HARP jiggleSystem is needed because grid_coord will be FPLANE
       $cube->tcs_coord( 'AZEL' );
@@ -2415,7 +2415,7 @@ sub cubes {
     # Gaussian requires a FWHM and truncation radius
     if ($grid_func eq 'Gaussian') {
 
-      # For an oversampled map, the SCUBA regridder has been analysed empirically 
+      # For an oversampled map, the SCUBA regridder has been analysed empirically
       # to determine an optimum smoothing gaussian HWHM of lambda / 5d ( 0.4 of Nyquist).
       # This compromises smoothness vs beam size. If the pixels are very large (larger than
       # the beam) we just assume that the user does not want to really smear across
@@ -2447,7 +2447,7 @@ sub cubes {
     # Max Number of channels allowed for the gridder
     my $max_nchan_per_gridder = $MAX_SLICE_NPIX / $npix_per_chan;
 
-    # We want to chop off the noisy ends of the spectrum. 
+    # We want to chop off the noisy ends of the spectrum.
     # Currently the best way to do this is to exclude 12.5% on each side
     my $part_to_exclude = 0.125;
 
@@ -2693,7 +2693,7 @@ Tool mode and switching string.
 Called from the C<observing_mode> method.  See
 C<OMP::Translator::JCMT::observing_mode> method for more details.
 
-=cut 
+=cut
 
 sub determine_map_and_switch_mode {
   my $self = shift;
@@ -2861,7 +2861,7 @@ sub acsis_layout {
 
   # and links
   my ($nsync, $nreducer, $ngridder) = $self->determine_acsis_layout($cfg, %info);
-  
+
   # find out which correlators are used so we can connect the monitors to the sync_tasks
   my $hw_map = $self->hardware_map();
   my %receptor_mask = $cfg->frontend->mask();
@@ -3272,7 +3272,7 @@ sub bandwidth_mode {
           }
         }
         # fix ups
-        $snew{nchannels_full} /= $s->{nsubbands}; 
+        $snew{nchannels_full} /= $s->{nsubbands};
         $snew{nsubbands} = 1;
         push(@outsubs, \%snew);
       }
@@ -3298,7 +3298,7 @@ sub step_time {
   my $cfg = shift;
   my %info = @_;
 
-  # In scan_pssw the step time is defined to be the time per 
+  # In scan_pssw the step time is defined to be the time per
   # output pixel. Everything else reads from config file
   my $step;
   if ($info{observing_mode} =~ /scan_pssw/ ) {
@@ -3319,7 +3319,7 @@ sub step_time {
     # The step time has to be such that we can get round the jiggle
     # pattern in max_time_between_refs seconds.
     # It also has to not exceed the requested integration time per jiggle position.
-    # Additionally, we would like to get a reasonable number of spectra out 
+    # Additionally, we would like to get a reasonable number of spectra out
     # for the observation (for statistics) so probably do not want to exceed 2 seconds per spectrum
 
     # Need the number of points in the jiggle pattern
@@ -3400,7 +3400,7 @@ sub step_time {
       my @duration = map { $self->calc_jiggle_times( $npts, $_ ) } @chunks;
 
       # The maximum step time that we can therefore use and still complete the
-      # pattern is 
+      # pattern is
       my @max_step_from_nod = map {$time_between_nods / $_ } @duration;
 
       if ($self->debug) {
@@ -3612,7 +3612,7 @@ sub calc_jos_times {
 Calculate the total number of steps in a pattern given a number of points in the pattern
 and the size of a chunk and optionally the number of steps in the off beam.
 
-  $nsteps = $self->calc_jiggle_times( $njigpnts, $jigs_per_on, $steps_per_off ); 
+  $nsteps = $self->calc_jiggle_times( $njigpnts, $jigs_per_on, $steps_per_off );
 
 Note the scalar context. If the number of steps per off is not given, it
 is calculated and returned along with the total duration.
@@ -3886,7 +3886,7 @@ sub _calc_offset_stats {
   # pixel
   return ($min, $max, $cen, $span, 1, $nyquist) unless defined $trial;
 
-  # Starting position is interesting since we could end up with a 
+  # Starting position is interesting since we could end up with a
   # starting offset that is slightly off the "real" grid and with a slight push
   # end up with a regular grid if we had started from some other position.
   # To try to mitigate this we move the reference pixel to the nearest integer
@@ -3944,7 +3944,7 @@ sub _calc_offset_stats {
   # we add one because we are counting fence posts not gaps between fence posts
   my $npix = int( $span / $trial ) + 1;
 
-  # Sometimes the fractional arcsecs pixel sizes can be slightly wrong so 
+  # Sometimes the fractional arcsecs pixel sizes can be slightly wrong so
   # now we are in the ballpark we step through the pixel grid and work out the
   # minimum error for each input pixel whilst adjusting the pixel size in increments
   # of 1 arcsec. This does not use tolerance.
@@ -4007,7 +4007,7 @@ sub _calc_offset_stats {
             }
             next CMP;
           }
-  
+
           # try next grid position
           $i++;
         }
@@ -4038,7 +4038,7 @@ sub _calc_offset_stats {
         # but we start counting at 0, not 1 so subtract an extra 1
         my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
 
-        my $temp_centre; 
+        my $temp_centre;
         if ( scalar(@grid)%2) { #$self->output("Odd\n");
           $temp_centre = $grid[$midpoint];
         } else {                #$self->output("Even\n");
@@ -4075,7 +4075,7 @@ sub _calc_offset_stats {
 
 }
 
-# Find the rms of the supplied numbers 
+# Find the rms of the supplied numbers
 sub _find_rms {
   my @num = @_;
   return 0 unless @num;

@@ -179,8 +179,8 @@ for my $p (keys %projq) {
     if ($upstatus[$hr] != 0) {
       # this project is observable
       if (!defined $uptime) {
-	# first time this is observable so register this fact
-	$uptime = $hr;
+        # first time this is observable so register this fact
+        $uptime = $hr;
       }
     } elsif (defined $uptime) {
       # this project is not observable now but was previously
@@ -218,10 +218,10 @@ for my $p (keys %projq) {
 
 # Now populate the project hash with project details
 my $backend = new OMP::DBbackend();
-my $projdb = new OMP::ProjDB( 
-			     Password => $password,
-			     DB => $backend,
-			    );
+my $projdb = new OMP::ProjDB(
+                             Password => $password,
+                             DB => $backend,
+                            );
 
 for my $p (keys %projects) {
   $projdb->projectid( $p );
@@ -234,8 +234,8 @@ for my $p (keys %projects) {
 
 my @rows;
 for my $p ( sort { $projects{$a}{info}->tagpriority <=>
-		   $projects{$b}{info}->tagpriority
-		 } keys %projects ) {
+                   $projects{$b}{info}->tagpriority
+                 } keys %projects ) {
 
   my %data = %{ $projects{$p} };
   my $proj = $data{info};
@@ -275,21 +275,21 @@ for my $p ( sort { $projects{$a}{info}->tagpriority <=>
 
     if (defined $min) {
       if ($min == $utmin) {
-	# lower bound
-	$min = undef;
+        # lower bound
+        $min = undef;
       } else {
-	$min += $tzoffset;
-	$min = _foldhr( $min );
+        $min += $tzoffset;
+        $min = _foldhr( $min );
       }
     }
 
     if (defined $max) {
       if ($max == $utmax) {
-	# upper bound hit
-	$max = undef;
+        # upper bound hit
+        $max = undef;
       } else {
-	$max += $tzoffset;
-	$max = _foldhr( $max );
+        $max += $tzoffset;
+        $max = _foldhr( $max );
       }
     }
 
@@ -311,16 +311,16 @@ for my $p ( sort { $projects{$a}{info}->tagpriority <=>
 
   # Store the content
   push(@rows, {
-	       project =>    $project,
-	       pi =>         $pi,
-	       inst =>       $inst,
-	       conditions => $cond,
-	       rank =>       $tag,
-	       ss =>         $support,
-	       'msb#' =>     $msbcount,
-	       '%com' =>     $compl,
-	       avail =>      $avail,
-	      });
+               project =>    $project,
+               pi =>         $pi,
+               inst =>       $inst,
+               conditions => $cond,
+               rank =>       $tag,
+               ss =>         $support,
+               'msb#' =>     $msbcount,
+               '%com' =>     $compl,
+               avail =>      $avail,
+              });
 
 }
 
@@ -334,20 +334,20 @@ for my $p ( sort { $projects{$a}{info}->tagpriority <=>
 # 'd' will translate to the width of the column heading
 # or length of int() the number
 my %types = (
-	     project => 's',
-	     pi => 's',
-	     inst => 's',
-	     conditions => 's',
-	     rank => 'd',
-	     ss => 's',
-	     'msb#' => 'd',
-	     '%com' => 'd',
-	     avail => 's',
-	    );
+             project => 's',
+             pi => 's',
+             inst => 's',
+             conditions => 's',
+             rank => 'd',
+             ss => 's',
+             'msb#' => 'd',
+             '%com' => 'd',
+             avail => 's',
+            );
 
 # column order (split because of warning about comment char in qw)
 my @headings = (qw/ project pi inst conditions rank ss /, 'msb#',
-		qw/ %com avail/);
+                qw/ %com avail/);
 
 # find the column widths for all types that are missing a width specifier
 # and begin forming the printf format
@@ -373,9 +373,9 @@ for my $h (@headings) {
     for my $r (@rows) {
       my $l;
       if ($iss) {
-	$l = length( $r->{$h} );
+        $l = length( $r->{$h} );
       } elsif ($isd) {
-	$l = length( int( $r->{$h} ) );
+        $l = length( int( $r->{$h} ) );
       }
       $len = $l if $l > $len;
     }

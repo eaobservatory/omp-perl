@@ -69,7 +69,7 @@ our $VERSION = '2.000';
 my ($help, $man, $version);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
-			"version" => \$version,
+                        "version" => \$version,
                        );
 
 pod2usage(1) if $help;

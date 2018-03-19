@@ -78,7 +78,7 @@ sub PosAngRot {
   my ($x2,$y2);
 
   # Do rotation if rotation is nonzero (since in most cases
-  # people do not ask for rotated coordinates) - this is 
+  # people do not ask for rotated coordinates) - this is
   # a very minor optimization compared two the multiple sprintfs!!
   if (abs($pa) > 0.0) {
 

@@ -91,7 +91,7 @@ indexed by single MSB IDs with multiple comments.
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
+  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) == 1;
 
   my ($table) = @_;
@@ -168,10 +168,10 @@ sub _post_process_hash {
     #if ($key eq 'faultid') {
       # Need to loop over each fault
     #  $href->{$key} = [
-#		       map {
-#			 new OMP::Range(Min => ($_ - 0.0005),
-#					Max => ($_ + 0.0005))
-#		       } @{ $href->{$key} } ];
+#                      map {
+#                        new OMP::Range(Min => ($_ - 0.0005),
+#                                       Max => ($_ + 0.0005))
+#                      } @{ $href->{$key} } ];
 
 #    }
 
@@ -283,8 +283,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

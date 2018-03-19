@@ -47,7 +47,7 @@ Create a new instance of an C<OMP::Cookie> object.
 
   $c = new OMP::Cookie( Name => $name, CGI => $q );
 
-The cookie name defaults to "OMPFBLOGIN", thus the Name parameter is 
+The cookie name defaults to "OMPFBLOGIN", thus the Name parameter is
 optional in the constructor.
 
 
@@ -62,10 +62,10 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-	   Name => $class->default_name,
-	   CGI => undef,
-	   Cookie => undef,
-	  };
+           Name => $class->default_name,
+           CGI => undef,
+           Cookie => undef,
+          };
 
   # create the object (else we cant use accessor methods)
   my $object = bless $c, $class;
@@ -145,7 +145,7 @@ Return the default cookie name.
     my $self = shift;
     if (@_) {
       throw OMP::Error::BadArgs("Value can't be a reference")
-	unless (not ref($_[0]));
+        unless (not ref($_[0]));
       $DEFAULT_NAME = $_[0];
     }
     return $DEFAULT_NAME;
@@ -193,9 +193,9 @@ sub flushCookie {
 
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
-			    -value=>'null',
-			    -domain=>$domain,
-			    -expires=>'-5m',);
+                            -value=>'null',
+                            -domain=>$domain,
+                            -expires=>'-5m',);
 
   $self->cookie($cookie);
   return;
@@ -274,9 +274,9 @@ sub setCookie {
 
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
-			    -value=>\%contents,
-			    -domain=>$domain,
-			    -expires=>$exptime);
+                            -value=>\%contents,
+                            -domain=>$domain,
+                            -expires=>$exptime);
 
   $self->cookie($cookie);
   return;
@@ -305,8 +305,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

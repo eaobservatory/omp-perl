@@ -89,7 +89,7 @@ use File::Spec;
 
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
-BEGIN { 
+BEGIN {
   $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
          unless exists $ENV{OMP_CFG_DIR};
   $ENV{PGPLOT_DIR} = "/star/bin"
@@ -124,9 +124,9 @@ my $pdevice = "/xserve";  # screen
 my $hdevice = "";         # no hardcopy
 
 my $ostatus = GetOptions(   "help"        => \$help,
-			    "man"         => \$man,
-			    "version"     => \$version,
-			    "debug"       => \$debug,
+                            "man"         => \$man,
+                            "version"     => \$version,
+                            "debug"       => \$debug,
                             "tel=s"       => \$tel,
                             "statsmode=s" => \$statsmode,
                             "xut"         => \$utx,
@@ -189,7 +189,7 @@ unless (defined $statsmode) {
     } else {
       print STDERR "Start monthly stats on UT 1st? (Else start HST 1st = UT 2nd) [y]/n: ";
       chomp($utx = <STDIN>);
-      if ($utx =~ /^n/i) { 
+      if ($utx =~ /^n/i) {
         $utx = "HST";
       } else {
         $utx = "UT";
@@ -286,8 +286,8 @@ while ($ut <= $endut) {
 
   # Get the accounting objects from the OMP
   my $nr = OMP::NightRep->new(date => $iut,
-			      telescope => $tel,
-			      delta_day => $delta,);
+                              telescope => $tel,
+                              delta_day => $delta,);
   my %acct = $nr->accounting_db(1);
 
   my $total = 0;
@@ -342,7 +342,7 @@ while ($ut <= $endut) {
     if (exists $acct{$tel.$queue}) {
       $time = $acct{$tel.$queue}->{total}->hours;
       if ($acct{$tel.$queue}->{pending}) {
-	$pending += $acct{$tel.$queue}->{pending}->hours;
+        $pending += $acct{$tel.$queue}->{pending}->hours;
       }
       $total += $time unless $queue =~ /EXTENDED/;
     }
@@ -425,7 +425,7 @@ while ($ut <= $endut) {
   $ref{"cal"}      = abs($items{"cal"});
   if ( $tel =~ /^j/i ) {
     $ref{"available"} = $delta*12;
-    $ref{"available"} -= 12 if ( ${yy}*1e+04+1225 >= $iut and 
+    $ref{"available"} -= 12 if ( ${yy}*1e+04+1225 >= $iut and
                                  ${yy}*1e+04+1225 <  $iut+$delta and
                                  $statsmode !~ /^d/i );
     $ref{"shutdown"}  = $delta*12-$total;
@@ -457,11 +457,11 @@ while ($ut <= $endut) {
 print STDOUT  "\n\n";
 
 if ( $tel =~ /^j/i ) {
-  printf STDOUT "The report from $startut covers %d scheduled ", 
+  printf STDOUT "The report from $startut covers %d scheduled ",
         $grand{"days"};
   printf STDOUT "12-hour nights, in total %3d hours:\n\n", 12*$grand{"days"};
 } else {
-  printf STDOUT "The report from $startut covers %d scheduled nights ", 
+  printf STDOUT "The report from $startut covers %d scheduled nights ",
         $grand{"days"};
   printf STDOUT "for a total of %6.2f hours:\n\n", $grand{"hours"};
 }

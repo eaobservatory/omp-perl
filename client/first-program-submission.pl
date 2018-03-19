@@ -119,7 +119,7 @@ my $db = OMP::BaseDB->new( 'DB' => OMP::DBbackend->new );
 my $progs = $db->_db_retrieve_data_ashash( make_query( @proj ) );
 
 unless ( scalar @{ $progs } ) {
-  
+
   print "Nothing found in database for given project ids.\n";
   exit;
 }
@@ -145,7 +145,7 @@ BEGIN {
   sub print_csv {
 
     my ( $hash ) = @_;
-    
+
     really_print_csv( map { $hash->{ $_ } } @header );
     return;
   }

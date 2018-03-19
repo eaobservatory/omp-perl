@@ -65,9 +65,9 @@ sub new {
 
   my $f = bless {
                  Date => undef,
-		 TimeLost => undef,
-		 TimeLostTechnical => undef,
-		 TimeLostNonTechnical => undef,
+                 TimeLost => undef,
+                 TimeLostTechnical => undef,
+                 TimeLostNonTechnical => undef,
                 }, $class;
 
   # If we have a "faults" argument we grab the information
@@ -83,10 +83,10 @@ sub new {
     foreach my $fault ( @{$args{faults}} ) {
       my $loss = new Time::Seconds($fault->timelost * ONE_HOUR);
       if ($fault->typeText =~ /human/i or $fault->statusText =~ /not a fault/i) {
-	# Fault is non-technical
-	$timelost_nontech += $loss;
+        # Fault is non-technical
+        $timelost_nontech += $loss;
       } else {
-	$timelost_technical += $loss;
+        $timelost_technical += $loss;
       }
       $timelost += $loss;
       $date = $fault->faultdate;
@@ -278,8 +278,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

@@ -25,4 +25,4 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project log");
 $cgi->write_page( \&OMP::CGIPage::Obslog::projlog_content,
-		  \&OMP::CGIPage::Obslog::projlog_content );
+                  \&OMP::CGIPage::Obslog::projlog_content );

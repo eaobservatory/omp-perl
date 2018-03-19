@@ -5,7 +5,7 @@ package OMP::WORF::UIST_UKDHS;
 OMP::WORF::UIST_UKDHS - UIST_UKDHS (UIST with ORAC DHS) specific
 functions for WORF
 
-=head1 
+=head1
 
 SYNOPSIS
 

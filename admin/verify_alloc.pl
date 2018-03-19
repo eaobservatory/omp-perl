@@ -1,7 +1,7 @@
 #!/local/perl/bin/perl
 
 # Simple script to take the project details for a semester (in INI format)
-# and 
+# and
 #  1. Generate a list of all users (COI and PI) along with a list of
 #     users that are not currently recognized by the OMP
 #

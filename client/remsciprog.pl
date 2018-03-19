@@ -83,11 +83,11 @@ my $password = $term->readline( "Password [project or admin]: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
 # Create the new object
-my $db = new OMP::MSBDB( 
-			Password => $password,
-			ProjectID => $project,
-			DB => new OMP::DBbackend,
-		       );
+my $db = new OMP::MSBDB(
+                        Password => $password,
+                        ProjectID => $project,
+                        DB => new OMP::DBbackend,
+                       );
 
 # First list a summary of the project by retrieving the science
 # program (disabling feedback notification)

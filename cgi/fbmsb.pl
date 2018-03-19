@@ -25,4 +25,4 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 $cgi->html_title("$title: View MSBs");
 $cgi->write_page( \&OMP::CGIPage::MSB::fb_msb_output,
-		  \&OMP::CGIPage::MSB::fb_msb_output);
+                  \&OMP::CGIPage::MSB::fb_msb_output);

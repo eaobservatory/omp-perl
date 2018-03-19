@@ -41,11 +41,11 @@ my @dateinput;
 
 # ISO
 push(@dateinput,  sprintf("%04d-%02d-%02dT%02d:%02d",
-	   	     $year, $mon, $day, $hh, $mm));
+                     $year, $mon, $day, $hh, $mm));
 
 # MySQL
 push(@dateinput,  sprintf("%04d-%02d-%02d %02d:%02d:%02d",
-		      $year, $mon, $day, $hh, $mm, $sec));
+                      $year, $mon, $day, $hh, $mm, $sec));
 
 print "# parse_date\n";
 

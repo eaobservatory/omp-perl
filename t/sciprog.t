@@ -30,7 +30,7 @@ require_ok( 'OMP::SciProg' );
 # This information needs to change if the Science program
 # is modified by dumping a new data structure.
 
-# Read the data hash 
+# Read the data hash
 use vars qw/ $VAR1 /;
 $/ = undef;
 my $text = <DATA>;
@@ -91,38 +91,38 @@ for my $msb ($obj->msb) {
       # Really need a recursive comparator
       if ($key eq 'observations') {
 
-	foreach my $i (0..$#{$cmp{$key}}) {
-	  my %obs = %{$msbsum{$key}[$i]};
-	  my %cmpobs = %{$cmp{$key}[$i]};
+        foreach my $i (0..$#{$cmp{$key}}) {
+          my %obs = %{$msbsum{$key}[$i]};
+          my %cmpobs = %{$cmp{$key}[$i]};
 
-	  # If we have waveband, generate a wavelength
-	  if (!exists $obs{wavelength}) {
-	    $obs{wavelength} = $obs{waveband}->wavelength
-	      if $obs{waveband};
-	  }
-	  if (!exists $cmpobs{wavelength}) {
-	    $cmpobs{wavelength} = $cmpobs{waveband}->wavelength
-	      if $cmpobs{waveband};
-	  }
+          # If we have waveband, generate a wavelength
+          if (!exists $obs{wavelength}) {
+            $obs{wavelength} = $obs{waveband}->wavelength
+              if $obs{waveband};
+          }
+          if (!exists $cmpobs{wavelength}) {
+            $cmpobs{wavelength} = $cmpobs{waveband}->wavelength
+              if $cmpobs{waveband};
+          }
 
-	  # Coords type
-	  if (!exists $obs{coordstype}) {
-	    $obs{coordstype} = $obs{coords}->type
-	      if $obs{coords};
-	  }
-	  if (!exists $cmpobs{coordstype}) {
-	    $cmpobs{coordstype} = $cmpobs{coords}->type
-	      if $cmpobs{coords};
-	  }
+          # Coords type
+          if (!exists $obs{coordstype}) {
+            $obs{coordstype} = $obs{coords}->type
+              if $obs{coords};
+          }
+          if (!exists $cmpobs{coordstype}) {
+            $cmpobs{coordstype} = $cmpobs{coords}->type
+              if $cmpobs{coords};
+          }
 
-	  foreach my $obskey (keys %cmpobs) {
-	    # Skipping refs prevents comparison of coordinates
-	    next if ref($cmpobs{$obskey});
-	    next if ref($obs{$obskey});
+          foreach my $obskey (keys %cmpobs) {
+            # Skipping refs prevents comparison of coordinates
+            next if ref($cmpobs{$obskey});
+            next if ref($obs{$obskey});
 
-	    is($obs{$obskey}, $cmpobs{$obskey}, "Comparing obs: $obskey");
-	  }
-	}
+            is($obs{$obskey}, $cmpobs{$obskey}, "Comparing obs: $obskey");
+          }
+        }
 
       }
       elsif (UNIVERSAL::isa($cmp{$key}, 'OMP::Range')) {
@@ -131,8 +131,8 @@ for my $msb ($obj->msb) {
           . ' expected ' . Dumper($cmp{$key}) . ' got ' . Dumper($msbsum{$key}));
       }
       else {
-	next if ref( $cmp{$key});
-	is( $msbsum{$key}, $cmp{$key}, "Comparing $key");
+        next if ref( $cmp{$key});
+        is( $msbsum{$key}, $cmp{$key}, "Comparing $key");
       }
     }
   }
@@ -181,7 +181,7 @@ exit;
 
 __DATA__
 $VAR1 = {
-	   '455c01c9b8309d014dc81271c45fe75fA' => {
+           '455c01c9b8309d014dc81271c45fe75fA' => {
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => new OMP::Range(Max => 100,
                                                                              Min => 0),

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.eao.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>accept.xml</meta_gui_filename>
+  <country>TEST</country>
+  <ot_version>20180222</ot_version>
+  <pi>TEST</pi>
+  <projectID>TEST</projectID>
+  <telescope>jcmt</telescope>
+  <title>Test Program</title>
+  <SpMSB remaining="10" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>MSB A</title>
+    <totalDuration units="seconds">0.0</totalDuration>
+  </SpMSB>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <title>OR Folder 1</title>
+    <SpMSB remaining="10" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB B</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+    <SpMSB remaining="10" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB C</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+  </SpOR>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <title>OR Folder 2</title>
+    <SpAND type="fo" subtype="and">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <title>AND Folder 1</title>
+      <SpMSB remaining="10" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB D</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+      <SpMSB remaining="10" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB E</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+    </SpAND>
+    <SpAND type="fo" subtype="and">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <title>AND Folder 2</title>
+      <SpMSB remaining="10" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB F</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+      <SpMSB remaining="10" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB G</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+    </SpAND>
+  </SpOR>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <title>OR Folder 3</title>
+    <SpSurveyContainer type="sc" subtype="survey">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+        <TargetList>
+                <Target priority="1" remaining="10">
+                          <SpTelescopeObsComp type="oc" subtype="targetList">
+                            <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+                            <meta_unique>true</meta_unique>
+                            <BASE TYPE="SCIENCE">
+                              <target>
+                                <targetName></targetName>
+                                <spherSystem SYSTEM="J2000">
+                                  <c1>0:00:00</c1>
+                                  <c2>0:00:00</c2>
+                                  <rv defn="radio" frame="LSRK">0.0</rv>
+                                </spherSystem>
+                              </target>
+                            </BASE>
+                          </SpTelescopeObsComp>
+                </Target>
+        </TargetList>
+      <title>Survey Container 1</title>
+      <SpMSB remaining="1" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB H</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+    </SpSurveyContainer>
+    <SpSurveyContainer type="sc" subtype="survey">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+        <TargetList>
+                <Target priority="1" remaining="10">
+                          <SpTelescopeObsComp type="oc" subtype="targetList">
+                            <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+                            <meta_unique>true</meta_unique>
+                            <BASE TYPE="SCIENCE">
+                              <target>
+                                <targetName></targetName>
+                                <spherSystem SYSTEM="J2000">
+                                  <c1>0:00:00</c1>
+                                  <c2>0:00:00</c2>
+                                  <rv defn="radio" frame="LSRK">0.0</rv>
+                                </spherSystem>
+                              </target>
+                            </BASE>
+                          </SpTelescopeObsComp>
+                </Target>
+        </TargetList>
+      <title>Survey Container 2</title>
+      <SpMSB remaining="1" type="og" subtype="msb">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">0.0</estimatedDuration>
+        <priority>99</priority>
+        <title>MSB I</title>
+        <totalDuration units="seconds">0.0</totalDuration>
+      </SpMSB>
+    </SpSurveyContainer>
+  </SpOR>
+  <SpSurveyContainer type="sc" subtype="survey">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <meta_gui_selectedTelObsComp>1</meta_gui_selectedTelObsComp>
+    <choose>1</choose>
+    <TargetList>
+        <Target priority="1" remaining="5">
+              <SpTelescopeObsComp type="oc" subtype="targetList">
+                <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+                <meta_unique>true</meta_unique>
+                <BASE TYPE="SCIENCE">
+                  <target>
+                    <targetName>Target 1</targetName>
+                    <spherSystem SYSTEM="J2000">
+                      <c1>0:00:00</c1>
+                      <c2>0:00:00</c2>
+                      <rv defn="radio" frame="LSRK">0.0</rv>
+                    </spherSystem>
+                  </target>
+                </BASE>
+              </SpTelescopeObsComp>
+        </Target>
+        <Target priority="1" remaining="5">
+              <SpTelescopeObsComp type="oc" subtype="targetList">
+                <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+                <meta_unique>true</meta_unique>
+                <BASE TYPE="SCIENCE">
+                  <target>
+                    <targetName>Target 2</targetName>
+                    <spherSystem SYSTEM="J2000">
+                      <c1>0:00:00</c1>
+                      <c2>0:00:00</c2>
+                      <rv defn="radio" frame="LSRK">0.0</rv>
+                    </spherSystem>
+                  </target>
+                </BASE>
+              </SpTelescopeObsComp>
+        </Target>
+    </TargetList>
+    <title>Survey container 3</title>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB J</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+  </SpSurveyContainer>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <title>OR Folder 4</title>
+    <SpAND type="fo" subtype="and">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <SpSurveyContainer type="sc" subtype="survey">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+            <TargetList>
+                        <Target priority="1" remaining="10">
+                                      <SpTelescopeObsComp type="oc" subtype="targetList">
+                                        <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+                                        <meta_unique>true</meta_unique>
+                                        <BASE TYPE="SCIENCE">
+                                          <target>
+                                            <targetName></targetName>
+                                            <spherSystem SYSTEM="J2000">
+                                              <c1>0:00:00</c1>
+                                              <c2>0:00:00</c2>
+                                              <rv defn="radio" frame="LSRK">0.0</rv>
+                                            </spherSystem>
+                                          </target>
+                                        </BASE>
+                                      </SpTelescopeObsComp>
+                        </Target>
+            </TargetList>
+        <title>Survey Container 4</title>
+        <SpMSB remaining="1" type="og" subtype="msb">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <estimatedDuration units="seconds">0.0</estimatedDuration>
+          <priority>99</priority>
+          <title>MSB K</title>
+          <totalDuration units="seconds">0.0</totalDuration>
+        </SpMSB>
+      </SpSurveyContainer>
+    </SpAND>
+    <SpMSB remaining="10" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">0.0</estimatedDuration>
+      <priority>99</priority>
+      <title>MSB L</title>
+      <totalDuration units="seconds">0.0</totalDuration>
+    </SpMSB>
+  </SpOR>
+</SpProg>

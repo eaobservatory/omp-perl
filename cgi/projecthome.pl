@@ -40,4 +40,4 @@ if ($verify) {
 
 $cgi->html_title($title);
 $cgi->write_page( \&OMP::CGIPage::Project::project_home,
-		  \&OMP::CGIPage::Project::project_home );
+                  \&OMP::CGIPage::Project::project_home );

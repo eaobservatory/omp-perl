@@ -86,49 +86,49 @@ sub list_projects_form {
   print "<table border=0><tr><td align=right>Semester: </td><td>";
   print $q->startform;
   print $q->hidden(-name=>'show_output',
-		   -default=>1,);
+                   -default=>1,);
   print $q->popup_menu(-name=>'semester',
-		       -values=>\@sem,
-		       -default=>uc($sem),);
+                       -values=>\@sem,
+                       -default=>uc($sem),);
   print "</td></tr><tr><td align='right'>Telescope: </td><td>";
   print $q->popup_menu(-name=>'telescope',
-		       -values=>\@tel,
-		       -default=>'Any',);
+                       -values=>\@tel,
+                       -default=>'Any',);
   print "</td></tr><tr><td align='right'>Show: </td><td>";
   print $q->radio_group(-name=>'status',
-		        -values=>['active', 'inactive', 'all'],
-			-labels=>{active=>'Time remaining',
-				  inactive=>'No time remaining',
-				  all=>'Both',},
-		        -default=>'active',);
+                        -values=>['active', 'inactive', 'all'],
+                        -labels=>{active=>'Time remaining',
+                                  inactive=>'No time remaining',
+                                  all=>'Both',},
+                        -default=>'active',);
   print "<br>";
   print $q->radio_group(-name=>'state',
-		        -values=>[1,0,'all'],
-		        -labels=>{1=>'Enabled',
-				  0=>'Disabled',
-				  all=>'Both',},
-		        -default=>1,);
+                        -values=>[1,0,'all'],
+                        -labels=>{1=>'Enabled',
+                                  0=>'Disabled',
+                                  all=>'Both',},
+                        -default=>1,);
   print "</td></tr><tr><td align='right'>Support: </td><td>";
   print $q->popup_menu(-name=>'support',
-		       -values=>\@values,
-		       -labels=>\%labels,
-		       -default=>'dontcare',);
+                       -values=>\@values,
+                       -labels=>\%labels,
+                       -default=>'dontcare',);
   print "</td></tr><tr><td align='right'>Country: </td><td>";
   print $q->popup_menu(-name=>'country',
-		       -values=>\@countries,
-		       -default=>'Any',);
+                       -values=>\@countries,
+                       -default=>'Any',);
   print "</td></tr><tr><td align='right'>Order by:</td><td colspan=2>";
   print $q->radio_group(-name=>'order',
-			-values=>['priority', 'projectid', 'adj-priority'],
-		        -labels=>{priority => 'Priority',
-				  projectid => 'Project ID',
-				  'adj-priority' => 'Adjusted priority',},
-		        -default=>'priority',);
+                        -values=>['priority', 'projectid', 'adj-priority'],
+                        -labels=>{priority => 'Priority',
+                                  projectid => 'Project ID',
+                                  'adj-priority' => 'Adjusted priority',},
+                        -default=>'priority',);
   print "</td></tr><tr><td colspan=2>";
   print $q->checkbox(-name=>'table_format',
-		     -value=>1,
-		     -label=>'Display using tabular format',
-		     -checked=>'true',);
+                     -value=>1,
+                     -label=>'Display using tabular format',
+                     -checked=>'true',);
   print "&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
   print $q->endform();
@@ -154,7 +154,7 @@ sub proj_status_table {
 
   # Get the project details
   my $project = OMP::ProjServer->projectDetailsNoAuth( $cookie{projectid},
-						       'object' );
+                                                       'object' );
 
   my $projectid = $cookie{projectid};
 
@@ -172,15 +172,15 @@ sub proj_status_table {
   my $supportemail = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
   print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
-	"<tr>",
-	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation())."</td>",
-	"<td><b>Title:</b> " . $project->title . "</td>",
-	"<td> $case_href </td></tr>",
-	"<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
-	"<td><b>Staff Contact:</b> $supportemail</td></tr>",
+        "<tr>",
+        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation())."</td>",
+        "<td><b>Title:</b> " . $project->title . "</td>",
+        "<td> $case_href </td></tr>",
+        "<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
+        "<td><b>Staff Contact:</b> $supportemail</td></tr>",
         "<tr><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
-	"<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
-	"<td><b>Country:</b>" . $project->country . "</td></tr>",
+        "<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
+        "<td><b>Country:</b>" . $project->country . "</td></tr>",
         "</table><p>";
 }
 
@@ -224,9 +224,9 @@ sub proj_sum_table {
 TABLE
 
   my %bgcolor = (dark => "#6161aa",
-		 light => "#8080cc",
+                 light => "#8080cc",
                  disabled => "#e26868",
-		 heading => "#c2c5ef",);
+                 heading => "#c2c5ef",);
 
   # Images, with width & height, to distinguish between enabled & disabled
   # projects more easily than just by background colors.
@@ -391,11 +391,11 @@ sub projectid_form {
   print $q->startform;
   print "Project ID: ";
   print $q->textfield(-name=>"projectid",
-		      -size=>12,
-		      -maxlength=>32,);
+                      -size=>12,
+                      -maxlength=>32,);
   print "&nbsp;";
   print $q->submit(-name=>"projectid_submit",
-		   -label=>"Submit",);
+                   -label=>"Submit",);
 }
 
 =head1 SEE ALSO

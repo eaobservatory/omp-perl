@@ -17,9 +17,9 @@ use FindBin;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-	$ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
             unless exists $ENV{OMP_CFG_DIR};
-	$ENV{PATH} = "/usr/bin";
+        $ENV{PATH} = "/usr/bin";
       }
 
 use lib OMPLIB;
@@ -85,8 +85,8 @@ for my $projid (@projects) {
 
     # Create new DB object using backdoor password
     my $db = new OMP::MSBDB(
-			     ProjectID => $projid,
-			     DB => new OMP::DBbackend );
+                             ProjectID => $projid,
+                             DB => new OMP::DBbackend );
 
     my $xml = $db->fetchSciProgNoAuth(1, raw => 1);
 

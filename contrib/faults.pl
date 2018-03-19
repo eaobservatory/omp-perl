@@ -67,17 +67,17 @@ $delta = $days if ( defined($days) );
 
 my @statusname = (
                     "OPEN",
-	            "CLOSED",
-	            "WORKS FOR ME",
-	            "NOT A FAULT",
-	            "WON'T BE FIXED",
-	            "DUPLICATE",
+                    "CLOSED",
+                    "WORKS FOR ME",
+                    "NOT A FAULT",
+                    "WON'T BE FIXED",
+                    "DUPLICATE",
                     "WILL BE FIXED"
                   );
 
 # Get the connection handle
   my $db = $dbs->handle || do
-	   {
+           {
              die qq{Error connecting to DB: $DBI::errstr};
            };
 
@@ -143,9 +143,9 @@ foreach my $row (@$current_ref) {
       $faults{$subj}{listing} .=
           sprintf "%12.12s %8.8s  %-s\n", $faultid, $time, $subject;
       $faults{$subj}{author} .= ',' . $author
-	unless ( $faults{$subj}{author} =~ /$author/i );
+        unless ( $faults{$subj}{author} =~ /$author/i );
       $faults{$subj}{status} = $statusname[$status]
-	if ( $statusname[$status] =~ /open/i );
+        if ( $statusname[$status] =~ /open/i );
 
 
     } else {

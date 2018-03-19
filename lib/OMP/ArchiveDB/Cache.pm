@@ -349,8 +349,8 @@ sub unstored_files {
   } elsif( defined( $telescope ) ) {
     # Need to make sure we kluge the rx -> heterodyne conversion
     my @initial = OMP::Config->getData('instruments',
-				       telescope => $telescope
-				      );
+                                       telescope => $telescope
+                                      );
 
     my $ishet = 0;
     for my $inst (@initial) {

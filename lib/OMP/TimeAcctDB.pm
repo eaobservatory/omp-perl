@@ -13,7 +13,7 @@ OMP::TimeAcctDB - Manipulate the time accounting database
 
 =head1 DESCRIPTION
 
-This class manipulates the time accounting database. It can 
+This class manipulates the time accounting database. It can
 be used to set the time spent on a particular project on a particular
 day and to return project totals.
 
@@ -96,7 +96,7 @@ sub getTimeSpent {
   my $xml = "<TimeAcctQuery>" .
     (exists $args{projectid} ? "<projectid>$args{projectid}</projectid>" : '').
       ($date ? "<date delta=\"0.99999\">$date</date>" : '').
-	"</TimeAcctQuery>";
+        "</TimeAcctQuery>";
 
   # Create the query object
   my $q = new OMP::TimeAcctQuery( XML => $xml);
@@ -141,7 +141,7 @@ sub verifyTimeAcctEntry {
   # until we get tau bands and other things included in the allocation
   # this is essentially getTimeSpent
   my @results = $self->getTimeSpent( projectid => $ref->projectid,
-				     utdate => $ref->date);
+                                     utdate => $ref->date);
 
   # return the result
   return $results[0];
@@ -238,27 +238,27 @@ sub setTimeSpent {
       # the message depends on whether we have pending >0 or
       # confirmed >0 [can only be one or the other]
       if (exists $projects{$proj}{$ut}{pending} &&
-	  $projects{$proj}{$ut}{pending} > 0) {
-	# pending
-	$subject = "[$proj] Adjust time awaiting confirmation for UT $ut";
-	$text = "The amount of time awaiting confirmation for UT $ut is now $projects{$proj}{$ut}{pending} seconds";
+          $projects{$proj}{$ut}{pending} > 0) {
+        # pending
+        $subject = "[$proj] Adjust time awaiting confirmation for UT $ut";
+        $text = "The amount of time awaiting confirmation for UT $ut is now $projects{$proj}{$ut}{pending} seconds";
 
       } elsif (exists $projects{$proj}{$ut}{confirmed} &&
-	       $projects{$proj}{$ut}{confirmed} > 0) {
-	# confirmed
-	$subject = "[$proj] Time spent on project $proj now confirmed for UT $ut";
-	$text = "Confirmed that $projects{$proj}{$ut}{confirmed} seconds was assigned to project $proj for UT date $ut";
+               $projects{$proj}{$ut}{confirmed} > 0) {
+        # confirmed
+        $subject = "[$proj] Time spent on project $proj now confirmed for UT $ut";
+        $text = "Confirmed that $projects{$proj}{$ut}{confirmed} seconds was assigned to project $proj for UT date $ut";
       } else {
-	# both zero
-	$subject = "[$proj] No time spent on project for UT $ut";
-	$text = "The time assigned to project $proj for UT date $ut has been reset to zero seconds";
+        # both zero
+        $subject = "[$proj] No time spent on project for UT $ut";
+        $text = "The time assigned to project $proj for UT date $ut has been reset to zero seconds";
       }
 
       $self->_notify_feedback_system(
-				     subject => $subject,
-				     text => $text,
-				     msgtype => OMP__FB_MSG_TIME_ADJUST_CONFIRM,
-				    );
+                                     subject => $subject,
+                                     text => $text,
+                                     msgtype => OMP__FB_MSG_TIME_ADJUST_CONFIRM,
+                                    );
     }
 
   }
@@ -296,7 +296,7 @@ sub incPending {
   # set the pending flag
   $pending->confirmed(0);
 
-  # and store it [this method does the locking but we need to 
+  # and store it [this method does the locking but we need to
   # make sure we do not get out of sync]
   $self->setTimeSpent( $pending );
 
@@ -341,7 +341,7 @@ sub _run_timeacct_query {
   for my $row (@$ref) {
     my $date = OMP::DateTools->parse_date( $row->{date} );
     throw OMP::Error::FatalError("Unable to parse date '".$row->{date}.
-				 "' from time accounting table")
+                                 "' from time accounting table")
       unless defined $date;
     $row->{date} = $date;
   }
@@ -373,7 +373,7 @@ sub _clear_old_timeacct_row {
   # generate a hash representation of the object
   # that will match the column names
   my %details  = ( projectid => $acct->projectid,
-		   date  => $acct->date->strftime('%Y-%m-%d'));
+                   date  => $acct->date->strftime('%Y-%m-%d'));
 
   # construct the where clause
   # from the relevant keys
@@ -425,7 +425,7 @@ sub _insert_timeacct_entry {
 
   # insert
   $self->_db_insert_data( $ACCTTABLE, $date, $proj, $timespent,
-			  $conf);
+                          $conf);
 
 }
 
@@ -455,8 +455,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

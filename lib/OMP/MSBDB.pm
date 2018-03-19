@@ -731,13 +731,7 @@ sub doneMSB {
   my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
-  my $msb = $sp->fetchMSB( $checksum );
-
-  if ($msb) {
-     OMP::General->log_message("MSB Retrieved successfully");
-  } else {
-     OMP::General->log_message("Unable to retrieve corresponding MSB");
-  }
+  my $msb = _find_msb_tolerant($sp, $checksum);
 
   # We are going to force the comment object through if we have one
   # This allows us to preserve date information.
@@ -880,7 +874,7 @@ sub undoMSB {
   my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
-  my $msb = $sp->fetchMSB( $checksum );
+  my $msb = _find_msb_tolerant($sp, $checksum);
 
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
@@ -3521,6 +3515,49 @@ sub stable_fuzzy_sort {
                 if $key->($arr->[$i]) + $tol < $key->($arr->[$j]);
         }
     }
+}
+
+
+=item _find_msb_tolerant($science_program, $checksum)
+
+Find an MSB in a science program by its checksum, but allow some
+tolerance:
+
+=over 4
+
+=item
+
+If the MSB was moved out of an OR folder, a trailing 'O' may have
+been removed from the checksum.
+
+=back
+
+=cut
+
+sub _find_msb_tolerant {
+    my $sp = shift;
+    my $checksum = shift;
+
+    my $msb = $sp->fetchMSB($checksum);
+
+    OMP::General->log_message("MSB Retrieved successfully")
+        if $msb;
+
+    unless ($msb) {
+        if ($checksum =~ s/O//) {
+            OMP::General->log_message("Checking for MSB outside OR folder");
+
+            $msb = $sp->fetchMSB($checksum);
+
+            OMP::General->log_message("MSB found with checksum [$checksum]")
+                if $msb;
+        }
+    }
+
+    OMP::General->log_message("Unable to retrieve corresponding MSB")
+        unless $msb;
+
+    return $msb;
 }
 
 =back

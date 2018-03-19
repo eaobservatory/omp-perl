@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 174;
+use Test::More tests => 175;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -364,6 +364,7 @@ my %extract = (
                'U/15A/UA13b' => 'U/15A/UA13b      UA',
                'U/15B/NA05A' => 'Project U/15B/NA05A has A suffix',
                'U/17B/NAV05' => 'Project U/17B/NAV05 for USNO',
+               'u/18a/ncu01' => 'Project u/18a/ncu01 as mentioned in fault 20180317.001',
                'U/18A/EAP002' => 'Project U/18A/EAP002 -- first EAO UKIRT code',
                'U/SERV/17B/EAP001' => 'Example UKIRT urgent project code: U/SERV/17B/EAP001',
               );

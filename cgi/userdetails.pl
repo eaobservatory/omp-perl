@@ -41,8 +41,8 @@ $cgi->html_title("$title: User Details for $user");
 # Do project authentication if the user is not local
 if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIPage::User::details,
-			   \&OMP::CGIPage::User::details );
+                           \&OMP::CGIPage::User::details );
 } else {
   $cgi->write_page_noauth( \&OMP::CGIPage::User::details,
-			   \&OMP::CGIPage::User::details );
+                           \&OMP::CGIPage::User::details );
 }

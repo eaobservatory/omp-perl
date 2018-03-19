@@ -82,7 +82,7 @@ my $status = GetOptions("help" => \$help,
                         "version" => \$version,
                         "id=s" => \$idstr,
                         "enable" => \$enable,
-			"disable" => \$disable,
+                        "disable" => \$disable,
                        );
 
 pod2usage(1) if $help;
@@ -115,8 +115,8 @@ my $dbconnection = new OMP::DBbackend;
 
 for my $id (split(',',$idstr)) {
   my $projdb = new OMP::ProjDB( ProjectID => $id,
-				DB => $dbconnection,
-				Password => $password, );
+                                DB => $dbconnection,
+                                Password => $password, );
 
   # Get project
   my $proj = $projdb->projectDetails( 'object' );

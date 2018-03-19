@@ -223,7 +223,7 @@ sub tau_plot_code {
   if ($gif) {
     return "<a name='taufits'></a>"
       ."<a href='$calibpage'><img src='$www/$gif'>"
-	."<br>Click here to visit the calibration page</a>";
+        ."<br>Click here to visit the calibration page</a>";
   } else {
     return undef;
   }

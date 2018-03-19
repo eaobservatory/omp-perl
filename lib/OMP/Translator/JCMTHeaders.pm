@@ -374,7 +374,7 @@ sub getSurveyName {
     } elsif ($short eq 'N') {
       return "NGS";
     } elsif ($short eq 'J') {
-      return "JPS"; 
+      return "JPS";
     } else {
       throw OMP::Error::TranslateFail( "Unrecognized SURVEY code: '$project' -> '$short'" );
     }

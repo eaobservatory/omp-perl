@@ -4,7 +4,7 @@ package OMP::WORF::SCUBA_SCUBA;
 
 OMP::WORF::SCUBA_SCUBA - SCUBA-specific functions for WORF
 
-=head1 
+=head1
 
 SYNOPSIS
 

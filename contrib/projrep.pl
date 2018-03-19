@@ -63,8 +63,8 @@ my $delta = 7;
 $delta = $days if ( defined($days) );
 
 my $nr = OMP::NightRep->new(date => $startut,
-			    telescope => $telescope,
-			    delta_day => $delta,);
+                            telescope => $telescope,
+                            delta_day => $delta,);
 
 my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP";
 
@@ -162,7 +162,7 @@ print  "\n";
 
 print  "                                                 ------\n";
 printf "Total                                        T:  %6.2f hrs\n",
-	     $total;
+             $total;
 
 print  "Facility Closure                             S:  ";
 printf "%6.2f hrs",abs($items{"_shutdown"});
@@ -188,8 +188,8 @@ foreach my $country ( split(/\s/,$countrylist) ) {
       if ($pcountry eq $country) {
         printf "%-10.10s %6.2f hrs", $proj, abs($ptime);
         printf "    %-3.3s %6.2f hrs", $country, $country_totals[$cnr]
-	    if ($done_first eq 0);
-	$done_first++;
+            if ($done_first eq 0);
+        $done_first++;
         print  "   [pending]" if ($ptime < 0);
         print  "\n";
       }

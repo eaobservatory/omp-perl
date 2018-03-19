@@ -24,11 +24,11 @@ require_ok('OMP::Project::TimeAcct');
 
 # try a test object
 my $acct = new OMP::Project::TimeAcct(
-				      confirmed => 0,
-				      projectid => "Blah",
-				      date => scalar(gmtime),
-				      timespent => 1800,
-				     );
+                                      confirmed => 0,
+                                      projectid => "Blah",
+                                      date => scalar(gmtime),
+                                      timespent => 1800,
+                                     );
 
 isa_ok($acct, "OMP::Project::TimeAcct");
 
@@ -43,45 +43,45 @@ is($acct->timespent->seconds, 7200,"test incTime with OMP::Project::TimeAcct");
 
 # test summaries - start with a hash
 my @input = (
-	     {
-	      timespent => 15,
-	      confirmed => 1,
-	      projectid => 'blah2',
-	      date=> '2002-08-15',
-	     },
-	     {
-	      timespent => 10,
-	      confirmed => 0,
-	      projectid => 'blah1',
-	      date=> '2002-08-15',
-	     },
-	     {
-	      timespent => 5,
-	      confirmed => 0,
-	      projectid => 'blah3',
-	      date=> '2002-08-15',
-	     },
-	     {
-	      timespent => 20,
-	      confirmed => 1,
-	      projectid => 'blah1',
-	      date=> '2002-08-16',
-	     },
-	     {
-	      timespent => 30,
-	      confirmed => 1,
-	      projectid => 'blah1',
-	      date=> '2002-07-15',
-	     },
-	    );
+             {
+              timespent => 15,
+              confirmed => 1,
+              projectid => 'blah2',
+              date=> '2002-08-15',
+             },
+             {
+              timespent => 10,
+              confirmed => 0,
+              projectid => 'blah1',
+              date=> '2002-08-15',
+             },
+             {
+              timespent => 5,
+              confirmed => 0,
+              projectid => 'blah3',
+              date=> '2002-08-15',
+             },
+             {
+              timespent => 20,
+              confirmed => 1,
+              projectid => 'blah1',
+              date=> '2002-08-16',
+             },
+             {
+              timespent => 30,
+              confirmed => 1,
+              projectid => 'blah1',
+              date=> '2002-07-15',
+             },
+            );
 
 # now create the objects
 my @acct = map { new OMP::Project::TimeAcct(
-					    confirmed => $_->{confirmed},
-					    timespent => $_->{timespent},
-					    projectid => $_->{projectid},
-					    date => OMP::DateTools->parse_date($_->{date}),
-					   )   } @input;
+                                            confirmed => $_->{confirmed},
+                                            timespent => $_->{timespent},
+                                            projectid => $_->{projectid},
+                                            date => OMP::DateTools->parse_date($_->{date}),
+                                           )   } @input;
 
 is(scalar(@acct), scalar(@input), "make sure we have equal in and out");
 for (@acct) {

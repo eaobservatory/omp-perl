@@ -51,7 +51,7 @@ use overload '""' => "stringify";
 
 =item B<new>
 
-Create a new comment object. 
+Create a new comment object.
 The comment must ideally be supplied in the constructor but this is
 not enforced. "author", "status", "tid" and "date" are optional.
 
@@ -93,7 +93,7 @@ __PACKAGE__->CreateAccessors( _text => '$',
                               _date => 'Time::Piece',
                               status => '$',
                               runnr => '$',
-			      tid => '$',
+                              tid => '$',
                               instrument => '$',
                               telescope => '$',
                               startobs => 'Time::Piece',

@@ -25,5 +25,5 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 $cgi->html_title("$title: List Projects");
 $cgi->write_page_staff(\&OMP::CGIPage::Project::list_projects,
-		 \&OMP::CGIPage::Project::list_projects_output,
-		 "noauth", );
+                 \&OMP::CGIPage::Project::list_projects_output,
+                 "noauth", );

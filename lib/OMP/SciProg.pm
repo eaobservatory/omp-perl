@@ -43,9 +43,9 @@ use overload '""' => "stringify";
 The constructor takes an XML representation of the science
 program as argument and returns a new object.
 
-		$sp = new OMP::SciProg( XML => $xml );
+                $sp = new OMP::SciProg( XML => $xml );
 
-		$sp = new OMP::SciProg( FILE => $xmlfile );
+                $sp = new OMP::SciProg( FILE => $xmlfile );
 
 The argument hash can either refer to an XML string or
 an XML file. If neither is supplied no object will be
@@ -93,7 +93,7 @@ sub new {
 
   # Now convert XML to parse tree
   my $parser = new XML::LibXML;
-  $parser->validation(0); # switch on validation
+  $parser->validation(0); # switch off validation
   my $tree = eval { $parser->parse_string( $xml ) };
   if ($@) {
     throw OMP::Error::SpBadStructure("Error whilst parsing science program: $@\n");
@@ -106,16 +106,16 @@ sub new {
   ($root) = $tree->findnodes('.//SpObs') unless defined $root;
 
   # Abort if we have no root node at all
-  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor") 
+  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor")
     unless defined $root;
 
   # Now create our Science Program hash
   my $sp = {
-	    Parser => $parser,
-	    Tree => $tree,
-	    MSBS => [],
-	    REFS => {},
-	   };
+            Parser => $parser,
+            Tree => $tree,
+            MSBS => [],
+            REFS => {},
+           };
 
   # and create the object
   bless $sp, $class;
@@ -153,7 +153,7 @@ but only the 'projectID' tag in the document root. If no
 
 sub projectID {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     $self->{ProjectID} = uc(shift);
 
     # Fix the DOM tree.
@@ -172,15 +172,15 @@ sub projectID {
 
       # There is a chance that we have simply a bare SpObs
       unless (defined $root) {
-	($root) = $self->_tree->findnodes('.//SpObs');
-	# So that we do not have trouble later on we do not want to insert 
-	# a 'projectID' node into the SpObs since that matches a method name
-	# in the recursive node traversal
-	$nodename = 'project';
+        ($root) = $self->_tree->findnodes('.//SpObs');
+        # So that we do not have trouble later on we do not want to insert
+        # a 'projectID' node into the SpObs since that matches a method name
+        # in the recursive node traversal
+        $nodename = 'project';
       }
 
       throw OMP::Error::SpBadStructure("Error obtaining root node in projectID discovery")
-	unless defined $root;
+        unless defined $root;
 
       $el = new XML::LibXML::Element( $nodename );
       $root->appendChild( $el );
@@ -258,8 +258,8 @@ C<locate_msbs()>.
 
 sub msb {
   my $self = shift;
-  if (@_) { 
-    @{ $self->{MSBS} } = @_; 
+  if (@_) {
+    @{ $self->{MSBS} } = @_;
   } else {
     # check to see if we have something
     unless (@{$self->{MSBS}}) {
@@ -293,8 +293,8 @@ If no keys are stored we automatically run C<locate_refs>.
 
 sub refs {
   my $self = shift;
-  if (@_) { 
-    %{ $self->{REFS} } = @_; 
+  if (@_) {
+    %{ $self->{REFS} } = @_;
   } else {
     # If people are asking for the refs we want to find them
     # if we havent already got them.
@@ -607,7 +607,7 @@ sub find_projectid {
     if (defined $element2) {
       $self->projectID( $element2->getFirstChild->toString );
     } else {
-      #    throw OMP::Error::UnknownProject("The Science Program does not contain a 
+      #    throw OMP::Error::UnknownProject("The Science Program does not contain a
       #project identifier");
       $self->projectID( "UNKNOWN" );
     }
@@ -687,12 +687,92 @@ all but the first MSB from the tree.
 sub locate_msbs {
   my $self = shift;
 
+  # Prepare the static arguments for the MSB constuctor
+  my %EXTRAS = (
+                PARSER => $self->_parser,
+                OTVERSION => $self->ot_version,
+                PROJECTID => $self->projectID,
+                REFS => scalar $self->refs,
+               );
+
+  # Only have a telescope entry if we know the telescope
+  my $tel = $self->telescope;
+  $EXTRAS{TELESCOPE} = $tel if defined $tel;
+
+  my @objs = _get_msbs_within_node($self->_tree(), \%EXTRAS);
+
+  # Remove duplicates
+  # Build up a hash keyed by checksum
+  my %unique;
+  my @unique; # to preserve order
+  my $unbound = 0;
+  for my $msb (@objs) {
+    my $checksum = $msb->checksum;
+    if (exists $unique{$checksum}) {
+      # Increment the first MSB by the amount remaining in the current MSB
+      my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
+      $unique{$checksum}->remaining($newtotal);
+
+      # Remove the current msb object from the science program tree
+      # unless this MSB is derived from a target override survey
+      # container (we can not delete the MSB xml without removing all
+      # the related MSBs)
+      if (!$msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
+        $msb->_tree->unbindNode();
+        $unbound = 1;
+      }
+    } else {
+      $unique{$checksum} = $msb;
+
+      # A hash will not preserve MSB order. To preserve it
+      # we store the first occurrence of each MSB in an array
+      push(@unique, $msb);
+
+    }
+  }
+
+  # If we've deleted some msbs from the tree we need to rescan
+  # the internal idrefs to make sure that we are no longer holding
+  # references to objects that are not in the tree
+  # Note that since we store a hash reference in the MSB objects
+  # we can just update the hash itself. If OMP::MSB copies the hash
+  # we are in trouble.
+  # if we dont do this we are bound to get a core dump at some point
+  # it is quicker to use a variable to indicate that we had
+  # duplicates rather than compare the contents of @objs with the
+  # contents of @unique
+  $self->locate_refs if $unbound;
+
+  # Copy the list of unique objects, preserving the order
+  @objs = @unique;
+
+  # And store them (if we found anything - otherwise
+  # we hit infinite recursion)
+  $self->msb(@objs)
+    if @objs;
+
+}
+
+=item B<_get_msbs_within_node>
+
+Find and return the MSBs within a given node of the science program.
+
+  my @msbs = _get_msbs_within_node($node, \%msb_extra);
+
+This is a helper routine for C<locate_msbs>.
+
+=cut
+
+sub _get_msbs_within_node {
+  my $node = shift;
+  my $msb_extra = shift;
+
   # Find all the SpMSB elements
-  my @spmsb = $self->_tree->findnodes("//SpMSB");
+  my @spmsb = $node->findnodes(".//SpMSB");
 
   # Find all the SpObs elements that are not in SpMSB
   # We believe the MSB attribute
-  my @spobs = $self->_tree->findnodes('//SpObs[@msb="true"]');
+  my @spobs = $node->findnodes('.//SpObs[@msb="true"]');
 
   # occassionally we get some spurious hits here (have not found
   # out why) so go through and remove spobs that have an SpMSB
@@ -703,17 +783,6 @@ sub locate_msbs {
     my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
     push(@spmsb, $_) unless $parent;
   }
-
-  # Populate the static arguments for the MSB constuctor
-  my %EXTRAS = (
-		OTVERSION => $self->ot_version,
-		PROJECTID => $self->projectID,
-		REFS => scalar $self->refs,
-	       );
-
-  # Only have a telescope entry if we know the telescope
-  my $tel = $self->telescope;
-  $EXTRAS{TELESCOPE} = $tel if defined $tel;
 
   # Loop over each MSB creating the MSB objects.
   # Trick here is that for MSBs that are within Survey containers
@@ -734,72 +803,21 @@ sub locate_msbs {
 
       # "targets" contains the array of targets that we have found
       for my $targ (@{ $results{targets} } ) {
-	push(@objs, new OMP::MSB( TREE => $msbnode,
-				  PARSER => $self->_parser,
-				  %EXTRAS,
-				  OVERRIDE => $targ,
-				)
-	    );
+        push(@objs, new OMP::MSB( TREE => $msbnode,
+                                  %$msb_extra,
+                                  OVERRIDE => $targ,
+                                )
+            );
       }
 
     } else {
       # Not a survey, just create the object and store it
-      push(@objs, new OMP::MSB( TREE => $msbnode, 
-				PARSER => $self->_parser,
-				%EXTRAS ));
+      push(@objs, new OMP::MSB( TREE => $msbnode,
+                                %$msb_extra ));
     }
   }
 
-  # Remove duplicates
-  # Build up a hash keyed by checksum
-  my %unique;
-  my @unique; # to preserve order
-  my $unbound = 0;
-  for my $msb (@objs) {
-    my $checksum = $msb->checksum;
-    if (exists $unique{$checksum}) {
-      # Increment the first MSB by the amount remaining in the current MSB
-      my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
-      $unique{$checksum}->remaining($newtotal);
-
-      # Remove the current msb object from the science program tree
-      # unless this MSB is derived from a target override survey
-      # container (we can not delete the MSB xml without removing all
-      # the related MSBs)
-      if (!$msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
-	$msb->_tree->unbindNode();
-	$unbound = 1;
-      }
-    } else {
-      $unique{$checksum} = $msb;
-
-      # A hash will not preserve MSB order. To preserve it
-      # we store the first occurrence of each MSB in an array
-      push(@unique, $msb);
-
-    }
-  }
-
-  # If we've deleted some msbs from the tree we need to rescan 
-  # the internal idrefs to make sure that we are no longer holding
-  # references to objects that are not in the tree
-  # Note that since we store a hash reference in the MSB objects
-  # we can just update the hash itself. If OMP::MSB copies the hash
-  # we are in trouble.
-  # if we dont do this we are bound to get a core dump at some point
-  # it is quicker to use a variable to indicate that we had
-  # duplicates rather than compare the contents of @objs with the
-  # contents of @unique
-  $self->locate_refs if $unbound;
-
-  # Copy the list of unique objects, preserving the order
-  @objs = @unique;
-
-  # And store them (if we found anything - otherwise
-  # we hit infinite recursion)
-  $self->msb(@objs)
-    if @objs;
-
+  return @objs;
 }
 
 =item B<locate_refs>
@@ -1039,9 +1057,9 @@ sub cloneMSBs {
 
     # Warn if we do not have an exact match
     push(@info,
-	 "Number of blank targets in MSB '".$msb->msbtitle.
-	 "' is not divisible into the number of targets supplied.",
-	 "Some targets will be missing.")
+         "Number of blank targets in MSB '".$msb->msbtitle.
+         "' is not divisible into the number of targets supplied.",
+         "Some targets will be missing.")
       if scalar(@sources) % $blanks != 0;
 
     # Calculate the max number we can support [as an index]
@@ -1063,7 +1081,7 @@ sub cloneMSBs {
 
       # Make sure we replaced the correct number
       throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
-	unless $c == $blanks;
+        unless $c == $blanks;
 
       # Insert the clone node in the correct place
       $msb->_tree->parentNode->insertAfter($clone->_tree, $msb->_tree);
@@ -1080,8 +1098,8 @@ sub cloneMSBs {
     #  info message
     my $pluraltarg = ($blanks == 1 ? '' : 's');
     my $pluralrep  = ($nrepeats == 1 ? '' : 's');
-    push(@info,"Cloned MSB with title '" . $msb->msbtitle . 
-	 "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
+    push(@info,"Cloned MSB with title '" . $msb->msbtitle .
+         "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
 
 
   }
@@ -1121,8 +1139,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
