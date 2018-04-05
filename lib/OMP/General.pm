@@ -392,8 +392,8 @@ sub extract_projectid {
 
   # UKIDSS Hemisphere Survey, UHS and the new unrelated surveys UHSK and UHSH.
   my $uhs         = 'u/uhs[hk]?';
-  my $uhs_comm    = qr{\b ($uhs / uhs[hk]?) \b}xi;
-  # J & K bands projects.
+  my $uhs_comm    = qr{\b ($uhs / (?:uhs[hk]? | casu)) \b}xi;
+  # H, J & K bands projects.
   my $uhs_alphnum = qr{\b ($uhs / uhs [hjk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
 
   # UKIRT KASI.
