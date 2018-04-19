@@ -1035,15 +1035,24 @@ sub nightlog {
     $return{'Frequency'} /= 1000000000;
 
     $return{'Velocity'} = $self->velocity;
+    $return{'Velsys'} = $self->velsys;
 
-    # Prettify the velocity.
-    if( $return{'Velocity'} < 1000 ) {
-      $return{'Velocity'} = sprintf( "%5.1f", $return{'Velocity'} );
-    } else {
-      $return{'Velocity'} = sprintf( "%5d", $return{'Velocity'} );
+    # Prettify the velocity.  (With added precision in the case of 3-letter
+    # systems, such as "RED", i.e. redshift.)
+    my $velocity_formatted = '';
+    if (3 == length $return{'Velsys'}) {
+      $return{'Velocity'} = sprintf("%8.6f", $return{'Velocity'});
+      $velocity_formatted = sprintf('%8s/%3s', $return{'Velocity'}, $return{'Velsys'});
+    }
+    else {
+      if( $return{'Velocity'} < 1000 ) {
+        $return{'Velocity'} = sprintf( "%5.1f", $return{'Velocity'} );
+      } else {
+        $return{'Velocity'} = sprintf( "%5d", $return{'Velocity'} );
+      }
+      $velocity_formatted = sprintf('%5s/%6s', $return{'Velocity'}, $return{'Velsys'});
     }
 
-    $return{'Velsys'} = $self->velsys;
     $return{'Project ID'} = $self->projectid;
     $return{'Bandwidth Mode'} = $self->bandwidth_mode;
 
@@ -1053,7 +1062,7 @@ sub nightlog {
     $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode";
 #    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
     $return{'_STRING'} =
-      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %5s/%6s %11s",
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %11s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
@@ -1062,8 +1071,7 @@ sub nightlog {
         $return{'Cycle Length'},
         $return{'Number of Cycles'},
         $return{'Frequency'},
-        $return{'Velocity'},
-        $return{'Velsys'},
+        $velocity_formatted,
         $return{'Bandwidth Mode'}
         ;
 
