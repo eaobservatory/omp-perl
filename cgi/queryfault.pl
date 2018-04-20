@@ -17,8 +17,6 @@ BEGIN {
 use OMP::CGIPage::Fault;
 use OMP::NetTools;
 
-my $arg = shift @ARGV;
-
 my $q = new CGI;
 my $cgi = new OMP::CGIPage::Fault( CGI => $q );
 

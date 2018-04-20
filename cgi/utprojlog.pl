@@ -17,8 +17,6 @@ BEGIN {
 use OMP::CGIPage;
 use OMP::CGIPage::Obslog;
 
-my $arg = shift @ARGV;
-
 my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 

@@ -18,8 +18,6 @@ use OMP::CGIPage;
 use OMP::CGIPage::Project;
 use OMP::ProjServer;
 
-my $arg = shift @ARGV;
-
 my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 
