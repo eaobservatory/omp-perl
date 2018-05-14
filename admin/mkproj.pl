@@ -70,6 +70,15 @@ avoid country code check.
 This implies that B<country code check will be avoided for all of the
 projects being added> during current run.
 
+=item B<--no-project-check>
+
+Specify that the given project identifiers should not be validated.
+
+This option should be used with caution: if project idenifiers are
+not valid then they will not be recognized by the OMP in some situations.
+For example it will not be possible to send feedback to the project via
+email to flex.
+
 =item B<-priority> integer
 
 Specify default tag priority to use.
@@ -163,6 +172,7 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use Data::Dumper;
 use OMP::DBServer;
+use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::SiteQuality;
@@ -175,6 +185,7 @@ our $VERSION = '2.000';
 
 # Options
 my $do_country_check = 1;
+my $do_project_check = 1;
 my ($help, $man, $version,$force, $disable, $dry_run, %defaults );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
@@ -182,7 +193,8 @@ my $status = GetOptions("help" => \$help,
                         "force" => \$force,
                         "disable" => \$disable,
                         "dry-run" => \$dry_run,
-                        'no-cc|no-country-check' => sub { $do_country_check = 0 ; },
+                        'no-cc|no-country-check' => sub {$do_country_check = 0;},
+                        'no-project-check' => sub {$do_project_check = 0;},
 
                         "country=s"   => \$defaults{'country'},
                         "priority=i"  => \$defaults{'priority'},
@@ -288,8 +300,9 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   downcase(\%details, qw/pi_affiliation coi_affiliation/);
 
-  $do_country_check
-    and check_country( $details{country} );
+  check_project($proj) if $do_project_check;
+
+  check_country($details{country}) if $do_country_check;
 
   # TAG priority
   my @tag;
@@ -467,6 +480,21 @@ sub verify_telescope {
 
   return defined $tel
     && grep { uc $tel eq $_ } ( 'JCMT', 'UKIRT' );
+}
+
+sub check_project {
+    my ($proj) = shift;
+
+    # If the project is valid, we should be able to "extract" it and end up
+    # with the same as what we started with.
+    my $extracted = OMP::General->extract_projectid($proj);
+
+    if ($proj ne $extracted) {
+        collect_err('Project does not match any expected pattern: ' . $proj);
+        return 0;
+    }
+
+    return 1;
 }
 
 sub check_country {
