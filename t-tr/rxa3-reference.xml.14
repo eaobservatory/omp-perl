@@ -1441,13 +1441,13 @@
 
          <line_list>
             
-            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2  - 1" >
+            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2 - 1" >
                      219.5603568
             </rest_frequency>
-            <rest_frequency id="tr13-CO2-1" units="GHz" molecule="13-CO" transition="2  - 1" >
+            <rest_frequency id="tr13-CO2-1" units="GHz" molecule="13-CO" transition="2 - 1" >
                      220.3986765
             </rest_frequency>
-            <rest_frequency id="trSO5_6-4_5" units="GHz" molecule="SO" transition="5 6  - 4 5" >
+            <rest_frequency id="trSO5_6-4_5" units="GHz" molecule="SO" transition="5 6 - 4 5" >
                      219.949442
             </rest_frequency>
          </line_list>

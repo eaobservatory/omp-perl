@@ -1441,10 +1441,10 @@
 
          <line_list>
             
-            <rest_frequency id="trHNCO10_3_7-9_3_6" units="GHz" molecule="HNCO" transition="10 3 7  - 9 3 6" >
+            <rest_frequency id="trHNCO10_3_7-9_3_6" units="GHz" molecule="HNCO" transition="10 3 7 - 9 3 6" >
                      219.6567708
             </rest_frequency>
-            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2  - 1" >
+            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2 - 1" >
                      219.5603568
             </rest_frequency>
          </line_list>
