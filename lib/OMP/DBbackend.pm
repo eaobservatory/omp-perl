@@ -197,6 +197,25 @@ sub handle {
   return $self->{Handle};
 }
 
+=item B<handle_checked>
+
+Check the database connection by attempting to "ping" the database.  If
+we are no longer connected, then reconnect.
+
+    my $dbh = $db->handle_checked();
+
+=cut
+
+sub handle_checked {
+    my $self = shift;
+
+    my $handle = $self->handle();
+    return $handle if $handle->ping();
+
+    $self->connect();
+    return $self->handle();
+}
+
 =item B<trans_count>
 
 Indicate whether we are in a transaction or not.

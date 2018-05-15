@@ -20,8 +20,6 @@ use OMP::NetTools;
 use OMP::UserServer;
 use OMP::Error qw(:try);
 
-my $arg = shift @ARGV;
-
 my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 

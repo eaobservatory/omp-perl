@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 175;
+use Test::More tests => 178;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -331,6 +331,9 @@ my %extract = (
                'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
                'U/UHSK/UHSK'    => ' U/UHSK/UHSK which is used for comments and feedback',
                'U/UHSK/UHSK25' => 'U/UHSK/UHSK25 - K band project',
+               'U/UHSK/CASU' => 'We will need to send mails to U/UHSK/CASU',
+               'U/UHSH/UHSH'    => ' U/UHSH/UHSH which is used for comments and feedback',
+               'U/UHSH/UHSH25' => 'U/UHSH/UHSH25 - H band project',
                'U/11B/H50C' => '[U/11B/H50C]',
                'u/12a/h01d' => '[u/12a/h01d]',
                'U/15A/H10A1' => 'for U/15A/H10A1 mail bounced back',

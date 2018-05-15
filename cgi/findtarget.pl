@@ -16,8 +16,6 @@ BEGIN {
 use OMP::CGIPage;
 use OMP::CGIPage::FindTarget;
 
-my $arg = shift @ARGV;
-
 my $q = new CGI();
 my $ompcgi = new OMP::CGIPage(CGI => $q);
 

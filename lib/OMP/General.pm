@@ -390,11 +390,11 @@ sub extract_projectid {
   # like LAS_J2_12A.
   my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
 
-  # UKIDSS Hemisphere Survey, UHS and the new unrelated survey UHSK.
-  my $uhs         = 'u/uhsk?';
-  my $uhs_comm    = qr{\b ($uhs / uhsk?) \b}xi;
-  # J & K bands projects.
-  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
+  # UKIDSS Hemisphere Survey, UHS and the new unrelated surveys UHSK and UHSH.
+  my $uhs         = 'u/uhs[hk]?';
+  my $uhs_comm    = qr{\b ($uhs / (?:uhs[hk]? | casu)) \b}xi;
+  # H, J & K bands projects.
+  my $uhs_alphnum = qr{\b ($uhs / uhs [hjk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
 
   # UKIRT KASI.
   my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
