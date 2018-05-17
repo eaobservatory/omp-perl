@@ -1161,6 +1161,18 @@
                  KEYWORD="WND_BLND"
                  COMMENT="Wind blind status"
                  VALUE="GORE-TEX 1" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_X"
+                 COMMENT="TMU X Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.X" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_Y"
+                 COMMENT="TMU Y Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.Y" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1429,16 +1441,16 @@
 
          <line_list>
             
-            <rest_frequency id="trT-HCOOH10_0_10-9_0_9" units="GHz" molecule="t-HCOOH" transition="10 0 10  - 9 0 9" >
+            <rest_frequency id="trT-HCOOH10_0_10-9_0_9" units="GHz" molecule="t-HCOOH" transition="10 0 10 - 9 0 9" >
                      220.0379671
             </rest_frequency>
-            <rest_frequency id="tr13-CO2-1" units="GHz" molecule="13-CO" transition="2  - 1" >
+            <rest_frequency id="tr13-CO2-1" units="GHz" molecule="13-CO" transition="2 - 1" >
                      220.3986765
             </rest_frequency>
-            <rest_frequency id="trCH3CNV8=012_0-11_0" units="GHz" molecule="CH3CN v8=0" transition="12 0  - 11 0" >
+            <rest_frequency id="trCH3CNV8=012_0-11_0" units="GHz" molecule="CH3CN v8=0" transition="12 0 - 11 0" >
                      220.7472612
             </rest_frequency>
-            <rest_frequency id="trH2C-13-O3_1_2-2_1_1" units="GHz" molecule="H2C-13-O" transition="3 1 2  - 2 1 1" >
+            <rest_frequency id="trH2C-13-O3_1_2-2_1_1" units="GHz" molecule="H2C-13-O" transition="3 1 2 - 2 1 1" >
                      219.908525
             </rest_frequency>
          </line_list>

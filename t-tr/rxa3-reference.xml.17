@@ -1161,6 +1161,18 @@
                  KEYWORD="WND_BLND"
                  COMMENT="Wind blind status"
                  VALUE="GORE-TEX 1" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_X"
+                 COMMENT="TMU X Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.X" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_Y"
+                 COMMENT="TMU Y Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.Y" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1429,13 +1441,13 @@
 
          <line_list>
             
-            <rest_frequency id="trHNCO10_0_10-9_0_9" units="GHz" molecule="HNCO" transition="10 0 10  - 9 0 9" >
+            <rest_frequency id="trHNCO10_0_10-9_0_9" units="GHz" molecule="HNCO" transition="10 0 10 - 9 0 9" >
                      219.798274
             </rest_frequency>
-            <rest_frequency id="trOCS18-17" units="GHz" molecule="OCS" transition="18  - 17" >
+            <rest_frequency id="trOCS18-17" units="GHz" molecule="OCS" transition="18 - 17" >
                      218.9033565
             </rest_frequency>
-            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2  - 1" >
+            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2 - 1" >
                      219.5603568
             </rest_frequency>
          </line_list>

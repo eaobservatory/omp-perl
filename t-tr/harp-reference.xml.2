@@ -1153,6 +1153,18 @@
                  KEYWORD="WND_BLND"
                  COMMENT="Wind blind status"
                  VALUE="GORE-TEX 1" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_X"
+                 COMMENT="TMU X Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.X" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TMU_Y"
+                 COMMENT="TMU Y Position"
+                 VALUE="" >
+            <DRAMA TASK="THI" PARAM="TMU.Y" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1537,7 +1549,7 @@
 
          <line_list>
             
-            <rest_frequency id="trHCN4-3" units="GHz" molecule="HCN" transition="4  - 3" >
+            <rest_frequency id="trHCN4-3" units="GHz" molecule="HCN" transition="4 - 3" >
                      354.5054759
             </rest_frequency>
          </line_list>
