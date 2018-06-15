@@ -49,7 +49,7 @@ my @pubfiles = qw/ alterproj.pl edit_support.pl
                    ompusers.pl
                    projecthome.pl projusers.pl projsum.pl props.pl
                    qstatus.pl queryfault.pl shiftlog.pl
-                   sourceplot.pl spregion.pl
+                   sourceplot.pl spregion.pl spsummary.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl

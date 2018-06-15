@@ -1021,6 +1021,7 @@ sub _sidebar {
                       "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
                       "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
                       "<a class='sidemain' href='spregion.pl'>Program regions</a>",
+                      "<a class='sidemain' href='spsummary.pl'>Program summary</a>",
                       "<a class='sidemain' href='fbcomment.pl'>Add comment</a>",
                       "<a class='sidemain' href='msbhist.pl'>MSB History</a>",
                       "<a class='sidemain' href='projusers.pl'>Contacts</a>",
