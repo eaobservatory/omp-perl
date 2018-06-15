@@ -38,7 +38,7 @@ my $privdest = $config->getData('web-install.private');
 
 my @srcdirs = qw/ cgi server web /;
 
-my @pubfiles = qw/ alterproj.pl edit_support.pl
+my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
                    faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
