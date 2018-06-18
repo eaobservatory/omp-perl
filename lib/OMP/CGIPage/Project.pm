@@ -631,6 +631,40 @@ sub proj_sum_page {
 
 }
 
+=item B<program_summary>
+
+View summary text of a science program.
+
+=cut
+
+sub program_summary {
+    my $q = shift;
+    my %cookie = @_;
+
+    # Retrieve the science program.
+    my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
+    die 'Did not recieve valid project ID.' unless $projectid;
+
+    select(STDERR);
+    my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid, $cookie{'password'});
+    select(STDOUT);
+
+    unless (defined $sp) {
+        print
+            $q->header(),
+            $q->start_html('Error: no science program'),
+            $q->h2('Error'),
+            $q->p('The science program could not be fetched for this project.'),
+            $q->end_html();
+        return;
+    }
+
+    # Program retrieved successfully: apply summary XSLT.
+    print $q->header(-type => 'text/plain');
+
+    $sp->apply_xslt('toml_summary.xslt');
+}
+
 =item B<proposals>
 
 View proposals for specific projects.

@@ -30,6 +30,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
+use OMP::User;
 use OMP::UserServer;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -208,6 +209,10 @@ sub list_users {
   my $q = shift;
 
   print "<h2>OMP users</h2>";
+
+  print $q->p(
+    $q->a({href => 'add_user.pl'}, 'Add a new user account')
+  );
 
   my $users = OMP::UserServer->queryUsers( "<UserQuery><obfuscated>0</obfuscated></UserQuery>" );
 
@@ -547,6 +552,119 @@ sub edit_details {
   print $q->endform;
   print "</td></table>";
 
+}
+
+sub add_user {
+    my $q = shift;
+
+    _add_user_form($q, undef);
+}
+
+sub add_user_output {
+    my $q = shift;
+
+    my $userid = $q->param('new_user_id');
+    my $message = _add_user_try(
+        $q, $userid,
+        $q->param('new_user_name'),
+        $q->param('new_user_email'));
+
+    return _add_user_form($q, $message) if defined $message;
+
+    print
+        $q->h2('New OMP User Account Added'),
+        $q->p(
+            'The OMP user account',
+            $q->a({-href => 'userdetails.pl?user=' . $userid}, $userid),
+            'has been added.');
+}
+
+sub _add_user_form {
+    my $q = shift;
+    my $message = shift;
+
+    print $q->h2('Add New OMP User Account');
+
+    print $q->p({-style => 'color: red'}, $message) if defined $message;
+
+    print
+        $q->start_form(),
+        $q->table(
+            $q->Tr([
+                $q->td([
+                    'User ID',
+                    $q->textfield(-name => 'new_user_id'),
+                ]),
+                $q->td([
+                    'Full name',
+                    $q->textfield(-name => 'new_user_name'),
+                ]),
+                $q->td([
+                    'Email address',
+                    $q->textfield(-name => 'new_user_email'),
+                ]),
+            ]),
+        ),
+        $q->p(
+            $q->hidden(-name => 'show_output', -value => 'true'),
+            $q->submit(-value => 'Add account'),
+        ),
+        $q->end_form();
+}
+
+# Attempt to add a new user account.  In the event of a problem,
+# a message is returned.
+sub _add_user_try {
+    my $q = shift;
+    my $userid = uc(shift);
+    my $name = shift;
+    my $email = shift;
+
+    # Trim leading / trailing spaces.
+    foreach my $element (\$userid, \$name, \$email) {
+        $$element =~ s/^\s*//;
+        $$element =~ s/\s*$//;
+    }
+
+    # Check the user ID.
+    return 'User ID is not valid.'
+        unless $userid =~ /^[A-Z]+[0-9]*$/;
+
+    my $user = OMP::UserServer->getUser($userid);
+    return 'User ID already exists.'
+        if defined $user;
+
+    # Check the name (using the same pattern as above for in "edit_details").
+    return 'Name is not valid.'
+        unless $name =~ /^([\w\s\.\-\(\)']+)$/;
+
+    my $expected_userid = OMP::User->infer_userid($name);
+    return 'User ID does not follow the expected pattern ("' .
+            $expected_userid . '" + an optional number) for the name you entered. ' .
+            'If the expected pattern is incorrect for this person, ' .
+            'please contact a member of the OMP group for assistance.'
+        unless ($userid =~ s/[0-9]+$//r) eq $expected_userid;
+
+    # Check the email (using the same pattern as above for in "edit_details").
+    return 'Email address is not valid.'
+        unless $email =~ /^(.+?@.+?\.\w+)$/;
+
+    my $omp_user = new OMP::User(
+        userid => $userid,
+        name => $name,
+        email => $email,
+    );
+
+    my $message = undef;
+
+    try {
+        OMP::UserServer->addUser($omp_user);
+    } otherwise {
+        my $E = shift;
+        $message = 'Unable to add user: ' . $q->escapeHTML($E);
+    };
+
+    return $message;
 }
 
 =back

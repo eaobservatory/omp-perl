@@ -22,7 +22,10 @@ use warnings;
 use Carp;
 
 # External modules
+use File::Spec;
+use Proc::SafeExec;
 use XML::LibXML; # Our standard parser
+use OMP::Config;
 use OMP::MSB;    # Standard MSB organization
 use OMP::Error;
 
@@ -1116,6 +1119,50 @@ sub cloneMSBs {
 
 }
 
+=item B<apply_xslt>
+
+Applies the given XSLT stylesheet.
+
+Currently this always uses "xsltproc" and allows it to print out
+the results directly.
+
+The stylesheet should be the name of an XSLT file in the
+configured "tomlxsltdir" directory.
+
+=cut
+
+sub apply_xslt {
+    my $self = shift;
+    my $stylesheet = shift;
+
+    # Check xsltprog is available.
+    my $xsltproc = '/usr/bin/xsltproc';
+    die 'XSLTPROC not found' unless -e $xsltproc;
+
+    # Check the stylesheet exists.
+    my $xsltdir = OMP::Config->getData('tomlxsltdir');
+    my $xsltfile = File::Spec->catfile($xsltdir, $stylesheet);
+    die 'XSLT file: ' . $xsltfile . ' not found' unless -e $xsltfile;
+
+    # Check whether we need to restore the "xmlns" attribute.
+    my $xml = $self->stringify();
+
+    if ($xml !~ /xmlns=/) {
+        $xml =~ s/(<SpProg)/$1 xmlns="http:\/\/omp.eao.hawaii.edu\/schema\/TOML"/;
+    }
+
+    # Invoke xsltproc and pass it the XML.
+    my $command = Proc::SafeExec->new({
+        exec => [$xsltproc, $xsltfile, '-'],
+        stdin => 'new',
+        stdout => 'default',
+        stderr => 'default',
+    });
+
+    print {$command->stdin()} $xml;
+
+    $command->wait();
+}
 
 =back
 
