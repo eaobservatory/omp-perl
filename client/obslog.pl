@@ -2011,10 +2011,9 @@ sub raise_shift_comment {
                       )->pack( -side => 'right' );
 
   # Need to populate the time field
-  # We use closures rather than array ref for passing arguments
-  # so that we do not need to pass in references for all arguments
-  &update_shift_comment_time($TZ, \$RefTime);
-  my $repeatid = $ShiftCommentWindow->repeat(1000, sub { update_shift_comment_time($TZ,\$RefTime) } );
+  my $update_shift_comment_time = make_update_shift_comment_time(\$TZ, \$RefTime);
+  $update_shift_comment_time->();
+  my $repeatid = $ShiftCommentWindow->repeat(1000, $update_shift_comment_time);
 
   if( defined( $comment ) ) {
 
@@ -2035,37 +2034,42 @@ sub raise_shift_comment {
 
 }
 
-# Need two lexicals to allow us to track previous values
-my $PrevTime;
-my $PrevTZ;
 
-sub update_shift_comment_time {
-  my $TZ = shift;
+sub make_update_shift_comment_time {
+  my $TZRef = shift;
   my $RefTimeRef = shift;
-  my $RefTime = $$RefTimeRef;
 
-  # If we have switched time zones, we should also synch prevtime with
-  # reftime
-  $PrevTime = $RefTime if (defined $PrevTZ && $TZ ne $PrevTZ);
+  # Need two lexicals to allow us to track previous values
+  my $PrevTime;
+  my $PrevTZ;
 
-  # Need to do a check to make sure we do not override a time
-  # that has been edited
-  if( defined( $RefTime ) && $RefTime ne $PrevTime ) {
-    return;
-  }
+  return sub {
+    my $TZ = $$TZRef;
+    my $RefTime = $$RefTimeRef;
 
-  # Get the current time
-  my $time;
-  if ($TZ eq 'UT') {
-    $time = gmtime;
-  } else {
-    $time = localtime;
-  }
+    # If we have switched time zones, we should also synch prevtime with
+    # reftime
+    $PrevTime = $RefTime if (defined $PrevTZ && $TZ ne $PrevTZ);
 
-  # Store the new values for later reference
-  $PrevTZ = $TZ;
-  $$RefTimeRef = $time->datetime;
-  $PrevTime = $$RefTimeRef;
+    # Need to do a check to make sure we do not override a time
+    # that has been edited
+    if( defined( $RefTime ) && $RefTime ne $PrevTime ) {
+      return;
+    }
+
+    # Get the current time
+    my $time;
+    if ($TZ eq 'UT') {
+      $time = gmtime;
+    } else {
+      $time = localtime;
+    }
+
+    # Store the new values for later reference
+    $PrevTZ = $TZ;
+    $$RefTimeRef = $time->datetime;
+    $PrevTime = $$RefTimeRef;
+  };
 }
 
 ######################### O P T I O N S #######################
