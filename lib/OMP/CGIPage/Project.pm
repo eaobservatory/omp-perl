@@ -1237,7 +1237,7 @@ sub update_users {
 
   my ( $proj, $type, @userid ) = @_;
 
-  return unless $proj && scalar @userid;
+  return unless $proj && (scalar @userid or $type ne 'pi');
 
   my @old = $proj->$type;
 
@@ -1251,7 +1251,15 @@ sub update_users {
 
   my @user = map { _make_user( $_ ) } @userid;
 
-  $proj->$type( @user );
+  if ($type eq 'pi') {
+    # The "pi" method only accepts a single user (first argument) so pass
+    # list directly.
+    $proj->$type( @user );
+  }
+  else {
+    # Pass list as a reference in case it is empty.
+    $proj->$type( \@user );
+  }
 
   my $join = sub { join ', ', map { $_->name } @_ };
   return
