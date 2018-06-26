@@ -1270,10 +1270,6 @@ decrementing the remaining counter:
    to indicate they have been removed by the OMP rather than by
    observation.
 
- - If the structure of the MSB has been modified (either by
-   rescheduling it or by moving it out of an OR folder) the
-   checksum is recalculated.
-
 If the MSB is within a Survey Container, the remaining counter will be
 adjusted in the Survey Container, not the MSB itself. Additionally, if this
 is the first time this target has been observed the "choose" attribute of the survey container will be decremented by 1. The "obscount" of the Target will
@@ -1284,6 +1280,15 @@ since inheritance breaks if we move just the MSB (that is only
 true if the OT ignores IDREF attributes).
 
 If an MSB was suspended that flag is now cleared.
+
+B<Note:> if the structure of the MSB changes, the checksum
+may need to be recalculated.  All checksums in the science
+program should be recalculated after this method is called
+as it is possible for checksums of other MSBs to be affected
+too.  (Example situations of checksums changing are rescheduling
+and moving out of an OR folder.  If a scheduling constraint
+inherited by multiple MSBs is rescheduled, the checksum of
+all those MSBs will change.)
 
 =cut
 
@@ -1435,12 +1440,6 @@ sub hasBeenObserved {
     }
 
   }
-
-  # Recalculate the checksum if we have changed the MSB
-  if ($self->isPeriodic || $SpOR) {
-    $self->find_checksum();
-  }
-
 }
 
 =item B<undoObserve>
@@ -1465,6 +1464,9 @@ Any suspend flags are cleared.
 If the MSB has been removed, this method will have the effect of re-enabling
 it with the original number of repeats. No other change will be made, since the
 assumption is that the removal is being reversed rather than an MSB acceptance.
+
+B<Note:> all checksums in the science program should be
+recalculated after this method is called.
 
 =cut
 
@@ -1504,6 +1506,12 @@ If this MSB is meant to be observed periodically, the earliest
 observing date ("datemin") is reset to the current day (ie the
 observation is scheduled to be observed again). [but this is
 not really an issue if it has been removed]
+
+B<Note:> rescheduling the MSB may affect other MSBs if they
+share an inherited scheduling constraint.
+
+B<Note:> all checksums in the science program should be
+recalculated after this method is called.
 
 =cut
 
