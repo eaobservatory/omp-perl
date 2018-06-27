@@ -157,6 +157,8 @@ sub file_fault_output {
   my $self = shift;
   my $q = $self->cgi;
   my $comp = $self->fault_component;
+  my $category = $q->param('category');
+  $comp->category($category);
 
   # Get the form key
   my $formkey = $q->param('formkey');
@@ -174,13 +176,13 @@ sub file_fault_output {
                 System => "system",);
 
   # Adjust for "Safety" category.
-  if ( 'safety' eq lc $self->_get_param( 'cat' ) ) {
+  if ( 'safety' eq lc $category ) {
 
     delete $params{'System'};
     $params{'Location'} = 'location';
     $params{'Severity'} = 'severity';
   }
-  elsif ( 'vehicle_incident' eq lc $self->_get_param( 'cat' ) ) {
+  elsif ( 'vehicle_incident' eq lc $category ) {
 
     delete $params{'System'};
     $params{'Vehicle'} = 'vehicle';
@@ -222,7 +224,6 @@ sub file_fault_output {
                                         text=>$faultdetails{text},);
 
   # Create the fault object
-  my $category = $q->param('category');
   my $fault = OMP::Fault->new( category => $category,
                                 subject  => $faultdetails{subject},
                                 system   => $faultdetails{system},
