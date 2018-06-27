@@ -22,7 +22,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 35;
+use Test::More tests => 37;
 
 require_ok('OMP::SciProg');
 require_ok('OMP::MSBDB');
@@ -243,6 +243,25 @@ is_deeply(msb_list($prog), [
     ['MSB K',   '9', $checksum{'MSB K'}],  # Moved out
 ], 'MSB list after accepting K');
 
+# Try the "hasBeenCompletelyObserved" method.
+ok(complete_msb($prog, $checksum{'MSB A'}), 'Complete A');
+
+is_deeply(msb_list($prog), [
+    ['MSB A', '-10', $checksum{'MSB A'}], # Remove (-ve counter)
+    ['MSB C', '-10', $checksum{'MSB C'}],
+    ['MSB B',   '9', $checksum{'MSB B'}],
+    ['MSB F', '-10', $checksum{'MSB F'}],
+    ['MSB G', '-10', $checksum{'MSB G'}],
+    ['MSB D',   '9', $checksum{'MSB D'}],
+    ['MSB E',  '10', $checksum{'MSB E'}],
+    ['MSB I', '-10', $checksum{'MSB I'}],
+    ['MSB H',   '9', $checksum{'MSB H'}],
+    ['MSB J',   '4', $checksum{'MSB J'}],
+    ['MSB J2', '-5', $checksum{'MSB J2'}],
+    ['MSB L', '-10', $checksum{'MSB L'}],
+    ['MSB K',   '9', $checksum{'MSB K'}],
+], 'MSB list after completing A');
+
 
 sub msb_list {
     my $prog = shift;
@@ -268,6 +287,10 @@ sub undo_msb {
     return _accept_or_undo(@_, 0);
 }
 
+sub complete_msb {
+    return _accept_or_undo(@_, 'complete');
+}
+
 sub _accept_or_undo {
     my $prog = shift;
     my $checksum = shift;
@@ -280,7 +303,10 @@ sub _accept_or_undo {
 
     return unless $msb;
 
-    if ($accept) {
+    if ($accept eq 'complete') {
+        $msb->hasBeenCompletelyObserved();
+    }
+    elsif ($accept) {
         $msb->hasBeenObserved();
     }
     else {

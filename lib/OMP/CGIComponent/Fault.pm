@@ -741,7 +741,7 @@ sub file_fault_form {
   }
 
   print "<table border=0 cellspacing=4><tr>";
-  print $q->startform;
+  print $q->startform({-name => 'file_fault'});
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
@@ -833,6 +833,9 @@ sub file_fault_form {
       . $q->popup_menu(-name=>'tz',
                         -values=>['UT','HST'],
                         -default=>$defaults{tz},)
+      . q[&nbsp;]
+      . $q->button(-value => 'Now', -onclick =>
+          'document.forms["file_fault"]["time"].value = (new Date()).toISOString().substr(0, 16); document.forms["file_fault"]["tz"].value = "UT";')
       . q[<br /><small>(YYYY-MM-DDTHH:MM or HH:MM)</small>] ;
   }
 

@@ -776,6 +776,9 @@ sub doneMSB {
     # Mark it as observed
     $msb->hasBeenObserved();
 
+    # Recompute MSB checksums.
+    $sp->locate_msbs();
+
     OMP::General->log_message("MSB marked as done in science program object");
 
     # Now need to store the MSB back to disk again
@@ -895,6 +898,9 @@ sub undoMSB {
   # Mark it as not observed
   $msb->undoObserve;
 
+  # Recompute MSB checksums.
+  $sp->locate_msbs();
+
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
@@ -980,6 +986,9 @@ sub alldoneMSB {
   }
 
   $msb->hasBeenCompletelyObserved();
+
+  # Recompute MSB checksums.
+  $sp->locate_msbs();
 
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
