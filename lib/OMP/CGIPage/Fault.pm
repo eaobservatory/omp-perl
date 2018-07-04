@@ -487,7 +487,21 @@ sub query_fault_output {
     # Get the text param and unescape things like &amp; &quot;
     my $text = $q->param('text');
     if (defined $text) {
-      push (@xml, "<text>$text</text>");
+      $text = OMP::Display::escape_entity($text);
+      my $text_search = $q->param('text_search');
+      if ($text_search eq 'text') {
+        push @xml, "<text>$text</text>";
+      }
+      elsif ($text_search eq 'subject') {
+        push @xml, "<subject>$text</subject>";
+      }
+      else {
+        push @xml,
+          '<or>',
+          "<text>$text</text>",
+          "<subject>$text</subject>",
+          '</or>';
+      }
     }
 
     # Return either only faults filed or only faults responded to

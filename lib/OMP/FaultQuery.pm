@@ -194,7 +194,7 @@ sub _post_process_hash {
   }
 
   # These are TEXT columns so need special kluging
-  for (qw/ R.text /) {
+  for (qw/ subject R.text /) {
     if (exists $href->{$_}) {
       my $key = "TEXTFIELD__" . $_;
       $href->{$key} = $href->{$_};

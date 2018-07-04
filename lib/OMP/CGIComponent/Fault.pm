@@ -352,7 +352,7 @@ sub query_fault_form {
   print $q->startform(-method=>'GET');
   print $q->hidden(-name=>'faultsearch', -default=>['true']);
 
-  print "<b>Find faults ";
+  print "<b>Find faults: ";
   print $q->radio_group(-name=>'action',
                         -values=>['response','file','activity'],
                         -default=>'activity',
@@ -439,6 +439,14 @@ sub query_fault_form {
                      -value=>'true',
                      -label=>'Organize by system/type',
                      -checked=>0,);
+  print "</b></td><tr><td colspan=2>";
+  print "<b>Search in: ";
+  print $q->radio_group(-name=>'text_search',
+                        -values=>['text','subject','both'],
+                        -default=>'both',
+                        -labels=>{text=>"text",
+                                  subject=>"subject",
+                                  both=>"both"});
   print "</b></td><tr><td colspan=2>";
   print $q->textfield(-name=>'text',
                       -size=>44,
