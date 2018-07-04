@@ -414,8 +414,6 @@ sub _convert_to_perl {
   my $self = shift;
   my $tree = $self->_tree;
 
-  my %query;
-
   my $rootelement = $self->_root_element();
 
   # Get the root element
@@ -424,10 +422,37 @@ sub _convert_to_perl {
     unless @msbquery == 1;
   my $msbquery = $msbquery[0];
 
+  my %query = $self->_convert_elem_to_perl($msbquery);
+
+  # Store it before post-processing
+  $self->raw_query_hash( { %query } );
+
+  # Do some post processing to convert to OMP::Ranges and
+  # to fix up some standard keys
+  $self->_post_process_hash( \%query );
+
+  # Store the hash
+  $self->query_hash(\%query);
+
+#  use Data::Dumper;
+#  print STDERR Dumper(\%query);
+}
+
+sub _convert_elem_to_perl {
+  my $self = shift;
+  my $msbquery = shift;
+
+  my %query = ();
+
   # Loop over children
+  my $i = 0;
   for my $child ($msbquery->childNodes) {
     my $name = $child->getName;
     #print "Name: $name\n";
+    if ($name eq 'or') {
+        $query{'EXPR__' . ++ $i} = {_JOIN => 'OR', $self->_convert_elem_to_perl($child)};
+        next;
+    }
 
     # Get the attributes
     my %attr = map {  $_->getName, $_->getValue} $child->getAttributes;
@@ -460,25 +485,10 @@ sub _convert_to_perl {
                                    $childname, \%attr );
         }
       }
-
     }
-
-
   }
 
-  # Store it before post-processing
-  $self->raw_query_hash( { %query } );
-
-  # Do some post processing to convert to OMP::Ranges and
-  # to fix up some standard keys
-  $self->_post_process_hash( \%query );
-
-  # Store the hash
-  $self->query_hash(\%query);
-
-#  use Data::Dumper;
-#  print Dumper(\%query);
-
+  return %query;
 }
 
 =item B<_add_text_to_hash>
@@ -688,12 +698,16 @@ sub _post_process_hash {
     }
   }
 
-  # Loop over each key looking for ranges
+  # Loop over each key looking for "expressions" and ranges
   for my $key (keys %$href ) {
     # Skip private keys
     next if $key =~ /^_/;
 
-    if (ref($href->{$key}) eq "HASH") {
+    if ($key =~ /^EXPR__/) {
+      # Recursively process "expression".
+      $self->_post_process_hash($href->{$key});
+    }
+    elsif (ref($href->{$key}) eq "HASH") {
       # Convert to OMP::Range object
       $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
                                       Max => $href->{$key}->{max},
@@ -946,6 +960,16 @@ will select SCUBA or CGS4.
 Neither C<min> nor C<max> can be included more than once for a
 particular element. The most recent values for C<min> and C<max> will
 be used. It is also illegal to use ranges inside a plural element.
+
+=item B<Or blocks>
+
+There can be "or" blocks containing elements to be combined
+as alternatives.
+
+  <or>
+    <subject>query string</subject>
+    <text>query string</text>
+  </or>
 
 =back
 
