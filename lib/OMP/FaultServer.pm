@@ -294,7 +294,8 @@ sub getFault {
 Query the fault database using an XML representation of the query.
 
   $faults = OMP::FaultServer->queryFaults($faultid,
-                                        $format );
+                                        $format,
+                                        %options);
 
 See C<OMP::FaultQuery> for more details on the format of the XML query.
 A typical query could be:
@@ -322,6 +323,7 @@ sub queryFaults {
   my $class = shift;
   my $xmlquery = shift;
   my $mode = lc( shift );
+  my %opt = @_;
   $mode = "object" unless $mode;
 
   my @faults;
@@ -334,7 +336,7 @@ sub queryFaults {
                              DB => $class->dbConnection,
                             );
 
-    @faults = $db->queryFaults( $query );
+    @faults = $db->queryFaults( $query, %opt );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

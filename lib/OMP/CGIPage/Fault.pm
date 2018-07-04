@@ -541,15 +541,16 @@ sub query_fault_output {
   }
 
   my $faults;
+  my %queryopt = (no_text => 1, no_projects => 1);
   try {
-    $faults = OMP::FaultServer->queryFaults($xml, "object");
+    $faults = OMP::FaultServer->queryFaults($xml, "object", %queryopt);
 
     # If this is the initial display of faults and no recent faults were
     # returned, display faults for the last 14 days.
     if (! $q->param('faultsearch') and ! $faults->[0]) {
       $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-      $faults = OMP::FaultServer->queryFaults($currentxml, "object");
+      $faults = OMP::FaultServer->queryFaults($currentxml, "object", %queryopt);
     }
 
     return $faults;
