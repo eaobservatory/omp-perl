@@ -450,7 +450,12 @@ sub _convert_elem_to_perl {
     my $name = $child->getName;
     #print "Name: $name\n";
     if ($name eq 'or') {
-        $query{'EXPR__' . ++ $i} = {_JOIN => 'OR', $self->_convert_elem_to_perl($child)};
+        my %expr = $self->_convert_elem_to_perl($child);
+        # Check if the expression is empty.  We have to do this here
+        # as we check for non-white-space values at this level (see
+        # the PCDATA case below).
+        next unless scalar %expr;
+        $query{'EXPR__' . ++ $i} = {_JOIN => 'OR', %expr};
         next;
     }
 
