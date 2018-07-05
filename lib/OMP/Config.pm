@@ -35,6 +35,7 @@ use warnings;
 use warnings::register;
 
 use OMP::DateTools;
+use OMP::Error;
 use OMP::NetTools;
 use File::Spec;
 use File::Basename;

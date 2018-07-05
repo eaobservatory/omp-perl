@@ -248,7 +248,22 @@ sub getFaultsByDate {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-  @faults = $db->queryFaults( $query );
+  @faults = $db->queryFaults( $query, %options);
+
+Options can be given to optimize the query strategy for the
+desired purpose:
+
+=over 4
+
+=item no_projects
+
+Do not fetch the list of projects assoicated with each fault.
+
+=item no_text
+
+Do not fetch the full text body of each "response" (including initial filing).
+
+=back
 
 =cut
 
@@ -256,7 +271,7 @@ sub queryFaults {
   my $self = shift;
   my $query = shift;
 
-  return $self->_query_faultdb( $query );
+  return $self->_query_faultdb( $query, @_ );
 
 }
 
@@ -518,7 +533,7 @@ sub _close_fault {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-  @faults = $db->_query_faultdb( $query );
+  @faults = $db->_query_faultdb( $query, %options );
 
 Faults are returned sorted by fault ID.
 
@@ -527,9 +542,10 @@ Faults are returned sorted by fault ID.
 sub _query_faultdb {
   my $self = shift;
   my $query = shift;
+  my %opt = @_;
 
   # Get the SQL
-  my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE );
+  my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE, no_text => $opt{'no_text'} );
 
   # Fetch the data
   my $ref = $self->_db_retrieve_data_ashash( $sql );
@@ -545,6 +561,8 @@ sub _query_faultdb {
   # matching responses.
   # Use a hash to indicate whether we have already seen a fault
   my %faults;
+  my @defresponse = ();
+  push @defresponse, text => 'NOT RETRIEVED' if $opt{'no_text'};
   for my $faultref (@$ref) {
 
     # First convert dates to date objects
@@ -578,7 +596,7 @@ sub _query_faultdb {
     if (!exists $faults{$id}) {
 
       # Get the response object
-      my $resp = new OMP::Fault::Response( %$faultref );
+      my $resp = new OMP::Fault::Response( @defresponse, %$faultref );
 
       # And the fault
       $faults{$id} = new OMP::Fault( %$faultref, fault => $resp);
@@ -586,12 +604,14 @@ sub _query_faultdb {
       # Now get the associated projects
       # Note that we are not interested in generating OMP::Project objects
       # Only want to do this once per fault
-      my $assocref = $self->_db_retrieve_data_ashash( "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id" );
-      $faults{$id}->projects( map { $_->{projectid} } @$assocref);
+      unless ($opt{'no_projects'}) {
+        my $assocref = $self->_db_retrieve_data_ashash( "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id" );
+        $faults{$id}->projects( map { $_->{projectid} } @$assocref);
+      }
 
     } else {
       # Just need the response
-      $faults{$id}->respond( new OMP::Fault::Response( %$faultref ) );
+      $faults{$id}->respond( new OMP::Fault::Response( @defresponse, %$faultref ) );
 
     }
   }

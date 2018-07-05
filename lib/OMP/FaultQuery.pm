@@ -45,7 +45,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $faulttable, $resptable );
+  $sql = $query->sql( $faulttable, $resptable, %options );
 
 Returns undef if the query could not be formed.
 
@@ -66,9 +66,9 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) ==2;
+    unless scalar(@_) >=2;
 
-  my ($faulttable, $resptable) = @_;
+  my ($faulttable, $resptable, %options) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -106,7 +106,10 @@ sub sql {
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "SELECT * FROM $faulttable F, $resptable R
+  my $select = $options{'no_text'}
+    ? "F.*, R.respid, R.date, R.author, R.isfault"
+    : "*";
+  my $sql = "SELECT $select FROM $faulttable F, $resptable R
              WHERE F.faultid IN (
                  SELECT F.faultid
                  FROM $faulttable F $r_table
@@ -194,7 +197,7 @@ sub _post_process_hash {
   }
 
   # These are TEXT columns so need special kluging
-  for (qw/ R.text /) {
+  for (qw/ subject R.text /) {
     if (exists $href->{$_}) {
       my $key = "TEXTFIELD__" . $_;
       $href->{$key} = $href->{$_};
