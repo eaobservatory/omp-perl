@@ -289,7 +289,9 @@ associated with the C<OMP::Info::Obs> objects. Default is false (0);
 comments will be attached, for queries with bound dates and true
 (no comments) by default for project queries or unbound date
 queries. This can be overridden by using an explicit (defined) value
-for "nocomments".
+for "nocomments".  If "incjunk" is false, then junk observations
+are excluded.  Comments will be retrieved in this case in order
+for status to be determined.
 
 A "verbose" flag can be used to turn on message output. Default
 is false.
@@ -388,6 +390,16 @@ sub populate {
     $nocomments = 1 unless defined $nocomments;
   }
 
+  # Junk?  If we want to exclude this, we need to ensure comments are enabled.
+  my $incjunk = 1;
+  if (exists $args{'incjunk'}) {
+    $incjunk = $args{'incjunk'};
+    if ($nocomments and not $incjunk) {
+      warn "OMP::Info::ObsGroup: must fetch comments to exclude junk";
+      $nocomments = 0;
+    }
+  }
+
   # if we are including calibrations we should not include projectid
   if (! $inccal) {
     push(@keys, "projectid");
@@ -431,6 +443,7 @@ sub populate {
   # Apply filter (with "verbose" if desired to generate message output).
   my %filter_args = (
     sort => (exists $args{timegap} && $args{timegap} ? 0 : $args{sort}),
+    incjunk => $incjunk,
     verbose => $args{verbose},
   );
 
@@ -470,7 +483,8 @@ The inccal flag can be used to control the filter. By default, inccal
 is true. If projectid is set and inccal is true, calibrations will be
 included for each science observation associated with the project. If
 inccal is false, calibrations will be removed from the observation
-list even if they are tagged as belonging to the project.
+list even if they are tagged as belonging to the project.  If incjunk
+is false, junk observations will be removed.
 
   $grp->filter( projectid => $projectid, inccal => 1 );
 
@@ -488,13 +502,14 @@ Default is false.
 
 sub filter {
   my $self = shift;
-  my %def = ( inccal => 1, sort => 1 );
+  my %def = ( inccal => 1, incjunk => 1, sort => 1 );
   my %args = (%def, @_);
 
   # Upper case now rather than inside loop
   my $projectid = (exists $args{'projectid'})
     ? uc($args{'projectid'}) : undef;
   my $inccal = $args{'inccal'};
+  my $incjunk = $args{'incjunk'};
 
   if ($inccal) {
     # Sort everything first so that we get the science and calibration
@@ -514,6 +529,7 @@ sub filter {
   my %calinst;      # List of all calibration instruments
 
   for my $obs ($self->obs) {
+    next unless $incjunk or $obs->status() != OMP__OBS_JUNK;
     my $obsmode = $obs->mode || $obs->type;
     if ($obs->isScience) {
       if ((not defined $projectid) or (uc($obs->projectid) eq $projectid)) {
