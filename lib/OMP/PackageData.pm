@@ -127,6 +127,7 @@ sub new {
                    FTPDir => undef,
                    Key => undef,
                    IncCal => 1,
+                   IncJunk => 1,
                   },
                   $class;
 
@@ -266,6 +267,20 @@ sub inccal {
     $self->{IncCal} = shift;
   }
   return $self->{IncCal};
+}
+
+=item B<incjunk>
+
+Controls whether junk is included in the packaged data.
+
+=cut
+
+sub incjunk {
+  my $self = shift;
+  if (@_) {
+    $self->{'IncJunk'} = shift;
+  }
+  return $self->{'IncJunk'};
 }
 
 =item B<key>
@@ -556,8 +571,9 @@ sub _populate {
   $self->utdate( $args{utdate} );
   $self->password( $args{password} );
 
-  # indicate whether we are including calibrations
+  # indicate whether we are including calibrations and junk
   $self->inccal( $args{inccal}) if exists $args{inccal};
+  $self->incjunk($args{'incjunk'}) if exists $args{'incjunk'};
 
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
@@ -576,6 +592,7 @@ sub _populate {
   my %query = ( telescope => $tel,
                 date => $self->utdate,
                 inccal => $self->inccal,
+                incjunk => $self->incjunk(),
                 projectid => $self->projectid,
               );
 
