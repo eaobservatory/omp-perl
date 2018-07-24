@@ -1127,9 +1127,11 @@ sub _write_header {
     unless (! exists $rssinfo{title});
 
   # Add omp icon and javascript
-  my $jscript_url = OMP::Config->getData('omp-url') . OMP::Config->getData('www-js');
-  my $favicon_url = OMP::Config->getData('omp-url') . OMP::Config->getData('www-favicon');
-  $start_string .= "<link rel='icon' href='${favicon_url}'/><script type='text/javascript' src='${jscript_url}'></script>";
+  my $base_url = OMP::Config->getData('omp-url');
+  my $jscript_url = OMP::Config->getData('www-js');
+  my $favicon_url = OMP::Config->getData('www-favicon');
+  $start_string .= "<link rel='icon' href='${base_url}${favicon_url}'/>";
+  $start_string .= "<script type='text/javascript' src='${base_url}${_}'></script>" foreach @$jscript_url;
 
   # Close start string
   $start_string .= "</head>";
