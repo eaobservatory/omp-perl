@@ -240,8 +240,12 @@ sub list_users {
     my $letnr = 0;
     my $letter = $alphabet[$letnr];
 
-    print $index, "<p>\n";
-    print "<TABLE border='0' cellspacing='0' cellpadding='4' width=$TABLEWIDTH>\n";
+    print $index, "\n";
+
+    print $q->p('Filter: ', $q->textfield(
+        -name => 'user_filter', -onkeyup => 'filterUserTable()'));
+
+    print "<TABLE id=\"user_table\" border='0' cellspacing='0' cellpadding='4' width=$TABLEWIDTH>\n";
 
     my $colnr = 5;
     print "<TR class='${rowclass}'>";
@@ -269,12 +273,19 @@ sub list_users {
         printf $index_row, ( $letter ) x 2;
       }
 
-      print "<TR class='${rowclass}'>";
-      print "<TD>" . $_->userid ."</TD>";
+      my $userid = $_->userid();
+      my $email = $_->email();
+      my $cadcuser = $_->cadcuser();
+
+      # Make lower-case version for more efficient filtering.
+      my $query_str = lc join ' ', $_->name(), $userid, $email, $cadcuser;
+
+      print "<TR class='${rowclass}' data-query=\"" . OMP::Display::escape_entity($query_str) . "\">";
+      print "<TD>" . $userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
-      print "<TD>" . $_->email . "</TD>";
-      print "<TD>" . $_->cadcuser . "</TD>";
-      print "<TD><a href=\"update_user.pl?user=".$_->userid."\">Update</a></TD>";
+      print "<TD>" . $email . "</TD>";
+      print "<TD>" . $cadcuser . "</TD>";
+      print "<TD><a href=\"update_user.pl?user=".$userid."\">Update</a></TD>";
       print "</TR>\n";
 
       # Alternate row style
