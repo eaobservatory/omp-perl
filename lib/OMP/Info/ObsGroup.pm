@@ -454,6 +454,9 @@ sub populate {
     $filter_args{'projectid'} = $args{projectid};
     $filter_args{'inccal'} = $inccal;
   }
+  else {
+    $filter_args{'anycal'} = 1;
+  }
 
   $self->filter(%filter_args);
 
@@ -480,11 +483,12 @@ calibrations associated with that particular project are retained
   $grp->filter( inccal => 0 );
 
 The inccal flag can be used to control the filter. By default, inccal
-is true. If projectid is set and inccal is true, calibrations will be
-included for each science observation associated with the project. If
-inccal is false, calibrations will be removed from the observation
-list even if they are tagged as belonging to the project.  If incjunk
-is false, junk observations will be removed.
+is true. If inccal is true, calibrations will be included for each
+science observation. If inccal is false, calibrations will be removed
+from the observation list even if they are tagged as belonging to the
+project. However if anycal is true, calibrations will be included
+provided they match the other filtering criteria, with no special
+treatment. If incjunk is false, junk observations will be removed.
 
   $grp->filter( projectid => $projectid, inccal => 1 );
 
@@ -502,7 +506,7 @@ Default is false.
 
 sub filter {
   my $self = shift;
-  my %def = ( inccal => 1, incjunk => 1, sort => 1 );
+  my %def = ( inccal => 1, incjunk => 1, sort => 1, anycal => 0 );
   my %args = (%def, @_);
 
   # Upper case now rather than inside loop
@@ -510,6 +514,10 @@ sub filter {
     ? uc($args{'projectid'}) : undef;
   my $inccal = $args{'inccal'};
   my $incjunk = $args{'incjunk'};
+  my $anycal = $args{'anycal'};
+
+  # Disable 'inccal' if 'anycal' is specified.
+  $inccal = 0 if $anycal;
 
   if ($inccal) {
     # Sort everything first so that we get the science and calibration
@@ -531,7 +539,7 @@ sub filter {
   for my $obs ($self->obs) {
     next unless $incjunk or $obs->status() != OMP__OBS_JUNK;
     my $obsmode = $obs->mode || $obs->type;
-    if ($obs->isScience) {
+    if ($anycal or $obs->isScience) {
       if ((not defined $projectid) or (uc($obs->projectid) eq $projectid)) {
         $instruments{uc($obs->instrument)}++; # Keep track of instrument
         $obsmodes{$obsmode}++; # Keep track of obsmode
