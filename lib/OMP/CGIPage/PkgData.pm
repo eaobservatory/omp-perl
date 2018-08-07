@@ -158,6 +158,7 @@ sub _package_data {
                                   projectid => $cookie->{projectid},
                                   password => $cookie->{password},
                                   inccal => $inccal,
+                                  incjunk => 0,
                                 );
 
   $pkg->pkgdata;
@@ -208,6 +209,7 @@ sub _package_data_cadc {
                                  projectid => $cookie->{projectid},
                                  password => $cookie->{password},
                                  inccal => $inccal,
+                                 incjunk => 0,
                                );
   } catch OMP::Error::UnknownProject with {
     $E = shift;

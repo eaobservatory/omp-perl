@@ -57,7 +57,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
                    worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig robots.txt /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js jquery.js LookAndFeelConfig robots.txt /;
 
 # Files which are renamed.
 my %renamed_files = (

@@ -289,7 +289,9 @@ associated with the C<OMP::Info::Obs> objects. Default is false (0);
 comments will be attached, for queries with bound dates and true
 (no comments) by default for project queries or unbound date
 queries. This can be overridden by using an explicit (defined) value
-for "nocomments".
+for "nocomments".  If "incjunk" is false, then junk observations
+are excluded.  Comments will be retrieved in this case in order
+for status to be determined.
 
 A "verbose" flag can be used to turn on message output. Default
 is false.
@@ -388,6 +390,16 @@ sub populate {
     $nocomments = 1 unless defined $nocomments;
   }
 
+  # Junk?  If we want to exclude this, we need to ensure comments are enabled.
+  my $incjunk = 1;
+  if (exists $args{'incjunk'}) {
+    $incjunk = $args{'incjunk'};
+    if ($nocomments and not $incjunk) {
+      warn "OMP::Info::ObsGroup: must fetch comments to exclude junk";
+      $nocomments = 0;
+    }
+  }
+
   # if we are including calibrations we should not include projectid
   if (! $inccal) {
     push(@keys, "projectid");
@@ -428,27 +440,25 @@ sub populate {
   # run the query
   $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments, $search );
 
+  # Apply filter (with "verbose" if desired to generate message output).
+  my %filter_args = (
+    sort => (exists $args{timegap} && $args{timegap} ? 0 : $args{sort}),
+    incjunk => $incjunk,
+    verbose => $args{verbose},
+  );
+
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
   # and instruments that are not important to the project
   if ($inccal && exists $args{projectid}) {
-    # if timegap is true, disable sort here for efficiency since we
-    # will be sorted later on.
-    my $sort = (exists $args{timegap} && $args{timegap} ? 0 : $args{sort});
-    $self->filter( projectid => $args{projectid}, inccal => $inccal,
-                   verbose => $args{verbose}, sort => $sort,
-                 );
-  } else {
-    # we do not need to filter but we should list the filenames
-    # for consistency with the filter option
-    if ($args{verbose}) {
-      for my $obs ($self->obs) {
-        my $obsmode = $obs->mode || $obs->type;
-        print "SCIENCE: ". $obs->instrument."/".$obsmode . " [". $obs->target
-          ."]\n";
-      }
-    }
+    $filter_args{'projectid'} = $args{projectid};
+    $filter_args{'inccal'} = $inccal;
   }
+  else {
+    $filter_args{'anycal'} = 1;
+  }
+
+  $self->filter(%filter_args);
 
   # Add in timegaps if necessary (not forgetting to sort if asked)
   if(exists $args{timegap}) {
@@ -469,19 +479,16 @@ If a projectid is specified, only science observations and relevant
 calibrations associated with that particular project are retained
 (which may be an empty list if no projects observations are present).
 
-Currently, it is an error for this method to be called
-without an explicit project ID being available unless
-inccal is set to false (in which case science observations
-are retained and calibrations removed).
-
   $grp->filter( projectid => $projectid );
   $grp->filter( inccal => 0 );
 
 The inccal flag can be used to control the filter. By default, inccal
-is true. If projectid is set and inccal is true, calibrations will be
-included for each science observation associated with the project. If
-inccal is false, calibrations will be removed from the observation
-list even if they are tagged as belonging to the project.
+is true. If inccal is true, calibrations will be included for each
+science observation. If inccal is false, calibrations will be removed
+from the observation list even if they are tagged as belonging to the
+project. However if anycal is true, calibrations will be included
+provided they match the other filtering criteria, with no special
+treatment. If incjunk is false, junk observations will be removed.
 
   $grp->filter( projectid => $projectid, inccal => 1 );
 
@@ -499,67 +506,57 @@ Default is false.
 
 sub filter {
   my $self = shift;
-  my %def = ( inccal => 1, sort => 1 );
+  my %def = ( inccal => 1, incjunk => 1, sort => 1, anycal => 0 );
   my %args = (%def, @_);
 
-  throw OMP::Error::BadArgs("Must supply a projectid or set inccal to false to filter_cals")
-    if (! exists $args{projectid} && $args{inccal});
-
   # Upper case now rather than inside loop
-  $args{projectid} = uc($args{projectid});
+  my $projectid = (exists $args{'projectid'})
+    ? uc($args{'projectid'}) : undef;
+  my $inccal = $args{'inccal'};
+  my $incjunk = $args{'incjunk'};
+  my $anycal = $args{'anycal'};
 
-  # if inccal is false, we just need to go through the observations
-  # removing non-Science observations. Easy enough
-  if (!$args{inccal}) {
-    # if a projectid has been set, include that in the grep
-    my @newobs;
-    if (exists $args{projectid}) {
-      @newobs = grep { uc($_->projectid) eq $args{projectid} &&
-                       $_->isScience } $self->obs;
-    } else {
-      @newobs = grep { $_->isScience } $self->obs;
-    }
+  # Disable 'inccal' if 'anycal' is specified.
+  $inccal = 0 if $anycal;
 
-    # update the object
-    $self->obs( \@newobs );
-
-    # Sort if required
-    $self->sort_by_time() if $args{sort};
-
-    return;
-  } elsif (exists $args{projectid}) {
-    # We have a projectid and we have to include calibrations
-    # relevant for that projectid
-
+  if ($inccal) {
     # Sort everything first so that we get the science and calibration
     # observations themselves in time order
     $self->sort_by_time;
+  }
 
-    # Step one is to go through all the observations, extracting
-    # the science observations associated with this project
-    # and generating an array of calibration observations and matching
-    # instruments
-    my @proj;   # All the science observations
-    my @cal;    # Calibration observations
+  # Step one is to go through all the observations, extracting
+  # the science observations associated with this project
+  # and generating an array of calibration observations and matching
+  # instruments
+  my @proj;   # All the science observations
+  my @cal;    # Calibration observations
 
-    my %instruments;  # List of all science instruments
-    my %obsmodes;     # List of all observing modes
-    my %calinst;      # List of all calibration instruments
+  my %instruments;  # List of all science instruments
+  my %obsmodes;     # List of all observing modes
+  my %calinst;      # List of all calibration instruments
 
-    for my $obs ($self->obs) {
-      my $obsmode = $obs->mode || $obs->type;
-      if ((uc($obs->projectid) eq $args{projectid}) && $obs->isScience) {
+  for my $obs ($self->obs) {
+    next unless $incjunk or $obs->status() != OMP__OBS_JUNK;
+    my $obsmode = $obs->mode || $obs->type;
+    if ($anycal or $obs->isScience) {
+      if ((not defined $projectid) or (uc($obs->projectid) eq $projectid)) {
         $instruments{uc($obs->instrument)}++; # Keep track of instrument
         $obsmodes{$obsmode}++; # Keep track of obsmode
         print "SCIENCE:     " .$obs->instrument ."/".$obsmode
               . " [".$obs->target ."]\n" if $args{verbose};
         push(@proj, $obs);
-      } elsif ( ! $obs->isScience && $args{inccal}) {
-        $calinst{uc($obs->instrument)}++; # Keep track of cal instrument
-        push(@cal, $obs);
       }
+    } elsif ($inccal) {
+      $calinst{uc($obs->instrument)}++; # Keep track of cal instrument
+      push(@cal, $obs);
     }
+  }
 
+  unless ($inccal) {
+    $self->obs(\@proj);
+  }
+  else {
     # Now prune calibrations to remove uninteresting instruments
     # Note: cal array will be empty if we didn't find any science observations;
     # for this reason we store the number of cals before we filter so that we
@@ -581,7 +578,7 @@ sub filter {
       #   - They are a SciCal that uses the same observing mode as us
       $match = join("|", keys %obsmodes);
       @cal = grep { my $obsmode = $_->mode || $_->type;
-                    uc($_->projectid) eq $args{projectid} ||
+                    uc($_->projectid) eq $projectid ||
                     $_->isGenCal || $obsmode =~ /^$match/i } @cal;
 
     }
@@ -605,13 +602,10 @@ sub filter {
 
     # Store
     $self->obs([@proj,@cal]);
-
-    # Sort into time order if applicable
-    $self->sort_by_time() if $args{sort};
-
-  } else {
-    throw OMP::Error::BadArgs("Should not be here. Inccal is true but projectid not specified");
   }
+
+  # Sort into time order if applicable
+  $self->sort_by_time() if $args{sort};
 
   return;
 }
