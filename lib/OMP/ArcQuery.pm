@@ -66,8 +66,9 @@ our $S2FILESTAB = 'jcmt.FILES F';
 {
   my $cf = OMP::Config->new;
 
-  # If a table name prefix is configured, apply it.
-  my $prefix = $cf->getData('arc-table-prefix');
+  # If a database name prefix is configured, apply it.
+  my $prefix = $cf->getData('arc-database-prefix');
+
   if ( $prefix ) {
 
     my %db;
