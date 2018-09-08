@@ -119,9 +119,6 @@ sub files_on_disk {
     $runnr = 0;
   }
 
-  my $date = $utdate->ymd;
-  $date =~ s/-//g;
-
   my $sys_config = OMP::Config->new;
 
   # Retrieve information from the configuration system.
