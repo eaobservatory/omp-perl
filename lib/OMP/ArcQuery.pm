@@ -63,6 +63,9 @@ our $AFILESTAB = 'jcmt.FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WIL
 our $SCUBA2TAB = 'jcmt.SCUBA2 S2';
 our $S2FILESTAB = 'jcmt.FILES F';
 
+our $RXH3TAB = 'jcmt.RXH3 H3';
+our $RXH3FILESTAB = 'jcmt.FILES F  '; # Two extra spaces, to distinguish as above.
+
 {
   my $cf = OMP::Config->new;
 
@@ -80,6 +83,8 @@ our $S2FILESTAB = 'jcmt.FILES F';
         \$AFILESTAB,
         \$SCUBA2TAB,
         \$S2FILESTAB,
+        \$RXH3TAB,
+        \$RXH3FILESTAB,
       ];
 
     $db{'jcmt_tms'} =
@@ -126,6 +131,7 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    ACSIS => [ $JCMTTAB, $ACSISTAB ],
                    #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
                    'SCUBA-2' => [ $JCMTTAB, $SCUBA2TAB ],
+                   RXH3 => [$JCMTTAB, $RXH3TAB],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
@@ -141,6 +147,8 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                  $AFILESTAB => '(A.obsid_subsysnr = F.obsid_subsysnr)',
                                  $SCUBA2TAB => '(J.obsid = S2.obsid)',
                                  $S2FILESTAB => '(S2.obsid_subsysnr = F.obsid_subsysnr)',
+                                 $RXH3TAB => '(J.obsid = H3.obsid)',
+                                 $RXH3FILESTAB => '(H3.obsid_subsysnr = F.obsid_subsysnr)',
                                },
                  );
 
@@ -633,6 +641,10 @@ sub _post_process_hash {
         $tables{$SCUBA2TAB}++;
         $tels{JCMT}++;
         $insts{'SCUBA-2'}++;
+      } elsif ($inst =~ /^RXH3/i) {
+        $tables{$RXH3TAB} ++;
+        $tels{JCMT}++;
+        $insts{'RXH3'}++;
       } elsif ($inst =~ /^HARP/i) {
         # Only new data for harp so no GSD
         $tables{$JCMTTAB}++;
@@ -696,6 +708,7 @@ sub _post_process_hash {
           $tables{$AFILESTAB}++;
           $insts{ACSIS}++;
           $insts{'SCUBA-2'}++;
+          $insts{'RXH3'}++;
         } else {
           $insts{SCUBA}++;
           $insts{HETERODYNE}++;
@@ -707,6 +720,7 @@ sub _post_process_hash {
         $insts{SCUBA}++;
         $insts{'SCUBA-2'}++;
         $insts{HETERODYNE}++;
+        $insts{'RXH3'}++;
         $tables{$SCUTAB}++;
         $tables{$GSDTAB}++;
         $tables{$JCMTTAB}++;
@@ -804,11 +818,14 @@ sub _adjust_instrument {
       $UKIRTTAB => sub { uc( shift ) },
     );
 
+  my $non_gsd_inst = qr/^RxH3$/i;
   my $gsd_inst   = qr{^(?: RX | UKT )}ix;
 
   unless( exists $href->{ $inst }->{instrument}) {
-
-    if ( $inst =~ $gsd_inst ) {
+    if ($inst =~ $non_gsd_inst) {
+        # Do nothing?
+    }
+    elsif ( $inst =~ $gsd_inst ) {
       $href->{ $inst }->{instrument}->{ $lut{instrument}{ $GSDTAB } } = [ qw/ HETERODYNE / ];
     }
     elsif ( $inst =~ $ukirt_inst ) {
