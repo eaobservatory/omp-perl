@@ -41,6 +41,7 @@ use File::Spec;
 use File::Basename;
 use Config::IniFiles;
 use Data::Dumper;
+use Time::Seconds;
 
 use vars qw/ $DEBUG /;
 $DEBUG = 0;
@@ -973,6 +974,7 @@ sub _format_output {
   # INSTRUMENT - upper-cased instrument name
   # instrument - lower-cased instrument name
   # UTDATE     - ut date, in YYYYMMDD format
+  # HSTDATE    - day before the UT date, in YYYYMMDD format
   # SEMESTER   - semester name [upper case]
   # semester   - semester name [lower case]
   # TELESCOPE  - telescope name [upper case]
@@ -1009,6 +1011,9 @@ sub _format_output {
     $tel{tel} = $args{telescope} if (exists $args{telescope} && defined $args{telescope});
     if ($ut) {
       $places{UTDATE} = $ut->strftime("%Y%m%d");
+
+      my $hst = $ut - ONE_DAY;
+      $places{HSTDATE} = $hst->ymd('');
 
       # Warn if the string includes SEMESTER without us being given a telescope
       # and only calculate the semester if we need it
