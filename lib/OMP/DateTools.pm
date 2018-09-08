@@ -387,9 +387,9 @@ Given a date determine the current semester.
 
   $semester = OMP::DateTools->determine_semester( date => $date, tel => 'JCMT' );
 
-Date should be of class C<Time::Piece> or a string in I<yyyymmdd>
-format, and should be in UT. The current date is used if none is
-supplied.
+Date should be of class C<Time::Piece> or C<DateTime>
+or a string in I<yyyymmdd> format and should be in UT.
+The current date is used if none is supplied.
 
 A telescope option is supported since semester boundaries are a
 function of telescope.  If no telescope is provided, a telescope of
@@ -447,8 +447,8 @@ sub determine_semester {
   my $date = $args{date};
   unless (defined $date) {
     $date = gmtime();
-  } elsif (UNIVERSAL::isa($date, "Time::Piece")) {
-    # Already have a Time::Piece -- do nothing.
+  } elsif (UNIVERSAL::isa($date, "DateTime") or UNIVERSAL::isa($date, "Time::Piece")) {
+    # Already have a suitable object -- do nothing.
   } elsif ($date =~ m/
                         ^\d{4}
                         (?: [01]\d | 1[0-2])
@@ -458,7 +458,7 @@ sub determine_semester {
     # Convert to Time::Piece.
     $date = Time::Piece->strptime($date, '%Y%m%d');
   } else {
-    croak 'determine_semester: Date should be of class Time::Piece'
+    croak 'determine_semester: Date should be of class DateTime or Time::Piece'
         . qq[ or a "yyyymmdd" formatted string rather than "$date"];
   }
 
