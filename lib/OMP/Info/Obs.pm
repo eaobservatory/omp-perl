@@ -449,6 +449,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               nexp => '$',
                               number_of_coadds => '$',
                               number_of_cycles => '$',
+                              number_of_frequencies => '$',
                               object => '$',
                               obsid => '$',
                               obsidss => '@',
@@ -1015,6 +1016,38 @@ sub nightlog {
         $return{'Chop System'}
         ;
 
+  }
+  elsif( $instrument =~ /^(rxh3)$/i ) {
+    $return{'Run'} = $self->runnr;
+    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Obsmode'} = $self->mode;
+    $return{'Project ID'} = $self->projectid;
+    $return{'Frequency'} = $self->rest_frequency() // '';
+    $return{'Num. freq.'} = $self->number_of_frequencies() // '';
+    my $file = $self->simple_filename() // '';
+    $file =~ s/^rxh3-//i;
+    $file =~ s/\.fits//i;
+    $return{'File'} = $file;
+
+    $return{'_ORDER'} = [
+        'Run', 'UT time', 'Obsmode', 'Project ID', 'Frequency', 'Num. freq.', 'File',
+    ];
+
+    $return{'_STRING_HEADER'} = 'Run  UT start              Mode      Project  Frequency  Num. freq.             File';
+    $return{'_STRING'} = sprintf(
+        '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s',
+        $return{'Run'},
+        $return{'UT time'},
+        $return{'Obsmode'},
+        $return{'Project ID'},
+        $return{'Frequency'},
+        $return{'Num. freq.'},
+        $return{'File'},
+    );
+
+    $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
+    $return{'_STRING_LONG'} = $return{'_STRING'};
+
   } elsif( $instrument =~ /^(rx|mpi|fts|harp)/i ) {
 
 # *** Heterodyne instruments
@@ -1576,7 +1609,9 @@ sub simple_filename {
     # Get the filename without path
     my $base = basename( $infile );
 
-    if ($self->telescope eq 'JCMT' && $self->instrument !~ $scuba_re
+    if ($self->telescope eq 'JCMT'
+        && $self->instrument !~ $scuba_re
+        && $self->instrument !~ /^RxH3$/i
         && ! $self->_backend_acsis_like() ) {
 
       # Want YYYYMMDD_backend_nnnn.dat
@@ -1668,6 +1703,7 @@ sub _populate {
 
   $self->duration( $generic_header{EXPOSURE_TIME} );
   $self->number_of_coadds( $generic_header{NUMBER_OF_COADDS} );
+  $self->number_of_frequencies($generic_header{'NUMBER_OF_FREQUENCIES'});
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
   $generic_header{TELESCOPE} =~ /^(\w+)/;
@@ -1899,11 +1935,15 @@ sub _populate {
       # For now, only check name matches (names should match pointing
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
+
       if (( defined( $self->projectid ) && ($self->projectid =~ /JCMT|DEFERRED/i || $self->projectid eq 'CAL') ) ||
           ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
+      } elsif ((defined $self->mode()) and ($self->mode() =~ /holography/i)) {
+        $self->isGenCal(1);
+        $self->isScience(0);
       } elsif ($self->mode =~ /sample/i && $self->target =~ /^(w3\(oh\)|l1551\-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293\-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
         # this only occurs on DAS because ACSIS does not have SAMPLE mode
         $self->isSciCal( 1 );
