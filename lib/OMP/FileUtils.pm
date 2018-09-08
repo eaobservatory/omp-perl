@@ -395,6 +395,12 @@ sub get_flag_files {
     my @raw;
 
     foreach my $file ( @{ $flags } ) {
+      # RxH3 writes FITS files but no flag files -- temporary work around
+      # is to have the FITS files themselves be the flags.
+      if ($file =~ /.fits$/) {
+        push @raw, [$file];
+        next;
+      }
 
       # If the flag file size is 0 bytes, then we assume that the observation file
       # associated with that flag file is of the same naming convention, removing
