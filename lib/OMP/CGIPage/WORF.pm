@@ -304,7 +304,7 @@ sub thumbnails_page {
 
   foreach my $instrument ( @instruments ) {
 
-    next if $instrument =~ /^rx/i;
+    next if $instrument =~ /^rx(?!h3)/i;
 
     # Get the directory.
     my $directory;
