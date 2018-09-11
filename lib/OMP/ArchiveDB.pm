@@ -814,7 +814,7 @@ sub _query_files {
   my @instarray;
 
   if ( defined( $instrument ) && length($instrument ) != 0) {
-    if ($instrument =~ /^rx/i) {
+    if ($instrument =~ /^rx(?!h3)/i) {
       $filterinst = $instrument;
       $instrument = "heterodyne";
     }
@@ -826,7 +826,7 @@ sub _query_files {
                                       );
     my $ishet = 0;
     for my $inst (@initial) {
-      if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
+      if ($inst =~ /^rx(?!h3)/i || $inst eq 'heterodyne') {
         $ishet = 1;
         next;
       }
@@ -872,7 +872,7 @@ sub _query_files {
         # so that inferTelescope() will work. Unfortunately, we just want 'heterodyne',
         # so we'll just go on to the next one if the instrument name starts with 'rx'.
         ################################################################################
-        next if( $inst =~ /^rx/i );
+        next if( $inst =~ /^rx(?!h3)/i );
 
         my @tfiles = OMP::FileUtils->files_on_disk( 'instrument' => $inst,
                                                     'date'       => $day,

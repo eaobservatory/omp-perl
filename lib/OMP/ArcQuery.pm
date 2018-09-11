@@ -818,14 +818,10 @@ sub _adjust_instrument {
       $UKIRTTAB => sub { uc( shift ) },
     );
 
-  my $non_gsd_inst = qr/^RxH3$/i;
-  my $gsd_inst   = qr{^(?: RX | UKT )}ix;
+  my $gsd_inst   = qr/^rx(?!h3)|ukt/i;
 
   unless( exists $href->{ $inst }->{instrument}) {
-    if ($inst =~ $non_gsd_inst) {
-        # Do nothing?
-    }
-    elsif ( $inst =~ $gsd_inst ) {
+    if ( $inst =~ $gsd_inst ) {
       $href->{ $inst }->{instrument}->{ $lut{instrument}{ $GSDTAB } } = [ qw/ HETERODYNE / ];
     }
     elsif ( $inst =~ $ukirt_inst ) {

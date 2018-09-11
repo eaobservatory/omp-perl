@@ -549,7 +549,7 @@ sub _reorganize_comments {
       $obsid =~ /^(\w+)_(\w+)_(\w+)$/;
       ( my $ymd, my $hms ) = split 'T', $3;
       my $inst = $1;
-      if( $inst =~ /^rx/i && $ymd >= 20060901 ) {
+      if( $inst =~ /^rx(?!h3)/i && $ymd >= 20060901 ) {
         $obsid =~ s/^(\w+?)_/acsis_/;
       }
     }

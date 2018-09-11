@@ -341,7 +341,7 @@ sub unstored_files {
 
   my @insts;
   if( defined( $instrument ) ) {
-    if($instrument =~ /^rx/i) {
+    if($instrument =~ /^rx(?!h3)/i) {
       push @insts, 'heterodyne';
     } else {
       push @insts, $instrument;
@@ -354,7 +354,7 @@ sub unstored_files {
 
     my $ishet = 0;
     for my $inst (@initial) {
-      if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
+      if ($inst =~ /^rx(?!h3)/i || $inst eq 'heterodyne') {
         $ishet = 1;
         next;
       }
@@ -369,7 +369,7 @@ sub unstored_files {
 
     foreach my $inst ( @insts ) {
 
-      next if( $inst =~ /^rx/i );
+      next if( $inst =~ /^rx(?!h3)/i );
 
       my @files = OMP::FileUtils->files_on_disk( 'instrument' => $inst,
                                                   'date'      => $day,
