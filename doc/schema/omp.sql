@@ -19,13 +19,16 @@ CREATE TABLE `ompfault` (
   `entity` varchar(64) DEFAULT NULL,
   `condition` int(11) DEFAULT NULL,
   `location` int(11) DEFAULT NULL,
-  UNIQUE KEY `idx_faultid` (`faultid`)
+  UNIQUE KEY `idx_faultid` (`faultid`),
+  FULLTEXT KEY `idx_ompfault_subject` (`subject`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfaultassoc` (
   `associd` bigint(20) NOT NULL AUTO_INCREMENT,
   `faultid` double NOT NULL,
   `projectid` varchar(32) NOT NULL,
-  UNIQUE KEY `idx_associd` (`associd`)
+  UNIQUE KEY `idx_associd` (`associd`),
+  KEY `idx_faultid` (`faultid`),
+  KEY `idx_projectid` (`projectid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfaultbody` (
   `respid` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -143,7 +146,8 @@ CREATE TABLE `ompobs` (
   `obsid` bigint(20) NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`obsid`),
   KEY `idx_instument` (`instrument`),
-  KEY `idx_msbid` (`msbid`)
+  KEY `idx_msbid` (`msbid`),
+  KEY `idx_projectid` (`projectid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompobslog` (
   `obslogid` bigint(20) NOT NULL AUTO_INCREMENT,
