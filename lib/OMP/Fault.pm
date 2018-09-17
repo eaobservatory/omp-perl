@@ -135,6 +135,7 @@ use constant {
   POL2     => FRONT_END_HARP +  4,
   ROVER    => FRONT_END_HARP +  5,
   SMU_TMU  => FRONT_END_HARP +  6,
+  NAMAKANUI=> FRONT_END_HARP +  7,
 };
 
 # Safety - severity.
@@ -311,6 +312,7 @@ my %DATA = (
                                    "Back End - CBE" => BACK_END_CBE,
                                    "Back End - IFD" => BACK_END_IFD,
                                    "Front End - HARP" => FRONT_END_HARP,
+                                   "Front End - Namakanui" => NAMAKANUI,
                                    "Front End - RxA" => FRONT_END_RXA,
                                    "Front End - RxB" => FRONT_END_RXB,
                                    "Front End - RxW" => FRONT_END_RXW,
@@ -478,6 +480,7 @@ my %DATA = (
                                     'Pointing'      =>  POINTING       ,
                                     'POL2'          =>  POL2           ,
                                     'Rover'         =>  ROVER          ,
+                                    'Front End - Namakanui' => NAMAKANUI,
                                     'RxA'           =>  FRONT_END_RXA  ,
                                     'RxW'           =>  FRONT_END_RXW  ,
                                     'RxH3/Surface'  =>  RXH3_SURFACE   ,

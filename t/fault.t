@@ -95,6 +95,7 @@ is_deeply(OMP::Fault->faultSystems('JCMT', include_hidden => 1), {
     'Back End - ACSIS' => 1045,
     'Back End - CBE' => 1046,
     'Back End - IFD' => 1047,
+    'Front End - Namakanui' => 2008,
     'Front End - HARP' => 2001,
     'Front End - RxA' => 1048,
     'Front End - RxB' => 1049,
@@ -115,6 +116,7 @@ is_deeply(OMP::Fault->faultSystems('JCMT', include_hidden => 1), {
 is_deeply(OMP::Fault->faultSystems('JCMT'), {
     Telescope => 1016,
     'Back End - ACSIS' => 1045,
+    'Front End - Namakanui' => 2008,
     'Front End - HARP' => 2001,
     'Front End - RxA' => 1048,
     'Front End - RxH3' => 1054,
