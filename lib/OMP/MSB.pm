@@ -5006,7 +5006,7 @@ sub SpInstHeterodyne {
                           # included in the file so that the translator can
                           # check whether it still matches the instrument XML.
                           otConfigIF => $self->_get_pcdata($el, "feIF"),
-                          otConfigBW => $self->_get_pcdata($el, "feBandwidth"),
+                          otConfigBW => $self->_get_pcdata($el, "feBandWidth"),
 
                           # In new TOML the velocity is stored in the telescope
                           # object. Read the old values for compatibility
