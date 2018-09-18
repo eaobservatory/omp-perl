@@ -61,6 +61,9 @@ our %FE_MAP = (
                HARP => 'HARP',
                SCUBA2 => 'SCUBA2',
                'SCUBA-2' => 'SCUBA2',
+               ALAIHI => 'ALAIHI',
+               UU => 'UU',
+               AWEOWEO => 'AWEOWEO',
               );
 
 # Telescope diameter in metres

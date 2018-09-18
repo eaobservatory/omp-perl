@@ -76,6 +76,11 @@ my %ACSIS_Layouts = (
                      RXB => 's2r2g1',
                      RXWB => 's2r2g1',
                      RXWD => 's2r2g1',
+
+                     ALAIHI => 's2r2g1',
+                     UU => 's2r2g1',
+                     AWEOWEO => 's2r2g1',
+
                      HARP => 's8r8g1',
                     );
 
