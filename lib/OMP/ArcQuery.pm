@@ -657,7 +657,7 @@ sub _post_process_hash {
         $tables{$RXH3TAB} ++;
         $tels{JCMT}++;
         $insts{'RXH3'}++;
-      } elsif ($inst =~ /^HARP/i) {
+      } elsif ($inst =~ /^(HARP|GLT|ALAIHI|UU|AWEOWEO)/i) {
         # Only new data for harp so no GSD
         $tables{$JCMTTAB}++;
         $tels{JCMT}++;

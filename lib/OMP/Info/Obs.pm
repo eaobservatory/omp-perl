@@ -1066,7 +1066,7 @@ sub nightlog {
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
-  } elsif( $instrument =~ /^(rx|mpi|fts|harp)/i ) {
+  } elsif( $instrument =~ /^(rx|mpi|fts|harp|glt|uu|aweoweo|alaihi)/i ) {
 
 # *** Heterodyne instruments
 
