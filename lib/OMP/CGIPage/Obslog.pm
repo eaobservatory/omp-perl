@@ -370,7 +370,7 @@ sub projlog_content {
                                       date => $utdate,
                                       inccal => 1,);
 
-    if ($grp->numobs > 1) {
+    if ($grp->numobs > 0) {
       print "<h2>Observation log</h2>";
 
       obs_table($grp);

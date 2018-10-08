@@ -1364,7 +1364,7 @@ sub ashtml {
 
       print "<a name=\"obslog\"></a>";
 
-      if ($grp and $grp->numobs > 1) {
+      if ($grp and $grp->numobs > 0) {
 
         # Display log as plain text if there are a huge amount of observations
         my $plaintext = ($grp->numobs > 5000 ? 1 : 0);
