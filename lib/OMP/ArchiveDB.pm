@@ -39,6 +39,7 @@ use OMP::Info::ObsGroup;
 use OMP::Config;
 use OMP::FileUtils;
 use Astro::FITS::Header::NDF;
+use Astro::FITS::Header::CFITSIO;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
@@ -936,6 +937,10 @@ sub _query_files {
 
         } elsif ( $file =~ /\.(gsd|dat)$/ ) {
           $FITS_header = new Astro::FITS::Header::GSD( File => $file );
+
+        } elsif ($file =~ /\.(fits)$/) {
+          $FITS_header = new Astro::FITS::Header::CFITSIO(File => $file, ReadOnly => 1);
+
         } else {
           throw OMP::Error::FatalError( "Do not recognize file suffix for file $file. Cannot read header" );
         }
