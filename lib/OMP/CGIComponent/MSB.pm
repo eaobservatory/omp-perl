@@ -314,7 +314,7 @@ TABLE
         'colors' => \%colors,
         'hidden' =>
           [ OMP::Display->make_hidden_fields(
-              $q, { %common_hidden, 'transaction' => $msb->msbtid }
+              $q, \%common_hidden,
             )
           ],
       }
@@ -805,13 +805,17 @@ sub _print_transaction_comments {
       $i + 1 == $count and print end_td, end_Tr ;
 
       # Start of comments.
-      print
-        start_Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } } ),
-        td( $query->startform, "\n",
+      my @comment_form = (defined $cur)
+        ? ( $query->startform, "\n",
             $query->submit('Add Comment'), "\n",
             @{ $args->{'hidden' } }, "\n",
-            $query->endform, "\n",
-          ),
+            $query->hidden(-name => 'transaction', -default => $cur),
+            $query->endform, "\n", )
+        : ( '&nbsp;' );
+
+      print
+        start_Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } } ),
+        td(@comment_form),
         start_td( { 'colspan' => $args->{'comment-colspan'} } ) ;
     }
 
