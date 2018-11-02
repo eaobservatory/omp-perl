@@ -287,8 +287,31 @@ TABLE
     my $msbtitle = $msb->title;
     (!$msbtitle) and $msbtitle = "[NONE]";
 
-    my @comments = $msb->comments;
-    my $comments = _count_unique_tids( @comments );
+    # Group the comments by transaction ID, while otherwise
+    # preserving the ordering (although it's not clear if this
+    # is well established).
+    my @comments;
+    do {
+        my %groups = ();
+        foreach my $c ($msb->comments()) {
+            my $cur = $c->tid;
+
+            unless ($cur) {
+              # Consider each comment with empty|undef transaction id unique.
+              push @comments, [$c];
+            }
+            elsif (exists $groups{$cur}) {
+                # Add comment to existing group.
+                push @{$groups{$cur}}, $c;
+            }
+            else {
+                # Create a new group.
+                push @comments, ($groups{$cur} = [$c]);
+            }
+        }
+    };
+
+    my $comments = scalar @comments;
 
     _print_msb_header(
       'count' => $i,
@@ -309,7 +332,7 @@ TABLE
 
     _print_transaction_comments(
       $q,
-      { 'comments' => [ @comments ],
+      { 'comments' => \@comments,
         'comment-colspan' => $table_cols - 2,
         'colors' => \%colors,
         'hidden' =>
@@ -741,13 +764,13 @@ sub _print_msb_header {
 
 =item B<_print_transaction_comments>
 
-Given array reference of OMP::Info::Comment objects associated with a
+Given array reference of groups of OMP::Info::Comment objects associated with a
 transaction id, print the comments in <p>, with dividers (<hr>) if
 appropriate.
 
   _print_transaction_comments(
     $cgi,
-    { 'comments' => <array ref of OMP::Info::Comment objects>,
+    { 'comments' => <array ref of arrays of OMP::Info::Comment objects>,
       'comment-colspan' => <column-span for comment table cells>,
       'colors' =>
         <hash ref of keys as OMP__DONE* status, colors as values>',
@@ -772,66 +795,59 @@ sub _print_transaction_comments {
 
   my %prop = ( 'valign' => 'top', 'align' => 'left' );
 
-  my $count = scalar @{ $args->{'comments'} };
-
-  my $all = $args->{'comments'};
-  my ( $prev );
-  for my $i ( 0 .. $count - 1 ) {
-
-    my $c = $all->[ $i ];
-
-    my $cur = $c->tid;
-    #  Consider each comment with empty|undef transaction id as
-    #  unique.
-    my $diff = ! ( $cur && $prev && $cur eq $prev );
-    $prev = $cur ;
-
-    unless ( $diff ) {
-
-      # Divider between two comments with the same transaction ids.
-      $i and print hr ;
+  my $i_group = 0;
+  foreach my $comment_group (@{$args->{'comments'}}) {
+    if ($i_group) {
+      # Divider (Blank row) between comments with different transaction ids.
+      print Tr(
+        td({'align' => 'center', 'valign' => 'middle', 'colspan' => 2},
+           hr
+        ));
     }
-    else {
 
-      # Divider(Blank row) between comments with different transaction ids.
-      $i and
+    my $i_comment = 0;
+    foreach my $c (@$comment_group) {
+      my $cur = $c->tid;
+      my $color = $args->{'colors'}->{$c->status};
+
+      if ($i_comment) {
+        # Divider between two comments with the same transaction ids.
+        print hr;
+      }
+      else {
+        # Start of comments.
+        my @comment_form = (defined $cur)
+          ? ( $query->startform, "\n",
+              $query->submit('Add Comment'), "\n",
+              @{ $args->{'hidden' } }, "\n",
+              $query->hidden(-name => 'transaction', -default => $cur),
+              $query->endform, "\n", )
+          : ( '&nbsp;' );
+
         print
-          Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
-                  hr
-                )
-            ) ;
+          start_Tr({%prop, bgcolor => $color}),
+          td(@comment_form),
+          start_td( { 'colspan' => $args->{'comment-colspan'} } ) ;
+      }
 
-      # End of comments.
-      $i + 1 == $count and print end_td, end_Tr ;
+      # The actual comment.  Finally!
+      my $author = $c->author;
+      print div(
+        {'class' => 'black', 'style' => sprintf('background-color: %s;', $color)},
+        join(', ',
+            i($c->date . ' UT'),
+            $author ? $author->html : ()
+            #, $cur ? '( ' . $cur . ' )' : '--'
+        ),
+        '<br>', $c->text);
 
-      # Start of comments.
-      my @comment_form = (defined $cur)
-        ? ( $query->startform, "\n",
-            $query->submit('Add Comment'), "\n",
-            @{ $args->{'hidden' } }, "\n",
-            $query->hidden(-name => 'transaction', -default => $cur),
-            $query->endform, "\n", )
-        : ( '&nbsp;' );
-
-      print
-        start_Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } } ),
-        td(@comment_form),
-        start_td( { 'colspan' => $args->{'comment-colspan'} } ) ;
+      $i_comment ++;
     }
 
-    # The actual comment.  Finally!
-    my $author = $c->author;
-    print
-      div( { 'class' => 'black' },
-            join( ', ', i( $c->date . ' UT' ),
-                  $author ? $author->html : ()
-                  #, $cur ? '( ' . $cur . ' )' : '--'
-                ),
-            '<br>', $c->text
-          ) ;
-  }
+    print end_td, end_Tr;
 
-  return;
+    $i_group ++;
+  }
 }
 
 =pod
@@ -861,35 +877,6 @@ sub _make_non_empty_hidden_fields {
           @fields
       }
     ) ;
-}
-
-=pod
-
-=item B<_count_unique_tids>
-
-Given an array of OMP::Info::Comment objects, returns the count of comments with
-unique transaction ids, where each comment with missing transaction id is also
-considered to be unique for the purpose of HTML table code generation.
-
-  my $count = _count_unique_tids( @comments );
-
-=cut
-
-sub _count_unique_tids {
-
-  my ( @comments ) = @_;
-
-  my %uniq;
-  # C<OMP::Info::Comment::tid> method produces a string =~
-  # m/^[A-Z]+[_0-9]+$/ if a transaction id is present, so no need to
-  # be concerned about it being 0-but-valid id.
-  $uniq{ $_->tid ? $_->tid : 'empty' }++ for @comments;
-
-  return
-    # keys() already accounts for 1 of the empty values.
-    ( $uniq{'empty'} ? $uniq{'empty'} - 1 : 0 )
-    + scalar keys %uniq
-    ;
 }
 
 =back
