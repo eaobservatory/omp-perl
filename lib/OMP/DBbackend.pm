@@ -276,7 +276,7 @@ sub connect {
   my $dboptions = "";
 
   if ($DBIdriver eq 'mysql') {
-    $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10;mysql_auto_reconnect=1";
+    $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10";
   } else {
     throw OMP::Error::DBConnection("DBI driver $DBIdriver not recognized");
   }
@@ -286,7 +286,8 @@ sub connect {
 
   OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver, database $DBdatabase, as $DBuser <-----");
 
-  my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, { PrintError => 0 })
+  my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, {
+      PrintError => 0, mysql_auto_reconnect => 1})
     or throw OMP::Error::DBConnection("Cannot connect to database $DBserver: $DBI::errstr");
 
   # Indicate that we have connected
