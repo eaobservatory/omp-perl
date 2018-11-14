@@ -625,19 +625,20 @@ sub fe_config {
 
   # Get the basic frontend setup from the freqconfig key
   my %fc = %{ $info{freqconfig} };
+  my $iffreq = $fc{'otConfigIF'};
+  my $iffreq_ghz = $iffreq / 1.0e9; # to GHz
 
   # Check whether the instrument configuration matches what
   # the OT thought it was.
   do {
-    my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
-    my $iffreq_ot = $fc{'otConfigIF'};
+    my $iffreq_conf = $inst->if_center_freq * 1.0E9; # from GHz
 
-    if ($iffreq != $iffreq_ot) {
+    if ($iffreq_conf != $iffreq) {
       my $message = 'The instrument IF frequency specified in '
         . 'the instrument XML ('
-        . $iffreq
+        . $iffreq_conf
         . ') does not match the IF frequency given in the observation ('
-        . $iffreq_ot
+        . $iffreq
         . ').  The frequency settings '
         . 'may be calculated incorrectly if the OT used a different '
         . 'IF frequency when creating the observation.';
@@ -650,6 +651,10 @@ sub fe_config {
           . ' You can force the translation of the observation by enabling '
           . 'ignore_if_freq_mismatch in the acsis_translator settings.');
       }
+
+      # If we didn't throw an exception, set the center frequency
+      # in the instrument configuration object.
+      $inst->if_center_freq($iffreq_ghz);
     }
   };
 
@@ -711,7 +716,6 @@ sub fe_config {
       # If we have offset subsystems and we have selected LSB, we need to adjust the
       # IFs to take into account the flip. The OT always sends a USB configurtion for best
       if (lc($sb) eq 'lsb') {
-        my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
         my @subsys = @{$fc{subsystems}};
         for my $ss (@subsys) {
           my $offset = $ss->{if} - $iffreq;
@@ -732,9 +736,8 @@ sub fe_config {
   # band we need to adjust the tuning request to compensate
   # The sense of the shift depends on the sideband
   my $restfreq = $fc{restFrequency} / 1e9; # to GHz
-  my $iffreq = $inst->if_center_freq;
   my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
-  my $offset = $ifsub1 - $iffreq;
+  my $offset = $ifsub1 - $iffreq_ghz;
 
   if (lc($sb) eq 'usb') {
     $offset *= -1;
@@ -3000,7 +3003,7 @@ sub bandwidth_mode {
   # Need the IF center frequency from the frontend for information purposes only
   my $inst = $cfg->instrument_setup();
   throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
-  my $if_center_freq = $inst->if_center_freq * 1E9;
+  my $if_center_freq = $info{'freqconfig'}->{'otConfigIF'};
 
   # Keep track of duplicates
   # A subsystem is a dupe if the IF, overlap, channels and  bandwidth are the same
