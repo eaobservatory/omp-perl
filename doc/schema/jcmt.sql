@@ -181,6 +181,7 @@ CREATE TABLE `COMMON` (
   `last_caom_mod` datetime DEFAULT NULL,
   `req_mintau` double DEFAULT NULL,
   `req_maxtau` double DEFAULT NULL,
+  `msbtitle` varchar(70) DEFAULT NULL,
   UNIQUE KEY `idx_uc_COMMON_1` (`obsid`),
   KEY `idx_jcmt_COMMON_proj` (`project`),
   KEY `idx_jcmt_COMMON_inst` (`instrume`),
@@ -195,9 +196,10 @@ CREATE TABLE `FILES` (
   `subsysnr` int(11) NOT NULL,
   `nsubscan` int(11) NOT NULL,
   `obsid_subsysnr` varchar(50) NOT NULL,
-  UNIQUE KEY `pri_FILES_obsidss_fileid` (`obsid_subsysnr`,`file_id`),
+  `md5sum` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`file_id`),
   KEY `obsid_idx` (`obsid`),
-  KEY `fileid_idx` (`file_id`)
+  KEY `obsidss_idx` (`obsid_subsysnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `RXH3` (
   `obsid_subsysnr` varchar(50) NOT NULL,
