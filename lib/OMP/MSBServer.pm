@@ -470,7 +470,7 @@ This will have the effect of incrementing by one the overall observing
 counter for that MSB. This method can not reverse OR logic
 reorganization triggered by an earlier C<doneMSB> call.
 
-  OMP::MSBServer->undoMSB( $project, $checksum );
+  OMP::MSBServer->undoMSB( $project, $checksum, $msbtid );
 
 Nothing happens if the MSB can no longer be located since this
 simply indicates that the science program has been reorganized
@@ -482,17 +482,24 @@ sub undoMSB {
   my $class = shift;
   my $project = shift;
   my $checksum = shift;
+  my $msbtid = shift;
 
-  OMP::General->log_message("undoMSB: $project $checksum\n");
+  OMP::General->log_message("undoMSB: $project $checksum MSBTID=$msbtid\n");
 
   my $E;
   try {
+    # Prepare comment object.
+    my $comment = new OMP::Info::Comment(
+      text => "MSB done status reversed.",
+      status => OMP__DONE_UNDONE,
+      tid => $msbtid,
+    );
+
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
-                            DB => $class->dbConnection
-                           );
+                            DB => $class->dbConnection);
 
-    $db->undoMSB( $checksum );
+    $db->undoMSB( $checksum, $comment );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -507,8 +514,54 @@ sub undoMSB {
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
+}
 
+=item B<unremoveMSB>
 
+Unmark the specified MSB as having been removed.
+
+  OMP::MSBServer->unremoveMSB( $project, $checksum );
+
+Nothing happens if the MSB can no longer be located since this
+simply indicates that the science program has been reorganized
+or the MSB modified.
+
+=cut
+
+sub unremoveMSB {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+
+  OMP::General->log_message("unremoveMSB: $project $checksum\n");
+
+  my $E;
+  try {
+    # Prepare comment object.
+    my $comment = new OMP::Info::Comment(
+      text => "MSB removed status reversed.",
+      status => OMP__DONE_UNREMOVED,
+    );
+
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project,
+                            DB => $class->dbConnection);
+
+    $db->undoMSB( $checksum, $comment );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
 }
 
 =item B<suspendMSB>

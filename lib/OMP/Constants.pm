@@ -40,9 +40,9 @@ my @fb = qw/ OMP__FB_INFO OMP__FB_IMPORTANT
              OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
              OMP__FB_MSG_PROJECT_ENABLED
              /;
-my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
+my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_REMOVED
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
-  OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
+  OMP__DONE_REJECTED OMP__DONE_SUSPENDED OMP__DONE_UNREMOVED /;
 my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
             OMP__OBS_REJECTED OMP__OBS_JUNK /;
@@ -337,14 +337,14 @@ status.
 
 use constant OMP__DONE_UNDONE => 4;
 
-=item OMP__DONE_ALLDONE
+=item OMP__DONE_REMOVED
 
 Entry is associated with an action setting all the remaining
-MSB counts to zero.
+MSB counts to a negative value.
 
 =cut
 
-use constant OMP__DONE_ALLDONE => 2;
+use constant OMP__DONE_REMOVED => 2;
 
 =item OMP__DONE_COMMENT
 
@@ -381,6 +381,14 @@ be completed another day without repeating the initial observations.
 
 use constant OMP__DONE_SUSPENDED => 6;
 
+=item OMP__DONE_UNREMOVED
+
+Entry is associated with a reversal of the MSB removed
+status.
+
+=cut
+
+use constant OMP__DONE_UNREMOVED => 8;
 
 =back
 

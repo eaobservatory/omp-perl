@@ -40,7 +40,7 @@ ok( defined OMP__FB_DELETE, "__FB_DELETE" );
 # MSB Done
 ok( defined OMP__DONE_FETCH, "__DONE_FETCH" );
 ok( defined OMP__DONE_DONE, "__DONE_DONE" );
-ok( defined OMP__DONE_ALLDONE, "__DONE_ALLDONE" );
+ok( defined OMP__DONE_REMOVED, "__DONE_REMOVED" );
 ok( defined OMP__DONE_COMMENT, "__DONE_COMMENT" );
 
 # And a fake one

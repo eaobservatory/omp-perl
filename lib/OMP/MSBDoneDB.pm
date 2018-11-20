@@ -305,6 +305,13 @@ be specified.
 The definition of "observed" includes MSBs that were completed,
 rejected, suspended or aborted.
 
+If the option C<include_undo> is given with a true value, MSBs which
+were undone will also be included, so that the repeat counter will
+be decremented as appropriate.  This is probably not necessary when
+combined with the other options to fetch additional information.  It
+is probably not a good idea to combine this with a date restriction
+as the MSB may have been undone at a later date than it was observed.
+
 =cut
 
 sub observedMSBs {
@@ -336,14 +343,22 @@ sub observedMSBs {
   # Construct the query
   my $projectid = $self->projectid;
 
+  my @status = (
+     OMP__DONE_DONE,
+     OMP__DONE_REJECTED,
+     OMP__DONE_SUSPENDED,
+     OMP__DONE_ABORTED,
+  );
+
+  if (exists $args{'include_undo'}) {
+    push @status, OMP__DONE_UNDONE if delete $args{'include_undo'};
+  }
+
   my $xml = "<MSBDoneQuery>" .
-    "<status>". OMP__DONE_DONE ."</status>" .
-      "<status>" . OMP__DONE_REJECTED . "</status>" .
-        "<status>" . OMP__DONE_SUSPENDED . "</status>" .
-          "<status>" . OMP__DONE_ABORTED . "</status>" .
-            ($date ? qq{<date delta="1">$date</date>} : "" ) .
-              ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
-                "</MSBDoneQuery>";
+    (join '', map {'<status>' . $_ . '</status>'} @status) .
+    ($date ? qq{<date delta="1">$date</date>} : "" ) .
+    ($projectid ? "<projectid>$projectid</projectid>" : "") .
+    "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -575,13 +590,14 @@ sub status_to_text {
   my $status = shift;
   my %lut = (
              &OMP__DONE_UNDONE => 'Undone',
-             &OMP__DONE_ALLDONE => 'AllDone',
+             &OMP__DONE_REMOVED => 'Removed',
              &OMP__DONE_COMMENT => 'Commented Upon',
              &OMP__DONE_ABORTED => 'Aborted',
              &OMP__DONE_REJECTED => 'Rejected',
              &OMP__DONE_SUSPENDED => 'Suspended',
              &OMP__DONE_DONE     => 'Accepted',
-             &OMP__DONE_FETCH    => 'Retrieved'
+             &OMP__DONE_FETCH    => 'Retrieved',
+             &OMP__DONE_UNREMOVED => 'Unremoved',
             );
   if (exists $lut{$status} ) {
     return $lut{$status};
@@ -861,7 +877,8 @@ and related comments.
 
 Whenever a OMP__DONE_DONE comment is found, the "nrepeat" count of
 the info object is incremented by 1 to indicate the number of times
-this MSB has been observed.
+this MSB has been observed.  It is also decremented by 1 when an
+OMP__DONE_UNDONE comment is found.
 
 =cut
 
@@ -920,6 +937,10 @@ sub _reorganize_msb_done {
     if ($row->{status} == OMP__DONE_DONE) {
       my $rep = $msbs{ $row->{checksum} }->nrepeats;
       $msbs{ $row->{checksum} }->nrepeats( $rep + 1 );
+    }
+    elsif ($row->{status} == OMP__DONE_UNDONE) {
+      my $rep = $msbs{ $row->{checksum} }->nrepeats;
+      $msbs{ $row->{checksum} }->nrepeats( $rep - 1 );
     }
 
 
