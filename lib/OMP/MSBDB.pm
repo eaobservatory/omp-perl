@@ -841,7 +841,7 @@ sub doneMSB {
 
 Inrement the remaining counter of the MSB by one.
 
-  $db->undoMSB( $checksum );
+  $db->undoMSB( $checksum, $comment );
 
 The MSB is located using the Project identifier (stored in the object)
 and the checksum. If an MSB can not be located it is likely that the
@@ -860,11 +860,23 @@ has changed and whether subsequent observations have occurred (the
 science program is only reorganized the first time an MSB in an OR
 block is observed).
 
+This method is also used to undo MSB removal, presumably for
+historical reasons -- the "removed" status was previously called
+"all done".  A suitable comment should be provided to indicate
+which action is being preformed, ideally with a transaction ID
+included in the case of undoing an MSB execution.
+
 =cut
 
 sub undoMSB {
   my $self = shift;
   my $checksum = shift;
+  my $comment = shift;
+
+  my $comment_status = $comment->status();
+  throw OMP::Error::BadArgs("Unexpected comment status for undoMSB: $comment_status")
+    unless $comment_status == OMP__DONE_UNDONE
+        || $comment_status == OMP__DONE_UNREMOVED;
 
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
@@ -881,9 +893,7 @@ sub undoMSB {
 
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
-  $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-                           "MSB done status reversed.",
-                           OMP__DONE_UNDONE );
+  $self->_notify_msb_done( $checksum, $sp->projectID, $msb, $comment );
 
   # Give up if we dont have a match
   unless (defined $msb) {
@@ -973,7 +983,7 @@ sub alldoneMSB {
   # no longer exists in the science program
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
                            "MSB removed from consideration",
-                           OMP__DONE_ALLDONE );
+                           OMP__DONE_REMOVED);
 
   # Give up if we dont have a match
   unless (defined $msb) {

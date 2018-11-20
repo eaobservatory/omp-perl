@@ -112,7 +112,8 @@ sub fb_msb_observed {
 
   # Get observed MSBs
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                               format => 'data'});
+                                               format => 'data',
+                                               include_undo => 1});
 
   # Get project's associated telescope
   my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
@@ -191,16 +192,25 @@ sub msb_action {
       print "An error occurred while attempting to mark the MSB as Done:<p>$Error";
     };
 
-  } elsif ($q->param("Undo") || $q->param("unRemove")) {
-    # Unmark msb as 'done' or unremove a removed MSB
+  } elsif ($q->param("Undo")) {
+    # Unmark msb as 'done'.
     try {
-      OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum') );
-      if ($q->param("Undo")) {
-        print $q->h2("MSB done mark removed");
-      } else {
-        print $q->h2("MSB no longer removed from consideration");
-      }
+      OMP::MSBServer->undoMSB(
+          $q->param('projectid'), $q->param('checksum'), $q->param('transaction'));
+      print $q->h2("MSB done mark removed");
+    } catch OMP::Error::MSBMissing with {
+      my $Error = shift;
+      print "MSB not found in database:<p>$Error";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to remove the MSB Done mark:<p>$Error";
+    };
 
+  } elsif ($q->param("unRemove")) {
+    # Unremove a removed MSB.
+    try {
+      OMP::MSBServer->unremoveMSB( $q->param('projectid'), $q->param('checksum') );
+      print $q->h2("MSB no longer removed from consideration");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
       print "MSB not found in database:<p>$Error";
@@ -246,12 +256,14 @@ TABLE
   # Colors associated with statuses
   my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
                 &OMP__DONE_DONE => '#c6bee0',
-                &OMP__DONE_ALLDONE => '#8075a5',
+                &OMP__DONE_REMOVED => '#8075a5',
                 &OMP__DONE_COMMENT => '#9f93c9',
                 &OMP__DONE_UNDONE => '#ffd8a3',
                 &OMP__DONE_ABORTED => '#9573a0',
                 &OMP__DONE_REJECTED => '#bc5a74',
-                &OMP__DONE_SUSPENDED => '#ffb959',);
+                &OMP__DONE_SUSPENDED => '#ffb959',
+                &OMP__DONE_UNREMOVED => '#8075a5',
+  );
 
   my ( $table_cols, $header_rows, $i ) = ( 4, 2, 1 );
 
@@ -340,21 +352,27 @@ TABLE
               $q, \%common_hidden,
             )
           ],
+        'exists' => $exists,
       }
     ) ;
 
     # Make "Remove" and "undo" buttons if the MSB exists in the
     # science program
     if ( $exists ) {
+      my ($remove_button, $remove_note);
+      unless ($spmsb->isRemoved) {
+        $remove_button = 'Remove';
+        $remove_note = '(disable this MSB in the science program)';
+      } else {
+        $remove_button = 'unRemove';
+        $remove_note = '(re-enable this MSB in the science program)';
+      }
 
       print
         Tr( td( $NBSP ),
             td( { 'colspan' => , $table_cols - 1 },
               $q->startform,
-              # If it has been removed, the only relevant action is to unremove it
-              ( $spmsb->isRemoved ? $q->submit('unRemove')
-                  : $q->submit('Remove'), $NBSP, $q->submit('Undo')
-              ),
+              $q->submit($remove_button), $remove_note,
               OMP::Display->make_hidden_fields( $q, { %common_hidden } ),
               _make_non_empty_hidden_fields( $q, qw[utdate telescope] ),
               $q->endform
@@ -776,7 +794,8 @@ appropriate.
         <hash ref of keys as OMP__DONE* status, colors as values>',
       'hidden' =>
         <array ref of hidden field HTML code strings
-          to pass to "Add comment to MSB" form>
+          to pass to "Add comment to MSB" form>,
+      'exists' => <whether or not the MSB still exists>,
     }
   );
 
@@ -805,6 +824,17 @@ sub _print_transaction_comments {
         ));
     }
 
+    my @buttons = $query->submit('Add Comment');
+    if ($args->{'exists'}) {
+      # Check whether the transaction has a "done" but no "undone".
+      my $n_done = 0;
+      foreach my $c (@$comment_group) {
+        $n_done ++ if $c->status == OMP__DONE_DONE;
+        $n_done -- if $c->status == OMP__DONE_UNDONE;
+      }
+      push @buttons, $query->submit('Undo') if $n_done > 0;
+    }
+
     my $i_comment = 0;
     foreach my $c (@$comment_group) {
       my $cur = $c->tid;
@@ -818,7 +848,7 @@ sub _print_transaction_comments {
         # Start of comments.
         my @comment_form = (defined $cur)
           ? ( $query->startform, "\n",
-              $query->submit('Add Comment'), "\n",
+              @buttons, "\n",
               @{ $args->{'hidden' } }, "\n",
               $query->hidden(-name => 'transaction', -default => $cur),
               $query->endform, "\n", )
