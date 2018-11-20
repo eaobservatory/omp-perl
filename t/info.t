@@ -18,12 +18,13 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 42;
+use Test::More tests => 47;
 
 require_ok( 'OMP::Info::Base' );
 require_ok( 'OMP::Info::Obs' );
 require_ok( 'OMP::Info::MSB' );
 require_ok( 'OMP::Info::Comment' );
+require_ok( 'OMP::Info::SciProg' );
 
 print "# Test base class\n";
 
@@ -123,3 +124,13 @@ my $msb = new OMP::Info::MSB(
 
 ok($msb, "MSB");
 is($msb->obscount, 2, "check obscount");
+
+my $sciprog = new OMP::Info::SciProg(
+    projectid => 'SERV01',
+    msb => [$msb],
+);
+
+isa_ok($sciprog, 'OMP::Info::SciProg');
+is($sciprog->projectid(), 'SERV01', 'sciprog project id');
+ok($sciprog->existsMSB('ffff'), 'sciprog checksum exists');
+ok(! $sciprog->existsMSB('gggg'), 'sciprog bad checksum does not exist');
