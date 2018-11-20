@@ -249,6 +249,23 @@ sub fetchCalProgram {
           : $converted ;
 }
 
+=item B<getSciProgInfo>
+
+Retrieve science program information object.
+
+=cut
+
+sub getSciProgInfo {
+  my $class = shift;
+  my $project = shift;
+
+  my $db = new OMP::MSBDB(
+    ProjectID => $project,
+    DB => $class->dbConnection);
+
+  return $db->getSciProgInfo();
+}
+
 =item B<queryMSB>
 
 Send a query to the MSB server (encoded as an XML document) and
