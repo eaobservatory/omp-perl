@@ -50,6 +50,7 @@ use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
+use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
@@ -453,6 +454,31 @@ sub getInstruments {
 
   my @results = map { $_->{instrument} } @$ref;
   return sort @results;
+}
+
+=item B<getSciProgInfo>
+
+Retrieves summary information (an C<OMP::Info::SciProg> object) about a
+science program.  This is based on information in OMP database tables
+such as C<ompmsb>.  It can be used when some information about the program
+is required, but not the full (XML) program itself -- in that case,
+the C<fetchSciProg> method should be used instead.
+
+  my $info = $db->getSciProgInfo();
+
+=cut
+
+sub getSciProgInfo {
+  my $self = shift;
+
+  my $projectid = $self->projectid();
+
+  my @msbs = $self->_fetch_row(projectid => $projectid);
+
+  return new OMP::Info::SciProg(
+    projectid => $projectid,
+    msb => \@msbs,
+  );
 }
 
 =item B<fetchMSB>
