@@ -239,78 +239,49 @@ sub observed_output {
   if ($q->param("Add Comment")) {
     print $q->h2("Add a comment to MSB");
     OMP::CGIComponent::MSB::msb_comment_form($q);
-  } elsif ($q->param("Remove")) {
-    # Clicked Remove button
-    try {
-      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-      print $q->h2("MSB removed from consideration");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to mark the MSB as Done: $Error";
-    };
-  } elsif ($q->param("Submit")) {
-    # Submitted a comment
-
-    try {
-      # Get the user object
-      my $user = OMP::UserServer->getUser($q->param('author')) or
-        throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
-
-      # Create the comment object
-      my $comment = new OMP::Info::Comment( author => $user,
-                                            text => $q->param('comment'),
-                                            status => OMP__DONE_COMMENT );
-
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
-
-      print $q->h2("MSB comment successfully submitted");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to submit the comment: $Error";
-    };
-  } else {
-    # Just viewing comments
-    OMP::CGIComponent::MSB::observed_form($q);
+    return;
   }
+
+  # Perform any actions on the MSB.
+  OMP::CGIComponent::MSB::msb_action($q);
+
+  # Display date / telescope form.
+  OMP::CGIComponent::MSB::observed_form($q);
 
   print $q->hr;
 
-  if (! $q->param("Add Comment")) {
-    my $utdate = $q->param('utdate');
-    my $telescope = $q->param('telescope');
+  my $utdate = $q->param('utdate');
+  my $telescope = $q->param('telescope');
 
-    # Do nothing if telescope not selected
-    if (! $telescope) {
-      print $q->h2("Please select a telescope");
-      return;
+  # Do nothing if telescope not selected
+  if (! $telescope) {
+    print $q->h2("Please select a telescope");
+    return;
+  }
+
+  my $dbconnection = new OMP::DBbackend;
+  my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
+                                                 returnall => 1,
+                                                 format => 'data'});
+
+  # Now keep only the comments that are for the telescope we want
+  # to see observed msbs for
+  my @msbs;
+  for my $msb (@$commentref) {
+    my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
+                                  DB => $dbconnection );
+    my $proj = $projdb->projectDetailsNoAuth( 'object' );
+    if (uc $proj->telescope eq uc $telescope) {
+      push @msbs, $msb;
     }
+  }
 
-    my $dbconnection = new OMP::DBbackend;
-    my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
-                                                   returnall => 1,
-                                                   format => 'data'});
-
-    # Now keep only the comments that are for the telescope we want
-    # to see observed msbs for
-    my @msbs;
-    for my $msb (@$commentref) {
-      my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
-                                    DB => $dbconnection );
-      my $proj = $projdb->projectDetailsNoAuth( 'object' );
-      if (uc $proj->telescope eq uc $telescope) {
-        push @msbs, $msb;
-      }
-    }
-
-    (@msbs) and print $q->h2("MSBs observed on $utdate")
-      or print $q->h2("No MSBs observed on $utdate");
-
+  if (@msbs) {
+    print $q->h2("MSBs observed on $utdate");
     OMP::CGIComponent::MSB::msb_comments_by_project($q, \@msbs);
-    (@msbs) and OMP::CGIComponent::MSB::observed_form($q);
+
+  } else {
+    print $q->h2("No MSBs observed on $utdate");
   }
 }
 

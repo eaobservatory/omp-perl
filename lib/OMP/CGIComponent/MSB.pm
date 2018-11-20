@@ -413,9 +413,10 @@ sub msb_comments_by_project {
     push(@{ $sorted{$projectid} }, $msb);
   }
 
-  foreach my $projectid (keys %sorted) {
+  foreach my $projectid (sort keys %sorted) {
     print $q->h2("Project: <a href='$public_url/projecthome.pl?urlprojid=$projectid'>$projectid</a>");
-    msb_comments($q, \@{$sorted{$projectid}});
+    my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+    msb_comments($q, \@{$sorted{$projectid}}, $sp);
     print $q->hr;
   }
 }
@@ -851,6 +852,7 @@ sub _print_transaction_comments {
               @buttons, "\n",
               @{ $args->{'hidden' } }, "\n",
               $query->hidden(-name => 'transaction', -default => $cur),
+              _make_non_empty_hidden_fields($query, qw/utdate telescope/),
               $query->endform, "\n", )
           : ( '&nbsp;' );
 
