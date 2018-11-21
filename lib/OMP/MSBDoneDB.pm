@@ -540,7 +540,6 @@ sub queryMSBdone {
   # Now reorganize the data structure to better match
   # our output format
   my $msbs = $self->_reorganize_msb_done( \@rows );
-  my @checksum = keys %{ $msbs };
 
   # If all the comments are required then we now need
   # to loop through this hash and refetch the data
@@ -549,24 +548,31 @@ sub queryMSBdone {
   # Note that there is a possibility of infinite looping
   # since historyMSB calls this routine
   if ( $more->{'comments'} ) {
-    foreach my $checksum ( @checksum ) {
+    my %updated;
+    while (my ($key, $msb) = each %$msbs) {
       # over write the previous entry
-      $msbs->{$checksum} = $self->historyMSB($checksum,  'data');
+      my $checksum = $msb->checksum();
+      my $projectid = $msb->projectid();
+
+      # The historyMSB method doesn't allow us to specify
+      # a project ID directly, so create another instance of
+      # this class to do the query...
+      my $dbproj = $self->new(ProjectID => $projectid, DB => $self->db());
+      $updated{$key} = $dbproj->historyMSB($checksum, 'data');
     }
+    $msbs = \%updated;
   }
 
-  if ( $more->{'transactions'} ) {
-
-    $msbs = $self->_get_comments_for_tid( $msbs );
+  if ($more->{'transactions'}) {
+    $msbs = $self->_get_comments_for_tid($msbs);
   }
 
   # Create an array from the hash. Sort by projectid
   # and then by target and date of most recent comment
-  my @all = map { $msbs->{$_} }
-    sort { $msbs->{$a}->projectid cmp $msbs->{$b}->projectid
-      || $msbs->{$a}->target cmp $msbs->{$b}->target
-        || $msbs->{$a}->comments->[-1]->date <=> $msbs->{$b}->comments->[-1]->date
-  } @checksum;
+  my @all = sort {$a->projectid cmp $b->projectid
+      || $a->target cmp $b->target
+      || $a->comments->[-1]->date <=> $b->comments->[-1]->date
+  } values %$msbs;
 
   return (wantarray ? @all : \@all);
 }
@@ -871,7 +877,7 @@ convert this output to a hash containing one entry per MSB.
 
   $hashref = $db->_reorganize_msb_done( $query_output );
 
-The resultant data structure is a hash (keyed by checksum)
+The resultant data structure is a hash (keyed by project ID and checksum)
 each pointing to an C<OMP::Info::MSB> object containing the MSB information
 and related comments.
 
@@ -890,6 +896,7 @@ sub _reorganize_msb_done {
   # data structure (need to organize the data structure
   # before forming the (optional) xml output)
   my %msbs;
+
   for my $row (@$rows) {
 
     # Convert the date to a date object
@@ -908,46 +915,42 @@ sub _reorganize_msb_done {
     # Specify comment author if there is one
     ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
 
-    # see if we've met this msb already
-    if (exists $msbs{ $row->{checksum} } ) {
+    # See if we've met this MSB already.  Organize by project
+    # and checksum since checksum alone is not always unique.
+    my $key = join ':', $row->{'projectid'}, $row->{'checksum'};
 
-      # Add the new comment
-      $msbs{ $row->{checksum} }->addComment( new OMP::Info::Comment(%details));
+    if (exists $msbs{$key}) {
+      # Add the new comment.
+      $msbs{$key}->addComment(new OMP::Info::Comment(%details));
 
     } else {
-      # populate a new entry
-
-      $msbs{ $row->{checksum} } = new OMP::Info::MSB(
-                                   title => $row->{title},
-                                   checksum => $row->{checksum},
-                                   target => $row->{target},
-                                   waveband => $row->{waveband},
-                                   instrument => $row->{instrument},
-                                   projectid => $row->{projectid},
-                                   nrepeats => 0, # initial value
-                                   comments => [
-                                               new OMP::Info::Comment(%details)
-                                              ],
-                                  );
+      # Populate a new entry.
+      $msbs{$key} = new OMP::Info::MSB(
+        title => $row->{title},
+        checksum => $row->{checksum},
+        target => $row->{target},
+        waveband => $row->{waveband},
+        instrument => $row->{instrument},
+        projectid => $row->{projectid},
+        nrepeats => 0, # initial value
+        comments => [new OMP::Info::Comment(%details)],
+      );
     }
 
     # If we have an OMP__DONE_DONE increment the repeat count
     # it might be more efficient to move this out of the loop
     # so that we only update nrepeats when we know the final answer
     if ($row->{status} == OMP__DONE_DONE) {
-      my $rep = $msbs{ $row->{checksum} }->nrepeats;
-      $msbs{ $row->{checksum} }->nrepeats( $rep + 1 );
+      my $rep = $msbs{$key}->nrepeats;
+      $msbs{$key}->nrepeats( $rep + 1 );
     }
     elsif ($row->{status} == OMP__DONE_UNDONE) {
-      my $rep = $msbs{ $row->{checksum} }->nrepeats;
-      $msbs{ $row->{checksum} }->nrepeats( $rep - 1 );
+      my $rep = $msbs{$key}->nrepeats;
+      $msbs{$key}->nrepeats( $rep - 1 );
     }
-
-
   }
 
   return \%msbs;
-
 }
 
 =back
