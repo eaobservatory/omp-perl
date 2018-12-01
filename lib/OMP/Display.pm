@@ -139,6 +139,18 @@ formatting.  This method also expands hyperlinks so that the URL is displayed.
 sub html2plain {
   my $self = shift;
   my $text = shift;
+  my $opt = shift || {};
+
+  # Determine margins.
+  my %margin = (
+    leftmargin => 0,
+  );
+  if (exists $opt->{'leftmargin'}) {
+    $margin{'leftmargin'} = $opt->{'leftmargin'};
+  }
+  if (exists $opt->{'rightmargin'}) {
+    $margin{'rightmargin'} = $opt->{'rightmargin'};
+  }
 
   # Expand hyperlinks
   $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
@@ -151,7 +163,7 @@ sub html2plain {
 
   # Convert the HTML to text and store it
   require HTML::FormatText;
-  my $formatter = HTML::FormatText->new(leftmargin => 0);
+  my $formatter = HTML::FormatText->new(%margin);
   my $plaintext = $formatter->format($tree);
 
   return $plaintext;
