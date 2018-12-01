@@ -37,7 +37,6 @@ Default is to query cache files.
 
 =item B<-dump>
 
-I<NOT IMPLEMENTED YET.>
 Print mail to standard out instead of actually sending it.
 
 =item B<-ut> YYYYMMDD | YYYY-MM-DD
@@ -109,9 +108,6 @@ GetOptions( "help"    => \$help,
           )
           or pod2usage(1) ;
 
-$dump and die qq[Option "-dump" is not implemented yet.\n];
-
-
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
@@ -152,6 +148,11 @@ if(defined($tel)) {
 
 # Night report
 my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
+
+if ($dump) {
+    print scalar $NR->astext();
+    exit 0;
+}
 
 # Now put up a button bar
 my $TL = $MW->Toplevel;
