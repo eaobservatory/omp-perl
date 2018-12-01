@@ -999,7 +999,10 @@ Project Time Summary
     # Get the text and format it as plain text from HTML
     my $text = $c->text;
     $text =~ s/\t/ /g;
-    $text = OMP::Display->html2plain( $text );
+    # We are going to use 'wrap' to indent by 4 and then wrap
+    # to 72, so have html2plain use a smaller width to try to
+    # avoid wrapping the same text twice.
+    $text = OMP::Display->html2plain( $text, {rightmargin => 64} );
 
     # Word wrap (but do not "fill")
     $text = wrap("    ","    ",$text);
