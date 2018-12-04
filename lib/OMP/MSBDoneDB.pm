@@ -84,6 +84,12 @@ returned (this is simply an array of MSB information objects).
 If no checksum is supplied, returns a list when called in an array
 context and a reference to an array when called in a scalar context.
 
+If a checksum is supplied, the first result will be returned,
+unless the project is also supplied, in which case an error is
+raised if there are multiple results.  Ideally a project would
+always be supplied as the same checksum can appear in multiple
+projects.
+
 One of project or checksum must be available.
 
 =cut
@@ -110,8 +116,16 @@ sub historyMSB {
   my @responses = $self->queryMSBdone( $query );
 
   if ($checksum) {
-    throw OMP::Error::FatalError("More than one match for checksum '$checksum' [".scalar(@responses)." matches]")
-      if scalar(@responses) > 1;
+    if (defined $projectid) {
+      # For compatability with existing code, only apply this check if we
+      # are searching by checksum and have provided a project ID.  Otherwise
+      # it is possible for the same checksum to appear in multiple projects.
+      # In some cases (e.g. for titleMSB) this doesn't matter.
+      throw OMP::Error::FatalError(
+          "More than one match for checksum '$checksum' and project '$projectid' ["
+          . scalar(@responses)." matches]"
+      ) if scalar(@responses) > 1;
+    }
     return $responses[0];
   } elsif (wantarray) {
     return @responses
