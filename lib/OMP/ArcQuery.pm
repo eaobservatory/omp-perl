@@ -134,7 +134,7 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    RXH3 => [$JCMTTAB, $RXH3TAB],
                  );
 
-our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
+our %jointable = ( $GSDTAB => { $SUBTAB => '(G.`sca#` = H.`sca#`)',
                               },
                    $UKIRTTAB => { $UFTITAB => '(U.idkey = F.idkey)',
                                   $CGS4TAB => '(U.idkey = C.idkey)',
