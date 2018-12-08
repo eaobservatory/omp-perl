@@ -680,20 +680,19 @@ reference which has comments for all the transaction ids originally present.
 sub _get_comments_for_tid {
 
   my ( $self, $msbs ) = @_;
-
   my %seen;
-  for my $tid ( map { $msbs->{ $_ }->msbtid } keys %{ $msbs } )
-  {
-    my $new = $self->historyMSBtid( $tid );
-    my $sum = $new->checksum;
+  foreach my $key (keys %$msbs) {
+    foreach my $tid ($msbs->{$key}->msbtid) {
+      my $new = $self->historyMSBtid( $tid );
 
-    unless ( $seen{ $sum }++ ) {
+      unless ( $seen{ $key }++ ) {
 
-      $msbs->{ $sum } = $new;
-    }
-    else {
+        $msbs->{ $key } = $new;
+      }
+      else {
 
-      $msbs->{ $sum }->addComment( $_ ) for $new->comments;
+        $msbs->{ $key }->addComment( $_ ) for $new->comments;
+      }
     }
   }
 
