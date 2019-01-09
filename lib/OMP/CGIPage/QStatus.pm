@@ -107,7 +107,22 @@ sub view_queue_status_output {
     my ($proj_msb, $utmin, $utmax) = query_queue_status(
         return_proj_msb => 1, %opt);
 
-    _show_input_page($q, project => [sort keys %$proj_msb]);
+    my @proj_order;
+    my $order = $q->param('order');
+    if ($order eq 'priority') {
+        my %priority = ();
+        while (my ($proj, $msbs) = each %$proj_msb) {
+            my (undef, $msb) = each %$msbs; keys %$msbs;
+            $priority{$proj} = int($msb->priority());
+        }
+        @proj_order = sort {$priority{$a} <=> $priority{$b}} keys %$proj_msb;
+    }
+    else {
+        # Default ordering is by project ID.
+        @proj_order = sort keys %$proj_msb;
+    }
+
+    _show_input_page($q, project => \@proj_order);
 
     my @project = $q->param('project');
     my $proj_msb_filt = {};
@@ -133,7 +148,7 @@ sub view_queue_status_output {
                 );
             }));
 
-        _show_result_table($q, $proj_msb, \@project);
+        _show_result_table($q, $proj_msb, \@project, \@proj_order);
     }
     else {
         print $q->p($q->i('No observations found'));
@@ -221,6 +236,16 @@ sub _show_input_page {
                         ' (default today)'
                 ]),
                 $q->td([
+                    $q->b('Order'),
+                    join '', $q->radio_group(
+                        -name => 'order',
+                        -values => ['projectid', 'priority'],
+                        -default => 'projectid',
+                        -linebreak => 'true',
+                        -labels => {projectid => 'Project ID', priority => 'Priority'},
+                    ),
+                ]),
+                $q->td([
                   $q->hidden(-name => 'show_output', -value => 'true'),
                   $q->submit(-value => 'Plot')
                 ]),
@@ -239,13 +264,14 @@ sub _show_result_table {
     my $q = shift;
     my $proj_msb = shift;
     my $proj_search = shift;
+    my $proj_order = shift;
 
     my @proj_shown = ();
     my @proj_hidden = ();
 
     my $no_filter = not scalar @$proj_search;
 
-    foreach my $project (sort keys %$proj_msb) {
+    foreach my $project (@$proj_order) {
         if ($no_filter or grep {$_ eq $project} @$proj_search) {
             push @proj_shown, $proj_msb->{$project};
         }
@@ -256,7 +282,7 @@ sub _show_result_table {
 
     print $q->table(
         $q->Tr($q->th({-align => 'left'},
-            [qw/Project MSB Target RA Dec Type Instrument Tau Remaining Time Completion/])),
+            [qw/Project MSB Target RA Dec Type Instrument Tau Remaining Time Completion Priority/])),
         (map {_show_result_table_project($q, $_, 1)} @proj_shown),
         (map {_show_result_table_project($q, $_, 0)} @proj_hidden),
     );
@@ -309,6 +335,7 @@ sub _show_result_table_project {
                     ($msb_first  ? $msb->remaining()  : '&nbsp;'),
                     ($msb_first  ? $time              : '&nbsp;'),
                     ($proj_first ? $completion        : '&nbsp;'),
+                    ($proj_first ? int($msb->priority()) : '&nbsp;'),
                 ];
 
                 $proj_first = $msb_first = $obs_first = 0;
