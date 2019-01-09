@@ -225,11 +225,11 @@ sub display_shift_table {
   print "<tr class='sum_table_head'>";
   print "<td colspan=3><strong class='small_title'>Shift Log Comments</strong></td>";
 
-  # Sort shift comments by local date
+  # Sort shift comments by date
   my %comments;
   for my $c (@$comments) {
-    my $local = localtime($c->date->epoch);
-    push(@{$comments{$local->ymd}}, $c);
+    my $time = gmtime($c->date->epoch);
+    push(@{$comments{$time->ymd}}, $c);
   }
 
   my $bgcolor = 'a';
@@ -240,16 +240,15 @@ sub display_shift_table {
       # Summarizing Shift comments for more than one day
 
        my $cdate = $comments{$date}->[0]->date;
-       my $local = localtime($cdate->epoch);
-       $timecellclass = 'time_' . $local->day;
+       my $time = gmtime($cdate->epoch);
+       $timecellclass = 'time_' . $time->day;
 
       print "<tr class=sum_other valign=top><td class=".$timecellclass."_$bgcolor colspan=2>$date</td><td colspan=1></td>";
     }
     for my $c (@{$comments{$date}}) {
 
-      # Use local time
       my $date = $c->date;
-      my $local = localtime( $date->epoch );
+      my $time = gmtime( $date->epoch );
       my $author = $c->author;
 
       # Call author "anonymous" if name is not defined
@@ -270,7 +269,7 @@ sub display_shift_table {
       print "<tr class=\"row_$bgcolor\" valign=top>";
       print "<td class=\"time_a\">$author</td>";
       print "<td class=\"" . $timecellclass . "_$bgcolor\">".
-        $local->strftime("%H:%M:%S %Z") ."</td>";
+        $time->strftime("%H:%M:%S UT") ."</td>";
       print "<td class=subject>$text</td>";
 
       # Alternate bg color
