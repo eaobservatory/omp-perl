@@ -1293,11 +1293,11 @@ sub ashtml {
     # Get faults
     my @faults = $self->faults->faults;
 
-    # Sort faults by local date
+    # Sort faults by date
     my %faults;
     for my $f (@faults) {
-      my $local = localtime($f->date->epoch);
-      push(@{$faults{$local->ymd}}, $f);
+      my $time = gmtime($f->date->epoch);
+      push(@{$faults{$time->ymd}}, $f);
     }
 
     print "<a name=faultsum></a>";
@@ -1314,8 +1314,8 @@ sub ashtml {
         # Do all this date magic so we can use the appropriate CSS class
         # (i.e.: time_mon, time_tue, time_wed)
         my $fdate = $faults{$date}->[0]->date;
-        my $local = localtime($fdate->epoch);
-        $timecellclass = 'time_' . $local->day . '_a';
+        my $time = gmtime($fdate->epoch);
+        $timecellclass = 'time_' . $time->day . '_a';
 
         print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
     }
@@ -1323,9 +1323,8 @@ sub ashtml {
         print "<tr class=sum_other valign=top>";
         print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
 
-        # Use local time for fault date
-        my $local = localtime($fault->date->epoch);
-        print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
+        my $time = gmtime($fault->date->epoch);
+        print "<td class='$timecellclass'>". $time->strftime("%H:%M UT") ."</td>";
         print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
         print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
       }
