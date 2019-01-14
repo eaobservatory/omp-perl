@@ -1697,14 +1697,14 @@
             <map_id cm_id="7" dcm_id="7" receptor_id="H06" spw_id="SPW2"/>
             <map_id cm_id="8" dcm_id="8" receptor_id="H05" spw_id="SPW1"/>
             <map_id cm_id="9" dcm_id="9" receptor_id="H05" spw_id="SPW2"/>
-            <map_id cm_id="10" dcm_id="10" receptor_id="H02" spw_id="SPW1"/>
-            <map_id cm_id="11" dcm_id="11" receptor_id="H02" spw_id="SPW2"/>
+            <map_id cm_id="10" dcm_id="10" receptor_id="H09" spw_id="SPW1"/>
+            <map_id cm_id="11" dcm_id="11" receptor_id="H09" spw_id="SPW2"/>
             <map_id cm_id="12" dcm_id="12" receptor_id="H04" spw_id="SPW1"/>
             <map_id cm_id="13" dcm_id="13" receptor_id="H04" spw_id="SPW2"/>
             <map_id cm_id="14" dcm_id="14" receptor_id="H03" spw_id="SPW1"/>
             <map_id cm_id="15" dcm_id="15" receptor_id="H03" spw_id="SPW2"/>
-            <map_id cm_id="16" dcm_id="16" receptor_id="H09" spw_id="SPW1"/>
-            <map_id cm_id="17" dcm_id="17" receptor_id="H09" spw_id="SPW2"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="H02" spw_id="SPW1"/>
+            <map_id cm_id="17" dcm_id="17" receptor_id="H02" spw_id="SPW2"/>
             <map_id cm_id="18" dcm_id="18" receptor_id="H14" spw_id="SPW1"/>
             <map_id cm_id="19" dcm_id="19" receptor_id="H14" spw_id="SPW2"/>
             <map_id cm_id="20" dcm_id="20" receptor_id="H08" spw_id="SPW1"/>
