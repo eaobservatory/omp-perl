@@ -182,6 +182,7 @@ CREATE TABLE `COMMON` (
   `req_mintau` double DEFAULT NULL,
   `req_maxtau` double DEFAULT NULL,
   `msbtitle` varchar(70) DEFAULT NULL,
+  `oper_loc` varchar(70) DEFAULT NULL,
   UNIQUE KEY `idx_uc_COMMON_1` (`obsid`),
   KEY `idx_jcmt_COMMON_proj` (`project`),
   KEY `idx_jcmt_COMMON_inst` (`instrume`),
@@ -197,6 +198,7 @@ CREATE TABLE `FILES` (
   `nsubscan` int(11) NOT NULL,
   `obsid_subsysnr` varchar(50) NOT NULL,
   `md5sum` varchar(40) DEFAULT NULL,
+  `filesize` int(11) DEFAULT NULL,
   PRIMARY KEY (`file_id`),
   KEY `obsid_idx` (`obsid`),
   KEY `obsidss_idx` (`obsid_subsysnr`)
