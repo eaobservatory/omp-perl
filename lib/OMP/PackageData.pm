@@ -1148,6 +1148,75 @@ sub _format_bytes {
 
 =back
 
+=head2 Utility Functions
+
+=over 4
+
+=item B<cadc_file_uri>
+
+Make the URI used to access a file at CADC.
+
+=cut
+
+sub cadc_file_uri {
+    my $filename = shift;
+
+    $filename .= '.gz' if _cadc_file_uri_is_gz($filename);
+
+    return 'ad:JCMT/' . $filename;
+}
+
+=item B<_cadc_file_uri_is_gz>
+
+Guess whether a file's URI at CADC should have a ".gz" suffix.
+
+=cut
+
+{
+    my @non_gz = qw/
+        a20061112_00010_00_0001.sdf
+        a20061112_00013_00_0001.sdf
+        s4a20140415_00082_0001.sdf
+        s4a20140729_00001_0001.sdf
+        s4b20140415_00082_0001.sdf
+        s4c20140415_00082_0001.sdf
+        s4d20140415_00082_0001.sdf
+    /;
+
+    sub _cadc_file_uri_is_gz {
+        my $filename = shift;
+
+        my ($date, $inst, $obs);
+
+        if ($filename =~ /^a(\d{8})_(\d{5})_\d{2}_\d{4}\.sdf$/) {
+            $date = $1;
+            $inst = 'ACSIS';
+            $obs = $2;
+        }
+        elsif ($filename =~ /^s[48][abcd](\d{8})_(\d{5})_\d{4}\.sdf$/) {
+            $date = $1;
+            $inst = 'SCUBA-2';
+            $obs = $2;
+        }
+        else {
+            # Did not recognise pattern -- ".gz" status unknown.
+            return undef;
+        }
+
+        return (
+            ($date >= 20060701 and $date <= 20150123)
+            and not
+            ($date >= 20140116 and $date <= 20140122)
+            and not
+            ($date == 20140115 and $inst eq 'SCUBA-2' and ($obs >= 38 and $obs <= 53))
+            and not
+            grep {$_ eq $filename} @non_gz
+        );
+    }
+}
+
+=back
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt> based on code
