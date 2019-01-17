@@ -243,7 +243,7 @@ sub _package_data_cadc {
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
   my @files =
-    map { s/\.sdf$//; join '/', q[ad:JCMT], $_ }
+    map { OMP::PackageData::cadc_file_uri($_) }
     map { $_->simple_filename } @obs;
 
   print "$_\n"
