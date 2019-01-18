@@ -591,6 +591,25 @@ sub as_email_hdr {
   }
 }
 
+=item B<as_email_hdr_via_flex>
+
+Return a string formatted suitably for an email header "from"
+field where an email is being sent via flex.  This appends
+"(via flex)" to the name and gives flex's email address.
+
+=cut
+
+sub as_email_hdr_via_flex {
+    my $self = shift;
+
+    my $flex = $self->new(email => 'flex@eaobservatory.org');
+
+    my $name = $self->name();
+    $flex->name($name . ' (via flex)') if defined $name;
+
+    return $flex->as_email_hdr();
+}
+
 =item B<infer_userid>
 
 Try to guess the user ID from the name. The name can either

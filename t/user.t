@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 67;
+use Test::More tests => 75;
 use strict;
 require_ok("OMP::User");
 
@@ -123,3 +123,30 @@ for my $test ( @extract ) {
   is($emailref, $test->{'output'}->email(),
      'Compare email address returned by reference');
 }
+
+$user = new OMP::User(
+    name => 'John Smith',
+    email => 'john@smith.me',
+);
+
+is($user->as_email_hdr(), 'John Smith <john@smith.me>', 'Full email header');
+is($user->as_email_hdr_via_flex(), 'John Smith (via flex) <flex@eaobservatory.org>', 'Full email header (flex)');
+
+$user = new OMP::User(
+    name => 'John Smith',
+);
+
+is($user->as_email_hdr(), 'John Smith', 'Name-only email header');
+is($user->as_email_hdr_via_flex(), 'John Smith (via flex) <flex@eaobservatory.org>', 'Name-only email header (flex)');
+
+$user = new OMP::User(
+    email => 'john@smith.me',
+);
+
+is($user->as_email_hdr(), 'john@smith.me', 'Email-only header');
+is($user->as_email_hdr_via_flex(), 'flex@eaobservatory.org', 'Email-only header (flex)');
+
+$user = new OMP::User();
+
+is($user->as_email_hdr(), 'No contact information', 'Empty email header');
+is($user->as_email_hdr_via_flex(), 'flex@eaobservatory.org', 'Empty email header (flex)');
