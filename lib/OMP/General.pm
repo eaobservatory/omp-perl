@@ -461,6 +461,38 @@ sub extract_projectid {
 
 }
 
+=item B<extract_faultid>
+
+Given a string (for example a subject line of an email message)
+attempt to extract a string that looks like an OMP fault ID.
+The fault ID is assumed to be surrounded with square brackets
+(as used in fault email subjects).
+
+  $faultid = OMP::General->extract_faultid($string);
+
+Returns undef if nothing looking like a fault ID could be located.
+
+No attempt is made to verify that this fault ID is actually
+in the OMP system.
+
+Note that this method has the side effect of untainting the
+supplied variable.
+
+=cut
+
+sub extract_faultid {
+    my $class = shift;
+    my $string = shift;
+
+    # Regular expression based on that in OMP::CGIComponent::Fault::fault_table
+    # for recognizing fault IDs.
+    if ($string =~ /\[((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})\]/) {
+        return $1;
+    }
+
+    return undef;
+}
+
 =back
 
 =head2 Telescopes
