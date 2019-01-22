@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 178;
+use Test::More tests => 180;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -407,6 +407,24 @@ for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef,
       "Test failure of project extraction: $string"
     );
+}
+
+%extract = (
+    '20190401.042' => '[20190401.042] Telescope/Software - Something went wrong',
+);
+
+foreach my $faultid (keys %extract) {
+    my $output = OMP::General->extract_faultid($extract{$faultid});
+    is($output, $faultid, "Extract $faultid from string");
+}
+
+@fail = (
+    'Re: 20190401.042 and the ...',
+);
+
+foreach my $string (@fail) {
+    is(OMP::General->extract_faultid($string), undef,
+       "Test failure of fault extraction: $string");
 }
 
 print "# String splitting\n";
