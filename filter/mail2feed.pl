@@ -11,7 +11,7 @@ mail2feedback.pl - Forward mail message to OMP feedback system
 =head1 DESCRIPTION
 
 This program reads in mail messages from standard input, determines
-the project ID from the subject line and forwards the message to
+the project or fault ID from the subject line and forwards the message to
 the OMP feedback system. For MIME mail it attempts to only forward
 parts in a text MIME-type.
 
@@ -48,6 +48,8 @@ use Pod::Usage;
 use Mail::Audit;
 use Encode qw/decode/;
 
+use OMP::Fault::Response;
+use OMP::FaultServer;
 use OMP::FBServer;
 use OMP::General;
 use OMP::User;
@@ -101,14 +103,6 @@ my @checks = (
             $_[0]->resend($REJECT_ADDRESS);
         },
     },
-
-    # Look for project id. Note that the act of searching for the projectid
-    # forces the project ID to become a header itself.
-    {
-        'text'   => 'Sorry. Could not discern project ID from the subject line.',
-        'test'   => sub { ! projectid($_[0]) },
-        'action' => sub { $_[0]->reject($_[1]) },
-    },
 );
 
 my $logfile = '/tmp/omp-mailaudit.log';
@@ -130,16 +124,31 @@ foreach my $check (@checks) {
     }
 }
 
+$mail->log(1 => 'Basic checks complete, attempting to identify target');
+
+my $target = identify_target($mail);
+
+unless (defined $target) {
+    my $text = 'Sorry. Could not discern project or fault ID from the subject line.';
+    unless ($DRY_RUN) {
+        $mail->reject($text);
+    }
+    else {
+        log_exit($mail, $text);
+    }
+}
+
 # looks like we can accept this
-accept_feedback($mail);
+accept_message($mail, $target);
 
 exit;
 
 
 # Process OMP feedback mail messages
 # Accept a message and send it to the feedback system
-sub accept_feedback {
+sub accept_message {
     my $audit = shift;
+    my $args = shift;
 
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
@@ -156,10 +165,6 @@ sub accept_feedback {
     else {
         $text = join('', @{$audit->body});
     }
-
-    my $project = $audit->get('projectid');
-
-    chomp($project); # header includes newline
 
     # Try to guess the author
     my $email = undef;
@@ -200,6 +205,31 @@ sub accept_feedback {
         $audit->log(1 => "Unable to determine OMP user from From address");
     }
 
+    # Send the message to the appropriate system.
+    if (exists $args->{'projectid'}) {
+        accept_feedback($audit, $subject, $args->{'projectid'}, $author, $text, $srcip);
+    }
+    elsif (exists $args->{'faultid'}) {
+        accept_fault($audit, $subject, $args->{'faultid'}, $author, $text);
+    }
+    else {
+        my $text = 'Sorry. Could not determine how to store message.';
+        $audit->log(1 => $text);
+        $audit->reject($text) unless $DRY_RUN;
+        return;
+    }
+
+    # Exit after delivery if required
+    unless ($audit->{'noexit'}) {
+        $audit->log(2 => "Exiting with status " . Mail::Audit::DELIVERED);
+        exit Mail::Audit::DELIVERED;
+    }
+}
+
+
+sub accept_feedback {
+    my ($audit, $subject, $project, $author, $text, $srcip) = @_;
+
     $audit->log(1 => "Sending to feedback system with Project $project");
 
     # Contact the feedback system
@@ -217,25 +247,48 @@ sub accept_feedback {
         $audit->log(1 => "Sent to feedback system with Project $project");
     }
     else {
-        show_comment($project, \@order, \%data);
+        show_comment('project', (uc $project), \@order, \%data);
         $audit->log(1 => "DRY RUN: Not actually sent to feedback system for project $project");
-    }
-
-    # Exit after delivery if required
-    unless ($audit->{'noexit'}) {
-        $audit->log(2 => "Exiting with status " . Mail::Audit::DELIVERED);
-        exit Mail::Audit::DELIVERED;
     }
 }
 
+
+sub accept_fault {
+    my ($audit, $subject, $faultid, $author, $text) = @_;
+
+    $audit->log(1 => "Sending to fault system for fault $faultid");
+
+    unless (defined $author) {
+        my $text = 'Sorry. Could not determine OMP user ID.';
+        $audit->log(1 => $text);
+        $audit->reject($text) unless $DRY_RUN;
+        return;
+    }
+
+    my @order = qw/author text/;
+    my %data = (
+        author => $author,
+        text => $text,
+    );
+
+    unless ($DRY_RUN) {
+        OMP::FaultServer->respondFault($faultid, new OMP::Fault::Response(%data));
+    }
+    else {
+        show_comment('fault', $faultid, \@order, \%data);
+        $audit->log(1 => "DRY RUN: Not actually sent to fault system for fault $faultid");
+    }
+}
+
+
 sub show_comment {
-    my ($project, $order, $data) = @_;
+    my ($type, $ident, $order, $data) = @_;
 
     my $format = "==> %s: %s\n";
     # Start long text on its own line.
     my $text_format = "==> %s:\n%s\n";
 
-    printf $format, 'project', uc $project;
+    printf $format, $type, $ident;
 
     foreach my $field (@$order) {
         printf
@@ -277,24 +330,28 @@ sub extract_body {
 }
 
 
-# Determine the project ID from the subject and
+# Determine the project or fault ID from the subject and
 # store it in the mail header
 # Return 1 if subject found, else false
-sub projectid {
+sub identify_target{
     my $audit = shift;
     my $subject = decode('MIME-Header', $audit->get('subject'));
 
     # Attempt to match
     my $pid = OMP::General->extract_projectid($subject);
     if (defined $pid) {
-        $audit->put_header('projectid', $pid);
         $audit->log(1 => "Project from subject: $pid");
-        return 1;
+        return {projectid => $pid};
     }
-    else {
-        $audit->log(1 => 'Could not determine project from subject line');
-        return 0;
+
+    my $fid = OMP::General->extract_faultid($subject);
+    if (defined $fid) {
+        $audit->log(1 => "Fault from subject: $fid");
+        return {faultid => $fid};
     }
+
+    $audit->log(1 => 'Could not determine project or fault from subject line');
+    return undef;
 }
 
 
