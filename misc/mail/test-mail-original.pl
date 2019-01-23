@@ -1,100 +1,5 @@
 #!/local/perl/bin/perl
 
-use strict; use warnings; use Carp qw[ carp croak confess ];
-use 5.016;
-select \*STDERR ; $| = 1;
-select \*STDOUT ; $| = 1;
-
-our $VERSION = '0.05';
-
-use Getopt::Long   qw[ :config gnu_compat no_ignore_case require_order ];
-use Pod::Usage;
-use Data::Dumper   qw[ Dumper ];
-use File::Basename qw[ fileparse ];
-
-use FindBin;
-
-use constant OMPLIB => "$FindBin::RealBin/../../lib";
-
-BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
-}
-
-use lib OMPLIB;
-
-use OMP::User;
-use OMP::UserServer;
-use OMP::Mail::Original;
-
-my $MY_NAME = ( fileparse( $0 ) )[0];
-
-my (@cc, $from, $debug, $debug_mail_orig, $debug_net_smtp);
-GetOptions( 'h|help|man' => \( my $help ) ,
-
-            'cc=s@' => \@cc,
-            'from=s' => \$from,
-
-            'd|debug!'            => \$debug ,
-            'DM|debug-mail-orig!' => \$debug_mail_orig ,
-            'DS|debug-smtp!'      => \$debug_net_smtp ,
-          )
-  or pod2usage( '-exitval'  => 2 , '-verbose'  => 1 ) ;
-
-$help and pod2usage( '-exitval' => 0 , '-verbose' => 3 );
-
-
-my $to_addr = $ARGV[0]
-  or die qq[Give an email address to send mail to.\n];
-
-my $from_user = defined $from ? make_user($from)->[0] : new OMP::User(
-    name => $MY_NAME, email => 'flex@eaobservatory.org');
-
-my $to_user  = make_user( $to_addr );
-my $cc_users = make_user( @cc );
-
-local $OMP::Mail::Original::DEBUG         = $debug_mail_orig;
-local $OMP::Mail::Original::DEBUG_NetSMTP = $debug_net_smtp;
-my $mailer = OMP::Mail::Original->new();
-my $mess = $mailer->build(  'to'      => $to_user ,
-                            'from'    => $from_user ,
-                            ( $cc_users ? ( 'cc' => $cc_users ) : () ) ,
-                            'subject' => 'test mail, ' . lc( scalar localtime()) ,
-                            'message' => qq[testing separate mailing code...\n]
-                          );
-
-$debug and warn Dumper( $mess );
-
-my @sent = $mailer->send( $mess );
-$debug && scalar @sent and warn Dumper( @sent );
-
-warn qq[  ... finished ($MY_NAME)\n];
-exit;
-
-
-sub make_user {
-  my @addrs = @_ or return;
-
-  my @result;
-  foreach my $addr (@addrs) {
-    if ($addr =~/^[A-Z]+$/) {
-        my $user = OMP::UserServer->getUser($addr);
-        die "Unknown OMP user: $addr" unless defined $user;
-        push @result, $user;
-    }
-    else {
-        push @result, new OMP::User(email => $addr);
-    }
-  }
-
-  return \@result;
-}
-
-
-__END__
-
-=pod
-
 =head1 NAME
 
 test-mail-original.pl - Driver to test original mail-only functionality.
@@ -155,6 +60,105 @@ Turn on debug option of L<Net::SMTP>.
 
 =back
 
+=cut
+
+use strict;
+use warnings;
+use Carp qw/carp croak confess/;
+
+use 5.016;
+select \*STDERR ; $| = 1;
+select \*STDOUT ; $| = 1;
+
+our $VERSION = '0.05';
+
+use Getopt::Long qw/:config gnu_compat no_ignore_case require_order/;
+use Pod::Usage;
+use Data::Dumper qw/Dumper/;
+use File::Basename qw/fileparse/;
+
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/../../lib";
+
+BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
+
+use lib OMPLIB;
+
+use OMP::User;
+use OMP::UserServer;
+use OMP::Mail::Original;
+
+my $MY_NAME = (fileparse($0))[0];
+
+my (@cc, $from, $debug, $debug_mail_orig, $debug_net_smtp, $help);
+GetOptions(
+    'h|help|man' => \$help,
+
+    'cc=s@'      => \@cc,
+    'from=s'     => \$from,
+
+    'd|debug!'            => \$debug,
+    'DM|debug-mail-orig!' => \$debug_mail_orig,
+    'DS|debug-smtp!'      => \$debug_net_smtp,
+) or pod2usage('-exitval' => 2, '-verbose' => 1);
+
+pod2usage('-exitval' => 0, '-verbose' => 3) if $help;
+
+
+my $to_addr = $ARGV[0]
+    or die 'Give an email address to send mail to.';
+
+my $from_user = defined $from
+    ? make_user($from)->[0]
+    : new OMP::User(name => $MY_NAME, email => 'flex@eaobservatory.org');
+
+my $to_user  = make_user($to_addr);
+my $cc_users = make_user(@cc);
+
+local $OMP::Mail::Original::DEBUG         = $debug_mail_orig;
+local $OMP::Mail::Original::DEBUG_NetSMTP = $debug_net_smtp;
+my $mailer = OMP::Mail::Original->new();
+my $mess = $mailer->build(
+    'to'      => $to_user,
+    'from'    => $from_user,
+    ($cc_users ? ('cc' => $cc_users) : ()),
+    'subject' => 'Test mail, ' . scalar localtime(),
+    'message' => "Testing separate mailing code...\n",
+);
+
+warn Dumper($mess) if $debug;
+
+my @sent = $mailer->send($mess);
+warn Dumper(@sent) if $debug and scalar @sent;
+
+warn "... finished ($MY_NAME)";
+exit;
+
+
+sub make_user {
+    my @addrs = @_ or return;
+
+    my @result;
+    foreach my $addr (@addrs) {
+        if ($addr =~/^[A-Z]+$/) {
+            my $user = OMP::UserServer->getUser($addr);
+            die "Unknown OMP user: $addr" unless defined $user;
+            push @result, $user;
+        }
+        else {
+            push @result, new OMP::User(email => $addr);
+        }
+    }
+
+    return \@result;
+}
+
+__END__
+
 =head1 SEE ALSO
 
 =over 2
@@ -186,5 +190,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-
