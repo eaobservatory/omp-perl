@@ -129,15 +129,15 @@ $user = new OMP::User(
     email => 'john@smith.me',
 );
 
-is($user->as_email_hdr(), 'John Smith <john@smith.me>', 'Full email header');
-is($user->as_email_hdr_via_flex(), 'John Smith (via flex) <flex@eaobservatory.org>', 'Full email header (flex)');
+is($user->as_email_hdr(), '"John Smith" <john@smith.me>', 'Full email header');
+is($user->as_email_hdr_via_flex(), '"John Smith (via flex)" <flex@eaobservatory.org>', 'Full email header (flex)');
 
 $user = new OMP::User(
     name => 'John Smith',
 );
 
-is($user->as_email_hdr(), 'John Smith', 'Name-only email header');
-is($user->as_email_hdr_via_flex(), 'John Smith (via flex) <flex@eaobservatory.org>', 'Name-only email header (flex)');
+is($user->as_email_hdr(), '"John Smith"', 'Name-only email header');
+is($user->as_email_hdr_via_flex(), '"John Smith (via flex)" <flex@eaobservatory.org>', 'Name-only email header (flex)');
 
 $user = new OMP::User(
     email => 'john@smith.me',

@@ -555,7 +555,7 @@ sub addressee {
 =item B<as_email_hdr>
 
 Return the user name and email address in the format suitable for
-use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
+use in an email header. (i.e.: "'Kynan Delorey" <kynan@jach.hawaii.edu>').
 
   $email_hdr = $u->as_email_hdr;
 
@@ -581,9 +581,9 @@ sub as_email_hdr {
   my $email = $self->email;
 
   if ( defined $name && defined $email ) {
-     return $name . " <" . $email . ">";
+     return "\"$name\" <$email>";
   } elsif ( defined $name ) {
-     return "$name";
+     return "\"$name\"";
   } elsif ( defined $email ) {
      return "$email";
   } else {
