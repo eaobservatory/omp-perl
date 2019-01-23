@@ -104,7 +104,7 @@ sub build {
   my %utf8 = ( 'Charset' => 'utf-8' );
   my %recipient = $self->process_addr( map { $_ => $args{ $_ } } qw[ to cc bcc ] );
   my %details = ( %utf8,
-                  From    => $args{from}->as_email_hdr(),
+                  From    => $args{from}->as_email_hdr_via_flex(),
                   Subject => $args{subject},
                   Type     => $type,
                   Encoding =>'8bit',

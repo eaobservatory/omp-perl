@@ -1330,8 +1330,6 @@ sub _mail_password {
                              to => \@addr,
                              from => OMP::User->new(name => "omp-auto-reply"),
                              subject => "[$projectid] OMP reissue of password for $projectid",
-                             headers => {"Reply-To" => 'flex@eaobservatory.org',
-                                        },
                             );
   } else {
 
