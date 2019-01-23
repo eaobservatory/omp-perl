@@ -241,7 +241,7 @@ sub getUserExpensive {
   my $users = $self->_query_userdb_expensive( %attr );
   return unless $users;
 
-  _convert_name( $users, 'name' );
+  _convert_columns( $users );
   return map OMP::User->new( %{ $_ } ), @{ $users } ;
 }
 
@@ -432,8 +432,8 @@ sub _query_userdb {
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # The user name attribute is stored in the database in column 'uname',
-  # so replace key 'uname' with 'name'
-  _convert_name( $ref, 'name' );
+  # so replace key 'uname' with 'name'.  (And convert 'obfuscated'.)
+  _convert_columns( $ref );
 
   # Return the object equivalents
   return map { $_->{email} = undef if (defined $_->{email} && length($_->{email}) eq 0);
@@ -498,37 +498,35 @@ sub _query_userdb_expensive {
 }
 
 
-=item B<_convert_name>
+=item B<_convert_columns>
 
 Returns nothing.  Takes in an array reference of hash reference with
-either I<uname> or I<name> as one of keys.
-
-If I<uname> is present in hash reference, then I<name> is put in its
-place, and vice versa.
+entries as found in the database and renames them to match the fields
+of OMP::User objects.
 
   $result = [ { 'name' => 'Entity Example' } ];
 
-  $db->_convert_name( $result );
+  $db->_convert_columns( $result );
 
   # $result now is "[ { 'uname' => 'Entity Example' } ]".
 
 =cut
 
-sub _convert_name {
+{
+    my %conversion = (
+        name => 'uname',
+        is_obfuscated => 'obfuscated',
+    );
 
-  my ( $aref, $to ) = @_;
+    sub _convert_columns {
+        my $aref = shift;
 
-  throw OMP::Error::BadArgs "Need one of 'name' or 'uname' for conversion"
-    unless $to eq 'uname'
-        or $to eq 'name';
-
-  my $from = $to eq 'name' ? 'uname' : 'name';
-
-  for ( @{ $aref } ) {
-
-    exists $_->{ $from } and $_->{ $to } = delete $_->{ $from };
-  }
-  return;
+        foreach my $entry (@$aref) {
+            while (my ($to, $from) = each %conversion) {
+                $entry->{$to} = delete $entry->{$from} if exists $entry->{$from};
+            }
+        }
+    }
 }
 
 
