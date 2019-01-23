@@ -417,9 +417,7 @@ sub _mail_comment {
                   from => $from,
                   bcc => $args{bcc},
                   subject => $subject,
-                  headers => {
-                              "Reply-to" => 'flex@eaobservatory.org',
-                             }, );
+  );
 
   if ($args{cc}) {
     $details{cc} = $args{cc};
