@@ -378,7 +378,8 @@ sub _add_user {
                           $email,
                           $user->alias,
                           $user->cadcuser,
-                          $user->is_obfuscated()
+                          $user->is_obfuscated(),
+                          $user->no_fault_cc(),
                         );
 
 }
@@ -405,7 +406,8 @@ sub _update_user {
                            uname => $user->name,
                            alias => $user->alias,
                            cadcuser => $user->cadcuser,
-                           obfuscated => $user->is_obfuscated()
+                           obfuscated => $user->is_obfuscated(),
+                           no_fault_cc => $user->no_fault_cc(),
                           },
                           " userid = '".$user->userid ."' ");
 

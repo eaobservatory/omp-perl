@@ -67,6 +67,7 @@ sub new {
                     CADC => undef,
                     Obfuscated => 0,
                     Affiliation => undef,
+                    NoFaultCC => 0,
                    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -395,6 +396,20 @@ sub affiliation {
   return $self->{'Affiliation'};
 }
 
+=item B<no_fault_cc>
+
+Whether or not the user wishes to have fault CC emails suppressed.
+
+=cut
+
+sub no_fault_cc {
+    my $self = shift;
+    if (@_) {
+        $self->{'NoFaultCC'} = $_[0] ? 1 : 0;
+    }
+    return $self->{'NoFaultCC'};
+}
+
 =back
 
 =head2 General
@@ -473,6 +488,7 @@ sub text_summary {
   $text .=   "ALIAS:  " .(defined $alias ? $email : "UNDEFINED")."\n";
   $text .=   "CADC:   " .(defined $cadcuser ? $email : "UNDEFINED")."\n";
   $text .=   'OBFUSCATED:  ' . $self->is_obfuscated() ."\n";
+  $text .=   'NO_FAULT_CC: ' . $self->no_fault_cc() . "\n";
 
   return $text;
 }

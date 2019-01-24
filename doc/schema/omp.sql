@@ -260,5 +260,6 @@ CREATE TABLE `ompuser` (
   `alias` varchar(32) DEFAULT NULL,
   `cadcuser` varchar(20) DEFAULT NULL,
   `obfuscated` tinyint(4) NOT NULL DEFAULT '0',
+  `no_fault_cc` tinyint(4) NOT NULL DEFAULT '0',
   UNIQUE KEY `idx_ompuser_1` (`userid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
