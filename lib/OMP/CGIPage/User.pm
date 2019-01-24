@@ -86,13 +86,16 @@ sub details {
   }
 
   print "<h3>User Details for $user</h3>";
-  print $user->html;
-  print " (".$user->email .")"
-    if ($user->email);
-  if ($user->cadcuser) {
-    print " (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ". $user->cadcuser.")\n";
-  }
-  print "<BR>\n";
+
+  print $q->p(
+      $user->html,
+      ($user->email ? (" (".$user->email .")") : ''),
+      ($user->cadcuser ? (" (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ". $user->cadcuser.")\n") : ''),
+  );
+
+  print $q->p('User account is obfuscated.') if $user->is_obfuscated();
+
+  print $q->p('Fault CC messages suppressed.') if $user->no_fault_cc();
 
   # Get projects user belongs to
   my @projects;
@@ -501,6 +504,8 @@ sub edit_details {
       print "Clearing of CADC user name field is not supported by this form.<br>";
     }
 
+    $from_form{'no_fault_cc'} = $q->param('no_fault_cc') ? 1 : 0;
+
     if (!$doupdate) {
       print "User details were not updated.";
     } else {
@@ -525,6 +530,16 @@ sub edit_details {
          $user->$key( $from_form{$key} );
       }
 
+      # Check boolean options for changes.
+      foreach my $key (qw/no_fault_cc/) {
+          my $from_db = $user->$key;
+          my $new = $from_form{$key};
+          if (($new and not $from_db) or ($from_db and not $new)) {
+              $user->$key($new);
+              $changed = 1;
+          }
+      }
+
       # Store changes
       if ($changed) {
         try {
@@ -541,28 +556,54 @@ sub edit_details {
     }
   }
 
-  print "<table><td align=right>User ID:</td><td>".$user->userid."</td>";
-  print $q->startform;
-  print "<tr><td>Name:</td><td colspan=2>";
-  print $q->textfield(-name=>"name",
-                      -default=>$user->name,
-                      -size=>24,
-                      -maxlength=>255,);
-  print "</td><tr><td>Email:</td><td>";
-  print $q->textfield(-name=>"email",
-                      -default=>$user->email,
-                      -size=>32,
-                      -maxlength=>64,);
-  print "</td><tr><td>CADC ID:</td><td>";
-  print $q->textfield(-name=>"cadcuser",
-                      -default=>$user->cadcuser,
-                      -size=>32,
-                      -maxlength=>64,);
-  print "</td><td>";
-  print $q->submit(-name=>"edit", -label=>"Change Details");
-  print $q->endform;
-  print "</td></table>";
-
+  print $q->start_form,
+      $q->table(
+          $q->Tr([
+              $q->td([
+                  'User ID:',
+                  $user->userid,
+             ]),
+             $q->td([
+                 'Name:',
+                 $q->textfield(
+                     -name => "name",
+                     -default => $user->name,
+                     -size => 24,
+                     -maxlength => 255),
+             ]),
+             $q->td([
+                 'Email:',
+                 $q->textfield(
+                     -name => "email",
+                     -default => $user->email,
+                     -size => 32,
+                     -maxlength => 64),
+             ]),
+             $q->td([
+                 'CADC ID:',
+                 $q->textfield(
+                     -name => "cadcuser",
+                     -default => $user->cadcuser,
+                     -size => 32,
+                     -maxlength => 64),
+             ]),
+             $q->td([
+                  'Faults:',
+                  $q->checkbox(
+                    -name => 'no_fault_cc',
+                    -checked => $user->no_fault_cc(),
+                    -value => '1',
+                    -label => 'suppress response email messages'),
+             ]),
+             $q->td([
+                 '&nbsp;',
+                 $q->submit(
+                     -name => "edit",
+                     -label => "Change Details"),
+             ])
+          ]),
+      ),
+      $q->end_form;
 }
 
 sub add_user {
