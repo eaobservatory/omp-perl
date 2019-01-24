@@ -757,7 +757,7 @@ sub obfuscate {
   return $user;
 }
 
-=item <obfuscate>
+=item <deobfuscate>
 
 Returns new de-obfuscated User object only if already obfuscated.
 Else, returns the same object on which the method is called.
