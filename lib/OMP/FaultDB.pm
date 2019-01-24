@@ -763,8 +763,14 @@ sub _mail_fault {
   }
 
   # Create a list of users to Cc (but not if they authored the latest response)
-  my %cc = map {$_->author->userid, $_->author}
-    grep {$_->author->userid ne $responses[-1]->author->userid} @responses;
+  my %cc_seen = ($responses[-1]->author()->userid() => 1);
+  my @cc;
+  foreach my $response (@responses) {
+    my $author = $response->author();
+    next if $author->no_fault_cc();
+    next if $cc_seen{$author->userid()} ++;
+    push @cc, $author;
+  }
 
   my $faultuser = OMP::User->new( 'name' =>
                                     $category
@@ -788,7 +794,7 @@ sub _mail_fault {
   # Mail it off
   $self->_mail_information(message => $msg,
                            to => [ $faultuser ],
-                           cc => [ map {$cc{$_}} keys %cc ],
+                           cc => \@cc,
                            from => $from,
                            subject => $subject);
 
