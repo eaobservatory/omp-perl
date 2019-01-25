@@ -119,7 +119,7 @@ our $VERSION = '2.000';
 # Options
 my ($commentfile, $help, $man, $projectsfile, $author, $version, $type);
 
-my $status = GetOptions(
+GetOptions(
                         "comment=s" => \$commentfile,
                         "help" => \$help,
                         "man" => \$man,
@@ -127,7 +127,7 @@ my $status = GetOptions(
                         "userid=s" => \$author,
                         "version" => \$version,
                         "support" => sub { $type = 'support' },
-                       );
+) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(-exitstatus => 0, -verbose => 99, -sections => [
     qw/SYNOPSIS OPTIONS FORMAT/]) if $help;
