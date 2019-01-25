@@ -48,6 +48,7 @@ use Pod::Usage;
 use Mail::Audit;
 use Encode qw/decode/;
 
+use OMP::Display;
 use OMP::Fault::Response;
 use OMP::FaultServer;
 use OMP::FBServer;
@@ -268,7 +269,7 @@ sub accept_fault {
     my @order = qw/author text/;
     my %data = (
         author => $author,
-        text => $text,
+        text => OMP::Display->preify_text($text),
     );
 
     unless ($DRY_RUN) {
