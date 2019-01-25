@@ -233,14 +233,14 @@ Last argument is an optional Sp object.
 =cut
 
 sub msb_comments {
-  my $q = shift;
+  my $q_original = shift;
   my $commentref = shift;
   my $sp = shift;
 
   my @output;
-  if ($q->param('show') =~ /observed/) {
+  if ($q_original->param('show') =~ /observed/) {
     @output = grep {$_->comments->[0]->status != OMP__DONE_FETCH} @$commentref;
-  } elsif ($q->param('show') =~ /current/) {
+  } elsif ($q_original->param('show') =~ /current/) {
     @output = grep {$sp->existsMSB($_->checksum)} @$commentref if defined $sp;
   } else {
     @output = @$commentref;
@@ -271,6 +271,13 @@ TABLE
   my %common_hidden =
     ( 'show_output' => 1,
     );
+
+  # Create new CGI object.  This object is empty (no parameters) so that
+  # when we generate per-transaction and per-MSB forms, they use the given
+  # default parameters rather than those in the original CGI object.
+  # (Otherwise after submitting a form, e.g. to undo an MSB, all forms will
+  # contain that MSB's checksum and transaction identifier!)
+  my $q = new CGI({});
 
   foreach my $msb (@output) {
 
