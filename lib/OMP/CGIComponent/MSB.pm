@@ -268,9 +268,14 @@ TABLE
   my ( $table_cols, $header_rows, $i ) = ( 4, 2, 1 );
 
   # For CGI+form.
-  my %common_hidden =
-    ( 'show_output' => 1,
-    );
+  my %common_hidden = (
+    'show_output' => 1,
+  );
+
+  foreach my $field (qw/utdate telescope/) {
+    my $value = $q_original->param($field);
+    $common_hidden{$field} = $value if length $value;
+  }
 
   # Create new CGI object.  This object is empty (no parameters) so that
   # when we generate per-transaction and per-MSB forms, they use the given
@@ -381,7 +386,6 @@ TABLE
               $q->startform,
               $q->submit($remove_button), $remove_note,
               OMP::Display->make_hidden_fields( $q, { %common_hidden } ),
-              _make_non_empty_hidden_fields( $q, qw[utdate telescope] ),
               $q->endform
             )
           ) ;
@@ -859,7 +863,6 @@ sub _print_transaction_comments {
               @buttons, "\n",
               @{ $args->{'hidden' } }, "\n",
               $query->hidden(-name => 'transaction', -default => $cur),
-              _make_non_empty_hidden_fields($query, qw/utdate telescope/),
               $query->endform, "\n", )
           : ( '&nbsp;' );
 
