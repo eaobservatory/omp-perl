@@ -136,13 +136,6 @@ my $user = OMP::UserServer->getUser($author);
 die "No such user [$author]"
     unless ($user);
 
-# Verify staff password
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $passwd = $term->readline('Please enter the staff password: ');
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
-OMP::Password->verify_staff_password($passwd);
-
 # Get the projects
 my $proj_fh = new IO::File($projectsfile, 'r')
     or die "Couldn't open file [$projectsfile]: $!";
@@ -173,6 +166,7 @@ my @comment = <$comment_fh>;
 close($comment_fh);
 
 my $subject = shift @comment;
+chomp $subject;
 
 my %comment = (
     text => join("", @comment),
@@ -183,6 +177,26 @@ my %comment = (
 
 $comment{'status'} = OMP__FB_SUPPORT
     if defined $type && $type eq 'support';
+
+print
+    "Subject:\n",
+    $comment{'subject'}, "\n\n",
+    "Text:\n",
+    $comment{'text'}, "\n",
+    "Projects:\n",
+    (join "\n", @projects),
+    "\n\n",
+    ($dry_run ? 'Dry-run' : 'Active'),
+    ' mode: comment ',
+    ($dry_run ? 'will not' : 'will'),
+    " be submitted\n\n";
+
+# Verify staff password
+my $attribs = $term->Attribs;
+$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+my $passwd = $term->readline('Please enter the staff password: ');
+$attribs->{redisplay_function} = $attribs->{rl_redisplay};
+OMP::Password->verify_staff_password($passwd);
 
 # Submit the comment for each project
 foreach my $projectid (@projects) {
