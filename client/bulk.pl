@@ -41,6 +41,10 @@ staff.
 
 Specify the user ID of the comment author.
 
+=item B<-dry-run> | B<-n>
+
+Do not actually submit the feedback comment.
+
 =item B<-help>
 
 A help message.
@@ -96,7 +100,7 @@ use OMP::ProjServer;
 our $VERSION = '2.000';
 
 # Options
-my ($commentfile, $help, $man, $projectsfile, $author, $version, $type);
+my ($commentfile, $help, $man, $projectsfile, $author, $version, $type, $dry_run);
 
 GetOptions(
     'comment=s' => \$commentfile,
@@ -104,6 +108,7 @@ GetOptions(
     'man' => \$man,
     'projects=s' => \$projectsfile,
     'userid=s' => \$author,
+    'n|dry-run' => \$dry_run,
     'version' => \$version,
     'support' => sub {$type = 'support'},
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
@@ -181,7 +186,15 @@ $comment{'status'} = OMP__FB_SUPPORT
 
 # Submit the comment for each project
 foreach my $projectid (@projects) {
+    print "Submitting the comment for project [$projectid] ...";
+
+    if ($dry_run) {
+        print " [DRY-RUN]\n";
+        next;
+    }
+
     OMP::FBServer->addComment($projectid, \%comment);
+    print " [DONE]\n";
 }
 
 print "The comment has been submitted.\n";
