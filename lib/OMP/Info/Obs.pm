@@ -463,11 +463,13 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               pol_in => '$',
                               projectid => '$',
                               raoff => '$',
+                              remote => '$',
                               rest_frequency => '$',
                               retainhdr => '$',
                               rows => '$',
                               runnr => '$',
                               seeing => '$',
+                              shifttype => '$',
                               slitangle => '$',
                               slitname => '$',
                               speed => '$',
@@ -1716,6 +1718,8 @@ sub _populate {
   $self->filename( $generic_header{FILENAME} );
   $self->inst_dhs( $generic_header{INST_DHS} );
   $self->subsystem_idkey( $generic_header{SUBSYSTEM_IDKEY} );
+  $self->shifttype( $generic_header{SHIFT_TYPE} );
+  $self->remote( $generic_header{REMOTE} );
 
   # Build the Astro::WaveBand object
   if ( defined( $generic_header{GRATING_WAVELENGTH} ) &&
