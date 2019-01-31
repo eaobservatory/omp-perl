@@ -120,7 +120,8 @@ CREATE TABLE `ompmsbdone` (
   `userid` varchar(32) DEFAULT NULL,
   `msbtid` varchar(32) DEFAULT NULL,
   UNIQUE KEY `idx_ompmsbdone_1` (`commid`),
-  KEY `msbdone_idx` (`projectid`)
+  KEY `msbdone_idx` (`projectid`),
+  KEY `msbtid_idx` (`msbtid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompobs` (
   `msbid` int(11) NOT NULL,
