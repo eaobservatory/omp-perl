@@ -999,6 +999,8 @@ Fault constructor. A fault must be created with the following information:
   urgency   - how urgent is the fault?              [integer]
   entity    - specific thing (eg instrument or computer name) [string]
   status    - is the fault OPEN or CLOSED [integer]
+  shifttype - what type of shift was this [string]
+  remote    - remote or not [integer]
   fault     - a fault "response" object
 
 The fault message (which includes the submitting user id) must be
@@ -1013,8 +1015,9 @@ C<faultStatus> methods. These values should be supplied as a hash:
 Optional keys are: "timelost" (assumes 0hrs), "faultdate" (assumes
 unknown), "urgency" (assumes not urgent - "normal"), "entity" (assumes
 not relevant), "system" (assumes "other/unknown") and "type" (assumes
-"other"). This means that the required information is "category" and
-the fault message itself (in the form of a response object).
+"other"), "shifttype" (assumes "") and "remote" (assumes NULL).  This
+means that the required information is "category" and the fault
+message itself (in the form of a response object).
 
 The fault ID can not be constructed automatically by this object
 since the fault ID must be unique and can not be determined without
@@ -1054,6 +1057,8 @@ sub new {
                      Responses => [],
                      Projects => [],
                      Status => OPEN,
+                     ShiftType => undef,
+                     Remote => undef,
                      Subject => undef,
                     }, $class;
 
@@ -1137,6 +1142,38 @@ sub type {
   my $self = shift;
   if (@_) { $self->{Type} = shift; }
   return $self->{Type};
+}
+
+
+=item B<shifttype>
+
+ShiftType  (supplied as a string).
+
+  $shifttype = $fault->shifttype();
+  $fault->shifttype( $shifttype  );
+
+=cut
+
+sub shifttype {
+  my $self = shift;
+  if (@_) { $self->{ShiftType} = shift; }
+  return $self->{ShiftType};
+}
+
+
+=item B<remote>
+
+Remote  (supplied as an integer).
+
+  $remote = $fault->remote();
+  $fault->remote( $remote  );
+
+=cut
+
+sub remote {
+  my $self = shift;
+  if (@_) { $self->{Remote} = shift; }
+  return $self->{Remote};
 }
 
 =item B<system>
