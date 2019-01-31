@@ -12,7 +12,9 @@ OMP::Project::TimeAcct - Time spent observing a project for a given UT date
                          projectid => 'm02bu104',
                          date    => OMP::DateTools->parse_date('2002-08-15'),
                          timespent => new Time::Seconds(3600),
-                         confirmed => 1);
+                         confirmed => 1,
+                         shifttype => 'NIGHT',
+                         remote => 0 );
 
 =head1 DESCRIPTION
 
@@ -76,6 +78,8 @@ sub new {
                  TimeSpent => undef,
                  ProjectID => undef,
                  Confirmed => 0,
+                 ShiftType => undef,
+                 Remote => undef,
                 }, $class;
 
   # Deal with arguments
@@ -186,6 +190,46 @@ sub confirmed {
   return $self->{Confirmed};
 }
 
+=item B<shifttype>
+
+String indicating the type of shift (e.g. NIGHT, DAY, EO).
+
+  $shifttype = $t->shifttype();
+  $t->shifttype("DAY");
+
+Defaults to undef.
+
+=cut
+
+sub shifttype {
+  my $self = shift;
+  if (@_) {
+    # no verification yet
+    $self->{ShiftType} = shift;
+  }
+  return $self->{ShiftType};
+}
+
+=item B<remote>
+
+Integer indicating if shift was  remote (1) or non-remote (0)
+
+  $remote = $t->remote();
+  $t->remote(0);
+
+Defaults to undef.
+
+=cut
+
+sub remote {
+  my $self = shift;
+  if (@_) {
+    # no verification yet
+    $self->{Remote} = shift;
+  }
+  return $self->{Remote};
+}
+
 =back
 
 =head2 General Methods
@@ -285,7 +329,19 @@ to the user. Valid formats are:
                  project hash contains keys of UT date. The corresponding
                  sub-hash contains keys as for "all".
 
+  'byshftprj' - hash includes primary keys of $shifttype", and each
+                sub-hash contains keys of project. Their sub-hashes
+                have keys of UT date, and theirs have keys as for
+                "all"
+
+  'byshftremprj - hash includes primary keys made by combining
+                  ShiftType and Remote stauts, and each sub-hash
+                  contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
+                  as for "all"
+
 The UT hash key is of the form "YYYY-MM-DD". Project ID is upper cased.
+
+ShiftType-Remote hash key is always a combination of UPPERCASED "$shifttype_$remote"
 
 =cut
 
@@ -306,6 +362,9 @@ sub summarizeTimeAcct {
     my $t = $acct->timespent;
     my $ut= $acct->date->strftime('%Y-%m-%d');
     my $c = $acct->confirmed;
+    my $shft = $acct->shifttype;
+    my $rem = $acct->remote;
+    my $shftrem = "$shft_$rem";
 
     # big switch statement
     my $ref;
@@ -330,6 +389,19 @@ sub summarizeTimeAcct {
         $results{$p}{$ut} = {};
       }
       $ref = $results{$p}{$ut};
+
+    } elsif ($format eq 'byshftprj') {
+        if (! exists $results{$shft}{$p}{$ut}) {
+            $results{$shft}{$p}{$ut} = {};
+        }
+        $ref = $results{$shft}{$p}{$ut};
+
+    } elsif ($format eq 'byshftremprj') {
+        if (! exists $results{$shftrem}{$p}{$ut}) {
+            $results{$shftrem}{$p}{$ut} = {};
+        }
+        $ref = $results{$shftrem}{$p}{$ut};
+
     } else {
       throw OMP::Error::FatalError("Unknown format for TimeAcct summarizing: $format");
     }
