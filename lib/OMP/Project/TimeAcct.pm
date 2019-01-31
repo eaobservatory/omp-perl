@@ -325,7 +325,7 @@ to the user. Valid formats are:
   'byproject' - hash includes primary keys of project ID where
                 where each sub-hash contains keys as for "all"
 
-  'bydateproj' - hash includes primary keys of project and each
+  'byprojdate' - hash includes primary keys of project and each
                  project hash contains keys of UT date. The corresponding
                  sub-hash contains keys as for "all".
 
