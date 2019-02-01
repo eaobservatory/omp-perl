@@ -1808,13 +1808,18 @@ sub locate_timegaps {
         my $prev_obs = $obslist[$obs_counter-2]->[2];
         my $curr_obs = $obslist[$obs_counter]->[2];
 
-        # Create the TimeGap.
+        # Create the TimeGap.  Assume by default that the location and
+        # shifttype come from the succeeeding observation. In time
+        # accounting contexts this will need to be manually adjusted,
+        # but it will be good for testing.
         my $timegap = new OMP::Info::Obs::TimeGap;
         $timegap->instrument( $curr_obs->instrument );
         $timegap->runnr( $curr_obs->runnr );
         $timegap->startobs( $prev_obs->endobs );
         $timegap->endobs( $curr_obs->startobs - 1 );
         $timegap->telescope( $prev_obs->telescope );
+        $timegap->shifttype( $curr_obs->shifttype );
+        $timegap->remote( $curr_obs->remote );
 
         # Get the comments for the TimeGap.
         my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
