@@ -1892,6 +1892,29 @@ sub summary {
   }
 }
 
+=item B<shifttypes>
+
+Returns an array containing all the distinct shifttypes of the
+observations in the group.
+
+  @shifttypes = $grp->shifttypes;
+
+=cut
+
+sub shifttypes {
+    my $self = shift;
+    my @observations = $self->obs;
+
+    my %shifthash;
+    for my $obs ( @observations ) {
+        my $shifttype = $obs->shifttype;
+        $shifthash{$shifttype} = 1;
+    }
+    my @shifttypes = ( keys %shifthash );
+    return @shifttypes;
+}
+
+
 =back
 
 =head1 SEE ALSO
