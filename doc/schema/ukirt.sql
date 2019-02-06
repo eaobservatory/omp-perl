@@ -102,6 +102,7 @@ CREATE TABLE `COMMON` (
   `PROJECT` varchar(70) DEFAULT NULL,
   `STANDARD` char(1) DEFAULT NULL,
   `OBSID` varchar(48) DEFAULT NULL,
+  `OPER_SFT` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`idkey`),
   UNIQUE KEY `index_2` (`filename`,`INSTRUME`),
   KEY `UT_DATE_in` (`UT_DATE`),
