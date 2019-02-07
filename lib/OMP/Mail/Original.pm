@@ -74,6 +74,8 @@ Returns a L<MIME::Entity> object, given the following as a hash ...
   message - the actual mail message
   headers - additional mail headers such as Reply-To and Content-Type
             in paramhash format
+  reply_to_sender - add a Reply-To header giving the "from" user's
+      address, if they have one
 
   $mess = $email->build(  to   => [$user1, $user2],
                           from => $user3,
@@ -96,6 +98,8 @@ sub build {
       unless exists $args{$key};
   }
 
+  my $sender = $args{'from'};
+
   # Decide if we'll have attachments or not and set the MIME type accordingly
   # by checking for the presence of HTML in the message
   my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
@@ -104,7 +108,7 @@ sub build {
   my %utf8 = ( 'Charset' => 'utf-8' );
   my %recipient = $self->process_addr( map { $_ => $args{ $_ } } qw[ to cc bcc ] );
   my %details = ( %utf8,
-                  From    => $args{from}->as_email_hdr_via_flex(),
+                  From    => $sender->as_email_hdr_via_flex(),
                   Subject => $args{subject},
                   Type     => $type,
                   Encoding =>'8bit',
@@ -123,6 +127,12 @@ sub build {
 
   # Create a Date header since the mail server might not create one
   $args{headers}->{date} = OMP::DateTools->mail_date;
+
+  # Create a Reply-To header if requested.
+  if ($args{'reply_to_sender'}) {
+    $args{'headers'}->{'Reply-To'} = $sender->as_email_hdr()
+        if defined $sender->email();
+  }
 
   # Add any additional headers
   for my $hdr (keys %{ $args{headers} }) {

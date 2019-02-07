@@ -45,6 +45,10 @@ multiple addresses.
 
 Specify email address to send "from".
 
+=item B<--reply-to>
+
+Set a reply-to header (referring to the sender).
+
 =item B<-debug> | B<-d>
 
 Dumps L<MIME::Entity> object and any return value after sending the email.
@@ -94,12 +98,13 @@ use OMP::Mail::Original;
 
 my $MY_NAME = (fileparse($0))[0];
 
-my (@cc, $from, $debug, $debug_mail_orig, $debug_net_smtp, $help);
+my (@cc, $from, $reply_to, $debug, $debug_mail_orig, $debug_net_smtp, $help);
 GetOptions(
     'h|help|man' => \$help,
 
     'cc=s@'      => \@cc,
     'from=s'     => \$from,
+    'reply-to!'  => \$reply_to,
 
     'd|debug!'            => \$debug,
     'DM|debug-mail-orig!' => \$debug_mail_orig,
@@ -128,6 +133,7 @@ my $mess = $mailer->build(
     ($cc_users ? ('cc' => $cc_users) : ()),
     'subject' => 'Test mail, ' . scalar localtime(),
     'message' => "Testing separate mailing code...\n",
+    reply_to_sender => $reply_to,
 );
 
 warn Dumper($mess) if $debug;
