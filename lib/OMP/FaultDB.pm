@@ -796,7 +796,8 @@ sub _mail_fault {
                            to => [ $faultuser ],
                            cc => \@cc,
                            from => $from,
-                           subject => $subject);
+                           subject => $subject,
+                           reply_to_sender => 1);
 
 }
 
