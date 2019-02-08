@@ -235,7 +235,10 @@ sub db_accounts {
     my $query = new OMP::TimeAcctQuery( XML => $xml );
 
     # Get the time accounting statistics from
-    # the TimeAcctDB table
+    # the TimeAcctDB table. These are returned as a list of
+    # Project::TimeAcct.pm objects. Note that there will be more than
+    # one per project now that there are multiple shift types etc.
+
     my @acct = $db->queryTimeSpent( $query );
 
     # Keep only the results for the telescope we are querying for
@@ -346,6 +349,40 @@ sub faults {
   return $self->{faults};
 }
 
+=item B<faultsbyshift>
+
+The faults relevant to this telescope and reporting period, stored in
+a hash with keys of the shifttype.  The faults are represented by an
+C<OMP::FaultGroup> object.
+
+  $faults_shift = $nr->faultsbyshift;
+
+Returns a hash of C<OMP::FaultGroup> objects. Cannot be used to set
+the faults.
+
+=cut
+
+sub faultsbyshift {
+  my $self = shift;
+  my $faults = $self->faults;
+  my @faultlist = $faults->faults;
+
+
+  # Get all shifttypes
+  my @shifttypes = $faults->shifttypes;
+
+  # Create a hash with shifttypes as keys and faults as the objects
+
+  my %resulthash;
+  for my $shift (@shifttypes) {
+      my @results = grep{ $_->shifttype eq $shift } @faultlist;
+      my $fgroup = new OMP::FaultGroup(faults=>\@results);
+      $resulthash{$shift} = $fgroup;
+  }
+  return %resulthash;
+}
+
+
 =item B<hdr_accounts>
 
 Return time accounts derived from the data headers.  Time accounts are
@@ -361,6 +398,7 @@ accounts could be obtained from the data headers.
 
 sub hdr_accounts {
   my $self = shift;
+  my $method = shift;
   if (@_) {
     my $acctgrp = $_[0];
     throw OMP::Error::BadArgs("Accounts must be provided as an OMP::TimeAcctGroup object")
@@ -370,15 +408,22 @@ sub hdr_accounts {
     # No accounts cached, retrieve some.
     # Get the time accounting statistics from the data headers
     # Need to catch directory not found
-    my $obsgrp = $self->obs;
+
+
+    # gets all observations from that night as Omp::Project::TimeAcct
+    # objects. These include shifttype and remote.
+    my $obsgrp = $self->obs();
+
     my ($warnings, @acct);
     if ($obsgrp) {
-      # locate time gaps > 1 second when calculating statistics
-      $obsgrp->locate_timegaps( 1 );
+        # locate time gaps > 1 second when calculating statistics.
+        $obsgrp->locate_timegaps( 1 );
 
-      ($warnings, @acct) = $obsgrp->projectStats();
+        # Get one value per shift.
+        ($warnings, @acct) = $obsgrp->projectStats('BYSHIFT');
+
     } else {
-      $warnings = [];
+        $warnings = [];
     }
     # Store the result
     my $acctgrp = new OMP::TimeAcctGroup(accounts => \@acct);
@@ -470,8 +515,10 @@ sub warnings {
 Retrieve all the project accounting details for the night as a hash.
 The keys are projects and for each project there is a hash containing
 keys "DATA" and "DB" indicating whether the information comes from the
-data headers or the time accounting database directly.  All accounting
-details are C<OMP::Project::TimeAcct> objects.
+data headers or the time accounting database directly.
+All accounting details are C<OMP::Project::TimeAcct> objects.
+
+Optionally  this can be limited by SHIFTTYPE and by REMOTE status.
 
 Data from the accounting database may or may not be confirmed time.
 For data from the data headers the confirmed status is not relevant.
@@ -492,7 +539,7 @@ sub accounting {
   my %results;
 
   # Get the time accounting info
-  my %db = $self->accounting_db;
+  my %db = $self->accounting_db();
   $results{DB} = \%db;
 
   # Get the info from the headers
@@ -502,37 +549,60 @@ sub accounting {
   # Now generate a combined hash
   my %combo;
 
+  # Assume you have data from multiple shifts. Return $combo{SHIFT/wARNINGKEY}{PROJECT}
+
   for my $src (qw/ DB DATA /) {
-    for my $proj (keys %{ $results{$src} } ) {
-      # Special case for warnings
-      if ($proj eq $WARNKEY) {
-        $combo{$WARNKEY} = [] unless exists $combo{$WARNKEY};
-        push(@{ $combo{$WARNKEY} }, @{ $results{$src}->{$proj} });
-      } else {
-        # Store the results in the right place
-        $combo{$proj}->{$src} = $results{$src}->{$proj};
+      for my $shift (keys %{ $results{$src} } ) {
+
+          # Special case for warnings
+          if ($shift eq $WARNKEY) {
+              $combo{$WARNKEY} = [] unless exists $combo{$WARNKEY};
+              push(@{ $combo{$WARNKEY} }, @{ $results{$src}->{$shift} });
+
+          } else {
+              for my $proj (keys %{ $results{$src}{$shift} } ) {
+                  # Store the results in the right place
+                  $combo{$shift}{$proj}->{$src} = $results{$src}->{$shift}->{$proj};
+
+              }
+          }
       }
-    }
   }
 
+
   return %combo;
+
 }
 
 =item B<accounting_db>
 
 Return the time accounting database details for each project observed
-this night. A hash is returned indexed by project ID and pointing
-to the appropriate C<OMP::Project::TimeAcct> object or hash of accounting
-information.
+this night. A hash is returned indexed by project ID and pointing to
+the appropriate C<OMP::Project::TimeAcct> object or hash of accounting
+information; alternately it can be indexed by shifttype at the top
+level then project ID below that.
 
 This is a cut down version of the C<accounting> method that returns
 details from all methods of determining project accounting including
 estimates.
 
-  %projects = $nr->accounting_db();
+  %projects = $nr->accounting_db($);
   %projects = $nr->accounting_db($data);
 
-This method takes an optional argument that if true returns a hash of
+This method takes an optional argument determining the return format. Valid formats are:
+
+    'byproject'- returns a hash of hashes for each project with the
+                keys 'pending', 'total' and 'confirmed'
+
+    'byshftprj' - returns a hash of hashes; primary keys are shifttype,
+               secondary are projects.. Items in them are OMP::Project::TimeAcct objects.
+
+    'byshftremprj' - returns a hash of hashes, primary keys are combo of
+                  shifttype and remote, secondary are project
+                  names. Inside that are OMP::Project::TimeAcct
+                  objects.
+
+(previuos just took an alternate value that if true returns a hash of
 hashes for each project with the keys 'pending', 'total' and 'confirmed'
 instead of C<OMP::Project::TimeAcct> objects.
 
@@ -540,31 +610,32 @@ instead of C<OMP::Project::TimeAcct> objects.
 
 sub accounting_db {
   my $self = shift;
-  my $return_data = shift;
+  my $return_format = shift;
 
   my $acctgrp = $self->db_accounts;
   my @dbacct = $acctgrp->accounts;
 
-  my %projects;
-  if ($return_data) {
-    # Returning data
+  my %results;
 
-    # Combine Time accounting info for a multiple nights.  See documentation
-    # for summarizeTimeAcct method in OMP::Project::TimeAcct
-    %projects = $dbacct[0]->summarizeTimeAcct( 'byproject', @dbacct )
-      unless (! defined $dbacct[0]);
+
+  if ($return_format) {
+      # Returning data
+      # Combine Time accounting info for a multiple nights.  See documentation
+      # for summarizeTimeAcct method in OMP::Project::TimeAcct
+      %results = OMP::Project::TimeAcct->summarizeTimeAcct( $return_format, @dbacct)
+          unless (! defined $dbacct[0]);
   } else {
     # Returning objects
-
-    # Convert to a hash [since we can guarantee one instance of a project
-    # for a single UT date]
-    for my $acct (@dbacct) {
-      $projects{ $acct->projectid } = $acct;
+    #  Convert to a hash with keys shifttype and project [since we can guarantee one instance of a
+    # project for a single UT date and project]
+    # Ensure we get separate time accts for each shift.
+        for my  $acct (@dbacct) {
+            $results{ $acct->shifttype }{ $acct->projectid } = $acct;
     }
   }
 
-  return %projects;
-}
+  return %results;
+ }
 
 =item B<accounting_hdr>
 
@@ -572,6 +643,10 @@ Return time accounting statistics generated from the data headers
 for this night.
 
  %details = $nr->accounting_hdr();
+
+
+Returned as a hash with top level keys of shift types, and second
+level keys are project type.
 
 Also returns a reference to an array of warning information generated
 by the scan. The keys in the returned hash are project IDs and the
@@ -587,18 +662,20 @@ sub accounting_hdr {
   my $self = shift;
 
   my $acctgrp = $self->hdr_accounts;
+
   my @hdacct = $acctgrp->accounts;
   my $warnings = $self->warnings;
 
   # Form a hash
-  my %projects;
-  for my $acct (@hdacct) {
-    $projects{ $acct->projectid } = $acct;
+  my %shifts;
+  if (@hdacct) {
+      for my $acct (@hdacct) {
+          $shifts{$acct->shifttype}{$acct->projectid } = $acct;
+      }
   }
+  $shifts{$WARNKEY} = $warnings;
 
-  $projects{$WARNKEY} = $warnings;
-
-  return %projects;
+  return %shifts;
 }
 
 =item B<ecTime>
@@ -640,8 +717,8 @@ sub shutdownTime {
 
 =item B<obs>
 
-Return the observation details relevant to this night and UT date.
-This will include time gaps. Information is returned as an
+Return the observation details relevant to this telescope, night and
+UT date. This will include time gaps. Information is returned as an
 C<OMP::Info::ObsGroup> object.
 
 Returns undef if no observations could be located.
@@ -795,7 +872,44 @@ sub timelost {
     return ($faults->timelost ? $faults->timelost : new Time::Seconds(0));
   }
 }
+=item B<timelostbyshift>
 
+Returns the time lost to faults on this night and telescope.
+The time is returned as a Time::Seconds object.  Timelost to
+technical or non-technical faults can be returned by calling with
+an argument of either "technical" or "non-technical."  Returns total
+timelost when called without arguments.
+
+=cut
+
+sub timelostbyshift {
+  my $self = shift;
+  my $arg = shift;
+  my %faults = $self->faultsbyshift;
+
+  return undef
+    unless defined %faults;
+
+  my %results;
+  my $res;
+  for my $shift (keys %faults) {
+      my $shiftfaults = $faults{$shift};
+
+      if ($arg && $arg eq "technical") {
+          $res = $shiftfaults->timelostTechnical ? $shiftfaults->timelostTechnical : new Time::Seconds(0);
+          $results{$shift} = $res;
+
+      } elsif ($arg && $arg eq "non-technical") {
+          $res = $shiftfaults->timelostNonTechnical ? $shiftfaults->timelostNonTechnical : new Time::Seconds(0);
+          $results{$shift} = $res;
+
+      } else {
+          $res = $shiftfaults->timelost ? $shiftfaults->timelost : new Time::Seconds(0);
+          $results{$shift} = $res;
+      }
+  }
+  return %results;
+}
 =item B<timeObserved>
 
 Return the time spent observing on this night.  That's everything
