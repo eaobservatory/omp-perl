@@ -337,7 +337,7 @@ to the user. Valid formats are:
                 have keys of UT date, and theirs have keys as for
                 "all"
 
-  'byshftremprj - hash includes primary keys made by combining
+  'byshftremprj' - hash includes primary keys made by combining
                   ShiftType and Remote stauts, and each sub-hash
                   contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
                   as for "all"
@@ -397,16 +397,17 @@ sub summarizeTimeAcct {
       $ref = $results{$p}{$ut};
 
     } elsif ($format eq 'byshftprj') {
-        if (! exists $results{$shft}{$p}{$ut}) {
-            $results{$shft}{$p}{$ut} = {};
+        # store using shifttype AND  projectID
+        if (! exists $results{$shft}{$p}) {
+            $results{$shft}{$p} = {};
         }
-        $ref = $results{$shft}{$p}{$ut};
+        $ref = $results{$shft}{$p};
 
     } elsif ($format eq 'byshftremprj') {
-        if (! exists $results{$shftrem}{$p}{$ut}) {
-            $results{$shftrem}{$p}{$ut} = {};
+        if (! exists $results{$shftrem}{$p}) {
+            $results{$shftrem}{$p} = {};
         }
-        $ref = $results{$shftrem}{$p}{$ut};
+        $ref = $results{$shftrem}{$p};
 
     } else {
       throw OMP::Error::FatalError("Unknown format for TimeAcct summarizing: $format");
