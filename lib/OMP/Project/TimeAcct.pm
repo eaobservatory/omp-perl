@@ -205,7 +205,7 @@ sub shifttype {
   my $self = shift;
   if (@_) {
       my $shifttype = shift;
-      if (! defined $shifttype) {
+      if (! defined $shifttype || $shifttype eq '') {
           $shifttype = 'UNKNOWN';
       }
       $self->{ShiftType} = $shifttype; }
