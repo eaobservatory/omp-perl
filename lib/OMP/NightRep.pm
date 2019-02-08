@@ -1229,6 +1229,220 @@ sub astext {
   return $str;
 }
 
+
+=item B<projectsummary_ashtml>
+
+Optionally do for a specific shift.
+=cut
+
+sub projectsummary_ashtml {
+    my $self = shift;
+    my $shift = shift;
+
+
+    my $tel  = $self->telescope;
+    my $date = $self->date->ymd;
+    my $format = "%5.2f hrs\n";
+
+    my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+
+    # T i m e  A c c o u n t i n g
+    # Get shifts from time accounting and from timelostbyshift.
+
+
+
+    my $total = 0.0;
+    my $total_pending = 0.0;
+    my $total_proj = 0.0; # Time spent on projects only
+
+
+    my $shuttime = 0.0;
+    my $title;
+    my $faultloss = 0.0;
+    my $technicalloss = 0.0;
+    my $nontechnicalloss = 0.0;
+    my %acct;
+
+    # If $shift is not defined, then just do overall.
+    if (! defined $shift) {
+
+        %acct = $self->accounting_db('byproject');
+        $shuttime = $self->shutdownTime->hours;
+        $title = 'Overall';
+        $faultloss = $self->timelost->hours;
+        $technicalloss = $self->timelost('technical')->hours;
+        $nontechnicalloss = $self->timelost('non-technical')->hours;
+    } else {
+
+
+        # Go through only for that shift.
+        my %times = $self->accounting_db('byshftprj');
+        if (exists($times{$shift})) {
+            %acct = %{$times{$shift}};
+        } else {
+            %acct = ();
+        }
+
+        if (exists($acct{$tel.'_SHUTDOWN'})) {
+            $shuttime = $acct{$tel.'_SHUTDOWN'}->timespent->hours;
+        }
+        my %timelost = $self->timelostbyshift;
+        if (exists($timelost{$shift})) {
+            $faultloss = $timelost{$shift}->hours;
+        }
+        %timelost = $self->timelostbyshift('technical');
+        if (exists($timelost{$shift})) {
+            $technicalloss = $timelost{$shift}->hours;
+        }
+        %timelost = $self->timelostbyshift('non-technical');
+        if (exists($timelost{$shift})) {
+            $nontechnicalloss = $timelost{$shift}->hours;
+        }
+        $title = $shift;
+    }
+
+    # Format table
+    print "<table class='sum_table' cellspacing='0' width='600'>";
+    print "<tr class='sum_table_head'>";
+    print "<td colspan='3'><strong class='small_title'>$title Project Time Summary</strong></td>";
+
+    # Closed time (if any)
+    if ($shuttime) {
+        print "<tr class='sum_other'>";
+        print "<td>Closed</td>";
+        print "<td colspan='2'>". sprintf($format, $shuttime) . "</td>";
+        print "</tr>";
+
+        $total += $shuttime;
+    }
+
+    # Time lost to faults.
+    print "<tr class='sum_other'>";
+    print "<td>Time lost to technical faults</td>";
+    print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td>";
+    print "<tr class='sum_other'>";
+    print "<td>Time lost to non-technical faults</td>";
+    print "<td colspan=2>" . sprintf($format, $nontechnicalloss) . "</td>";
+    print "<tr class='sum_other'>";
+    print "<td>Total time lost to faults</td>";
+    print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+
+     $total += $faultloss;
+
+    # Time lost to weather, extended accounting.
+      my %text = (
+              WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
+              EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
+              OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
+              CAL => "<tr class='proj_time_sum_weather_row'><td>Calibrations</td>",
+             );
+
+    for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
+        my $time = 0.0;
+        my $pending;
+        if (exists $acct{$tel.$proj}) {
+            $time = $acct{$tel.$proj}->{total}->hours;
+            if ($acct{$tel.$proj}->{pending}) {
+                $pending += $acct{$tel.$proj}->{pending}->hours;
+            }
+            $total += $time unless $proj eq 'EXTENDED';
+        }
+        print "$text{$proj}<td colspan=2>" . sprintf($format, $time);
+        if ($pending) {
+            print " [unconfirmed]";
+        }
+        print "</td>";
+    }
+
+    # Sort project accounting by country
+    my %acct_by_country;
+    for my $proj (keys %acct) {
+
+        next if $proj =~ /^$tel/;
+
+        # No determine_country method exists, so we'll get project
+        # details instead
+        my $details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
+
+        $acct_by_country{$details->country}{$proj} = $acct{$proj};
+    }
+
+    # Project Accounting
+    my $bgcolor = "a";
+    for my $country (sort keys %acct_by_country) {
+
+        # Get country total timespent
+        my $country_total;
+        for (keys %{$acct_by_country{$country}}) {
+            $country_total += $acct_by_country{$country}{$_}->{total}->hours
+        }
+
+        my $rowcount = 0;
+
+        for my $proj (sort keys %{$acct_by_country{$country}}) {
+            $rowcount++;
+
+            my $account = $acct_by_country{$country}{$proj};
+            $total += $account->{total}->hours;
+            $total_proj += $account->{total}->hours;
+
+            my $pending;
+            if  ($account->{pending}) {
+                $total_pending += $account->{pending}->hours;
+                $pending = $account->{pending}->hours;
+            }
+
+            print "<tr class='row_$bgcolor'>";
+            print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
+            printf($format, $account->{total}->hours);
+            print " [unconfirmed]" if ($pending);
+            print "</td>";
+            if ($self->delta_day != 1) {
+                if ($rowcount == 1) {
+                    print "<td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
+                } else {
+                    print "<td class=country_$country></td>";
+                }
+            } else {
+                print "<td></td>";
+            }
+
+            # Alternate background color
+            ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+        }
+    }
+
+    print "<tr class='row_$bgcolor'>";
+    print "<td class='sum_other'>Total</td><td colspan=2 class='sum_other'>". sprintf($format,$total);
+
+    # Print total unconfirmed if any
+    print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
+        if ($total_pending > 0);
+
+    print "</td>";
+
+    # Print total time spent on projects alone
+    print "<tr class='row_$bgcolor'>";
+    print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
+        sprintf($format, $total_proj).
+        "</td>";
+
+    # Get clear time
+    my $cleartime = $total - $shuttime;
+    $cleartime -= $acct{$tel.'WEATHER'}->{total}->hours
+        if exists $acct{$tel.'WEATHER'};
+
+    if ($cleartime > 0) {
+        print "<tr class='proj_time_sum_weather_row'>";
+        print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
+        print "<tr class='proj_time_sum_other_row'>";
+        print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td>";
+    }
+
+    print "</table>";
+    print "<p>";
+}
+
 =item B<ashtml>
 
 Generate a summary of the night formatted using HTML.
@@ -1307,160 +1521,34 @@ sub ashtml {
   }
 
   # T i m e  A c c o u n t i n g
+  # Get shifts from time accounting and from timelostbyshift.
+  my %times = $self->accounting;
 
-  # Get closed time
-  my $shuttime = $self->shutdownTime;
+  my %timelostbyshift = $self->timelostbyshift;
 
-  # Convert shutdown time to hours, we won't ever want to see seconds.
-  $shuttime = $shuttime->hours;
-
-  # Add shutdown time to total
-  $total += $shuttime;
-
-  # Get project accounting
-  my %acct = $self->accounting_db(1);
-
-  my $format = "%5.2f hrs\n";
-
-  print "<table class='sum_table' cellspacing='0' width='600'>";
-  print "<tr class='sum_table_head'>";
-  print "<td colspan='3'><strong class='small_title'>Project Time Summary</strong></td>";
-
-  # Closed time
-  if ($shuttime) {
-    print "<tr class='sum_other'>";
-    print "<td>Closed</td>";
-    print "<td colspan='2'>". sprintf($format, $shuttime) . "</td>";
-    print "</tr>";
-  }
-
-  # Time lost to faults
-  my $faultloss = $self->timelost->hours;
-  my $technicalloss = $self->timelost('technical')->hours;
-
-  print "<tr class='sum_other'>";
-  print "<td>Time lost to technical faults</td>";
-  print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td>";
-  print "<tr class='sum_other'>";
-  print "<td>Time lost to non-technical faults</td>";
-  print "<td colspan=2>" . sprintf($format, $self->timelost('non-technical')->hours) . "</td>";
-  print "<tr class='sum_other'>";
-  print "<td>Total time lost to faults</td>";
-  print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
-
-  $total += $faultloss;
-
-  # Time lost to weather, extended accounting
-  my %text = (
-              WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
-              EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
-              OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
-              CAL => "<tr class='proj_time_sum_weather_row'><td>Calibrations</td>",
-             );
-
-  for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
-    my $time = 0.0;
-    my $pending;
-    if (exists $acct{$tel.$proj}) {
-      $time = $acct{$tel.$proj}->{total}->hours;
-      if ($acct{$tel.$proj}->{pending}) {
-        $pending += $acct{$tel.$proj}->{pending}->hours;
+  my @shifts;
+  for my $key (keys %times){
+      unless(!defined $key  || $key eq '' || $key eq $WARNKEY) {
+          push @shifts, $key;
       }
-      $total += $time unless $proj eq 'EXTENDED';
-    }
-    print "$text{$proj}<td colspan=2>" . sprintf($format, $time);
-    if ($pending) {
-      print " [unconfirmed]";
-    }
-    print "</td>";
   }
-
-  # Sort project accounting by country
-  my %acct_by_country;
-  for my $proj (keys %acct) {
-     next if $proj =~ /^$tel/;
-
-     # No determine_country method exists, so we'll get project
-     # details instead
-     my $details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
-
-     $acct_by_country{$details->country}{$proj} = $acct{$proj};
-  }
-
-  # Project Accounting
-  my $bgcolor = "a";
-  for my $country (sort keys %acct_by_country) {
-
-    # Get country total timespent
-    my $country_total;
-    for (keys %{$acct_by_country{$country}}) {
-      $country_total += $acct_by_country{$country}{$_}->{total}->hours
-    }
-
-    my $rowcount = 0;
-
-    for my $proj (sort keys %{$acct_by_country{$country}}) {
-      $rowcount++;
-
-      my $account = $acct_by_country{$country}{$proj};
-      $total += $account->{total}->hours;
-      $total_proj += $account->{total}->hours;
-
-      my $pending;
-      if  ($account->{pending}) {
-        $total_pending += $account->{pending}->hours;
-        $pending = $account->{pending}->hours;
+  my @faultshifts = (keys %timelostbyshift);
+  for my $shift (@faultshifts) {
+      if((! exists($times{$shift}) ) && ($shift ne '')) {
+          push @shifts, $shift;
       }
-
-      print "<tr class='row_$bgcolor'>";
-      print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
-      printf($format, $account->{total}->hours);
-      print " [unconfirmed]" if ($pending);
-      print "</td>";
-      if ($self->delta_day != 1) {
-        if ($rowcount == 1) {
-          print "<td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
-        } else {
-          print "<td class=country_$country></td>";
-        }
-      } else {
-        print "<td></td>";
-      }
-
-      # Alternate background color
-      ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
-    }
   }
 
-  print "<tr class='row_$bgcolor'>";
-  print "<td class='sum_other'>Total</td><td colspan=2 class='sum_other'>". sprintf($format,$total);
 
-  # Print total unconfirmed if any
-  print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
-    if ($total_pending > 0);
+  # First of all do overall per night.
+  $self->projectsummary_ashtml;
 
-  print "</td>";
-
-  # Print total time spent on projects alone
-  print "<tr class='row_$bgcolor'>";
-  print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
-    sprintf($format, $total_proj).
-      "</td>";
-
-  # Get clear time
-  my $cleartime = $total - $shuttime;
-  $cleartime -= $acct{$tel.'WEATHER'}->{total}->hours
-    if exists $acct{$tel.'WEATHER'};
-
-  if ($cleartime > 0) {
-    print "<tr class='proj_time_sum_weather_row'>";
-    print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
-    print "<tr class='proj_time_sum_other_row'>";
-    print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td>";
+  # Now do it per shift.
+  for my $shift (@shifts) {
+      $self->projectsummary_ashtml($shift);
   }
 
-  print "</table>";
-  print "<p>";
+
 
   if ($self->delta_day < 14) {
     # M S B  S u m m a r y
@@ -1506,7 +1594,7 @@ sub ashtml {
     print "<a name=faultsum></a>";
     print "<table class='sum_table' cellspacing='0' width='600'>";
     print "<tr class='fault_sum_table_head'>";
-    print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td>";
+    print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td><td><strong class='small_title'>Shift</strong></td></tr>";
 
     for my $date (sort keys %faults) {
       my $timecellclass = 'time_a';
@@ -1520,7 +1608,7 @@ sub ashtml {
         my $time = gmtime($fdate->epoch);
         $timecellclass = 'time_' . $time->day . '_a';
 
-        print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
+        print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td><td></td>";
     }
       for my $fault (@{$faults{$date}}) {
         print "<tr class=sum_other valign=top>";
@@ -1530,6 +1618,8 @@ sub ashtml {
         print "<td class='$timecellclass'>". $time->strftime("%H:%M UT") ."</td>";
         print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
         print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
+        print "<td class='shift' align=right>". $fault->shifttype ."</td>";
+        print "</tr>";
       }
     }
 
