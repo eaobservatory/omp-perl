@@ -1017,10 +1017,9 @@ sub astext {
       }
   }
 
-  $str .= "Shifts on this date were";
-  for my $shift (@shifts) {
-      $str .= " $shift";
-  }
+  my $shiftcount = scalar @shifts;
+
+  $str .= "Shifts on this date were @shifts";
   $str .= "\n\n";
   $str .= "Overall Project Time Summary\n\n";
 
@@ -1090,12 +1089,12 @@ sub astext {
   $str .= "\n";
 
 
-  # Now get time by shift
+  # Now get time by shift if there was more than one type of shift.
 
-
+  if ($shiftcount > 1) {
   for my $shift (@shifts) {
       $str .= "\n";
-      $str .="Shift $shift  summary\n\n";
+      $str .="$shift summary\n\n";
       # Total time
       my $total = 0.0;
       my $totalobserved = 0.0; # Total time spent observing
@@ -1106,8 +1105,10 @@ sub astext {
       }
 
       for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
+
           my $time = 0.0;
           if (exists $acct{$shift}{$tel.$proj}) {
+
               $time = $acct{$shift}{$tel.$proj}->timespent->hours;
               $total += $time unless $proj eq 'EXTENDED';
               $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
@@ -1116,7 +1117,7 @@ sub astext {
               $str .= sprintf("$format", $text{$proj}, $time);
           }
       }
-      $str .= "\n";
+
       for my $proj (keys $acct{$shift}) {
           next if $proj =~ /^$tel/;
 
@@ -1127,7 +1128,7 @@ sub astext {
       }
 
       if ($shuttime) {
-          $str .= "\n";
+
           if (exists $acct{$shift}{$tel.'_SHUTDOWN'}) {
               my $shiftshuttime = $acct{$shift}{$tel.'_SHUTDOWN'}->timespent->hours;
               if ($shiftshuttime > 0) {
@@ -1146,8 +1147,7 @@ sub astext {
       $str .= "\n";
 
   }
-
-  # Now print summary by shift, if more than one.
+  }
 
   # M S B   S U M M A R Y
   # Add MSB summary here
