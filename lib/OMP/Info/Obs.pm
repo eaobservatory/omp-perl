@@ -459,6 +459,8 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               obsid => '$',
                               obsidss => '@',
                               order => '$',
+                              oper_sft => '$',
+                              oper_loc => '$',
                               pol => '$',
                               pol_in => '$',
                               projectid => '$',
@@ -1718,7 +1720,14 @@ sub _populate {
   $self->filename( $generic_header{FILENAME} );
   $self->inst_dhs( $generic_header{INST_DHS} );
   $self->subsystem_idkey( $generic_header{SUBSYSTEM_IDKEY} );
-  $self->shifttype( $generic_header{SHIFT_TYPE} );
+
+  # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
+  if (! defined( $generic_header{SHIFT_TYPE} ) || $generic_header{SHIFT_TYPE} eq '') {
+      $self->shifttype('UNKNOWN');
+  } else {
+      $self->shifttype( $generic_header{SHIFT_TYPE} );
+  }
+
   $self->remote( $generic_header{REMOTE} );
 
   # Build the Astro::WaveBand object
