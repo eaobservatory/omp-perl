@@ -1156,7 +1156,12 @@ ShiftType  (supplied as a string).
 
 sub shifttype {
   my $self = shift;
-  if (@_) { $self->{ShiftType} = shift; }
+  if (@_) {
+      my $shifttype = shift;
+      if (! defined $shifttype) {
+          $shifttype = 'UNKNOWN';
+      }
+      $self->{ShiftType} = $shifttype; }
   return $self->{ShiftType};
 }
 
