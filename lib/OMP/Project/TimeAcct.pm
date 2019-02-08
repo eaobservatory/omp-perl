@@ -204,11 +204,14 @@ Defaults to undef.
 sub shifttype {
   my $self = shift;
   if (@_) {
-    # no verification yet
-    $self->{ShiftType} = shift;
-  }
+      my $shifttype = shift;
+      if (! defined $shifttype) {
+          $shifttype = 'UNKNOWN';
+      }
+      $self->{ShiftType} = $shifttype; }
   return $self->{ShiftType};
 }
+
 
 =item B<remote>
 
@@ -364,7 +367,10 @@ sub summarizeTimeAcct {
     my $c = $acct->confirmed;
     my $shft = $acct->shifttype;
     my $rem = $acct->remote;
-    my $shftrem = "$shft_$rem";
+    if (! defined $rem) {
+        $rem = "UNKNOWN";
+    }
+    my $shftrem = "$shft" . "_" . "$rem";
 
     # big switch statement
     my $ref;
