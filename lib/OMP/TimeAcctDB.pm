@@ -189,6 +189,7 @@ sub setTimeSpent {
   $self->_db_begin_trans;
   $self->_dblock;
 
+
   # lop through each array and store it
   for my $acct (@acct) {
     $self->_insert_timeacct_entry( $acct );
@@ -362,7 +363,7 @@ object.
 This allows a new entry to be inserted (easier than doing one query
 to look for it and then deciding on UPDATE vs INSERT).
 
-The object must include a project ID and a UT date.
+The object must include a project ID, a UT date and a shifttype.
 
 =cut
 
@@ -373,12 +374,14 @@ sub _clear_old_timeacct_row {
   # generate a hash representation of the object
   # that will match the column names
   my %details  = ( projectid => $acct->projectid,
-                   date  => $acct->date->strftime('%Y-%m-%d'));
+                   date  => $acct->date->strftime('%Y-%m-%d'),
+                   shifttype => $acct->shifttype,
+      );
 
   # construct the where clause
   # from the relevant keys
   my @clauses;
-  for my $key (qw/ projectid  /) {
+  for my $key (qw/ projectid shifttype /) {
     throw OMP::Error::FatalError("Must provide both UTDATE and PROJECTID to _clear_old_acct_row") unless exists $details{$key};
 
     push(@clauses, " $key = '$details{$key}' ");
@@ -422,10 +425,11 @@ sub _insert_timeacct_entry {
   my $timespent = $acct->timespent->seconds;
   my $conf = $acct->confirmed;
   my $date = $acct->date->strftime('%Y-%m-%d');
+  my $shifttype = $acct->shifttype;
 
   # insert
   $self->_db_insert_data( $ACCTTABLE, $date, $proj, $timespent,
-                          $conf);
+                          $conf, $shifttype);
 
 }
 
