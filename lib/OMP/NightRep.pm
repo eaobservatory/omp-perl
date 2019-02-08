@@ -995,11 +995,39 @@ sub astext {
 
     Observing Report for $date at the $tel
 
-Project Time Summary
-
 };
 
   #   T I M E   A C C O U N T I N G
+
+  # Get shifts from time accounting and from timelostbyshift.
+  my %times = $self->accounting;
+
+  my %timelostbyshift = $self->timelostbyshift;
+
+  my @shifts;
+  for my $key (keys %times){
+      unless(!defined $key  || $key eq '' || $key eq $WARNKEY) {
+          push @shifts, $key;
+      }
+  }
+  my @faultshifts = (keys %timelostbyshift);
+  for my $shift (@faultshifts) {
+      if((! exists($times{$shift}) ) && ($shift ne '')) {
+          push @shifts, $shift;
+      }
+  }
+
+  $str .= "Shifts on this date were";
+  for my $shift (@shifts) {
+      $str .= " $shift";
+  }
+  $str .= "\n\n";
+  $str .= "Overall Project Time Summary\n\n";
+
+  # 1. Get total time overall for all shifts.
+
+  my %overallresults = $self->accounting_db("byproject");
+
   # Total time
   my $total = 0.0;
   my $totalobserved = 0.0; # Total time spent observing
@@ -1023,34 +1051,35 @@ Project Time Summary
   # Just do project accounting
   my %acct = $self->accounting_db();
 
+
   # Weather and Extended and UNKNOWN and OTHER
   my %text = ( WEATHER => "Time lost to weather:",
                OTHER   =>  "Other time:",
                EXTENDED => "Extended Time:",
                CAL      => "Calibrations:",
-             );
+      );
 
   for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
-    my $time = 0.0;
-    if (exists $acct{$tel.$proj}) {
-      $time = $acct{$tel.$proj}->timespent->hours;
-      $total += $time unless $proj eq 'EXTENDED';
-      $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
-    }
-    $str .= sprintf("$format", $text{$proj}, $time);
+      my $time = 0.0;
+      if (exists $overallresults{$tel.$proj}) {
+          $time = $overallresults{$tel.$proj}{'total'}->hours;
+          $total += $time unless $proj eq 'EXTENDED';
+          $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
+      }
+      $str .= sprintf("$format", $text{$proj}, $time);
   }
 
-  for my $proj (keys %acct) {
-    next if $proj =~ /^$tel/;
-    $str .= sprintf("$format", $proj.':', $acct{$proj}->timespent->hours);
-    $total += $acct{$proj}->timespent->hours;
-    $totalobserved += $acct{$proj}->timespent->hours;
-    $totalproj += $acct{$proj}->timespent->hours;
+  for my $proj (keys %overallresults) {
+      next if $proj =~ /^$tel/;
+      $str .= sprintf("$format", $proj.':', $overallresults{$proj}{'total'}->hours);
+      $total += $overallresults{$proj}{'total'}->hours;
+      $totalobserved += $overallresults{$proj}{'total'}->hours;
+      $totalproj += $overallresults{$proj}{'total'}->hours;
   }
 
   if ($shuttime) {
-    $str .= "\n";
-    $str .= sprintf($format, "Closed time:", $shuttime);
+      $str .= "\n";
+      $str .= sprintf($format, "Closed time:", $shuttime);
   }
   $str .= "\n";
   $str .= sprintf($format, "Project time", $totalproj);
@@ -1060,6 +1089,66 @@ Project Time Summary
   $str .= sprintf($format, "Total time:", $total);
   $str .= "\n";
 
+
+  # Now get time by shift
+
+
+  for my $shift (@shifts) {
+      $str .= "\n";
+      $str .="Shift $shift  summary\n\n";
+      # Total time
+      my $total = 0.0;
+      my $totalobserved = 0.0; # Total time spent observing
+      my $totalproj = 0.0;
+      if (exists $timelostbyshift{$shift}) {
+          my $faultloss = $timelostbyshift{$shift}->hours;
+          $str .= sprintf("$format", "Time lost to faults:", $faultloss);
+      }
+
+      for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
+          my $time = 0.0;
+          if (exists $acct{$shift}{$tel.$proj}) {
+              $time = $acct{$shift}{$tel.$proj}->timespent->hours;
+              $total += $time unless $proj eq 'EXTENDED';
+              $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
+          }
+          if ($time > 0) {
+              $str .= sprintf("$format", $text{$proj}, $time);
+          }
+      }
+      $str .= "\n";
+      for my $proj (keys $acct{$shift}) {
+          next if $proj =~ /^$tel/;
+
+          $str .= sprintf("$format", $proj.':', $acct{$shift}{$proj}->timespent->hours);
+          $total += $acct{$shift}{$proj}->timespent->hours;
+          $totalobserved += $acct{$shift}{$proj}->timespent->hours;
+          $totalproj += $acct{$shift}{$proj}->timespent->hours;
+      }
+
+      if ($shuttime) {
+          $str .= "\n";
+          if (exists $acct{$shift}{$tel.'_SHUTDOWN'}) {
+              my $shiftshuttime = $acct{$shift}{$tel.'_SHUTDOWN'}->timespent->hours;
+              if ($shiftshuttime > 0) {
+                  $str .= sprintf($format, "Closed time:", $shiftshuttime);
+              }
+              # Add shutdown time to total
+              $total += $shiftshuttime;
+              }
+      }
+      $str .= "\n";
+      $str .= sprintf($format, "Project time", $totalproj);
+      $str .= "\n";
+      $str .= sprintf($format, "Total time observed:", $totalobserved);
+      $str .= "\n";
+      $str .= sprintf($format, "Total time:", $total);
+      $str .= "\n";
+
+  }
+
+  # Now print summary by shift, if more than one.
+
   # M S B   S U M M A R Y
   # Add MSB summary here
   $str .= "Observation summary\n\n";
@@ -1067,11 +1156,11 @@ Project Time Summary
   my %msbs = $self->msbs;
 
   for my $proj (keys %msbs) {
-    $str .= "  $proj\n";
-    for my $msb (@{$msbs{$proj}}) {
-      $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
-                      $msb->wavebands, $msb->title). "\n";
-    }
+      $str .= "  $proj\n";
+      for my $msb (@{$msbs{$proj}}) {
+          $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
+                          $msb->wavebands, $msb->title). "\n";
+      }
   }
   $str .= "\n";
 
