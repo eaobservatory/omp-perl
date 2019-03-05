@@ -1851,9 +1851,26 @@ sub locate_timegaps {
   # Sort according to time.
   @obslist = sort { $a->[0] <=> $b->[0] } @obslist;
 
+  # Get a list of comments
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+
+  # Query between first and last observation."
+  my $start =  $obslist[0]->[2]->startobs;
+  my $end = $obslist[$#obslist]->[2]->endobs;
+  my $queryxml = "<ObsQuery>" . "<date><min>" . $start->ymd ."</min>" .
+    "<max>" . $end->ymd . "T" . $end->hms . "</max></date>" .
+    "<obsactive>1</obsactive></ObsQuery>";
+  OMP::General->log_message( "ObslogDB: Querying database for observation comments.\n" );
+  my $query = new OMP::ObsQuery( XML=>$queryxml );
+  my @commentresults = $odb->queryComments( $query );
+
+  # Create  a hash for easy lookups.
+  my %comments = map {$_->startobs->ymd . "T" . $_->startobs->hms => $_  } @commentresults;
+
   # For each observation in the sorted array...
   foreach my $obs (@obslist) {
     if( $counter == 0 && defined $last_time ) {
+
 
       # We have a timegap. Let's see if it's longer than our threshold.
       my $gap = $obs->[0] - $last_time;
@@ -1879,9 +1896,11 @@ sub locate_timegaps {
         $timegap->remote( $curr_obs->remote );
 
         # Get the comments for the TimeGap.
-        my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-        my $comments = $odb->getComment( $timegap );
-        $timegap->comments( $comments );
+        my $starttime = $timegap->startobs->ymd . "T" . $timegap->startobs->hms;
+        if (exists ($comments{$starttime})) {
+            $timegap->comments( $comments{$starttime} );
+        }
+
 
         # Set the TimeGap status, if necessary.
         if( !defined( $timegap->status ) ) {
