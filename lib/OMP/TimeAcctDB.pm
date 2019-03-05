@@ -382,7 +382,7 @@ sub _clear_old_timeacct_row {
   # from the relevant keys
   my @clauses;
   for my $key (qw/ projectid shifttype /) {
-    throw OMP::Error::FatalError("Must provide both UTDATE and PROJECTID to _clear_old_acct_row") unless exists $details{$key};
+    throw OMP::Error::FatalError("Must provide both UTDATE, SHIFTTYPE and PROJECTID to _clear_old_acct_row") unless exists $details{$key};
 
     push(@clauses, " $key = '$details{$key}' ");
 
