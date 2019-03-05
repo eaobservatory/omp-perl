@@ -288,7 +288,7 @@ sub add_shift {
     my %rem;
 
     # Label which shift we are in.
-
+    $shiftinfo->Label( -text => "SHIFT: " . $shift )->pack(-side=> 'top');
 
     my $f = $w->Frame(-border => 3, -relief=> 'groove', -borderwidth=>2)->pack(-side => 'top');
 
@@ -362,6 +362,7 @@ sub add_shift {
 
     # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
     my $bf = $w->Frame()->pack(-side => 'top');
+
     $bf->Button(-text => "CONFIRM SHIFT $shift",
                 -command => sub { &confirm_totals($nr, $shift, \%final, \%comments);
                                     &confirm_popup($w);
@@ -606,8 +607,6 @@ sub confirm_totals {
   # DBAccounts and then re fetch them from the database?
   $nr->{DBAccounts} = undef;
   $nr->db_accounts();
-
-  #$nr->db_accounts( new OMP::TimeAcctGroup(accounts => \@acct) );
 
 }
 
