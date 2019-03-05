@@ -782,7 +782,61 @@ sub faultTypes {
     return $DATA{$category}{TYPE};
   } else {
     return ();
+
   }
+}
+
+=item B<shiftTypes>
+For a specific fault category (eg JCMT or UKIRT) return a list of the allowed shift types.
+
+    %shifttypes = OMP::Fault->shiftTypes( "JCMT");
+
+Returns empty list if the fault category is not recognized or has no allowed shifts.
+=cut
+
+my %JCMTSHIFTTYPES = ( NIGHT => "NIGHT",
+		       EO => "EO",
+		       DAY => "DAY",
+		       OTHER => "OTHER",
+    );
+my %UKIRTSHIFTTYPES = ( NIGHT => "NIGHT" );
+
+sub shiftTypes {
+    my $class = shift;
+    my $category = uc(shift);
+
+    if ($category eq 'JCMT') {
+	return %JCMTSHIFTTYPES;
+    } elsif ($category eq 'UKIRT') {
+	return %UKIRTSHIFTTYPES;
+    } else {
+	return ();
+    }
+}
+
+
+=itme B<remoteTypes>
+For a specific fault category (eg JCMT or UKIRT) return a list of the allowed remote types.
+
+    %remotetypes = OMP::Fault->remoteTypes( "JCMT");
+
+Returns empty list if the fault category is not recognized or has no allowed remote types.
+=cut
+
+my %JCMTREMOTETYPES = ( LOCAL => "LOCAL",
+		       REMOTE => "REMOTE",
+		       UNKNOWN => "UNKNOWN",
+    );
+
+sub remoteTypes {
+    my $class = shift;
+    my $category = uc(shift);
+
+    if ($category eq 'JCMT') {
+	return %JCMTREMOTETYPES;
+    } else {
+	return ();
+    }
 }
 
 =item B<faultUrgency>
@@ -1177,8 +1231,14 @@ Remote  (supplied as an integer).
 
 sub remote {
   my $self = shift;
-  if (@_) { $self->{Remote} = shift; }
+  if (@_) {
+      my $remote = shift;
+      if (! defined $remote || $remote eq '') {
+          $remote = undef;
+      }
+      $self->{Remote} = $remote; }
   return $self->{Remote};
+
 }
 
 =item B<system>
