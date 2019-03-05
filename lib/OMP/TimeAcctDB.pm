@@ -426,10 +426,11 @@ sub _insert_timeacct_entry {
   my $conf = $acct->confirmed;
   my $date = $acct->date->strftime('%Y-%m-%d');
   my $shifttype = $acct->shifttype;
+  my $comment = $acct->comment;
 
   # insert
   $self->_db_insert_data( $ACCTTABLE, $date, $proj, $timespent,
-                          $conf, $shifttype);
+                          $conf, $shifttype, $comment);
 
 }
 
