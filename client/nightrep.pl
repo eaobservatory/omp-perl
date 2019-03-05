@@ -97,14 +97,15 @@ $DEBUG = 0;
 
 # Options
 my $use_cache = 1;
-my ($help, $man, $version, $dump, $tel, $ut );
+my ($help, $man, $version, $dump, $tel, $ut, $ashtml );
 GetOptions( "help"    => \$help,
             "man"     => \$man,
             "version" => \$version,
             'dump'    => \$dump,
             "ut=s"    => \$ut,
             "tel=s"   => \$tel,
-            'cache!'  => \$use_cache
+            'cache!'  => \$use_cache,
+            'ashtml'    => \$ashtml,
           )
           or pod2usage(1) ;
 
@@ -146,15 +147,22 @@ if(defined($tel)) {
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
+
+
 # Night report
-my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
+
+my $NR = new OMP::NightRep( date => $ut, telescope => $telescope );
 
 if ($dump) {
     print scalar $NR->astext();
     exit 0;
 }
 
-# Now put up a button bar
+if ($ashtml) {
+    $NR->ashtml();
+    exit 0;
+}
+
 my $TL = $MW->Toplevel;
 
 # Ensure there are scrollbars on the top level, and the initial size
