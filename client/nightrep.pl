@@ -192,9 +192,6 @@ sub shift_windows {
   my $w = shift;
   my $nr = shift;
 
-  # Get the telescope for efficiency
-  my $tel = $nr->telescope;
-
   # Get the project statistics
   my ($warnings,%times) = generate_project_info($nr);
 
@@ -265,14 +262,17 @@ sub add_shift {
     my (%times) = %{$_[2]};
     my (%timelostbyshift) = %{$_[3]};
     my $nr = $_[4];
-
-
-    my $f = $w->Frame(-border => 3)->pack(-side => 'top');
+    my $tel = $nr->telescope;
+    my $shiftinfo = $w->Frame(-border=>3 )->pack(-side=> 'top');
 
     # This hash will contain the times (in hours) for each
     # entry
     my %final;
     my $total_time;
+
+
+    # This hash will contain comments (if any) for each editable entry.
+    my %comments;
 
     # This callback sums up all the times
     my $sums = sub {
@@ -289,16 +289,18 @@ sub add_shift {
 
     # Label which shift we are in.
 
-    $f->Label( -text => "SHIFT: " . $shift )->grid(-row=>0, -column=>0);
+
+    my $f = $w->Frame(-border => 3, -relief=> 'groove', -borderwidth=>2)->pack(-side => 'top');
 
 
     # If this shift exists in the times:
     if (exists $times{$shift}) {
-        for my $proj (keys %times->{$shift}) {
+        my %projecthash = %{$times{$shift}};
+        for my $proj (sort keys %projecthash) {
             if ($proj =~ /^$tel/) {
                 $rem{$proj}++;
             } else {
-                add_project( $f, 1,$proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums );
+                add_project( $f, 1 ,$proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums, \$comments{$proj} );
             }
         }
 
@@ -311,7 +313,7 @@ sub add_shift {
             next if $proj eq $tel . "UNKNOWN";
             next if $proj eq $tel . "OTHER";
             next if $proj eq $tel . "FAULT";
-            add_project( $f, 1, $proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums);
+            add_project( $f, 1, $proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums, \$comments{$proj});
         }
     }
 
@@ -323,7 +325,7 @@ sub add_shift {
         my $proj = $tel . $label;
         my $newtimes = (exists $times{$shift}{$proj} ? $times{$shift}{$proj} : {});
         add_project( $f, 1, $strings{$label}, $shift, $newtimes, \$final{$proj},
-                     $sums);
+                     $sums, \$comments{$proj});
     }
 
 
@@ -352,7 +354,7 @@ sub add_shift {
     my $exttime = (exists $times{$shift}{$tel."EXTENDED"} ? $times{$shift}{$tel."EXTENDED"}
                    : {});
     add_project( $f, 1,"Extended time", $shift, $exttime,
-                 \$final{$tel."EXTENDED"},$sums);
+                 \$final{$tel."EXTENDED"},$sums, \$comments{$tel."EXTENDED"});
 
     # And force a summation
     $sums->();
@@ -361,13 +363,13 @@ sub add_shift {
     # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
     my $bf = $w->Frame()->pack(-side => 'top');
     $bf->Button(-text => "CONFIRM SHIFT $shift",
-                -command => sub { &confirm_totals($nr,$shift, %final);
+                -command => sub { &confirm_totals($nr, $shift, \%final, \%comments);
                                     &confirm_popup($w);
                                     &redraw_main_window($w);
                 }
         )->pack(-side =>'right');
     $bf->Button(-text => "CONFIRM and MAIL SHIFT $shift",
-                -command => sub {&confirm_totals($nr,$shift, %final);
+                -command => sub {&confirm_totals($nr, $shift, \%final, \%comments);
                                  &confirm_popup($w);
                                  &redraw_main_window($w);
                                  $nr->mail_report;
@@ -375,7 +377,7 @@ sub add_shift {
         )->pack(-side =>'right');
     $bf->Button(-text => "ADD PROJECT for $shift",
                 -command => sub {
-                    &request_extra_project( $f, \%final, $sums, $shift);
+                    &request_extra_project( $f, \%final, $sums, $shift, \%comments);
                 }
         )->pack(-side =>'right');
 
@@ -398,6 +400,7 @@ sub add_shift {
     my $times = shift;
     my $varref = shift;
     my $cb = shift;
+    my $commentref = shift;
 
     # Increment the row counter
     $Row++;
@@ -411,16 +414,19 @@ sub add_shift {
 
     # Decide on the default value
     # Choose DATA over DB unless DB is confirmed.
+
     if (exists $times->{DB} && $times->{DB}->confirmed) {
       # Confirmed overrides data headers
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DB}->timespent->hours));
+      $$commentref = $times->{DB}->comment;
     } elsif (exists $times->{DATA}) {
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DATA}->timespent->hours));
     } elsif (exists $times->{DB}) {
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DB}->timespent->hours));
+      $$commentref = $times->{DB}->comment;
     } else {
       # Empty
       $$varref = '';
@@ -432,12 +438,16 @@ sub add_shift {
       my $ent = $w->Entry( -width => 10, -textvariable => $varref
                          )->grid(-row=>$Row,
                                  -column => 1);
-
       # Bind "leave" and "enter" to update the total
       if (defined $cb) {
         $ent->bind("<Leave>",$cb);
         $ent->bind("<Return>",$cb);
       }
+
+      # If its editable, add a comment box.
+      my $comment = $w->Entry(-width=> 40, -textvariable => $commentref)->grid(-row=>$Row, -column=>5);
+
+
     } else {
       $w->Label( -textvariable => $varref)->grid(-row=>$Row, -column=>1);
     }
@@ -541,9 +551,10 @@ sub confirm_popup {
 
 # Submit the totals to the database; requires the specific shift to be included.
 sub confirm_totals {
-  my $nr = shift;
-  my $shift = shift;
-  my %totals = @_;
+  my $nr = $_[0];
+  my $shift = $_[1];
+  my (%totals) = %{$_[2]};
+  my (%comments) = %{$_[3]};
 
   # Create a date object
   my $date = $nr->date;
@@ -554,8 +565,15 @@ sub confirm_totals {
   # Loop over each project
   my @acct;
   for my $proj (keys %totals) {
+
     # Skip faults since they come from fault database
     next if $proj =~ /FAULTS/;
+
+    # Get comment if there is one.
+    my $comment;
+    if (exists $comments{$proj} ) {
+        $comment = $comments{$proj};
+    }
 
     # time spent [assuming we have a number]
     # We should probably distinguish '' from 0.0
@@ -571,6 +589,7 @@ sub confirm_totals {
                                            date=> $date,
                                            confirmed => 1,
                                            shifttype => $shift,
+                                           comment => $comment,
                                          );
 
     # Store it in array
@@ -654,7 +673,7 @@ sub request_extra_shift {
 # Sometimes some project was observed that did not result in
 # data files. Must be able to add extras
 sub request_extra_project {
-  my ($w, $finalRef, $sums, $shift ) = @_;
+  my ($w, $finalRef, $sums, $shift, $commentRef ) = @_;
 
   # First request it
   require Tk::DialogBox;
@@ -691,7 +710,7 @@ sub request_extra_project {
 
       # Add information to the table
       $finalRef->{$proj} += 0;
-      add_project($w, 1, $proj, $shift,{}, \$finalRef->{$proj}, $sums);
+      add_project($w, 1, $proj, $shift,{}, \$finalRef->{$proj}, $sums, \$commentRef->{$proj});
     } else {
       require Tk::Dialog;
       my $dialog = $w->Dialog( -text => "This project exists but is disabled",
