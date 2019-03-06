@@ -288,7 +288,7 @@ while ($ut <= $endut) {
   my $nr = OMP::NightRep->new(date => $iut,
                               telescope => $tel,
                               delta_day => $delta,);
-  my %acct = $nr->accounting_db(1);
+  my %acct = $nr->accounting_db('byproject');
 
   my $total = 0;
   my $total_pending = 0;
