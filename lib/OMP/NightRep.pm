@@ -1248,6 +1248,7 @@ Optionally do for a specific shift.
 
 sub projectsummary_ashtml {
     my $self = shift;
+    my $showcomment = shift;
     my $shift = shift;
 
 
@@ -1273,7 +1274,10 @@ sub projectsummary_ashtml {
     my $technicalloss = 0.0;
     my $nontechnicalloss = 0.0;
     my %acct;
-    my %fullact = $self->accounting_db();;
+    my %fullact;
+    if ($showcomment) {
+        %fullact = $self->accounting_db();
+    }
     my %shiftacct;
 
     # If $shift is not defined, then just do overall.
@@ -1297,6 +1301,8 @@ sub projectsummary_ashtml {
         } else {
             %acct = ();
         }
+
+
         if (exists ($fullact{$shift})) {
             %shiftacct = %{$fullact{$shift}};
         } else {
@@ -1368,8 +1374,10 @@ sub projectsummary_ashtml {
                 $pending += $acct{$tel.$proj}->{pending}->hours;
             }
             $total += $time unless $proj eq 'EXTENDED';
-            if (exists $shiftacct{$tel.$proj}) {
-                $comment = $shiftacct{$tel.$proj}->{Comment};
+            if ($showcomment) {
+                if (exists $shiftacct{$tel.$proj}) {
+                    $comment = $shiftacct{$tel.$proj}->{Comment};
+                }
             }
         }
         print "$text{$proj}<td>" . sprintf($format, $time);
@@ -1417,8 +1425,10 @@ sub projectsummary_ashtml {
                 $pending = $account->{pending}->hours;
             }
             my $comment;
-            if (exists $shiftacct{$proj}) {
-                $comment = $shiftacct{$proj}->{Comment};
+            if ($showcomment) {
+                if (exists $shiftacct{$proj}) {
+                    $comment = $shiftacct{$proj}->{Comment};
+                }
             }
             print "<tr class='row_$bgcolor'>";
             print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
@@ -1548,6 +1558,10 @@ sub ashtml {
     print "<p>";
   }
 
+  my $showcomment = 1;
+  if ($self->delta_day > 1) {
+      $showcomment = 0;
+  }
   # T i m e  A c c o u n t i n g
   # Get shifts from time accounting and from timelostbyshift.
   my %times = $self->accounting;
@@ -1580,7 +1594,7 @@ sub ashtml {
   # Now do it per shift.
   if (@shifts > 1) {
       for my $shift (@shifts) {
-	  $self->projectsummary_ashtml($shift);
+	  $self->projectsummary_ashtml($showcomment, $shift);
       }
   }
 
