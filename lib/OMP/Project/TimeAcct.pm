@@ -388,6 +388,7 @@ sub summarizeTimeAcct {
     my $ut= $acct->date->strftime('%Y-%m-%d');
     my $c = $acct->confirmed;
     my $shft = $acct->shifttype;
+    $shft = 'UNKNOWN' unless defined $shft;
     my $rem = $acct->remote;
     if (! defined $rem) {
         $rem = "UNKNOWN";
