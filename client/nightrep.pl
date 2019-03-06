@@ -79,6 +79,7 @@ use Pod::Usage;
 
 use Tk;
 use Tk::Toplevel;
+use Tk::Pane;
 
 # Locate the OMP software through guess work
 use FindBin;
