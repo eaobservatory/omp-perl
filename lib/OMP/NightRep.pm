@@ -1331,13 +1331,13 @@ sub projectsummary_ashtml {
     # Format table
     print "<table class='sum_table' cellspacing='0' width='600'>";
     print "<tr class='sum_table_head'>";
-    print "<td colspan='3'><strong class='small_title'>$title Project Time Summary</strong></td>";
+    print "<td colspan='4'><strong class='small_title'>$title Project Time Summary</strong></td>";
 
     # Closed time (if any)
     if ($shuttime) {
         print "<tr class='sum_other'>";
         print "<td>Closed</td>";
-        print "<td colspan='2'>". sprintf($format, $shuttime) . "</td>";
+        print "<td colspan='2'>". sprintf($format, $shuttime) . "</td><td/>";
         print "</tr>";
 
         $total += $shuttime;
@@ -1346,13 +1346,13 @@ sub projectsummary_ashtml {
     # Time lost to faults.
     print "<tr class='sum_other'>";
     print "<td>Time lost to technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td>";
+    print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td><td/>";
     print "<tr class='sum_other'>";
     print "<td>Time lost to non-technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $nontechnicalloss) . "</td>";
+    print "<td colspan=2>" . sprintf($format, $nontechnicalloss) . "</td><td/>";
     print "<tr class='sum_other'>";
     print "<td>Total time lost to faults</td>";
-    print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+    print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td><td/>";
 
      $total += $faultloss;
 
@@ -1457,13 +1457,13 @@ sub projectsummary_ashtml {
     print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
         if ($total_pending > 0);
 
-    print "</td>";
+    print "</td><td></td>";
 
     # Print total time spent on projects alone
     print "<tr class='row_$bgcolor'>";
     print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
         sprintf($format, $total_proj).
-        "</td>";
+        "</td><td></td>";
 
     # Get clear time
     my $cleartime = $total - $shuttime;
@@ -1472,9 +1472,9 @@ sub projectsummary_ashtml {
 
     if ($cleartime > 0) {
         print "<tr class='proj_time_sum_weather_row'>";
-        print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
+        print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td><td></td>";
         print "<tr class='proj_time_sum_other_row'>";
-        print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td>";
+        print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td><td></td>";
     }
 
     print "</table>";
