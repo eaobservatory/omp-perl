@@ -1019,7 +1019,11 @@ sub astext {
 
   my $shiftcount = scalar @shifts;
 
-  $str .= "Shifts on this date were @shifts";
+  $str .= "There were shiftypes of ";
+  for my $shift(@shifts) {
+      $str .= "$shift ";
+  }
+  $str .= "in this timeperiod\n";
   $str .= "\n\n";
   $str .= "Overall Project Time Summary\n\n";
 
@@ -1541,6 +1545,12 @@ sub ashtml {
 
 
   # First of all do overall per night.
+  print "<p> There were shiftypes of ";
+  for my $shift(@shifts) {
+      print "$shift ";
+  }
+  print "in this timeperiod.</p>";
+
   $self->projectsummary_ashtml;
 
   # Now do it per shift.
