@@ -972,7 +972,7 @@ sub nightlog {
     $return{'Chop Throw'} = defined($self->chopthrow) ? $self->chopthrow : 0;
     $return{'Chop Angle'} = defined($self->chopangle) ? $self->chopangle : 0;
     $return{'Chop System'} = defined($self->chopsystem) ? $self->chopsystem : '';
-
+    $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     my @short_val;
     my $short_form_val;
@@ -980,10 +980,10 @@ sub nightlog {
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
-        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?", "FTS In?"];
+        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
         @short_val = map $return{$_} , @{$return{'_ORDER'}};
-        $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s";
-        $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s %7s";
+        $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-5s";
+        $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s %7s %5s";
     } else {
         $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
@@ -1037,14 +1037,15 @@ sub nightlog {
     $file =~ s/^rxh3-//i;
     $file =~ s/\.fits//i;
     $return{'File'} = $file;
+    $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     $return{'_ORDER'} = [
-        'Run', 'UT time', 'Obsmode', 'Project ID', 'Frequency', 'Num. freq.', 'File',
+        'Run', 'UT time', 'Obsmode', 'Project ID', 'Frequency', 'Num. freq.', 'File', 'Shift',
     ];
 
-    $return{'_STRING_HEADER'} = 'Run  UT start              Mode      Project  Frequency  Num. freq.             File';
+    $return{'_STRING_HEADER'} = 'Run  UT start              Mode      Project  Frequency  Num. freq.             File           Shift';
     $return{'_STRING'} = sprintf(
-        '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s',
+        '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s %5s',
         $return{'Run'},
         $return{'UT time'},
         $return{'Obsmode'},
@@ -1052,6 +1053,7 @@ sub nightlog {
         $return{'Frequency'},
         $return{'Num. freq.'},
         $return{'File'},
+	$return{'Shift'}
     );
 
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
@@ -1097,14 +1099,15 @@ sub nightlog {
 
     $return{'Project ID'} = $self->projectid;
     $return{'Bandwidth Mode'} = $self->bandwidth_mode;
+    $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project ID", "Source", "Cycle Length", "Number of Cycles",
-                          "Frequency", "Velocity", "Velsys", "Bandwidth Mode" ];
+                          "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode";
+    $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode     Shift";
 #    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
     $return{'_STRING'} =
-      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %11s",
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %11s %5s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
@@ -1114,7 +1117,8 @@ sub nightlog {
         $return{'Number of Cycles'},
         $return{'Frequency'},
         $velocity_formatted,
-        $return{'Bandwidth Mode'}
+        $return{'Bandwidth Mode'},
+	$return{'Shift'}
         ;
 
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
