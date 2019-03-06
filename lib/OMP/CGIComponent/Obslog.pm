@@ -312,7 +312,7 @@ sub obs_table {
     print "\nObservations for " . uc( $currentinst ) . " on $ut\n";
     print $nightlog{_STRING_HEADER}, "\n";
   } else {
-    $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
+    $ncols = scalar(@{$nightlog{_ORDER}}) + 4;
     print "<table class=\"sum_table\" border=\"0\">\n";
     print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
@@ -379,9 +379,9 @@ sub obs_table {
 
         # Don't include WORF columns if they were specifically not requested.
         if ($worflink eq 'none') {
-            print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
+            print "</td><td>Comments</td><td>Run</td><td>Status</td><td>Shift</td></tr>\n";
         } else {
-            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
+            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td><td>Shift</td></tr>\n";
         }
       }
     }
@@ -392,13 +392,14 @@ sub obs_table {
     my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
     my $label_status = defined( $status ) ? $status_label{$status} : $status_label{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
+    my $shift = $obs->shifttype;
     my @msb_comment;
 
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
       if( $text ) {
         print $nightlog{'_STRING'}, "\n";
       } else {
-        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 2 ) . "\"><font color=\"BLACK\">";
+        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 4) . "\"><font color=\"BLACK\">";
         $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
         print $nightlog{'_STRING'};
       }
@@ -417,7 +418,7 @@ sub obs_table {
         print @text, "\n", $nightlog{'_STRING'}, "\n";
       } else {
 
-        $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
+        $ncols = scalar( @{$nightlog{_ORDER}} ) + 4;
 
         if ( scalar @msb_comment ) {
 
@@ -553,6 +554,9 @@ sub obs_table {
       print qq[<td class="$css_status">] . $obs->runnr . '</td>';
       # Print the status of the observation explicitly.
       print qq[<td class="$css_status">] . $label_status . '</td>';
+
+      # Print the shift.
+      print qq[<td class="$css_status">] . $shift . '</td>';
       print "</tr>\n";
     }
 
@@ -570,7 +574,7 @@ sub obs_table {
           print $comment->text . "\n";
         }
       } else {
-        print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
+        print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 4) . "\">";
         my @printstrings;
         foreach my $comment (@$comments) {
           my $string = qq[ <span class="] . $css{$comment->status} . '">'
