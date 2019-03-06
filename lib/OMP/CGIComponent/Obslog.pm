@@ -379,9 +379,9 @@ sub obs_table {
 
         # Don't include WORF columns if they were specifically not requested.
         if ($worflink eq 'none') {
-            print "</td><td>Comments</td><td>Run</td><td>Status</td><td>Shift</td></tr>\n";
+            print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
         } else {
-            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td><td>Shift</td></tr>\n";
+            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
         }
       }
     }
@@ -556,8 +556,8 @@ sub obs_table {
       print qq[<td class="$css_status">] . $label_status . '</td>';
 
       # Print the shift.
-      print qq[<td class="$css_status">] . $shift . '</td>';
-      print "</tr>\n";
+      #print qq[<td class="$css_status">] . $shift . '</td>';
+      #print "</tr>\n";
     }
 
     # Print the comments underneath, if there are any, and if the
