@@ -888,7 +888,7 @@ sub timelostbyshift {
   my %faults = $self->faultsbyshift;
 
   return undef
-    unless defined %faults;
+    unless %faults;
 
   my %results;
   my $res;
