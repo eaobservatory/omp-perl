@@ -68,7 +68,7 @@ my $nr = OMP::NightRep->new(date => $startut,
 
 my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP";
 
-my %acct = $nr->accounting_db(1);
+my %acct = $nr->accounting_db('byproject');
 
 my $faultloss = $nr->timelost->hours;
 my $technicalloss = $nr->timelost('technical')->hours;
