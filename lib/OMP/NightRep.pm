@@ -1554,8 +1554,10 @@ sub ashtml {
   $self->projectsummary_ashtml;
 
   # Now do it per shift.
-  for my $shift (@shifts) {
-      $self->projectsummary_ashtml($shift);
+  if (@shifts > 1) {
+      for my $shift (@shifts) {
+	  $self->projectsummary_ashtml($shift);
+      }
   }
 
 
