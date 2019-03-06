@@ -1855,18 +1855,21 @@ sub locate_timegaps {
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
 
   # Query between first and last observation."
-  my $start =  $obslist[0]->[2]->startobs;
-  my $end = $obslist[$#obslist]->[2]->endobs;
-  my $queryxml = "<ObsQuery>" . "<date><min>" . $start->ymd ."</min>" .
+
+  my %comments;
+  if (@obslist) {
+      my $start =  $obslist[0]->[2]->startobs;
+      my $end = $obslist[$#obslist]->[2]->endobs;
+      my $queryxml = "<ObsQuery>" . "<date><min>" . $start->ymd ."</min>" .
     "<max>" . $end->ymd . "T" . $end->hms . "</max></date>" .
     "<obsactive>1</obsactive></ObsQuery>";
-  OMP::General->log_message( "ObslogDB: Querying database for observation comments.\n" );
-  my $query = new OMP::ObsQuery( XML=>$queryxml );
-  my @commentresults = $odb->queryComments( $query );
+      OMP::General->log_message( "ObslogDB: Querying database for observation comments.\n" );
+      my $query = new OMP::ObsQuery( XML=>$queryxml );
+      my @commentresults = $odb->queryComments( $query );
 
-  # Create  a hash for easy lookups.
-  my %comments = map {$_->startobs->ymd . "T" . $_->startobs->hms => $_  } @commentresults;
-
+      # Create  a hash for easy lookups.
+      %comments = map {$_->startobs->ymd . "T" . $_->startobs->hms => $_  } @commentresults;
+  }
   # For each observation in the sorted array...
   foreach my $obs (@obslist) {
     if( $counter == 0 && defined $last_time ) {
