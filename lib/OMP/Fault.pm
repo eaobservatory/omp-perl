@@ -782,7 +782,61 @@ sub faultTypes {
     return $DATA{$category}{TYPE};
   } else {
     return ();
+
   }
+}
+
+=item B<shiftTypes>
+For a specific fault category (eg JCMT or UKIRT) return a list of the allowed shift types.
+
+    %shifttypes = OMP::Fault->shiftTypes( "JCMT");
+
+Returns empty list if the fault category is not recognized or has no allowed shifts.
+=cut
+
+my %JCMTSHIFTTYPES = ( NIGHT => "NIGHT",
+		       EO => "EO",
+		       DAY => "DAY",
+		       OTHER => "OTHER",
+    );
+my %UKIRTSHIFTTYPES = ( NIGHT => "NIGHT" );
+
+sub shiftTypes {
+    my $class = shift;
+    my $category = uc(shift);
+
+    if ($category eq 'JCMT') {
+	return %JCMTSHIFTTYPES;
+    } elsif ($category eq 'UKIRT') {
+	return %UKIRTSHIFTTYPES;
+    } else {
+	return ();
+    }
+}
+
+
+=itme B<remoteTypes>
+For a specific fault category (eg JCMT or UKIRT) return a list of the allowed remote types.
+
+    %remotetypes = OMP::Fault->remoteTypes( "JCMT");
+
+Returns empty list if the fault category is not recognized or has no allowed remote types.
+=cut
+
+my %JCMTREMOTETYPES = ( LOCAL => "LOCAL",
+		       REMOTE => "REMOTE",
+		       UNKNOWN => "UNKNOWN",
+    );
+
+sub remoteTypes {
+    my $class = shift;
+    my $category = uc(shift);
+
+    if ($category eq 'JCMT') {
+	return %JCMTREMOTETYPES;
+    } else {
+	return ();
+    }
 }
 
 =item B<faultUrgency>
@@ -999,6 +1053,8 @@ Fault constructor. A fault must be created with the following information:
   urgency   - how urgent is the fault?              [integer]
   entity    - specific thing (eg instrument or computer name) [string]
   status    - is the fault OPEN or CLOSED [integer]
+  shifttype - what type of shift was this [string]
+  remote    - remote or not [integer]
   fault     - a fault "response" object
 
 The fault message (which includes the submitting user id) must be
@@ -1013,8 +1069,9 @@ C<faultStatus> methods. These values should be supplied as a hash:
 Optional keys are: "timelost" (assumes 0hrs), "faultdate" (assumes
 unknown), "urgency" (assumes not urgent - "normal"), "entity" (assumes
 not relevant), "system" (assumes "other/unknown") and "type" (assumes
-"other"). This means that the required information is "category" and
-the fault message itself (in the form of a response object).
+"other"), "shifttype" (assumes "") and "remote" (assumes NULL).  This
+means that the required information is "category" and the fault
+message itself (in the form of a response object).
 
 The fault ID can not be constructed automatically by this object
 since the fault ID must be unique and can not be determined without
@@ -1054,6 +1111,8 @@ sub new {
                      Responses => [],
                      Projects => [],
                      Status => OPEN,
+                     ShiftType => undef,
+                     Remote => undef,
                      Subject => undef,
                     }, $class;
 
@@ -1137,6 +1196,49 @@ sub type {
   my $self = shift;
   if (@_) { $self->{Type} = shift; }
   return $self->{Type};
+}
+
+
+=item B<shifttype>
+
+ShiftType  (supplied as a string).
+
+  $shifttype = $fault->shifttype();
+  $fault->shifttype( $shifttype  );
+
+=cut
+
+sub shifttype {
+  my $self = shift;
+  if (@_) {
+      my $shifttype = shift;
+      if (! defined $shifttype || $shifttype eq '') {
+          $shifttype = 'UNKNOWN';
+      }
+      $self->{ShiftType} = $shifttype; }
+  return $self->{ShiftType};
+}
+
+
+=item B<remote>
+
+Remote  (supplied as an integer).
+
+  $remote = $fault->remote();
+  $fault->remote( $remote  );
+
+=cut
+
+sub remote {
+  my $self = shift;
+  if (@_) {
+      my $remote = shift;
+      if (! defined $remote || $remote eq '') {
+          $remote = undef;
+      }
+      $self->{Remote} = $remote; }
+  return $self->{Remote};
+
 }
 
 =item B<system>

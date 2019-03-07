@@ -194,6 +194,18 @@ my %lut = (
         $UKIRTTAB => 'U.PROJECT',
         $JCMTTAB => 'J.project',
        },
+    shifttype => {
+        $SCUTAB => undef,
+        $GSDTAB => undef,
+        $UKIRTTAB => undef,
+        $JCMTTAB => "J.oper_typ",
+    },
+    remote => {
+        $SCUTAB => undef,
+        $GSDTAB => undef,
+        $UKIRTTAB => undef,
+        $JCMTTAB => "J.oper_loc",
+    },
 
     );
 

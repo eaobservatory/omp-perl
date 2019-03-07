@@ -683,15 +683,21 @@ If a small gap is between calibration observations it is charged
 to $telCAL project [they should probably be charged to the project
 in proportion to instrument usage but that requires more work].
 
+A special C<$format> paramter can be given to it; if this is 'BYSHIFT'
+then if using the SIMPLE mode for stats they will be returned by
+shifttype.
+
 =cut
 
 sub projectStats {
   my $self = shift;
+  my $format = uc(shift);
 
   # Need to determine the telescope to decide which charging
   # scheme is to be used. We assume that the telescope associated
   # with the first observation is the relevant one.
   my @obs = $self->obs;
+
 
   # If we do not have any observations we return empty
   return (["No observations for statistics"]) unless @obs;
@@ -705,7 +711,7 @@ sub projectStats {
     return $self->projectStatsShared;
   } else {
     print "USING SIMPLE\n" if $DEBUG;
-    return $self->projectStatsSimple;
+    return $self->projectStatsSimple($format);
   }
 }
 
@@ -715,13 +721,19 @@ Return an array of C<Project::TimeAcct> objects for the given
 C<ObsGroup> object and associated warnings. This implementation
 pushes all calibrations and time associated with bad observations
 into a calibration project. A science project will only be charged
-for its science time.
+for its science time. Optionally will divide time accounting by shifttype
+or not.
 
-  my ($warnings, @timeacct) = $obsgroup->projectStatsSimple;
+  my ($warnings, @timeacct) = $obsgroup->projectStatsSimple($format);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
 to populate the C<Project::TimeAcct> objects.
+
+If the optional parameter C<$format> is given, if it is 'BYSHIFT' then
+the stats will be produced for each separate shifttype. Else, the key
+'ANYSHIFT' will be used in returned the C<Project::TimeAcct> objects, and
+only one per night will be produced for each project
 
 The first argument returned is an array of warning messages generated
 by the time accounting tool. Usually these will indicate calibrations
@@ -750,10 +762,14 @@ in proportion to instrument usage but that requires more work].
 
 sub projectStatsSimple {
   my $self = shift;
-  my @obs = $self->obs;
 
+  # if format is 'BYSHIFT' then we will produce stats with shifttype
+  # as a key in the hash. Otherwise we will use the string 'NOSHIFT' as the key.
+  my $format = uc(shift);
+  my @obs = $self->obs;
+  my $numobs = $self->numobs;
   # If we do not have any observations we return empty
-  return (["No observations for statistics"]) unless @obs;
+  return (["No observations for statistics"]) unless $numobs>0;
 
   # This is the threshold for unspecified gaps
   # Below this threshold we attempt to associate them with the
@@ -773,7 +789,7 @@ sub projectStatsSimple {
   my $CAL_NAME    = "CAL";
   my $EXTENDED_KEY= "EXTENDED";
 
-  # This is a hash indexed by UT and tel (since we cannot mix them yet)
+  # This is a hash indexed by UT and tel shifttype) since we cannot mix them yet)
   # pointing to an array.  This array contains the projects as we
   # encounter them. We use it to make sure we assign small gaps to
   # projects properly. We try to make sure we do not push a project on
@@ -797,6 +813,12 @@ sub projectStatsSimple {
     my $projectid = $obs->projectid;
     my $tel = uc($obs->telescope);
 
+    my $shifttype;
+    if ($format eq 'BYSHIFT') {
+        $shifttype = uc($obs->shifttype);
+    } else {
+        $shifttype = 'ANYSHIFT';
+    }
     my $calproj = $tel . $CAL_NAME;
 
     # If we have a TIMEGAP we want to treat it as a special observation
@@ -809,12 +831,14 @@ sub projectStatsSimple {
       # but that is not how these have been implemented so we need to do it ourselves
       # Faults are explicitly calculated elsewhere in the fault system itself
       my $status = $obs->status;
+
       if ($status == OMP__TIMEGAP_FAULT) {
         # but we include them in the total so that the "length of night" is correct
         my $ymd = $obs->startobs->ymd;
         my $faultlen = $obs->endobs - $obs->startobs;
-        $night_totals{$tel}{$ymd} += $faultlen;
+        $night_totals{$tel}{$ymd}{$shifttype} += $faultlen;
       }
+
       next if $status == OMP__TIMEGAP_FAULT;
 
       if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_NEXT_PROJECT) {
@@ -828,7 +852,6 @@ sub projectStatsSimple {
       } elsif ($status == OMP__TIMEGAP_PREV_PROJECT) {
         # This is time that should be charged to the project
         # preceeding this gap. For now we do not need to do anything
-
       } else {
         $projectid = $OTHER_GAP;
       }
@@ -864,15 +887,13 @@ sub projectStatsSimple {
     my $timespent;
     my $duration = $obs->duration;
 
-    # Store the project ID if it is significant
-    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/
-                                         && $projectid !~ /$WEATHER_GAP$/
-                                         && $projectid !~ /$OTHER_GAP$/
-                                         && $projectid !~ /$EXTENDED_KEY$/
-                                         && $projectid !~ /^scuba$/i
-                                         && !$isgap
-                                        );
-
+    $sigprojects{$ymd}{$shifttype}{$projectid}++ if ($projectid !~ /$CAL_NAME$/
+                                                     && $projectid !~ /$WEATHER_GAP$/
+                                                     && $projectid !~ /$OTHER_GAP$/
+                                                     && $projectid !~ /$EXTENDED_KEY$/
+                                                     && $projectid !~ /^scuba$/i
+                                                     && !$isgap
+        );
     # if the observation is not a gap and is bad charge it to overhead
     if (!$isgap && $obs->status == OMP__OBS_BAD && $projectid ne $calproj) {
       print "Observation from project $projectid is marked BAD, charging to overhead\n" if $DEBUG;
@@ -881,8 +902,8 @@ sub projectStatsSimple {
 
     # Store the project ID for gap processing
     # In general should make sure we dont get projects that are all calibrations
-    if (!exists $gapproj{$ymd}{$tel}) {
-      $gapproj{$ymd}{$tel} = [];
+    if (!exists $gapproj{$ymd}{$tel}{$shifttype}) {
+        $gapproj{$ymd}{$tel}{$shifttype} = [];
     }
 
     # This is the project to store in the gap analysis
@@ -906,11 +927,12 @@ sub projectStatsSimple {
     # the content [previously we pushed all gaps and then replaced them
     # with the actual gap later on]
     if (!$isgap) {
-      push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
-        if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 ||
-            (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
-            (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
-             $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
+        push(@{$gapproj{$ymd}{$tel}{$shifttype}}, [$gapprojid,$inst])
+            if (scalar(@{$gapproj{$ymd}{$tel}{$shifttype}}) == 0 ||
+                (ref($gapproj{$ymd}->{$tel}->{$shifttype}->[-1]) ne 'ARRAY') ||
+                (ref($gapproj{$ymd}->{$tel}->{$shifttype}->[-1]) eq 'ARRAY' &&
+                 $gapproj{$ymd}->{$tel}->{$shifttype}->[-1]->[0] ne $gapprojid));
+
     }
 
     # We can calculate extended time so long as we have 2 of startobs, endobs and duration
@@ -919,36 +941,40 @@ sub projectStatsSimple {
         (defined $endobs   && defined $duration)
       ) {
 
-      # Get the extended time
-      ($timespent, my $extended) = OMP::DateSun->determine_extended(
-                                                                          duration => $duration,
-                                                                          start=> $startobs,
-                                                                          end=> $endobs,
-                                                                          tel => $tel,
-                                                                        );
 
-      # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
-      # "nothing" to extended observing!]
-      # unless the gap is small (less than the threshold)
-      # since most people define extended as time from when we really
-      # start to when we really end the observing.
-      $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds
-        if defined $extended && $extended->seconds > 0
-        && (!$isgap || ($isgap && $extended->seconds < $GAP_THRESHOLD));
+        # Get the extended time
+        ($timespent, my $extended) = OMP::DateSun->determine_extended(
+            duration => $duration,
+            start=> $startobs,
+            end=> $endobs,
+            tel => $tel,
+            );
+
+
+        # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
+        # "nothing" to extended observing!]
+        # unless the gap is small (less than the threshold)
+        # since most people define extended as time from when we really
+        # start to when we really end the observing.
+        $other{$ymd}{$tel}{$shifttype}{$EXTENDED_KEY} += $extended->seconds
+            if defined $extended && $extended->seconds > 0
+            && (!$isgap || ($isgap && $extended->seconds < $GAP_THRESHOLD));
 
       # If the duration is negative set it to zero rather than kludging
       # by adding ONE_DAY
       if ($timespent->seconds < 0 ) {
-        $timespent = new Time::Seconds(0);
+          $timespent = new Time::Seconds(0);
       }
     } else {
       # We cannot tell whether this was done in extended time or not
       # so assume not.
       $timespent = Time::Seconds->new( $obs->duration );
     }
-    $night_totals{$tel}{$ymd} += $timespent->seconds;
+
+    $night_totals{$tel}{$ymd}{$shifttype} += $timespent->seconds;
 
     if ($isgap) {
+
       # Just need to add into the %other hash
       # UNLESS this is an OTHER gap that is smaller than the required threshold
       if ($projectid eq $OTHER_GAP && $timespent->seconds < $GAP_THRESHOLD
@@ -956,8 +982,9 @@ sub projectStatsSimple {
         # Replace the project entry with a hash pointing to the gap
         # Use a hash ref just to make it easy to spot rather than matching
         # to a digit
-        push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+        push(@{$gapproj{$ymd}->{$tel}->{$shifttype}}, { OTHER => $timespent->seconds });
       } elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
+
         # Always charge PROJECT gaps to the following project (this
         # is the same logic as for short gaps). Keep this separate
         # in case we had different types of accounting (especially
@@ -966,7 +993,9 @@ sub projectStatsSimple {
         # to be PREVIOUS, POST or SHARED
         print "CHARGING ".$timespent->seconds." TO PROJECT GAP\n"
           if $DEBUG;
-        push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+
+        push(@{$gapproj{$ymd}->{$tel}->{$shifttype}}, { OTHER => $timespent->seconds });
+
       } elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
         # Must charge the previous project
         print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
@@ -976,31 +1005,43 @@ sub projectStatsSimple {
           my $prevymd = $prevobs->startobs->ymd;
           my $prevprojectid = $prevobs->projectid;
           my $prevtel = uc($prevobs->telescope);
+          my $prevshifttype;
+          if ($format ne 'BYSHIFT') {
+              $prevshifttype = uc($prevobs->shifttype);
+          } else {
+              $prevshifttype = 'ANYSHIFT';
+          }
 
           # This is a horrible hack. Should not be duplicating this code
           if ($prevobs->isScience) {
             # Charge to the project
-            $proj_totals{$prevymd}{$prevprojectid} += $timespent->seconds;
+            $proj_totals{$prevymd}{$prevshifttype}{$prevprojectid} += $timespent->seconds;
           } else {
-            $proj_totals{$prevymd}{$calproj} += $timespent->seconds;
+            $proj_totals{$prevymd}{$prevshifttype}{$calproj} += $timespent->seconds;
           }
         }
       } elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
         # Simply treat this as a generic calibration
         print "CHARGING ".$timespent->seconds." TO INSTRUMENT GAP [$inst]\n"
           if $DEBUG;
-        $proj_totals{$ymd}{$calproj} += $timespent->seconds;
+
+
+        $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
+
       } elsif ($timespent->seconds > 0) {
         # Just charge to OTHER [unless we have negative time gap]
         print "CHARGING ".$timespent->seconds." TO $projectid\n"
           if $DEBUG;
-        $other{$ymd}{$tel}{$projectid} += $timespent->seconds;
+        $other{$ymd}{$tel}{$shifttype}{$projectid} += $timespent->seconds;
       }
 
     } elsif ($obs->isScience) {
-      $proj_totals{$ymd}{$projectid} += $timespent->seconds;
+
+        $proj_totals{$ymd}{$shifttype}{$projectid} += $timespent->seconds;
+
     } else {
-      $proj_totals{$ymd}{$calproj} += $timespent->seconds;
+
+        $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
     }
 
     # Log the most recent information
@@ -1021,6 +1062,7 @@ sub projectStatsSimple {
   print "Processing gaps:\n" if $DEBUG;
   for my $ymd (keys %gapproj) {
     for my $tel (keys %{ $gapproj{$ymd} }) {
+        for my $shifttype (keys %{ $gapproj{$ymd}{$tel} }) {
 
       my $calproj = $tel . $CAL_NAME;
 
@@ -1028,7 +1070,7 @@ sub projectStatsSimple {
       # on either side IF an entry exists in the %proj_totals hash
       # If an entry is not there, charge it to OTHER (since it may just have
       # done cals all night)
-      my @projects = @{ $gapproj{$ymd}{$tel}};
+      my @projects = @{ $gapproj{$ymd}{$tel}{$shifttype}};
       # If we only have 1 or 2 entries here then the number of gaps to apportion
       # is tiny and we only have one side. Charge to OTHER
       if (@projects > 2) {
@@ -1057,13 +1099,13 @@ sub projectStatsSimple {
 
                 # Only charge to the gap if we have already charged to it
                 # CAL should be charged to shared calibrations
-                if (exists $proj_totals{$ymd}{$proj} &&
+                if (exists $proj_totals{$ymd}{$shifttype}{$proj} &&
                     $proj !~ /$CAL_NAME$/) {
-                  $proj_totals{$ymd}{$proj} += $gap;
+                  $proj_totals{$ymd}{$shifttype}{$proj} += $gap;
                   print "Adding $gap to $proj\n" if $DEBUG;
                 } else {
                   # Charge to calibration regardless
-                  $proj_totals{$ymd}{$calproj} += $gap;
+                  $proj_totals{$ymd}{$shifttype}{$calproj} += $gap;
                   print "Adding $gap to CALibration\n" if $DEBUG;
                 }
               }
@@ -1071,7 +1113,7 @@ sub projectStatsSimple {
               # We should charge this to $tel OTHER
               # regardless of the project name
               print "Adding $gap to OTHER\n" if $DEBUG;
-              $other{$ymd}{$tel}{$OTHER_GAP} += $gap;
+              $other{$ymd}{$tel}{$shifttype}{$OTHER_GAP} += $gap;
             }
           }
         }
@@ -1080,10 +1122,11 @@ sub projectStatsSimple {
         # regardless of the project name
         for my $entry (@projects) {
           next unless ref($entry) eq 'HASH';
-          $other{$ymd}{$tel}{$OTHER_GAP} += $entry->{OTHER};
+          $other{$ymd}{$tel}{$shifttype}{$OTHER_GAP} += $entry->{OTHER};
           print "Adding ". $entry->{OTHER} ." to OTHER[2]\n" if $DEBUG;
         }
       }
+        }
     }
   }
 
@@ -1092,17 +1135,21 @@ sub projectStatsSimple {
   # Add in the extended/weather and other time
   for my $ymd (keys %other) {
     for my $tel (keys %{ $other{$ymd} }) {
-      for my $type (keys %{ $other{$ymd}{$tel} }) {
-        my $key = $tel . $type;
-        $proj_totals{$ymd}{$key} += $other{$ymd}{$tel}{$type};
+      for my $shifttype (keys %{ $other{$ymd}{$tel} }) {
+          for my $type (keys %{ $other{$ymd}{$tel}{$shifttype} }) {
+              my $key = $tel . $type;
+              $proj_totals{$ymd}{$shifttype}{$key} += $other{$ymd}{$tel}{$shifttype}{$type};
+          }
       }
     }
   }
 
   # Now add in the missing projects - forcing an entry
   for my $ymd (keys %sigprojects) {
-    for my $proj (keys %{$sigprojects{$ymd}}) {
-      $proj_totals{$ymd}{$proj} += 0;
+    for my $shifttype (keys %{$sigprojects{$ymd}}) {
+      for my $proj (keys %{$sigprojects{$ymd}{$shifttype}}) {
+            $proj_totals{$ymd}{$shifttype}{$proj} += 0;
+        }
     }
   }
 
@@ -1112,21 +1159,26 @@ sub projectStatsSimple {
   if ($DEBUG) {
     for my $ymd (keys %proj_totals) {
       my $total = 0;
-      for my $proj (keys %{$proj_totals{$ymd}}) {
-        next if $proj =~ /$EXTENDED_KEY$/;
-        $total += $proj_totals{$ymd}{$proj};
-      }
-      $total /= 3600.0;
-      printf "$ymd: %.2f hrs (without extended)\n",$total;
+      for my $shifttype (keys %{$proj_totals{$ymd}}) {
+          for my $proj (keys %{$proj_totals{$ymd}{$shifttype}}) {
+              next if $proj =~ /$EXTENDED_KEY$/;
+              $total += $proj_totals{$ymd}{$shifttype}{$proj};
+          }
 
-      my $refdate = OMP::DateTools->parse_date($ymd . "T12:00");
-      for my $tel (keys %night_totals) {
-        my $nightlen = OMP::DateSun->determine_night_length( tel => $tel, date => $refdate );
-        printf "From observation data for tel $tel (inc faults): %.2f hrs\n", $night_totals{$tel}{$ymd}/3600.0;
-        my $extend = $night_totals{$tel}{$ymd} - $nightlen;
-        printf "Expected length of night = %.2f hrs (%s)\n",
-          ( $nightlen / 3600 ),
-          ( $extend >= 0 ? "Extended time = $extend s" : "No extended time" );
+          $total /= 3600.0;
+          printf "SHIFT %s $ymd: %.2f hrs (without extended)\n",$shifttype,$total;
+
+          my $refdate = OMP::DateTools->parse_date($ymd . "T12:00");
+
+          for my $tel (keys %night_totals) {
+              my $nightlen = OMP::DateSun->determine_night_length( tel => $tel, date => $refdate );
+
+              printf "From observation data for tel $tel (inc faults): %.2f hrs\n", $night_totals{$tel}{$ymd}{$shifttype}/3600.0;
+              my $extend = $night_totals{$tel}{$ymd}{$shifttype} - $nightlen;
+              printf "Expected length of night = %.2f hrs (%s)\n",
+              ( $nightlen / 3600 ),
+              ( $extend >= 0 ? "Extended time = $extend s" : "No extended time" );
+          }
       }
     }
   }
@@ -1137,12 +1189,17 @@ sub projectStatsSimple {
   for my $ymd (keys %proj_totals) {
     my $date = OMP::DateTools->parse_date( $ymd );
     print "Date: $ymd\n" if $DEBUG;
-    for my $proj (keys %{$proj_totals{$ymd}}) {
-      printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG;
-      push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
-                                                 date => $date,
-                                                 timespent => new Time::Seconds($proj_totals{$ymd}{$proj})
-                                                );
+    for my $shifttype (keys %{$proj_totals{$ymd}}) {
+        for my $proj (keys %{$proj_totals{$ymd}{$shifttype}}) {
+            printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$shifttype}{$proj}/3600 if $DEBUG;
+
+            my $timespent = new Time::Seconds($proj_totals{$ymd}{$shifttype}{$proj});
+            push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
+                                                       date => $date,
+                                                       timespent => $timespent,
+                                                       shifttype => $shifttype,
+                );
+        }
     }
   }
 
@@ -1794,9 +1851,29 @@ sub locate_timegaps {
   # Sort according to time.
   @obslist = sort { $a->[0] <=> $b->[0] } @obslist;
 
+  # Get a list of comments
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+
+  # Query between first and last observation."
+
+  my %comments;
+  if (@obslist) {
+      my $start =  $obslist[0]->[2]->startobs;
+      my $end = $obslist[$#obslist]->[2]->endobs;
+      my $queryxml = "<ObsQuery>" . "<date><min>" . $start->ymd ."</min>" .
+    "<max>" . $end->ymd . "T" . $end->hms . "</max></date>" .
+    "<obsactive>1</obsactive></ObsQuery>";
+      OMP::General->log_message( "ObslogDB: Querying database for observation comments.\n" );
+      my $query = new OMP::ObsQuery( XML=>$queryxml );
+      my @commentresults = $odb->queryComments( $query );
+
+      # Create  a hash for easy lookups.
+      %comments = map {$_->startobs->ymd . "T" . $_->startobs->hms => $_  } @commentresults;
+  }
   # For each observation in the sorted array...
   foreach my $obs (@obslist) {
     if( $counter == 0 && defined $last_time ) {
+
 
       # We have a timegap. Let's see if it's longer than our threshold.
       my $gap = $obs->[0] - $last_time;
@@ -1808,18 +1885,25 @@ sub locate_timegaps {
         my $prev_obs = $obslist[$obs_counter-2]->[2];
         my $curr_obs = $obslist[$obs_counter]->[2];
 
-        # Create the TimeGap.
+        # Create the TimeGap.  Assume by default that the location and
+        # shifttype come from the succeeeding observation. In time
+        # accounting contexts this will need to be manually adjusted,
+        # but it will be good for testing.
         my $timegap = new OMP::Info::Obs::TimeGap;
         $timegap->instrument( $curr_obs->instrument );
         $timegap->runnr( $curr_obs->runnr );
         $timegap->startobs( $prev_obs->endobs );
         $timegap->endobs( $curr_obs->startobs - 1 );
         $timegap->telescope( $prev_obs->telescope );
+        $timegap->shifttype( $curr_obs->shifttype );
+        $timegap->remote( $curr_obs->remote );
 
         # Get the comments for the TimeGap.
-        my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-        my $comments = $odb->getComment( $timegap );
-        $timegap->comments( $comments );
+        my $starttime = $timegap->startobs->ymd . "T" . $timegap->startobs->hms;
+        if (exists ($comments{$starttime})) {
+            $timegap->comments( $comments{$starttime} );
+        }
+
 
         # Set the TimeGap status, if necessary.
         if( !defined( $timegap->status ) ) {
@@ -1886,6 +1970,29 @@ sub summary {
     return $summary;
   }
 }
+
+=item B<shifttypes>
+
+Returns an array containing all the distinct shifttypes of the
+observations in the group.
+
+  @shifttypes = $grp->shifttypes;
+
+=cut
+
+sub shifttypes {
+    my $self = shift;
+    my @observations = $self->obs;
+
+    my %shifthash;
+    for my $obs ( @observations ) {
+        my $shifttype = $obs->shifttype;
+        $shifthash{$shifttype} = 1;
+    }
+    my @shifttypes = ( keys %shifthash );
+    return @shifttypes;
+}
+
 
 =back
 

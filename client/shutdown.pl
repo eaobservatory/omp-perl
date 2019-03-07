@@ -131,6 +131,13 @@ my $user = $udb->getUser( $userid );
 die "Invalid user: $userid\n"
   unless (defined $user);
 
+
+# Get shift type
+$prompt = "SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ";
+my $shift = $term->readline($prompt);
+$shift =  uc($shift);
+die "Invalid shift: $shift\n"
+    unless ($shift eq "NIGHT" || $shift eq "DAY" || $shift eq "EO" || $shift eq "OTHER");
 # Get start and end dates
 my $parser = DateTime::Format::ISO8601->new;
 
@@ -212,7 +219,8 @@ while ($currentdt <= $enddt) {
   my $t = new OMP::Project::TimeAcct(projectid => "${tel}_SHUTDOWN",
                                      date      => $starttimetp,
                                      timespent => $shutlen,
-                                     confirmed => 1,);
+                                     confirmed => 1,
+                                     shifttype => $shift);
 
   push (@taccts, $t);
 

@@ -186,7 +186,7 @@ while ($ut <= $endut) {
 
   my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
 
-  my %acct = $nr->accounting_db(1);
+  my %acct = $nr->accounting_db('byproject');
 
   my $faultloss = $nr->timelost->hours;
   my $technicalloss = $nr->timelost('technical')->hours;
@@ -273,11 +273,11 @@ while ($ut <= $endut) {
     printf OUTPUT "  %6.2f",0.0;
   }
 
-  my $eo = sprintf("%6.2f", abs($delta*12-($total+abs($items{"_shutdown"}))));
-  my $ntotal = sprintf("%6.0f",$total - $eo);
-  if ($ntotal != 12){
-      print "On $iut there was $eo EO and $ntotal hours obs\n";
-  }
+  #my $eo = sprintf("%6.2f", abs($delta*12-($total+abs($items{"_shutdown"}))));
+  my $ntotal = sprintf("%6.0f",$total);
+  #if ($ntotal != 12){
+  #    print "On $iut there was $eo EO and $ntotal hours obs\n";
+  #}
 
 
   my $ndenom = $ntotal-abs($items{"weather"});

@@ -444,7 +444,7 @@ sub _store_new_fault {
                           $faultdate, $fault->type, $fault->system,
                           $fault->status, $fault->urgency,
                           $fault->timelost, $fault->entity, $fault->condition,
-                          $fault->location
+                          $fault->location, $fault->shifttype, $fault->remote
                         );
 
   # Insert the project association data
@@ -660,6 +660,8 @@ sub _update_fault_row {
                             $fault->timelost, $fault->entity,
                             $fault->condition,
                             $fault->location,
+                            $fault->shifttype,
+                            $fault->remote,
                           );
 
     # Insert the project association data
@@ -839,6 +841,8 @@ sub _mail_fault_update {
                   urgency => "Urgency",
                   condition => "Condition",
                   projects => "Projects",
+                  shifttype => "Shift Type",
+                  remote => "Remote status",
                  );
 
   # Compare the fault details

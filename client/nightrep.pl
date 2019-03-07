@@ -79,6 +79,7 @@ use Pod::Usage;
 
 use Tk;
 use Tk::Toplevel;
+use Tk::Pane;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -97,14 +98,15 @@ $DEBUG = 0;
 
 # Options
 my $use_cache = 1;
-my ($help, $man, $version, $dump, $tel, $ut );
+my ($help, $man, $version, $dump, $tel, $ut, $ashtml );
 GetOptions( "help"    => \$help,
             "man"     => \$man,
             "version" => \$version,
             'dump'    => \$dump,
             "ut=s"    => \$ut,
             "tel=s"   => \$tel,
-            'cache!'  => \$use_cache
+            'cache!'  => \$use_cache,
+            'ashtml'    => \$ashtml,
           )
           or pod2usage(1) ;
 
@@ -146,23 +148,37 @@ if(defined($tel)) {
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
+
+
 # Night report
-my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
+
+my $NR = new OMP::NightRep( date => $ut, telescope => $telescope );
 
 if ($dump) {
     print scalar $NR->astext();
     exit 0;
 }
 
-# Now put up a button bar
+if ($ashtml) {
+    $NR->ashtml();
+    exit 0;
+}
+
 my $TL = $MW->Toplevel;
-my $TopButtons = $TL->Frame()->pack(-side => 'top');
+
+# Ensure there are scrollbars on the top level, and the initial size
+# is sane.
+my $SF = $TL->Scrolled('Frame', -scrollbars=>'e', -height=>800, -width=>700)->pack(-side=>'top',
+                                                                                   -expand=>1, -fill=>'both');
+
+# Now put up a button bar.
+my $TopButtons = $SF->Frame()->pack(-side => 'top');
 top_button_bar( $TopButtons );
 
-# Now scan the project database and put up the project
-# entries
-my $Projects = $TL->Frame()->pack(-side => 'top');
-project_window( $Projects, $NR );
+# Now scan the project database and put up the project entries.
+my $Shifts = $SF->Frame();
+shift_windows( $Shifts, $NR );
+$Shifts->pack(-side =>'top');
 
 # And time for the event loop
 MainLoop();
@@ -178,13 +194,12 @@ sub top_button_bar {
 
 }
 
-# Project window: Needs a frame and a telescope and a ut
-sub project_window {
+
+
+# Shift window: Needs a frame and a telescope and a ut
+sub shift_windows {
   my $w = shift;
   my $nr = shift;
-
-  # Get the telescope for efficiency
-  my $tel = $nr->telescope;
 
   # Get the project statistics
   my ($warnings,%times) = generate_project_info($nr);
@@ -205,103 +220,180 @@ sub project_window {
     }
   }
 
-  # We want to use the Gridder for packing the components
-  my $f = $w->Frame(-border => 3)->pack(-side => 'top');
 
-  # This hash contains the times (in hours) for each
-  # entry
-  my %final;
-  my $total_time;
 
-  # This callback sums up all the times
-  my $sums = sub {
-    $total_time = 0.0;
-    for my $proj (keys %final) {
-      next if $proj =~ /EXTENDED/;
-      if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/) {
-        $total_time += $final{$proj};
+  # Go through the array creating the GUI, but skipping keys not
+  # directly related. Need to use the shifts found in the times, and
+  # any extra shifts found in the fault system.
+
+  my @shifts;
+  for my $key (keys %times){
+      unless(!defined $key  || $key eq '') {
+          push @shifts, $key;
       }
-    }
-  };
+  }
+  # Remove any shifts that are the empty string.
 
-  # Go through the array creating the GUI, but skipping
-  # keys not directly related
-  my %rem;
-  for my $proj (keys %times) {
-    if ($proj =~ /^$tel/) {
-      $rem{$proj}++;
-    } else {
-      add_project( $f, 1,$proj, $times{$proj}, \$final{$proj}, $sums );
-    }
+
+  my %timelostbyshift = $nr->timelostbyshift;
+
+  my @faultshifts = (keys %timelostbyshift);
+
+  for my $shift (@faultshifts) {
+      if((! exists($times{$shift}) ) && ($shift ne '')) {
+          push @shifts, $shift;
+      }
   }
 
-  # Now put up everything else (except EXTENDED which is a special case)
-  # and special WEATHER and UNKNOWN which we want to force the order
-  for my $proj (keys %rem) {
-    next if $proj eq $tel . "EXTENDED";
-    next if $proj eq $tel . "WEATHER";
-    next if $proj eq $tel . "UNKNOWN";
-    next if $proj eq $tel . "OTHER";
-    next if $proj eq $tel . "FAULT";
-    add_project( $f, 1, $proj, $times{$proj}, \$final{$proj}, $sums);
-  }
 
-  # Now put up the WEATHER, UNKNOWN
-  my %strings = ( WEATHER => "Time lost to weather",
-                  OTHER => 'Other time',
-                );
-  for my $label ( qw/WEATHER OTHER/ ) {
-    my $proj = $tel . $label;
-    my $times = (exists $times{$proj} ? $times{$proj} : {});
-    add_project( $f, 1, $strings{$label}, $times, \$final{$proj},
-               $sums);
-  }
+  # We want to use the Gridder for packing the components
 
-  # Fault time is not editable
-  add_project($f, 0, "Time lost to Faults", {}, \$final{$tel."FAULTS"});
-
-  # Calculate the time lost
-  $final{$tel."FAULTS"} = sprintf("%.2f",$nr->timelost->hours);
-
-  # Widget with the total
-  add_project($f, 0,"Total time", {}, \$total_time);
-
-
-  # And finally extended time if we determined that we had extended
-  # time (difficult to imagine extended time if we have no data
-  # taken in extended time)
-  my $exttime = (exists $times{$tel."EXTENDED"} ? $times{$tel."EXTENDED"}
-                 : {});
-  add_project( $f, 1,"Extended time", $exttime,
-               \$final{$tel."EXTENDED"},$sums);
-
-  # And force a summation
-  $sums->();
-
-  # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
   my $bf = $w->Frame()->pack(-side => 'top');
-  $bf->Button(-text => "CONFIRM",
-              -command => sub { &confirm_totals($nr,%final);
-                                &confirm_popup($w);
-                                &redraw_main_window($w);
-                              }
-             )->pack(-side =>'right');
-  $bf->Button(-text => "CONFIRM and MAIL",
-              -command => sub {&confirm_totals($nr,%final);
-                               &confirm_popup($w);
-                               &redraw_main_window($w);
-                               $nr->mail_report;
-                             }
-             )->pack(-side =>'right');
-  $bf->Button(-text => "ADD PROJECT",
-              -command => sub {
-                &request_extra_project( $f, \%final, $sums);
-              }
-             )->pack(-side =>'right');
 
-  # Something to view the faults, the shift log?
+  $bf->Button(-text => "ADD NEW SHIFT",
+              -command => sub {
+                  &request_extra_shift( $w, \@shifts, \%times, \%timelostbyshift, $nr );
+              }
+      )->pack(-side =>'right');
+
+  for my $shift (@shifts) {
+      add_shift($shift, $w,\%times, \%timelostbyshift, $nr);
+  }
+# Something to view the faults, the shift log?
+}
+
+
+
+sub add_shift {
+
+    my $shift = $_[0];
+    my $w = $_[1];
+    my (%times) = %{$_[2]};
+    my (%timelostbyshift) = %{$_[3]};
+    my $nr = $_[4];
+    my $tel = $nr->telescope;
+    my $shiftinfo = $w->Frame(-border=>3 )->pack(-side=> 'top');
+
+    # This hash will contain the times (in hours) for each
+    # entry
+    my %final;
+    my $total_time;
+
+
+    # This hash will contain comments (if any) for each editable entry.
+    my %comments;
+
+    # This callback sums up all the times
+    my $sums = sub {
+        $total_time = 0.0;
+        for my $proj (keys %final) {
+            next if $proj =~ /EXTENDED/;
+            if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/) {
+                $total_time += $final{$proj};
+            }
+        }
+    };
+
+    my %rem;
+
+    # Label which shift we are in.
+    $shiftinfo->Label( -text => "SHIFT: " . $shift )->pack(-side=> 'top');
+
+    my $f = $w->Frame(-border => 3, -relief=> 'groove', -borderwidth=>2)->pack(-side => 'top');
+
+
+    # If this shift exists in the times:
+    if (exists $times{$shift}) {
+        my %projecthash = %{$times{$shift}};
+        for my $proj (sort keys %projecthash) {
+            if ($proj =~ /^$tel/) {
+                $rem{$proj}++;
+            } else {
+                add_project( $f, 1 ,$proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums, \$comments{$proj} );
+            }
+        }
+
+
+        # Now put up everything else (except EXTENDED which is a special case)
+        # and special WEATHER and UNKNOWN which we want to force the order
+        for my $proj (keys %rem) {
+            next if $proj eq $tel . "EXTENDED";
+            next if $proj eq $tel . "WEATHER";
+            next if $proj eq $tel . "UNKNOWN";
+            next if $proj eq $tel . "OTHER";
+            next if $proj eq $tel . "FAULT";
+            add_project( $f, 1, $proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums, \$comments{$proj});
+        }
+    }
+
+    # Now put up the WEATHER, UNKNOWN
+    my %strings = ( WEATHER => "Time lost to weather",
+                    OTHER => 'Other time',
+        );
+    for my $label ( qw/WEATHER OTHER/ ) {
+        my $proj = $tel . $label;
+        my $newtimes = (exists $times{$shift}{$proj} ? $times{$shift}{$proj} : {});
+        add_project( $f, 1, $strings{$label}, $shift, $newtimes, \$final{$proj},
+                     $sums, \$comments{$proj});
+    }
+
+
+    # Calculate the time lost
+
+    # Fault time is not editable
+    add_project($f, 0, "Time lost to Faults", $shift, {}, \$final{$tel."FAULTS"});
+
+    #my %timelost = $nr->timelostbysh;
+
+
+    if (exists $timelostbyshift{$shift}) {
+        my $timelost = $timelostbyshift{$shift};
+        $final{$tel."FAULTS"} = sprintf("%.2f",$timelost->hours);
+    } else {
+        $final{$tel."FAULTS"} = sprintf("%.2f",0.0);
+    }
+
+    # Widget with the total
+    add_project($f, 0,"Total time", $shift, {}, \$total_time);
+
+
+    # And finally extended time if we determined that we had extended
+    # time (difficult to imagine extended time if we have no data
+    # taken in extended time)
+    my $exttime = (exists $times{$shift}{$tel."EXTENDED"} ? $times{$shift}{$tel."EXTENDED"}
+                   : {});
+    add_project( $f, 1,"Extended time", $shift, $exttime,
+                 \$final{$tel."EXTENDED"},$sums, \$comments{$tel."EXTENDED"});
+
+    # And force a summation
+    $sums->();
+
+
+    # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
+    my $bf = $w->Frame()->pack(-side => 'top');
+
+    $bf->Button(-text => "CONFIRM SHIFT $shift",
+                -command => sub { &confirm_totals($nr, $shift, \%final, \%comments);
+                                    &confirm_popup($w);
+                                    &redraw_main_window($w);
+                }
+        )->pack(-side =>'right');
+    $bf->Button(-text => "CONFIRM and MAIL SHIFT $shift",
+                -command => sub {&confirm_totals($nr, $shift, \%final, \%comments);
+                                 &confirm_popup($w);
+                                 &redraw_main_window($w);
+                                 $nr->mail_report;
+                  }
+        )->pack(-side =>'right');
+    $bf->Button(-text => "ADD PROJECT for $shift",
+                -command => sub {
+                    &request_extra_project( $f, \%final, $sums, $shift, \%comments);
+                }
+        )->pack(-side =>'right');
 
 }
+# Something to view the faults, the shift log?
+#}
 
 # Create the gui entries for each project
 # Must use the gridder in $w, and $w must be an empty frame
@@ -314,9 +406,11 @@ sub project_window {
     my $w = shift;
     my $editable = shift;
     my $proj = shift;
+    my $shift = shift;
     my $times = shift;
     my $varref = shift;
     my $cb = shift;
+    my $commentref = shift;
 
     # Increment the row counter
     $Row++;
@@ -330,16 +424,19 @@ sub project_window {
 
     # Decide on the default value
     # Choose DATA over DB unless DB is confirmed.
+
     if (exists $times->{DB} && $times->{DB}->confirmed) {
       # Confirmed overrides data headers
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DB}->timespent->hours));
+      $$commentref = $times->{DB}->comment;
     } elsif (exists $times->{DATA}) {
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DATA}->timespent->hours));
     } elsif (exists $times->{DB}) {
       $$varref = sprintf($hfmt,
                          _round_to_ohfive($times->{DB}->timespent->hours));
+      $$commentref = $times->{DB}->comment;
     } else {
       # Empty
       $$varref = '';
@@ -351,12 +448,16 @@ sub project_window {
       my $ent = $w->Entry( -width => 10, -textvariable => $varref
                          )->grid(-row=>$Row,
                                  -column => 1);
-
       # Bind "leave" and "enter" to update the total
       if (defined $cb) {
         $ent->bind("<Leave>",$cb);
         $ent->bind("<Return>",$cb);
       }
+
+      # If its editable, add a comment box.
+      my $comment = $w->Entry(-width=> 40, -textvariable => $commentref)->grid(-row=>$Row, -column=>5);
+
+
     } else {
       $w->Label( -textvariable => $varref)->grid(-row=>$Row, -column=>1);
     }
@@ -458,10 +559,12 @@ sub confirm_popup {
   $dbox->Show;
 }
 
-# Submit the totals to the database
+# Submit the totals to the database; requires the specific shift to be included.
 sub confirm_totals {
-  my $nr = shift;
-  my %totals = @_;
+  my $nr = $_[0];
+  my $shift = $_[1];
+  my (%totals) = %{$_[2]};
+  my (%comments) = %{$_[3]};
 
   # Create a date object
   my $date = $nr->date;
@@ -472,8 +575,15 @@ sub confirm_totals {
   # Loop over each project
   my @acct;
   for my $proj (keys %totals) {
+
     # Skip faults since they come from fault database
     next if $proj =~ /FAULTS/;
+
+    # Get comment if there is one.
+    my $comment;
+    if (exists $comments{$proj} ) {
+        $comment = $comments{$proj};
+    }
 
     # time spent [assuming we have a number]
     # We should probably distinguish '' from 0.0
@@ -488,6 +598,8 @@ sub confirm_totals {
                                            timespent => $timespent,
                                            date=> $date,
                                            confirmed => 1,
+                                           shifttype => $shift,
+                                           comment => $comment,
                                          );
 
     # Store it in array
@@ -495,11 +607,15 @@ sub confirm_totals {
 
   }
 
+
   # Now store the times
   $db->setTimeSpent( @acct );
 
-  # and update the night report
-  $nr->db_accounts( new OMP::TimeAcctGroup(accounts => \@acct) );
+  # and update the night report. Cannot simply add these values in, as
+  # they are only for one shift. Instead, we can reset stored
+  # DBAccounts and then re fetch them from the database?
+  $nr->{DBAccounts} = undef;
+  $nr->db_accounts();
 
 }
 
@@ -511,10 +627,61 @@ sub redraw_main_window {
 
 }
 
+sub request_extra_shift {
+
+    my $w = $_[0];
+    my (@shifts) = @{$_[1]};
+    my (%times) = %{$_[2]};
+    my (%timelostbyshift) = %{$_[3]};
+    my $nr = $_[4];
+    #my ($w, $shiftref, %times, %timelostbyshift, $nr) = @_;
+
+    require Tk::DialogBox;
+    require Tk::Optionmenu;
+    my $shift;
+    my $d = $w->DialogBox( -title => "New Shift",
+                           -buttons => ["Accept","Cancel"],);
+    my $opt = $d->Optionmenu(
+                            -options => [[NIGHT=>"NIGHT"], [EO=>"EO"], [DAY=>"DAY"], [OTHER=>"OTHER"]],
+
+                             -variable=>\$shift,
+        )->pack(-side=>'top');
+
+
+
+    # Wait for user input.
+    my $but = $d->Show;
+
+
+    # Cancel if they don't click Accept.
+    return if $but ne "Accept";
+
+    # Verify that the shift does not already exist.
+    if ( grep { $_ eq $shift } @shifts) {
+        require Tk::Dialog;
+        my $dialog = $w->Dialog( -text => "Shift $shift already exists on this night.",
+                                    -title => "Cannot use selected shift",
+                                    -buttons =>["OK"],
+                                    -bitmap => 'error',
+            );
+        $dialog->Show;
+    } else {
+
+        # Add information to the shift arrays.
+        push(@shifts, $shift);
+
+        # Now add to shifts.
+        add_shift($shift, $w, \%times, \%timelostbyshift, $nr);
+    }
+
+}
+
+
+
 # Sometimes some project was observed that did not result in
 # data files. Must be able to add extras
 sub request_extra_project {
-  my ($w, $finalRef, $sums ) = @_;
+  my ($w, $finalRef, $sums, $shift, $commentRef ) = @_;
 
   # First request it
   require Tk::DialogBox;
@@ -551,7 +718,7 @@ sub request_extra_project {
 
       # Add information to the table
       $finalRef->{$proj} += 0;
-      add_project($w, 1, $proj, {}, \$finalRef->{$proj}, $sums);
+      add_project($w, 1, $proj, $shift,{}, \$finalRef->{$proj}, $sums, \$commentRef->{$proj});
     } else {
       require Tk::Dialog;
       my $dialog = $w->Dialog( -text => "This project exists but is disabled",

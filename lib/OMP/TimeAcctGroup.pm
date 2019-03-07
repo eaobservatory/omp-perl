@@ -596,6 +596,29 @@ sub telescope {
   return $self->{Telescope};
 }
 
+=item B<shifttypes>
+
+The shifttype that the time accounts are associated with.
+
+  $shifttypes = $tg->shifttypes;
+
+Returns an array
+
+=cut
+sub shifttypes {
+    my $self = shift;
+    my @accts = $self->accounts;
+
+    my %shifthash;
+    for my $acct ( @accts ) {
+        my $shifttype = $acct->shifttype;
+        $shifthash{$shifttype} = 1;
+    }
+    my @shifttypes = ( keys %shifthash );
+    return @shifttypes;
+}
+
+
 =item B<db>
 
 A shared database connection (an C<OMP::DBbackend> object). The first

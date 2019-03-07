@@ -140,6 +140,27 @@ sub faults {
   }
 }
 
+=item B<shifttypes>
+
+Return all shifttypes included in the faults. Returns an array of strings.
+
+  @shifttypes = $f->shifttypes;
+=cut
+
+sub shifttypes {
+    my $self = shift;
+    my @faults = $self->faults;
+
+    my %shifthash;
+    for my $fault ( @faults ) {
+        my $shifttype = $fault->shifttype;
+        $shifthash{$shifttype} = 1;
+    }
+    my @shifttypes = ( keys %shifthash );
+    return @shifttypes;
+}
+
+
 =item B<timelost>
 
 Time lost to faults on the specified UT date. The time is

@@ -232,6 +232,8 @@ sub file_fault_output {
                                 status   => $faultdetails{status},
                                 location => $faultdetails{location},
                                 urgency  => $faultdetails{urgency},
+			        shifttype => $faultdetails{shifttype},
+			       remote   => $faultdetails{remote},
                                 fault    => $resp
                               );
 

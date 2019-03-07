@@ -147,8 +147,11 @@ Put a fault into a an HTML table
 
   $fcomp->fault_table($fault, 'noedit')
 
-Takes an C<OMP::Fault> object as the second argument.  Takes a third argument
-which is a string of either "noedit" or "nostatus".  "noedit" displays the fault without links for updating the text and details, and without the status update form.  "nostatus" displays the fault just without the status update form.
+Takes an C<OMP::Fault> object as the second argument.  Takes a third
+argument which is a string of either "noedit" or "nostatus".  "noedit"
+displays the fault without links for updating the text and details,
+and without the status update form.  "nostatus" displays the fault
+just without the status update form.
 
 =cut
 
@@ -206,9 +209,15 @@ sub fault_table {
     ;
 
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>";
 
+  my %shifts = OMP::Fault->shiftTypes($fault->category);
+  if (%shifts) {
+      print "<tr bgcolor=#ffffff><td><b>Shift type: </b>" . $fault->shifttype;
+      print "</td><td><b>Remote Status: </b>" . $fault->remote . "</td>";
+  }
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status:</b>";
   unless ($noedit or $nostatus) {
+
     # Make a form element for changing the status
     print $q->hidden(-name=>'show_output', -default=>'true');
     print $q->hidden(-name=>'faultid', -default=>$fault->id);
@@ -686,7 +695,9 @@ sub file_fault_form {
                  assoc => undef,
                  assoc2 => undef,
                  urgency => undef,
-                 condition => undef,);
+                 condition => undef,
+                 shifttype => undef,
+                 remote => undef,);
 
     # Set the text for our submit button
     $submittext = "Submit fault";
@@ -735,6 +746,8 @@ sub file_fault_form {
                  assoc2 => join(',',@assoc),
                  urgency => $urgent,
                  condition => $chronic,
+                 shifttype => $fault->shifttype,
+                 remote => $fault->remote,
                 );
 
     # Set the text for our submit button
@@ -847,6 +860,29 @@ sub file_fault_form {
       . q[<br /><small>(YYYY-MM-DDTHH:MM or HH:MM)</small>] ;
   }
 
+
+  my %shifts = OMP::Fault->shiftTypes($category);
+  my @shiftstatus = keys %shifts;
+  if (%shifts == 1 ) {
+      print $q->hidden(-name=>'shifttype', -default=>$shiftstatus[0]);
+  } elsif ( %shifts > 1) {
+      print "</td><tr><td align=right><b>Shift Type </b></td><td>";
+      print $q->popup_menu(-name=>'shifttype',
+                           -values=>\@shiftstatus,
+                           )
+          . q[&nbsp;];
+  }
+  my %remotes = OMP::Fault->remoteTypes($category);
+  my @remotestatus = keys %remotes;
+  if (%remotes eq 1 ) {
+      print $q->hidden(-name=>'remote', -default=>$remotestatus[0]);
+  } elsif ( %remotes > 1) {
+      print "</td><tr><td align=right><b>Remote Status </b></td><td>";
+      print $q->popup_menu(-name=>'remote',
+                           -values=>\@remotestatus
+                           )
+          . q[&nbsp;];
+  }
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
                       -size=>'60',
@@ -1327,7 +1363,10 @@ sub parse_file_fault_form {
 
   my %parsed = (subject => $q->param('subject'),
                 type => $q->param('type'),
-                status => $q->param('status'));
+                status => $q->param('status'),
+		shifttype => $q->param('shifttype'),
+		remote => $q->param('remote')
+      );
 
   if ( _is_safety( $category ) ) {
 
