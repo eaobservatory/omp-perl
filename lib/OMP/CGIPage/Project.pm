@@ -451,14 +451,16 @@ _HEADER_
   # Since time may have been charged to the project even though no MSBs
   # were observed, check with the accounting DB as well
   my $adb = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
+
+  # Because of shifttypes, there may be more than one shift per night.
   my @accounts = $adb->getTimeSpent( projectid => $project->projectid );
 
   # Merge our results
-  my %nights = map {$_->date->ymd, undef} @accounts;
+  #my %nights = map {$_->date->ymd, undef} @accounts;
 
-  for (@$nights) {
-    $nights{$_->ymd} = undef;
-  }
+  #for (@$nights) {
+  #  $nights{$_->ymd} = undef;
+  #}
 
   # Link to obslog for current day
   my $today = OMP::DateTools->today();
@@ -466,75 +468,98 @@ _HEADER_
     "Click here to remote eavesdrop</a><br>";
 
   # Display nights where data was taken
-  if (%nights) {
+  if (@$nights) {
 
-    # Sort account objects by night
-    my %accounts;
-    for (@accounts) {
-      $accounts{$_->date->ymd} = $_;
-    }
+      my %accounts;
+      # Sort account objects by night
+      for my $acc (@accounts) {
+	  unless (exists $accounts{$acc->date->ymd}) {
+	      $accounts{$acc->date->ymd} = [];
+	  }
+	  push (@{$accounts{$acc->date->ymd}}, $acc);
 
-    # Some instruments do not allow data retrieval. For now, assume that
-    # we can not retrieve if any of the instruments in the project are marked as such.
-    # For surveys this will usually be the case
-    my $cannot_retrieve;
-    try {
-      my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
-      my $projinst = OMP::SpServer->programInstruments($cookie{projectid});
-
-      # See if the instrument in the project are listed in noretrieve
-      my %inproj = map { (uc($_), undef ) } @$projinst;
-
-      for my $nr (@noretrieve) {
-        if (exists $inproj{uc($nr)}) {
-          $cannot_retrieve = 1;
-          last;
-        }
-      }
-    } otherwise {
-    };
-
-    print "<h3>Observations were acquired on the following dates:</h3>";
-
-    my $pkg_url = OMP::Config->getData('pkgdata-url');
-
-    for my $ymd (sort keys %nights) {
-
-      # Make a link to the obslog page
-      my $obslog_url = "utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd";
-
-      # If project is an unretrievable project, link to project log with
-      # 'noretrv' paramater so that no data retrieval links will appear
-      $obslog_url .= "&noretrv=1" if ($cannot_retrieve);
-
-      print "<a href='$obslog_url'>$ymd</a> ";
-
-      if (exists $accounts{$ymd}) {
-        my $timespent = $accounts{$ymd}->timespent;
-        if ($timespent->hours) {
-          my $h = sprintf("%.2f", $timespent->hours);
-
-          # If the time spent is unconfirmed, say so
-          print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
-
-          print "($h hours) ";
-
-          if ($cannot_retrieve) {
-            print "click on date to view project log";
-          } else {
-            print "click on date to retrieve data";
-          }
-
-        } else {
-          print "(no science data charged) ";
-        }
-      } else {
-        print "[internal error - do not know accounting information] ";
       }
 
-      print "<br>";
+      # Some instruments do not allow data retrieval. For now, assume that
+      # we can not retrieve if any of the instruments in the project are marked as such.
+      # For surveys this will usually be the case
+      my $cannot_retrieve;
+      try {
+	  my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
+	  my $projinst = OMP::SpServer->programInstruments($cookie{projectid});
 
-    }
+	  # See if the instrument in the project are listed in noretrieve
+	  my %inproj = map { (uc($_), undef ) } @$projinst;
+
+	  for my $nr (@noretrieve) {
+	      if (exists $inproj{uc($nr)}) {
+		  $cannot_retrieve = 1;
+		  last;
+	      }
+	  }
+      } otherwise {
+      };
+
+      print "<h3>Observations were acquired on the following dates:</h3>";
+
+      my $pkg_url = OMP::Config->getData('pkgdata-url');
+
+      for my $ymd (sort keys %accounts) {
+
+	  # Make a link to the obslog page
+	  my $obslog_url = "utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd";
+
+	  # If project is an unretrievable project, link to project log with
+	  # 'noretrv' paramater so that no data retrieval links will appear
+	  $obslog_url .= "&noretrv=1" if ($cannot_retrieve);
+
+	  print "<a href='$obslog_url'>$ymd</a> ";
+
+	  if (exists $accounts{$ymd}) {
+
+	      # Need to sum up over shift:
+	      my $confirmedtime = 0.0;
+	      my $unconfirmedtime = 0.0;
+
+	      my $confirmed_string = "";
+	      my $unconfirmed_string = "";
+	      for my $timeacctobject (@{$accounts{$ymd}}) {
+		  my $timespent = $timeacctobject->timespent;
+		  if ($timespent->hours) {
+		      if ($timeacctobject->confirmed) {
+			  $confirmedtime += $timespent->hours;
+		      } else {
+			  $unconfirmedtime += $timespent->hours;
+		      }
+		  }
+	      }
+
+	      $confirmed_string = sprintf("%.2f hrs ", $confirmedtime) . "";
+	      if ($unconfirmedtime > 0 ) {
+		  # If the time spent is unconfirmed, say so
+		  $unconfirmed_string = sprintf(" +  UNCONFIRMED: %.2f hrs ", $unconfirmedtime);
+	      }
+	      if (($confirmedtime >0) || ($unconfirmedtime > 0)) {
+		  print $confirmed_string;
+		  print $unconfirmed_string;
+
+
+		  if ($cannot_retrieve) {
+		      print "click on date to view project log";
+		  } else {
+		      print "click on date to retrieve data";
+		  }
+
+	      } else {
+		  print "(no science data charged) ";
+	      }
+	  } else {
+	      print "[internal error - do not know accounting information] ";
+	  }
+
+	  print "<br>";
+
+      }
   } else {
     print "<h3>No data have been acquired for this project</h3>";
   }
