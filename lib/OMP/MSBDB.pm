@@ -722,7 +722,7 @@ Default is to adjust the time accounting when accepting an MSB. If this
 argument is false the time pending will not be incremented.
 
   $db->doneMSB( $checksum, { adjusttime => 0 });
-  $db->doneMSB( $checksum, $comment, { adjusttime => 0 });
+  $db->doneMSB( $checksum, $comment, { adjusttime => 1, shifttype=> "NIGHT"});
 
 If set to a true value, the "nodecrement" option supresses alteration
 of the science program to decrement the MSB's "remaining" counter.
@@ -734,7 +734,8 @@ sub doneMSB {
   my $checksum = shift;
 
   # If last arg is a hash read it off
-  my %optargs = ( adjusttime => 1, nodecrement => 0 );
+  my %optargs = ( adjusttime => 1, nodecrement => 0, shifttype => "UNKNOWN" );
+
   if (ref($_[-1]) eq 'HASH') {
     # Remove last element from @_
     my $newopt = pop(@_);
@@ -821,6 +822,7 @@ sub doneMSB {
 
   # Now decrement the time for the project if required
   if ($optargs{adjusttime}) {
+    my $shifttype = $optargs{shifttype};
     my $acctdb = new OMP::TimeAcctDB(
                                      ProjectID => $sp->projectID,
                                      DB => $self->db,
@@ -832,6 +834,7 @@ sub doneMSB {
                                           confirmed => 0,
                                           date => scalar(gmtime()),
                                           timespent => $msb->estimated_time,
+                                          shifttype => $shifttype,
                                          );
 
     $acctdb->incPending( $acct );
