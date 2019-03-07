@@ -468,10 +468,10 @@ sub doneMSB {
     # If the shift type was defined, create an option hash.
     my %optargs;
     if (defined $shift_type) {
-        %optargs = {shifttype => $shift_type};
+        $optargs{'shifttype'} = $shift_type;
     }
 
-    $db->doneMSB( $checksum, $comment, %optargs);
+    $db->doneMSB( $checksum, $comment, \%optargs);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
