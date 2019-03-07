@@ -410,6 +410,10 @@ The transaction ID is a string that should be unique for a particular
 instance of an MSB. Userid and reason must be specified (undef is okay)
 if a transaction ID is supplied.
 
+A shift type can also be specified
+  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid, $shifttype );
+
+This is a standard shift name.
 =cut
 
 sub doneMSB {
@@ -419,6 +423,7 @@ sub doneMSB {
   my $userid = shift;
   my $reason = shift;
   my $msbtid = shift;
+  my $shift_type = shift;
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
@@ -459,7 +464,14 @@ sub doneMSB {
                             DB => $class->dbConnection
                            );
 
-    $db->doneMSB( $checksum, $comment );
+
+    # If the shift type was defined, create an option hash.
+    my %optargs;
+    if (defined $shift_type) {
+        %optargs = {shifttype => $shift_type};
+    }
+
+    $db->doneMSB( $checksum, $comment, %optargs);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
