@@ -91,11 +91,18 @@ sub getTimeSpent {
     }
   }
 
+  # if we have a shifttype use that.
+  my $shifttype;
+  if ($args{shifttype}) {
+      $shifttype = $args{shifttype};
+  }
+
   # Construct the XML for the query
   # Note that we do not want to go exactly one day forward here
   my $xml = "<TimeAcctQuery>" .
     (exists $args{projectid} ? "<projectid>$args{projectid}</projectid>" : '').
       ($date ? "<date delta=\"0.99999\">$date</date>" : '').
+      ($shifttype ? "<shifttype>$shifttype</shifttype>" : '').
         "</TimeAcctQuery>";
 
   # Create the query object
@@ -141,7 +148,8 @@ sub verifyTimeAcctEntry {
   # until we get tau bands and other things included in the allocation
   # this is essentially getTimeSpent
   my @results = $self->getTimeSpent( projectid => $ref->projectid,
-                                     utdate => $ref->date);
+                                     utdate => $ref->date,
+                                     shifttype => $ref->shifttype);
 
   # return the result
   return $results[0];
