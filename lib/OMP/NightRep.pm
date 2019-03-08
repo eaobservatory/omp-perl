@@ -1129,7 +1129,7 @@ sub astext {
           }
       }
 
-      for my $proj (keys $acct{$shift}) {
+      for my $proj (keys %{$acct{$shift}}) {
           next if $proj =~ /^$tel/;
           $comment = $acct{$shift}{$proj}->comment;
           $str .= sprintf("$format", $proj.':', $acct{$shift}{$proj}->timespent->hours, $comment);
