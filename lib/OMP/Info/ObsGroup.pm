@@ -1006,7 +1006,7 @@ sub projectStatsSimple {
           my $prevprojectid = $prevobs->projectid;
           my $prevtel = uc($prevobs->telescope);
           my $prevshifttype;
-          if ($format ne 'BYSHIFT') {
+          if ($format eq 'BYSHIFT') {
               $prevshifttype = uc($prevobs->shifttype);
           } else {
               $prevshifttype = 'ANYSHIFT';
