@@ -1010,9 +1010,12 @@ sub astext {
           push @shifts, $key;
       }
   }
+
+  # Only include faultshifts if time was charged.
   my @faultshifts = (keys %timelostbyshift);
   for my $shift (@faultshifts) {
-      if((! exists($times{$shift}) ) && ($shift ne '')) {
+      my $losttime = $timelostbyshift{$shift};
+      if((! exists($times{$shift}) ) && ($shift ne '') && ($losttime > 0)) {
           push @shifts, $shift;
       }
   }
