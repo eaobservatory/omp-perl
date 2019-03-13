@@ -1565,9 +1565,14 @@ sub ashtml {
   if ($self->delta_day > 1) {
       $showcomment = 0;
   }
-  # T i m e  A c c o u n t i n g
-  # Get shifts from time accounting and from timelostbyshift.
-  my %times = $self->accounting;
+  # T i m e A c c o u n t i n g
+
+
+  #Get shifts from time accounting database. and from timelostbyshift.
+
+  # HTML version does not show any times from the headers, so no need
+  # to ever get them. Just get the accounting_db stuff.
+  my %times = $self->accounting_db;
 
   my %timelostbyshift = $self->timelostbyshift;
 
@@ -1594,15 +1599,13 @@ sub ashtml {
 
   $self->projectsummary_ashtml;
 
+
   # Now do it per shift.
   if (@shifts > 1) {
       for my $shift (@shifts) {
-	  $self->projectsummary_ashtml($showcomment, $shift);
+         $self->projectsummary_ashtml($showcomment, $shift);
       }
   }
-
-
-
   if ($self->delta_day < 14) {
     # M S B  S u m m a r y
     # Get observed MSBs
