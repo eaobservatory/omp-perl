@@ -1213,7 +1213,7 @@ sub shifttype {
   if (@_) {
       my $shifttype = shift;
       if (! defined $shifttype || $shifttype eq '') {
-          $shifttype = 'UNKNOWN';
+          $shifttype = undef;
       }
       $self->{ShiftType} = $shifttype; }
   return $self->{ShiftType};
