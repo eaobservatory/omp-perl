@@ -377,7 +377,15 @@ sub faultsbyshift {
   for my $shift (@shifttypes) {
       my @results = grep{ $_->shifttype eq $shift } @faultlist;
       my $fgroup = new OMP::FaultGroup(faults=>\@results);
-      $resulthash{$shift} = $fgroup;
+
+      # $shift can be an empty string as the database allows Faults to
+      # have a NULL shifttype. Therefore convert empty string to
+      # UNKNOWN here so time accounting works.
+      my $shiftname = $shift;
+      if ($shift eq '') {
+          $shiftname = 'UNKNOWN';
+      }
+      $resulthash{$shiftname} = $fgroup;
   }
   return %resulthash;
 }
