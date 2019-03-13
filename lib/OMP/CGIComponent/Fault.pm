@@ -869,6 +869,7 @@ sub file_fault_form {
       print "</td><tr><td align=right><b>Shift Type </b></td><td>";
       print $q->popup_menu(-name=>'shifttype',
                            -values=>\@shiftstatus,
+                           -default=>$defaults{shifttype},
                            )
           . q[&nbsp;];
   }
@@ -880,6 +881,7 @@ sub file_fault_form {
       print "</td><tr><td align=right><b>Remote Status </b></td><td>";
       print $q->popup_menu(-name=>'remote',
                            -values=>\@remotestatus
+                           -default=>$defaults{remote}
                            )
           . q[&nbsp;];
   }
