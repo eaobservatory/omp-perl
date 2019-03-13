@@ -1366,9 +1366,22 @@ sub parse_file_fault_form {
   my %parsed = (subject => $q->param('subject'),
                 type => $q->param('type'),
                 status => $q->param('status'),
-		shifttype => $q->param('shifttype'),
-		remote => $q->param('remote')
       );
+
+  my @params = $q->param;
+  my %paramhash = map { $_ => 1 } @params;
+  if(exists($paramhash{remote})){
+      $parsed{'remote'} = $q->param('remote');
+  } else {
+      $parsed{'remote'} = undef;
+  }
+  if(exists($paramhash{shifttype})){
+      $parsed{'shifttype'} = $q->param('shifttype');
+  } else {
+      $parsed{'shifttype'} = undef;
+  }
+
+
 
   if ( _is_safety( $category ) ) {
 
