@@ -89,7 +89,7 @@ sub format_fault {
 
   my $shifttext = "";
   if ($shifttype) {
-      $shifttext = sprintf("%-58s %s", "<b>Shift Type:</b> $shifttype" . "<b>Remote status:</b> $remote<br>")
+      $shifttext = sprintf("%-58s %s", "<b>Shift type:</b> $shifttype","<b>Remote status:</b> $remote<br>")
   }
   my $faultauthor = $fault->author->html;
 
