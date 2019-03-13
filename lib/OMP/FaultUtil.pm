@@ -70,6 +70,8 @@ sub format_fault {
   my $type = $fault->typeText;
   my $loss = $fault->timelost;
   my $category = $fault->category;
+  my $shifttype = $fault->shifttype;
+  my $remote = $fault->remote;
 
   # Don't show the status if there is only the initial filing and it is 'Open'
   my $status = $responses[1] || $fault->statusText !~ /open/i
@@ -85,12 +87,17 @@ sub format_fault {
     $faultdatetext = "hrs at ". OMP::DateTools->display_date($faultdate);
   }
 
+  my $shifttext = "";
+  if ($shifttype) {
+      $shifttext = sprintf("%-58s %s", "<b>Shift Type:</b> $shifttype" . "<b>Remote status:</b> $remote<br>")
+  }
   my $faultauthor = $fault->author->html;
 
   # Create the fault meta info portion of our message
   my $meta =
 "<pre>".
 sprintf("%-58s %s","<b>System:</b> $system","<b>Fault type:</b> $type<br>").
+$shifttext .
 sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 "</pre><br>";
 
