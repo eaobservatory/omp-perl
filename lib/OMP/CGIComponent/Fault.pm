@@ -880,7 +880,7 @@ sub file_fault_form {
   } elsif ( %remotes > 1) {
       print "</td><tr><td align=right><b>Remote Status </b></td><td>";
       print $q->popup_menu(-name=>'remote',
-                           -values=>\@remotestatus
+                           -values=>\@remotestatus,
                            -default=>$defaults{remote}
                            )
           . q[&nbsp;];
