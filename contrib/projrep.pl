@@ -184,17 +184,22 @@ sub print_reporting_breakdown {
         print  "  \[pending\]" if ($items{"_shutdown"} < 0);
         print  "\n";
     }
-    printf "Clear time lost to faults              F/(T-W):  %6.2f \%\n",
+    if (($total-abs($items{"weather"})) > 0) {
+        printf "Clear time lost to faults              F/(T-W):  %6.2f \%\n",
         100.0*$faultloss/($total-abs($items{"weather"}));
-    if ($longrep) {
-        printf "Clear time lost to technical faults   F1/(T-W):  %6.2f \%\n",
-        100.0*$technicalloss/($total-abs($items{"weather"}));
-        print  "\n";
 
+        if ($longrep) {
+            printf "Clear time lost to technical faults   F1/(T-W):  %6.2f \%\n",
+            100.0*$technicalloss/($total-abs($items{"weather"}));
+            print  "\n";
+        }
+    }
+    if ($longrep) {
         print  "Extended Time                                E:  ";
         printf "%6.2f hrs",abs($items{"extended"});
         print  "  \[pending\]" if ($items{"extended"} < 0);
         print  "\n\n";
+
 
 
         my $cnr = 0;
