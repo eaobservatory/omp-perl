@@ -787,6 +787,7 @@ sub projectStatsSimple {
   my $WEATHER_GAP = "WEATHER";
   my $OTHER_GAP   = "OTHER";
   my $CAL_NAME    = "CAL";
+  my $BAD_OBS     = "BADOBS";
   my $EXTENDED_KEY= "EXTENDED";
 
   # This is a hash indexed by UT and tel shifttype) since we cannot mix them yet)
@@ -820,6 +821,7 @@ sub projectStatsSimple {
         $shifttype = 'ANYSHIFT';
     }
     my $calproj = $tel . $CAL_NAME;
+    my $badproj = $tel . $BAD_OBS;
 
     # If we have a TIMEGAP we want to treat it as a special observation
     # that only depends on telescope (like JCMTCAL)
@@ -894,10 +896,10 @@ sub projectStatsSimple {
                                                      && $projectid !~ /^scuba$/i
                                                      && !$isgap
         );
-    # if the observation is not a gap and is bad charge it to overhead
-    if (!$isgap && $obs->status == OMP__OBS_BAD && $projectid ne $calproj) {
-      print "Observation from project $projectid is marked BAD, charging to overhead\n" if $DEBUG;
-      $projectid = $calproj;
+    # if the observation is not a gap and is bad charge it to overhead. What about junk?
+    if (!$isgap && ($obs->status == OMP__OBS_BAD|| $obs->status == OMP__OBS_JUNK)) {
+      print "Observation from project $projectid is marked BAD, adding to $badproj\n" if $DEBUG;
+      $projectid = $badproj;
     }
 
     # Store the project ID for gap processing
