@@ -1590,14 +1590,14 @@ sub ashtml {
           push @shifts, $key;
       }
   }
+  # Only include faultshifts if time was charged.
   my @faultshifts = (keys %timelostbyshift);
   for my $shift (@faultshifts) {
       my $losttime = $timelostbyshift{$shift};
-      if((! exists($times{$shift})  && ($shift ne '') && ($losttime > 0)) {
+      if((! exists($times{$shift}) ) && ($shift ne '') && ($losttime > 0)) {
           push @shifts, $shift;
       }
   }
-
 
   # First of all do overall per night.
   print "<p> There were shiftypes of ";
