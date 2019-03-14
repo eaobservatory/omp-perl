@@ -287,7 +287,7 @@ sub add_shift {
     my $sums = sub {
         $total_time = 0.0;
         for my $proj (keys %final) {
-            next if $proj =~ /EXTENDED/;
+            next if ($proj =~ /EXTENDED/ || $proj =~ /BADOBS/);
             if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/) {
                 $total_time += $final{$proj};
             }
@@ -322,6 +322,7 @@ sub add_shift {
             next if $proj eq $tel . "UNKNOWN";
             next if $proj eq $tel . "OTHER";
             next if $proj eq $tel . "FAULT";
+            next if $proj eq $tel . "BADOBS";
             add_project( $f, 1, $proj, $shift, $times{$shift}{$proj}, \$final{$proj}, $sums, \$comments{$proj});
         }
     }
@@ -342,6 +343,7 @@ sub add_shift {
 
     # Fault time is not editable
     add_project($f, 0, "Time lost to Faults", $shift, {}, \$final{$tel."FAULTS"});
+    add_project($f, 0, "Bad/Junk Obs (not in total)", $shift, $times{$shift}{$tel . "BADOBS"}, \$final{$tel."BADOBS"});
 
     #my %timelost = $nr->timelostbysh;
 
@@ -576,8 +578,8 @@ sub confirm_totals {
   my @acct;
   for my $proj (keys %totals) {
 
-    # Skip faults since they come from fault database
-    next if $proj =~ /FAULTS/;
+    # Skip faults since they come from fault database, and skip BAD OBS since we don't charge for them by default.
+    next if ($proj =~ /FAULTS/ || $proj =~/BADOBS/);
 
     # Get comment if there is one.
     my $comment;
