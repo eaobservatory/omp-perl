@@ -1592,7 +1592,8 @@ sub ashtml {
   }
   my @faultshifts = (keys %timelostbyshift);
   for my $shift (@faultshifts) {
-      if((! exists($times{$shift}) ) && ($shift ne '')) {
+      my $losttime = $timelostbyshift{$shift};
+      if((! exists($times{$shift})  && ($shift ne '') && ($losttime > 0)) {
           push @shifts, $shift;
       }
   }
