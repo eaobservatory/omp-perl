@@ -1976,8 +1976,13 @@ method.
 sub summary {
   my $self = shift;
 
+  # Create a heading.
+  my @headings = ('Obs', 'Start', 'Proj', 'Inst', 'Src', 'Mode', 'State');
+  my $heading = sprintf("%4.4s %8.8s %15.15s %8.8s %-14.14s %-11.11s %-5.5s\n",
+                          @headings);
   if(wantarray) {
     my @summary;
+    push @summary, ($heading);
     foreach my $obs ($self->obs) {
       my @obssum = $obs->summary( '72col' );
       push @summary, @obssum;
@@ -1988,7 +1993,7 @@ sub summary {
     foreach my $obs ($self->obs) {
       $summary .= $obs->summary( '72col' );
     }
-    return $summary;
+    return $heading . $summary;
   }
 }
 
