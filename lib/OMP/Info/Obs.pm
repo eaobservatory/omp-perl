@@ -66,6 +66,12 @@ our $VERSION = '2.000';
 
 use overload '""' => "stringify";
 
+our %status_label = ( OMP__OBS_GOOD() => 'Good',
+                      OMP__OBS_QUESTIONABLE() => 'Questionable',
+                      OMP__OBS_BAD() => 'Bad',
+                      OMP__OBS_JUNK() => 'Junk',
+                      OMP__OBS_REJECTED() => "Rejected",
+    ) ;
 =head1 METHODS
 
 =head2 Constructor
@@ -830,10 +836,11 @@ sub summary {
     # Silently fix things.
     my @strings = map { defined $_ ? $_ : '' } $self->runnr,
       $start, $self->projectid, $self->instrument,
-        $self->target, $self->mode;
+        $self->target, $self->mode, $status_label{$self->status};
 
-    my $obssum = sprintf("%4.4s %8.8s %15.15s %8.8s %-18.18s %-14.14s\n",
+    my $obssum = sprintf("%4.4s %8.8s %15.15s %8.8s %-14.14s %-11.11s %-5.5s\n",
                         @strings);
+
     my $commentsum;
     foreach my $comment ( $self->comments ) {
       if(defined($comment)) {
