@@ -175,13 +175,14 @@ for my $proj (keys %sorted) {
                                                telescope => $proj_details->telescope,);
   my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
-  $msg .= "MSB Summary\n-----------\n\n";
+  $msg .= "Observed MSBs\n-----------\n\n";
   $msg .= sprintf "$hfmt\n", "Project", $alt_msb_column, "Instrument",
     "Waveband";
 
   # UKIRT KLUGE: Find out if project is a UKIRT project
   my $ukirt_proj = ($proj_details->telescope() eq 'UKIRT');
 
+  # Create list of msbs.
   for my $msbid ( @{ $sorted{$proj} } ) {
     # Note that %s does not truncate strings so we have to do that
     # This will be problematic if the format is modified
@@ -256,8 +257,6 @@ for my $proj (keys %sorted) {
 
   _log_err( $! );
 
-  $grp->locate_timegaps( OMP::Config->getData("timegap") );
-
   my $summary = $grp->summary('72col');
   defined $summary or $summary = '';
 
@@ -275,9 +274,20 @@ for my $proj (keys %sorted) {
 
   my $status = OMP__FB_IMPORTANT;
 
+
+  my $datestr = $utdate->ymd;
+
+
+  my $tel = $ukirt_proj ? "UKIRT" : "JCMT";
+
+  my $jcmt_text = "<html><p>Data were obtained for your $tel project $proj on date $datestr. Please check the quality of these observations promptly and contact your Friend of Project immediately if there are any problems or if they do not meet your requirements.</p><p>You can retrieve your raw data from the <a href=\"http://omp.eao.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$proj\">OMP feedback system</a> or directly from the <a href=\"http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/search/?Observation.proposal.id=$proj&Observation.collection=JCMT\">CADC JCMT Science Archive</a>.</p>\n<p>The password required for accessing the OMP is the same one you used when submitting your science program MSBs through the Observing Tool.  If you have forgotten your password go to the <a href=\"http://omp.eao.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password. You also need a CADC username and password, and to have provided those to your Friend of Project.</p>\n\n<p>Pipeline processed data from this night should be available within 24 hours directly from CADC.</p>\n\n";
+
+  # UKIRT KLUGE: Provide a different message for UKIRT users
+  my $ukirt_text = "<html><p>Data were obtained for your project on date $datestr.\nFor more details log in to the <a href=\"http://omp.eao.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.eao.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
+
   # Get the appropriate text for jcmt or ukirt projects.
   my $fixed_text = $ukirt_proj ? $ukirt_text : $jcmt_text;
-  my $fullmessage = "$fixed_text<pre>\n$msg\n</pre>\n";
+  my $fullmessage = "$fixed_text<p><b>Observing Summary for $datestr</b><p><pre>\n$msg\n</pre>\n";
 
   # If we are in debug mode just send to stdout. Else
   # contact feedback system
@@ -286,34 +296,21 @@ for my $proj (keys %sorted) {
     print "\nStatus: $status\n";
 
   } else {
-    my ($user, $host, $email) = OMP::NetTools->determine_host;
-    my $datestr = $utdate->ymd;
-
-    my $fixed_text = "<html><p>Data were obtained for your project on date $datestr.\nYou can retrieve it from the <a href=\"http://omp.eao.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a>.</p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.eao.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n<p>Processed data from this night should be available within 24 hours directly from CADC by searching in the Proprietary JSA Processed Data section.</p>\n\n";
-
-    # UKIRT KLUGE: Provide a different message for UKIRT users
-    my $ukirt_text = "<html><p>Data were obtained for your project on date $datestr.\nFor more details log in to the <a href=\"http://omp.eao.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.eao.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
-
-    if ($ukirt_proj) {
-      $fixed_text = $ukirt_text;
-    }
-
     # Provide a feedback comment informing project users that data has been obtained
-
+    my ($user, $host, $email) = OMP::NetTools->determine_host;
     _log_message( qq[Adding comment for $proj (host: $host, status: $status)] );
 
     OMP::FBServer->addComment(
                               $proj,
                               {
                                author => undef, # this is done by cron
-                               subject => "Data obtained for project on ". $utdate->ymd,
+                               subject => $tel . " data obtained for project on ". $utdate->ymd,
                                program => "observed.pl",
                                sourceinfo => $host,
                                status => $status,
                                text =>  $fullmessage,
                               }
                              );
-
     _log_err( $! );
 
  }
