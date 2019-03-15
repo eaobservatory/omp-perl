@@ -192,7 +192,10 @@ for my $proj (keys %sorted) {
             substr($msbid->waveband,0,10);
   }
 
-  # Attach shift log
+
+  # Create the shift log
+  my $shiftlog_msg;
+
   # Query for the telescope's shiftlog if we haven't retrieved it yet
   unless (exists $shiftlog{$proj_details->telescope}) {
     my $sdb = new OMP::ShiftDB( DB => new OMP::DBbackend );
@@ -219,7 +222,7 @@ for my $proj (keys %sorted) {
     }
   }
 
-  $msg .= "\nShift Comments\n--------------\n\n";
+  $shiftlog_msg .= "\nShift Comments\n--------------\n\n";
 
   $Text::Wrap::columns = 72;
   for my $comment (@{$shiftlog{$proj_details->telescope}}) {
@@ -239,8 +242,8 @@ for my $proj (keys %sorted) {
     $text = wrap("    ","    ",$text);
 
     # Now print the comment
-    $msg .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
-    $msg .= $text ."\n\n";
+    $shiftlog_msg .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
+    $shiftlog_msg .= $text ."\n\n";
   }
 
   # Attach observation log
@@ -258,15 +261,28 @@ for my $proj (keys %sorted) {
   my $summary = $grp->summary('72col');
   defined $summary or $summary = '';
 
-  $msg .= "\nObservation Log\n---------------\n\n";
-  $msg .= $summary;
+  my $obslog_msg = "";
+  $obslog_msg .= "\nObservation Log\n---------------\n\n";
+  $obslog_msg .= $summary;
+
+
+  # if UKIRT, but shiftlog before obslog. For JCMT, put obslog before shiftlog.
+  if ($ukirt_proj) {
+     $msg .= $shiftlog_msg . $obslog_msg;
+  } else {
+     $msg .= $obslog_msg . $shiftlog_msg;
+  }
 
   my $status = OMP__FB_IMPORTANT;
+
+  # Get the appropriate text for jcmt or ukirt projects.
+  my $fixed_text = $ukirt_proj ? $ukirt_text : $jcmt_text;
+  my $fullmessage = "$fixed_text<pre>\n$msg\n</pre>\n";
 
   # If we are in debug mode just send to stdout. Else
   # contact feedback system
   if ($debug) {
-    print $msg;
+    print $fullmessage;
     print "\nStatus: $status\n";
 
   } else {
@@ -294,31 +310,12 @@ for my $proj (keys %sorted) {
                                program => "observed.pl",
                                sourceinfo => $host,
                                status => $status,
-#                              text => "$fixed_text<pre>\n$msg\n</pre>\n",
-                               text => "$fixed_text\n",
+                               text =>  $fullmessage,
                               }
                              );
 
     _log_err( $! );
 
-    # Email the detailed log to the project users
-
-    # Get project contacts
-    my @contacts = $proj_details->contacts;
-
-    my $basedb = new OMP::BaseDB(DB => new OMP::DBbackend,);
-
-    my $flexuser = OMP::User->new(email=>'flex@eaobservatory.org');
-
-    _log_message( qq[Sending email for $proj, $utdate] );
-
-    $basedb->_mail_information( to => \@contacts,
-                                from => $flexuser,
-                                subject => "[$proj] Project log for " . $utdate->ymd(),
-                                message => "$msg\n",
-                              );
-
-    _log_err( $! );
  }
 
 }
