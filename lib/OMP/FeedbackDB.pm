@@ -398,7 +398,9 @@ sub _mail_comment {
   # plaintext)
   my $msg = $args{comment}->{text};
 
-  # Word wrap the message
+  # Word wrap the message; if long words don't fit then allow them to
+  # overflow.
+  local($Text::Wrap::huge) = "overflow";
   $msg = wrap('', '', $msg);
 
   my $projectid = $self->projectid;
