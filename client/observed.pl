@@ -300,18 +300,25 @@ for my $proj (keys %sorted) {
     my ($user, $host, $email) = OMP::NetTools->determine_host;
     _log_message( qq[Adding comment for $proj (host: $host, status: $status)] );
 
-    OMP::FBServer->addComment(
-                              $proj,
-                              {
-                               author => undef, # this is done by cron
-                               subject => $tel . " data obtained for project on ". $utdate->ymd,
-                               program => "observed.pl",
-                               sourceinfo => $host,
-                               status => $status,
-                               text =>  $fullmessage,
-                              }
-                             );
-    _log_err( $! );
+    # The feedback comment is too long to add to the feedback system
+    # -- it makes the web page unusable. instead send it directly to the users.
+
+    my @contacts = $proj_details->contacts;
+
+    my $basedb = new OMP::BaseDB(DB => new OMP::DBbackend,);
+    my $flexuser = OMP::User->new(email=>'flex@eaobservatory.org');
+
+    # This line is copied from the FeedbackDB::addComment method.
+    my $message_formatted = OMP::Display->preify_text($fullmessage);
+
+    _log_message( qq[Sending email for $proj, $utdate] );
+
+    $basedb->_mail_information( to => \@contacts,
+                                from => $flexuser,
+                                subject => "[$proj] $tel data obtained for project on" . $utdate->ymd,
+                                message => $message_formatted,
+                              );
+
 
  }
 
