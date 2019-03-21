@@ -244,7 +244,8 @@ my @shifts = (keys %shiftacct);
 
 
 for my $shift (@faultshifts) {
-    if((! exists($shiftacct{$shift}) ) && ($shift ne '')) {
+    my $losttime = $faultlosses{$shift};
+    if((! exists($shiftacct{$shift}) ) && ($shift ne '') && ($losttime > 0 )) {
           push @shifts, $shift;
       }
   }
@@ -263,10 +264,8 @@ if (@shifts > 1) {
     }
     if (exists $shiftacct{$shift} ) {
        %acct = %{$shiftacct{$shift}};
-} else {
-       %acct;
-}
-    print_reporting_breakdown($faultloss, $technicalloss, 0, \%acct);
+     print_reporting_breakdown($faultloss, $technicalloss, 0, \%acct);
+    }
 }
 }
 
