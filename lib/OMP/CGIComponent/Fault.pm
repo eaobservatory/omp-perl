@@ -208,7 +208,7 @@ sub fault_table {
     . '</b> ' . $fault->systemText . '</td>'
     ;
 
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost * 60.0 . " minutes (" . $fault->timelost . " hrs)</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
 
   my %shifts = OMP::Fault->shiftTypes($fault->category);
   if (%shifts) {
@@ -738,7 +738,7 @@ sub file_fault_form {
                  status => $fault->status,
                  location => $fault->location,
                  type => $fault->type,
-                 loss => $fault->timelost,
+                 loss => $fault->timelost * 60.0,
                  time => $faultdate,
                  tz => 'HST',
                  subject => $fault->subject,
@@ -832,7 +832,7 @@ sub file_fault_form {
   # Only provide fields for taking "time lost" and "time of fault"
   # if the category allows it
   if (OMP::Fault->faultCanLoseTime($category)) {
-    print "</td><tr><td align=right><b>Time lost <small>(hours)</small>:</b></td><td>";
+    print "</td><tr><td align=right><b>Time lost <small>(minutes)</small>:</b></td><td>";
     print $q->textfield(-name=>'loss',
                         -default=>$defaults{loss},
                         -size=>'4',
@@ -1353,7 +1353,7 @@ can be used to create the fault and fault response objects.
 Returns the following keys:
 
   subject, faultdate, timelost, system, type, status, urgency,
-  projects, author, text
+  projects, author, text, remote, shifttype
 
 =cut
 
@@ -1409,8 +1409,8 @@ sub parse_file_fault_form {
     ($_ =~ /chronic/i) and $parsed{condition} = $condition{Chronic};
   }
 
-  # Store time lost if defined.
-  (length($q->param('loss')) >= 0) and $parsed{timelost} = $q->param('loss');
+  # Store time lost if defined (convert to hours)
+  (length($q->param('loss')) >= 0) and $parsed{timelost} = $q->param('loss')/60.0;
 
   # Get the associated projects
   if ($q->param('assoc') or $q->param('assoc2')) {
