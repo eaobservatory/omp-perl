@@ -578,6 +578,68 @@ sub handle_special_modes {
   return;
 }
 
+=item B<_determine_best_sideband>
+
+Read the sideband wiring file to determine which sideband should be used
+when "best" is requested.
+
+Returns undef if the sideband file can not be found, or if no frequencies
+lower than the given value are found.
+
+=cut
+
+sub _determine_best_sideband {
+    my $instrument = lc(shift);
+    my $sky_freq_ghz = shift;
+    my $wiredir = shift;
+
+    # File name is derived from instrument name in wireDir
+    # The instrument config is fixed for a specific instrument
+    # and is therefore a "wiring file"
+    throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
+        unless defined $instrument;
+
+    # wiring file name
+    my $file = File::Spec->catfile(
+        $wiredir , 'frontend', "sideband_$instrument.txt");
+
+    return undef unless -e $file;
+
+    # can make a guess but make it non-fatal to be missing
+    # The file is a simple format of
+    #    SkyFreq    Sideband
+    # where SkyFreq is the frequency threshold above which that
+    # sideband should be used. We read each line until we get a skyfreq
+    # that is higher than our required value and then use the value from the previous
+    # line
+    open my $fh, '<', $file or
+        throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
+
+    # read the lines, skipping comments and if the current frequency is lower than
+    # that of the line store the sideband and continue
+    my $sb = undef;
+    while (defined (my $line = <$fh>) ) {
+        chomp($line);
+        $line =~ s/\#.*//;      # remove comments
+        $line =~ s/^\s*//;      # remove leading space
+        $line =~ s/\s*$//;      # remove trailing space
+        next if $line !~ /\S/;  # give up if we only have whitespace
+        my ($freq, $refsb) = split(/\s+/, $line);
+        if ($freq < $sky_freq_ghz) {
+            $sb = uc $refsb;
+        }
+        else {
+            # freq is larger so drop out of loop
+            last;
+        }
+    }
+
+    close($fh) or
+        throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
+
+    return $sb;
+}
+
 =back
 
 =head1 CONFIG GENERATORS
@@ -661,57 +723,23 @@ sub fe_config {
   # Sideband mode
   $fe->sb_mode( $fc{sideBandMode} );
 
+  # Get sky frequency in GHz
+  my $skyFreq = $fc{skyFrequency} / 1.0E9;
+
   # How to handle 'best'?
   my $sb = $fc{sideBand};
   if ($sb =~ /BEST/i) {
     # determine from lookup table
-    $sb = "USB";
+    my $instrument_name = $self->ocs_frontend($info{instrument});
+    $sb = _determine_best_sideband($instrument_name, $skyFreq, $self->wiredir());
 
-    # File name is derived from instrument name in wireDir
-    # The instrument config is fixed for a specific instrument
-    # and is therefore a "wiring file"
-    my $instname = lc($self->ocs_frontend($info{instrument}));
-    throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
-      unless defined $instname;
-
-    # wiring file name
-    my $file = File::Spec->catfile( $self->wiredir, 'frontend',
-                                    "sideband_$instname.txt");
-
-    if (-e $file) {
-      # can make a guess but make it non-fatal to be missing
-      # The file is a simple format of
-      #    SkyFreq    Sideband
-      # where SkyFreq is the frequency threshold above which that
-      # sideband should be used. We read each line until we get a skyfreq
-      # that is higher than our required value and then use the value from the previous
-      # line
-      open my $fh, '<', $file or
-        throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
-
-      # Get sky frequency in GHz
-      my $skyFreq = $fc{skyFrequency} / 1.0E9;
-
-      # read the lines, skipping comments and if the current frequency is lower than
-      # that of the line store the sideband and continue
-      $sb = '';                 # make sure we read something
-      while (defined (my $line = <$fh>) ) {
-        chomp($line);
-        $line =~ s/\#.*//;      # remove comments
-        $line =~ s/^\s*//;      # remove leading space
-        $line =~ s/\s*$//;      # remove trailing space
-        next if $line !~ /\S/;  # give up if we only have whitespace
-        my ($freq, $refsb) = split(/\s+/, $line);
-        if ($freq < $skyFreq) {
-          $sb = $refsb;
-        } else {
-          # freq is larger so drop out of loop
-          last;
-        }
-      }
-
-      close($fh) or
-        throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
+    if (defined $sb) {
+        $self->output("Selected sideband $sb for sky frequency of $skyFreq GHz\n");
+    }
+    else {
+        $sb = 'USB';
+        $self->output("No sideband helper file for $instrument_name or frequency $skyFreq GHz out of range so assuming $sb will be acceptable\n");
+    }
 
       # If we have offset subsystems and we have selected LSB, we need to adjust the
       # IFs to take into account the flip. The OT always sends a USB configurtion for best
@@ -723,11 +751,6 @@ sub fe_config {
         }
 
       }
-
-      $self->output("Selected sideband $sb for sky frequency of $skyFreq GHz\n");
-    } else {
-      $self->output("No sideband helper file for $inst so assuming $sb will be acceptable\n");
-    }
   }
   $fe->sideband( $sb );
 
