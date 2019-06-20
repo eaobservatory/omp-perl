@@ -1850,17 +1850,7 @@ sub spw_list {
   throw OMP::Error::FatalError('for some reason frontend configuration is not available during spectral window processing. This can not happen') unless defined $fe;
 
   # Get the sideband and convert it to a sign -1 == LSB +1 == USB
-  my $sb = $fe->sideband;
-  my $fe_sign;
-  if ($sb eq 'LSB') {
-    $fe_sign = -1;
-  } elsif ($sb eq 'USB') {
-    $fe_sign = 1;
-  } elsif ($sb eq 'BEST') {
-    $fe_sign = 1;
-  } else {
-    throw OMP::Error::TranslateFail("Sideband is not recognised ($sb)");
-  }
+  my $fe_sign = _sideband_sign($fe->sideband);
 
   # Get the frequency information for each subsystem
   my $freq = $info{freqconfig}->{subsystems};
@@ -2047,6 +2037,26 @@ sub spw_list {
   # Store it
   $acsis->spw_list( $spwlist );
 
+}
+
+=item B<_sideband_sign>
+
+Get the sign associated with a sideband.  (+1 for USB and -1 for LSB.)
+
+=cut
+
+sub _sideband_sign {
+    my $sb = shift;
+
+    if ($sb eq 'LSB') {
+      return -1;
+    }
+
+    if ($sb eq 'USB' or $sb eq 'BEST') {
+        return 1;
+    }
+
+    throw OMP::Error::TranslateFail("Sideband is not recognised ($sb)");
 }
 
 =item B<acsisdr_recipe>
