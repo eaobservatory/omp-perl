@@ -1681,6 +1681,24 @@ sub correlator {
   # and only worry about the pixels that are switched on
   my @rec = $frontend->active_receptors;
 
+  # Are we using a sideband-separating receiver?  If so look up the receptor sidebands.
+  my $sb_mode = $frontend->sb_mode();
+  my $receptor_sideband = undef;
+  if ($sb_mode eq '2SB') {
+    my $inst = $cfg->instrument_setup();
+    throw OMP::Error::FatalError('instrument setup not available')
+        unless defined $inst;
+    $receptor_sideband = {map {
+        my $rec_sb = uc $inst->receptor_sideband($_);
+        throw OMP::Error::FatalError("receptor sideband '$rec_sb' missing or not recognized for $sb_mode observation")
+            unless $rec_sb eq 'LSB' || $rec_sb eq 'USB';
+        $_ => $rec_sb;
+    } @rec};
+  }
+  elsif ($sb_mode ne 'SSB' and $sb_mode ne 'DSB') {
+    throw OMP::Error::FatalError("frontend sideband mode '$sb_mode' not recognized");
+  }
+
   # All of the subbands that need to be allocated
   my %subbands = $spwlist->subbands;
 
@@ -1720,10 +1738,17 @@ sub correlator {
     my $spwid = $spwids[$i];
     my $sb = $subbands{$spwid};
     my $bwmode = $sb->bandwidth_mode;
+    my $sideband = ($sb->fe_sideband > 0) ? 'USB' : 'LSB';
 
     # for each receptor, we need to assign all the subbands to the correct
     # hardware
+    my $n_rec_allocated = 0;
     for my $r (@rec) {
+      # If this is a sideband-separating observation, check the receptor sideband.
+      if (defined $receptor_sideband) {
+        next unless $receptor_sideband->{$r} eq $sideband;
+      }
+
       # Get the CM mapping for this receptor
       my @hwmap = $hw_map->receptor( $r );
       throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
@@ -1777,7 +1802,14 @@ sub correlator {
       } else {
         $lo2spw[$lo2id] = $spwid;
       }
+
+      $n_rec_allocated ++;
     }
+
+    # Check that we found some receptors matching the requirements for
+    # this subband (namely the correct sideband at the moment).
+    throw OMP::Error::FatalError("No receptors allocated for subband $i ($sideband)")
+        unless $n_rec_allocated;
   }
 
   # Now store the mappings in the corresponding objects
