@@ -224,11 +224,19 @@ to ACSIS equivalents.
 
   $cfg->fixup_historical_problems( \%obs );
 
+Also set mode to 2SB for dual-sideband receivers in case of using XML
+from pre-2SB OT.
+
 =cut
 
 sub fixup_historical_problems {
   my $self = shift;
   my $info = shift;
+
+  my %twosbrx = map {$_ => 1} qw/UU AWEOWEO/;
+
+  $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
+      if exists $twosbrx{uc($info->{'instrument'})};
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
 
@@ -671,6 +679,14 @@ Create the frontend configuration.
 
  $trans->fe_config( $cfg, %info );
 
+Also adds additional information to the configured subsystems:
+
+=over 4
+
+=item * sideband
+
+=back
+
 =cut
 
 sub fe_config {
@@ -721,14 +737,18 @@ sub fe_config {
   };
 
   # Sideband mode
-  $fe->sb_mode( $fc{sideBandMode} );
+  my $sb_mode = uc $fc{sideBandMode};
+  $fe->sb_mode($sb_mode);
 
-  # Get sky frequency in GHz
+  # Get sky and rest frequency in GHz
   my $skyFreq = $fc{skyFrequency} / 1.0E9;
+  my $restfreq = $fc{restFrequency} / 1.0E9;
 
   # How to handle 'best'?
-  my $sb = $fc{sideBand};
-  if ($sb =~ /BEST/i) {
+  my $sb = uc $fc{sideBand};
+  my $sideband_flip = 0;
+
+  if ($sb eq 'BEST') {
     # determine from lookup table
     my $instrument_name = $self->ocs_frontend($info{instrument});
     $sb = _determine_best_sideband($instrument_name, $skyFreq, $self->wiredir());
@@ -741,24 +761,64 @@ sub fe_config {
         $self->output("No sideband helper file for $instrument_name or frequency $skyFreq GHz out of range so assuming $sb will be acceptable\n");
     }
 
-      # If we have offset subsystems and we have selected LSB, we need to adjust the
-      # IFs to take into account the flip. The OT always sends a USB configurtion for best
-      if (lc($sb) eq 'lsb') {
-        my @subsys = @{$fc{subsystems}};
-        for my $ss (@subsys) {
-          my $offset = $ss->{if} - $iffreq;
-          $ss->{if} = $iffreq - $offset;
-        }
-
-      }
+    # If we have offset subsystems and we have selected LSB, we need to adjust the
+    # IFs to take into account the flip. The OT always sends a USB configuration for best
+    $sideband_flip = 1 if $sb eq 'LSB';
   }
-  $fe->sideband( $sb );
+
+  $fe->sideband($sb);
+
+  # Compute the redshift factor and use it to find the approximate
+  # equivalent frequency of the LO in the source rest frame. We can use
+  # this to determine the sideband of each subsystem.
+  my $inv_redshift_factor = $restfreq / $skyFreq;
+  my $lo_rest = ($skyFreq - _sideband_sign($sb) * $iffreq_ghz) * $inv_redshift_factor;
+  $self->output("Checking subsystem sideband configuration...\n");
+  $self->output("\tApprox. rest sys. equiv. of LO is: $lo_rest GHz\n");
+
+  # Now iterate over subsystems and check the sideband configuration.
+  my $n_subsystem = 0;
+  for my $ss (@{$fc{subsystems}}) {
+    $n_subsystem ++;
+
+    if ($sideband_flip) {
+        $ss->{if} = (2.0 * $iffreq) - $ss->{if};
+    }
+
+    my $ss_rest_freq = $ss->{'rest_freq'} / 1.0E9;
+
+    my $ss_sideband = ($ss_rest_freq > $lo_rest) ? 'USB' : 'LSB';
+    $self->output("\tSubsystem $n_subsystem: determined sideband $ss_sideband ($ss_rest_freq GHz)\n");
+
+    if ($ss_sideband ne $sb) {
+      if ($n_subsystem == 1) {
+        # Since we configured everything based on the first subsystem,
+        # it should be in the correct sideband!
+        throw OMP::Error::TranslateFail("First subsystem appears in unexpected sideband");
+      }
+
+      if ($sb_mode eq 'SSB') {
+        throw OMP::Error::TranslateFail("Subsystem $n_subsystem is in $ss_sideband but this is an SSB $sb observation");
+      }
+      elsif ($sb_mode eq 'DSB') {
+        # Maintain historical behavior of using the same sideband for all subsystems?
+        $ss_sideband = $sb;
+      }
+      elsif ($sb_mode eq '2SB') {
+        # Retain alternative sideband label.
+      }
+      else {
+        throw OMP::Error::TranslateFail("Unknown sideband mode '$sb_mode'");
+      }
+    }
+
+    $ss->{'sideband'} = $ss_sideband;
+  }
 
   # FE XML expects rest frequency in GHz
   # If the first subsytem has been moved from the centre of the
   # band we need to adjust the tuning request to compensate
   # The sense of the shift depends on the sideband
-  my $restfreq = $fc{restFrequency} / 1e9; # to GHz
   my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
   my $offset = $ifsub1 - $iffreq_ghz;
 
@@ -769,7 +829,7 @@ sub fe_config {
   $restfreq += $offset;
   $fe->rest_frequency( $restfreq );
   $self->output("Tuning to a rest frequency of ".
-                sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n");
+                sprintf("%.3f",$restfreq)." GHz ".$sb."\n");
   if (abs($offset) > 0.001) {
     $self->output("Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
         " MHz to correct for offset of first subsystem in band\n");
@@ -1849,9 +1909,6 @@ sub spw_list {
   my $fe = $cfg->frontend;
   throw OMP::Error::FatalError('for some reason frontend configuration is not available during spectral window processing. This can not happen') unless defined $fe;
 
-  # Get the sideband and convert it to a sign -1 == LSB +1 == USB
-  my $fe_sign = _sideband_sign($fe->sideband);
-
   # Get the frequency information for each subsystem
   my $freq = $info{freqconfig}->{subsystems};
 
@@ -1904,6 +1961,9 @@ sub spw_list {
   my %spws;
   my $spwcount = 1;
   for my $ss (@$freq) {
+    # Get the sideband and convert it to a sign -1 == LSB +1 == USB
+    my $fe_sign = _sideband_sign($ss->{'sideband'});
+
     my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow;
     $spw->rest_freq_ref( $ss->{rest_freq_ref});
     $spw->fe_sideband( $fe_sign );
