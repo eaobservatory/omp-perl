@@ -1693,53 +1693,52 @@ sub correlator {
   # lookup from lo2 id to spectral window
   my @lo2spw;
 
-  # for each receptor, we need to assign all the subbands to the correct
-  # hardware
+  # Get the number of subbands to allocate
+  my @spwids = sort keys %subbands;
 
-  for my $r (@rec) {
+  # Some configurations actually use multiple correlator modules in
+  # a single subband so we need to take this into account when
+  # calculating the mapping. Do this by padding @spwids with the
+  # same SPWID. Additionally it is not possible for a mode that uses
+  # 2 correlator modules to start on an odd slot (so a dual CM mode
+  # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
+  # ensuring that this latter problem never occurs.
 
-    # Get the number of subbands to allocate for this receptor
-    my @spwids = sort keys %subbands;
-
-    # Some configurations actually use multiple correlator modules in
-    # a single subband so we need to take this into account when
-    # calculating the mapping. Do this by padding @spwids with the
-    # same SPWID. Additionally it is not possible for a mode that uses
-    # 2 correlator modules to start on an odd slot (so a dual CM mode
-    # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
-    # ensuring that this latter problem never occurs.
-
-    @spwids = map {
-      my $spw = $_; my $ncm = $subbands{$spw}->numcm;
-      my @temp = $_;
-      for my $i (2..$ncm) {
-        push(@temp, $spw);
-      }
-      @temp;
-    } @spwids;
-
-    # Get the CM mapping for this receptor
-    my @hwmap = $hw_map->receptor( $r );
-    throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
-
-    if (@spwids > @hwmap) {
-      throw OMP::Error::TranslateFail("The observation specified " . @spwids . " subbands but there are only ". @hwmap . " slots available for receptor '$r'");
+  @spwids = map {
+    my $spw = $_; my $ncm = $subbands{$spw}->numcm;
+    my @temp = $_;
+    for my $i (2..$ncm) {
+      push(@temp, $spw);
     }
+    @temp;
+  } @spwids;
 
-    # now loop over subbands
-    for my $i (0..$#spwids) {
-      next if !defined $spwids[$i]; # mode requires more than one correlator module. This may lead to problems with LO2
+  # loop over subbands
+  for my $i (0..$#spwids) {
+    next if !defined $spwids[$i]; # mode requires more than one correlator module. This may lead to problems with LO2
+
+    my $spwid = $spwids[$i];
+    my $sb = $subbands{$spwid};
+    my $bwmode = $sb->bandwidth_mode;
+
+    # for each receptor, we need to assign all the subbands to the correct
+    # hardware
+    for my $r (@rec) {
+      # Get the CM mapping for this receptor
+      my @hwmap = $hw_map->receptor( $r );
+      throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
+
+      if (@spwids > @hwmap) {
+        throw OMP::Error::TranslateFail("The observation specified " . @spwids . " subbands but there are only ". @hwmap . " slots available for receptor '$r'");
+      }
+
       my $hw = $hwmap[$i];
-      my $spwid = $spwids[$i];
-      my $sb = $subbands{$spwid};
 
       my $cmid = $hw->{CM_ID};
       my $dcmid = $hw->{DCM_ID};
       my $quadnum = $hw->{QUADRANT};
       my $sbmode = $hw->{SB_MODES}->[0];
       my $lo2id = $hw->{LO2};
-
-      my $bwmode = $sb->bandwidth_mode;
 
       # Correlator uses the standard bandwidth mode
       $cm_bwmodes[$cmid] = $bwmode;
@@ -1778,9 +1777,7 @@ sub correlator {
       } else {
         $lo2spw[$lo2id] = $spwid;
       }
-
     }
-
   }
 
   # Now store the mappings in the corresponding objects
