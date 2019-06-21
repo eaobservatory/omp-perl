@@ -29,6 +29,7 @@ use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil floor /;
 use Math::Trig qw/ rad2deg /;
+use Storable;
 
 use JCMT::ACSIS::HWMap;
 use JAC::OCS::Config;
@@ -881,6 +882,13 @@ sub acsis_config {
   # Store it in the object
   $cfg->acsis( $acsis );
 
+  # Prepare image subsystems (if using a 2SB receiver).  Determine the
+  # bandwidth mode first to avoid nudging the image IF to make it unique.
+  # This is assuming that, for now, automatic subsystems will
+  # use the same mode as those of which they are images.
+  $self->bandwidth_mode( $cfg, %info );
+  $self->create_image_subsystems($cfg, %info);
+
   # Now configure the individual ACSIS components
   $self->line_list( $cfg, %info );
   $self->spw_list( $cfg, %info );
@@ -1702,6 +1710,9 @@ sub correlator {
   # All of the subbands that need to be allocated
   my %subbands = $spwlist->subbands;
 
+  # Mapping from image to signal spectral windows.
+  my $image_spws = $info{'freqconfig'}->{'image_spws'};
+
   # CM and DCM bandwidth modes
   my @cm_bwmodes;
   my @dcm_bwmodes;
@@ -1711,34 +1722,49 @@ sub correlator {
   # lookup from lo2 id to spectral window
   my @lo2spw;
 
-  # Get the number of subbands to allocate
-  my @spwids = sort keys %subbands;
+  # Record the slot in which each signal SPW starts, so we can use the
+  # same slots for the corresponding image SPWs.
+  my %slot_start_spw = ();
 
-  # Some configurations actually use multiple correlator modules in
-  # a single subband so we need to take this into account when
-  # calculating the mapping. Do this by padding @spwids with the
-  # same SPWID. Additionally it is not possible for a mode that uses
-  # 2 correlator modules to start on an odd slot (so a dual CM mode
-  # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
-  # ensuring that this latter problem never occurs.
-
-  @spwids = map {
-    my $spw = $_; my $ncm = $subbands{$spw}->numcm;
-    my @temp = $_;
-    for my $i (2..$ncm) {
-      push(@temp, $spw);
-    }
-    @temp;
-  } @spwids;
+  # Keep track of the hardware map "slot number" which we are allocating.
+  # This will advance every time we allocate a signal spectral window.
+  my $n_slot = 0;
 
   # loop over subbands
-  for my $i (0..$#spwids) {
-    next if !defined $spwids[$i]; # mode requires more than one correlator module. This may lead to problems with LO2
-
-    my $spwid = $spwids[$i];
+  foreach my $spwid (sort keys %subbands) {
     my $sb = $subbands{$spwid};
+
     my $bwmode = $sb->bandwidth_mode;
     my $sideband = ($sb->fe_sideband > 0) ? 'USB' : 'LSB';
+    my $n_cm = $sb->numcm;
+
+    # Determine hardware map slot where this SPW should start -- either our
+    # current counter, which is then advanced, or wherever the matching
+    # signal SPW started.
+    my $slot_start = undef;
+    my $image_spw = undef;
+    unless (exists $image_spws->{$spwid}) {
+      $slot_start = $slot_start_spw{$spwid} = $n_slot;
+      $n_slot += $n_cm;
+    }
+    else {
+      $image_spw = $image_spws->{$spwid};
+
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but that SPW has not yet been allocated")
+          unless exists $slot_start_spw{$image_spw};
+
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but they use different numbers of slots")
+          unless $n_cm == $subbands{$image_spw}->numcm;
+
+      $slot_start = $slot_start_spw{$image_spw};
+
+      # Switch to the other sideband.  Maybe fe_sideband should be flipped for
+      # image SPWs, in which case this step should be removed.
+      $sideband = ($sideband eq 'USB') ? 'LSB' : 'USB';
+
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but they use the same sideband ($sideband)")
+          if $sideband eq (($subbands{$image_spw}->fe_sideband > 0) ? 'USB' : 'LSB');
+    }
 
     # for each receptor, we need to assign all the subbands to the correct
     # hardware
@@ -1753,54 +1779,74 @@ sub correlator {
       my @hwmap = $hw_map->receptor( $r );
       throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
 
-      if (@spwids > @hwmap) {
-        throw OMP::Error::TranslateFail("The observation specified " . @spwids . " subbands but there are only ". @hwmap . " slots available for receptor '$r'");
-      }
+      # Some configurations actually use multiple correlator modules in
+      # a single subband so we need to take this into account when
+      # calculating the mapping.
+      #
+      # Additionally it is not possible for a mode that uses
+      # 2 correlator modules to start on an odd slot (so a dual CM mode
+      # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
+      # ensuring that this latter problem never occurs.
+      for (my $i = 0; $i < $n_cm; $i ++) {
+        my $slot_i = $slot_start + $i;
 
-      my $hw = $hwmap[$i];
+        throw OMP::Error::TranslateFail("The observation specified " . ($slot_i + 1) . " (or more) subbands but there are only ". @hwmap . " slots available for receptor '$r'")
+          if $slot_i > $#hwmap;
 
-      my $cmid = $hw->{CM_ID};
-      my $dcmid = $hw->{DCM_ID};
-      my $quadnum = $hw->{QUADRANT};
-      my $sbmode = $hw->{SB_MODES}->[0];
-      my $lo2id = $hw->{LO2};
+        my $hw = $hwmap[$slot_i];
 
-      # Correlator uses the standard bandwidth mode
-      $cm_bwmodes[$cmid] = $bwmode;
+        my $cmid = $hw->{CM_ID};
+        my $dcmid = $hw->{DCM_ID};
+        my $quadnum = $hw->{QUADRANT};
+        my $sbmode = $hw->{SB_MODES}->[0];
+        my $lo2id = $hw->{LO2};
 
-      # DCM just wants the bandwidth without the channel count
-      my $dcmbw = $bwmode;
-      $dcmbw =~ s/x.*$//;
-      $dcm_bwmodes[$dcmid] = $dcmbw;
+        # Correlator uses the standard bandwidth mode
+        $cm_bwmodes[$cmid] = $bwmode;
 
-      # hardware mapping to spectral window ID
-      my %map = (
-                 CM_ID => $cmid,
-                 DCM_ID => $dcmid,
-                 RECEPTOR => $r,
-                 SPW_ID => $spwid,
-                );
+        # DCM just wants the bandwidth without the channel count
+        my $dcmbw = $bwmode;
+        $dcmbw =~ s/x.*$//;
+        $dcm_bwmodes[$dcmid] = $dcmbw;
 
-      $cm_map[$cmid] = \%map;
+        # hardware mapping to spectral window ID
+        my %map = (
+                   CM_ID => $cmid,
+                   DCM_ID => $dcmid,
+                   RECEPTOR => $r,
+                   SPW_ID => $spwid,
+                  );
 
-      # Quadrant mapping to subband mode is fixed by the hardware map
-      if (defined $sbmodes[$quadnum]) {
-        if ($sbmodes[$quadnum] != $sbmode) {
-          throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
+        $cm_map[$cmid] = \%map;
+
+        # Quadrant mapping to subband mode is fixed by the hardware map
+        if (defined $sbmodes[$quadnum]) {
+          if ($sbmodes[$quadnum] != $sbmode) {
+            throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
+          }
+        } else {
+          $sbmodes[$quadnum] = $sbmode;
         }
-      } else {
-        $sbmodes[$quadnum] = $sbmode;
-      }
 
-      # Convert lo2id to an array index
-      $lo2id--;
+        # Convert lo2id to an array index
+        $lo2id--;
 
-      if (defined $lo2spw[$lo2id]) {
-        if ($lo2spw[$lo2id] ne $spwid) {
-          throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+        if (defined $image_spw) {
+          unless (defined $lo2spw[$lo2id]) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is being allocated to $spwid (image of $image_spw) but has no existing assignment\n");
+          }
+          elsif ($lo2spw[$lo2id] ne $image_spw) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid (image of $image_spw) AND $lo2spw[$lo2id]\n");
+          }
         }
-      } else {
-        $lo2spw[$lo2id] = $spwid;
+        elsif (defined $lo2spw[$lo2id]) {
+          if ($lo2spw[$lo2id] ne $spwid) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+          }
+        }
+        else {
+          $lo2spw[$lo2id] = $spwid;
+        }
       }
 
       $n_rec_allocated ++;
@@ -1808,7 +1854,7 @@ sub correlator {
 
     # Check that we found some receptors matching the requirements for
     # this subband (namely the correct sideband at the moment).
-    throw OMP::Error::FatalError("No receptors allocated for subband $i ($sideband)")
+    throw OMP::Error::FatalError("No receptors allocated for $spwid subband ($sideband)")
         unless $n_rec_allocated;
   }
 
@@ -1855,6 +1901,50 @@ sub correlator {
   $acsis->acsis_map( $map );
 
   return;
+}
+
+=item B<create_image_subsystems>
+
+Adds additional subsystem information for the image sideband.
+
+This method only applies to 2SB receivers and if the "auto_image_subsys_2sb"
+configuration parameter is enabled.
+
+Note: the image subsystems are added to the end of the subsystems
+list -- we may assume later that we will find all non-image subsystems
+first.
+
+=cut
+
+sub create_image_subsystems {
+    my $self = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    my $frontend = $cfg->frontend();
+    throw OMP::Error::FatalError('frontend setup is not available')
+        unless defined $frontend;
+
+    return unless $frontend->sb_mode() eq '2SB';
+
+    return unless OMP::Config->getData('acsis_translator.auto_image_subsys_2sb');
+
+    my $subsystems = $info{'freqconfig'}->{'subsystems'};
+    my $n_subsys = scalar @$subsystems;
+
+    for (my $i = 0; $i < $n_subsys; $i ++) {
+        # Create a copy of the subsystem information hash.
+        my $copy = Storable::dclone($subsystems->[$i]);
+
+        # Blank the transition and species information.
+        $copy->{'transition'} = 'No Line';
+        $copy->{'species'} = 'No Line';
+
+        # Record of which subsystem this is a copy.
+        $copy->{'image_of_subsystem'} = $i;
+
+        push @$subsystems, $copy;
+    }
 }
 
 =item B<line_list>
@@ -1941,9 +2031,6 @@ sub spw_list {
   # Get the frequency information for each subsystem
   my $freq = $info{freqconfig}->{subsystems};
 
-  # Force bandwidth calculations
-  $self->bandwidth_mode( $cfg, %info );
-
   # Default baseline fitting mode will probably depend on observing mode
   my $defaultPoly = 1;
 
@@ -1985,6 +2072,10 @@ sub spw_list {
   # this to the SpectralWindow object as an accessor or in conjunction with f_park
   # derive it on demand.
   my %lo2spw;
+
+  # Create a hash to store the mapping from image spectral windows to the
+  # corresponding signal window.
+  my $image_spws = $info{'freqconfig'}->{'image_spws'} = {};
 
   # Spectral window objects
   my %spws;
@@ -2105,6 +2196,14 @@ sub spw_list {
     # store the LO2 for this only if it is not a hybrid
     # Cannot do this earlier since we need the splabel
     $lo2spw{$splab} = $ss->{lo2}->[0] if $ss->{nsubbands} == 1;
+
+    # If this is an image subsystem, add the spectral window ID to the hash.
+    if (exists $ss->{'image_of_subsystem'}) {
+      my $ss_signal = $ss->{'image_of_subsystem'};
+      throw OMP::Error::FatalError("Signal SPW corresponding to image missing processed out of order")
+          unless exists $freq->[$ss_signal]->{'spw'};
+      $image_spws->{$splab} = $freq->[$ss_signal]->{'spw'};
+    }
 
     $spwcount++;
   }
