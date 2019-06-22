@@ -700,15 +700,15 @@ These routine configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
-=item B<frontend_backend_config>
+=item B<frontend_config>
 
 Configure the SCUBA-2 specific instrument XML.
 
-  $trans->frontend_backend_config( $cfg, %$obs );
+  $trans->frontend_config( $cfg, %$obs );
 
 =cut
 
-sub frontend_backend_config {
+sub frontend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
@@ -719,6 +719,18 @@ sub frontend_backend_config {
   my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
   $sc->mask(%mask);
   $cfg->scuba2( $sc );
+}
+
+=item B<backend_config>
+
+This method does nothing for SCUBA-2.
+
+=cut
+
+sub backend_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
 }
 
 =item B<jos_config>

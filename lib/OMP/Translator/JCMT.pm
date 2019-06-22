@@ -198,11 +198,13 @@ sub translate {
     # Instrument config
     $self->instrument_config( $cfg, %$obs );
 
+    $self->frontend_config( $cfg, %$obs );
+
     # configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs ) unless $ispriv;
 
     # call the special routines for this instrument
-    $self->frontend_backend_config( $cfg, %$obs );
+    $self->backend_config( $cfg, %$obs );
 
     # HEADER_CONFIG
     $self->header_config( $cfg, %$obs );

@@ -657,28 +657,11 @@ These routines configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
-=item B<frontend_backend_config>
-
-Wrapper routine that will configure both the frontend and backend for this
-observation. Calls C<fe_config> and <acsis_config>.
-
-  $trans->frontend_backend_config($cfg, %$obs );
-
-=cut
-
-sub frontend_backend_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-  $self->fe_config( $cfg, %info );
-  $self->acsis_config( $cfg, %info );
-}
-
-=item B<fe_config>
+=item B<frontend_config>
 
 Create the frontend configuration.
 
- $trans->fe_config( $cfg, %info );
+ $trans->frontend_config( $cfg, %info );
 
 Also adds additional information to the configured subsystems:
 
@@ -690,7 +673,7 @@ Also adds additional information to the configured subsystems:
 
 =cut
 
-sub fe_config {
+sub frontend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
@@ -864,15 +847,15 @@ sub fe_config {
 }
 
 
-=item B<acsis_config>
+=item B<backend_config>
 
 Configure ACSIS.
 
-  $trans->acsis_config( $cfg, %info );
+  $trans->backend_config( $cfg, %info );
 
 =cut
 
-sub acsis_config {
+sub backend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
