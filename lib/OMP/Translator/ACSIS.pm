@@ -1758,10 +1758,6 @@ sub correlator {
 
       $slot_start = $slot_start_spw{$image_spw};
 
-      # Switch to the other sideband.  Maybe fe_sideband should be flipped for
-      # image SPWs, in which case this step should be removed.
-      $sideband = ($sideband eq 'USB') ? 'LSB' : 'USB';
-
       throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but they use the same sideband ($sideband)")
           if $sideband eq (($subbands{$image_spw}->fe_sideband > 0) ? 'USB' : 'LSB');
     }
@@ -1942,6 +1938,9 @@ sub create_image_subsystems {
 
         # Record of which subsystem this is a copy.
         $copy->{'image_of_subsystem'} = $i;
+
+        # Switch to the other sideband.
+        $copy->{'sideband'} = ($copy->{'sideband'} eq 'USB') ? 'LSB' : 'USB';
 
         push @$subsystems, $copy;
     }
