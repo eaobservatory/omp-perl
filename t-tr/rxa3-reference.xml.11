@@ -193,7 +193,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="06e2765d256b9cfc3abe8ff1de42fc41A" />
+                 VALUE="df3dc0b44ae214fb750d7f894c208f15A" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"

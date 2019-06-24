@@ -190,11 +190,11 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTITLE"
                  COMMENT="Title of minimum schedulable block"
-                 VALUE="2x hybrid LSB" />
+                 VALUE="DSB HCO+ H-13-CO+" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="6a5d9e31211edf749c3b94de1a8fa144A" />
+                 VALUE="fe0b7b11ffc6450db442014fb67ef510A" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -1235,9 +1235,9 @@
       </RTS_CONFIG>
       <FRONTEND_CONFIG>
          
-         <REST_FREQUENCY>219.5603568</REST_FREQUENCY>
+         <REST_FREQUENCY>267.557619</REST_FREQUENCY>
          <FREQ_OFF_SCALE>0</FREQ_OFF_SCALE>
-         <SIDEBAND>LSB</SIDEBAND>
+         <SIDEBAND>USB</SIDEBAND>
          <SB_MODE>DSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
@@ -1248,7 +1248,7 @@
                   FOC_STATION="DIRECT"
                   X="0.0"
                   Y="0.0"
-                  WAVELENGTH="1365.42161968285" >
+                  WAVELENGTH="1120.47812026612" >
          
          <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
@@ -1347,13 +1347,13 @@
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
                </group_centre>
-               <x_pix_size units="arcsec">9.38794752764931</x_pix_size>
-               <y_pix_size units="arcsec">9.38794752764931</y_pix_size>
+               <x_pix_size units="arcsec">7.7038400793601</x_pix_size>
+               <y_pix_size units="arcsec">7.7038400793601</y_pix_size>
                <data_source>
                   <spw_ref ref="SPW1"/>
                   <range units="channel">
-                     <min>511</min>
-                     <max>3583</max>
+                     <min>1023</min>
+                     <max>7167</max>
                   </range>
                </data_source>
                <x_offset>0</x_offset>
@@ -1364,7 +1364,7 @@
                <grid_function type="TopHat" />
                <pos_ang>0</pos_ang>
                <tcs_coord type="TRACKING" />
-               <smoothing_rad>4.69397376382465</smoothing_rad>
+               <smoothing_rad>3.85192003968005</smoothing_rad>
             </cube>
             <cube id="CUBE2">
                <group_centre>
@@ -1374,13 +1374,13 @@
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
                </group_centre>
-               <x_pix_size units="arcsec">9.38794752764931</x_pix_size>
-               <y_pix_size units="arcsec">9.38794752764931</y_pix_size>
+               <x_pix_size units="arcsec">7.7038400793601</x_pix_size>
+               <y_pix_size units="arcsec">7.7038400793601</y_pix_size>
                <data_source>
                   <spw_ref ref="SPW2"/>
                   <range units="channel">
-                     <min>511</min>
-                     <max>3583</max>
+                     <min>1023</min>
+                     <max>7167</max>
                   </range>
                </data_source>
                <x_offset>0</x_offset>
@@ -1391,71 +1391,17 @@
                <grid_function type="TopHat" />
                <pos_ang>0</pos_ang>
                <tcs_coord type="TRACKING" />
-               <smoothing_rad>4.69397376382465</smoothing_rad>
-            </cube>
-            <cube id="CUBE3">
-               <group_centre>
-                  <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.000</c1>
-                     <c2>-05:22:24.00</c2>
-                     <rv defn="radio" frame="LSR">0.0</rv>
-                  </spherSystem>
-               </group_centre>
-               <x_pix_size units="arcsec">9.38794752764931</x_pix_size>
-               <y_pix_size units="arcsec">9.38794752764931</y_pix_size>
-               <data_source>
-                  <spw_ref ref="SPW3"/>
-                  <range units="channel">
-                     <min>127</min>
-                     <max>895</max>
-                  </range>
-               </data_source>
-               <x_offset>0</x_offset>
-               <y_offset>0</y_offset>
-               <x_npix>1</x_npix>
-               <y_npix>1</y_npix>
-               <projection type="TAN" />
-               <grid_function type="TopHat" />
-               <pos_ang>0</pos_ang>
-               <tcs_coord type="TRACKING" />
-               <smoothing_rad>4.69397376382465</smoothing_rad>
-            </cube>
-            <cube id="CUBE4">
-               <group_centre>
-                  <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.000</c1>
-                     <c2>-05:22:24.00</c2>
-                     <rv defn="radio" frame="LSR">0.0</rv>
-                  </spherSystem>
-               </group_centre>
-               <x_pix_size units="arcsec">9.38794752764931</x_pix_size>
-               <y_pix_size units="arcsec">9.38794752764931</y_pix_size>
-               <data_source>
-                  <spw_ref ref="SPW4"/>
-                  <range units="channel">
-                     <min>127</min>
-                     <max>895</max>
-                  </range>
-               </data_source>
-               <x_offset>0</x_offset>
-               <y_offset>0</y_offset>
-               <x_npix>1</x_npix>
-               <y_npix>1</y_npix>
-               <projection type="TAN" />
-               <grid_function type="TopHat" />
-               <pos_ang>0</pos_ang>
-               <tcs_coord type="TRACKING" />
-               <smoothing_rad>4.69397376382465</smoothing_rad>
+               <smoothing_rad>3.85192003968005</smoothing_rad>
             </cube>
          </cube_list>
 
          <line_list>
             
-            <rest_frequency id="trHNCO10_3_7-9_3_6" units="GHz" molecule="HNCO" transition="10 3 7 - 9 3 6" >
-                     219.6567708
+            <rest_frequency id="trHCO+V=03-2" units="GHz" molecule="HCO+ v=0" transition="3 - 2" >
+                     267.557619
             </rest_frequency>
-            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2 - 1" >
-                     219.5603568
+            <rest_frequency id="trH-13-CO+V=03-2" units="GHz" molecule="H-13-CO+ v=0" transition="3 - 2" >
+                     260.255478
             </rest_frequency>
          </line_list>
 
@@ -1465,55 +1411,29 @@
             <spw_id_field ref="SPEC_WINDOW_ID"/>
             <fe_lo_field ref="FE.LO_FREQUENCY"/>
             <spectral_window id="SPW1">
-               <bandwidth_mode mode="250MHzx4096" />
+               <bandwidth_mode mode="250MHzx8192" />
                <window type="truncate" />
-               <align_shift>0.4</align_shift>
-               <rest_freq_ref ref="trC-18-O2-1" />
-               <fe_sideband sideband="-1" />
+               <align_shift>0</align_shift>
+               <rest_freq_ref ref="trHCO+V=03-2" />
+               <fe_sideband sideband="1" />
                <if_coordinate>
                   <if_ref_freq units="GHz">4</if_ref_freq>
-                  <if_ref_channel>410</if_ref_channel>
-                  <if_chan_width units="Hz">61035.15625</if_chan_width>
-                  <if_nchans>4096</if_nchans>
+                  <if_ref_channel>4096</if_ref_channel>
+                  <if_chan_width units="Hz">30517.578125</if_chan_width>
+                  <if_nchans>8192</if_nchans>
                </if_coordinate>
             </spectral_window>
             <spectral_window id="SPW2">
-               <bandwidth_mode mode="250MHzx4096" />
+               <bandwidth_mode mode="250MHzx8192" />
                <window type="truncate" />
-               <align_shift>-1.4</align_shift>
-               <rest_freq_ref ref="trC-18-O2-1" />
-               <fe_sideband sideband="-1" />
+               <align_shift>4.620288</align_shift>
+               <rest_freq_ref ref="trH-13-CO+V=03-2" />
+               <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4</if_ref_freq>
-                  <if_ref_channel>3685</if_ref_channel>
-                  <if_chan_width units="Hz">61035.15625</if_chan_width>
-                  <if_nchans>4096</if_nchans>
-               </if_coordinate>
-            </spectral_window>
-            <spectral_window id="SPW3">
-               <bandwidth_mode mode="1GHzx1024" />
-               <window type="truncate" />
-               <align_shift>0.200064</align_shift>
-               <rest_freq_ref ref="trHNCO10_3_7-9_3_6" />
-               <fe_sideband sideband="-1" />
-               <if_coordinate>
-                  <if_ref_freq units="GHz">3.903586</if_ref_freq>
-                  <if_ref_channel>102</if_ref_channel>
-                  <if_chan_width units="Hz">976562.5</if_chan_width>
-                  <if_nchans>1024</if_nchans>
-               </if_coordinate>
-            </spectral_window>
-            <spectral_window id="SPW4">
-               <bandwidth_mode mode="1GHzx1024" />
-               <window type="truncate" />
-               <align_shift>6.4e-05</align_shift>
-               <rest_freq_ref ref="trHNCO10_3_7-9_3_6" />
-               <fe_sideband sideband="-1" />
-               <if_coordinate>
-                  <if_ref_freq units="GHz">3.903586</if_ref_freq>
-                  <if_ref_channel>921</if_ref_channel>
-                  <if_chan_width units="Hz">976562.5</if_chan_width>
-                  <if_nchans>1024</if_nchans>
+                  <if_ref_freq units="GHz">3.302141</if_ref_freq>
+                  <if_ref_channel>4096</if_ref_channel>
+                  <if_chan_width units="Hz">30517.578125</if_chan_width>
+                  <if_nchans>8192</if_nchans>
                </if_coordinate>
             </spectral_window>
          </spw_list>
@@ -1538,8 +1458,8 @@
             <dcm id="15" bw_mode="250MHz"/>
             <dcm id="16" bw_mode="250MHz"/>
             <dcm id="17" bw_mode="250MHz"/>
-            <dcm id="18" bw_mode="1GHz"/>
-            <dcm id="19" bw_mode="1GHz"/>
+            <dcm id="18" bw_mode="250MHz"/>
+            <dcm id="19" bw_mode="250MHz"/>
             <dcm id="20" bw_mode="250MHz"/>
             <dcm id="21" bw_mode="250MHz"/>
             <dcm id="22" bw_mode="250MHz"/>
@@ -1552,48 +1472,48 @@
             <dcm id="29" bw_mode="250MHz"/>
             <dcm id="30" bw_mode="250MHz"/>
             <dcm id="31" bw_mode="250MHz"/>
-            <lo2 id="0" freq="6525"/>
-            <lo2 id="1" freq="6725"/>
-            <lo2 id="2" freq="6003"/>
-            <lo2 id="3" freq="6803"/>
+            <lo2 id="0" freq="6625"/>
+            <lo2 id="1" freq="6625"/>
+            <lo2 id="2" freq="5927"/>
+            <lo2 id="3" freq="5927"/>
             <lo3 freq="2000.0"/>
             <quadrant id="2" subband_mode="4"/>
          </ACSIS_IF>
 
          <ACSIS_corr>
             
-            <cm id="0" bw_mode="250MHzx4096"/>
-            <cm id="1" bw_mode="250MHzx4096"/>
-            <cm id="2" bw_mode="250MHzx4096"/>
-            <cm id="3" bw_mode="250MHzx4096"/>
-            <cm id="4" bw_mode="250MHzx4096"/>
-            <cm id="5" bw_mode="250MHzx4096"/>
-            <cm id="6" bw_mode="250MHzx4096"/>
-            <cm id="7" bw_mode="250MHzx4096"/>
-            <cm id="8" bw_mode="250MHzx4096"/>
-            <cm id="9" bw_mode="250MHzx4096"/>
-            <cm id="10" bw_mode="250MHzx4096"/>
-            <cm id="11" bw_mode="250MHzx4096"/>
-            <cm id="12" bw_mode="250MHzx4096"/>
-            <cm id="13" bw_mode="250MHzx4096"/>
-            <cm id="14" bw_mode="250MHzx4096"/>
-            <cm id="15" bw_mode="250MHzx4096"/>
-            <cm id="16" bw_mode="250MHzx4096"/>
-            <cm id="17" bw_mode="250MHzx4096"/>
-            <cm id="18" bw_mode="1GHzx1024"/>
-            <cm id="19" bw_mode="1GHzx1024"/>
-            <cm id="20" bw_mode="250MHzx4096"/>
-            <cm id="21" bw_mode="250MHzx4096"/>
-            <cm id="22" bw_mode="250MHzx4096"/>
-            <cm id="23" bw_mode="250MHzx4096"/>
-            <cm id="24" bw_mode="250MHzx4096"/>
-            <cm id="25" bw_mode="250MHzx4096"/>
-            <cm id="26" bw_mode="250MHzx4096"/>
-            <cm id="27" bw_mode="250MHzx4096"/>
-            <cm id="28" bw_mode="250MHzx4096"/>
-            <cm id="29" bw_mode="250MHzx4096"/>
-            <cm id="30" bw_mode="250MHzx4096"/>
-            <cm id="31" bw_mode="250MHzx4096"/>
+            <cm id="0" bw_mode="250MHzx8192"/>
+            <cm id="1" bw_mode="250MHzx8192"/>
+            <cm id="2" bw_mode="250MHzx8192"/>
+            <cm id="3" bw_mode="250MHzx8192"/>
+            <cm id="4" bw_mode="250MHzx8192"/>
+            <cm id="5" bw_mode="250MHzx8192"/>
+            <cm id="6" bw_mode="250MHzx8192"/>
+            <cm id="7" bw_mode="250MHzx8192"/>
+            <cm id="8" bw_mode="250MHzx8192"/>
+            <cm id="9" bw_mode="250MHzx8192"/>
+            <cm id="10" bw_mode="250MHzx8192"/>
+            <cm id="11" bw_mode="250MHzx8192"/>
+            <cm id="12" bw_mode="250MHzx8192"/>
+            <cm id="13" bw_mode="250MHzx8192"/>
+            <cm id="14" bw_mode="250MHzx8192"/>
+            <cm id="15" bw_mode="250MHzx8192"/>
+            <cm id="16" bw_mode="250MHzx8192"/>
+            <cm id="17" bw_mode="250MHzx8192"/>
+            <cm id="18" bw_mode="250MHzx8192"/>
+            <cm id="19" bw_mode="250MHzx8192"/>
+            <cm id="20" bw_mode="250MHzx8192"/>
+            <cm id="21" bw_mode="250MHzx8192"/>
+            <cm id="22" bw_mode="250MHzx8192"/>
+            <cm id="23" bw_mode="250MHzx8192"/>
+            <cm id="24" bw_mode="250MHzx8192"/>
+            <cm id="25" bw_mode="250MHzx8192"/>
+            <cm id="26" bw_mode="250MHzx8192"/>
+            <cm id="27" bw_mode="250MHzx8192"/>
+            <cm id="28" bw_mode="250MHzx8192"/>
+            <cm id="29" bw_mode="250MHzx8192"/>
+            <cm id="30" bw_mode="250MHzx8192"/>
+            <cm id="31" bw_mode="250MHzx8192"/>
             <rts_parms int_interval="50" timing_src="RTS_SOFT"/>
          </ACSIS_corr>
 
@@ -1601,9 +1521,7 @@
             
             
             <map_id cm_id="16" dcm_id="16" receptor_id="A" spw_id="SPW1"/>
-            <map_id cm_id="17" dcm_id="17" receptor_id="A" spw_id="SPW2"/>
-            <map_id cm_id="18" dcm_id="18" receptor_id="A" spw_id="SPW3"/>
-            <map_id cm_id="19" dcm_id="19" receptor_id="A" spw_id="SPW4"/>
+            <map_id cm_id="18" dcm_id="18" receptor_id="A" spw_id="SPW2"/>
          </ACSIS_map>
 
          <be_deg_factor>1.23</be_deg_factor>
@@ -3224,9 +3142,7 @@
    <process_config ref="SPECTRUM_REDUCTION"/>
    <proc_out_events>
       <process_event id="data_4_gridder1"/>
-      <process_event id="data_4_gridder2"/>  
-      <process_event id="data_4_gridder3"/>  
-      <process_event id="data_4_gridder4"/>  
+      <process_event id="data_4_gridder2"/>
       <process_event id="data_4_specwriter2"/>
    </proc_out_events>
 </acsis_process>   
@@ -3245,29 +3161,12 @@
    <proc_out_events/>
 </acsis_process>   
  
-<acsis_process id="gridder4" interface="ACSIS_GRIDDER_INTERFACE" machine="" task_exe="acsis_gridder"> 
-   <process_params>
-      <process_param idref="type"> gridder </process_param>
-   </process_params>      
-   <proc_out_events/>
-</acsis_process>   
- 
-<acsis_process id="gridder5" interface="ACSIS_GRIDDER_INTERFACE" machine="" task_exe="acsis_gridder"> 
-   <process_params>
-      <process_param idref="type"> gridder </process_param>
-   </process_params>      
-   <proc_out_events/>
-</acsis_process>   
- 
 <acsis_process id="specwriter" interface="ACSIS_GRIDDER_INTERFACE" machine="" task_exe="acsis_gridder"> 
    <process_params>
       <process_param idref="type"> spec_writer </process_param>
    </process_params>      
    <proc_out_events/>
 </acsis_process>   
- 
-
-
 
 </process_layout>
 <process_links>
@@ -3296,14 +3195,6 @@
 <glish_link from_ref="gridder2" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
 <glish_link from_ref="gridder2" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
 <glish_link from_ref="reducer1" from_event="data_4_gridder2" to_ref="gridder2" to_event="gridder_target.data"/>
-<glish_link from_ref="gridder3" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-<glish_link from_ref="gridder3" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-<glish_link from_ref="gridder3" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-<glish_link from_ref="reducer1" from_event="data_4_gridder3" to_ref="gridder3" to_event="gridder_target.data"/>
-<glish_link from_ref="gridder4" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-<glish_link from_ref="gridder4" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-<glish_link from_ref="gridder4" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-<glish_link from_ref="reducer1" from_event="data_4_gridder4" to_ref="gridder4" to_event="gridder_target.data"/>
 </process_links>
 
 <interface_list>
