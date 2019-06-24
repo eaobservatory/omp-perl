@@ -200,6 +200,8 @@ sub translate {
 
     $self->frontend_config( $cfg, %$obs );
 
+    $self->calc_receptor_or_subarray_mask( $cfg, %$obs );
+
     # configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs ) unless $ispriv;
 
@@ -1930,7 +1932,9 @@ configuration. If a tracking receptor or subarray is required the mask
 indicates that this item is NEEDed.  If disableNonTracking is set,
 only the tracking receptor or subarray will be enabled.
 
-  %mask = $trans->calc_receptor_or_subarray_mask($cfg, %info );
+  $trans->calc_receptor_or_subarray_mask($cfg, %info );
+
+The mask is stored in the frontend or SCUBA-2 configuration.
 
 =cut
 
@@ -1974,7 +1978,12 @@ sub calc_receptor_or_subarray_mask {
     }
   }
 
-  return %mask;
+  # Find frontend configuration in which to store the mask.
+  my $frontend = $cfg->frontend() // $cfg->scuba2();
+  throw OMP::Error::FatalError('no frontend or similar setup component is available')
+      unless defined $frontend;
+
+  $frontend->mask(%mask);
 }
 
 =item B<_read_file>

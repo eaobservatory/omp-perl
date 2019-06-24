@@ -715,9 +715,6 @@ sub frontend_config {
 
   my $sc = JAC::OCS::Config::SCUBA2->new();
 
-  # start with just a mask
-  my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
-  $sc->mask(%mask);
   $cfg->scuba2( $sc );
 }
 

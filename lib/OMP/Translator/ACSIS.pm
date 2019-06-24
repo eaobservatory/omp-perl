@@ -836,12 +836,6 @@ sub frontend_config {
   # task name
   $fe->frontend( $inst->name );
 
-  # Calculate the frontend mask
-  my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
-
-  # Store the mask
-  $fe->mask( %mask );
-
   # store the configuration
   $cfg->frontend( $fe );
 }
