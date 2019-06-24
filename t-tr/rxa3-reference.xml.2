@@ -543,7 +543,7 @@
                  KEYWORD="OBS_SB"
                  COMMENT="The observed sideband"
                  VALUE="" >
-            <SELF PARAM="OCS_CONFIG.FRONTEND_CONFIG.SIDEBAND" />
+            <DERIVED TASK="GRIDDER" METHOD="fillObsSb" EVENT="END" />
          </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="LOFREQS"
