@@ -1876,6 +1876,11 @@ and stare observartions with HARP where there is no central pixel.
 
 If the "arrayCentred" switch is true, undef will be returned regardless of mode.
 
+Receptors are listed in the C<jcmt_translator.tracking_receptors_or_subarrays>
+configuration parameter.  This is a comma-separated list.  In addition, each
+entry can be followed by a number of @-separated filter parameters, taking the
+form of a keyword:value pair.
+
 =cut
 
 sub tracking_receptor_or_subarray {
@@ -1886,6 +1891,9 @@ sub tracking_receptor_or_subarray {
   # first check to see if offset is needed
   return if !$self->need_offset_tracking( $cfg, %info );
 
+  # Determine filtering parameters.
+  my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
   # Get the config file options
   my @configs = OMP::Config->getData( "jcmt_translator.tracking_receptors_or_subarrays" );
 
@@ -1895,7 +1903,12 @@ sub tracking_receptor_or_subarray {
     unless defined $inst;
 
   # Go through the preferred receptors looking for a match
-  for my $test (@configs) {
+  RECEPTOR: foreach my $test_spec (@configs) {
+    my ($test, @filters) = split '@', $test_spec;
+    foreach my $filter (@filters) {
+      my ($filt_key, $filt_val) = split ':', $filter;
+      next RECEPTOR unless $filt_val eq $filter{$filt_key};
+    }
     my $match = $inst->contains_id( $test );
     return $match if $match;
   }

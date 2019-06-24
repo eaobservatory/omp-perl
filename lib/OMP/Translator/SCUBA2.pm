@@ -425,6 +425,20 @@ sub standard_is_autoTarget {
   return ($info{standard} ? 1 : 0);
 }
 
+=item B<get_tracking_receptor_filter_params>
+
+Get tracking subarray filtering parameters.
+
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
+=cut
+
+sub get_tracking_receptor_filter_params {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+  return ();
+}
 
 =item B<handle_special_modes>
 

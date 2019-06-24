@@ -216,6 +216,27 @@ sub is_private_sequence {
   return 0;
 }
 
+=item B<get_tracking_receptor_filter_params>
+
+Get tracking subarray filtering parameters.
+
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
+=cut
+
+sub get_tracking_receptor_filter_params {
+    my $self = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    my $frontend = $cfg->frontend();
+    throw OMP::Error::FatalError('frontend setup is not available')
+        unless defined $frontend;
+
+    return (
+      sideband => $frontend->sideband(),
+    );
+}
 
 =item B<fixup_historical_problems>
 
