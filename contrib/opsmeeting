@@ -42,6 +42,11 @@ echo "..."
 
 ${OPSMEETING_DIR}/faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
 
+echo "Running events summary for 7 nights starting ${utstart} UT"
+echo "...(can take a minute)..."
+${OPSMEETING_DIR}/faults.pl -events $utstart >> ${meeting}.rep
+
+
 echo ""
 echo "Finished: result is in the file '${meeting}.rep'"
 echo "You need to review the closed faults and only keep"
