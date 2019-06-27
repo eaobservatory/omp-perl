@@ -722,9 +722,7 @@ sub frontend_config {
         . $iffreq_conf
         . ') does not match the IF frequency given in the observation ('
         . $iffreq
-        . ').  The frequency settings '
-        . 'may be calculated incorrectly if the OT used a different '
-        . 'IF frequency when creating the observation.';
+        . ').';
 
       if (OMP::Config->getData('acsis_translator.ignore_if_freq_mismatch')) {
         $self->output('WARNING: ' . $message . "\n");
@@ -734,10 +732,6 @@ sub frontend_config {
           . ' You can force the translation of the observation by enabling '
           . 'ignore_if_freq_mismatch in the acsis_translator settings.');
       }
-
-      # If we didn't throw an exception, set the center frequency
-      # in the instrument configuration object.
-      $inst->if_center_freq($iffreq_ghz);
     }
   };
 
@@ -820,24 +814,22 @@ sub frontend_config {
     $ss->{'sideband'} = $ss_sideband;
   }
 
-  # FE XML expects rest frequency in GHz
-  # If the first subsytem has been moved from the centre of the
-  # band we need to adjust the tuning request to compensate
-  # The sense of the shift depends on the sideband
+  # Configure the instrument to use the IF as specified in the first subsystem.
   my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
   my $offset = $ifsub1 - $iffreq_ghz;
 
-  if (lc($sb) eq 'usb') {
-    $offset *= -1;
-  }
-
-  $restfreq += $offset;
+  # FE XML expects rest frequency in GHz
   $fe->rest_frequency( $restfreq );
-  $self->output("Tuning to a rest frequency of ".
-                sprintf("%.3f",$restfreq)." GHz ".$sb."\n");
+  $self->output(sprintf(
+      "Tuning to a rest frequency of %.3f GHz\n", $restfreq));
+
+  $inst->if_center_freq($ifsub1);
+  $self->output(sprintf(
+      "\tUsing IF frequency of %.3f GHz %s\n", $ifsub1, $sb));
+
   if (abs($offset) > 0.001) {
-    $self->output("Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
-        " MHz to correct for offset of first subsystem in band\n");
+    $self->output(sprintf(
+        "\t(Offset from default by %.0f MHz)\n", $offset * 1e3));
   }
 
   # doppler mode
