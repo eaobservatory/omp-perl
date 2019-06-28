@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 180;
+use Test::More tests => 181;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -370,6 +370,7 @@ my %extract = (
                'u/18a/ncu01' => 'Project u/18a/ncu01 as mentioned in fault 20180317.001',
                'U/18A/EAP002' => 'Project U/18A/EAP002 -- first EAO UKIRT code',
                'U/SERV/17B/EAP001' => 'Example UKIRT urgent project code: U/SERV/17B/EAP001',
+               'U/19A/UO01' => 'UKIRT project U/19A/UO01 for country "UKIRT"',
               );
 
 for my $proj (keys %extract) {
