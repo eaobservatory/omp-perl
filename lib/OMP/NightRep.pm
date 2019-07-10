@@ -1123,6 +1123,7 @@ sub astext {
       if (exists $timelostbyshift{$shift}) {
           my $faultloss = $timelostbyshift{$shift}->hours;
           $str .= sprintf("$format", "Time lost to faults:", $faultloss);
+          $total += $faultloss;
       }
 
       for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
