@@ -1914,9 +1914,13 @@ sub create_image_subsystems {
     my $subsystems = $info{'freqconfig'}->{'subsystems'};
     my $n_subsys = scalar @$subsystems;
 
+    my $max_spectrum_id = max map {$_->{'spectrum_id'}} @$subsystems;
+
     for (my $i = 0; $i < $n_subsys; $i ++) {
         # Create a copy of the subsystem information hash.
         my $copy = Storable::dclone($subsystems->[$i]);
+
+        $copy->{'spectrum_id'} += $max_spectrum_id;
 
         # Blank the transition and species information.
         $copy->{'transition'} = 'No Line';
@@ -2067,7 +2071,8 @@ sub spw_list {
     # Get the sideband and convert it to a sign -1 == LSB +1 == USB
     my $fe_sign = _sideband_sign($ss->{'sideband'});
 
-    my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow;
+    my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow(
+        spectrum_id => $ss->{'spectrum_id'});
     $spw->rest_freq_ref( $ss->{rest_freq_ref});
     $spw->fe_sideband( $fe_sign );
     $spw->baseline_fit( function => "polynomial",
@@ -3214,8 +3219,10 @@ sub bandwidth_mode {
   my %dupe_ss;
 
   # loop over each subsystem
+  my $spectrum_id = 0;
   for my $s (@subs) {
-    $self->output("Processing subsystem...\n");
+    $s->{'spectrum_id'} = ++ $spectrum_id;
+    $self->output("Processing subsystem $spectrum_id ...\n");
 
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
