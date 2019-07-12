@@ -1952,23 +1952,21 @@ sub line_list {
   # Get the frequency information
   my $freq = $info{freqconfig}->{subsystems};
   my %lines;
-  my $counter = 1;             # used when a duplicate label is in use
   for my $s ( @$freq ) {
-    my $key = JAC::OCS::Config::ACSIS::LineList->moltrans2key( $s->{species},
-                                                               $s->{transition}
-                                                             );
+    my $base_key = JAC::OCS::Config::ACSIS::LineList->moltrans2key(
+        $s->{species}, $s->{transition});
+
     my $freq = $s->{rest_freq};
 
     # have we used this before?
-    if (exists $lines{$key}) {
+    my $key = $base_key;
+    for (my $counter = 1; exists $lines{$key}; $counter ++) {
       # if the frequency is the same we should not register the line list
       # object but we still need to associate with the subsystem. If the rest frequency
       # differs we need to tweak the key to make it unique.
-      if ($lines{$key}->restfreq != $freq) {
-        # Tweak the key
-        $key .= "_$counter";
-        $counter++;
-      }
+      last if $lines{$key}->restfreq == $freq;
+      # Tweak the key
+      $key = sprintf('%s_%s', $base_key, $counter);
     }
 
     # store the reference key in the hash
