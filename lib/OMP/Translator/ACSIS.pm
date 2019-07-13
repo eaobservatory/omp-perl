@@ -851,8 +851,14 @@ sub frontend_config {
 
   # store the configuration
   $cfg->frontend( $fe );
-}
 
+  # Compute the approximate image frequency for each subsystem
+  # and store in the frequency config hash.
+  for my $ss (@{$fc{'subsystems'}}) {
+    $ss->{'image_freq'} = $ss->{'rest_freq'}
+        + ($ss->{'sideband'} eq 'LSB' ? 2 : -2) * $ss->{'if'} * $inv_redshift_factor;
+  }
+}
 
 =item B<backend_config>
 
@@ -1931,6 +1937,10 @@ sub create_image_subsystems {
 
         # Switch to the other sideband.
         $copy->{'sideband'} = ($copy->{'sideband'} eq 'USB') ? 'LSB' : 'USB';
+
+        # Exchange the rest and image frequencies.
+        $copy->{'rest_freq'} = $copy->{'image_freq'};
+        $copy->{'image_freq'} = $subsystems->[$i]->{'rest_freq'};
 
         push @$subsystems, $copy;
     }
