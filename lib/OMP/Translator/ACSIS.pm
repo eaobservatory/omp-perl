@@ -3102,8 +3102,7 @@ sub bandwidth_mode {
 
     # hack - divide by 64, nint then multiply by 64
     # 64 is enough to beat down the difference from rounding
-    my $nchan = $nchan_frac / 64;
-    $nchan = OMP::General::nint($nchan) * 64;
+    my $nchan = OMP::General::nearest_mult($nchan_frac, 64);
     $s->{nchannels_full} = $nchan;
 
     # and recalculate the channel width (rather than use the OT approximation
@@ -3230,7 +3229,7 @@ sub bandwidth_mode {
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
-    my @lo2true = map {  OMP::General::nint( $_ / $LO2_INCR) * $LO2_INCR } @lo2exact;
+    my @lo2true = map {OMP::General::nearest_mult($_, $LO2_INCR)} @lo2exact;
     $s->{lo2} = \@lo2true;
 
     for my $lo2 (@lo2true) {
