@@ -3283,7 +3283,7 @@ sub bandwidth_mode {
     # presence of non-zero overlap
     my $nsubband;
     if ($olap > 0) {
-      if ($info{'instrument'} =~ /RXA3M/i) {
+      if ($info{'instrument'} !~ /HARP/i) {
         # new code to guess number of subbands as required for RXA3M upgrade
         my $subbw = ($hbw >= 1.0E9) ? 1.0E9 : 250.0E6;
         $nsubband = OMP::General::nint($hbw / ($subbw - $olap));
