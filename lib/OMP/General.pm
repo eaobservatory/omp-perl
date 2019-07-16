@@ -1234,7 +1234,20 @@ sub nint {
     }
 };
 
-=pod
+=item B<nearest_mult>
+
+Return the nearest multiple.
+
+    my $quant = OMP::General::nearest_mult(129, 64);  # 128
+
+=cut
+
+sub nearest_mult {
+    my $value = shift;
+    my $mult = shift;
+
+    return nint($value / $mult) * $mult;
+}
 
 =back
 

@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 181;
+use Test::More tests => 183;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -459,3 +459,9 @@ $in   = 'a123Z';
 $in13 = 'n123M';
 is( ( OMP::General->rot13( $in )   )[0], $in13 , 'rto13: alphanum' );
 is( ( OMP::General->rot13( $in13 ) )[0], $in   , 'rto13 reverse: alphanum' );
+
+
+print "# Numerical utilities\n";
+is(OMP::General::nint(123.456), 123, 'nint(123.456)');
+
+is(OMP::General::nearest_mult(129, 64), 128, 'nearest_mult(129, 64)');
