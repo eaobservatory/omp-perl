@@ -3413,9 +3413,9 @@ sub bandwidth_mode {
       #         [ |  :  | ]
       # [ |  :  | ]
       @refchan = ($nch_mid) x 3;
-      @sbif = ($s->{'if'} - ($bw_per_sub * 1.0E6 - $olap),
+      @sbif = ($s->{'if'} + ($bw_per_sub * 1.0E6 - $olap),
                $s->{'if'},
-               $s->{'if'} + ($bw_per_sub * 1.0E6 - $olap));
+               $s->{'if'} - ($bw_per_sub * 1.0E6 - $olap));
 
     } elsif ($nsubband == 4) {
       # Subbands 1 and 4 referenced to their centres
@@ -3424,10 +3424,10 @@ sub bandwidth_mode {
       #         [ |     |:]
       # [ |  :  | ]
       @refchan = ($nch_mid, $nch_lo, $nch_hi, $nch_mid);
-      @sbif = ($s->{'if'} - 1.5 * ($bw_per_sub * 1.0E6 - $olap),
+      @sbif = ($s->{'if'} + 1.5 * ($bw_per_sub * 1.0E6 - $olap),
                $s->{'if'},
                $s->{'if'},
-               $s->{'if'} + 1.5 * ($bw_per_sub * 1.0E6 - $olap));
+               $s->{'if'} - 1.5 * ($bw_per_sub * 1.0E6 - $olap));
 
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
