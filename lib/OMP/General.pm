@@ -423,7 +423,7 @@ sub extract_projectid {
   my $ukirt_eao = qr/\b(u\/(?:SERV\/)?\d\d[ab]\/EAP\d\d\d)\b/i;
 
   if ($string =~ $ukirt_sem                          # UKIRT
-      or $string =~ /\b([ms]\d\d[abxyzw][junchidpltv]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
+      or $string =~ /\b([msr]\d\d[abxyzw][junchidpltv]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
       or $string =~ /\b(mjls[sgncdjty]\d+)\b/i      # JCMT Legacy Surveys
