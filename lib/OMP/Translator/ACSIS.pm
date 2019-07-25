@@ -3109,9 +3109,92 @@ sub acsis_layout {
     $monitorEvents{$monitor} = @{$eventNames}[0];
   }
 
-  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder, \%monitorEvents, \@corr_monitors);
+  my $plinks = create_process_links($nsync, $nreducer, $ngridder, \%monitorEvents, \@corr_monitors);
   $acsis->process_links( $plinks );
 
+}
+
+=item B<create_process_links>
+
+Function to create a ProcessLinks object from a given number of
+sync_tasks, reducers and gridders. The names of the regular monitors
+and corr_monitors also need to be specified. There is always one specwriter.
+
+  my $numSynctasks = 8;
+  my $numReducers = 8;
+  my $numGridders = 1;
+  my @regular_monitors = qw/ if_monitor fe_monitor /;
+  my @corr_monitors = qw/ corr_monitor5 corr_monitor7 /;
+  my $pl = create_process_links($numSynctasks, $numReducers, $numGridders, \@regular_monitors, \@corr_monitors);
+
+=cut
+
+sub create_process_links {
+  my ($numSynctasks, $numReducers, $numGridders, $monitorEvents, $corr_monitors) = @_;
+
+  my $pls = new JAC::OCS::Config::ACSIS::ProcessLinks();
+  my $linkCl = "JAC::OCS::Config::ACSIS::ProcessLink";
+
+  my @monitors = grep {!/corr_monitor/} (keys %{$monitorEvents});
+
+  my $reducercounter = 1;
+  # For every sync_task: links to monitors and reducers
+  for my $i (1..$numSynctasks) {
+    my $sync = 'sync' . $i;
+
+    # create a link from every monitor to this sync_task
+    for my $monitor (@monitors) {
+      $pls->addLink($linkCl->new(from_ref   => $monitor,
+                                 from_event => $monitorEvents->{$monitor},
+                                 to_ref     => $sync,
+                                 to_event   => $monitorEvents->{$monitor}));
+    };
+
+    # create a link from one corr_monitor to this sync_task
+    if ($i <= @{$corr_monitors}) {
+      my $monitor = ${$corr_monitors}[$i - 1];
+      $pls->addLink($linkCl->new(from_ref   => $monitor,
+                                 from_event => $monitorEvents->{$monitor},
+                                 to_ref     => $sync,
+                                 to_event   => $monitorEvents->{$monitor}));
+    }
+
+    # create a link to the correct number of reducers
+    # there is usually one reducer per sync_task, but it can be two
+    for my $ri (1..int($numReducers / $numSynctasks)) {
+      my $reducer = 'reducer' . $reducercounter++;
+      my %args = (from_ref => $reducer, to_ref => $sync);
+      for my $event ( qw( attach detach available ) ) {
+        $pls->addLink($linkCl->new(%args,
+                                   from_event => "reducer_target.$event",
+                                   to_event   => "sync_source.$event"));
+      }
+      $pls->addLink($linkCl->new(from_ref   => $sync,
+                                 from_event => 'data_4_' . $reducer,
+                                 to_ref     => $reducer,
+                                 to_event   => 'reducer_target.data'));
+    };
+  };
+
+  # Links between reducers and gridders
+  my @gridders = ('specwriter2', map { 'gridder'.$_ } (1..$numGridders));
+  for my $ri (1..$numReducers) {
+    my $reducer = 'reducer' . $ri;
+    for my $gridder (@gridders) {
+      my %args = (from_ref => $gridder, to_ref => $reducer);
+      for my $event ( qw( attach detach available ) ) {
+          $pls->addLink($linkCl->new(%args,
+                                     from_event => "gridder_target.$event",
+                                     to_event   => "reducer_source.$event"));
+      }
+      $pls->addLink($linkCl->new(from_ref   => $reducer,
+                                 from_event => 'data_4_' . $gridder,
+                                 to_ref     => $gridder,
+                                 to_event   => 'gridder_target.data'));
+    }
+  };
+
+  return $pls;
 }
 
 =item B<need_offset_tracking>
