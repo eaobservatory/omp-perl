@@ -2262,6 +2262,11 @@ sub acsisdr_recipe {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
+  # Get the instrument we are using
+  my $inst = lc($self->ocs_frontend($info{'instrument'}));
+  throw OMP::Error::FatalError('No instrument defined - needed to select correct dr_recipe file')
+    unless defined $inst;
+
   # Get the observing mode or observation type for the DR recipe
   my $root;
   if ($info{obs_type} eq 'science') {
@@ -2305,7 +2310,18 @@ sub acsisdr_recipe {
     $root = $info{obs_type};
   }
 
-  my $filename = File::Spec->catfile( $self->wiredir, 'acsis', $root . '_dr_recipe.ent');
+  my $filename = undef;
+  foreach my $suffix ("_$inst", '') {
+    my $tryfile = File::Spec->catfile( $self->wiredir, 'acsis', $root . '_dr_recipe' . $suffix . '.ent');
+    if (-e $tryfile) {
+      $filename = $tryfile;
+      last;
+    }
+  }
+
+  # no files to find
+  throw OMP::Error::FatalError("Unable to find dr_recipe entity file with root $root")
+    unless defined $filename;
 
   # Read the recipe itself
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
