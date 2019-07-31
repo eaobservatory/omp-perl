@@ -3087,7 +3087,24 @@ sub acsis_layout {
   $acsis->process_layout( $playout );
 
   # and links
-  my ($nsync, $nreducer, $ngridder) = $self->determine_acsis_layout($cfg, %info);
+  $self->create_process_links($cfg, %info);
+}
+
+=item B<create_process_links>
+
+Function to create a ProcessLinks object and store it in the ACSiS
+configuration.  There is always one specwriter.
+
+  $trans->create_process_links($cfg, %info);
+
+=cut
+
+sub create_process_links {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my ($numSynctasks, $numReducers, $numGridders) = $self->determine_acsis_layout($cfg, %info);
 
   # find out which correlators are used so we can connect the monitors to the sync_tasks
   my $hw_map = $self->hardware_map();
@@ -3100,6 +3117,8 @@ sub acsis_layout {
   }
   my @corr_monitors = map { "corr_monitor" . $_ } (sort keys %corrtasks);
 
+  my $acsis = $cfg->acsis();
+  my $playout = $acsis->process_layout();
   my %monitorInterfaces = $playout->getMonitorInterfaces();
   my %monitorEvents;
   for my $monitor (keys %monitorInterfaces) {
@@ -3109,33 +3128,10 @@ sub acsis_layout {
     $monitorEvents{$monitor} = @{$eventNames}[0];
   }
 
-  my $plinks = create_process_links($nsync, $nreducer, $ngridder, \%monitorEvents, \@corr_monitors);
-  $acsis->process_links( $plinks );
-
-}
-
-=item B<create_process_links>
-
-Function to create a ProcessLinks object from a given number of
-sync_tasks, reducers and gridders. The names of the regular monitors
-and corr_monitors also need to be specified. There is always one specwriter.
-
-  my $numSynctasks = 8;
-  my $numReducers = 8;
-  my $numGridders = 1;
-  my @regular_monitors = qw/ if_monitor fe_monitor /;
-  my @corr_monitors = qw/ corr_monitor5 corr_monitor7 /;
-  my $pl = create_process_links($numSynctasks, $numReducers, $numGridders, \@regular_monitors, \@corr_monitors);
-
-=cut
-
-sub create_process_links {
-  my ($numSynctasks, $numReducers, $numGridders, $monitorEvents, $corr_monitors) = @_;
-
   my $pls = new JAC::OCS::Config::ACSIS::ProcessLinks();
   my $linkCl = "JAC::OCS::Config::ACSIS::ProcessLink";
 
-  my @monitors = grep {!/corr_monitor/} (keys %{$monitorEvents});
+  my @monitors = grep {!/corr_monitor/} (keys %monitorEvents);
 
   my $reducercounter = 1;
   # For every sync_task: links to monitors and reducers
@@ -3145,18 +3141,18 @@ sub create_process_links {
     # create a link from every monitor to this sync_task
     for my $monitor (@monitors) {
       $pls->addLink($linkCl->new(from_ref   => $monitor,
-                                 from_event => $monitorEvents->{$monitor},
+                                 from_event => $monitorEvents{$monitor},
                                  to_ref     => $sync,
-                                 to_event   => $monitorEvents->{$monitor}));
+                                 to_event   => $monitorEvents{$monitor}));
     };
 
     # create a link from one corr_monitor to this sync_task
-    if ($i <= @{$corr_monitors}) {
-      my $monitor = ${$corr_monitors}[$i - 1];
+    if ($i <= @corr_monitors) {
+      my $monitor = $corr_monitors[$i - 1];
       $pls->addLink($linkCl->new(from_ref   => $monitor,
-                                 from_event => $monitorEvents->{$monitor},
+                                 from_event => $monitorEvents{$monitor},
                                  to_ref     => $sync,
-                                 to_event   => $monitorEvents->{$monitor}));
+                                 to_event   => $monitorEvents{$monitor}));
     }
 
     # create a link to the correct number of reducers
@@ -3194,7 +3190,7 @@ sub create_process_links {
     }
   };
 
-  return $pls;
+  $acsis->process_links($pls);
 }
 
 =item B<need_offset_tracking>
