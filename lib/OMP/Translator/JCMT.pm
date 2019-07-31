@@ -161,6 +161,7 @@ sub translate {
     $prev_obs_type = $obs->{obs_type};
 
     # if there are any special patch ups call them here
+    $obs->{'ot_version'} = $otver;
     $self->fixup_historical_problems( $obs )
       if $self->can("fixup_historical_problems");
 

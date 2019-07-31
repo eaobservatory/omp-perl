@@ -255,10 +255,12 @@ sub fixup_historical_problems {
   my $self = shift;
   my $info = shift;
 
-  my %twosbrx = map {$_ => 1} qw/UU AWEOWEO/;
+  if ($info->{'ot_version'} lt '20190731') {
+      my %twosbrx = map {$_ => 1} qw/UU AWEOWEO/;
 
-  $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
-      if exists $twosbrx{uc($info->{'instrument'})};
+      $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
+          if exists $twosbrx{uc($info->{'instrument'})};
+  }
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
 
