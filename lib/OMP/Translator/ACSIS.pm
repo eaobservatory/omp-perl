@@ -801,11 +801,7 @@ sub frontend_config {
       if ($sb_mode eq 'SSB') {
         throw OMP::Error::TranslateFail("Subsystem $n_subsystem is in $ss_sideband but this is an SSB $sb observation");
       }
-      elsif ($sb_mode eq 'DSB') {
-        # Maintain historical behavior of using the same sideband for all subsystems?
-        $ss_sideband = $sb;
-      }
-      elsif ($sb_mode eq '2SB') {
+      elsif (($sb_mode eq 'DSB') or ($sb_mode eq '2SB')) {
         # Retain alternative sideband label.
       }
       else {
