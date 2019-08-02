@@ -2808,30 +2808,6 @@
 
 
 </process_layout>
-<process_links>
-
-<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync1" to_event="smu_data"/>
-<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync1" to_event="fe_data"/>
-<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync1" to_event="tcs_data"/>
-<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync1" to_event="weather_data"/>
-<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
-<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
-<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
-<glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
-<glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
-<glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
-<glish_link from_ref="sync1" from_event="data_4_reducer1" to_ref="reducer1" to_event="reducer_target.data"/>
-<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-<glish_link from_ref="reducer1" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-<glish_link from_ref="reducer1" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-</process_links>
-
 <interface_list>
 
 
