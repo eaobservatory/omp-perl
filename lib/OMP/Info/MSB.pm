@@ -566,6 +566,9 @@ astrometry to be performed (such as RA and DEC) will be included in
 the summary.  This can greatly reduce the amount of time it takes
 to generate a summary.
 
+Also '_norem' can be appended (after '_noast' if present) to disable
+the setting of "magic" (non-integer) remaining counter values.
+
 The XML short format will be something like the following:
 
  <SpMSBSummary id="string">
@@ -609,6 +612,14 @@ sub summary {
 
   # Read the actual value
   $format = lc(shift);
+
+  # If '_norem' as appended to the format, remove it and disable
+  # "magic" values of the remaining counter (such as "REM").
+  my $norem = 0;
+  if ($format =~ /_norem$/) {
+    $format =~ s/_norem$//;
+    $norem = 1;
+  }
 
   # If 'noast' is appended to format value, do not include elements
   # in the summary that require astrometry to be performed
@@ -673,16 +684,18 @@ sub summary {
 
   # Now get a long text form for the remaining number
   my $remstatus;
-  if (!defined $summary{remaining}) {
-    $remstatus = "Remaining count unknown";
-    $summary{remaining} = "N/A";
-  } elsif ($self->isRemoved) {
-    $remstatus = "REMOVED from consideration";
-    $summary{remaining} = "REM"; # Magic value
-  } elsif ($summary{remaining} == 0) {
-    $remstatus = "COMPLETE";
-  } else {
-    $remstatus = "$summary{remaining} remaining to be observed";
+  unless ($norem) {
+    if (!defined $summary{remaining}) {
+      $remstatus = "Remaining count unknown";
+      $summary{remaining} = "N/A";
+    } elsif ($self->isRemoved) {
+      $remstatus = "REMOVED from consideration";
+      $summary{remaining} = "REM"; # Magic value
+    } elsif ($summary{remaining} == 0) {
+      $remstatus = "COMPLETE";
+    } else {
+      $remstatus = "$summary{remaining} remaining to be observed";
+    }
   }
 
   # Get the observations but retain them as objects for now
