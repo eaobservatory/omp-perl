@@ -2176,7 +2176,7 @@ sub _insert_row {
     throw OMP::Error::DBError("Database handle not valid in _insert_row");
 
   # Get the MSB summary
-  my %data = $msbinfo->summary('hashlong_noast');
+  my %data = $msbinfo->summary('hashlong_noast_norem');
   $data{obscount} = $msbinfo->obscount;
 
   # Throw an exception if we are missing tau or seeing
