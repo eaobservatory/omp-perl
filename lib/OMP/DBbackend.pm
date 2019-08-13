@@ -290,6 +290,11 @@ sub connect {
       PrintError => 0, mysql_auto_reconnect => 1})
     or throw OMP::Error::DBConnection("Cannot connect to database $DBserver: $DBI::errstr");
 
+  # Disable newly-default SQL_MODE options until the OMP code can be updated
+  # to comply with the new strict requirements.
+  $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "STRICT_TRANS_TABLES", "")');
+  $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "ERROR_FOR_DIVISION_BY_ZERO", "")');
+
   # Indicate that we have connected
   $self->_connected(1);
 
