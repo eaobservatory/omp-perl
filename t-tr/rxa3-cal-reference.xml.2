@@ -515,6 +515,12 @@
                  VALUE="FILL ME" >
             <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter.ms_root" ALT="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter[1].ms_root" />
          </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SPECID"
+                 COMMENT="Spectrum to which this subsystem belongs"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSpectrumID" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -543,9 +549,15 @@
                  VALUE="1" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
-                 COMMENT="The observed sideband"
+                 COMMENT="The observed sideband (this subsystem)"
                  VALUE="" >
             <DERIVED TASK="GRIDDER" METHOD="fillObsSb" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TRACK_SB"
+                 COMMENT="The tracking sideband (primary subsystem)"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.FRONTEND_CONFIG.SIDEBAND" />
          </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="LOFREQS"
@@ -1342,7 +1354,7 @@
             <doppler_field ref="FE.DOPPLER"/>
             <spw_id_field ref="SPEC_WINDOW_ID"/>
             <fe_lo_field ref="FE.LO_FREQUENCY"/>
-            <spectral_window id="SPW1">
+            <spectral_window id="SPW1" spectrum_id="1">
                <bandwidth_mode mode="1GHzx2048" />
                <window type="truncate" />
                <align_shift>0</align_shift>
