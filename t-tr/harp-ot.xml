@@ -1427,5 +1427,146 @@ Things to include in your notes
         </SpIterFolder>
       </SpObs>
     </SpMSB>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <SpDRRecipeRef idref="15"/>
+      <SpInstHeterodyneRef idref="14"/>
+      <SpSiteQualityObsCompRef idref="10"/>
+      <SpTelescopeObsCompRef idref="8"/>
+      <estimatedDuration units="seconds">790.0</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Adjusted IF, zero redshift</title>
+      <totalDuration units="seconds">790.0</totalDuration>
+      <SpInstHeterodyne id="14" type="oc" subtype="inst.Heterodyne">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <band>best</band>
+        <bandMode>2</bandMode>
+        <beName>acsis</beName>
+        <feBandWidth>2.0E9</feBandWidth>
+        <feIF>5.0E9</feIF>
+        <feName>HARP</feName>
+        <mixers>1</mixers>
+        <mode>ssb</mode>
+        <skyFrequency>3.457959899E11</skyFrequency>
+        <velocityDefinition>radio</velocityDefinition>
+        <velocityFrame>LSRK</velocityFrame>
+
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+        <!--          ACSIS Configuration XML        -->
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+        <subsystems>
+            <subsystem if="5.5E9" bw="2.5E8" overlap="0.0" channels="4096">
+                <line species="CO" transition="3 - 2" rest_freq="3.457959899E11"/>
+            </subsystem>
+            <subsystem if="4.4834911E9" bw="2.5E8" overlap="0.0" channels="4096">
+                <line species="SiS" transition="19 0 - 18 0" rest_freq="3.44779481E11"/>
+            </subsystem>
+        </subsystems>
+
+      </SpInstHeterodyne>
+      <SpDRRecipe id="15" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <stareRecipe>REDUCE_SCIENCE_NARROWLINE</stareRecipe>
+      </SpDRRecipe>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">790.0</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterChop type="ic" subtype="chop">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SECONDARY>
+              <CHOP SYSTEM="AZEL">
+                <THROW>60.0</THROW>
+                <PA>90.0</PA>
+              </CHOP>
+            </SECONDARY>
+            <SpIterStareObs type="ic" subtype="stareObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <secsPerCycle>300</secsPerCycle>
+              <stareSystem>TRACKING</stareSystem>
+              <switchingMode>Beam</switchingMode>
+            </SpIterStareObs>
+          </SpIterChop>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <SpDRRecipeRef idref="17"/>
+      <SpInstHeterodyneRef idref="16"/>
+      <SpSiteQualityObsCompRef idref="10"/>
+      <SpTelescopeObsCompRef idref="8"/>
+      <estimatedDuration units="seconds">790.0</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Adjusted IF, with redshift</title>
+      <totalDuration units="seconds">790.0</totalDuration>
+      <SpInstHeterodyne id="16" type="oc" subtype="inst.Heterodyne">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <band>best</band>
+        <bandMode>2</bandMode>
+        <beName>acsis</beName>
+        <feBandWidth>2.0E9</feBandWidth>
+        <feIF>5.0E9</feIF>
+        <feName>HARP</feName>
+        <mixers>1</mixers>
+        <mode>ssb</mode>
+        <skyFrequency>3.4573653815E11</skyFrequency>
+        <velocity>1.0</velocity>
+        <velocityDefinition>redshift</velocityDefinition>
+        <velocityFrame>BARYCENTRIC</velocityFrame>
+
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+        <!--          ACSIS Configuration XML        -->
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+        <subsystems>
+            <subsystem if="5.5E9" bw="2.5E8" overlap="0.0" channels="4096">
+                <line species="CO" transition="6 - 5" rest_freq="6.914730763E11"/>
+            </subsystem>
+            <subsystem if="5.03921085E9" bw="2.5E8" overlap="0.0" channels="4096">
+                <line species="H-13-CN" transition="8 - 7" rest_freq="6.90551498E11"/>
+            </subsystem>
+        </subsystems>
+
+      </SpInstHeterodyne>
+      <SpDRRecipe id="17" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <stareRecipe>REDUCE_SCIENCE_NARROWLINE</stareRecipe>
+      </SpDRRecipe>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">790.0</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterChop type="ic" subtype="chop">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SECONDARY>
+              <CHOP SYSTEM="AZEL">
+                <THROW>60.0</THROW>
+                <PA>90.0</PA>
+              </CHOP>
+            </SECONDARY>
+            <SpIterStareObs type="ic" subtype="stareObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <secsPerCycle>300</secsPerCycle>
+              <stareSystem>TRACKING</stareSystem>
+              <switchingMode>Beam</switchingMode>
+            </SpIterStareObs>
+          </SpIterChop>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
   </SpAND>
 </SpProg>
