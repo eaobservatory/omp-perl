@@ -816,19 +816,41 @@ sub frontend_config {
   my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
   my $offset = $ifsub1 - $iffreq_ghz;
 
+  # Apply historical tuning offset for receivers which do not yet support
+  # reading their IF frequency from the configure XML.
+  my %variable_if_inst = map {$_ => 1} qw/alaihi uu aweoweo/;
+  unless (exists $variable_if_inst{lc($self->ocs_frontend($info{instrument}))}) {
+    # Get the IF which the instrument will be using, in GHz.
+    my $iffreq_conf_ghz = $inst->if_center_freq();
+
+    # Recompute the offset using this IF in case it differs from OT's.
+    $offset = $ifsub1 - $iffreq_conf_ghz;
+
+    if (lc($sb) eq 'usb') {
+      $offset *= -1;
+    }
+
+    $restfreq += $offset;
+
+    $self->output(sprintf(
+        "Tuning adjusted by %.0f MHz to correct for offset of first subsystem in band\n",
+        ($offset * 1e3)));
+  }
+  else {
+    $inst->if_center_freq($ifsub1);
+    $self->output(sprintf(
+        "\tUsing IF frequency of %.3f GHz %s\n", $ifsub1, $sb));
+
+    if (abs($offset) > 0.001) {
+      $self->output(sprintf(
+          "\t(Offset from default by %.0f MHz)\n", $offset * 1e3));
+    }
+  }
+
   # FE XML expects rest frequency in GHz
   $fe->rest_frequency( $restfreq );
   $self->output(sprintf(
       "Tuning to a rest frequency of %.3f GHz\n", $restfreq));
-
-  $inst->if_center_freq($ifsub1);
-  $self->output(sprintf(
-      "\tUsing IF frequency of %.3f GHz %s\n", $ifsub1, $sb));
-
-  if (abs($offset) > 0.001) {
-    $self->output(sprintf(
-        "\t(Offset from default by %.0f MHz)\n", $offset * 1e3));
-  }
 
   # doppler mode
   $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
