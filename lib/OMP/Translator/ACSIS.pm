@@ -830,6 +830,10 @@ sub frontend_config {
       $offset *= -1;
     }
 
+    # Apply redshift factor to offset.  (This step not present in original
+    # version of the tuning adjustment.)
+    $offset *= $inv_redshift_factor;
+
     $restfreq += $offset;
 
     $self->output(sprintf(
