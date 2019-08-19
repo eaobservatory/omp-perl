@@ -2923,11 +2923,7 @@
    <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="awa"/>
    <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
 
-
-   #NOTE: DA micros are specific to an array. If you try to reassign processes
-   #      you need to contact Craig Walther and/or Dan Bintley.  This may be
-   #      something that can be done by the TSS in the future. But for now
-   #      it would screw things up rather horribly
+   
 
    <da_machine virtual_machine="sc2da8a" real_machine="sc2da8a"/>
    <da_machine virtual_machine="sc2da8b" real_machine="sc2da8b"/>
