@@ -393,7 +393,7 @@ sub getInstAper {
   my $cfg = shift;
 
   my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('TCS configuration is not available')
     unless defined $tcs;
   my $ap = $tcs->aperture_name;
   return ( defined $ap ? $ap : "" );

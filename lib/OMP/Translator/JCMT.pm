@@ -709,7 +709,7 @@ sub tracking_offset {
 
   # Get the tcs_config
   my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('TCS configuration is not available')
     unless defined $tcs;
 
   # Get the name of the aperture name
@@ -718,7 +718,7 @@ sub tracking_offset {
 
   # Get the instrument config
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
 
   # Convert this to an offset
@@ -1184,7 +1184,7 @@ sub slew_config {
 
   # get the tcs
   my $tcs = $cfg->tcs();
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
   # Get the duration
   my $dur = $cfg->duration();
@@ -1806,12 +1806,12 @@ sub get_jiggle {
     $tcs = $cfg;
   } else {
     $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
   }
 
   # ... and secondary
   my $secondary = $tcs->getSecondary();
-  throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+  throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
   # Get the full jigle parameters from the secondary object
   my $jig = $secondary->jiggle;
@@ -1900,7 +1900,7 @@ sub tracking_receptor_or_subarray {
 
   # Get the actual receptors in use for this observation
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
 
   # Go through the preferred receptors looking for a match
@@ -1959,7 +1959,7 @@ sub calc_receptor_or_subarray_mask {
 
   # Need instrument information
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   # Mask selection depends on observing mode but for now we can just
   # make sure that all available pixels are enabled

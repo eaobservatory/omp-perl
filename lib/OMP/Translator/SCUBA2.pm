@@ -930,7 +930,7 @@ sub jos_config {
     }
 
     my $fts2 = $cfg->fts2();
-    throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
+    throw OMP::Error::FatalError('FTS-2 setup is not available') unless defined $fts2;
     my $scan_length = $fts2->scan_length();
     throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan length is not specified") unless defined $scan_length;
 
@@ -973,9 +973,9 @@ sub jos_config {
     # This time should be spread over the number of microsteps
     # for which we need an obsArea.
     my $tcs = $cfg->tcs();
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    throw OMP::Error::FatalError('TCS obsArea is not available') unless defined $obsArea;
     my @ms = $obsArea->microsteps();
     my $nms = (@ms ? @ms : 1);
     $sample_time /= $nms;
@@ -1033,9 +1033,9 @@ sub jos_config {
     # Need an obsArea for number of microsteps
     my $nms = 1;
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    throw OMP::Error::FatalError('TCS obsArea is not available') unless defined $obsArea;
 
     # This time should be spread over the number of microsteps
     my @ms = $obsArea->microsteps;
@@ -1075,10 +1075,10 @@ sub jos_config {
     # Since the TCS works in integer times-round-the-map
     # Need to know the map area
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS obsArea is not available')
       unless defined $obsArea;
 
     # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.

@@ -703,7 +703,7 @@ sub frontend_config {
 
   # Need instrument information
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   # Create frontend object for this configuration
   my $fe = new JAC::OCS::Config::Frontend();
@@ -918,14 +918,14 @@ sub rotator_config {
 
   # Get the instrument configuration
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   return if (defined $inst->focal_station &&
              $inst->focal_station !~ /NASMYTH/);
 
   # get the tcs
   my $tcs = $cfg->tcs();
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
   # if we are a sky dip observation then we need a rotator config but it should simply say "FIXED" system.
   # The TCS will then know not to bother asking it to move.
@@ -959,11 +959,11 @@ sub rotator_config {
 
     # need the TCS information
     my $tcs = $cfg->tcs();
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     # get the observing area
     my $oa = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS observing area is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS observing area is not available')
       unless defined $oa;
 
     if ($oa->mode eq 'area') {
@@ -1201,10 +1201,10 @@ sub jos_config {
     # Since the TCS works in integer times-round-the-map
     # Need to know the map area
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS obsArea is not available')
       unless defined $obsArea;
 
     # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.
@@ -1264,11 +1264,11 @@ sub jos_config {
 
     # first get the Secondary object, via the TCS
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
     # ... and secondary
     my $secondary = $tcs->getSecondary();
-    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+    throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
     # N_JIGS_ON etc
     my %timing = $secondary->timing;
@@ -1421,17 +1421,17 @@ sub jos_config {
 
       # first get the Secondary object, via the TCS
       my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+      throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
       # ... and secondary
       my $secondary = $tcs->getSecondary();
-      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+      throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
       # N_JIGS_ON etc
       my %timing = $secondary->timing;
       # Get the full jigle parameters from the secondary object
       my $jig = $secondary->jiggle;
-      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+      throw OMP::Error::FatalError('Jiggle configuration is not available') unless defined $jig;
 
       # we need to know how many points are in the pattern
       $npts = $jig->npts;
@@ -1663,18 +1663,18 @@ sub correlator {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # get the spectral window information
   my $spwlist = $acsis->spw_list();
-  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
+  throw OMP::Error::FatalError('Spectral Window configuration is not available') unless defined $spwlist;
 
   # get the hardware map
   my $hw_map = $self->hardware_map;
 
   # Now get the receptors of interest for this observation
   my $frontend = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason Frontend setup is not available. This can not happen') unless defined $frontend;
+  throw OMP::Error::FatalError('Frontend setup is not available') unless defined $frontend;
 
   # and only worry about the pixels that are switched on
   my @rec = $frontend->active_receptors;
@@ -1763,7 +1763,7 @@ sub correlator {
 
       # Get the CM mapping for this receptor
       my @hwmap = $hw_map->receptor( $r );
-      throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
+      throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map!") unless @hwmap;
 
       # Some configurations actually use multiple correlator modules in
       # a single subband so we need to take this into account when
@@ -1959,7 +1959,7 @@ sub line_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frequency information
   my $freq = $info{freqconfig}->{subsystems};
@@ -2015,13 +2015,13 @@ sub spw_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frontend object for the sideband
   # Hopefully we will not need to do this if ACSIS can be tweaked to get it from
   # frontend XML itself
   my $fe = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason frontend configuration is not available during spectral window processing. This can not happen') unless defined $fe;
+  throw OMP::Error::FatalError('frontend configuration is not available during spectral window processing') unless defined $fe;
 
   # Get the frequency information for each subsystem
   my $freq = $info{freqconfig}->{subsystems};
@@ -2258,7 +2258,7 @@ sub acsisdr_recipe {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the instrument we are using
   my $inst = lc($self->ocs_frontend($info{'instrument'}));
@@ -2286,11 +2286,11 @@ sub acsisdr_recipe {
       # need the secondary configuration
       # first get the Secondary object, via the TCS
       my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+      throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
       # ... and secondary
       my $secondary = $tcs->getSecondary();
-      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+      throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
       # Get the information
       my $smu_mode = $secondary->smu_mode;
@@ -2371,15 +2371,15 @@ sub cubes {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frontend configuration
   my $fe = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason Frontend configuration is not available. This can not happen') unless defined $fe;
+  throw OMP::Error::FatalError('Frontend configuration is not available') unless defined $fe;
 
   # Get the instrument footprint
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
   my @footprint = $inst->receptor_offsets( $fe->active_receptors );
 
@@ -2558,7 +2558,7 @@ sub cubes {
 
       # Get the jiggle information
       my $jig = $self->get_jiggle( $cfg );
-      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+      throw OMP::Error::FatalError('Jiggle configuration is not available') unless defined $jig;
 
       # Store the grid coordinate frame
       $grid_coord = $jig->system;
@@ -2771,7 +2771,7 @@ sub rtd_config {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+  throw OMP::Error::FatalError('ACSIS setup is not available')
     unless defined $acsis;
 
   # Get the instrument we are using
@@ -2846,17 +2846,17 @@ sub simulator_config {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+  throw OMP::Error::FatalError('ACSIS setup is not available')
     unless defined $acsis;
 
   # Get the cube definition
   my $cl = $acsis->cube_list;
-  throw OMP::Error::FatalError('for some reason the ACSIS Cube List is not defined. This can not happen')
+  throw OMP::Error::FatalError('the ACSIS Cube List is not defined')
     unless defined $cl;
 
   # Get the spectral window definitions
   my $spwlist = $acsis->spw_list();
-  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
+  throw OMP::Error::FatalError('Spectral Window configuration is not available') unless defined $spwlist;
 
   # We create a cloud per cube definition
   my %cubes = $cl->cubes;
@@ -2908,7 +2908,7 @@ sub simulator_config {
 
   # Depends on Receiver
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available for simulation configuration. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available for simulation configuration')
     unless defined $inst;
 
   if ($inst->name =~ /HARP/) {
@@ -3024,7 +3024,7 @@ sub interface_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   my $filename = File::Spec->catfile( $self->wiredir, 'acsis', 'interface_list.ent');
 
@@ -3048,7 +3048,7 @@ sub acsis_layout {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # This code is a bit more involved because in general the process layout
   # template file includes entity references that must be replaced with
@@ -3208,7 +3208,7 @@ sub bandwidth_mode {
 
   # Need the IF center frequency from the frontend for information purposes only
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
   my $if_center_freq = $info{'freqconfig'}->{'otConfigIF'};
 
   # Keep track of duplicates
@@ -3946,7 +3946,7 @@ sub determine_acsis_layout {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the instrument we are using
   my $inst = $self->ocs_frontend($info{instrument});
@@ -3970,7 +3970,7 @@ sub determine_acsis_layout {
 
     my $spwlist = $acsis->spw_list;
     if (!defined $spwlist) {
-      throw OMP::Error::FatalError("Could not find spectral window configuration. Should not happen!");
+      throw OMP::Error::FatalError("Could not find spectral window configuration");
     }
 
     my %spw = $spwlist->spectral_windows;
@@ -4488,11 +4488,11 @@ sub getCubeInfo {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # get the spectral window information
   my $cubelist = $acsis->cube_list();
-  throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
+  throw OMP::Error::FatalError('Cube configuration is not available') unless defined $cubelist;
 
   return $cubelist->cubes;
 }
