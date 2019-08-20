@@ -377,6 +377,9 @@ sub _create_sql_recurse {
                 keys %range
                );
 
+  } elsif (UNIVERSAL::isa($entry, 'OMP::DBQuery::Null')) {
+    $sql = $self->_querify($column, $entry->null(), 'null');
+
   } elsif (ref($entry) eq 'HASH') {
     # Call myself but join with an OR or AND
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
@@ -500,6 +503,12 @@ sub _convert_elem_to_perl {
                                    $name, $firstchild->toString,
                                    $childname, \%attr );
         }
+        elsif ($childname eq 'null') {
+          # Allow <null/> as a special case (short for <null>1</null>).
+          $self->_add_text_to_hash(\%query,
+                                   $name, '1',
+                                   $childname, \%attr );
+        }
       }
     }
   }
@@ -511,12 +520,12 @@ sub _convert_elem_to_perl {
 
 Add content to the query hash. Compares keys of arguments with
 the existing content and does the right thing depending on whether
-the key has occurred before or it has a special case (max or min).
+the key has occurred before or it has a special case (null, max or min).
 
 $query->_add_text_to_hash( \%query, $key, $value, $secondkey );
 
 The secondkey is used as the primary key unless it is one of the
-special reserved key (min or max). In that case the secondkey
+special reserved key (null, min or max). In that case the secondkey
 is used as a hash key in the hash pointed to by $key.
 
 For example, key=instruments value=cgs4 secondkey=instrument
@@ -560,7 +569,7 @@ sub _add_text_to_hash {
 
   # Check to see if we have a special key
   $secondkey = '' unless defined $secondkey;
-  my $special = ( $secondkey =~ /max|min/ ? 1 : 0 );
+  my $special = ( $secondkey =~ /max|min|null/ ? 1 : 0 );
 
   # primary key is the secondkey if we are not special
   $key = $secondkey unless $special or length($secondkey) eq 0;
@@ -724,10 +733,15 @@ sub _post_process_hash {
       $self->_post_process_hash($href->{$key});
     }
     elsif (ref($href->{$key}) eq "HASH") {
-      # Convert to OMP::Range object
-      $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
-                                      Max => $href->{$key}->{max},
-                                    );
+      if (exists $href->{$key}->{'null'}) {
+        $href->{$key} = OMP::DBQuery::Null->new(null => $href->{$key}->{'null'});
+      }
+      else {
+        # Convert to OMP::Range object
+        $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
+                                        Max => $href->{$key}->{max},
+                                      );
+      }
     }
   }
 
@@ -785,6 +799,10 @@ sub _querify {
   if ($cmp eq 'fulltext') {
     $value =~ s/([\\'])/\\$1/g;
     return "(MATCH ($name) AGAINST ('$value'))";
+  }
+  elsif ($cmp eq 'null') {
+    my $expr = $value ? 'NULL' : 'NOT NULL';
+    return "($name IS $expr)";
   }
 
   # Lookup table for comparators
@@ -887,7 +905,7 @@ sub _process_elements {
         # Simple hash
         my %hash = %$val;
         for my $hkey (keys %hash) {
-          $hash{$hkey} = $cb->( $hash{$hkey} );
+          $hash{$hkey} = $cb->( $hash{$hkey} ) unless $hkey eq 'null';
         }
         $href->{$key} = \%hash;
 
@@ -945,6 +963,15 @@ Using explicit elements is probably easier to generate.
 
 Ranges are inclusive.
 
+=item B<Null values>
+
+Elements can contain a null element.  This should contain a true
+or false value, or be self-closing (implies true).
+
+  <semester><null/></semester>
+
+  <instrument><null>0</null></instrument>
+
 =item B<Multiple matches>
 
 Elements that contain other elements are assumed to be containing
@@ -1000,6 +1027,29 @@ There can also be "not" blocks.
 =head1 SEE ALSO
 
 OMP/SN/004, C<OMP::MSBQuery>
+
+=cut
+
+package OMP::DBQuery::Null;
+
+sub new {
+  my $class = shift;
+  my %opt = @_;
+
+  my $self = bless {
+    null => $opt{'null'},
+  }, $class;
+
+  return $self;
+}
+
+sub null {
+  my $self = shift;
+  if (@_) {
+    $self->{'null'} = shift;
+  }
+  return $self->{'null'};
+}
 
 =head1 AUTHORS
 
