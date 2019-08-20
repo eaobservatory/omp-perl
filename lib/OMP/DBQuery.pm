@@ -385,8 +385,11 @@ sub _create_sql_recurse {
     # Use an OR by default but if we have a key _JOIN then use it
     my $j = ( exists $entry->{_JOIN} ? uc($entry->{_JOIN}) : "OR");
 
+    # Are we applying a function to the result?
+    my $func = (exists $entry->{'_FUNC'} ? $entry->{'_FUNC'} : '');
+
     # Need to bracket each of the sub entries
-    $sql = "(". join(" $j ", map { "($_)" } grep {defined $_} @chunks ) . ")";
+    $sql = $func . "(". join(" $j ", map { "($_)" } grep {defined $_} @chunks ) . ")";
 
   } else {
 
@@ -449,13 +452,21 @@ sub _convert_elem_to_perl {
   for my $child ($msbquery->childNodes) {
     my $name = $child->getName;
     #print "Name: $name\n";
-    if ($name eq 'or') {
+    if (grep {$name eq $_} qw/or not/) {
         my %expr = $self->_convert_elem_to_perl($child);
         # Check if the expression is empty.  We have to do this here
         # as we check for non-white-space values at this level (see
         # the PCDATA case below).
         next unless scalar %expr;
-        $query{'EXPR__' . ++ $i} = {_JOIN => 'OR', %expr};
+        if ($name eq 'or') {
+          $query{'EXPR__' . ++ $i} = {_JOIN => 'OR', %expr};
+        }
+        elsif ($name eq 'not') {
+          $query{'EXPR__' . ++ $i} = {_JOIN => 'AND', _FUNC => 'NOT', %expr};
+        }
+        else {
+          die 'Block name was matched but is now not recognized';
+        }
         next;
     }
 
@@ -975,6 +986,14 @@ as alternatives.
     <subject>query string</subject>
     <text>query string</text>
   </or>
+
+=item B<Not blocks>
+
+There can also be "not" blocks.
+
+  <not>
+    <semester>99X</semester>
+  </not>
 
 =back
 
