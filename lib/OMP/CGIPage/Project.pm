@@ -1079,6 +1079,13 @@ sub alter_proj {
   print $q->textfield("seeingmax", $seeingmax, 3, 4);
   print "</td></tr>";
 
+  print $q->Tr(
+    $q->td([
+        'Expiry date',
+        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')),
+    ]),
+  );
+
   print "</table>";
 
   print q[<p>],
@@ -1227,6 +1234,19 @@ sub process_project_changes {
     $project->seeingrange($new_seeingrange);
 
     push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
+  }
+
+  # Check whether the expiry date was changed
+  my $old_expirydate = $project->expirydate();
+  my $expirydate = $q->param('expirydate');
+  if ((not defined $old_expirydate) and (! $expirydate)) {
+    # Expiry date null in database and not set here: do nothing.
+  }
+  elsif ($expirydate ne ("$old_expirydate")) {
+    # Expiry date has changed.
+    $project->expirydate($expirydate);
+
+    push @msg, "Updated expiry date from ${old_expirydate} to ${expirydate}.";
   }
 
   # Generate feedback message
