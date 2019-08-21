@@ -1242,11 +1242,14 @@ sub process_project_changes {
   if ((not defined $old_expirydate) and (! $expirydate)) {
     # Expiry date null in database and not set here: do nothing.
   }
-  elsif ($expirydate ne ("$old_expirydate")) {
+  elsif ((not defined $old_expirydate) or (! $expirydate) or ($expirydate ne "$old_expirydate")) {
     # Expiry date has changed.
+    undef $expirydate unless $expirydate;
     $project->expirydate($expirydate);
 
-    push @msg, "Updated expiry date from ${old_expirydate} to ${expirydate}.";
+    push @msg, 'Updated expiry date from ' .
+        ($old_expirydate // 'none') . ' to ' .
+        ($expirydate // 'none') . '.';
   }
 
   # Generate feedback message
