@@ -3,7 +3,7 @@ CREATE TABLE `ompaffiliationalloc` (
   `semester` varchar(32) NOT NULL,
   `affiliation` varchar(32) NOT NULL,
   `allocation` double NOT NULL,
-  `observed` double NOT NULL DEFAULT '0',
+  `observed` double NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`semester`,`affiliation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfault` (
@@ -19,14 +19,16 @@ CREATE TABLE `ompfault` (
   `entity` varchar(64) DEFAULT NULL,
   `condition` int(11) DEFAULT NULL,
   `location` int(11) DEFAULT NULL,
-  UNIQUE KEY `idx_faultid` (`faultid`),
+  `shifttype` varchar(70) DEFAULT NULL,
+  `remote` varchar(70) DEFAULT NULL,
+  PRIMARY KEY (`faultid`),
   FULLTEXT KEY `idx_ompfault_subject` (`subject`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfaultassoc` (
   `associd` bigint(20) NOT NULL AUTO_INCREMENT,
   `faultid` double NOT NULL,
   `projectid` varchar(32) NOT NULL,
-  UNIQUE KEY `idx_associd` (`associd`),
+  PRIMARY KEY (`associd`),
   KEY `idx_faultid` (`faultid`),
   KEY `idx_projectid` (`projectid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -119,7 +121,7 @@ CREATE TABLE `ompmsbdone` (
   `title` varchar(255) DEFAULT NULL,
   `userid` varchar(32) DEFAULT NULL,
   `msbtid` varchar(32) DEFAULT NULL,
-  UNIQUE KEY `idx_ompmsbdone_1` (`commid`),
+  PRIMARY KEY (`commid`),
   KEY `msbdone_idx` (`projectid`),
   KEY `msbtid_idx` (`msbtid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -159,10 +161,10 @@ CREATE TABLE `ompobslog` (
   `obsactive` int(11) NOT NULL,
   `commentdate` datetime NOT NULL,
   `commentauthor` varchar(32) NOT NULL,
-  `commenttext` longtext,
+  `commenttext` longtext DEFAULT NULL,
   `commentstatus` int(11) NOT NULL,
   `obsid` varchar(48) DEFAULT NULL,
-  UNIQUE KEY `idx_ompobslog_1` (`obslogid`),
+  PRIMARY KEY (`obslogid`),
   KEY `idx_obsid` (`obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompproj` (
@@ -184,7 +186,7 @@ CREATE TABLE `ompproj` (
   `cloudmin` int(11) NOT NULL,
   `skymin` double NOT NULL,
   `skymax` double NOT NULL,
-  UNIQUE KEY `idx_projectid` (`projectid`),
+  PRIMARY KEY (`projectid`),
   KEY `idx_allocated` (`allocated`),
   KEY `idx_pending` (`pending`),
   KEY `idx_remaining` (`remaining`),
@@ -195,7 +197,7 @@ CREATE TABLE `ompprojaffiliation` (
   `projectid` varchar(32) NOT NULL,
   `affiliation` varchar(32) NOT NULL,
   `fraction` double NOT NULL,
-  UNIQUE KEY `ompprojaffiliation_proj_aff` (`projectid`,`affiliation`)
+  PRIMARY KEY (`projectid`,`affiliation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompprojqueue` (
   `uniqid` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -216,9 +218,9 @@ CREATE TABLE `ompprojuser` (
   `userid` varchar(32) NOT NULL,
   `capacity` varchar(16) NOT NULL,
   `contactable` tinyint(4) NOT NULL,
-  `capacity_order` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `capacity_order` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `affiliation` varchar(32) DEFAULT NULL,
-  UNIQUE KEY `idx_ompprojuser_1` (`uniqid`),
+  PRIMARY KEY (`uniqid`),
   UNIQUE KEY `idx_ompprojuser_2` (`projectid`,`userid`,`capacity`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompsciprog` (
@@ -232,14 +234,16 @@ CREATE TABLE `ompshiftlog` (
   `author` varchar(32) NOT NULL,
   `telescope` varchar(32) NOT NULL,
   `text` longtext NOT NULL,
-  UNIQUE KEY `idx_ompshiftlog_1` (`shiftid`)
+  PRIMARY KEY (`shiftid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `omptimeacct` (
   `date` datetime NOT NULL,
   `projectid` varchar(32) NOT NULL,
   `timespent` int(11) NOT NULL,
   `confirmed` tinyint(4) NOT NULL,
-  UNIQUE KEY `idx_date_proj` (`date`,`projectid`)
+  `shifttype` varchar(70) NOT NULL DEFAULT '',
+  `comment` text DEFAULT NULL,
+  PRIMARY KEY (`date`,`projectid`,`shifttype`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `omptle` (
   `target` varchar(32) NOT NULL,
@@ -260,7 +264,7 @@ CREATE TABLE `ompuser` (
   `email` varchar(64) DEFAULT NULL,
   `alias` varchar(32) DEFAULT NULL,
   `cadcuser` varchar(20) DEFAULT NULL,
-  `obfuscated` tinyint(4) NOT NULL DEFAULT '0',
-  `no_fault_cc` tinyint(4) NOT NULL DEFAULT '0',
-  UNIQUE KEY `idx_ompuser_1` (`userid`)
+  `obfuscated` tinyint(4) NOT NULL DEFAULT 0,
+  `no_fault_cc` tinyint(4) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`userid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

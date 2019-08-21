@@ -481,7 +481,7 @@ CREATE TABLE `ukrev` (
   `other_desc` varchar(51) DEFAULT NULL,
   `other_user` varchar(1) DEFAULT NULL,
   `other_loss` double DEFAULT NULL,
-  `comments` longtext,
+  `comments` longtext DEFAULT NULL,
   `ut_date` datetime DEFAULT NULL,
   UNIQUE KEY `index_1` (`ut_dmf`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

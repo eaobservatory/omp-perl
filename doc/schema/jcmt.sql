@@ -49,7 +49,7 @@ CREATE TABLE `ACSIS` (
   `specid` tinyint(4) DEFAULT NULL,
   `asn_id` varchar(32) DEFAULT NULL,
   PRIMARY KEY (`obsid_subsysnr`),
-  KEY `idx_ACSIS_2` (`obsid`)
+  KEY `idx_ACSIS_3` (`obsid`,`subsysnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `COMMON` (
   `obsid` varchar(48) NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE `COMMON` (
   `instrume` varchar(8) DEFAULT NULL,
   `backend` varchar(8) DEFAULT NULL,
   `release_date` datetime DEFAULT NULL,
-  `last_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `last_modified` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `obsra` double DEFAULT NULL,
   `obsdec` double DEFAULT NULL,
   `obsratl` double DEFAULT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE `COMMON` (
   `msbtitle` varchar(70) DEFAULT NULL,
   `oper_loc` varchar(70) DEFAULT NULL,
   `oper_sft` varchar(70) DEFAULT NULL,
-  UNIQUE KEY `idx_uc_COMMON_1` (`obsid`),
+  PRIMARY KEY (`obsid`),
   KEY `idx_jcmt_COMMON_proj` (`project`),
   KEY `idx_jcmt_COMMON_inst` (`instrume`),
   KEY `caom_mod_idx` (`last_caom_mod`),
@@ -238,16 +238,16 @@ CREATE TABLE `RXH3` (
   `ovrsmple` int(11) DEFAULT NULL,
   `calpos_x` double DEFAULT NULL,
   `calpos_y` double DEFAULT NULL,
-  UNIQUE KEY `obsidss_idx` (`obsid_subsysnr`),
+  PRIMARY KEY (`obsid_subsysnr`),
   KEY `obsid_idx` (`obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SCUBA2` (
   `obsid_subsysnr` varchar(50) NOT NULL,
   `filter` varchar(10) NOT NULL,
-  `subarray_a` tinyint(1) DEFAULT '0',
-  `subarray_b` tinyint(1) DEFAULT '0',
-  `subarray_c` tinyint(1) DEFAULT '0',
-  `subarray_d` tinyint(1) DEFAULT '0',
+  `subarray_a` tinyint(1) DEFAULT 0,
+  `subarray_b` tinyint(1) DEFAULT 0,
+  `subarray_c` tinyint(1) DEFAULT 0,
+  `subarray_d` tinyint(1) DEFAULT 0,
   `arrayid_a` varchar(32) DEFAULT NULL,
   `arrayid_b` varchar(32) DEFAULT NULL,
   `arrayid_c` varchar(32) DEFAULT NULL,
@@ -272,7 +272,7 @@ CREATE TABLE `SCUBA2` (
   `flat_d` varchar(32) DEFAULT NULL,
   `obsid` varchar(48) NOT NULL DEFAULT '',
   `asn_id` varchar(6) DEFAULT NULL,
-  UNIQUE KEY `obsidss_idx` (`obsid_subsysnr`),
+  PRIMARY KEY (`obsid_subsysnr`),
   KEY `filter_idx` (`filter`),
   KEY `obsid_idx` (`obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -289,11 +289,11 @@ CREATE TABLE `keep_in_hilo_obs` (
 CREATE TABLE `transfer` (
   `file_id` varchar(70) NOT NULL,
   `status` char(1) DEFAULT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modified` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `modified` datetime DEFAULT NULL ON UPDATE current_timestamp(),
   `location` varchar(200) DEFAULT NULL,
-  `error` tinyint(1) DEFAULT '0',
+  `error` tinyint(1) DEFAULT 0,
   `comment` varchar(250) DEFAULT NULL,
-  `keep_jac` tinyint(1) DEFAULT '0',
+  `keep_jac` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`file_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
