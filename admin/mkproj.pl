@@ -224,6 +224,7 @@ my %ok_field;
       'coi',
       'coi_affiliation',
       'country',
+      'expiry',
       'pi',
       'pi_affiliation',
       'seeing',
@@ -433,6 +434,7 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     ($disable ? 0 : 1),
     $details{'pi_affiliation'},
     $details{'coi_affiliation'},
+    $details{'expiry'},
   );
 
   # Stop here in dry-run mode.

@@ -371,6 +371,7 @@ sub project_home {
   my $seerange = $project->seeingrange;
   my $skyrange = $project->skyrange;
   my $cloud = $project->cloudrange;
+  my $expirydate = $project->expirydate() // 'not specified';
 
   # Store coi and support html emails
   my $coi = join(", ",map{
@@ -411,6 +412,7 @@ sub project_home {
     <tr><td><b>Support:</b></td><td>$support</td>
     <tr><td><b>Country:</b></td><td>$country</td>
     <tr><td><b>Semester:</b></td><td>$semester</td>
+    <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
     <tr><td colspan=2><a href="$pub/props.pl?urlprojid=$cookie{projectid}">Click here to view the science case for this project</a></td>
     </table>
 _HEADER_

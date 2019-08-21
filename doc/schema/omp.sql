@@ -186,6 +186,7 @@ CREATE TABLE `ompproj` (
   `cloudmin` int(11) NOT NULL,
   `skymin` double NOT NULL,
   `skymax` double NOT NULL,
+  `expirydate` datetime DEFAULT NULL,
   PRIMARY KEY (`projectid`),
   KEY `idx_allocated` (`allocated`),
   KEY `idx_pending` (`pending`),

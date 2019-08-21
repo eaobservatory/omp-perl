@@ -973,6 +973,9 @@ sub _insert_project_row {
   my ($skymin, $skymax)     = OMP::SiteQuality::to_db( 'SKY',
                                                        $proj->skyrange );
 
+  my $expirydate = $proj->expirydate();
+  $expirydate = "$expirydate" if defined $expirydate;
+
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
                           $proj->projectid, $pi,
@@ -982,7 +985,7 @@ sub _insert_project_row {
                           $proj->remaining->seconds, $proj->pending->seconds,
                           $proj->telescope,$taumin,$taumax,$seemin,$seemax,
                           int($cloudmax), $proj->state, int($cloudmin),
-                          $skymin, $skymax,
+                          $skymin, $skymax, $expirydate,
                         );
 
   # Now insert the queue information
