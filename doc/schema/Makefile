@@ -8,9 +8,10 @@ export OMP_CFG_DIR=../../cfg
 SERVER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"server"}'`
 USER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"user"}'`
 PASSWORD=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"password"}'`
+PREFIX=`perl -I ../../lib -MOMP::Config -e 'print OMP::Config->new()->getData("arc-database-prefix")'`
 
 %.sql: filter.sed
-	mysqldump $(@:.sql=) -h $(SERVER) -d -u $(USER) --password=$(PASSWORD) --compact --single-transaction > $@.tmp
+	mysqldump $(PREFIX)$(@:.sql=) -h $(SERVER) -d -u $(USER) --password=$(PASSWORD) --compact --single-transaction > $@.tmp
 	sed -f filter.sed $@.tmp > $@
 	rm $@.tmp
 
