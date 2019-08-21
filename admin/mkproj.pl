@@ -197,10 +197,10 @@ my $status = GetOptions("help" => \$help,
                         'no-project-check' => sub {$do_project_check = 0;},
 
                         "country=s"   => \$defaults{'country'},
-                        "priority=i"  => \$defaults{'priority'},
+                        "priority=i"  => \$defaults{'tagpriority'},
                         "semester=s"  => \$defaults{'semester'},
                         "telescope=s" => \$defaults{'telescope'},
-                       );
+) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -243,6 +243,8 @@ my %ok_field;
 %defaults = ( %defaults, %{ $alloc{info} } )
   if $alloc{info};
 
+check_fields(\%defaults);
+
 # Get the support information
 my %support;
 %support = %{ $alloc{support} }
@@ -253,7 +255,12 @@ if (!keys %alloc) {
   for my $err (@Config::IniFiles::errors) {
     print "! $err\n";
   }
-  die "Did not find any projects in input file!"
+  collect_err("Did not find any projects in input file")
+}
+
+if (any_err()) {
+    print "Could not import projects due to ... \n", get_err();
+    exit 1;
 }
 
 my $pass;
@@ -631,7 +638,7 @@ sub check_fields {
 
   scalar @unknown or return 1;
 
-  collect_err( sprintf q[Unknown field(s) listed:\n  %s.], join ', ', @unknown );
+  collect_err( sprintf q[Unknown field(s) listed: %s.], join ', ', @unknown );
   return;
 }
 
