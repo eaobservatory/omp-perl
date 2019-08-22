@@ -475,16 +475,17 @@ sub get_observed_targets {
   print STDERR "done\n";
 
   # Now retrieve data from the table.
-  my $sth = $dbh->prepare(qq{
-    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec, obsnum
+  my $sql = qq{
+    SELECT distinct project, utdate, object as name, obsra as ra, obsdec as `dec`, obsnum
     FROM jcmt.COMMON WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
     AND telescop="$telescope"
     ORDER BY project, utdate
-    }
-    );
-  $sth->execute();
+    };
+  print 'Running query: ', $sql, "\n" if $debug;
+  my $sth = $dbh->prepare($sql);
+  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {
@@ -573,16 +574,17 @@ sub get_scheduled_targets {
   print STDERR "done\n";
 
   # Now retrieve data from the table.
-  my $sth = $dbh->prepare(qq{
-    SELECT distinct Q.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
+  my $sql = qq{
+    SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
     FROM $OMP::MSBDB::OBSTABLE AS Q JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
     WHERE
     Q.projectid LIKE "$projectpattern"
     AND timestamp BETWEEN $utstart AND $utstop
     ORDER BY project, name
-    }
-    );
-  $sth->execute();
+    };
+  print 'Running query: ', $sql, "\n" if $debug;
+  my $sth = $dbh->prepare($sql);
+  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {
