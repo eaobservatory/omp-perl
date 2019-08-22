@@ -161,6 +161,7 @@ sub translate {
     $prev_obs_type = $obs->{obs_type};
 
     # if there are any special patch ups call them here
+    $obs->{'ot_version'} = $otver;
     $self->fixup_historical_problems( $obs )
       if $self->can("fixup_historical_problems");
 
@@ -198,11 +199,15 @@ sub translate {
     # Instrument config
     $self->instrument_config( $cfg, %$obs );
 
+    $self->frontend_config( $cfg, %$obs );
+
+    $self->calc_receptor_or_subarray_mask( $cfg, %$obs );
+
     # configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs ) unless $ispriv;
 
     # call the special routines for this instrument
-    $self->frontend_backend_config( $cfg, %$obs );
+    $self->backend_config( $cfg, %$obs );
 
     # HEADER_CONFIG
     $self->header_config( $cfg, %$obs );
@@ -704,7 +709,7 @@ sub tracking_offset {
 
   # Get the tcs_config
   my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('TCS configuration is not available')
     unless defined $tcs;
 
   # Get the name of the aperture name
@@ -713,7 +718,7 @@ sub tracking_offset {
 
   # Get the instrument config
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
 
   # Convert this to an offset
@@ -1179,7 +1184,7 @@ sub slew_config {
 
   # get the tcs
   my $tcs = $cfg->tcs();
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
   # Get the duration
   my $dur = $cfg->duration();
@@ -1801,12 +1806,12 @@ sub get_jiggle {
     $tcs = $cfg;
   } else {
     $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
   }
 
   # ... and secondary
   my $secondary = $tcs->getSecondary();
-  throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+  throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
   # Get the full jigle parameters from the secondary object
   my $jig = $secondary->jiggle;
@@ -1872,6 +1877,11 @@ and stare observartions with HARP where there is no central pixel.
 
 If the "arrayCentred" switch is true, undef will be returned regardless of mode.
 
+Receptors are listed in the C<jcmt_translator.tracking_receptors_or_subarrays>
+configuration parameter.  This is a comma-separated list.  In addition, each
+entry can be followed by a number of @-separated filter parameters, taking the
+form of a keyword:value pair.
+
 =cut
 
 sub tracking_receptor_or_subarray {
@@ -1882,16 +1892,24 @@ sub tracking_receptor_or_subarray {
   # first check to see if offset is needed
   return if !$self->need_offset_tracking( $cfg, %info );
 
+  # Determine filtering parameters.
+  my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
   # Get the config file options
   my @configs = OMP::Config->getData( "jcmt_translator.tracking_receptors_or_subarrays" );
 
   # Get the actual receptors in use for this observation
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
 
   # Go through the preferred receptors looking for a match
-  for my $test (@configs) {
+  RECEPTOR: foreach my $test_spec (@configs) {
+    my ($test, @filters) = split '@', $test_spec;
+    foreach my $filter (@filters) {
+      my ($filt_key, $filt_val) = split ':', $filter;
+      next RECEPTOR unless $filt_val eq $filter{$filt_key};
+    }
     my $match = $inst->contains_id( $test );
     return $match if $match;
   }
@@ -1928,7 +1946,9 @@ configuration. If a tracking receptor or subarray is required the mask
 indicates that this item is NEEDed.  If disableNonTracking is set,
 only the tracking receptor or subarray will be enabled.
 
-  %mask = $trans->calc_receptor_or_subarray_mask($cfg, %info );
+  $trans->calc_receptor_or_subarray_mask($cfg, %info );
+
+The mask is stored in the frontend or SCUBA-2 configuration.
 
 =cut
 
@@ -1939,7 +1959,7 @@ sub calc_receptor_or_subarray_mask {
 
   # Need instrument information
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   # Mask selection depends on observing mode but for now we can just
   # make sure that all available pixels are enabled
@@ -1972,7 +1992,12 @@ sub calc_receptor_or_subarray_mask {
     }
   }
 
-  return %mask;
+  # Find frontend configuration in which to store the mask.
+  my $frontend = $cfg->frontend() // $cfg->scuba2();
+  throw OMP::Error::FatalError('no frontend or similar setup component is available')
+      unless defined $frontend;
+
+  $frontend->mask(%mask);
 }
 
 =item B<_read_file>

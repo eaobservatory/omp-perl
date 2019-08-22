@@ -25,6 +25,7 @@ use warnings;
 use Carp;
 
 # OMP dependencies
+use OMP::DateTools;
 use OMP::ProjDB;
 use OMP::ProjAffiliationDB;
 use OMP::SiteQuality;
@@ -336,6 +337,7 @@ Add details of a project to the database.
                               $seemin, $seemax, $cloudmin, $cloudmax,
                               $skymin, $skymax,
                               $state, $pi_affiliation, $coi_affiliation,
+                              $expirydate
                              );
 
 The first password is used to verify that you are allowed to modify
@@ -455,6 +457,13 @@ sub addProject {
         $pi->affiliation($project[21]);
     }
 
+    my $expirydate = undef;
+    if (defined $project[23]) {
+        $expirydate = OMP::DateTools->parse_date($project[23]);
+        throw OMP::Error::FatalError("Expiry date not understood")
+            unless defined $expirydate;
+    }
+
     throw OMP::Error::FatalError( "Semester is mandatory." )
       if !defined $project[8];
 
@@ -477,6 +486,7 @@ sub addProject {
                                 cloudrange => $cloudrange,
                                 skyrange => $skyrange,
                                 state => $project[20],
+                                expirydate => $expirydate,
                                );
 
     my $db = new OMP::ProjDB(

@@ -102,6 +102,7 @@ sub new {
                     Support => [],
                     State => 1,
                     Contactable => {},
+                    ExpiryDate => undef,
                    }, $class;
 
   # Deal with arguments
@@ -1253,6 +1254,21 @@ sub isTOO {
     return 1 if $p <= 0;
   }
   return 0;
+}
+
+=item B<expirydate>
+
+The expiry date of the project.
+
+=cut
+
+sub expirydate {
+  my $self = shift;
+  if (@_) {
+    my $expiry = shift;
+    $self->{'ExpiryDate'} = $expiry;
+  }
+  return $self->{'ExpiryDate'};
 }
 
 =back

@@ -13,7 +13,7 @@ ompchecktarget - checks observed targets against targets proposed for the
  ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000" -targetdir DIR
  ompchecktarget -proj m08bu01 -cat -targetdir DIR > m08bu01.cat
  ompchecktarget -man | -help | -version
- ompchecktarget -semester 12B -utdate 20120824 -utstop 1 -targetdir DIR
+ ompchecktarget -scheduled -utdate 20120824 -utstop 1 -targetdir DIR
 
 =head1 DESCRIPTION
 
@@ -48,7 +48,7 @@ project and print them in a JAC-style catalog
 format (see -cat) for use with e.g. sourceplot.
 
 4. Check scheduled targets against those exported from Hedwig:
-This mode is selected if the -semester option is specified.  It works
+This mode is selected if the -scheduled option is specified.  It works
 the same as mode (1) but looks at scheduled observations from the
 OMP database instead of looking at the archive database.
 
@@ -132,14 +132,13 @@ Show manual page.
 
 Switch on debug output
 
-=item B<-semester>
+=item B<-scheduled>
 
-Switches to "scheduled observation checking" mode.  The specified
-"semester" is used to build a project-ID filter (after prepending
-a 'M' prefix.  (It can therefore be extended to include a country
-queue, e.g. 12BU, or even a project ID.)  Selects observations
+Switches to "scheduled observation checking" mode.  Selects observations
 where the corresponding timestamp in the science programme table
 is within the given UT range.
+
+Projects for certain queues are excluded (EC, JAC, EAO).
 
 =item B<-targetdir>
 
@@ -218,7 +217,7 @@ my $targetdir = undef;
 # Command-line parameters
 #
 my ($help, $man, $version, $dbg);
-my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $semester);
+my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $scheduled);
 
 my $status = GetOptions("ut=s"       => \$utd,
                         "utstop=s"   => \$uts,
@@ -232,9 +231,9 @@ my $status = GetOptions("ut=s"       => \$utd,
                         "man"        => \$man,
                         "version"    => \$version,
                         "debug"      => \$dbg,
-                        "semester=s" => \$semester,
+                        "scheduled"  => \$scheduled,
                         'targetdir=s' => \$targetdir,
-                       );
+) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -251,9 +250,9 @@ my $debug = 0;
 $debug = 1 if (defined $dbg);
 
 # Choose "mode" name -- only used to cusomtize the output.
-# Actual mode should be determined by seeing if $semester
+# Actual mode should be determined by seeing if $scheduled
 # is defined rather than reading this string!
-my $mode = defined $semester ? 'scheduled' : 'observed';
+my $mode = defined $scheduled ? 'scheduled' : 'observed';
 
 
 # Telescope (currently hard-wired to JCMT)
@@ -357,13 +356,13 @@ print "\n";
 # Get observed targets
 unless ($coords) {
 
-  unless ($semester) {
+  unless ($scheduled) {
     # from COMMON table in JCMT DB sorted by project.
     $observed = &get_observed_targets( $utstart, $utstop,
                                         "$projects", $telescope );
   }
   else {
-    $observed = get_scheduled_targets($utstart, $utstop, $semester);
+    $observed = get_scheduled_targets($utstart, $utstop);
   }
 } else {
   # or for user-specified coordinates
@@ -475,16 +474,17 @@ sub get_observed_targets {
   print STDERR "done\n";
 
   # Now retrieve data from the table.
-  my $sth = $dbh->prepare(qq{
-    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec, obsnum
+  my $sql = qq{
+    SELECT distinct project, utdate, object as name, obsra as ra, obsdec as `dec`, obsnum
     FROM jcmt.COMMON WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
     AND telescop="$telescope"
     ORDER BY project, utdate
-    }
-    );
-  $sth->execute();
+    };
+  print 'Running query: ', $sql, "\n" if $debug;
+  my $sth = $dbh->prepare($sql);
+  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {
@@ -541,13 +541,10 @@ sub get_scheduled_targets {
 
 # Get the scheduled targets from the ompobs table in OMP database.
 #
-# Use: $scheduled = get_scheduled_targets ( $utstart, $utstop, $semester )
+# Use: $scheduled = get_scheduled_targets ( $utstart, $utstop )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
-#    $semester: semester to search (matches as project ID prefix
-#               following initial M, so it can specify a country,
-#               or project)
 #
 # Returned:
 #    Reference to array of hashes with observed targets, keys:
@@ -557,9 +554,7 @@ sub get_scheduled_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $semester) = @_;
-
-  my $projectpattern = 'M' . $semester . '%';
+  my ($utstart, $utstop) = @_;
 
   # This strptime function appears to assume UT, so we can
   # use the specified dates directly to get the timestamps.
@@ -573,16 +568,21 @@ sub get_scheduled_targets {
   print STDERR "done\n";
 
   # Now retrieve data from the table.
-  my $sth = $dbh->prepare(qq{
-    SELECT distinct Q.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
-    FROM $OMP::MSBDB::OBSTABLE AS Q JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
+  my $sql = qq{
+    SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
+    FROM $OMP::MSBDB::OBSTABLE AS Q
+        JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
+        JOIN $OMP::ProjDB::PROJTABLE AS P ON Q.projectid = P.projectid
     WHERE
-    Q.projectid LIKE "$projectpattern"
+    P.telescope = "JCMT"
     AND timestamp BETWEEN $utstart AND $utstop
+    AND Q.projectid NOT IN (
+        SELECT projectid FROM $OMP::ProjDB::PROJQUEUETABLE WHERE country IN ("EC", "JAC", "EAO"))
     ORDER BY project, name
-    }
-    );
-  $sth->execute();
+    };
+  print 'Running query: ', $sql, "\n" if $debug;
+  my $sth = $dbh->prepare($sql);
+  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {

@@ -425,6 +425,20 @@ sub standard_is_autoTarget {
   return ($info{standard} ? 1 : 0);
 }
 
+=item B<get_tracking_receptor_filter_params>
+
+Get tracking subarray filtering parameters.
+
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
+=cut
+
+sub get_tracking_receptor_filter_params {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+  return ();
+}
 
 =item B<handle_special_modes>
 
@@ -700,25 +714,34 @@ These routine configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
-=item B<frontend_backend_config>
+=item B<frontend_config>
 
 Configure the SCUBA-2 specific instrument XML.
 
-  $trans->frontend_backend_config( $cfg, %$obs );
+  $trans->frontend_config( $cfg, %$obs );
 
 =cut
 
-sub frontend_backend_config {
+sub frontend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
 
   my $sc = JAC::OCS::Config::SCUBA2->new();
 
-  # start with just a mask
-  my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
-  $sc->mask(%mask);
   $cfg->scuba2( $sc );
+}
+
+=item B<backend_config>
+
+This method does nothing for SCUBA-2.
+
+=cut
+
+sub backend_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
 }
 
 =item B<jos_config>
@@ -907,7 +930,7 @@ sub jos_config {
     }
 
     my $fts2 = $cfg->fts2();
-    throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
+    throw OMP::Error::FatalError('FTS-2 setup is not available') unless defined $fts2;
     my $scan_length = $fts2->scan_length();
     throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan length is not specified") unless defined $scan_length;
 
@@ -950,9 +973,9 @@ sub jos_config {
     # This time should be spread over the number of microsteps
     # for which we need an obsArea.
     my $tcs = $cfg->tcs();
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    throw OMP::Error::FatalError('TCS obsArea is not available') unless defined $obsArea;
     my @ms = $obsArea->microsteps();
     my $nms = (@ms ? @ms : 1);
     $sample_time /= $nms;
@@ -1010,9 +1033,9 @@ sub jos_config {
     # Need an obsArea for number of microsteps
     my $nms = 1;
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    throw OMP::Error::FatalError('TCS obsArea is not available') unless defined $obsArea;
 
     # This time should be spread over the number of microsteps
     my @ms = $obsArea->microsteps;
@@ -1052,10 +1075,10 @@ sub jos_config {
     # Since the TCS works in integer times-round-the-map
     # Need to know the map area
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS obsArea is not available')
       unless defined $obsArea;
 
     # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.

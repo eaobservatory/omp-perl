@@ -141,10 +141,7 @@ my $telescope;
 if(defined($tel)) {
   $telescope = uc($tel);
 } else {
-  my $w = $MW->Toplevel;
-  $w->withdraw;
-  $telescope = OMP::General->determine_tel( $w );
-  $w->destroy;
+  $telescope = OMP::General->determine_tel( $MW );
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
@@ -164,12 +161,11 @@ if ($ashtml) {
     exit 0;
 }
 
-my $TL = $MW->Toplevel;
-
 # Ensure there are scrollbars on the top level, and the initial size
 # is sane.
-my $SF = $TL->Scrolled('Frame', -scrollbars=>'e', -height=>800, -width=>700)->pack(-side=>'top',
-                                                                                   -expand=>1, -fill=>'both');
+$MW->geometry('700x800');
+my $SF = $MW->Scrolled('Frame', -scrollbars=>'e')->pack(-side=>'top',
+                                                        -expand=>1, -fill=>'both');
 
 # Now put up a button bar.
 my $TopButtons = $SF->Frame()->pack(-side => 'top');
@@ -179,6 +175,9 @@ top_button_bar( $TopButtons );
 my $Shifts = $SF->Frame();
 shift_windows( $Shifts, $NR );
 $Shifts->pack(-side =>'top');
+
+$MW->deiconify();
+$MW->raise();
 
 # And time for the event loop
 MainLoop();

@@ -1292,8 +1292,6 @@ Though the basic idea can be generalized, better solution (even in
 this case) would be to use L<Math::Units>, L<Physical::Units>, or
 similar.
 
-=back
-
 =cut
 
 BEGIN {
@@ -1328,7 +1326,6 @@ BEGIN {
   }
 }
 
-
 =item B<rot13>
 
 Given a list of strings, returns list of ROT-13 obfuscated strings.
@@ -1350,6 +1347,7 @@ sub rot13 {
   return @in;
 }
 
+=back
 
 =head1 AUTHORS
 

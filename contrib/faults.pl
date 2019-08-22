@@ -5,7 +5,8 @@
 #              - All faults between given dates
 #              - All faults open from week before
 #              - All faults closed during the week
-#
+#              - (if -events given:): all events filed between dates.
+
 
 use strict;
 use FindBin;
@@ -28,12 +29,13 @@ use OMP::FaultDB;
 
 my $dbs =  new OMP::DBbackend;
 
-my ($help, $man, $tel, $ut, $days);
+my ($help, $man, $tel, $ut, $days, $events);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "ut=s" => \$ut,
                         "tel=s" => \$tel,
-                        "days=s" => \$days
+                        "days=s" => \$days,
+                        "events"=> \$events,
                        );
 
 # Some help
@@ -59,8 +61,12 @@ if(defined($tel)) {
   $telescope = "JCMT" if ($tel =~ /^J/i);
   $telescope = "UKIRT" if ($tel =~ /^U/i);
 }
-die "*Error*: telescope must be J(CMT) or U(KIRT). Exiting.\n"
-   if ($telescope ne "JCMT" and $telescope ne "UKIRT");
+
+if (defined($events)) {
+    $telescope="JCMT_EVENTS";
+}
+die "*Error*: telescope must be J(CMT) or U(KIRT), or events must be selected. Exiting.\n"
+   if ($telescope ne "JCMT" and $telescope ne "UKIRT" and $telescope ne "JCMT_EVENTS");
 
 my $delta = 7;
 $delta = $days if ( defined($days) );
@@ -81,11 +87,15 @@ my @statusname = (
              die qq{Error connecting to DB: $DBI::errstr};
            };
 
+my $faultname = "faults";
+if ($telescope eq "JCMT_EVENTS") {
+    $faultname = "events";
+}
 print
 qq{___________________________________________________________________________
 
 
-...New faults this week:
+...New $faultname this week:
 
 };
 
@@ -162,18 +172,24 @@ foreach my $row (@$current_ref) {
 
 }
 
-# Now print everything in from largest time lost
+# Now print everything in from largest time lost;
 foreach my $subj
   (sort {$faults{"$b"}{totallost} cmp $faults{"$a"}{totallost} }
    keys %faults) {
 
   printf "%s", $faults{$subj}{listing};
-  printf " %-21.21s %4.4s hrs lost %25.25s %s\n\n",
-    $faults{$subj}{author}, $faults{$subj}{totallost}, ' ',
-      $faults{$subj}{status};
+  if ($telescope ne "JCMT_EVENTS") {
+    printf " %-21.21s %4.4s hrs lost %25.25s %s\n\n",
+      $faults{$subj}{author}, $faults{$subj}{totallost}, ' ',
+        $faults{$subj}{status};
+  } else {
+    printf " %-21.21s\n\n", $faults{$subj}{author};
+  }
 }
 
-print qq{
+
+if ($telescope ne "JCMT_EVENTS"){
+  print qq{
 
 =========================================================================
                               OBSERVATORY STATUS
@@ -183,7 +199,7 @@ print qq{
 
 };
 
-my $previous_ref = $db->selectall_arrayref(
+  my $previous_ref = $db->selectall_arrayref(
       qq{select
               F.faultid,
               date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
@@ -199,7 +215,7 @@ my $previous_ref = $db->selectall_arrayref(
          and status in (0, 6) order by (-1*timelost)})
    || die qq{Error retrieving from DB: $DBI::errstr};
 
-foreach my $row (@$previous_ref) {
+  foreach my $row (@$previous_ref) {
     my ($faultid, $time, $subject, $author, $timelost, $status) = @$row;
 
     $subject =~ s/^\s+//;
@@ -207,16 +223,16 @@ foreach my $row (@$previous_ref) {
     $subject =~ s/\s+$//g;
 
     printf "%12.12s %8.8s  %-s\n %-21.21s %4.4s hrs lost %25.25s %s\n\n",
-       $faultid, $time, $subject,
-       $author, $timelost, ' ', $statusname[$status];
-}
+      $faultid, $time, $subject,
+        $author, $timelost, ' ', $statusname[$status];
+  }
 
-print qq{
+  print qq{
 ...Selected older faults, Fixed/Closed this week:
 
 };
 
-my $previous_ref = $db->selectall_arrayref(
+  my $previous_ref = $db->selectall_arrayref(
       qq{select
               distinct F.faultid,
               substring(subject,1,80),
@@ -232,7 +248,7 @@ my $previous_ref = $db->selectall_arrayref(
    || die qq{Error retrieving from DB: $DBI::errstr};
 
 
-foreach my $row (@$previous_ref) {
+  foreach my $row (@$previous_ref) {
     my ($faultid, $subject, $timelost, $status) = @$row;
 
     $subject =~ s/^\s+//;
@@ -241,8 +257,10 @@ foreach my $row (@$previous_ref) {
 
     printf "%12.12s %8.8s  %-s\n\n",
        $faultid, ' ', $subject;
+  }
+} else {
+  print "\n\n";
 }
-
 
 
 # DISCONNECT FROM DB SERVER
@@ -254,5 +272,6 @@ sub help () {
     print "Use: faults.pl [-tel JCMT|UKIRT] [-days #] yyyymmdd\n";
     print "     faults.pl [-tel JCMT|UKIRT] [-days #] -ut yyyymmdd\n\n";
     print "Defaults are JCMT and periods of 7 days\n\n";
+    print " To get JCMT events, do faults.pl -events [-days #] yyyymmdd\n";
 
 }

@@ -205,7 +205,7 @@ sub getRefRecep {
   my $cfg = shift;
 
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
   return scalar $inst->reference_receptor;
 }

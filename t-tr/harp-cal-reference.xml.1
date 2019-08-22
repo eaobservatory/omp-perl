@@ -512,6 +512,12 @@
                  VALUE="FILL ME" >
             <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter.ms_root" ALT="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter[1].ms_root" />
          </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SPECID"
+                 COMMENT="Spectrum to which this subsystem belongs"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSpectrumID" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -537,10 +543,16 @@
          <HEADER TYPE="INT"
                  KEYWORD="N_MIX"
                  COMMENT="No. of mixers"
-                 VALUE="14" />
+                 VALUE="13" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
-                 COMMENT="The observed sideband"
+                 COMMENT="The observed sideband (this subsystem)"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillObsSb" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TRACK_SB"
+                 COMMENT="The tracking sideband (primary subsystem)"
                  VALUE="" >
             <SELF PARAM="OCS_CONFIG.FRONTEND_CONFIG.SIDEBAND" />
          </HEADER>
@@ -1178,6 +1190,16 @@
                  VALUE="" >
             <DRAMA TASK="THI" PARAM="TMU.Y" EVENT="END" />
          </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OPER_LOC"
+                 COMMENT="Location from which telescope is operated"
+                 VALUE="" >
+            <DRAMA TASK="HNDSHK_JCMT" PARAM="LOCAL_REMOTE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OPER_SFT"
+                 COMMENT="Type of shift in which telescope is operated"
+                 VALUE="" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1236,7 +1258,7 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ANY"/>
          <RECEPTOR_MASK RECEPTOR_ID="H01" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H02" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H03" VALUE="ON"/>
@@ -1262,7 +1284,7 @@
          
          <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
-         <smu_offset X="+0.0" Y="-0.3" Z="0.28" />
+         <smu_offset X="+0.0" Y="1.35" Z="1.38" />
          <!-- pointing_offset removed -->
          <array_area radius="60"/>
          <waveBand band="B" label="B" units="Hz" centre="350E9" width="52.0E9" >
@@ -1270,7 +1292,7 @@
          </waveBand>
          <receptor id="H00"
                    band="B"
-                   health="ON"
+                   health="OFF"
                    x="-45"
                    y="+45"
                    pol_type="Linear" >
@@ -1518,7 +1540,7 @@
             <doppler_field ref="FE.DOPPLER"/>
             <spw_id_field ref="SPEC_WINDOW_ID"/>
             <fe_lo_field ref="FE.LO_FREQUENCY"/>
-            <spectral_window id="SPW1">
+            <spectral_window id="SPW1" spectrum_id="1">
                <bandwidth_mode mode="1GHzx2048" />
                <window type="truncate" />
                <align_shift>0</align_shift>
@@ -1629,10 +1651,10 @@
             <map_id cm_id="4" dcm_id="4" receptor_id="H07" spw_id="SPW1"/>
             <map_id cm_id="6" dcm_id="6" receptor_id="H06" spw_id="SPW1"/>
             <map_id cm_id="8" dcm_id="8" receptor_id="H05" spw_id="SPW1"/>
-            <map_id cm_id="10" dcm_id="10" receptor_id="H02" spw_id="SPW1"/>
+            <map_id cm_id="10" dcm_id="10" receptor_id="H09" spw_id="SPW1"/>
             <map_id cm_id="12" dcm_id="12" receptor_id="H04" spw_id="SPW1"/>
             <map_id cm_id="14" dcm_id="14" receptor_id="H03" spw_id="SPW1"/>
-            <map_id cm_id="16" dcm_id="16" receptor_id="H09" spw_id="SPW1"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="H02" spw_id="SPW1"/>
             <map_id cm_id="18" dcm_id="18" receptor_id="H14" spw_id="SPW1"/>
             <map_id cm_id="20" dcm_id="20" receptor_id="H08" spw_id="SPW1"/>
             <map_id cm_id="22" dcm_id="22" receptor_id="H12" spw_id="SPW1"/>
@@ -2461,11 +2483,7 @@
          <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="awa"/>
          <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
 
-
-         #NOTE: DA micros are specific to an array. If you try to reassign processes
-         #      you need to contact Craig Walther and/or Dan Bintley.  This may be
-         #      something that can be done by the TSS in the future. But for now
-         #      it would screw things up rather horribly
+         
 
          <da_machine virtual_machine="sc2da8a" real_machine="sc2da8a"/>
          <da_machine virtual_machine="sc2da8b" real_machine="sc2da8b"/>
@@ -2669,170 +2687,6 @@
       </acsis_process>
 
    </process_layout>
-   <process_links>
-      
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync1" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync1" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync1" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync1" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
-      <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
-      <glish_link from_ref="sync1" from_event="data_4_reducer1" to_ref="reducer1" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync2" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync2" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync2" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync2" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync2" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync2" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync2" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor2" from_event="corr_data" to_ref="sync2" to_event="corr_data"/>
-      <glish_link from_ref="reducer2" from_event="reducer_target.attach" to_ref="sync2" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer2" from_event="reducer_target.detach" to_ref="sync2" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer2" from_event="reducer_target.available" to_ref="sync2" to_event="sync_source.available"/>
-      <glish_link from_ref="sync2" from_event="data_4_reducer2" to_ref="reducer2" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync3" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync3" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync3" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync3" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync3" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync3" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync3" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor3" from_event="corr_data" to_ref="sync3" to_event="corr_data"/>
-      <glish_link from_ref="reducer3" from_event="reducer_target.attach" to_ref="sync3" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer3" from_event="reducer_target.detach" to_ref="sync3" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer3" from_event="reducer_target.available" to_ref="sync3" to_event="sync_source.available"/>
-      <glish_link from_ref="sync3" from_event="data_4_reducer3" to_ref="reducer3" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync4" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync4" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync4" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync4" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync4" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync4" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync4" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor4" from_event="corr_data" to_ref="sync4" to_event="corr_data"/>
-      <glish_link from_ref="reducer4" from_event="reducer_target.attach" to_ref="sync4" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer4" from_event="reducer_target.detach" to_ref="sync4" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer4" from_event="reducer_target.available" to_ref="sync4" to_event="sync_source.available"/>
-      <glish_link from_ref="sync4" from_event="data_4_reducer4" to_ref="reducer4" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync5" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync5" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync5" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync5" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync5" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync5" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync5" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync5" to_event="corr_data"/>
-      <glish_link from_ref="reducer5" from_event="reducer_target.attach" to_ref="sync5" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer5" from_event="reducer_target.detach" to_ref="sync5" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer5" from_event="reducer_target.available" to_ref="sync5" to_event="sync_source.available"/>
-      <glish_link from_ref="sync5" from_event="data_4_reducer5" to_ref="reducer5" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync6" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync6" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync6" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync6" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync6" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync6" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync6" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor6" from_event="corr_data" to_ref="sync6" to_event="corr_data"/>
-      <glish_link from_ref="reducer6" from_event="reducer_target.attach" to_ref="sync6" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer6" from_event="reducer_target.detach" to_ref="sync6" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer6" from_event="reducer_target.available" to_ref="sync6" to_event="sync_source.available"/>
-      <glish_link from_ref="sync6" from_event="data_4_reducer6" to_ref="reducer6" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync7" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync7" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync7" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync7" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync7" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync7" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync7" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor7" from_event="corr_data" to_ref="sync7" to_event="corr_data"/>
-      <glish_link from_ref="reducer7" from_event="reducer_target.attach" to_ref="sync7" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer7" from_event="reducer_target.detach" to_ref="sync7" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer7" from_event="reducer_target.available" to_ref="sync7" to_event="sync_source.available"/>
-      <glish_link from_ref="sync7" from_event="data_4_reducer7" to_ref="reducer7" to_event="reducer_target.data"/>
-      <glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync8" to_event="smu_data"/>
-      <glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync8" to_event="fe_data"/>
-      <glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync8" to_event="tcs_data"/>
-      <glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync8" to_event="weather_data"/>
-      <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync8" to_event="rts_data"/>
-      <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync8" to_event="if_data"/>
-      <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync8" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor8" from_event="corr_data" to_ref="sync8" to_event="corr_data"/>
-      <glish_link from_ref="reducer8" from_event="reducer_target.attach" to_ref="sync8" to_event="sync_source.attach"/>
-      <glish_link from_ref="reducer8" from_event="reducer_target.detach" to_ref="sync8" to_event="sync_source.detach"/>
-      <glish_link from_ref="reducer8" from_event="reducer_target.available" to_ref="sync8" to_event="sync_source.available"/>
-      <glish_link from_ref="sync8" from_event="data_4_reducer8" to_ref="reducer8" to_event="reducer_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer1" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer1" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer2" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer2" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer2" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer2" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer2" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer2" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer2" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer2" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer3" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer3" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer3" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer3" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer3" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer3" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer3" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer3" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer4" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer4" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer4" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer4" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer4" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer4" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer4" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer4" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer5" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer5" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer5" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer5" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer5" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer5" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer5" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer5" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer6" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer6" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer6" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer6" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer6" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer6" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer6" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer6" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer7" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer7" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer7" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer7" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer7" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer7" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer7" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer7" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer8" to_event="reducer_source.attach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer8" to_event="reducer_source.detach"/>
-      <glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer8" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer8" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer8" to_event="reducer_source.attach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer8" to_event="reducer_source.detach"/>
-      <glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer8" to_event="reducer_source.available"/>
-      <glish_link from_ref="reducer8" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
-   </process_links>
-
    <interface_list>
 
       

@@ -855,6 +855,16 @@
                  VALUE="" >
             <DRAMA TASK="THI" PARAM="TMU.Y" EVENT="END" />
          </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OPER_LOC"
+                 COMMENT="Location from which telescope is operated"
+                 VALUE="" >
+            <DRAMA TASK="HNDSHK_JCMT" PARAM="LOCAL_REMOTE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OPER_SFT"
+                 COMMENT="Type of shift in which telescope is operated"
+                 VALUE="" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -962,8 +972,8 @@
       </HEADER_CONFIG>
       <RTS_CONFIG>
          
-         <stTimeout value="10000" />
-         <sampTimeout value="30.0" />
+         <stTimeout value="15000" />
+         <sampTimeout value="45.0" />
          <opMode value="1" />
          <Sequence size="0" />
       </RTS_CONFIG>
@@ -985,7 +995,7 @@
                   Y="0.0"
                   WAVELENGTH="863" >
          
-         <smu_offset X="0.0" Y="0.0" Z="0.0" />
+         <smu_offset X="-0.05" Y="1.60" Z="1.60" />
          <!-- pointing_offset removed -->
          <array_area radius="240"/>
          <waveBand band="B450" label="450" units="m" centre="0.00045" width="7e-5" >

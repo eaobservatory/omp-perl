@@ -47,7 +47,12 @@ use Getopt::Long qw/:config gnu_compat no_ignore_case require_order/;
 use Pod::Usage;
 use Mail::Audit;
 use Encode qw/decode/;
+# Add extra encoding support (e.g. for GB18030).  This is supposed to be
+# loaded automatically, but doesn't seem to be -- perhaps because this
+# module is installed in "site_perl".
+use Encode::HanExtra;
 
+use OMP::Display;
 use OMP::Fault::Response;
 use OMP::FaultServer;
 use OMP::FBServer;
@@ -268,7 +273,7 @@ sub accept_fault {
     my @order = qw/author text/;
     my %data = (
         author => $author,
-        text => $text,
+        text => OMP::Display->preify_text($text),
     );
 
     unless ($DRY_RUN) {

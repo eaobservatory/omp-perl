@@ -29,6 +29,7 @@ use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil floor /;
 use Math::Trig qw/ rad2deg /;
+use Storable;
 
 use JCMT::ACSIS::HWMap;
 use JAC::OCS::Config;
@@ -78,8 +79,8 @@ my %ACSIS_Layouts = (
                      RXWD => 's2r2g1',
 
                      ALAIHI => 's2r2g1',
-                     UU => 's2r2g1',
-                     AWEOWEO => 's2r2g1',
+                     UU => 's4r4g1',
+                     AWEOWEO => 's4r4g1',
 
                      HARP => 's8r8g1',
                     );
@@ -215,6 +216,27 @@ sub is_private_sequence {
   return 0;
 }
 
+=item B<get_tracking_receptor_filter_params>
+
+Get tracking subarray filtering parameters.
+
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+
+=cut
+
+sub get_tracking_receptor_filter_params {
+    my $self = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    my $frontend = $cfg->frontend();
+    throw OMP::Error::FatalError('frontend setup is not available')
+        unless defined $frontend;
+
+    return (
+      sideband => $frontend->sideband(),
+    );
+}
 
 =item B<fixup_historical_problems>
 
@@ -224,11 +246,21 @@ to ACSIS equivalents.
 
   $cfg->fixup_historical_problems( \%obs );
 
+Also set mode to 2SB for dual-sideband receivers in case of using XML
+from pre-2SB OT.
+
 =cut
 
 sub fixup_historical_problems {
   my $self = shift;
   my $info = shift;
+
+  if ($info->{'ot_version'} lt '20190731') {
+      my %twosbrx = map {$_ => 1} qw/UU AWEOWEO/;
+
+      $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
+          if exists $twosbrx{uc($info->{'instrument'})};
+  }
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
 
@@ -578,6 +610,68 @@ sub handle_special_modes {
   return;
 }
 
+=item B<_determine_best_sideband>
+
+Read the sideband wiring file to determine which sideband should be used
+when "best" is requested.
+
+Returns undef if the sideband file can not be found, or if no frequencies
+lower than the given value are found.
+
+=cut
+
+sub _determine_best_sideband {
+    my $instrument = lc(shift);
+    my $sky_freq_ghz = shift;
+    my $wiredir = shift;
+
+    # File name is derived from instrument name in wireDir
+    # The instrument config is fixed for a specific instrument
+    # and is therefore a "wiring file"
+    throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
+        unless defined $instrument;
+
+    # wiring file name
+    my $file = File::Spec->catfile(
+        $wiredir , 'frontend', "sideband_$instrument.txt");
+
+    return undef unless -e $file;
+
+    # can make a guess but make it non-fatal to be missing
+    # The file is a simple format of
+    #    SkyFreq    Sideband
+    # where SkyFreq is the frequency threshold above which that
+    # sideband should be used. We read each line until we get a skyfreq
+    # that is higher than our required value and then use the value from the previous
+    # line
+    open my $fh, '<', $file or
+        throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
+
+    # read the lines, skipping comments and if the current frequency is lower than
+    # that of the line store the sideband and continue
+    my $sb = undef;
+    while (defined (my $line = <$fh>) ) {
+        chomp($line);
+        $line =~ s/\#.*//;      # remove comments
+        $line =~ s/^\s*//;      # remove leading space
+        $line =~ s/\s*$//;      # remove trailing space
+        next if $line !~ /\S/;  # give up if we only have whitespace
+        my ($freq, $refsb) = split(/\s+/, $line);
+        if ($freq < $sky_freq_ghz) {
+            $sb = uc $refsb;
+        }
+        else {
+            # freq is larger so drop out of loop
+            last;
+        }
+    }
+
+    close($fh) or
+        throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
+
+    return $sb;
+}
+
 =back
 
 =head1 CONFIG GENERATORS
@@ -586,61 +680,51 @@ These routines configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
-=item B<frontend_backend_config>
-
-Wrapper routine that will configure both the frontend and backend for this
-observation. Calls C<fe_config> and <acsis_config>.
-
-  $trans->frontend_backend_config($cfg, %$obs );
-
-=cut
-
-sub frontend_backend_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-  $self->fe_config( $cfg, %info );
-  $self->acsis_config( $cfg, %info );
-}
-
-=item B<fe_config>
+=item B<frontend_config>
 
 Create the frontend configuration.
 
- $trans->fe_config( $cfg, %info );
+ $trans->frontend_config( $cfg, %info );
+
+Also adds additional information to the configured subsystems:
+
+=over 4
+
+=item * sideband
+
+=back
 
 =cut
 
-sub fe_config {
+sub frontend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
 
   # Need instrument information
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   # Create frontend object for this configuration
   my $fe = new JAC::OCS::Config::Frontend();
 
   # Get the basic frontend setup from the freqconfig key
   my %fc = %{ $info{freqconfig} };
+  my $iffreq = $fc{'otConfigIF'};
+  my $iffreq_ghz = $iffreq / 1.0e9; # to GHz
 
   # Check whether the instrument configuration matches what
   # the OT thought it was.
   do {
-    my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
-    my $iffreq_ot = $fc{'otConfigIF'};
+    my $iffreq_conf = $inst->if_center_freq * 1.0E9; # from GHz
 
-    if ($iffreq != $iffreq_ot) {
+    if ($iffreq_conf != $iffreq) {
       my $message = 'The instrument IF frequency specified in '
         . 'the instrument XML ('
-        . $iffreq
+        . $iffreq_conf
         . ') does not match the IF frequency given in the observation ('
-        . $iffreq_ot
-        . ').  The frequency settings '
-        . 'may be calculated incorrectly if the OT used a different '
-        . 'IF frequency when creating the observation.';
+        . $iffreq
+        . ').';
 
       if (OMP::Config->getData('acsis_translator.ignore_if_freq_mismatch')) {
         $self->output('WARNING: ' . $message . "\n");
@@ -654,100 +738,123 @@ sub fe_config {
   };
 
   # Sideband mode
-  $fe->sb_mode( $fc{sideBandMode} );
+  my $sb_mode = uc $fc{sideBandMode};
+  $fe->sb_mode($sb_mode);
+
+  # Get sky and rest frequency in GHz
+  my $skyFreq = $fc{skyFrequency} / 1.0E9;
+  my $restfreq = $fc{restFrequency} / 1.0E9;
 
   # How to handle 'best'?
-  my $sb = $fc{sideBand};
-  if ($sb =~ /BEST/i) {
+  my $sb = uc $fc{sideBand};
+  my $sideband_flip = 0;
+
+  if ($sb eq 'BEST') {
     # determine from lookup table
-    $sb = "USB";
+    my $instrument_name = $self->ocs_frontend($info{instrument});
+    $sb = _determine_best_sideband($instrument_name, $skyFreq, $self->wiredir());
 
-    # File name is derived from instrument name in wireDir
-    # The instrument config is fixed for a specific instrument
-    # and is therefore a "wiring file"
-    my $instname = lc($self->ocs_frontend($info{instrument}));
-    throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
-      unless defined $instname;
+    if (defined $sb) {
+        $self->output("Selected sideband $sb for sky frequency of $skyFreq GHz\n");
+    }
+    else {
+        $sb = 'USB';
+        $self->output("No sideband helper file for $instrument_name or frequency $skyFreq GHz out of range so assuming $sb will be acceptable\n");
+    }
 
-    # wiring file name
-    my $file = File::Spec->catfile( $self->wiredir, 'frontend',
-                                    "sideband_$instname.txt");
+    # If we have offset subsystems and we have selected LSB, we need to adjust the
+    # IFs to take into account the flip. The OT always sends a USB configuration for best
+    $sideband_flip = 1 if $sb eq 'LSB';
+  }
 
-    if (-e $file) {
-      # can make a guess but make it non-fatal to be missing
-      # The file is a simple format of
-      #    SkyFreq    Sideband
-      # where SkyFreq is the frequency threshold above which that
-      # sideband should be used. We read each line until we get a skyfreq
-      # that is higher than our required value and then use the value from the previous
-      # line
-      open my $fh, '<', $file or
-        throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
+  $fe->sideband($sb);
 
-      # Get sky frequency in GHz
-      my $skyFreq = $fc{skyFrequency} / 1.0E9;
+  # Compute the redshift factor and use it to find the approximate
+  # equivalent frequency of the LO in the source rest frame. We can use
+  # this to determine the sideband of each subsystem.
+  my $inv_redshift_factor = $restfreq / $skyFreq;
+  my $lo_rest = ($skyFreq - _sideband_sign($sb) * $iffreq_ghz) * $inv_redshift_factor;
+  $self->output("Checking subsystem sideband configuration...\n");
+  $self->output("\tApprox. rest sys. equiv. of LO is: $lo_rest GHz\n");
 
-      # read the lines, skipping comments and if the current frequency is lower than
-      # that of the line store the sideband and continue
-      $sb = '';                 # make sure we read something
-      while (defined (my $line = <$fh>) ) {
-        chomp($line);
-        $line =~ s/\#.*//;      # remove comments
-        $line =~ s/^\s*//;      # remove leading space
-        $line =~ s/\s*$//;      # remove trailing space
-        next if $line !~ /\S/;  # give up if we only have whitespace
-        my ($freq, $refsb) = split(/\s+/, $line);
-        if ($freq < $skyFreq) {
-          $sb = $refsb;
-        } else {
-          # freq is larger so drop out of loop
-          last;
-        }
+  # Now iterate over subsystems and check the sideband configuration.
+  my $n_subsystem = 0;
+  for my $ss (@{$fc{subsystems}}) {
+    $n_subsystem ++;
+
+    if ($sideband_flip) {
+        $ss->{if} = (2.0 * $iffreq) - $ss->{if};
+    }
+
+    my $ss_rest_freq = $ss->{'rest_freq'} / 1.0E9;
+
+    my $ss_sideband = ($ss_rest_freq > $lo_rest) ? 'USB' : 'LSB';
+    $self->output("\tSubsystem $n_subsystem: determined sideband $ss_sideband ($ss_rest_freq GHz)\n");
+
+    if ($ss_sideband ne $sb) {
+      if ($n_subsystem == 1) {
+        # Since we configured everything based on the first subsystem,
+        # it should be in the correct sideband!
+        throw OMP::Error::TranslateFail("First subsystem appears in unexpected sideband");
       }
 
-      close($fh) or
-        throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
-
-      # If we have offset subsystems and we have selected LSB, we need to adjust the
-      # IFs to take into account the flip. The OT always sends a USB configurtion for best
-      if (lc($sb) eq 'lsb') {
-        my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
-        my @subsys = @{$fc{subsystems}};
-        for my $ss (@subsys) {
-          my $offset = $ss->{if} - $iffreq;
-          $ss->{if} = $iffreq - $offset;
-        }
-
+      if ($sb_mode eq 'SSB') {
+        throw OMP::Error::TranslateFail("Subsystem $n_subsystem is in $ss_sideband but this is an SSB $sb observation");
       }
+      elsif (($sb_mode eq 'DSB') or ($sb_mode eq '2SB')) {
+        # Retain alternative sideband label.
+      }
+      else {
+        throw OMP::Error::TranslateFail("Unknown sideband mode '$sb_mode'");
+      }
+    }
 
-      $self->output("Selected sideband $sb for sky frequency of $skyFreq GHz\n");
-    } else {
-      $self->output("No sideband helper file for $inst so assuming $sb will be acceptable\n");
+    $ss->{'sideband'} = $ss_sideband;
+  }
+
+  # Configure the instrument to use the IF as specified in the first subsystem.
+  my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
+  my $offset = $ifsub1 - $iffreq_ghz;
+
+  # Apply historical tuning offset for receivers which do not yet support
+  # reading their IF frequency from the configure XML.
+  my %variable_if_inst = map {$_ => 1} qw/alaihi uu aweoweo/;
+  unless (exists $variable_if_inst{lc($self->ocs_frontend($info{instrument}))}) {
+    # Get the IF which the instrument will be using, in GHz.
+    my $iffreq_conf_ghz = $inst->if_center_freq();
+
+    # Recompute the offset using this IF in case it differs from OT's.
+    $offset = $ifsub1 - $iffreq_conf_ghz;
+
+    if (lc($sb) eq 'usb') {
+      $offset *= -1;
+    }
+
+    # Apply redshift factor to offset.  (This step not present in original
+    # version of the tuning adjustment.)
+    $offset *= $inv_redshift_factor;
+
+    $restfreq += $offset;
+
+    $self->output(sprintf(
+        "Tuning adjusted by %.0f MHz to correct for offset of first subsystem in band\n",
+        ($offset * 1e3)));
+  }
+  else {
+    $inst->if_center_freq($ifsub1);
+    $self->output(sprintf(
+        "\tUsing IF frequency of %.3f GHz %s\n", $ifsub1, $sb));
+
+    if (abs($offset) > 0.001) {
+      $self->output(sprintf(
+          "\t(Offset from default by %.0f MHz)\n", $offset * 1e3));
     }
   }
-  $fe->sideband( $sb );
 
   # FE XML expects rest frequency in GHz
-  # If the first subsytem has been moved from the centre of the
-  # band we need to adjust the tuning request to compensate
-  # The sense of the shift depends on the sideband
-  my $restfreq = $fc{restFrequency} / 1e9; # to GHz
-  my $iffreq = $inst->if_center_freq;
-  my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
-  my $offset = $ifsub1 - $iffreq;
-
-  if (lc($sb) eq 'usb') {
-    $offset *= -1;
-  }
-
-  $restfreq += $offset;
   $fe->rest_frequency( $restfreq );
-  $self->output("Tuning to a rest frequency of ".
-                sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n");
-  if (abs($offset) > 0.001) {
-    $self->output("Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
-        " MHz to correct for offset of first subsystem in band\n");
-  }
+  $self->output(sprintf(
+      "Tuning to a rest frequency of %.3f GHz\n", $restfreq));
 
   # doppler mode
   $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
@@ -766,26 +873,26 @@ sub fe_config {
   # task name
   $fe->frontend( $inst->name );
 
-  # Calculate the frontend mask
-  my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
-
-  # Store the mask
-  $fe->mask( %mask );
-
   # store the configuration
   $cfg->frontend( $fe );
+
+  # Compute the approximate image frequency for each subsystem
+  # and store in the frequency config hash.
+  for my $ss (@{$fc{'subsystems'}}) {
+    $ss->{'image_freq'} = $ss->{'rest_freq'}
+        + ($ss->{'sideband'} eq 'LSB' ? 2 : -2) * $ss->{'if'} * $inv_redshift_factor;
+  }
 }
 
-
-=item B<acsis_config>
+=item B<backend_config>
 
 Configure ACSIS.
 
-  $trans->acsis_config( $cfg, %info );
+  $trans->backend_config( $cfg, %info );
 
 =cut
 
-sub acsis_config {
+sub backend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
@@ -794,6 +901,13 @@ sub acsis_config {
 
   # Store it in the object
   $cfg->acsis( $acsis );
+
+  # Prepare image subsystems (if using a 2SB receiver).  Determine the
+  # bandwidth mode first to avoid nudging the image IF to make it unique.
+  # This is assuming that, for now, automatic subsystems will
+  # use the same mode as those of which they are images.
+  $self->bandwidth_mode( $cfg, %info );
+  $self->create_image_subsystems($cfg, %info);
 
   # Now configure the individual ACSIS components
   $self->line_list( $cfg, %info );
@@ -830,14 +944,14 @@ sub rotator_config {
 
   # Get the instrument configuration
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
 
   return if (defined $inst->focal_station &&
              $inst->focal_station !~ /NASMYTH/);
 
   # get the tcs
   my $tcs = $cfg->tcs();
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
   # if we are a sky dip observation then we need a rotator config but it should simply say "FIXED" system.
   # The TCS will then know not to bother asking it to move.
@@ -871,11 +985,11 @@ sub rotator_config {
 
     # need the TCS information
     my $tcs = $cfg->tcs();
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     # get the observing area
     my $oa = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS observing area is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS observing area is not available')
       unless defined $oa;
 
     if ($oa->mode eq 'area') {
@@ -1113,10 +1227,10 @@ sub jos_config {
     # Since the TCS works in integer times-round-the-map
     # Need to know the map area
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS setup is not available')
       unless defined $tcs;
     my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+    throw OMP::Error::FatalError('TCS obsArea is not available')
       unless defined $obsArea;
 
     # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.
@@ -1176,11 +1290,11 @@ sub jos_config {
 
     # first get the Secondary object, via the TCS
     my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
     # ... and secondary
     my $secondary = $tcs->getSecondary();
-    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+    throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
     # N_JIGS_ON etc
     my %timing = $secondary->timing;
@@ -1333,17 +1447,17 @@ sub jos_config {
 
       # first get the Secondary object, via the TCS
       my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+      throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
       # ... and secondary
       my $secondary = $tcs->getSecondary();
-      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+      throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
       # N_JIGS_ON etc
       my %timing = $secondary->timing;
       # Get the full jigle parameters from the secondary object
       my $jig = $secondary->jiggle;
-      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+      throw OMP::Error::FatalError('Jiggle configuration is not available') unless defined $jig;
 
       # we need to know how many points are in the pattern
       $npts = $jig->npts;
@@ -1357,11 +1471,6 @@ sub jos_config {
     # Number of frequency switches
     my $nfreqs = 2;
 
-    # Calculate how many steps we need at each jiggle position. This
-    # is the total number of repeats of the jiggle pattern and will
-    # need to be normalized later when calculating num_cycles
-    my $total_jos_mult = ceil( $secs_per_point / ( $nfreqs * $jos->step_time ) );
-
     # Calculate the duration of a single run round the jiggle pattern
     my $pattern_length = $jos->step_time * $nfreqs * $npts;
 
@@ -1370,19 +1479,20 @@ sub jos_config {
     my $total_time = $secs_per_point * $npts;
 
     # Maximum allowed time per sequence
-    my $max_time_on = min( $total_time,
-                           OMP::Config->getData( 'acsis_translator.freqsw_max_seq_length' ));
     # if the step time means that we can not get round the pattern in this
     # time we have no choice but to change that time
-    $max_time_on = max( $max_time_on, $pattern_length );
+    my $max_time_on = max(
+        OMP::Config->getData('acsis_translator.freqsw_max_seq_length'),
+        $pattern_length);
 
-    # Number of times round the pattern we can go in a single cycle (this is JOS_MULT)
-    my $jos_mult = floor( $max_time_on / $pattern_length );
+    # Number of cycles required to observe for the requested total time.
+    my $num_cycles = ceil($total_time / $max_time_on);
+    $jos->num_cycles($num_cycles);
+
+    # Calculate how many steps per cycle we need at each jiggle position. This
+    # is the total number of repeats of the jiggle pattern divided by num_cycles.
+    my $jos_mult = ceil($secs_per_point / ($nfreqs * $jos->step_time * $num_cycles));
     $jos->jos_mult($jos_mult);
-
-    # Number of cycles
-    my $num_cycles = ceil( $total_jos_mult / $jos_mult );
-    $jos->num_cycles( $num_cycles );
 
     # Force steps_btwn_refs to be the steps between cals
     $jos->steps_btwn_refs( $jos->steps_btwn_cals );
@@ -1579,24 +1689,45 @@ sub correlator {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # get the spectral window information
   my $spwlist = $acsis->spw_list();
-  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
+  throw OMP::Error::FatalError('Spectral Window configuration is not available') unless defined $spwlist;
 
   # get the hardware map
   my $hw_map = $self->hardware_map;
 
   # Now get the receptors of interest for this observation
   my $frontend = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason Frontend setup is not available. This can not happen') unless defined $frontend;
+  throw OMP::Error::FatalError('Frontend setup is not available') unless defined $frontend;
 
   # and only worry about the pixels that are switched on
   my @rec = $frontend->active_receptors;
 
+  # Are we using a sideband-separating receiver?  If so look up the receptor sidebands.
+  my $sb_mode = $frontend->sb_mode();
+  my $receptor_sideband = undef;
+  if ($sb_mode eq '2SB') {
+    my $inst = $cfg->instrument_setup();
+    throw OMP::Error::FatalError('instrument setup not available')
+        unless defined $inst;
+    $receptor_sideband = {map {
+        my $rec_sb = uc $inst->receptor_sideband($_);
+        throw OMP::Error::FatalError("receptor sideband '$rec_sb' missing or not recognized for $sb_mode observation")
+            unless $rec_sb eq 'LSB' || $rec_sb eq 'USB';
+        $_ => $rec_sb;
+    } @rec};
+  }
+  elsif ($sb_mode ne 'SSB' and $sb_mode ne 'DSB') {
+    throw OMP::Error::FatalError("frontend sideband mode '$sb_mode' not recognized");
+  }
+
   # All of the subbands that need to be allocated
   my %subbands = $spwlist->subbands;
+
+  # Mapping from image to signal spectral windows.
+  my $image_spws = $info{'freqconfig'}->{'image_spws'};
 
   # CM and DCM bandwidth modes
   my @cm_bwmodes;
@@ -1607,94 +1738,136 @@ sub correlator {
   # lookup from lo2 id to spectral window
   my @lo2spw;
 
-  # for each receptor, we need to assign all the subbands to the correct
-  # hardware
+  # Record the slot in which each signal SPW starts, so we can use the
+  # same slots for the corresponding image SPWs.
+  my %slot_start_spw = ();
 
-  for my $r (@rec) {
+  # Keep track of the hardware map "slot number" which we are allocating.
+  # This will advance every time we allocate a signal spectral window.
+  my $n_slot = 0;
 
-    # Get the number of subbands to allocate for this receptor
-    my @spwids = sort keys %subbands;
+  # loop over subbands
+  foreach my $spwid (sort keys %subbands) {
+    my $sb = $subbands{$spwid};
 
-    # Some configurations actually use multiple correlator modules in
-    # a single subband so we need to take this into account when
-    # calculating the mapping. Do this by padding @spwids with the
-    # same SPWID. Additionally it is not possible for a mode that uses
-    # 2 correlator modules to start on an odd slot (so a dual CM mode
-    # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
-    # ensuring that this latter problem never occurs.
+    my $bwmode = $sb->bandwidth_mode;
+    my $sideband = ($sb->fe_sideband > 0) ? 'USB' : 'LSB';
+    my $n_cm = $sb->numcm;
 
-    @spwids = map {
-      my $spw = $_; my $ncm = $subbands{$spw}->numcm;
-      my @temp = $_;
-      for my $i (2..$ncm) {
-        push(@temp, $spw);
-      }
-      @temp;
-    } @spwids;
+    # Determine hardware map slot where this SPW should start -- either our
+    # current counter, which is then advanced, or wherever the matching
+    # signal SPW started.
+    my $slot_start = undef;
+    my $image_spw = undef;
+    unless (exists $image_spws->{$spwid}) {
+      $slot_start = $slot_start_spw{$spwid} = $n_slot;
+      $n_slot += $n_cm;
+    }
+    else {
+      $image_spw = $image_spws->{$spwid};
 
-    # Get the CM mapping for this receptor
-    my @hwmap = $hw_map->receptor( $r );
-    throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but that SPW has not yet been allocated")
+          unless exists $slot_start_spw{$image_spw};
 
-    if (@spwids > @hwmap) {
-      throw OMP::Error::TranslateFail("The observation specified " . @spwids . " subbands but there are only ". @hwmap . " slots available for receptor '$r'");
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but they use different numbers of slots")
+          unless $n_cm == $subbands{$image_spw}->numcm;
+
+      $slot_start = $slot_start_spw{$image_spw};
+
+      throw OMP::Error::FatalError("Spectral window $spwid is the image of $image_spw but they use the same sideband ($sideband)")
+          if $sideband eq (($subbands{$image_spw}->fe_sideband > 0) ? 'USB' : 'LSB');
     }
 
-    # now loop over subbands
-    for my $i (0..$#spwids) {
-      next if !defined $spwids[$i]; # mode requires more than one correlator module. This may lead to problems with LO2
-      my $hw = $hwmap[$i];
-      my $spwid = $spwids[$i];
-      my $sb = $subbands{$spwid};
-
-      my $cmid = $hw->{CM_ID};
-      my $dcmid = $hw->{DCM_ID};
-      my $quadnum = $hw->{QUADRANT};
-      my $sbmode = $hw->{SB_MODES}->[0];
-      my $lo2id = $hw->{LO2};
-
-      my $bwmode = $sb->bandwidth_mode;
-
-      # Correlator uses the standard bandwidth mode
-      $cm_bwmodes[$cmid] = $bwmode;
-
-      # DCM just wants the bandwidth without the channel count
-      my $dcmbw = $bwmode;
-      $dcmbw =~ s/x.*$//;
-      $dcm_bwmodes[$dcmid] = $dcmbw;
-
-      # hardware mapping to spectral window ID
-      my %map = (
-                 CM_ID => $cmid,
-                 DCM_ID => $dcmid,
-                 RECEPTOR => $r,
-                 SPW_ID => $spwid,
-                );
-
-      $cm_map[$cmid] = \%map;
-
-      # Quadrant mapping to subband mode is fixed by the hardware map
-      if (defined $sbmodes[$quadnum]) {
-        if ($sbmodes[$quadnum] != $sbmode) {
-          throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
-        }
-      } else {
-        $sbmodes[$quadnum] = $sbmode;
+    # for each receptor, we need to assign all the subbands to the correct
+    # hardware
+    my $n_rec_allocated = 0;
+    for my $r (@rec) {
+      # If this is a sideband-separating observation, check the receptor sideband.
+      if (defined $receptor_sideband) {
+        next unless $receptor_sideband->{$r} eq $sideband;
       }
 
-      # Convert lo2id to an array index
-      $lo2id--;
+      # Get the CM mapping for this receptor
+      my @hwmap = $hw_map->receptor( $r );
+      throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map!") unless @hwmap;
 
-      if (defined $lo2spw[$lo2id]) {
-        if ($lo2spw[$lo2id] ne $spwid) {
-          throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+      # Some configurations actually use multiple correlator modules in
+      # a single subband so we need to take this into account when
+      # calculating the mapping.
+      #
+      # Additionally it is not possible for a mode that uses
+      # 2 correlator modules to start on an odd slot (so a dual CM mode
+      # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
+      # ensuring that this latter problem never occurs.
+      for (my $i = 0; $i < $n_cm; $i ++) {
+        my $slot_i = $slot_start + $i;
+
+        throw OMP::Error::TranslateFail("The observation specified " . ($slot_i + 1) . " (or more) subbands but there are only ". @hwmap . " slots available for receptor '$r'")
+          if $slot_i > $#hwmap;
+
+        my $hw = $hwmap[$slot_i];
+
+        my $cmid = $hw->{CM_ID};
+        my $dcmid = $hw->{DCM_ID};
+        my $quadnum = $hw->{QUADRANT};
+        my $sbmode = $hw->{SB_MODES}->[0];
+        my $lo2id = $hw->{LO2};
+
+        # Correlator uses the standard bandwidth mode
+        $cm_bwmodes[$cmid] = $bwmode;
+
+        # DCM just wants the bandwidth without the channel count
+        my $dcmbw = $bwmode;
+        $dcmbw =~ s/x.*$//;
+        $dcm_bwmodes[$dcmid] = $dcmbw;
+
+        # hardware mapping to spectral window ID
+        my %map = (
+                   CM_ID => $cmid,
+                   DCM_ID => $dcmid,
+                   RECEPTOR => $r,
+                   SPW_ID => $spwid,
+                  );
+
+        $cm_map[$cmid] = \%map;
+
+        # Quadrant mapping to subband mode is fixed by the hardware map
+        if (defined $sbmodes[$quadnum]) {
+          if ($sbmodes[$quadnum] != $sbmode) {
+            throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
+          }
+        } else {
+          $sbmodes[$quadnum] = $sbmode;
         }
-      } else {
-        $lo2spw[$lo2id] = $spwid;
+
+        # Convert lo2id to an array index
+        $lo2id--;
+
+        if (defined $image_spw) {
+          unless (defined $lo2spw[$lo2id]) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is being allocated to $spwid (image of $image_spw) but has no existing assignment\n");
+          }
+          elsif ($lo2spw[$lo2id] ne $image_spw) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid (image of $image_spw) AND $lo2spw[$lo2id]\n");
+          }
+        }
+        elsif (defined $lo2spw[$lo2id]) {
+          if ($lo2spw[$lo2id] ne $spwid) {
+            throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+          }
+        }
+        else {
+          $lo2spw[$lo2id] = $spwid;
+        }
       }
 
+      $n_rec_allocated ++;
     }
 
+    # Check that we found some receptors matching the requirements for
+    # this subband (namely the correct sideband at the moment).
+    throw OMP::Error::FatalError("No receptors allocated for $spwid subband ($sideband)")
+        unless $n_rec_allocated;
   }
 
   # Now store the mappings in the corresponding objects
@@ -1742,6 +1915,61 @@ sub correlator {
   return;
 }
 
+=item B<create_image_subsystems>
+
+Adds additional subsystem information for the image sideband.
+
+This method only applies to 2SB receivers and if the "auto_image_subsys_2sb"
+configuration parameter is enabled.
+
+Note: the image subsystems are added to the end of the subsystems
+list -- we may assume later that we will find all non-image subsystems
+first.
+
+=cut
+
+sub create_image_subsystems {
+    my $self = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    my $frontend = $cfg->frontend();
+    throw OMP::Error::FatalError('frontend setup is not available')
+        unless defined $frontend;
+
+    return unless $frontend->sb_mode() eq '2SB';
+
+    return unless OMP::Config->getData('acsis_translator.auto_image_subsys_2sb');
+
+    my $subsystems = $info{'freqconfig'}->{'subsystems'};
+    my $n_subsys = scalar @$subsystems;
+
+    my $max_spectrum_id = max map {$_->{'spectrum_id'}} @$subsystems;
+
+    for (my $i = 0; $i < $n_subsys; $i ++) {
+        # Create a copy of the subsystem information hash.
+        my $copy = Storable::dclone($subsystems->[$i]);
+
+        $copy->{'spectrum_id'} += $max_spectrum_id;
+
+        # Blank the transition and species information.
+        $copy->{'transition'} = 'No Line';
+        $copy->{'species'} = 'No Line';
+
+        # Record of which subsystem this is a copy.
+        $copy->{'image_of_subsystem'} = $i;
+
+        # Switch to the other sideband.
+        $copy->{'sideband'} = ($copy->{'sideband'} eq 'USB') ? 'LSB' : 'USB';
+
+        # Exchange the rest and image frequencies.
+        $copy->{'rest_freq'} = $copy->{'image_freq'};
+        $copy->{'image_freq'} = $subsystems->[$i]->{'rest_freq'};
+
+        push @$subsystems, $copy;
+    }
+}
+
 =item B<line_list>
 
 Configure the line list information.
@@ -1757,28 +1985,26 @@ sub line_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frequency information
   my $freq = $info{freqconfig}->{subsystems};
   my %lines;
-  my $counter = 1;             # used when a duplicate label is in use
   for my $s ( @$freq ) {
-    my $key = JAC::OCS::Config::ACSIS::LineList->moltrans2key( $s->{species},
-                                                               $s->{transition}
-                                                             );
+    my $base_key = JAC::OCS::Config::ACSIS::LineList->moltrans2key(
+        $s->{species}, $s->{transition});
+
     my $freq = $s->{rest_freq};
 
     # have we used this before?
-    if (exists $lines{$key}) {
+    my $key = $base_key;
+    for (my $counter = 1; exists $lines{$key}; $counter ++) {
       # if the frequency is the same we should not register the line list
       # object but we still need to associate with the subsystem. If the rest frequency
       # differs we need to tweak the key to make it unique.
-      if ($lines{$key}->restfreq != $freq) {
-        # Tweak the key
-        $key .= "_$counter";
-        $counter++;
-      }
+      last if $lines{$key}->restfreq == $freq;
+      # Tweak the key
+      $key = sprintf('%s_%s', $base_key, $counter);
     }
 
     # store the reference key in the hash
@@ -1815,32 +2041,16 @@ sub spw_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frontend object for the sideband
   # Hopefully we will not need to do this if ACSIS can be tweaked to get it from
   # frontend XML itself
   my $fe = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason frontend configuration is not available during spectral window processing. This can not happen') unless defined $fe;
-
-  # Get the sideband and convert it to a sign -1 == LSB +1 == USB
-  my $sb = $fe->sideband;
-  my $fe_sign;
-  if ($sb eq 'LSB') {
-    $fe_sign = -1;
-  } elsif ($sb eq 'USB') {
-    $fe_sign = 1;
-  } elsif ($sb eq 'BEST') {
-    $fe_sign = 1;
-  } else {
-    throw OMP::Error::TranslateFail("Sideband is not recognised ($sb)");
-  }
+  throw OMP::Error::FatalError('frontend configuration is not available during spectral window processing') unless defined $fe;
 
   # Get the frequency information for each subsystem
   my $freq = $info{freqconfig}->{subsystems};
-
-  # Force bandwidth calculations
-  $self->bandwidth_mode( $cfg, %info );
 
   # Default baseline fitting mode will probably depend on observing mode
   my $defaultPoly = 1;
@@ -1884,11 +2094,19 @@ sub spw_list {
   # derive it on demand.
   my %lo2spw;
 
+  # Create a hash to store the mapping from image spectral windows to the
+  # corresponding signal window.
+  my $image_spws = $info{'freqconfig'}->{'image_spws'} = {};
+
   # Spectral window objects
   my %spws;
   my $spwcount = 1;
   for my $ss (@$freq) {
-    my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow;
+    # Get the sideband and convert it to a sign -1 == LSB +1 == USB
+    my $fe_sign = _sideband_sign($ss->{'sideband'});
+
+    my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow(
+        spectrum_id => $ss->{'spectrum_id'});
     $spw->rest_freq_ref( $ss->{rest_freq_ref});
     $spw->fe_sideband( $fe_sign );
     $spw->baseline_fit( function => "polynomial",
@@ -2001,6 +2219,14 @@ sub spw_list {
     # Cannot do this earlier since we need the splabel
     $lo2spw{$splab} = $ss->{lo2}->[0] if $ss->{nsubbands} == 1;
 
+    # If this is an image subsystem, add the spectral window ID to the hash.
+    if (exists $ss->{'image_of_subsystem'}) {
+      my $ss_signal = $ss->{'image_of_subsystem'};
+      throw OMP::Error::FatalError("Signal SPW corresponding to image missing processed out of order")
+          unless exists $freq->[$ss_signal]->{'spw'};
+      $image_spws->{$splab} = $freq->[$ss_signal]->{'spw'};
+    }
+
     $spwcount++;
   }
 
@@ -2023,6 +2249,26 @@ sub spw_list {
 
 }
 
+=item B<_sideband_sign>
+
+Get the sign associated with a sideband.  (+1 for USB and -1 for LSB.)
+
+=cut
+
+sub _sideband_sign {
+    my $sb = shift;
+
+    if ($sb eq 'LSB') {
+      return -1;
+    }
+
+    if ($sb eq 'USB' or $sb eq 'BEST') {
+        return 1;
+    }
+
+    throw OMP::Error::TranslateFail("Sideband is not recognised ($sb)");
+}
+
 =item B<acsisdr_recipe>
 
 Configure the real time pipeline.
@@ -2038,7 +2284,12 @@ sub acsisdr_recipe {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
+
+  # Get the instrument we are using
+  my $inst = lc($self->ocs_frontend($info{'instrument'}));
+  throw OMP::Error::FatalError('No instrument defined - needed to select correct dr_recipe file')
+    unless defined $inst;
 
   # Get the observing mode or observation type for the DR recipe
   my $root;
@@ -2061,11 +2312,11 @@ sub acsisdr_recipe {
       # need the secondary configuration
       # first get the Secondary object, via the TCS
       my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+      throw OMP::Error::FatalError('TCS setup is not available') unless defined $tcs;
 
       # ... and secondary
       my $secondary = $tcs->getSecondary();
-      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+      throw OMP::Error::FatalError('Secondary configuration is not available') unless defined $secondary;
 
       # Get the information
       my $smu_mode = $secondary->smu_mode;
@@ -2083,7 +2334,18 @@ sub acsisdr_recipe {
     $root = $info{obs_type};
   }
 
-  my $filename = File::Spec->catfile( $self->wiredir, 'acsis', $root . '_dr_recipe.ent');
+  my $filename = undef;
+  foreach my $suffix ("_$inst", '') {
+    my $tryfile = File::Spec->catfile( $self->wiredir, 'acsis', $root . '_dr_recipe' . $suffix . '.ent');
+    if (-e $tryfile) {
+      $filename = $tryfile;
+      last;
+    }
+  }
+
+  # no files to find
+  throw OMP::Error::FatalError("Unable to find dr_recipe entity file with root $root")
+    unless defined $filename;
 
   # Read the recipe itself
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
@@ -2135,15 +2397,15 @@ sub cubes {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the frontend configuration
   my $fe = $cfg->frontend;
-  throw OMP::Error::FatalError('for some reason Frontend configuration is not available. This can not happen') unless defined $fe;
+  throw OMP::Error::FatalError('Frontend configuration is not available') unless defined $fe;
 
   # Get the instrument footprint
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available')
     unless defined $inst;
   my @footprint = $inst->receptor_offsets( $fe->active_receptors );
 
@@ -2322,7 +2584,7 @@ sub cubes {
 
       # Get the jiggle information
       my $jig = $self->get_jiggle( $cfg );
-      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+      throw OMP::Error::FatalError('Jiggle configuration is not available') unless defined $jig;
 
       # Store the grid coordinate frame
       $grid_coord = $jig->system;
@@ -2535,7 +2797,7 @@ sub rtd_config {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+  throw OMP::Error::FatalError('ACSIS setup is not available')
     unless defined $acsis;
 
   # Get the instrument we are using
@@ -2610,17 +2872,17 @@ sub simulator_config {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+  throw OMP::Error::FatalError('ACSIS setup is not available')
     unless defined $acsis;
 
   # Get the cube definition
   my $cl = $acsis->cube_list;
-  throw OMP::Error::FatalError('for some reason the ACSIS Cube List is not defined. This can not happen')
+  throw OMP::Error::FatalError('the ACSIS Cube List is not defined')
     unless defined $cl;
 
   # Get the spectral window definitions
   my $spwlist = $acsis->spw_list();
-  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
+  throw OMP::Error::FatalError('Spectral Window configuration is not available') unless defined $spwlist;
 
   # We create a cloud per cube definition
   my %cubes = $cl->cubes;
@@ -2672,7 +2934,7 @@ sub simulator_config {
 
   # Depends on Receiver
   my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available for simulation configuration. This can not happen')
+  throw OMP::Error::FatalError('Instrument configuration is not available for simulation configuration')
     unless defined $inst;
 
   if ($inst->name =~ /HARP/) {
@@ -2788,7 +3050,7 @@ sub interface_list {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   my $filename = File::Spec->catfile( $self->wiredir, 'acsis', 'interface_list.ent');
 
@@ -2812,7 +3074,7 @@ sub acsis_layout {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # This code is a bit more involved because in general the process layout
   # template file includes entity references that must be replaced with
@@ -2863,33 +3125,6 @@ sub acsis_layout {
   my $playout = new JAC::OCS::Config::ACSIS::ProcessLayout( XML => $layout,
                                                             validation => 0);
   $acsis->process_layout( $playout );
-
-  # and links
-  my ($nsync, $nreducer, $ngridder) = $self->determine_acsis_layout($cfg, %info);
-
-  # find out which correlators are used so we can connect the monitors to the sync_tasks
-  my $hw_map = $self->hardware_map();
-  my %receptor_mask = $cfg->frontend->mask();
-  my %corrtasks;
-  for my $receptor (keys %receptor_mask) {
-    for my $rm ($hw_map->receptor( $receptor )) {
-      $corrtasks{$rm->{"CorrTask"}} = undef;
-    }
-  }
-  my @corr_monitors = map { "corr_monitor" . $_ } (sort keys %corrtasks);
-
-  my %monitorInterfaces = $playout->getMonitorInterfaces();
-  my %monitorEvents;
-  for my $monitor (keys %monitorInterfaces) {
-    my $eventNames = $cfg->acsis->interface_list->getEventNames($monitorInterfaces{$monitor});
-    throw OMP::Error::TranslateFail( "$monitorInterfaces{$monitor} should have 1 outgoing event, not " . @$eventNames . "!")
-      unless scalar @$eventNames == 1;
-    $monitorEvents{$monitor} = @{$eventNames}[0];
-  }
-
-  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder, \%monitorEvents, \@corr_monitors);
-  $acsis->process_links( $plinks );
-
 }
 
 =item B<need_offset_tracking>
@@ -2999,16 +3234,18 @@ sub bandwidth_mode {
 
   # Need the IF center frequency from the frontend for information purposes only
   my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
-  my $if_center_freq = $inst->if_center_freq * 1E9;
+  throw OMP::Error::FatalError('instrument setup is not available') unless defined $inst;
+  my $if_center_freq = $info{'freqconfig'}->{'otConfigIF'};
 
   # Keep track of duplicates
   # A subsystem is a dupe if the IF, overlap, channels and  bandwidth are the same
   my %dupe_ss;
 
   # loop over each subsystem
+  my $spectrum_id = 0;
   for my $s (@subs) {
-    $self->output("Processing subsystem...\n");
+    $s->{'spectrum_id'} = ++ $spectrum_id;
+    $self->output("Processing subsystem $spectrum_id ...\n");
 
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
@@ -3059,7 +3296,7 @@ sub bandwidth_mode {
     # presence of non-zero overlap
     my $nsubband;
     if ($olap > 0) {
-      if ($info{'instrument'} =~ /RXA3M/i) {
+      if ($info{'instrument'} !~ /HARP/i) {
         # new code to guess number of subbands as required for RXA3M upgrade
         my $subbw = ($hbw >= 1.0E9) ? 1.0E9 : 250.0E6;
         $nsubband = OMP::General::nint($hbw / ($subbw - $olap));
@@ -3184,25 +3421,25 @@ sub bandwidth_mode {
 
     } elsif ($nsubband == 3) {
       # Subbands all referenced to their centres
-      #                 [ |  :  | ]
       #         [ |  :  | ]
+      #                 [ |  :  | ]
       # [ |  :  | ]
       @refchan = ($nch_mid) x 3;
-      @sbif = ($s->{'if'} - ($bw_per_sub * 1.0E6 - $olap),
-               $s->{'if'},
-               $s->{'if'} + ($bw_per_sub * 1.0E6 - $olap));
+      @sbif = ($s->{'if'},
+               $s->{'if'} + ($d_nch * $chanwid),
+               $s->{'if'} - ($d_nch * $chanwid));
 
     } elsif ($nsubband == 4) {
-      # Subbands 1 and 4 referenced to their centres
-      #                         [ |  :  | ]
+      # Subbands 1, 2 referenced to LO channel and subbands 3, 4 to HI
       #                 [:|     | ]
       #         [ |     |:]
-      # [ |  :  | ]
-      @refchan = ($nch_mid, $nch_lo, $nch_hi, $nch_mid);
-      @sbif = ($s->{'if'} - 1.5 * ($bw_per_sub * 1.0E6 - $olap),
+      # [ |     |:]
+      #                         [:|     | ]
+      @refchan = ($nch_lo, $nch_hi, $nch_hi, $nch_lo);
+      @sbif = ($s->{'if'},
                $s->{'if'},
-               $s->{'if'},
-               $s->{'if'} + 1.5 * ($bw_per_sub * 1.0E6 - $olap));
+               $s->{'if'} - ($d_nch * $chanwid),
+               $s->{'if'} + ($d_nch * $chanwid));
 
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
@@ -3735,7 +3972,7 @@ sub determine_acsis_layout {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # Get the instrument we are using
   my $inst = $self->ocs_frontend($info{instrument});
@@ -3759,7 +3996,7 @@ sub determine_acsis_layout {
 
     my $spwlist = $acsis->spw_list;
     if (!defined $spwlist) {
-      throw OMP::Error::FatalError("Could not find spectral window configuration. Should not happen!");
+      throw OMP::Error::FatalError("Could not find spectral window configuration");
     }
 
     my %spw = $spwlist->spectral_windows;
@@ -4277,11 +4514,11 @@ sub getCubeInfo {
 
   # get the acsis configuration
   my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('ACSIS setup is not available') unless defined $acsis;
 
   # get the spectral window information
   my $cubelist = $acsis->cube_list();
-  throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
+  throw OMP::Error::FatalError('Cube configuration is not available') unless defined $cubelist;
 
   return $cubelist->cubes;
 }

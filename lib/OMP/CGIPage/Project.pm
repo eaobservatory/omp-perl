@@ -371,6 +371,7 @@ sub project_home {
   my $seerange = $project->seeingrange;
   my $skyrange = $project->skyrange;
   my $cloud = $project->cloudrange;
+  my $expirydate = $project->expirydate() // 'not specified';
 
   # Store coi and support html emails
   my $coi = join(", ",map{
@@ -411,6 +412,7 @@ sub project_home {
     <tr><td><b>Support:</b></td><td>$support</td>
     <tr><td><b>Country:</b></td><td>$country</td>
     <tr><td><b>Semester:</b></td><td>$semester</td>
+    <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
     <tr><td colspan=2><a href="$pub/props.pl?urlprojid=$cookie{projectid}">Click here to view the science case for this project</a></td>
     </table>
 _HEADER_
@@ -1077,6 +1079,13 @@ sub alter_proj {
   print $q->textfield("seeingmax", $seeingmax, 3, 4);
   print "</td></tr>";
 
+  print $q->Tr(
+    $q->td([
+        'Expiry date',
+        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')),
+    ]),
+  );
+
   print "</table>";
 
   print q[<p>],
@@ -1225,6 +1234,22 @@ sub process_project_changes {
     $project->seeingrange($new_seeingrange);
 
     push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
+  }
+
+  # Check whether the expiry date was changed
+  my $old_expirydate = $project->expirydate();
+  my $expirydate = $q->param('expirydate');
+  if ((not defined $old_expirydate) and (! $expirydate)) {
+    # Expiry date null in database and not set here: do nothing.
+  }
+  elsif ((not defined $old_expirydate) or (! $expirydate) or ($expirydate ne "$old_expirydate")) {
+    # Expiry date has changed.
+    undef $expirydate unless $expirydate;
+    $project->expirydate($expirydate);
+
+    push @msg, 'Updated expiry date from ' .
+        ($old_expirydate // 'none') . ' to ' .
+        ($expirydate // 'none') . '.';
   }
 
   # Generate feedback message
