@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.eao.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>uu-ot.xml</meta_gui_filename>
+  <country>EAO</country>
+  <ot_version>20190731</ot_version>
+  <pi>Test</pi>
+  <projectID>TEST</projectID>
+  <telescope>jcmt</telescope>
+  <title>Uu Translator Test</title>
+  <SpSiteQualityObsComp id="2" type="oc" subtype="schedInfo">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <meta_unique>true</meta_unique>
+    <noiseCalculationTau>0.08</noiseCalculationTau>
+  </SpSiteQualityObsComp>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpDRRecipeRef idref="3"/>
+    <SpInstHeterodyneRef idref="1"/>
+    <SpSiteQualityObsCompRef idref="2"/>
+    <SpTelescopeObsCompRef idref="0"/>
+    <estimatedDuration units="seconds">927.9999999999999</estimatedDuration>
+    <library_version>$Revision$</library_version>
+    <priority>99</priority>
+    <title>Beam-switch stare</title>
+    <totalDuration units="seconds">927.9999999999999</totalDuration>
+    <SpInstHeterodyne id="1" type="oc" subtype="inst.Heterodyne">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <band>usb</band>
+      <bandMode>4</bandMode>
+      <beName>acsis</beName>
+      <feBandWidth>3.3E9</feBandWidth>
+      <feIF>6.0E9</feIF>
+      <feName>Uu</feName>
+      <mixers>1</mixers>
+      <mode>2sb</mode>
+      <skyFrequency>2.30538E11</skyFrequency>
+      <velocityDefinition>radio</velocityDefinition>
+      <velocityFrame>LSRK</velocityFrame>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+      <!--          ACSIS Configuration XML        -->
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+      <subsystems>
+          <subsystem if="6.5E9" bw="2.5E8" overlap="0.0" channels="4096">
+              <line species="CO" transition="2 - 1" rest_freq="2.30538E11"/>
+          </subsystem>
+          <subsystem if="5.2722984E9" bw="2.5E8" overlap="0.0" channels="4096">
+              <line species="CH3NH2" transition="4 2 - 4 1" rest_freq="2.293102984E11"/>
+          </subsystem>
+          <subsystem if="6.2205273E9" bw="2.5E8" overlap="0.0" channels="4096">
+              <line species="SiS" transition="12 0 - 11 0" rest_freq="2.178174727E11"/>
+          </subsystem>
+          <subsystem if="4.4776432E9" bw="2.5E8" overlap="0.0" channels="4096">
+              <line species="C-18-O" transition="2 - 1" rest_freq="2.195603568E11"/>
+          </subsystem>
+      </subsystems>
+
+    </SpInstHeterodyne>
+    <SpDRRecipe id="3" type="oc" subtype="DRRecipe">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpDRRecipe>
+    <SpTelescopeObsComp id="0" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>Test target</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>12:34:56.789</c1>
+            <c2>76:54:32.11</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">927.9999999999999</estimatedDuration>
+      <standard>false</standard>
+      <title>Science Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterChop type="ic" subtype="chop">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SECONDARY>
+            <CHOP SYSTEM="AZEL">
+              <THROW>60.0</THROW>
+              <PA>90.0</PA>
+            </CHOP>
+          </SECONDARY>
+          <SpIterStareObs type="ic" subtype="stareObs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <secsPerCycle>360</secsPerCycle>
+            <stareSystem>TRACKING</stareSystem>
+            <switchingMode>Beam</switchingMode>
+          </SpIterStareObs>
+        </SpIterChop>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
