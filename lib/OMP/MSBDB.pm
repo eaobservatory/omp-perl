@@ -718,6 +718,8 @@ The only configuration options are:
 
   nodecrement => 1/0
 
+  notify_first_accept => 1/0
+
 Default is to adjust the time accounting when accepting an MSB. If this
 argument is false the time pending will not be incremented.
 
@@ -727,6 +729,10 @@ argument is false the time pending will not be incremented.
 If set to a true value, the "nodecrement" option supresses alteration
 of the science program to decrement the MSB's "remaining" counter.
 
+The notify_first_accept controls whether an IMPORTANT level email will
+be sent to flex for the first msb accepted for a specific project that
+occurs on a given (ut) night. It defaults to 0
+
 =cut
 
 sub doneMSB {
@@ -734,7 +740,8 @@ sub doneMSB {
   my $checksum = shift;
 
   # If last arg is a hash read it off
-  my %optargs = ( adjusttime => 1, nodecrement => 0, shifttype => "UNKNOWN" );
+  my %optargs = ( adjusttime => 1, nodecrement => 0, shifttype => "UNKNOWN" , msbtitle=> "UNKNOWN",
+      notify_first_accept => 0 );
 
   if (ref($_[-1]) eq 'HASH') {
     # Remove last element from @_
@@ -849,10 +856,59 @@ sub doneMSB {
       if defined $comment->text && $comment->text =~ /\w/;
   }
 
+  my $msbtitle = $optargs{msbtitle};
+  my $telescope = $sp->telescope;
+
+  # if notify_first_accept is 1, then we need to check if we should
+  # send an email to flex. HOWEVER, we do not send an email for UKIRT,
+  # *even if* notify_first_acecept is 1. This is to avoid having to do
+  # an extra query in MSBServer to get the telescope name and decide
+  # what to set notify-first_accept to.
+
+  if ($optargs{'notify_first_accept'} && ($telescope eq 'JCMT') ) {
+      # Check if project has had any msbs marked as DONE/ACCEPTED on this night.
+      my $msbdonedb = new OMP::MSBDoneDB( ProjectID => $self->projectid,
+                                          DB => $self->db );
+
+      # This gets all observations, even if they weren't accepted.
+      my @msbsdonetonight = $msbdonedb->observedMSBs(usenow => 1, comments => 0);
+
+      # For now, check which ones were accepted by looking at status --
+      # this should be first object. OMP__DONE_DONE is the accepted state.
+      my $proj_already_accepted = 0;
+      foreach my $msb (@msbsdonetonight)  {
+          my $status = $msb->status;
+          if ($status == OMP__DONE_DONE) {
+              my $proj_already_accepted = 1;
+              last;
+          }
+      }
+
+      # If its the first accepted observation for this night from this project, send an email.
+      if ($proj_already_accepted == 0) {
+          my $projectid = $self->projectid;
+          my $utdate  = OMP::DateTools->today();
+
+
+          my $message_text = "The $telescope operator accepted an MSB (title=$msbtitle) from your project $projectid tonight ($utdate). If you want to follow tonight's observing, please go to the remote eavesdropping link in your OMP project page at http://omp.eao.hawaii.edu/cgi-bin/utprojlog.pl?urlprojid=$projectid&utdate=$utdate. You should be sent a summary of all of your observations taken tonight within 24 hours of the end of shift.";
+
+          my $message_subject = "$telescope started observing your project on $utdate";
+
+          $self->_notify_feedback_system(
+              program => "OMP::MSBDB",
+              subject => $message_subject,
+              text => $message_text,
+              author => $author,
+              msgtype => OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT,
+              status => OMP__FB_IMPORTANT,
+              );
+      }
+  }
+
   $self->_notify_feedback_system(
                                  program => "OMP::MSBDB",
                                  subject => "MSB Observed",
-                                 text => "Marked MSB with checksum"
+                                 text => "Marked MSB title=\"$msbtitle \" with checksum"
                                  . " $checksum as done $reason",
                                  author => $author,
                                  msgtype => OMP__FB_MSG_MSB_OBSERVED,
