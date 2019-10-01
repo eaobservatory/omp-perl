@@ -876,11 +876,13 @@ sub doneMSB {
       # For now, check which ones were accepted by looking at status --
       # this should be first object. OMP__DONE_DONE is the accepted state.
       my $proj_already_accepted = 0;
-      foreach my $msb (@msbsdonetonight)  {
-          my $status = $msb->status;
-          if ($status == OMP__DONE_DONE) {
-              my $proj_already_accepted = 1;
-              last;
+      MSBLOOP: foreach my $msb (@msbsdonetonight)  {
+          foreach my $comment (@{$msb->comments}) {
+              my $status = $comment->status;
+              if ($status == OMP__DONE_DONE) {
+                  $proj_already_accepted = 1;
+                  last MSBLOOP;
+              }
           }
       }
 
