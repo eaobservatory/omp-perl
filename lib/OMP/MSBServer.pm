@@ -411,9 +411,14 @@ instance of an MSB. Userid and reason must be specified (undef is okay)
 if a transaction ID is supplied.
 
 A shift type can also be specified
-  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid, $shifttype );
+  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid,
+    $shifttype );
 
 This is a standard shift name.
+
+An MSB title can also be specified
+  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid, $shifttype,
+    $msbtitle );
 =cut
 
 sub doneMSB {
@@ -424,6 +429,7 @@ sub doneMSB {
   my $reason = shift;
   my $msbtid = shift;
   my $shift_type = shift;
+  my $msbtitle = shift;
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
@@ -465,11 +471,20 @@ sub doneMSB {
                            );
 
 
-    # If the shift type was defined, create an option hash.
+    # If the shift type and/or msbtitle was defined, create an option hash.
     my %optargs;
     if (defined $shift_type) {
         $optargs{'shifttype'} = $shift_type;
     }
+    if (defined $msbtitle) {
+        $optargs{'msbtitle'} = $msbtitle;
+    }
+
+    # We want to set the option 'notify_first_accept=1' to the
+    # MSBDB::doneMSB option hash; we will actually check in
+    # MSBDB::MSBDone to only send that notification if the telescope
+    # is JCMT. this is to avoid having to look up the telescope here.
+    $optargs{'notify_first_accept'} = 1;
 
     $db->doneMSB( $checksum, $comment, \%optargs);
 

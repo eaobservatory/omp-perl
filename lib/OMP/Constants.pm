@@ -38,7 +38,7 @@ my @fb = qw/ OMP__FB_INFO OMP__FB_IMPORTANT
              OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
              OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
              OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
-             OMP__FB_MSG_PROJECT_ENABLED
+             OMP__FB_MSG_PROJECT_ENABLED OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT
              /;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_REMOVED
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
@@ -267,6 +267,16 @@ the science program was deleted.
 =cut
 
 use constant OMP__FB_MSG_SP_DELETED => 73;
+
+=item B<OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT>
+
+This constant contains the definition of a feedback comment informing
+users that the first instance of an MSB acceptance for their project
+has occured on that night.
+
+=cut
+
+use constant OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT => 79;
 
 =item B<OMP__FB_MSG_SP_RETRIEVED>
 
