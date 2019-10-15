@@ -621,7 +621,7 @@ lower than the given value are found.
 =cut
 
 sub _determine_best_sideband {
-    my $instrument = lc(shift);
+    my $instrument = shift;
     my $sky_freq_ghz = shift;
     my $wiredir = shift;
 
@@ -747,11 +747,11 @@ sub frontend_config {
 
   # How to handle 'best'?
   my $sb = uc $fc{sideBand};
-  my $sideband_flip = 0;
+  my $sideband_flip = undef;
 
   if ($sb eq 'BEST') {
     # determine from lookup table
-    my $instrument_name = $self->ocs_frontend($info{instrument});
+    my $instrument_name = lc($self->ocs_frontend($info{instrument}));
     $sb = _determine_best_sideband($instrument_name, $skyFreq, $self->wiredir());
 
     if (defined $sb) {
@@ -764,7 +764,22 @@ sub frontend_config {
 
     # If we have offset subsystems and we have selected LSB, we need to adjust the
     # IFs to take into account the flip. The OT always sends a USB configuration for best
-    $sideband_flip = 1 if $sb eq 'LSB';
+    if ($sb eq 'LSB') {
+        # Determine IF frequency about which to mirror when flipping from
+        # BEST (as USB) to LSB.  Normally this is the configured IF frequency
+        # but when the IF bandwidth is asymmetric we must use the center
+        # of the IF band instead.
+        my %if_middle_freq = (
+            uu => 5.65e9,
+            aweoweo => 5.65e9,
+        );
+
+        $sideband_flip = (exists $if_middle_freq{$instrument_name})
+            ? $if_middle_freq{$instrument_name}: $iffreq;
+
+        $self->output(sprintf("\tIF frequencies will be mirrored about %.3f GHz to change sideband\n",
+            $sideband_flip / 1.0e9));
+    }
   }
 
   $fe->sideband($sb);
@@ -782,8 +797,8 @@ sub frontend_config {
   for my $ss (@{$fc{subsystems}}) {
     $n_subsystem ++;
 
-    if ($sideband_flip) {
-        $ss->{if} = (2.0 * $iffreq) - $ss->{if};
+    if (defined $sideband_flip) {
+        $ss->{if} = (2.0 * $sideband_flip) - $ss->{if};
     }
 
     my $ss_rest_freq = $ss->{'rest_freq'} / 1.0E9;
