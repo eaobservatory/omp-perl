@@ -865,7 +865,13 @@ sub doneMSB {
   # an extra query in MSBServer to get the telescope name and decide
   # what to set notify-first_accept to.
 
-  if ($optargs{'notify_first_accept'} && ($telescope eq 'JCMT') ) {
+  unless ($optargs{'notify_first_accept'}) {
+    OMP::General->log_message("Not sending first-accept message: not requested");
+  }
+  elsif ($telescope ne 'JCMT') {
+    OMP::General->log_message("Not sending first-accept message: telescope is not JCMT");
+  }
+  else {
       # Check if project has had any msbs marked as DONE/ACCEPTED on this night.
       my $msbdonedb = new OMP::MSBDoneDB( ProjectID => $self->projectid,
                                           DB => $self->db );
@@ -876,18 +882,21 @@ sub doneMSB {
       # For now, check which ones were accepted by looking at status --
       # this should be first object. OMP__DONE_DONE is the accepted state.
       my $proj_already_accepted = 0;
-      MSBLOOP: foreach my $msb (@msbsdonetonight)  {
+      foreach my $msb (@msbsdonetonight)  {
           foreach my $comment (@{$msb->comments}) {
               my $status = $comment->status;
               if ($status == OMP__DONE_DONE) {
-                  $proj_already_accepted = 1;
-                  last MSBLOOP;
+                  $proj_already_accepted ++;
               }
           }
       }
 
       # If its the first accepted observation for this night from this project, send an email.
-      if ($proj_already_accepted == 0) {
+      # (Allow one acceptance -- the one we just performed.)
+      if ($proj_already_accepted > 1) {
+        OMP::General->log_message("Not sending first-accept message: an MSB was already accepted");
+      }
+      else {
           my $projectid = $self->projectid;
           my $utdate  = OMP::DateTools->today();
 
@@ -904,6 +913,8 @@ sub doneMSB {
               msgtype => OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT,
               status => OMP__FB_IMPORTANT,
               );
+
+          OMP::General->log_message("Sent first-accept message");
       }
   }
 
