@@ -3421,6 +3421,9 @@ sub bandwidth_mode {
     # for all channels ( in one or 2 subband versions).
     my @sbif;
 
+    # Shift to be used in 3- and 4-subband hybrids.
+    my $subband_shift = $nchan_per_sub - 2 * $olap_in_chan;
+
     if ($nsubband == 1) {
       # middle usable channel
       #         [ |  :  | ]
@@ -3435,27 +3438,26 @@ sub bandwidth_mode {
       @sbif = ($s->{'if'}) x 2;
 
     } elsif ($nsubband == 3) {
-      # Subbands all referenced to their centres
+      # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      #                 [ |  :  | ]
-      # [ |  :  | ]
-      @refchan = ($nch_mid) x 3;
-      @sbif = ($s->{'if'},
-               $s->{'if'} + ($d_nch * $chanwid),
-               $s->{'if'} - ($d_nch * $chanwid));
+      #              :  [ |     | ]
+      # [ |     | ]  :
+      @refchan = ($nch_mid,
+                  $nch_mid - $subband_shift,
+                  $nch_mid + $subband_shift);
+      @sbif = ($s->{'if'}) x 3;
 
     } elsif ($nsubband == 4) {
-      # Subbands 1, 2 referenced to LO channel and subbands 3, 4 to HI
+      # Subbands all referenced to the centre IF.
       #                 [:|     | ]
       #         [ |     |:]
-      # [ |     |:]
-      #                         [:|     | ]
-      @refchan = ($nch_lo, $nch_hi, $nch_hi, $nch_lo);
-      @sbif = ($s->{'if'},
-               $s->{'if'},
-               $s->{'if'} - ($d_nch * $chanwid),
-               $s->{'if'} + ($d_nch * $chanwid));
-
+      # [ |     | ]      :
+      #                  :      [ |     | ]
+      @refchan = ($nch_lo,
+                  $nch_hi,
+                  $nch_hi + $subband_shift,
+                  $nch_lo - $subband_shift);
+      @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
       die "Only 4 subbands supported not $nsubband!";
