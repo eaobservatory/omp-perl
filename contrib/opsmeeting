@@ -24,7 +24,7 @@ else
   set utstart = $<
 endif
 
-if ($utstart < 20000101 || $utstart > 20200101) then
+if ($utstart < 20000101 || $utstart > 21000101) then
   echo ""
   echo "ERROR: '$utstart' is not a valid YYYYMMDD date"
   echo ""
