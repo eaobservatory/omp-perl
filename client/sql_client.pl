@@ -12,7 +12,9 @@ to the MySQL database and launches a copy of MySQL client.  The
 for the staff password.
 
 Any command line arguments are passed on to the MySQL client,
-following the connection parameters.
+following the connection parameters.  The "-u" / "-h" arguments
+are processed specially to customize the displayed message.  They
+replace the user or host name taken from the configuration file.
 
 =cut
 
@@ -34,9 +36,32 @@ use OMP::DBbackend::Archive;
 
 my %lh = OMP::DBbackend::Archive->loginhash();
 
-print STDERR 'Connecting to MySQL server on ', $lh{'server'}, ' as ', $lh{'user'}, ".\n";
+# Check the command line arguments for a user / host option so that we can
+# print a suitable "Connecting..." message.
+my $username = $lh{'user'};
+my $hostname = $lh{'server'};
+my @args = ();
+while (my $arg = shift @ARGV) {
+    if ($arg eq '-u' or $arg eq '--user') {
+        $username = shift @ARGV;
+    }
+    elsif ($arg =~ /^--user=(\w+)$/) {
+        $username = $1;
+    }
+    elsif ($arg eq '-h' or $arg eq '--host') {
+        $hostname = shift @ARGV;
+    }
+    elsif ($arg =~ /^--host=(\w+)$/) {
+        $hostname = $1;
+    }
+    else {
+        push @args, $arg;
+    }
+}
 
-exec('mysql', '-h', $lh{'server'}, '-u', $lh{'user'}, '-p', @ARGV);
+print STDERR 'Connecting to MySQL server on ', $hostname, ' as ', $username, ".\n";
+
+exec('mysql', '-h', $hostname, '-u', $username, '-p', @args);
 
 __END__
 
