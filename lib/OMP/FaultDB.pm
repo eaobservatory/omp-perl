@@ -886,8 +886,8 @@ sub _mail_fault_update {
                              to => [ $fault->author ],
                              from => OMP::User->new(name => $fault->category . " Faults",
                                                     email=> $fault->mail_list,),
-                             subject => "Your fault [" . $fault->id . "] has been updated",);
-
+                             subject => "Your fault [" . $fault->id . "] has been updated",)
+        unless $fault->author->no_fault_cc();
   }
 
 }
