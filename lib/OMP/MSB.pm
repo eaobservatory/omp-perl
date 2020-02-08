@@ -4508,6 +4508,18 @@ sub SpIterFolder {
 
       push(@{$summary{$parent}{'CHILDREN'}}, { $name => \%fts });
 
+    } elsif ($name eq 'SpIterRawXmlObs') {
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
+
+      my %raw = (
+        # Use textContent in case CDATA nodes are present.
+        ocsconfig => join '', map {join '', map {$_->textContent} $_->childNodes}
+            $self->_get_children_by_name($child, 'ocsconfig'),
+      );
+
+      push @{$summary{$parent}{'CHILDREN'}}, {$name => \%raw};
+
     } elsif ($name eq 'SpIterObserve') {
       # Add the basic SpIterObserve "eye" (used for example with
       # WFCAM at UKIRT) to the summary in order to trigger

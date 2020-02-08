@@ -155,6 +155,13 @@ sub translate {
     # stream of information associated with this observation.
     $self->observing_mode( $obs );
 
+    # Use the given config. the case of RawXmlObs and skip further processing.
+    if ($obs->{'MODE'} eq 'SpIterRawXmlObs') {
+      push @configs, new JAC::OCS::Config(
+        XML => $obs->{'ocsconfig'}, validation => 0);
+      next;
+    }
+
     # We may want to know if we have just followed a particular
     # observation
     $obs->{prev_obs_type} = $prev_obs_type;
@@ -1459,6 +1466,15 @@ sub observing_mode {
   my $info = shift;
 
   my $otmode = $info->{MODE};
+
+  # Return immediately with dummy information the case of RawXmlObs.
+  if ($otmode eq 'SpIterRawXmlObs') {
+      $self->output("\nObserving Mode Overview: Raw XML\n");
+      $info->{$_} = 'raw' foreach qw/obs_type switching_mode mapping_mode observing_mode/;
+      $info->{'inbeam'} = [];
+    return;
+  }
+
   my $swmode = $info->{switchingMode};
 
   # "inbeam" can be handled generically in some cases.
