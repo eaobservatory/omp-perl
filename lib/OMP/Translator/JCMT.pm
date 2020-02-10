@@ -157,8 +157,11 @@ sub translate {
 
     # Use the given config. the case of RawXmlObs and skip further processing.
     if ($obs->{'MODE'} eq 'SpIterRawXmlObs') {
+      my $ocscfgxml = $obs->{'ocsconfig'};
+      $ocscfgxml =~ s/^\s*//;
+      $ocscfgxml =~ s/\s*$//;
       push @configs, new JAC::OCS::Config(
-        XML => $obs->{'ocsconfig'}, validation => 0);
+        XML => $ocscfgxml, validation => 0);
       next;
     }
 
