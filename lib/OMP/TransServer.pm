@@ -87,8 +87,11 @@ sub translate {
     # Server infrastructure should catch everything else
     $E = shift;
   } otherwise {
-    # No difference yet
+    # Check if we have an XML::LibXML::Error and if so, convert to our class.
     $E = shift;
+    if (UNIVERSAL::isa($E, 'XML::LibXML::Error')) {
+      $E = new OMP::Error($E->as_string());
+    }
   };
 
   # This has to be outside the catch block else we get

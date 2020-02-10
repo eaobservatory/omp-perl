@@ -3773,7 +3773,7 @@ sub SpObs {
        grep /Pointing|Photom|Jiggle|Stare|Raster|FTS2|DREAM|Focus/, @{$summary{obstype}}) {
     $use_sci_coords = 1;
     $optional_coords = 0; # need a target unless autotarget
-  } elsif ( grep /Skydip|Noise|Setup/, @{$summary{obstype}}) {
+  } elsif ( grep /Skydip|Noise|Setup|RawXml/, @{$summary{obstype}}) {
     # Note that the translator gets to decide whether to really use the target
     # information based on noiseSource and UseCurrentAz flags.
     $use_sci_coords = ( exists $summary{coords} ? 1 : 0);
@@ -4507,6 +4507,18 @@ sub SpIterFolder {
       #print "FTS HASH: " . Dumper(\%fts) . "\n";
 
       push(@{$summary{$parent}{'CHILDREN'}}, { $name => \%fts });
+
+    } elsif ($name eq 'SpIterRawXmlObs') {
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
+
+      my %raw = (
+        # Use textContent in case CDATA nodes are present.
+        ocsconfig => join '', map {join '', map {$_->textContent} $_->childNodes}
+            $self->_get_children_by_name($child, 'ocsconfig'),
+      );
+
+      push @{$summary{$parent}{'CHILDREN'}}, {$name => \%raw};
 
     } elsif ($name eq 'SpIterObserve') {
       # Add the basic SpIterObserve "eye" (used for example with

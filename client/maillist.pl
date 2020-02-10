@@ -6,7 +6,9 @@ maillist - Generate a list of PI and Co-I email addresses
 
 =head1 SYNOPSIS
 
-maillist -country UK
+maillist -country UK [-telescope TEL]
+
+maillist -project M99XY000
 
 =head1 DESCRIPTION
 
@@ -26,6 +28,11 @@ Specify the country queue.
 =item B<-telescope>
 
 Specify the telescope.
+
+=item B<-project>
+
+Specify an individual project identifier.  (In this mode the -country
+and -project options are ignored.)
 
 =item B<-help>
 
@@ -61,10 +68,11 @@ our $VERSION = '2.000';
 $| = 1; # Make unbuffered
 
 # Options
-my ($country, $telescope, $help, $man, $version);
+my ($country, $telescope, $single_project, $help, $man, $version);
 my $status = GetOptions(
                         "country=s" => \$country,
                         "telescope=s" => \$telescope,
+                        'project=s' => \$single_project,
                         "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -79,17 +87,24 @@ if ($version) {
   exit;
 }
 
-# Die if missing certain arguments
-unless (defined $country) {
-  die "The country argument must be specified\n";
+my $xmlquery;
+if (defined $single_project) {
+  $xmlquery = "<ProjQuery>"
+    . "<projectid>$single_project</projectid>"
+    . "</ProjQuery>";
 }
-
-# XML query
-my $xmlquery = "<ProjQuery>".
-  "<country>$country</country>";
-$xmlquery .= "<telescope>$telescope</telescope>"
-  unless (! $telescope);
-$xmlquery .= "</ProjQuery>";
+elsif (defined $country) {
+  # XML query
+  $xmlquery = "<ProjQuery>".
+    "<country>$country</country>";
+  $xmlquery .= "<telescope>$telescope</telescope>"
+    unless (! $telescope);
+  $xmlquery .= "</ProjQuery>";
+}
+else {
+  # Die if missing certain arguments
+  die "The country or project argument must be specified\n";
+}
 
 # Get projects
 my $projects = OMP::ProjServer->listProjects( $xmlquery,

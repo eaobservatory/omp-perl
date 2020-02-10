@@ -50,9 +50,10 @@ use OMP::DBServer;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 
-my ($tel, $dry_run);
+my ($tel, $verbose, $dry_run);
 GetOptions(
     'tel=s' => \$tel,
+    'verbose' => \$verbose,
     'dry-run' => \$dry_run,
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
 
@@ -63,6 +64,7 @@ check_project_expiry();
 exit 0;
 
 sub check_project_expiry {
+    my $standard_semester = qr/^\d\d[AB]$/;
     my $dt = DateTime->now(time_zone => 'UTC');
     my $semester = OMP::DateTools->determine_semester(date => $dt, tel => $tel);
 
@@ -91,9 +93,15 @@ sub check_project_expiry {
         '</ProjQuery>'))) {
         my $projectid = $project->projectid();
 
-        print "Advancing semester: $projectid\n";
+        if ($project->semester() !~ $standard_semester) {
+            print "Not advancing semester: $projectid (non-standard semester)\n"
+                if $verbose;
+        }
+        else {
+            print "Advancing semester: $projectid\n";
 
-        advance_project($db, $project, $semester) unless $dry_run;
+            advance_project($db, $project, $semester) unless $dry_run;
+        }
     }
 }
 

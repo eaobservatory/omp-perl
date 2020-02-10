@@ -386,8 +386,8 @@ my @fail =
     'u/uhs/uhsK003',
     # ... or in band other than (J, K).
     '[u/uhs/uhsL02]',
-    # could not possibly be in past.
-    'u/12b/ua01',
+    # year should have 2 digits
+    'u/9b/ua01',
     #  starts from 1, not 0.
     'u/13a/lm00',
     'u/14a/lm00',
