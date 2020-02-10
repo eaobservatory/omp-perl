@@ -3773,7 +3773,7 @@ sub SpObs {
        grep /Pointing|Photom|Jiggle|Stare|Raster|FTS2|DREAM|Focus/, @{$summary{obstype}}) {
     $use_sci_coords = 1;
     $optional_coords = 0; # need a target unless autotarget
-  } elsif ( grep /Skydip|Noise|Setup/, @{$summary{obstype}}) {
+  } elsif ( grep /Skydip|Noise|Setup|RawXml/, @{$summary{obstype}}) {
     # Note that the translator gets to decide whether to really use the target
     # information based on noiseSource and UseCurrentAz flags.
     $use_sci_coords = ( exists $summary{coords} ? 1 : 0);
