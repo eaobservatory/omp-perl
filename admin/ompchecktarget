@@ -728,8 +728,7 @@ sub get_proposed_targets {
   if (@proposed > 0) {
     printf STDERR "# Fetched %d proposed targets\n", $#proposed+1;
   } else {
-    print STDERR "No proposed targets found\nFinished\n";
-    exit;
+    print STDERR "No proposed targets found\n";
   }
 
   return \@proposed;
