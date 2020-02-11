@@ -584,7 +584,7 @@ sub get_scheduled_targets {
   if (defined($fop) && $fop ne "") {
       $fopclause = qq{
 AND Q.projectid IN
-    (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid=$fop AND capacity="SUPPORT")}
+    (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid="$fop" AND capacity="SUPPORT")}
   }
   # Connect to the database.
   print STDERR "# Connecting to OMP server...";
@@ -603,6 +603,7 @@ AND Q.projectid IN
     AND timestamp BETWEEN $utstart AND $utstop
     AND Q.projectid NOT IN (
         SELECT projectid FROM $OMP::ProjDB::PROJQUEUETABLE WHERE country IN ("EC", "JAC", "EAO"))
+    $fopclause
     ORDER BY project, name
     };
   print 'Running query: ', $sql, "\n" if $debug;
