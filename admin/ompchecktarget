@@ -148,6 +148,11 @@ in this directory will be loaded.
 
 =back
 
+=item B<-fop>
+
+Only look at projects where the given username is set as FOP. The FOP
+must be given as the OMP username (e.g. PARSONSH)
+
 =cut
 
 # ----------------------------------------------------------------------
@@ -217,7 +222,7 @@ my $targetdir = undef;
 # Command-line parameters
 #
 my ($help, $man, $version, $dbg);
-my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $scheduled);
+my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $scheduled, $fop);
 
 my $status = GetOptions("ut=s"       => \$utd,
                         "utstop=s"   => \$uts,
@@ -233,6 +238,7 @@ my $status = GetOptions("ut=s"       => \$utd,
                         "debug"      => \$dbg,
                         "scheduled"  => \$scheduled,
                         'targetdir=s' => \$targetdir,
+                        'fop=s'      => \$fop,
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
@@ -359,22 +365,20 @@ unless ($coords) {
   unless ($scheduled) {
     # from COMMON table in JCMT DB sorted by project.
     $observed = &get_observed_targets( $utstart, $utstop,
-                                        "$projects", $telescope );
+                                        "$projects", $telescope, $fop );
   }
   else {
-    $observed = get_scheduled_targets($utstart, $utstop);
+    $observed = get_scheduled_targets($utstart, $utstop, $fop);
   }
 } else {
   # or for user-specified coordinates
   $observed = &get_user_target( "$projects", $telescope, $coords );
 }
 
-
 # Get proposed targets for observed projects.
 $proposed = &get_proposed_targets( $telescope, $observed );
 
 print "---------------------------------------------------------------------------\n";
-
 
 # Compare observed targets to proposed ones.
 foreach my $obs (@$observed) {
@@ -444,12 +448,13 @@ sub get_observed_targets {
 # not presently return the Coord object. Hence used a direct query.
 #
 # Use: $observed = get_observed_targets ( $utstart, $utstop,
-#                                         $projects, $telescope )
+#                                         $projects, $telescope, $fop )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
 #    $projects: string, possibly with wild cards ('*')
 #    $telescope: telescope to query COMMON table for (not yet used)
+#    $fop: only get projects where specified username is listed as support
 #
 # Returned:
 #    Reference to array of hashes with observed targets, keys:
@@ -459,7 +464,7 @@ sub get_observed_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $projids, $telescope) = @_;
+  my ($utstart, $utstop, $projids, $telescope, $fop) = @_;
 
   my $prjclause = "";
   if ($projects ne "") {
@@ -467,6 +472,12 @@ sub get_observed_targets {
     $prjclause =~ s/\*/\%/g;
   }
 
+  my $fopwhereclause = "";
+  my $fopjoinclause = "";
+  if (defined($fop) && $fop ne "") {
+      $fopwhereclause = qq{ AND userid = "$fop"  AND capacity="SUPPORT"};
+      $fopjoinclause = qq{ JOIN omp.ompprojuser AS op ON jcmt.COMMON.project = op.projectid };
+  }
   # Connect to the database.
   print STDERR "# Connecting to OMP server...";
   my $dbbackend = new OMP::DBbackend::Archive();
@@ -476,12 +487,15 @@ sub get_observed_targets {
   # Now retrieve data from the table.
   my $sql = qq{
     SELECT distinct project, utdate, object as name, obsra as ra, obsdec as `dec`, obsnum
-    FROM jcmt.COMMON WHERE
+    FROM jcmt.COMMON  $fopjoinclause
+    WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
+    $fopwhereclause
     AND telescop="$telescope"
     ORDER BY project, utdate
     };
+
   print 'Running query: ', $sql, "\n" if $debug;
   my $sth = $dbh->prepare($sql);
   $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
@@ -541,10 +555,11 @@ sub get_scheduled_targets {
 
 # Get the scheduled targets from the ompobs table in OMP database.
 #
-# Use: $scheduled = get_scheduled_targets ( $utstart, $utstop )
+# Use: $scheduled = get_scheduled_targets ( $utstart, $utstop, $fop )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
+#    $fop: OMP user id of friend of project (can be blank)
 #
 # Returned:
 #    Reference to array of hashes with observed targets, keys:
@@ -561,6 +576,13 @@ sub get_scheduled_targets {
   $utstart = new Time::Piece->strptime("$utstart", "%Y%m%d")->epoch();
   $utstop  = new Time::Piece->strptime("$utstop 23:59:59", "%Y%m%d %H:%M:%S")->epoch();
 
+
+  my $fopclause = "";
+  if (defined($fop) && $fop ne "") {
+      $fopclause = qq{
+AND Q.projectid IN
+    (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid=$fop AND capacity="SUPPORT")}
+  }
   # Connect to the database.
   print STDERR "# Connecting to OMP server...";
   my $dbbackend = new OMP::DBbackend();
