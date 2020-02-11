@@ -272,6 +272,9 @@ $projects = uc $prjs if (defined $prjs);
 die "*ERROR* Need to also specify a project with user-specified coordinates"
     if ($projects eq '' and (defined $crds or defined $cat));
 
+# FOP
+$fop = uc $fop if (defined $fop);
+
 
 # Just print catalog of proposed targets?
 if (defined $cat) {
