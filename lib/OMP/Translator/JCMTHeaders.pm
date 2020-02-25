@@ -132,7 +132,9 @@ sub getProject {
   my $obs_type = lc($info{obs_type});
   my $standard = $class->getStandard($cfg, %info);
 
-  if ($standard || $obs_type ne 'science' || $info{autoTarget} ) {
+  my %type_non_std = map {$_ => 1} qw/science raw/;
+
+  if ($standard || (not exists $type_non_std{$obs_type}) || $info{autoTarget} ) {
     if ($class->VERBOSE) {
       # only warn if we are called from outside this package
       if (!$class->islocal(caller)) {

@@ -160,8 +160,21 @@ sub translate {
       my $ocscfgxml = $obs->{'ocsconfig'};
       $ocscfgxml =~ s/^\s*//;
       $ocscfgxml =~ s/\s*$//;
-      push @configs, new JAC::OCS::Config(
-        XML => $ocscfgxml, validation => 0);
+      my $cfg = new JAC::OCS::Config(XML => $ocscfgxml, validation => 0);
+      my %headers = (
+        MSBID => 'getMSBID',
+        MSBTITLE => 'getMSBTitle',
+        PROJECT => 'getProject',
+      );
+      while (my ($header, $method) = each %headers) {
+        my $hdr = $cfg->header()->item($header);
+        my $val = $self->hdrpkg()->$method($cfg, %$obs);
+        if ((defined $hdr) and (defined $val)) {
+          $hdr->value($val);
+          $hdr->source(undef);
+        }
+      }
+      push @configs, $cfg;
       next;
     }
 
