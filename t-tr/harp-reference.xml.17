@@ -2830,6 +2830,7 @@
          <in_ref ref="TREC_MEDIAN"/>
          <in_ref ref="ETAL"/>
          <in_ref ref="WEATHER"/>
+         <in_ref ref="WVM"/>
       </source_params>
       <s_object_list>
          <source_object ref="SPECTRUM_RESULT"/>
@@ -2943,6 +2944,8 @@
    <monitor_process id="fe_monitor" interface="FE_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source=""/>
 
    <monitor_process id="ws_monitor" interface="WEATHER_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="ENVIRO"/>
+
+   <monitor_process id="wvm_monitor" interface="WVM_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="WVM"/>
 
    <monitor_process id="if_monitor" interface="IF_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="IFTASK"/>
 
@@ -3341,6 +3344,23 @@
       <param id="WEATHER.CSO_SRC" type="string"/>
       <param id="WEATHER.JCMT_TAU_TIME" type="string"/>
       <param id="WEATHER.Seeing_TIME" type="string"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="WVM_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="wvm_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="WVM" type="record"/>
+      <param id="WVM.SKY_TEMP12" type="float" units="K"/>
+      <param id="WVM.SKY_TEMP42" type="float" units="K"/>
+      <param id="WVM.SKY_TEMP78" type="float" units="K"/>
+      <param id="WVM.TAU_TAI" type="double"/>
    </out_parameters>
 </interface>
 
