@@ -160,8 +160,21 @@ sub translate {
       my $ocscfgxml = $obs->{'ocsconfig'};
       $ocscfgxml =~ s/^\s*//;
       $ocscfgxml =~ s/\s*$//;
-      push @configs, new JAC::OCS::Config(
-        XML => $ocscfgxml, validation => 0);
+      my $cfg = new JAC::OCS::Config(XML => $ocscfgxml, validation => 0);
+      my %headers = (
+        MSBID => 'getMSBID',
+        MSBTITLE => 'getMSBTitle',
+        PROJECT => 'getProject',
+      );
+      while (my ($header, $method) = each %headers) {
+        my $hdr = $cfg->header()->item($header);
+        my $val = $self->hdrpkg()->$method($cfg, %$obs);
+        if ((defined $hdr) and (defined $val)) {
+          $hdr->value($val);
+          $hdr->source(undef);
+        }
+      }
+      push @configs, $cfg;
       next;
     }
 
@@ -895,9 +908,6 @@ sub observing_area {
     # Offset
     my $offx = ($info{OFFSET_DX} || 0);
     my $offy = ($info{OFFSET_DY} || 0);
-
-    # Now rotate to the MAP_PA
-    ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
 
     my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
                                          system => 'TRACKING' );
