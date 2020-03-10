@@ -4129,8 +4129,7 @@ sub SpIterFolder {
         $details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
 
         # OFFSET system should always be TRACKING for the OT usage at the moment
-        # We read this for interest but do not yet use the answer in the Translator
-        # until we clarify what the OT is allowed to specify
+        # with the OT release version, but may be specified in the internal version.
         $details{OFFSET_SYSTEM} = $off->getAttribute("SYSTEM");
         $details{OFFSET_SYSTEM} = 'AZEL' if ( defined( $details{OFFSET_SYSTEM} ) &&
                                               $details{OFFSET_SYSTEM} eq 'Az/El' );
