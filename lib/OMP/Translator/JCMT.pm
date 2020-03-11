@@ -909,8 +909,11 @@ sub observing_area {
     my $offx = ($info{OFFSET_DX} || 0);
     my $offy = ($info{OFFSET_DY} || 0);
 
+    # Now rotate to the MAP_PA
+    ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
+
     my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
-                                         system => 'TRACKING' );
+                                         system => ($info{'OFFSET_SYSTEM'} || 'TRACKING') );
 
     $oa->offsets( $off );
   } else {
@@ -922,6 +925,7 @@ sub observing_area {
       @offsets = ( { OFFSET_DX => ($info{OFFSET_DX} || 0),
                      OFFSET_DY => ($info{OFFSET_DY} || 0),
                      OFFSET_PA => ($info{OFFSET_PA} || 0),
+                     OFFSET_SYSTEM => ($info{'OFFSET_SYSTEM'} || undef),
                    } );
     }
 
@@ -936,7 +940,7 @@ sub observing_area {
     my @out = map { new Astro::Coords::Offset( $_->{OFFSET_DX},
                                                $_->{OFFSET_DY},
                                                projection => 'TAN',
-                                               system => 'TRACKING'
+                                               system => ($_->{'OFFSET_SYSTEM'} || 'TRACKING')
                                              )
                   } @offsets;
 
@@ -1874,6 +1878,9 @@ reference angle coordinate frame.
 
   @new = $trans->align_offsets( $refpa, @input );
 
+Note: the results are not likely to be useful if the offsets have
+different systems.
+
 =cut
 
 sub align_offsets {
@@ -1887,7 +1894,8 @@ sub align_offsets {
     my ($x, $y) = $self->PosAngRot( $o->{OFFSET_DX}, $o->{OFFSET_DY},
                                     ( $refpa - $o->{OFFSET_PA})
                                   );
-    push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa });
+    push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa,
+                  OFFSET_SYSTEM => $o->{'OFFSET_SYSTEM'} });
   }
   return @out;
 }
