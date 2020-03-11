@@ -909,6 +909,9 @@ sub observing_area {
     my $offx = ($info{OFFSET_DX} || 0);
     my $offy = ($info{OFFSET_DY} || 0);
 
+    # Now rotate to the MAP_PA
+    ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
+
     my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
                                          system => 'TRACKING' );
 
