@@ -2581,6 +2581,8 @@ sub cubes {
       @offsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
 
       # Should fix up earlier code to add SYSTEM
+      # NOTE: we do now have this, but it is called OFFSET_SYSTEM, not SYSTEM,
+      # so this adds a duplicate, possibly wrong, attribute.
       for (@offsets) {
         $_->{SYSTEM} = "TRACKING";
       }
@@ -2622,6 +2624,8 @@ sub cubes {
       @teloffsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
 
       # Should fix up earlier code to add SYSTEM
+      # NOTE: we do now have this, but it is called OFFSET_SYSTEM, not SYSTEM,
+      # so this adds a duplicate, possibly wrong, attribute.
       for (@teloffsets) {
         $_->{SYSTEM} = "TRACKING";
       }
