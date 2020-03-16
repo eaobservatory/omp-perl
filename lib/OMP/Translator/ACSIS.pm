@@ -1057,14 +1057,25 @@ sub rotator_config {
         @choices = (0,2);
       }
 
-    } elsif ((($info{mapping_mode} eq 'grid')
-                 or $info{'isConvertedGridFreqSw'})
-             && exists $info{stareSystem}
+    } elsif (($info{mapping_mode} eq 'grid')
+                 or $info{'isConvertedGridFreqSw'}) {
+      if (exists $info{stareSystem}
              && defined $info{stareSystem}) {
-      # override K mirror option
-      # For now only allow when there are no offsets (simplifies map making)
-      $system = $info{stareSystem} || 'TRACKING';
-      $pa = new Astro::Coords::Angle( ($info{starePA} || 0), units => 'deg' );
+        # override K mirror option
+        # For now only allow when there are no offsets (simplifies map making)
+        $system = $info{stareSystem} || 'TRACKING';
+        $pa = new Astro::Coords::Angle( ($info{starePA} || 0), units => 'deg' );
+      }
+      else {
+        # Might we need to change system to align with the grid?
+        my @offsets;
+        @offsets = @{$info{'offsets'}} if (exists $info{'offsets'} and defined $info{'offsets'});
+        if (@offsets) {
+          my $offsys = undef;
+          $offsys = $offsets[0]->{'OFFSET_SYSTEM'} if exists $offsets[0]->{'OFFSET_SYSTEM'};
+          $system = $offsys if defined $offsys;
+        }
+      }
     }
   }
 
@@ -2581,6 +2592,8 @@ sub cubes {
       @offsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
 
       # Should fix up earlier code to add SYSTEM
+      # NOTE: we do now have this, but it is called OFFSET_SYSTEM, not SYSTEM,
+      # so this adds a duplicate, possibly wrong, attribute.
       for (@offsets) {
         $_->{SYSTEM} = "TRACKING";
       }
@@ -2622,6 +2635,8 @@ sub cubes {
       @teloffsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
 
       # Should fix up earlier code to add SYSTEM
+      # NOTE: we do now have this, but it is called OFFSET_SYSTEM, not SYSTEM,
+      # so this adds a duplicate, possibly wrong, attribute.
       for (@teloffsets) {
         $_->{SYSTEM} = "TRACKING";
       }
