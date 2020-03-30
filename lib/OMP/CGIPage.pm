@@ -368,50 +368,6 @@ sub _write_staff_login {
   $self->_write_footer();
 }
 
-=item B<_write_admin_login>
-
-Create a login page that takes an OMP user id and administrator password.
-
-  $self->_write_admin_login();
-
-=cut
-
-sub _write_admin_login {
-  my $self = shift;
-
-  my $q = $self->cgi;
-
-  $self->_make_theme();
-
-  $self->_write_header();
-
-  print "Please provide your user ID and the administrator password.<br>";
-
-  print "<table><tr valign=bottom><td align=right>";
-  print $q->startform;
-
-  print $q->hidden(-name=>'login_form',
-                   -default=>1,);
-  print $q->hidden(-name=>'show_content',
-                   -default=>1);
-  print $q->br;
-  print "Username: </td><td>";
-  print $q->textfield(-name=>'userid',
-                      -size=>17,
-                      -maxlength=>30);
-  print $q->br;
-  print "</td><tr><td>Admin Password: </td><td>";
-  print $q->password_field(-name=>'password',
-                           -size=>17,
-                           -maxlength=>30);
-  print "</td><td>";
-  print $q->submit("Submit");
-  print $q->endform;
-  print "</td></table>";
-
-  $self->_write_footer();
-}
-
 =item B<write_page>
 
 Create the page with the login form if login detail are needed.  Once login
