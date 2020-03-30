@@ -54,7 +54,7 @@ our $TABLEWIDTH = 720;
 
 Return the URL where public cgi scripts can be found.
 
-  $url = OMP::CGIComponent::Helper->public_url();
+  $url = public_url();
 
 =cut
 
@@ -72,7 +72,7 @@ sub public_url {
 
 Return the URL where private cgi scripts can be found.
 
-  $url = OMP::CGIComponent::Helper->private_url();
+  $url = private_url();
 
 =cut
 

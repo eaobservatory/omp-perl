@@ -416,7 +416,6 @@ sub msb_comments_by_project {
 
   # Get the Private and Public cgi-bin URLs
   my $public_url = public_url();
-  my $private_url = private_url();
 
   foreach my $msb (@$comments) {
     my $projectid = $msb->projectid;
