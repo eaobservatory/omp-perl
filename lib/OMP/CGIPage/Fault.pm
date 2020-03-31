@@ -596,10 +596,10 @@ sub query_fault_output {
     # Make a link to this script with an argument to alter sort order
     my $sort_order = $self->_get_param('sort_order');
     if ($sort_order eq "ascending") {
-      my $sort_url = $comp->url_args("sort_order", "ascending", "descending");
+      my $sort_url = $comp->url_args("sort_order", "descending");
       print "Showing oldest/lowest first | <a href='$sort_url'>Show most recent/highest first</a>";
     } else {
-      my $sort_url = $comp->url_args("sort_order", "descending", "ascending");
+      my $sort_url = $comp->url_args("sort_order", "ascending");
       print "<a href='$sort_url'>Show oldest/lowest first</a> | Showing most recent/highest first";
     }
     print "<br>",
@@ -1622,7 +1622,7 @@ sub _make_sort_by_links {
 
     push @out,
       q[<a href="]
-      . $comp->url_args( 'orderby' , $chosen, $opt )
+      . $comp->url_args( 'orderby' , $opt )
       . qq[">Sort by $text</a>]
       ;
   }
