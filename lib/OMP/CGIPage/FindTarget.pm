@@ -19,6 +19,7 @@ use strict;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
 
@@ -73,7 +74,7 @@ sub _show_input_page {
             'Perform a pencil-beam search for targets around a specified',
             'position or around targets from a specified projects.',
         ),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->table(
             $q->Tr([
                 $q->td([

@@ -35,7 +35,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/public_url private_url/);
+@EXPORT_OK = (qw/public_url private_url start_form_absolute/);
 
 %EXPORT_TAGS = (
                 'all' =>[ @EXPORT_OK ],
@@ -84,6 +84,31 @@ sub private_url {
   my $cgidir = OMP::Config->getData( 'cgidir' );
 
   return "$url" . "$cgidir";
+}
+
+=item B<start_form_absolute>
+
+Return a start form tag (generated using CGI->start_form) using
+an "absolute" URL (without host).  Any additional arguments are
+passed to that method.  The URL should only contain query
+parameters from current URL parameters (not posted form parameters).
+
+  print start_form_absolute($q);
+
+=cut
+
+sub start_form_absolute {
+  my $q = shift;
+  my %args = @_;
+
+  my %url_opt = (-absolute => 1);
+  unless (exists $args{'-method'} and $args{'-method'} eq 'GET') {
+      # Create a new CGI object containing only the URL parameters.
+      $q = $q->new({map {$_ => $q->url_param($_)} $q->url_param()});
+      $url_opt{'-query'} = 1;
+  }
+
+  return $q->start_form(-action => $q->url(%url_opt), %args);
 }
 
 =back

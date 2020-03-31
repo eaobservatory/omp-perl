@@ -22,6 +22,7 @@ use Carp;
 
 use OMP::CGIDBHelper;
 use OMP::CGIComponent::Feedback;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
@@ -174,7 +175,7 @@ sub msb_hist_content {
   print "</SCRIPT>";
 
 
-  print $q->startform(-name=>'sortform'),
+  print start_form_absolute($q, -name=>'sortform'),
         "<b>Show </b>",
 
         # we want to show this page again, not the output page, so

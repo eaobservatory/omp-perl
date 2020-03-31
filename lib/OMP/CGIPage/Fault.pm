@@ -28,6 +28,7 @@ use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
 use OMP::CGIComponent::Fault;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::Project;
 use OMP::Config;
 use OMP::DBServer;
@@ -906,7 +907,7 @@ sub update_fault_content {
   if (!$faultid) {
     print $q->h2("Update a fault");
     print "<table border=0><tr><td>";
-    print $q->startform;
+    print start_form_absolute($q);
     print "<b>Enter a fault ID: </b></td><td>";
     print $q->textfield(-name=>'id',
                         -size=>15,
@@ -1520,7 +1521,7 @@ sub _sidebar {
   # Construct our HTML for the sidebar fault form
   my $sidebarform =
     "<br><font color=#ffffff>Fault ID:</font><br>".
-      $q->start_form .
+      start_form_absolute($q) .
       $q->textfield(-name=>'goto_fault',
                     -size=>14,
                     -maxlength=>20,) .

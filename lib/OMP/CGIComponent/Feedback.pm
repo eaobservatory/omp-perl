@@ -24,6 +24,7 @@ use Carp;
 
 use Text::Wrap;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Constants qw(:fb);
 use OMP::Error qw(:try);
 use OMP::FBServer;
@@ -75,7 +76,7 @@ sub fb_entries {
 
 
   print $q->h2("Feedback entries"),
-        $q->startform(-name=>'sortform'),
+        start_form_absolute($q, -name=>'sortform'),
         "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
         "Order: ",
         $q->hidden(-name=>'show_content',
@@ -173,7 +174,7 @@ sub comment_form {
   my %cookie = @_;
 
   print "<table><tr valign='bottom'><td>";
-  print $q->startform,
+  print start_form_absolute($q),
 
   # Store the cookie values in hidden fields so that they can be retrieved if the
   # cookie expires before the comment is submitted.  Otherwise the comment will be

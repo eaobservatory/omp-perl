@@ -16,6 +16,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use PGPLOT;
 
 use OMP::CGIDBHelper;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::General;
 use Starlink::AST::PGPLOT;
 
@@ -37,7 +38,7 @@ sub view_region {
   die 'Did not recieve valid project ID.' unless $projectid;
 
   print $q->h2('Download or Plot Regions for ' . uc($projectid)),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->p($q->b('Type of observations')),
         $q->blockquote(
           $q->radio_group(-name => 'type', -values => ['all', 'new', 'progress', 'complete'],

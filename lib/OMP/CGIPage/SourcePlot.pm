@@ -16,6 +16,7 @@ done by OMP::GetCoords::Plot module.
 use strict;
 
 use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::GetCoords::Plot qw/plot_sources/;
 
 use CGI;
@@ -69,7 +70,7 @@ sub _show_inputpage {
 
     print
         $q->p('Plot sources from an OMP project'),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->table(
             $q->Tr([
                 $q->td([

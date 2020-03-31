@@ -31,6 +31,7 @@ use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::ShiftQuery;
 use OMP::ShiftDB;
 use OMP::Error qw/ :try /;
@@ -295,7 +296,7 @@ sub display_comment_form {
   my $cgi = shift;
   my $v = shift;
 
-  print $cgi->startform;
+  print start_form_absolute($cgi);
   print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
   print "Author:</td><td>";
   print $cgi->textfield( -name => 'user',
@@ -358,7 +359,7 @@ sub display_date_form {
   my $v = shift;
 
   print "<br>\n";
-  print $cgi->startform;
+  print start_form_absolute($cgi);
   print "<a name=\"changeut\">New</a> date (yyyy-mm-dd format, please): ";
   print $cgi->textfield( -name => 'date',
                          -size => '16',
@@ -402,7 +403,7 @@ sub display_telescope_form {
   @tels = map { uc } @tels;
 
   print "<br>\n";
-  print $cgi->startform;
+  print start_form_absolute($cgi);
   print "<a name=\"changetelescope\">Change</a> telescope: ";
   print $cgi->radio_group( -name => 'telescope',
                            -values => \@tels,

@@ -383,7 +383,7 @@ TABLE
       print
         Tr( td( $NBSP ),
             td( { 'colspan' => , $table_cols - 1 },
-              $q->startform,
+              start_form_absolute($q),
               $q->submit($remove_button), $remove_note,
               OMP::Display->make_hidden_fields( $q, { %common_hidden } ),
               $q->endform
@@ -458,7 +458,7 @@ sub msb_comment_form {
   }
 
   print "<table border=0><tr><td valign=top>User ID: </td><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->textfield(-name=>'author',
                       -size=>22,
                       -maxlength=>32,
@@ -705,7 +705,7 @@ sub observed_form {
   $tel_labels{0} = "Please select";
 
   print "<table><td align='right'><b>";
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output',
                    -default=>1,);
   print "UT Date: </b><td>";
@@ -858,7 +858,7 @@ sub _print_transaction_comments {
       else {
         # Start of comments.
         my @comment_form = (defined $cur)
-          ? ( $query->startform, "\n",
+          ? ( start_form_absolute($query), "\n",
               @buttons, "\n",
               @{ $args->{'hidden' } }, "\n",
               $query->hidden(-name => 'transaction', -default => $cur),

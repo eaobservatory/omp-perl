@@ -20,6 +20,7 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::Display;
@@ -331,7 +332,7 @@ sub project_users {
 
   # Display users in a table along with a checkbox for
   # indicating contactable status
-  print $q->startform;
+  print start_form_absolute($q);
   print "<table>";
   print "<tr><td>Name (click for details)</td><td>Receive email</td>";
 
@@ -556,7 +557,7 @@ sub edit_details {
     }
   }
 
-  print $q->start_form,
+  print start_form_absolute($q),
       $q->table(
           $q->Tr([
               $q->td([
@@ -640,7 +641,7 @@ sub _add_user_form {
     print $q->p({-style => 'color: red'}, $message) if defined $message;
 
     print
-        $q->start_form(),
+        start_form_absolute($q),
         $q->table(
             $q->Tr([
                 $q->td([

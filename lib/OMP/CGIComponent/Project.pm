@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/ public_url /;
+use OMP::CGIComponent::Helper qw/public_url start_form_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -84,7 +84,7 @@ sub list_projects_form {
   unshift @countries, 'Any';
 
   print "<table border=0><tr><td align=right>Semester: </td><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output',
                    -default=>1,);
   print $q->popup_menu(-name=>'semester',
@@ -388,7 +388,7 @@ Display a form which takes a project ID.
 sub projectid_form {
   my $q = shift;
 
-  print $q->startform;
+  print start_form_absolute($q);
   print "Project ID: ";
   print $q->textfield(-name=>"projectid",
                       -size=>12,

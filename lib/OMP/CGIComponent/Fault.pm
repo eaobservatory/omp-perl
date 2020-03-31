@@ -28,6 +28,7 @@ use Carp;
 
 use Text::Wrap;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::Display;
 use OMP::DateTools;
@@ -199,7 +200,7 @@ sub fault_table {
   my $sys_text = _get_system_label( $fault->category );
 
   print "<div class='black'>";
-  print $q->startform;
+  print start_form_absolute($q);
   print "<table width=$width bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
@@ -358,7 +359,7 @@ sub query_fault_form {
   my $today = localtime;
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td colspan=2>";
-  print $q->startform(-method=>'GET');
+  print start_form_absolute($q, -method=>'GET');
   print $q->hidden(-name=>'faultsearch', -default=>['true']);
 
   print "<b>Find faults: ";
@@ -521,7 +522,7 @@ sub view_fault_form {
 
   print $q->h2("View a fault");
   print "<table border=0><tr><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print "<b>Enter a fault ID: </b></td><td>";
   print $q->textfield(-name=>'id',
                       -size=>15,
@@ -550,7 +551,7 @@ sub close_fault_form {
   my $width = $self->_get_table_width;
   print "<table border=0 width=$width bgcolor=#6161aa>";
   print "<tr><td align=right>";
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->submit(-name=>'close',
@@ -578,7 +579,7 @@ sub change_status_form {
 
   my $faultid = $fault->id;
 
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->popup_menu(-name=>'status',
@@ -762,7 +763,7 @@ sub file_fault_form {
   }
 
   print "<table border=0 cellspacing=4><tr>";
-  print $q->startform({-name => 'file_fault'});
+  print start_form_absolute($q, -name => 'file_fault');
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
@@ -1061,7 +1062,7 @@ sub response_form {
   }
 
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
-  print $q->startform;
+  print start_form_absolute($q);
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
@@ -1279,7 +1280,7 @@ sub print_form {
   # Get printers
   my @printers = OMP::Config->getData('printers');
 
-  print $q->startform;
+  print start_form_absolute($q);
 
   # ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
 
@@ -1497,7 +1498,7 @@ sub fault_summary_form {
   my @categories = sort OMP::Fault->faultCategories;
 
   print "<h2>Summarize faults</h2>";
-  print $q->start_form;
+  print start_form_absolute($q);
   print "Category";
   print $q->popup_menu(-name=>"category",
                        -values=>\@categories,);

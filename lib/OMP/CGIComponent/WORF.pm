@@ -23,6 +23,7 @@ use warnings;
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::Obslog qw/ cgi_to_obs /;
 use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
@@ -279,7 +280,7 @@ sub options_form {
     throw OMP::Error( "Must supply CGI object to option_form in OMP::CGIWORF" );
   }
 
-  print $cgi->startform;
+  print start_form_absolute($cgi);
   print "<table border=\"0\"><tr><td>";
   print "xstart: </td><td>";
   print $cgi->textfield( -name => 'xstart',

@@ -142,7 +142,7 @@ sub issuepwd {
   print "Example project IDs: u/02b/20, m03ac18<br><br>";
   print "The password will be mailed to your registered email address.";
 
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output',
                    -default=>1,);
   print "Project ID: ",$q->textfield('projectid','',8,20);
@@ -651,7 +651,7 @@ sub proj_sum_page {
     }
 
   } else {
-    print $q->startform;
+    print start_form_absolute($q);
     print "Project ID: ";
     print $q->textfield(-name=>"projectid",
                         1-size=>12,
@@ -804,7 +804,7 @@ sub support {
   (! $projectid) and $projectid = OMP::General->extract_projectid($q->url_param('urlprojid'));
 
   # A form for providing a project ID
-  print $q->start_form;
+  print start_form_absolute($q);
   print "<strong>Project ID: </strong>";
   print $q->textfield(-name=>'projectid',
                       -size=>12,
@@ -899,7 +899,7 @@ sub support {
 
   # Form for defining primary support
   print "<h3>Define primary support contacts</h3>";
-  print $q->start_form(-name=>'define_primary');
+  print start_form_absolute($q, -name=>'define_primary');
   print $q->checkbox_group(-name=>'primary',
                            -values=>\@userids,
                            -defaults=>\@defaults,
@@ -949,7 +949,7 @@ sub alter_proj {
     if $q->param('alter_submit');
 
   # Display form for updating project details
-  print $q->start_form(-name=>'alter_project');
+  print start_form_absolute($q, -name=>'alter_project');
 
   print $q->hidden(-name=>'projectid',
                     -default=>$project->projectid,);

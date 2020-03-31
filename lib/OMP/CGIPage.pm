@@ -29,6 +29,7 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::ProjServer;
 use OMP::Cookie;
@@ -344,7 +345,7 @@ sub _write_staff_login {
   print "These pages are restricted to EAO and UKIRT staff only.  Please provide your user ID and the staff password.<br>";
 
   print "<table><tr valign=bottom><td align=right>";
-  print $q->startform;
+  print start_form_absolute($q);
 
   print $q->hidden(-name=>'login_form',
                    -default=>1,);
@@ -390,7 +391,7 @@ is defined in the CGI query parameter list.  The easiest way to make sure
 the 'show_output' parameter is defined is to embed it as a hidden field
 in any forms on the original page:
 
-  $query->start_form;
+  start_form_absolute($query);
 
   $query->textfield(name=>'name', value=>'Bob');
 
@@ -1119,7 +1120,7 @@ sub _write_login {
   print 'Passwords are project-specific, not user-specific. If you have lost your password and you are the PI, you can <a href="/cgi-bin/issuepwd.pl"> generate a new password </a>.';
 
   print "<table><tr valign='bottom'><td>";
-  print $q->startform,
+  print start_form_absolute($q),
 
     # This hidden field contains the 'login_form' param that lets us know we've just come
     # from the login form, so we'll be sure to run the form_content callback and not

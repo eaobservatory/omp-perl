@@ -24,6 +24,7 @@ use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::IncludeFile qw/include_file_ut/;
 use OMP::CGIComponent::Weather;
 use OMP::Constants qw(:done);
@@ -204,7 +205,7 @@ sub night_report {
   $delta or _print_tr( _make_td( 1 , $prev_next_link ) );
 
   _print_tr( _make_td( 1 ,
-                        $q->startform() ,
+                        start_form_absolute($q) ,
                         "\nView report " ,
                         ( $delta ? ' starting on ' : ' for ' ) ,
                         $q->textfield(  -name => "utdate_form",

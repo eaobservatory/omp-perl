@@ -21,7 +21,7 @@ use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 
-use OMP::CGIComponent::Helper qw/ public_url /;
+use OMP::CGIComponent::Helper qw/public_url start_form_absolute/;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
 use OMP::Display;
@@ -1017,7 +1017,7 @@ sub obs_comment_form {
     throw OMP::Error("The projectid for the observation (" . $obs->projectid . ") does not match the project you are logged in as (" . $cookie->{'projectid'} . ")");
   }
 
-  print $q->startform;
+  print start_form_absolute($q);
   print '<table border="0" width="100%"><tr><td width="20%">';
   print "Author: </td><td>";
 
@@ -1380,7 +1380,7 @@ sub print_obslog_header {
   my $qv = $q->Vars;
 
   print "Welcome to obslog.<hr>\n";
-  print $q->startform;
+  print start_form_absolute($q);
 
   my $time = localtime;
   my $currentut = $time->ymd;

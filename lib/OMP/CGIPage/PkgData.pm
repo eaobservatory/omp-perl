@@ -23,6 +23,7 @@ use OMP::Error qw/ :try /;
 use File::Basename;
 our $VERSION = '0.03';
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::ProjServer;
 use OMP::PackageData;
 
@@ -108,7 +109,7 @@ sub _write_form {
 
   print $q->h2("Retrieve data for project ". $cookie->{projectid} );
   print "<table border=0><tr><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print "<b>Enter a UT date: (YYYY-MM-DD)</b></td><td>";
   print $q->textfield(-name=>'utdate',
                       -size=>15,

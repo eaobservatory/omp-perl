@@ -13,6 +13,7 @@ use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
 use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIDBHelper;
 use OMP::DBbackend;
 use OMP::DateTools;
@@ -189,7 +190,7 @@ sub _show_input_page {
 
     print
         $q->h2('View Queue Status'),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->table(
             $q->Tr([
                 $q->td($q->b('Semester')) .
