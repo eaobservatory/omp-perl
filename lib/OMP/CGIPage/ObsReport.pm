@@ -121,7 +121,7 @@ sub night_report {
   # Get the telescope from the URL
   my $telstr = $q->url_param('tel');
 
-  my $nr_url = $q->url(-path_info=>0);
+  my $nr_url = $q->url(-absolute => 1);
 
   # Untaint the telescope string
   my $tel;
@@ -163,7 +163,7 @@ sub night_report {
 
   # Get our current URL
 #    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
-  my $url = $q->url(-path_info=>1);
+  my $url = $q->url(-absolute => 1);
 
   my $start = $utdate->ymd();
   my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x3;

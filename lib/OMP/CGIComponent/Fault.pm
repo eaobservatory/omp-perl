@@ -1319,10 +1319,6 @@ element will appear in a smaller font below the top-bar.
     my $title = shift;
     my $q = $self->cgi;
 
-    # We'll check the URL to determine if we're in the report problem or the
-    # fault system and set the titlebar accordingly
-    my $script = $q->url(-relative=>1);
-
     my $cat = $self->category;
 
     my $toptitle =
