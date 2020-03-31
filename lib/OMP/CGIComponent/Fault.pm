@@ -1482,44 +1482,6 @@ sub parse_file_fault_form {
   return %parsed;
 }
 
-=item B<fault_summary_form>
-
-Create a form for taking parameters for a fault summary.
-
-  $fcgi->fault_summary_form();
-
-=cut
-
-sub fault_summary_form {
-  my $self = shift;
-  my $q = $self->cgi;
-
-  # Get available fault categories
-  my @categories = sort OMP::Fault->faultCategories;
-
-  print "<h2>Summarize faults</h2>";
-  print start_form_absolute($q);
-  print "Category";
-  print $q->popup_menu(-name=>"category",
-                       -values=>\@categories,);
-  print "<table><td>";
-  print $q->radio_group(-name=>"period",
-                        -values=>["last_month","arbitrary"],
-                        -labels=>{last_month=>"Last calendar month",arbitrary=>"For the past"},
-                        -default=>"last_month",
-                        -linebreak=>"true",);
-  print "</td><td valign=bottom>";
-  print $q->textfield(-name=>"days",
-                      -default=>7,
-                      -size=>3,
-                      -maxlength=>4,);
-  print " days";
-  print "</td><tr><td>";
-  print $q->submit(-name=>'submit',);
-  print "</td></table>";
-  print $q->end_form;
-}
-
 =item B<category_xml>
 
 Return a snippet of xml containing the name of the current category

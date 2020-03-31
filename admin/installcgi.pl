@@ -72,7 +72,7 @@ my @srcdirs = qw/ cgi server web /;
 push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
 my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
-                   faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
+                   faultrss.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
                    findtarget.pl
