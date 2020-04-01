@@ -664,15 +664,7 @@ sub view_fault_content {
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  # First try and get the fault ID from the sidebar form param, then
-  # try and get it from the URL or from the regular form param
-  my $faultid;
-  if ($q->param('goto_fault')) {
-    $faultid = $q->param('goto_fault');
-  } else {
-    $faultid = $q->param('id');
-    (! $faultid) and $faultid = $q->url_param('id');
-  }
+  my $faultid = $q->param('id');
 
   # If we still havent gotten the fault ID, put up a form and ask for it
   if (!$faultid) {
@@ -1400,31 +1392,6 @@ sub fault_summary_content {
   print "</table>";
 }
 
-=item B<write_page>
-
-Creates a fault system web page.  See documentation for the write_page method
-in C<OMP::CGI> for more details.
-
-=cut
-
-sub write_page {
-  my $self = shift;
-  my @args = @_;
-  my $q = $self->cgi;
-
-  if ($q->param('goto_fault')) {
-    my $gfaultid = $q->param('goto_fault');
-
-    # Create redirect header
-    print $q->redirect($q->url(-base=>1) . "/cgi-bin/viewfault.pl?id=$gfaultid");
-    print "Redirecting...";
-    print $self->_write_footer();
-    return;
-  }
-
-  $self->SUPER::write_page(@args);
-}
-
 =back
 
 =head2 Internal methods
@@ -1521,8 +1488,10 @@ sub _sidebar {
   # Construct our HTML for the sidebar fault form
   my $sidebarform =
     "<br><font color=#ffffff>Fault ID:</font><br>".
-      start_form_absolute($q) .
-      $q->textfield(-name=>'goto_fault',
+      $q->start_form(
+        -action => OMP::Config->getData('cgidir') . '/viewfault.pl',
+        -method => 'GET') .
+      $q->textfield(-name=>'id',
                     -size=>14,
                     -maxlength=>20,) .
                       "<br><br>" .
