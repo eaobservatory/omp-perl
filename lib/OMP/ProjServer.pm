@@ -6,7 +6,6 @@ OMP::ProjServer - Project information Server class
 
 =head1 SYNOPSIS
 
-  OMP::ProjServer->issuePassword( $projectid );
   $xmlsummary = OMP::ProjServer->summary( "open" );
 
 =head1 DESCRIPTION
@@ -40,55 +39,6 @@ our $VERSION = '2.000';
 =head1 METHODS
 
 =over 4
-
-=item B<issuePassword>
-
-Generate a new password for the specified project and mail the
-resulting plain text password to the PI (or the person
-designated to receive it in the project database).
-
-  OMP::ProjServer->issuePassword( $projectid );
-
-There is no return value. Throws an C<OMP::Error::UnknownProject>
-if the requested project is not in the system.
-
-=cut
-
-sub issuePassword {
-  my $class = shift;
-  my $projectid = shift;
-
-  OMP::General->log_message("issuePassword: $projectid\n");
-
-  my $E;
-  try {
-
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
-
-    $db->issuePassword();
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  defined $E and OMP::General->log_message("issuePassword error: $E\n");
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return 1;
-}
 
 =item B<listProjects>
 
@@ -332,7 +282,7 @@ Add details of a project to the database.
   OMP::ProjServer->addProject($password, $force, $projectid, $pi,
                               $coi, $support,
                               $title, $tagpriority, $country, $tagadj,
-                              $semester, $proj_password, $allocated
+                              $semester, $allocated
                               $telescope, $taumin, $taumax,
                               $seemin, $seemax, $cloudmin, $cloudmax,
                               $skymin, $skymax,
@@ -340,9 +290,9 @@ Add details of a project to the database.
                               $expirydate
                              );
 
-The first password is used to verify that you are allowed to modify
-the project table. The second password is for the project itself.
-Both should be supplied as plain text. The second argument indicates
+The password is used to verify that you are allowed to modify
+the project table.
+It should be supplied as plain text. The second argument indicates
 whether it is desirable to overwrite an existing project. An exception
 will be thrown if this value is false and the project in question
 already exists.
@@ -375,7 +325,7 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be at least 12 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 12;
+    throw OMP::Error::BadArgs("Should be at least 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 11;
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
@@ -386,8 +336,8 @@ sub addProject {
                      or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
         split /[:,]/, $project[2];
     }
-    if (defined $project[22]) {
-        my @coi_affiliations = split /[:,]/, $project[22];
+    if (defined $project[21]) {
+        my @coi_affiliations = split /[:,]/, $project[21];
         foreach my $this_coi (@coi) {
             last unless scalar @coi_affiliations;
             my $affiliation = shift @coi_affiliations;
@@ -403,20 +353,20 @@ sub addProject {
     }
 
     # Create range object for tau (and force defaults if required)
-    my $taurange = new OMP::Range(Min => $project[12], Max => $project[13]);
+    my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
     OMP::SiteQuality::undef_to_default( 'TAU', $taurange );
 
     # And seeing
-    my $seerange = new OMP::Range(Min=>$project[14], Max=>$project[15]);
+    my $seerange = new OMP::Range(Min=>$project[13], Max=>$project[14]);
     OMP::SiteQuality::undef_to_default( 'SEEING', $seerange );
 
     # and cloud
-    my $cloudrange = new OMP::Range(Min=>$project[16], Max=>$project[17]);
+    my $cloudrange = new OMP::Range(Min=>$project[15], Max=>$project[16]);
     OMP::SiteQuality::undef_to_default( 'CLOUD', $cloudrange );
 
     # and sky brightness
     # reverse min and max for magnitudes (but how do we know?)
-    my $skyrange = new OMP::Range(Min=>$project[19], Max=>$project[18]);
+    my $skyrange = new OMP::Range(Min=>$project[18], Max=>$project[17]);
 
     # Set up queue information
     # Convert tag to array ref if required
@@ -451,15 +401,15 @@ sub addProject {
     my $pi = $userdb->getUser( $project[1] );
     throw OMP::Error::FatalError("PI [$project[1]] not recognized by the OMP")
       unless defined $pi;
-    if (defined $project[21]) {
-        throw OMP::Error::FatalError("PI [$project[1]] affiliation '$project[21]' not recognized by the OMP")
-            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[21]};
-        $pi->affiliation($project[21]);
+    if (defined $project[20]) {
+        throw OMP::Error::FatalError("PI [$project[1]] affiliation '$project[20]' not recognized by the OMP")
+            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[20]};
+        $pi->affiliation($project[20]);
     }
 
     my $expirydate = undef;
-    if (defined $project[23]) {
-        $expirydate = OMP::DateTools->parse_date($project[23]);
+    if (defined $project[22]) {
+        $expirydate = OMP::DateTools->parse_date($project[22]);
         throw OMP::Error::FatalError("Expiry date not understood")
             unless defined $expirydate;
     }
@@ -478,14 +428,13 @@ sub addProject {
                                 queue => \%queue,
                                 tagadjustment => \%tagadj,
                                 semester => $project[8],
-                                password => $project[9],
-                                allocated => $project[10],
-                                telescope => $project[11],
+                                allocated => $project[9],
+                                telescope => $project[10],
                                 taurange => $taurange,
                                 seeingrange => $seerange,
                                 cloudrange => $cloudrange,
                                 skyrange => $skyrange,
-                                state => $project[20],
+                                state => $project[19],
                                 expirydate => $expirydate,
                                );
 

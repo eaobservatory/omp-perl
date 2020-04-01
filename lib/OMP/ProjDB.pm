@@ -9,8 +9,6 @@ OMP::ProjDB - Manipulate the project database
   $projdb = new OMP::ProjDB( ProjectID => $projectid,
                              DB => $dbconnection );
 
-  $projdb->issuePassword();
-
   $projdb->verifyPassword( $password );
   $projdb->verifyProject();
 
@@ -41,8 +39,6 @@ use OMP::General;
 use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::SiteQuality;
-
-use Crypt::PassGen qw/passgen/;
 
 use Time::Seconds;
 
@@ -284,65 +280,6 @@ sub verifyTelescope {
     }
     return 0;
   }
-}
-
-=item B<issuePassword>
-
-Generate a new password for the current project and email it to
-the Principal Investigator. The password in the project database
-is updated.
-
-  $db->issuePassword( $addr );
-
-The argument can be used to specify the internet address (and if known
-the uesr name in email address format) of the remote system requesting
-the password. Designed specifically for use by CGI scripts. If the
-value is not defined it will be assumed that we are running this
-routine from the host computer (using the REMOTE_ADDR environment
-variable if it is set).
-
-Note that there are no return values. It either succeeds or fails.
-
-=cut
-
-sub issuePassword {
-  my $self = shift;
-  my $ip = shift;
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # We need to think carefully about transaction management
-  # since we do not want to send out the email only for the
-  # transaction to be backed out because of an error that occurred
-  # just after the email was sent. The safest approach, I think,
-  # is to send the email as the very last thing. If the email
-  # fails to send the password will not be changed. We need to
-  # finish the transaction immediately after sending the email.
-
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
-
-  # Generate a new plain text password
-  my $newpassword = $self->_generate_password;
-
-  # Store this password in the project object
-  # This will automatically encrypt it
-  $project->password( $newpassword );
-
-  # Store the encrypted password in the database
-  $self->_update_project_row( $project );
-
-  # Mail the password to the right people
-  $self->_mail_password( $project, $ip );
-
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
-  return;
 }
 
 =item B<disableProject>
@@ -773,23 +710,6 @@ sub updateContactability {
 =head2 Internal Methods
 
 =over 4
-
-=item B<_generate_password>
-
-Generate a password suitable for use with a project.
-
-  $password = $db->_generate_password;
-
-=cut
-
-sub _generate_password {
-  my $self = shift;
-
-  my ($password) = passgen( NLETT => 8, NWORDS => 1);
-
-  return $password;
-
-}
 
 =item B<_get_total_alloc>
 
@@ -1262,85 +1182,6 @@ sub _get_max_role_order {
   my $order = $self->_db_retrieve_data_ashash( $sql );
 
   return $order->[0]{ $column } || 0;
-}
-
-=item B<_mail_password>
-
-Mail the password associated with the supplied project to the
-principal investigator of the project.
-
-  $db->_mail_password( $project, $addr );
-
-The first argument should be of type C<OMP::Project>. The second
-(optional) argument can be used to specify the internet address of the
-computer (and if available the user) requesting the password.  If it
-is not supplied the routine will assume the current user and host, or
-use the REMOTE_ADDR and REMOTE_USER environment variables if they are
-set (they are usually only set when running in a web environment).
-
-=cut
-
-sub _mail_password {
-  my $self = shift;
-  my $proj = shift;
-
-  if (UNIVERSAL::isa( $proj, "OMP::Project")) {
-
-    # Get projectid
-    my $projectid = $proj->projectid;
-
-    throw OMP::Error::BadArgs("Unable to obtain project id to mail\n")
-      unless defined $projectid;
-
-    # Get the plain text password
-    my $password = $proj->password;
-
-    throw OMP::Error::BadArgs("Unable to obtain plain text password to mail\n")
-      unless defined $password;
-
-    # Try and work out who is making the request
-    my ($user, $ip, $addr) = OMP::NetTools->determine_host;
-
-    # List of recipients of mail
-    my @addr = $proj->contacts;
-
-    throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
-
-
-    # First thing to do is to register this action with
-    # the feedback system
-    my $fbmsg = "<html>New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
-      join(",", map {$_->html} @addr)."\n";
-
-    # Disable transactions since we can only have a single
-    # transaction at any given time with a single handle
-    $self->_notify_feedback_system(
-                                   subject => "Password change for $projectid",
-                                   text => $fbmsg,
-                                   status => OMP__FB_INFO,
-                                   msgtype => OMP__FB_MSG_PASSWD_ISSUED,
-                                   );
-
-    # Now set up the mail
-
-    # Mail message content
-    my $msg = "\nNew password for project $projectid: $password\n\n" .
-      "This password was generated automatically at the request\nof $addr.\n".
-        "\nPlease do not reply to this email message directly.\n";
-
-    $self->_mail_information(
-                             message => $msg,
-                             to => \@addr,
-                             from => OMP::User->new(name => "omp-auto-reply"),
-                             subject => "[$projectid] OMP reissue of password for $projectid",
-                            );
-  } else {
-
-    throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
-
-
-  }
-
 }
 
 =pod

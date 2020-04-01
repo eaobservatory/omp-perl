@@ -126,44 +126,6 @@ sub fb_proj_summary {
   print $q->hr;
 }
 
-=item B<issuepwd>
-
-Create a page with a form for requesting a password.
-
-  issuepwd($cgi);
-
-=cut
-
-sub issuepwd {
-  my $q = shift;
-
-  print "<H1>OMP Password Request Page</h1>";
-  print "You can use this page to request an updated password for your project.<br>";
-  print "Example project IDs: u/02b/20, m03ac18<br><br>";
-  print "The password will be mailed to your registered email address.";
-
-  print start_form_absolute($q);
-  print $q->hidden(-name=>'show_output',
-                   -default=>1,);
-  print "Project ID: ",$q->textfield('projectid','',8,20);
-  print "<P>", $q->submit( '  Request password  ');
-  print $q->endform;
-
-  if ($q->param) {
-    my $projectid = $q->param("projectid");
-    try {
-      OMP::ProjServer->issuePassword( $projectid );
-      print "<P>Password has been mailed to your registered address</p>\n";
-    } catch OMP::Error::UnknownProject with {
-      print "<P>Unable to process your request because this project ID does not exist in our database<p>\n";
-    } otherwise {
-      my $E = shift;
-      print "<p>Unfortunately an error occurred whilst processing your request<p>\n";
-      print "$E\n";
-    }
-  }
-}
-
 =item B<list_projects>
 
 Create a page with a form prompting for the semester to list projects for.
