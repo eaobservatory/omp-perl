@@ -68,6 +68,7 @@ sub new {
                     Obfuscated => 0,
                     Affiliation => undef,
                     NoFaultCC => 0,
+                    IsStaff => 0,
                    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -408,6 +409,23 @@ sub no_fault_cc {
         $self->{'NoFaultCC'} = $_[0] ? 1 : 0;
     }
     return $self->{'NoFaultCC'};
+}
+
+=item B<is_staff>
+
+Whether or not the user is logged in as a staff member.
+
+B<Note:> this is not a database field -- it may be populated
+by the log in process.
+
+=cut
+
+sub is_staff {
+    my $self = shift;
+    if (@_) {
+        $self->{'IsStaff'} = !! shift;
+    }
+    return $self->{'IsStaff'};
 }
 
 =back
