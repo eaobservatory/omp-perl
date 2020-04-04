@@ -79,6 +79,8 @@ and should be used with care.
 This method automatically recognizes whether the science program is
 gzip compressed.
 
+B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
+
 =cut
 
 sub storeProgram {
@@ -245,6 +247,8 @@ take.
   $gzip = OMP::SpServer->fetchProgram( $project, $password, "GZIP" );
 
 See B<compressReturnedItem>
+
+B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
 =cut
 
@@ -424,6 +428,8 @@ program XML ( optionally compressed, ) and a string containing any informational
 messages (separated by newlines).
 
 The catalogue is supplied as a text string including new lines.
+
+B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
 =cut
 

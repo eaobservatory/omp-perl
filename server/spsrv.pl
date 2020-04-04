@@ -39,9 +39,11 @@ use OMP::SpServer;
 
 use SOAP::Transport::HTTP;
 
-SOAP::Transport::HTTP::CGI->dispatch_to("OMP::SpServer")
-  ->options({compress_threshold=>500})
-  ->handle;
+SOAP::Transport::HTTP::CGI->dispatch_to(qw/
+    OMP::SpServer::SpInsertCat
+    OMP::SpServer::fetchProgram
+    OMP::SpServer::storeProgram
+  /)->options({compress_threshold=>500})->handle;
 
 =head1 INSTALLATION
 
