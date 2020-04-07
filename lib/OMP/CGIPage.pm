@@ -19,8 +19,7 @@ $cgi->write_page(\&form_content, \&form_ouptut);
 =head1 DESCRIPTION
 
 This class generates the content of the OMP feedback system CGI scripts by
-piecing together code from different places.  It also handles cookie
-management and look and feel.
+piecing together code from different places.  It also handles look and feel.
 
 =cut
 
@@ -29,14 +28,16 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 
+use OMP::Auth;
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::ProjServer;
-use OMP::Cookie;
 use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
+use OMP::General;
 use OMP::FaultServer;
+use OMP::NetTools;
 use OMP::Password;
 use OMP::UserServer;
 
@@ -68,11 +69,10 @@ sub new {
 
   my $c = {
            CGI => undef,
-           Cookie => [],
            RSSFeed => {},
            Theme => undef,
            Title => 'OMP Feedback System',
-           User => undef,
+           Auth => undef,
           };
 
   # create the object (else we cant use accessor methods)
@@ -138,56 +138,6 @@ sub cgi {
   return $self->{CGI};
 }
 
-=item B<cookie>
-
-Returns an array reference containing objects of class C<OMP::Cookie>.
-If called with a cookie object as an argument the object is stored with
-the rest of the cookies.  When called with an array reference all
-cookies are replaced.
-
-  $cookie = $cgi->cookie;
-  $cgi->cookie( $cookie );
-
-=cut
-
-sub cookie {
-  my $self = shift;
-  if (@_) {
-    my $cookie = shift;
-    my @cookies;
-
-    if (ref($cookie) eq 'ARRAY') {
-      # Multiple cookies.  Replace existing cookies with these ones
-      for (@{$cookie}) {
-        croak "Incorrect type. Must be a OMP::Cookie object"
-          unless UNIVERSAL::isa( $_, "OMP::Cookie");
-      }
-
-      @cookies = @{$cookie};
-    } else {
-      # Single cookie.  Place it in our cookie array.
-      croak "Incorrect type. Must be a OMP::Cookie object"
-        unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
-
-      @cookies = @{$self->{Cookie}}
-        if (defined $self->{Cookie}->[0]);
-
-      push(@cookies, $cookie);
-    }
-
-    # Get rid of duplicate cookies
-    my %no_dupes = map {$_->name, $_} @cookies;
-    @cookies = values %no_dupes;
-    @{$self->{Cookie}} = @cookies;
-  }
-
-  if (wantarray) {
-    return @{$self->{Cookie}};
-  } else {
-    return [ @{$self->{Cookie}} ];
-  }
-}
-
 =item B<html_title>
 
 Return the string to be used for the HTML title.
@@ -229,27 +179,24 @@ sub rss_feed {
   return %{$self->{RSSFeed}};
 }
 
-=item B<user>
+=item B<auth>
 
-The user ID of the current user.
+The authentication object, if a user is logged in.
 
-  $user = $fcgi->user();
-  $fcgi->user($userid);
-
-Argument is a string that is a user ID.  Returns a string.
+  $auth = $cgi->auth();
+  $cgi->auth($auth);
 
 =cut
 
-sub user {
+sub auth {
   my $self = shift;
   if (@_) {
-    $self->{User} = shift;
-  } elsif (! defined $self->{User}) {
-    # Take the category name from the cookie object
-    # and cache it
-    $self->{User} = $self->_get_param('user');
+    my $auth = shift;
+    throw OMP::Error::BadArgs('OMP::CGIPage->auth must be an OMP::Auth')
+        unless UNIVERSAL::isa($auth, 'OMP::Auth');
+    $self->{Auth} = $auth;
   }
-  return $self->{User} || "";
+  return $self->{Auth};
 }
 
 =back
@@ -317,74 +264,56 @@ sub _write_footer {
 
 }
 
-=item B<_write_staff_login>
-
-Create a login page that takes an OMP user id and staff password.
-
-  $self->_write_staff_login( $failed );
-
-Takes a single optional argument.  If the argument is true, a message
-is displayed informing the user that their login information was
-incorrect.
-
-=cut
-
-sub _write_staff_login {
-  my $self = shift;
-  my $arg = shift;
-
-  my $q = $self->cgi;
-
-  $self->_make_theme();
-
-  $self->_write_header();
-
-  print "<strong>The login details you provided were incorrect.</strong><br><br>"
-    if (defined $arg);
-
-  print "These pages are restricted to EAO and UKIRT staff only.  Please provide your user ID and the staff password.<br>";
-
-  print "<table><tr valign=bottom><td align=right>";
-  print start_form_absolute($q);
-
-  print $q->hidden(-name=>'login_form',
-                   -default=>1,);
-  print $q->hidden(-name=>'show_content',
-                   -default=>1);
-  print $q->br;
-  print "Username: </td><td>";
-  print $q->textfield(-name=>'userid',
-                      -size=>17,
-                      -maxlength=>30);
-  print $q->br;
-  print "</td><tr><td>Staff Password: </td><td>";
-  print $q->password_field(-name=>'password',
-                           -size=>17,
-                           -maxlength=>30);
-  print "</td><td>";
-  print $q->submit("Submit");
-  print $q->endform;
-  print "</td></table>";
-
-  $self->_write_footer();
-}
-
 =item B<write_page>
 
 Create the page with the login form if login detail are needed.  Once login
 details are acquired, call the code references or methods provided to this
 method.
 
-  $cgi->write_page( \&form_content, \&form_output,
-                    $no_verify, $output_without_header );
+  $cgi->write_page( \&form_content, \&form_output, $auth_type, %opts );
 
 First argument is the name of the C<OMP::CGI> method (or a code reference) to
 be called for displaying a page with content and fields for taking parameters.
 Second argument is the name of a method (or a code reference) to be called
 for displaying the output generated by submitting any forms on the original
-page.  If the third argument is true, the login verification process is
-skipped.  If the fourth argument is true, the header and footer are omitted for the
+page, or undef if the same method should be used in both cases.
+
+Options for C<auth_type> are:
+
+=over 4
+
+=item no_auth
+
+The login verification process is skipped
+
+=item staff
+
+Require staff log-in.
+
+=item local_or_staff
+
+Require access from a local machine, or with staff log-in.
+
+=item project
+
+Require membership of the project specified by the 'id' query parameter,
+or staff log-in.
+
+=back
+
+Additional options are:
+
+=over 4
+
+=item no_header
+
+The header and footer are omitted for the
 output page to allow the output of types other than HTML.
+
+=back
+
+The given methods will be called with the validated project ID as the
+first argument (after C<$self>).
 
 The second method will only be called if the parameter 'show_output'
 is defined in the CGI query parameter list.  The easiest way to make sure
@@ -401,13 +330,10 @@ in any forms on the original page:
 
   $query->end_form;
 
-The subroutines passed to this method should shift off the first
-The rest of the elements should be dumped to a hash as they contain the cookie
-contents:
+The subroutines passed to this method should shift off the first argument.
 
   sub form_output {
-    my $query = shift;
-    my %cookie = @_;
+    my $self = shift;
     ...
   }
 
@@ -415,9 +341,19 @@ contents:
 
 sub write_page {
   my $self = shift;
-  my ( $form_content, $form_output, $noauth, $output_wo_header ) = @_;
+  my $form_content = shift;
+  my $form_output = shift;
+  my $auth_type = shift;
+  my %opt = @_;
 
   my $q = $self->cgi;
+
+  my $form_same = 0;
+  unless (defined $form_output) {
+    $form_output = $form_content;
+    $form_same = 1;
+  }
+
   # Check to see that they are defined...
   # Check that they are code refs
   foreach ($form_content, $form_output) {
@@ -429,235 +365,74 @@ sub write_page {
       unless ($type eq 'CODE' or $self->can($_));
   }
 
-  # Get parameters for the default cookie
-  my %new_params = $self->_get_default_cookie_params();
+  croak 'No auth_type specified' unless defined $auth_type;
 
-  # Store new parameters to the cookie and reset the expiry time
-  $self->_set_cookie(params=>\%new_params);
+  if (defined $opt{'title'}) {
+    $self->html_title($opt{'title'});
+  }
 
   # Retrieve the theme or create a new one
   $self->_make_theme;
 
-  if (! $noauth) {
-    # Check to see if any login information has been provided. If not then
-    # put up a login page.  If there is login information verify it and put
-    # up a login page if it is incorrect.
-    my $verify = $self->_verify_login;
+  $self->auth(my $auth = OMP::Auth->log_in($q));
 
-    if ($verify == 2) {
-      # No login details were provided
-      $self->_write_login();
-      return;
-    } elsif ($verify == 0) {
-      # Login failed
-      $self->_write_login(1);
-      return;
-    }
+  if ($auth_type eq 'local_or_staff') {
+    $auth_type = OMP::NetTools->is_host_local() ? 'no_auth' : 'staff';
   }
 
-  # Set the cookie with a new expiry time (this occurs even if we
-  # already have one. This allows for automatic expiry if noone
-  # reloads the page
+  my @args = ();
+  unless ($auth_type eq 'no_auth') {
+    # Check to see if any login information has been provided. If not then
+    # put up a login page.
+    return $self->_write_login() unless defined $auth->user();
 
-  # Set up sidebar
-  if (! $noauth) {
-    $self->_sidebar();
+    if ($auth_type eq 'staff') {
+      return $self->_write_forbidden() unless $auth->is_staff();
+    }
+    elsif ($auth_type eq 'project') {
+      # Require project access.
+
+      my $projectid = OMP::General->extract_projectid($q->url_param('id'));
+      die 'Project ID not specified or not valid'
+        unless defined $projectid;
+
+      return $self->_write_forbidden()
+        unless $auth->is_staff or $auth->has_project($projectid);
+
+      push @args, $projectid;
+      $self->_sidebar($projectid);
+    }
+    else {
+      croak 'Unrecognized auth_type value';
+    }
   }
 
   my $mode_output = ($q->param('show_output')  or $q->url_param('output'))
                 && !($q->param('show_content') or $q->url_param('content'));
 
   # Force output mode if there's no form (the 2 subroutines are the same)
-  # and we want to server non-HTML.
-  $mode_output ||= ($output_wo_header and $form_content == $form_output);
+  # and we want to serve non-HTML.
+  $mode_output ||= ($opt{'no_header'} and $form_same);
 
   # Print HTML header (including sidebar)
   $self->_write_header()
-    unless $output_wo_header && $mode_output;
+    unless $opt{'no_header'} && $mode_output;
 
-  # Now everything is ready for our output. Just call the
-  # code ref with the cookie contents
+  # Now everything is ready for our output.
 
   # See if we should show content (display forms)
   unless ($mode_output)  {
-    $self->_call_method($form_content);
+    $self->_call_method($form_content, @args);
   } else {
-    $self->_call_method($form_output);
+    $self->_call_method($form_output, @args);
   }
 
   # Write the footer
   $self->_write_footer()
-    unless $output_wo_header && $mode_output;
+    unless $opt{'no_header'} && $mode_output;
 
   return;
 }
-
-=item B<write_page_proposals>
-
-Write a page with the ability to server proposal files in whatever format they
-are in.  This subroutine is special because it allows you to specify the header attributes so you can do things other than "text/html."  Prompts
-for project password if not run locally.  If the output subroutine is being
-called the header is not written and must be written instead by the output
-subroutine.
-
-  $cgi->write_page_proposals( \&form_content, \&form_output);
-
-=cut
-
-sub write_page_proposals {
-  my $self = shift;
-  my ($form_content, $form_output) = @_;
-
-  my $q = $self->cgi;
-
-  my $c = new OMP::Cookie( CGI => $q );
-
-  $self->cookie( $c );
-
-  my %cookie = $c->getCookie;
-
-  # Retrieve the theme or create a new one
-  $self->_make_theme;
-
-  if ($q->param) {
-
-    my $notlocal;
-
-    my $private = OMP::Config->getData('omp-private');
-
-    # Do authentication if we're not running on the private web server
-    if ($q->url !~ /^$private/) {
-      $notlocal = 1;
-      $cookie{notlocal} = 1;
-    }
-
-    if ($notlocal) {
-
-      # Store the password and project id for verification
-      if ($q->param('login_form')) {
-        $cookie{projectid} = $q->param('projectid');
-        $cookie{password} = $q->param('password');
-      }
-
-      # Verify a password of some sort
-      my $verify;
-      if (exists $cookie{projectid} and exists $cookie{password}) {
-        $verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
-      } else {
-        $self->_write_login($q->url_param('urlprojid'));
-        return;
-      }
-
-      if (! $verify) {
-        $self->_write_login($q->url_param('urlprojid'));
-        return;
-      }
-
-    }
-
-    $form_output->($q, %cookie);
-
-  } else {
-    # Set the cookie with a new expiry time (this occurs even if we
-    # already have one. This allows for automatic expiry if noone
-    # reloads the page
-    $c->setCookie( $self->_get_exp_time, %cookie );
-
-    # Print HTML header
-    $self->_write_header();
-
-    $form_content->($q, %cookie);
-
-    $self->_write_footer();
-  }
-}
-
-=item B<write_page_noauth>
-
-Creates the page but doesn't do a login.  This is for CGI scripts
-that call functions which don't require project authentication.
-
-  $cgi->write_page_noauth( \&form_content, \&form_output );
-
-=cut
-
-sub write_page_noauth {
-  my $self = shift;
-  my ($form_content, $form_output) = @_;
-
-  $self->write_page($form_content, $form_output, 1);
-}
-
-=item B<write_page_staff>
-
-Do a staff authentication login, then create pages as normal.
-
-  $cgi->write_page_staff( \&form_content, \&form_output, $noauth,
-                          $output_without_header );
-
-If the optional third argument is true, no project login authentication
-is done.  If the fourth argument is true, the header and footer are omitted
-for the output page to allow the output of types other than HTML.
-
-=cut
-
-sub write_page_staff {
-  my $self = shift;
-  my @args = @_;
-  my $q = $self->cgi;
-
-  # Initialize the cookie
-  $self->_set_cookie(name=>"OMPSTAFF", exp_time => 2880);
-  my $cookie = $self->_get_cookie("OMPSTAFF");
-  my %cookie;
-
-  # Use cookie parameters if they exist
-  %cookie = $cookie->getCookie if (defined $cookie);
-  my $userid = $cookie{userid};
-  my $password = $cookie{password};
-
-  # If we just came from the login form override the cookie
-  # contents with the query parameters.
-  if ($q->param('login_form')) {
-    $userid = $q->param('userid');
-    $password = $q->param('password');
-  }
-
-  my $verifyuser;
-  my $verifypass;
-  if ($userid and $password) {
-    try {
-      $verifyuser = OMP::UserServer->verifyUser($userid);
-      $verifypass = OMP::Password->verify_staff_password($password);
-    } catch OMP::Error::Authentication with {
-      # Login failed...
-      my $E = shift;
-      $self->_write_staff_login(1);
-      return;
-    } otherwise {
-      my $E = shift;
-      croak "Error: $E";
-    };
-  } else {
-    # User hasn't provided login details yet
-    $self->_write_staff_login;
-    return;
-  }
-
-  if (defined $verifyuser and defined $verifypass) {
-    # The user ID and password have been verified.  Update the
-    # cookie and continue as normal.
-    $cookie{userid} = $userid;
-    $cookie{password} = $password;
-    $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie, exp_time => 2880);
-
-    $self->write_page(@args);
-  } else {
-    # Login details were incorrect
-    $self->_write_staff_login(1);
-  }
-}
-
 
 =item B<write_page_logout>
 
@@ -674,15 +449,12 @@ sub write_page_logout {
 
   my $q = $self->cgi;
 
-  my $c = new OMP::Cookie( CGI => $q,);
-  $self->cookie( $c );
-
-  $c->flushCookie();
+  $self->auth(OMP::Auth->log_out($q));
 
   $self->_make_theme;
   $self->_write_header();
 
-  $content->($q);
+  $content->($self);
 
   $self->_write_footer();
 }
@@ -697,7 +469,7 @@ sub write_page_logout {
 
 Given a method name or code reference, call the method or code reference.
 
-  $cgi->($method_name);
+  $cgi->($method_name, @args);
 
 =cut
 
@@ -706,190 +478,18 @@ sub _call_method {
   my $method = shift;
 
   if (ref($method) eq 'CODE') {
-    # It's a code reference; call it with query and cookie arguments
-    my $q = $self->cgi;
-    my $c = $self->_get_cookie;
-    my %cookie = $c->getCookie;
-    $method->($q, %cookie);
+    # It's a code reference; call it with self as the object.
+    $method->($self, @_);
   } else {
-    # It's a method name, run it on self
-    $self->$method;
+    # It's a method name, run it on self.
+    $self->$method(@_);
   }
   return;
 }
-
-=item B<_get_cookie>
-
-Retrieve a C<CGI::Cookie> object from the internal cookie cache (not from
-the browser).
-
-  $cookie = $cgi->_get_cookie($name);
-
-Argument is the name of the cookie.  Returns undef if the cookie could
-not be retrieved.  Returns the default cookie if no name argument is
-provided
-
-=cut
-
-sub _get_cookie {
-  my $self = shift;
-  my $name = shift || OMP::Cookie->default_name;
-
-  # If we've got the cookie in our object, return it
-  my @cookies = $self->cookie;
-  for my $cookie (@cookies) {
-    return $cookie if ($cookie->name eq $name);
-  }
-
-  return undef;
-}
-
-=item B<_get_cookie_hash>
-
-Return the key=value contents of a cookie.
-
-  $cookie = $cgi->_get_cookie_hash($name);
-
-Argument is the name of the cookie.  Returns undef if the cookie could
-not be retrieved.  Returns the contents of the default cookie if no
-name argument is provided.
-
-=cut
-
-sub _get_cookie_hash {
-  my $self = shift;
-  my $name = shift || OMP::Cookie->default_name;
-
-  my $cookie = $self->_get_cookie($name);
-  return (defined $cookie ? $cookie->getCookie : undef);
-}
-
-=item B<_get_default_cookie_params>
-
-Return a hash containing key/value pairs of query parameters to store to
-the default cookie.
-
-  %params = $cgi->_get_default_cookie_params()
-
-=cut
-
-sub _get_default_cookie_params {
-  my $self = shift;
-  my $q = $self->cgi;
-  my %params;
-
-  # If a 'user' field has been filled in store that value in the cookie
-  if ($q->param('user')) {
-    $params{user} = $q->param('user');
-  }
-
-  if ($q->param('projectid')) {
-    $params{projectid} = $q->param('projectid');
-  }
-  elsif ($q->url_param('urlprojid')) {
-    $params{projectid} = $q->url_param('urlprojid');
-  }
-
-  if ($q->param('password')) {
-    $params{password} = $q->param('password');
-  }
-
-  return %params;
-}
-
-=item B<_get_param>
-
-Return the value of the named parameter from the cookie.  If the value
-does not exist in the cookie, attempt to get it from the query parameter
-list.
-
-  $value = $cgi->_get_param($name);
-
-Argument is a string that is the name of a parameter. Returns undefined
-value if the parameter could not be found.
-
-=cut
-
-sub _get_param {
-  my $self = shift;
-  my $name = shift;
-  my @cookies = $self->cookie;
-  my $value = undef;
-
-  if ($cookies[0]) {
-    for my $cookie (@cookies) {
-      my %cookie = $cookie->getCookie;
-      $value = $cookie{$name}
-        if (exists $cookie{$name});
-    }
-  }
-
-  if (! defined $value) {
-    # Didn't get param from cookies.  Try query parameter list now
-    my $q = $self->cgi;
-    $value = $q->param($name) || $q->url_param($name);
-  }
-
-  return $value;
-}
-
-
-=item B<_set_cookie>
-
-Update a cookie's parameters and reset its expiration date.
-
-  $cgi->_set_cookie(name=>$name, params=>\%params);
-
-Arguments are provided in hash format.  The following keys are
-accepted:
-
-  name   - Name of the cookie.  Defaults to name of the default
-           cookie if not defined.
-  params - The key=value pairs to store to the cookie as a hash
-           reference. If not provided, cookie will retain its
-           current values.
-  exp_time - Expiry time (minutes).
-
-=cut
-
-sub _set_cookie {
-  my $self = shift;
-  my %args = @_;
-  my $name = $args{name};
-  my %params = (defined $args{params} ? %{$args{params}} : undef);
-
-  # Try to obtain the cookie from our cache first
-  my $cookie;
-  $cookie = $self->_get_cookie($name);
-
-  if (! defined $cookie) {
-    $cookie = new OMP::Cookie(CGI => $self->cgi);
-    $cookie->name($name) if (defined $name);
-  }
-
-  my %curr_params = $cookie->getCookie;
-
-  # Merge current and new parameters
-  %params = (%params ? (%curr_params, %params) : %curr_params);
-
-  # Now set and store the cookie
-  $cookie->setCookie( ($args{'exp_time'} // $self->_get_exp_time), %params );
-  $self->cookie( $cookie );
-
-  return;
-}
-
-=item B<_get_exp_time>
-
-Return the cookie expiry time in minutes.
 
 =item B<_get_style>
 
 Return the URL of the style-sheet
-
-=item B<_set_exp_time>
-
-Set the cookie expiry time in minutes.
 
 =item B<_set_style>
 
@@ -898,20 +498,10 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $EXPTIME = 120;
   my $STYLE = OMP::Config->getData('omp-url') . OMP::Config->getData('www-css');
-
-  sub _get_exp_time {
-    return $EXPTIME;
-  }
 
   sub _get_style {
     return $STYLE;
-  }
-
-  sub _set_exp_time {
-    my $self = shift;
-    $EXPTIME = shift;
   }
 
   sub _set_style {
@@ -930,16 +520,13 @@ Create and display a sidebar with a 'logout' link
 
 sub _sidebar {
   my $self = shift;
+  my $projectid = shift;
   my $theme = $self->theme;
   my $q = $self->cgi;
-  my $c = $self->_get_cookie;
-  my %cookie = $c->getCookie;
-
-  my $projectid = uc($self->_get_param('projectid'));
 
   $theme->SetMoreLinksTitle("<font color=#ffffff>Project $projectid</font>");
 
-  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl'>$cookie{projectid} Project home</a>",
+  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl'>$projectid Project home</a>",
                       "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
                       "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
                       "<a class='sidemain' href='spregion.pl'>Program regions</a>",
@@ -960,43 +547,6 @@ sub _sidebar {
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
-=item B<_verify_login>
-
-Return 1 if login details (project ID and project password) are correct.
-
-  $cgi->_verify_login()
-
-Returns 2 if no login details could be found.  Returns 0 otherwise.
-
-=cut
-
-sub _verify_login {
-  my $self = shift;
-  my $q = $self->cgi;
-  my $c = $self->_get_cookie;
-  my %cookie = $c->getCookie;
-
-  # Use URL parameter projectid if it's available
-  # (except when projectid and password parameters both specified)
-  my $projectid = $q->url_param('urlprojid');
-  my $password;
-
-  if (exists $cookie{projectid} and exists $cookie{password}) {
-    # Use cookie detials
-    $projectid = $cookie{projectid}
-      unless (defined $projectid);
-    $password = $cookie{password};
-  } elsif (defined $q->param('projectid') and defined $q->param('password')) {
-    # Use query parameter details
-    $projectid = $q->param('projectid');
-    $password = $q->param('password');
-  } else {
-    # No login details exist
-    return 2;
-  }
-  my $verify = OMP::ProjServer->verifyPassword($projectid, $password);
-  return ($verify ? 1 : 0);
-}
 
 =item B<_write_header>
 
@@ -1011,29 +561,23 @@ RSS feed.
 
 sub _write_header {
   my $self = shift;
+  my $status = shift;
 
   my $style = $self->_get_style;
   my %rssinfo = $self->rss_feed;
 
   my $q = $self->cgi;
-  my $cookie = $self->cookie;
+  my $cookie = $self->auth->cookie;
   my $theme = $self->theme;
 
-  # Convert the OMP::Cookie objects to CGI::Cookie objects
-  for my $c (@$cookie) {
-    $c = $c->cookie;
-  }
-
   # Print the header info
-  # Make sure there is atleast one cookie if we're going to provide
-  # them in the header
+  # Make sure there is a cookie if we're going to provide
+  # it in the header
 
-  if ($cookie->[0]) {
-    print $q->header( -cookie => $cookie,
-                      -expires => '-1d' );
-  } else {
-    print $q->header( -expires => '-1d' );
-  }
+  my %opt = (-expires => '-1d');
+  $opt{'-cookie'} = $cookie if defined $cookie;
+  $opt{'-status'} = $status if defined $status;
+  print $q->header(%opt);
 
   my $title = $self->html_title;
 
@@ -1085,65 +629,68 @@ sub _write_header {
 
 Create a page with a login form.
 
-$cgi->_write_login($failed);
-
-If the optional argument is true, a message is displayed informing
-the user that their login attempt failed.
-
-If the URL query parameter 'urlprojid' exists, it will be the default
-value for the project ID text field.
+  $cgi->_write_login();
 
 =cut
 
 sub _write_login {
   my $self = shift;
-  my $failed = shift;
   my $q = $self->cgi;
-  my $c = $self->cookie;
-  my $projectid = $q->url_param('urlprojid');
 
   $self->_write_header();
 
-  print "<img src='/images/banner_white.gif'><p><p>";
-  print $q->h1('Login');
+  print $q->p($q->img({-src => '/images/banner_white.gif'})),
+      $q->h1('Login');
 
-  if (defined $failed) {
-    print "<strong>The login details you provided were incorrect</strong><br><br>";
+  if (defined $self->auth->message) {
+    print $q->p($q->strong($self->auth->message));
   }
 
-  if ($projectid) {
-    print "Please enter the password required for access to project information and data. ";
-  } else {
-    print "Please enter the project ID and password. These are required for access to project information and data. ";
-  }
+  print $q->p("Please enter your user name and password."),
+      start_form_absolute($q),
+      # This hidden field contains the 'login_form' param that lets us know we've just come
+      # from the login form, so we'll be sure to run the form_content callback and not
+      # form_output.
+      $q->hidden(-name=>'login_form',
+                 -default=>1,),
+      $q->hidden(-name=>'show_content',
+                 -default=>1),
+      $q->table(
+        $q->Tr(
+          $q->td('User name:'),
+          $q->td({-colspan => '2'},
+            $q->textfield(-name=>'username',
+                          -size=>17,
+                          -maxlength=>30))),
+        $q->Tr(
+          $q->td('Password:'),
+          $q->td(
+            $q->password_field(-name=>'password',
+                               -size=>17,
+                               -maxlength=>30)),
+          $q->td($q->submit(-value => "Submit", -name => 'submit_log_in')))),
+      $q->endform;
 
-  print 'Passwords are project-specific, not user-specific. If you have lost your password and you are the PI, you can <a href="/cgi-bin/issuepwd.pl"> generate a new password </a>.';
+  $self->_write_footer();
+}
 
-  print "<table><tr valign='bottom'><td>";
-  print start_form_absolute($q),
+=item B<_write_forbidden>
 
-    # This hidden field contains the 'login_form' param that lets us know we've just come
-    # from the login form, so we'll be sure to run the form_content callback and not
-    # form_output.
-        $q->hidden(-name=>'login_form',
-                   -default=>1,),
-        $q->hidden(-name=>'show_content',
-                   -default=>1),
-        $q->br,
-        "Project ID: </td><td colspan='2'>",
-        $q->textfield(-name=>'projectid',
-                      -default=>$projectid,
-                      -size=>17,
-                      -maxlength=>30),
-        $q->br,
-        "</td><tr><td>Password: </td><td>",
-        $q->password_field(-name=>'password',
-                           -size=>17,
-                           -maxlength=>30),
-        "</td><td>",
-        $q->submit("Submit"),
-        $q->endform;
-  print "</td></table>";
+Create a page with "forbidden" error message.
+
+  $cgi->_write_forbidden();
+
+=cut
+
+sub _write_forbidden {
+  my $self = shift;
+  my $q = $self->cgi;
+
+  $self->_write_header('403 Forbidden');
+
+  print $q->p($q->img({-src => '/images/banner_white.gif'})),
+      $q->h1('Forbidden'),
+      $q->p('The system was unable to verify your access to this page.');
 
   $self->_write_footer();
 }
