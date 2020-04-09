@@ -451,6 +451,8 @@ sub write_page_logout {
 
   $self->auth(OMP::Auth->log_out($q));
 
+  $self->html_title('Log out');
+
   $self->_make_theme;
   $self->_write_header();
 
@@ -543,7 +545,6 @@ sub _sidebar {
   push (@sidebarlinks, "<a class='sidemain' href='fbfault.pl'>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
-  push (@sidebarlinks, "<br><a class='sidemain' href='fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
@@ -610,6 +611,14 @@ sub _write_header {
   my $blankgif = OMP::Config->getData('omp-url') . OMP::Config->getData('blankgif');
   $theme->SetBlankGif($blankgif);
 
+  my $user = $self->auth->user;
+  if (defined $user) {
+      my $sym = '';
+      $sym .= ' &#x2605;' if $user->is_staff();
+      push @{$theme->SetInfoLinks()},
+        '&nbsp;<hr>&nbsp;<br><span class="sidemain">' . $user->name . $sym . '<span><br><a class="sidemain" href="fblogout.pl">Log out</a>';
+  }
+
   print $theme->StartHTML(),
         $theme->MakeHeader(),
         $theme->MakeTopBottomBar();
@@ -631,7 +640,7 @@ sub _write_login {
   $self->_write_header();
 
   print $q->p($q->img({-src => '/images/banner_white.gif'})),
-      $q->h1('Login');
+      $q->h1('Log in');
 
   if (defined $self->auth->message) {
     print $q->p($q->strong($self->auth->message));
