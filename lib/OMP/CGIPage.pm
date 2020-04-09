@@ -606,17 +606,8 @@ sub _write_header {
 
   $theme->SetSideBarTop("<a class='sidemain' href='http://www.eao.hawaii.edu/'>EAO local home</a>");
 
-  # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a class='sidemain' HREF='http://www.eaobservatory.org/'>EAO Home</a>",
-               "<a class='sidemain' HREF='http://www.eaobservatory.org/jcmt/'>JCMT</a>",
-               "<a class='sidemain' HREF='http://www.ukirt.hawaii.edu/'>UKIRT</a>",
-               "<a class='sidemain' HREF='http://www.eao.hawaii.edu/weather/'>Weather</a>",
-
-);
-
   # Get the location of blank.gif
   my $blankgif = OMP::Config->getData('omp-url') . OMP::Config->getData('blankgif');
-  $theme->SetSideBarMenuLinks(\@links);
   $theme->SetBlankGif($blankgif);
 
   print $theme->StartHTML(),

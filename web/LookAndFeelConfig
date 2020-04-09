@@ -2,14 +2,18 @@
 @NOSIDEBAR=0;
 @NAVBAR=0;
 @SIDEBARMENUTITLE=<font color=#ffffff>EAO</font>;
+@SIDEBARMENULINKS=
+<a class="sidemain" HREF="http://www.eaobservatory.org/">EAO Home</a>,
+<a class="sidemain" HREF="http://www.eaobservatory.org/jcmt/">JCMT</a>,
+<a class="sidemain" HREF="http://www.ukirt.hawaii.edu/">UKIRT</a>,
+<a class="sidemain" HREF="http://www.eao.hawaii.edu/weather/">Weather</a>,
+<a href="http://www.eao.hawaii.edu/weather/camera/jac/" class="sidemain">Web Cameras</a>;
+
 @MORELINKSTITLE=<font color=#ffffff>OMP</font>;
 @INFO=
-<A HREF="/cgi-bin/projecthome.pl" class="sidemain">
-	OMP Feedback system</a>,
-<A HREF="/cgi-bin/queryfault.pl" class="sidemain">
-	Fault System</a>,
-<A HREF="/" class="sidemain">
-        OMP home</a>;
+<A HREF="/" class="sidemain">OMP Home</a>,
+<A HREF="/cgi-bin/projecthome.pl" class="sidemain">Feedback system</a>,
+<A HREF="/cgi-bin/queryfault.pl" class="sidemain">Fault System</a>;
 
 @SIDEBARCOLOR=#8080cc;
 @BGCOLOR=#ffffff;
