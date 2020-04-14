@@ -13,15 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::QStatus;
 
-my $q = new CGI();
-my $ompcgi = new OMP::CGIPage(CGI => $q);
-
-my $title = $ompcgi->html_title();
-$ompcgi->html_title("$title: Queue Status");
-
-$ompcgi->write_page_staff(\&OMP::CGIPage::QStatus::view_queue_status,
-                          \&OMP::CGIPage::QStatus::view_queue_status_output,
-                          1);
+OMP::CGIPage::QStatus->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::QStatus::view_queue_status,
+    \&OMP::CGIPage::QStatus::view_queue_status_output,
+    'staff',
+    title => 'Queue Status');

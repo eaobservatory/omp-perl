@@ -101,7 +101,6 @@ $Raw_Base_Re = qr{\b ( $Raw_Base_Re ) \b}xi;
 Object constructor. Requires a project and a ut date.
 
   $pkg = new OMP::PackageData( projectid => 'blah',
-                               password => $pass,
                                utdate => '2002-09-17');
 
 UT date can either be a Time::Piece object or a string in the
@@ -122,7 +121,6 @@ sub new {
                    Verbose => 1,
                    ObsGroup => undef,
                    TarFile => [],
-                   Password => undef,
                    UTDir => undef,
                    FTPDir => undef,
                    Key => undef,
@@ -160,23 +158,6 @@ sub projectid {
     $self->{ProjectID} = uc(shift);
   }
   return $self->{ProjectID};
-}
-
-=item B<password>
-
-The password required to access this project data.
-
-  $pass = $pkg->password();
-  $pkg->password('BLAH');
-
-=cut
-
-sub password {
-  my $self = shift;
-  if (@_) {
-    $self->{Password} = shift;
-  }
-  return $self->{Password};
 }
 
 =item B<utdate>
@@ -448,10 +429,6 @@ need to have a temporary directory)
 sub pkgdata {
   my $self = shift;
 
-  # Verify project password
-  OMP::ProjServer->verifyPassword($self->projectid, $self->password)
-      or throw OMP::Error::Authentication("Unable to verify project password");
-
   # Add a comment to the log
   $self->_log_request();
 
@@ -549,7 +526,6 @@ Recognized keys are:
 
   utdate
   projectid
-  password
 
 The corresponding methods are used to initialise the object.
 All keys must be present.
@@ -563,13 +539,11 @@ sub _populate {
   my %args = @_;
 
   throw OMP::Error::BadArgs("Must supply both utdate and projectid keys")
-    unless exists $args{utdate} && exists $args{projectid}
-      && exists $args{password};
+    unless exists $args{utdate} && exists $args{projectid};
 
   # init the object
   $self->projectid( $args{projectid} );
   $self->utdate( $args{utdate} );
-  $self->password( $args{password} );
 
   # indicate whether we are including calibrations and junk
   $self->inccal( $args{inccal}) if exists $args{inccal};
@@ -577,7 +551,7 @@ sub _populate {
 
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
-  my $proj = OMP::ProjServer->projectDetails($self->projectid, $self->password, 'object');
+  my $proj = OMP::ProjServer->projectDetailsNoAuth($self->projectid, 'object');
 
   my $tel = $proj->telescope;
 
@@ -1008,7 +982,7 @@ sub add_fb_comment {
   $host = (length($host) > 0 ? $host : '<undefined>');
 
   # Get project PI name for inclusion in feedback message
-  my $project = OMP::ProjServer->projectDetails( $projectid, $self->password, "object" );
+  my $project = OMP::ProjServer->projectDetailsNoAuth( $projectid, "object" );
   my $pi = $project->pi;
 
   OMP::FBServer->addComment(

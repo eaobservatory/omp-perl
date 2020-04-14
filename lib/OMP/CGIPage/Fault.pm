@@ -8,7 +8,7 @@ OMP::CGIPage::Fault - Display dynamic fault web pages
 
   use OMP::CGIPage::Fault;
   $q = new CGI;
-  $page = new OMP::CGIPage::Fault(CGI=> $q);
+  $page = new OMP::CGIPage::Fault(cgi => $q);
 
 =head1 DESCRIPTION
 
@@ -51,77 +51,22 @@ use base qw(OMP::CGIPage);
 
 =head1 METHODS
 
-=head2 Constructor
-
-=over 4
-
-=item B<new>
-
-Create a new instance of an C<OMP::CGIPage::Fault> object.
-
-  $page = new OMP::CGIPage::Fault( CGI => $q );
-
-=cut
-
-sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-
-  # Read the arguments
-  my %args;
-  %args = @_ if @_;
-
-  # Call our parent class's constructor
-  my $self = $class->SUPER::new();
-
-  # Add a fault component attribute
-  $self->{FaultComponent} = undef;
-
-  my $object = bless $self, $class; # Reconsecrate
-
-  # Populate object
-  $self->rss_feed({title=>'OMP Fault System (last 24 hours)',
-                   href=>'faultrss.pl',});
-
-  for my $key (keys %args) {
-    my $method = lc($key);
-    $object->$method($args{$key});
-  }
-
-  return $object;
-}
-
-=back
-
-=head2 Accessor methods
+=head2 Utility methods
 
 =over 4
 
 =item B<fault_component>
 
-The fault component object.  An attempt is made to set the component's
-'category' attribute when this method is called.
+Create a fault component object.
 
   $comp = $page->fault_component()
-  $page->fault_component($comp)
-
-Argument is an C<OMP::CGIComponent::Fault> object.
 
 =cut
 
 sub fault_component {
   my $self = shift;
-  if (@_) {
-    throw OMP::Error::BadArgs("Must be an OMP::CGIComponent::Fault object")
-      unless UNIVERSAL::isa($_[0], 'OMP::CGIComponent::Fault');
-    $self->{FaultComponent} = $_[0];
-  } elsif (! defined $self->{FaultComponent}) {
-    $self->{FaultComponent} = new OMP::CGIComponent::Fault(CGI=>$self->cgi,);
-  }
-  my $comp = $self->{FaultComponent};
-  $comp->category($self->_get_param('cat'))
-    unless (defined $comp->category);
-  return $comp;
+
+  return new OMP::CGIComponent::Fault(page => $self);
 }
 
 =back
@@ -134,32 +79,36 @@ sub fault_component {
 
 Creates a page with a form for for filing a fault.
 
-  $fp->file_fault();
+  $page->file_fault($category, undef);
 
 =cut
 
 sub file_fault {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $comp = $self->fault_component;
 
-  $comp->titlebar(["File Fault"]);
-  $comp->file_fault_form();
+  $comp->titlebar($category, ["File Fault"]);
+  $comp->file_fault_form($category);
 }
 
 =item B<file_fault_output>
 
 Submit a fault and create a page that shows the status of the submission.
 
-  $fp->file_fault_output();
+  $page->file_fault_output($category, undef);
 
 =cut
 
 sub file_fault_output {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
-  my $category = $q->param('category');
-  $comp->category($category);
 
   # Get the form key
   my $formkey = $q->param('formkey');
@@ -170,8 +119,7 @@ sub file_fault_output {
     unless ($verifykey);
 
   # Make sure all the necessary params were provided
-  my %params = (User => "user",
-                Subject => "subject",
+  my %params = (Subject => "subject",
                 "Fault report" => "message",
                 Type => "type",
                 System => "system",);
@@ -200,20 +148,12 @@ sub file_fault_output {
   my @title;
   if ($error[0]) {
     push @title, "The following fields were not filled in:";
-    $comp->titlebar(["File Fault", join('<br>',@title)]);
+    $comp->titlebar($category, ["File Fault", join('<br>',@title)]);
     print "<ul>";
     print map {"<li>$_"} @error;
     print "</ul>";
-    $comp->file_fault_form();
+    $comp->file_fault_form($category);
     return;
-  }
-
-  # Make sure user is valid
-  my $user = OMP::UserServer->getUser($q->param('user'));
-  if (! $user) {
-    push @title, "The user ID you entered does not exist.  Please enter another and submit again";
-    $comp->titlebar(["File Fault", join('<br>',@title)]);
-    $comp->file_fault_form()
   }
 
   my %status = OMP::Fault->faultStatus;
@@ -221,7 +161,7 @@ sub file_fault_output {
   # Get the fault details
   my %faultdetails = $comp->parse_file_fault_form();
 
-  my $resp = OMP::Fault::Response->new( author=>$faultdetails{author},
+  my $resp = OMP::Fault::Response->new( author => $self->auth->user,
                                         text=>$faultdetails{text},);
 
   # Create the fault object
@@ -246,7 +186,6 @@ sub file_fault_output {
   ($faultdetails{timelost}) and $fault->timelost($faultdetails{timelost});
 
   # Submit the fault the the database
-  my $faultid;
   my $E;
   try {
     $faultid = OMP::FaultServer->fileFault($fault);
@@ -271,9 +210,9 @@ sub file_fault_output {
     OMP::KeyServer->removeKey($formkey);
 
     my $f = OMP::FaultServer->getFault($faultid);
-    $comp->titlebar(["File Fault", "Fault $faultid has been filed"]);
+    $comp->titlebar($category, ["File Fault", "Fault $faultid has been filed"]);
 
-    $comp->fault_table($f, 'nostatus');
+    $comp->fault_table($f, no_status => 1);
   }
 }
 
@@ -281,12 +220,15 @@ sub file_fault_output {
 
 Display output of a fault query
 
-  query_fault_output();
+  $page->query_fault_output($category, undef);
 
 =cut
 
 sub query_fault_output {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
@@ -296,7 +238,6 @@ sub query_fault_output {
   my $mindate;
   my $maxdate;
   my $xml;
-  my $category = $self->_get_param('cat');
 
   # XML query to return faults from the last 14 days
   my %faultstatus =
@@ -310,7 +251,7 @@ sub query_fault_output {
         ;
 
   my $currentxml = "<FaultQuery>".
-    $comp->category_xml().
+    $comp->category_xml($category).
       "<date delta='-14'>" . $t->datetime . "</date>".
         "</FaultQuery>";
 
@@ -329,7 +270,7 @@ sub query_fault_output {
 
     OMP::FaultUtil->print_faults($printer, $separate, @fprint);
 
-    $comp->titlebar(["View Faults", "Sent faults to printer $printer"]);
+    $comp->titlebar($category, ["View Faults", "Sent faults to printer $printer"]);
     return;
   }
 
@@ -337,7 +278,7 @@ sub query_fault_output {
     # The 'Search' submit button was clicked
     my @xml;
 
-    push (@xml, $comp->category_xml());
+    push (@xml, $comp->category_xml($category));
 
     if ($q->param('system') !~ /any/) {
       my $system = $q->param('system');
@@ -524,12 +465,12 @@ sub query_fault_output {
   } elsif ($q->param('major')) {
     # Faults within the last 14 days with 2 or more hours lost
     $xml = "<FaultQuery>".
-      $comp->category_xml().
+      $comp->category_xml($category).
         "<date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
   } elsif ($q->param('recent')) {
     # Faults active in the last 36 hours
     $xml = "<FaultQuery>".
-      $comp->category_xml().
+      $comp->category_xml($category).
         "<date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
   } elsif ($q->param('current')) {
     # Faults within the last 14 days
@@ -538,7 +479,7 @@ sub query_fault_output {
   } else {
     # Initial display of query page
     $xml = "<FaultQuery>".
-      $comp->category_xml().
+      $comp->category_xml($category).
         "<date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
     $title = "Displaying faults with any activity in the last 7 days";
   }
@@ -576,11 +517,11 @@ sub query_fault_output {
 
   # Show results as a summary if that option was checked
   if ($q->param('summary') and $faults->[0]) {
-    $self->fault_summary_content($faults, $mindate, $maxdate);
+    $self->fault_summary_content($category, $faults, $mindate, $maxdate);
   } elsif ($faults->[0]) {
-    $comp->titlebar(["View Faults", $title]);
+    $comp->titlebar($category, ["View Faults", $title]);
 
-    $comp->query_fault_form($hidefields);
+    $comp->query_fault_form($category, $hidefields);
     print "<p>";
 
     # Total up and display time lost
@@ -594,7 +535,7 @@ sub query_fault_output {
     print "<p>";
 
     # Make a link to this script with an argument to alter sort order
-    my $sort_order = $self->_get_param('sort_order');
+    my $sort_order = $q->url_param('sort_order');
     if ($sort_order eq "ascending") {
       my $sort_url = $comp->url_args("sort_order", "descending");
       print "Showing oldest/lowest first | <a href='$sort_url'>Show most recent/highest first</a>";
@@ -606,8 +547,7 @@ sub query_fault_output {
       $self->_make_sort_by_links(),
       '<p></p>';
 
-    my ( $orderby, $category ) =
-      map { $self->_get_param( $_ ) } qw[ orderby cat ] ;
+    my $orderby = $q->url_param('orderby');
 
     $orderby = 'response'
       unless defined $orderby;
@@ -641,12 +581,12 @@ sub query_fault_output {
       # Put up the query form again if there are lots of faults displayed
       if ($faults->[15]) {
         print "<P>";
-        $comp->query_fault_form($hidefields);
+        $comp->query_fault_form($category, $hidefields);
       }
     }
   } else {
-    $comp->titlebar(["View Faults", $title]);
-    $comp->query_fault_form($hidefields);
+    $comp->titlebar($category, ["View Faults", $title]);
+    $comp->query_fault_form($category, $hidefields);
   }
 }
 
@@ -655,16 +595,17 @@ sub query_fault_output {
 Display a page showing a fault and providing a form for responding
 to the fault.
 
-  $fp->view_fault_content();
+  $page->view_fault_content($category, $faultid);
 
 =cut
 
 sub view_fault_content {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
-
-  my $faultid = $q->param('id');
 
   # If we still havent gotten the fault ID, put up a form and ask for it
   if (!$faultid) {
@@ -686,11 +627,11 @@ sub view_fault_content {
       my @fprint = split(',',$q->param('faults'));
 
       OMP::FaultUtil->print_faults($printer, 0, @fprint);
-      $comp->titlebar(["View Fault: $faultid", "Fault sent to printer $printer"]);
+      $comp->titlebar($category, ["View Fault: $faultid", "Fault sent to printer $printer"]);
       return;
     }
 
-    $comp->titlebar(["View Fault: $faultid", $fault->subject]);
+    $comp->titlebar($category, ["View Fault: $faultid", $fault->subject]);
     $comp->fault_table($fault);
 
     print "<br>";
@@ -710,18 +651,20 @@ sub view_fault_content {
 
 Process the view_fault_content "respond" and "close fault" forms
 
-  $fp->view_fault_output();
+  $page->view_fault_output($category, $faultid);
 
 =cut
 
 sub view_fault_output {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
   my @title;
 
-  my $faultid = $q->param('faultid');
   my $fault = OMP::FaultServer->getFault($faultid);
 
   if ($q->param('respond')) {
@@ -734,8 +677,7 @@ sub view_fault_output {
       unless ($verifykey);
 
     # Make sure all the necessary params were provided
-    my %params = (User => "user",
-                  Response => "text",);
+    my %params = (Response => "text",);
     my @error;
     for (keys %params) {
       if (length($q->param($params{$_})) < 1) {
@@ -746,7 +688,7 @@ sub view_fault_output {
     # Put the form back up if params are missing
     if ($error[0]) {
       push @title, "The following fields were not filled in:";
-      $comp->titlebar(["View Fault ID: $faultid", join('<br>',@title)]);
+      $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
       print "<ul>";
       print map {"<li>$_"} @error;
       print "</ul>";
@@ -754,9 +696,6 @@ sub view_fault_output {
       $comp->fault_table($fault);
       return;
     }
-
-    # Response author
-    my $user = new OMP::User(userid => $q->param('user'));
 
     # Get the status (possibly changed)
     my $status = $q->param('status');
@@ -802,7 +741,7 @@ sub view_fault_output {
 
     my $E;
     try {
-      my $resp = new OMP::Fault::Response(author => $user,
+      my $resp = new OMP::Fault::Response(author => $self->auth->user,
                                           text => $text);
       OMP::FaultServer->respondFault($fault->id, $resp);
 
@@ -815,7 +754,7 @@ sub view_fault_output {
 
     # Encountered an error, redisplay form
     if ($E) {
-      $comp->titlebar(["View Fault ID: $faultid", join('<br>',@title)]);
+      $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
       $comp->response_form(fault => $fault,);
       $comp->fault_table($fault);
       return;
@@ -867,7 +806,7 @@ sub view_fault_output {
 
   $fault = OMP::FaultServer->getFault($faultid);
 
-  $comp->titlebar(["View Fault ID: $faultid", join('<br>',@title)]);
+  $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
 
   $comp->fault_table($fault);
   print "<br>";
@@ -881,19 +820,17 @@ sub view_fault_output {
 
 Display a page with a form for updating fault details
 
-  $fp->update_fault_content();
+  $page->update_fault_content($category, $faultid);
 
 =cut
 
 sub update_fault_content {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
-  my $faultid = $self->_get_param('id');
-
-  # Try to get the fault ID from the URL first.
-  # If we didn't get it, try and get it from our form
-  (! $faultid) and $faultid = $q->param('id');
 
   # Still didn't get the fault ID so put this form up
   if (!$faultid) {
@@ -901,7 +838,7 @@ sub update_fault_content {
     print "<table border=0><tr><td>";
     print start_form_absolute($q);
     print "<b>Enter a fault ID: </b></td><td>";
-    print $q->textfield(-name=>'id',
+    print $q->textfield(-name=>'fault',
                         -size=>15,
                         -maxlength=>32);
     print "</td><tr><td colspan=2 align=right>";
@@ -910,13 +847,13 @@ sub update_fault_content {
     print "</td></table>";
   } else {
 
-    $comp->titlebar(["Update Fault [$faultid]"]);
+    $comp->titlebar($category, ["Update Fault [$faultid]"]);
 
     # Get the fault
     my $fault = OMP::FaultServer->getFault($faultid);
 
     # Form for taking new details.  Displays current values.
-    $comp->file_fault_form(fault => $fault);
+    $comp->file_fault_form($fault->category, fault => $fault);
   }
 }
 
@@ -925,19 +862,20 @@ sub update_fault_content {
 Take parameters from the fault update content page and update
 the fault.
 
-  $fp->update_fault_output();
+  $page->update_fault_output($category, $faultid);
 
 =cut
 
 sub update_fault_output {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
   # For the titlebar
   my @title;
-
-  my $faultid = $q->param('faultid');
 
   # Get host (and user maybe) info of the user who is modifying the fault
   my @user = OMP::NetTools->determine_host;
@@ -957,18 +895,17 @@ sub update_fault_output {
   my %newdetails = $comp->parse_file_fault_form();
 
   # Store details in a fault object for comparison
-  my $category = $self->_get_param('cat');
   my $new_f = new OMP::Fault(category=>$category,
                              fault=>$fault->responses->[0],
                              %newdetails);
 
   my @details_changed = OMP::FaultUtil->compare($new_f, $fault);
 
-  # Store details in a fault response object for comparison
-  my $new_r = new OMP::Fault::Response(%newdetails);
-
   # Our original response
   my $response = $fault->responses->[0];
+
+  # Store details in a fault response object for comparison
+  my $new_r = new OMP::Fault::Response(author => $response->author, %newdetails);
 
   # "Preify" the text before we compare responses
   my $newtext = $newdetails{text};
@@ -1017,7 +954,7 @@ sub update_fault_output {
     push @title, "No changes were made";
   }
 
-  $comp->titlebar(["Update Fault [". $fault-> id ."]", join('<br>',@title)]);
+  $comp->titlebar($category, ["Update Fault [". $fault-> id ."]", join('<br>',@title)]);
 
   # Display the fault
   $comp->fault_table($fault);
@@ -1027,20 +964,22 @@ sub update_fault_output {
 
 Create a form for updating fault details
 
-  $fp->update_resp_content();
+  $page->update_resp_content($category, $faultid);
 
 =cut
 
 sub update_resp_content {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  my $faultid = $q->url_param('id');
   my $respid = $q->url_param('respid');
 
   if ($faultid and $respid) {
-    $comp->titlebar(["Update Response [$faultid]"]);
+    $comp->titlebar($category, ["Update Response [$faultid]"]);
 
     # Get the fault
     my $fault = OMP::FaultServer->getFault($faultid);
@@ -1059,25 +998,20 @@ sub update_resp_content {
 
 Submit changes to a fault response.
 
-  $fp->update_resp_output();
+  $page->update_resp_output($category, $faultid);
 
 =cut
 
 sub update_resp_output {
   my $self = shift;
+  my $category = shift;
+  my $faultid = shift;
+
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  my $faultid = $q->param('faultid');
   my $respid = $q->param('respid');
   my $text = $q->param('text');
-  my $author = $q->param('user');
-
-  # User may be a hidden param
-  (! $author) and $author = $q->param('user_hidden');
-
-  # Convert author to OMP::User object
-  $author = OMP::UserServer->getUser($author);
 
   # Prepare the text
   if ($text =~ /<html>/i) {
@@ -1097,7 +1031,6 @@ sub update_resp_output {
   my $response = OMP::FaultUtil->getResponse($respid, $fault);
 
   # Make changes to the response object
-  $response->author($author);
   $response->text($text);
 
   # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
@@ -1113,7 +1046,7 @@ sub update_resp_output {
     print "<pre>$E</pre>";
   };
 
-  $comp->titlebar(\@title);
+  $comp->titlebar($category, \@title);
 
   # Redisplay fault
   $fault = OMP::FaultServer->getFault($faultid);
@@ -1125,7 +1058,7 @@ sub update_resp_output {
 
 Create a page summarizing faults for a particular category, or all categories.
 
-  fault_summary_content( [ $faults | $mindate , $maxdate ] );
+  fault_summary_content( $category, [ $faults | $mindate , $maxdate ] );
 
 First optional argument is an array of C<OMP::Fault> objects.  If the first
 argument is not provided, a query will be done for faults within the
@@ -1137,11 +1070,11 @@ the faults provided as the first argument.
 
 sub fault_summary_content {
   my $self = shift;
+  my $category = shift;
   my $faults = shift;
   my $mindate = shift;
   my $maxdate = shift;
   my $q = $self->cgi;
-  my $category = $q->param('category');
   my $ompurl = OMP::Config->getData('omp-url');
   my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
   my %status = OMP::Fault->faultStatus;
@@ -1361,13 +1294,13 @@ sub fault_summary_content {
           print "bgcolor=$bgcolor><td><font color=$bgcolor>------</font>";
           ($fault->timelost > 0) and print "<img src=$iconurl/timelost.gif alt=\"Fault lost time\">"
             or print "<img src=$iconurl/spacer.gif height=13 width=10>";
-          print " <a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_id\" title=\"$preview\">". $fault->id ."</td>";
-          print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_subject\" title=\"$preview\">". $subject ."</a>";
+          print " <a href=\"viewfault.pl?fault=".$fault->id."\" class=\"link_fault_id\" title=\"$preview\">". $fault->id ."</td>";
+          print "<td><a href=\"viewfault.pl?fault=".$fault->id."\" class=\"link_fault_subject\" title=\"$preview\">". $subject ."</a>";
 
           # Show affected projects?
           if ($q->param('show_affected') and $fault->projects) {
             print "<br><span class='proj_fault_link'>";
-            my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
+            my @projlinks = map {"<a href='projecthome.pl?project=$_'>$_</a>"} $fault->projects;
             print join (" | ", @projlinks);
             print "</span>";
           }
@@ -1398,70 +1331,75 @@ sub fault_summary_content {
 
 =over 4
 
-=item B<_get_default_cookie_params>
+=item B<_write_page_extra>
 
-Return a hash containing key/value pairs of parameters to store to the
-default cookie.
-
-  %params = $cgi->_get_default_cookie_params()
+Method to prepare extra information for the L<write_page> system.  For the
+fault system, attempt to identify the category and fault ID.
 
 =cut
 
-sub _get_default_cookie_params {
-  my $self = shift;
-  my $q = $self->cgi;
-  my %params;
+sub _write_page_extra {
+    my $self = shift;
 
-  # If a 'user' field has been filled in store that value in the cookie
-  if ($q->param('user')) {
-    $params{user} = $q->param('user');
-  }
+    my $q = $self->cgi;
 
-  if ($q->param('sort_order')) {
-    $params{sort_order} = $q->param('sort_order');
-  }
+    my $cat;
+    my $faultid = $q->url_param('fault');
 
-  if ($q->url_param('id')) {
-    # If there is a fault ID in the URL get the fault and set the
-    # cookie category to whatever category the fault is
-    my $fault;
-    my $faultid = $q->url_param('id');
-    my $E;
-    try {
-      $fault = OMP::FaultServer->getFault($faultid);
-    } otherwise {
-      $E = shift;
-      croak "Unable to retrieve fault $faultid [$E]";
-    };
+    if (defined $faultid) {
+        my $fault;
 
-    croak ("Unable to retrieve fault with id [$faultid]")
-      unless (defined $fault);
+        $faultid = OMP::General->extract_faultid("[${faultid}]");
+        croak 'Invalid fault ID' unless defined $faultid;
 
-    $params{cat} = $fault->category;
-  } elsif ($q->param('cat')) {
-    # Otherwise, store the 'cat' url parameter
-    my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
-    my $cat = uc($q->param('cat'));
-    $params{cat} = $cat
-      if (exists $categories{$cat} or $cat eq 'ANYCAT');
-  }
+        try {
+            $fault = OMP::FaultServer->getFault($faultid);
+        } otherwise {
+            my$E = shift;
+            croak "Unable to retrieve fault $faultid [$E]";
+        };
 
-  return %params;
+        croak "Unable to retrieve fault with id [$faultid]"
+            unless (defined $fault);
+
+        $self->html_title($faultid . ': ' . $self->html_title());
+        $cat = $fault->category;
+    }
+    else {
+        $cat = uc($q->url_param('cat'));
+
+        my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
+        undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');
+    }
+
+    $self->rss_feed({title => 'OMP Fault System (last 24 hours)',
+                     href => 'faultrss.pl'});
+
+    $self->_sidebar_fault($cat);
+
+    unless ((defined $cat)) {
+        $self->_write_category_choice();
+
+        return {abort => 1};
+    }
+
+    return {args => [$cat, $faultid]};
 }
 
-=item B<_sidebar>
+=item B<_sidebar_fault>
 
 Create and display fault system sidebar.
 
-  $fcgi->_sidebar()
+  $page->_sidebar_fault($cat)
 
 =cut
 
-sub _sidebar {
+sub _sidebar_fault {
   my $self = shift;
+  my $cat = shift;
+
   my $theme = $self->theme;
   my $q = $self->cgi;
-  my $cat = $self->_get_param('cat');
 
   my $suffix =
     $cat =~ /events/i
@@ -1487,14 +1425,14 @@ sub _sidebar {
 
   # Construct our HTML for the sidebar fault form
   my $sidebarform =
-    "<br><font color=#ffffff>Fault ID:</font><br>".
+    "<br><span class='sidemain'>Fault ID:</span><br>".
       $q->start_form(
         -action => OMP::Config->getData('cgidir') . '/viewfault.pl',
         -method => 'GET') .
-      $q->textfield(-name=>'id',
-                    -size=>14,
+      $q->textfield(-name=>'fault',
+                    -size=>12,
                     -maxlength=>20,) .
-                      "<br><br>" .
+                      "<br>" .
                         $q->submit("View Fault") .
                           $q->end_form ;
 
@@ -1510,9 +1448,8 @@ sub _sidebar {
 
   push @sidebarlinks,
     $self->_make_side_link( $query_link{'ANYCAT'}->{'url'}, 'All Faults', '<br><br>' ),
-    $self->_make_side_link( OMP::Config->getData('omp-url'), 'OMP home' ),
-    $sidebarform . '</font>'
-    ;
+    $self->_make_side_link( OMP::Config->getData('omp-url'), 'OMP Home' ),
+    $sidebarform;
 
   if (defined $cat and uc $cat ne "ANYCAT") {
 
@@ -1525,7 +1462,7 @@ sub _sidebar {
 
     unshift @sidebarlinks,
       $self->_make_side_link( qq[filefault.pl?cat=$cat], qq[File $prop $text] ),
-      $self->_make_side_link( $query_link{ uc $cat }->{'url'}, qq[View ${text}s], '<br><br>' )
+      $self->_make_side_link( $query_link{ uc $cat }->{'url'}, qq[View ${text}s], '<br>&nbsp;' )
       ;
   }
 
@@ -1565,8 +1502,9 @@ sub _make_sort_by_links {
 
   my ( $self ) = @_;
 
+  my $q = $self->cgi;
   my $comp = $self->fault_component;
-  my $chosen = $self->_get_param('orderby');
+  my $chosen = $q->url_param('orderby');
 
   my @opt = qw[ filedate  faulttime  response  timelost ];
 
@@ -1600,46 +1538,19 @@ sub _make_sort_by_links {
     join ' | ', @out;
 }
 
-=item B<_verify_login>
-
-Return 1 if login details are correct.  This does not check for
-correct passwords but rather that a category for browsing is defined
-and valid.
-
-  $verify = $fcgi->_verify_login()
-
-=cut
-
-sub _verify_login {
-  my $self = shift;
-  my $q = $self->cgi;
-  my $category = $self->_get_param('cat');
-
-  my %validcat = map {uc($_), undef} OMP::Fault->faultCategories;
-  $validcat{ANYCAT} = undef;
-
-  if (exists $validcat{$category}) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-=item B<_write_login>
+=item B<_write_category_choice>
 
 Create and display a page for choosing a fault category to browse
 and interact with.
 
-  $fcgi->_write_login()
+  $page->_write_category_choice()
 
 =cut
 
-sub _write_login {
+sub _write_category_choice {
   my $self = shift;
-  my $q = $self->cgi;
 
-  # Set up the sidebar, otherwise the default sidebar will appear
-  $self->_sidebar();
+  my $q = $self->cgi;
 
   $self->_write_header();
 
@@ -1670,7 +1581,6 @@ sub _write_login {
   print "</ul>";
 
   $self->_write_footer();
-  return;
 }
 
 BEGIN {

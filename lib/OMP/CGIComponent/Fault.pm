@@ -8,10 +8,7 @@ OMP::CGIComponent::Fault - Components for fault system web pages
 
   use OMP::CGIComponent::Fault;
 
-  $query = new CGI;
-
-  $comp = new OMP::CGIComponent::Fault(CGI => $query,
-                                       category => $category,);
+  $comp = new OMP::CGIComponent::Fault(page => $fault_page);
 
 =head1 DESCRIPTION
 
@@ -52,92 +49,6 @@ $Text::Wrap::columns = 80;
 
 =head1 METHODS
 
-=head2 Constructor
-
-=over 4
-
-=item B<new>
-
-Create a new instance of an C<OMP::CGIComponent::Fault> object.
-
-  $comp = new OMP::CGIComponent::Fault( CGI => $q );
-
-=cut
-
-sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-
-  # Read the arguments
-  my %args;
-  %args = @_ if @_;
-
-  # Call our parent class's constructor
-  my $self = $class->SUPER::new();
-
-  # Add some instance attributes
-  $self->{Category} = undef;
-  $self->{User} = undef;
-
-  my $object = bless $self, $class; # Reconsecrate
-
-  # Populate object
-  for my $key (keys %args) {
-    my $method = lc($key);
-    $object->$method($args{$key});
-  }
-
-  return $object;
-}
-
-=back
-
-=head2 Accessor methods
-
-=over 4
-
-=item B<category>
-
-The currently selected fault category.
-
-  $category = $comp->category()
-  $comp->category($category)
-
-Argument is a string that is a category name.  Returns a string,
-or undef if not defined.
-
-=cut
-
-sub category {
-  my $self = shift;
-  if (@_) {
-    $self->{Category} = shift;
-  }
-  return $self->{Category};
-}
-
-=item B<user>
-
-User ID of the current user.
-
-  $userid = $comp->user()
-  $comp->user($userid)
-
-Argument is a string that is an OMP user ID.  Returns a string,
-or undef if not defined.
-
-=cut
-
-sub user {
-  my $self = shift;
-  if (@_) {
-    $self->{User} = shift;
-  }
-  return $self->{User};
-}
-
-=back
-
 =head2 Content Creation and Display Methods
 
 =over 4
@@ -146,12 +57,12 @@ sub user {
 
 Put a fault into a an HTML table
 
-  $fcomp->fault_table($fault, 'noedit')
+  $comp->fault_table($fault, no_edit => 1)
 
-Takes an C<OMP::Fault> object as the second argument.  Takes a third
-argument which is a string of either "noedit" or "nostatus".  "noedit"
+Takes an C<OMP::Fault> object as the first argument and optional
+arguments which may contain either "no_edit" or "no_status".  "no_edit"
 displays the fault without links for updating the text and details,
-and without the status update form.  "nostatus" displays the fault
+and without the status update form.  "no_status" displays the fault
 just without the status update form.
 
 =cut
@@ -159,16 +70,17 @@ just without the status update form.
 sub fault_table {
   my $self = shift;
   my $fault = shift;
-  my $option = shift;
+  my %opt = @_;
+
   my $q = $self->cgi;
 
   my $nostatus;
   my $noedit;
 
-  if ($option =~ /noedit/) {
-    $noedit = 1;
-  } elsif ($option =~ /nostatus/) {
-    $nostatus = 1;
+  if (defined $opt{'no_edit'}) {
+    $noedit = $opt{'no_edit'};;
+  } elsif (defined $opt{no_status}) {
+    $nostatus = $opt{'no_status'};
   }
 
   my $subject;
@@ -221,7 +133,6 @@ sub fault_table {
 
     # Make a form element for changing the status
     print $q->hidden(-name=>'show_output', -default=>'true');
-    print $q->hidden(-name=>'faultid', -default=>$fault->id);
     print $q->popup_menu(-name=>'status',
                          -default=>$fault->status,
                          -values=> $values,
@@ -244,7 +155,7 @@ sub fault_table {
   my @projects = $fault->projects;
 
   if ($projects[0]) {
-    my @html = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
+    my @html = map {"<a href='projecthome.pl?project=$_'>$_</a>"} @projects;
     print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
     print join(', ',@html);
     print "</td>";
@@ -255,7 +166,7 @@ sub fault_table {
 
   # Link to fault editing page
   if (! $noedit) {
-    print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
+    print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?fault=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
   }
 
   # Then loop through and display each response
@@ -278,7 +189,7 @@ sub fault_table {
 
       # Link to respons editing page
       if (! $noedit) {
-        print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
+        print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?fault=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
       }
     }
 
@@ -291,7 +202,7 @@ sub fault_table {
     }
 
     # Now turn fault IDs into links
-    $text =~ s!((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?id=$1'>$1</a>!g;
+    $text =~ s!((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?fault=$1'>$1</a>!g;
 
     print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>$text</td></table><br></td>";
   }
@@ -304,7 +215,7 @@ sub fault_table {
 
 Create and display a form for querying faults.
 
-  $fcgi->query_fault_form([$hidesystype]);
+  $comp->query_fault_form($category, [$hidesystype]);
 
 If the optional argument is true, no fields are provided for selecting
 system/type (useful for non-category specific fault queries).
@@ -313,11 +224,11 @@ system/type (useful for non-category specific fault queries).
 
 sub query_fault_form {
   my $self = shift;
+  my $category = shift;
   my $hidefields = shift;
+
   my $q = $self->cgi;
 
-  # Get category
-  my $category = $self->category;
   my $sys_label = _get_system_label( $category );
 
   my $systems;
@@ -421,7 +332,7 @@ sub query_fault_form {
   print "<b>";
 
   # Only display option to return time-losing faults if the category allows it
-  if (OMP::Fault->faultCanLoseTime($self->category)) {
+  if (OMP::Fault->faultCanLoseTime($category)) {
     print $q->checkbox(-name=>'timelost',
                        -value=>'true',
                        -label=>'Return time-losing faults only',
@@ -430,7 +341,7 @@ sub query_fault_form {
   }
 
   # Only display option to return affected projects if the category allows it
-  if (OMP::Fault->faultCanAssocProjects($self->category)) {
+  if (OMP::Fault->faultCanAssocProjects($category)) {
     print $q->checkbox(-name=>'show_affected',
                        -value=>'true',
                        -label=>'Show affected projects',
@@ -467,7 +378,7 @@ sub query_fault_form {
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
-  print $q->hidden(-name=>'cat', -default=>$self->category);
+  print $q->hidden(-name=>'cat', -default=>$category);
   print "<tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
   print $q->submit(-name=>"major", -label=>"Major faults");
   print $q->submit(-name=>"recent", -label=>"Recent faults (2 days)");
@@ -480,7 +391,7 @@ sub query_fault_form {
 
 Do a fault query and return a reference to an array of fault objects
 
-  $fcgi->query_faults([$days]);
+  $comp->query_faults([$days]);
 
 Optional argument is the number of days delta to return faults for.
 
@@ -512,7 +423,7 @@ sub query_faults {
 
 Create a form for submitting a fault ID for a fault to be viewed.
 
-  $fcgi->view_fault_form();
+  $comp->view_fault_form();
 
 =cut
 
@@ -522,75 +433,15 @@ sub view_fault_form {
 
   print $q->h2("View a fault");
   print "<table border=0><tr><td>";
-  print start_form_absolute($q);
+  print start_form_absolute($q, -method => 'GET');
   print "<b>Enter a fault ID: </b></td><td>";
-  print $q->textfield(-name=>'id',
+  print $q->textfield(-name=>'fault',
                       -size=>15,
                       -maxlength=>32);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit(-name=>'Submit');
   print $q->endform;
   print "</td></table>";
-}
-
-=item B<close_fault_form>
-
-Create a form with a button for closing a fault
-
-  $fcgi->close_fault_form($faultid);
-
-Takes a fault ID as the only argument.
-
-=cut
-
-sub close_fault_form {
-  my $self = shift;
-  my $faultid = shift;
-  my $q = $self->cgi;
-
-  my $width = $self->_get_table_width;
-  print "<table border=0 width=$width bgcolor=#6161aa>";
-  print "<tr><td align=right>";
-  print start_form_absolute($q);
-  print $q->hidden(-name=>'show_output', -default=>'true');
-  print $q->hidden(-name=>'faultid', -default=>$faultid);
-  print $q->submit(-name=>'close',
-                   -label=>'Close Fault',);
-  print $q->endform;
-  print "</td></table>";
-}
-
-=item B<change_status_form>
-
-Provide a form for changing the status of a fault.
-
-  $fcgi->change_status_form($fault);
-
-Only argument is an C<OMP::Fault> object.
-
-=cut
-
-sub change_status_form {
-  my $self = shift;
-  my $fault= shift;
-  my $q = $self->cgi;
-
-  my ( $labels, $values ) = $self->get_status_labels( $fault );
-
-  my $faultid = $fault->id;
-
-  print start_form_absolute($q);
-  print $q->hidden(-name=>'show_output', -default=>'true');
-  print $q->hidden(-name=>'faultid', -default=>$faultid);
-  print $q->popup_menu(-name=>'status',
-                       -default=>$fault->status,
-                       -values=> $values,
-                       -labels=> $labels,);
-  print " ";
-  print $q->submit(-name=>'change_status',
-                   -label=>'Change',);
-  print $q->endform;
-
 }
 
 =item B<file_fault_form>
@@ -604,12 +455,13 @@ The fault key is optional.  If present, the details of the fault object will
 be used to provide defaults for all of the fields This allows this form to be
 used for editing the details of an existing fault.
 
-  $fcgi->file_fault_form(fault => $fault_object);
+  $comp->file_fault_form($category, fault => $fault_object);
 
 =cut
 
 sub file_fault_form {
   my $self = shift;
+  my $category = shift;
   my %args = @_;
   my $fault = $args{fault};
   my $q = $self->cgi;
@@ -617,7 +469,6 @@ sub file_fault_form {
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
 
-  my $category = $self->category;
   my $is_safety = _is_safety( $category );
 
   # Create values and labels for the popup_menus
@@ -679,12 +530,13 @@ sub file_fault_form {
 
   # Set defaults.  There's probably a better way of doing what I'm about
   # to do...
+  my $user;
   my %defaults;
   my $submittext;
 
   if (!$fault) {
-    %defaults = (user => $self->user,
-                 system => '',
+    $user = $self->auth->user->userid;
+    %defaults = (system => '',
                  type => '',
                  location => '',
                  status => ! $is_safety ? $status{Open} : $status{'Follow up required'},
@@ -734,8 +586,8 @@ sub file_fault_form {
       $message = "<html>" . $message;
     }
 
-    %defaults = (user=> $fault->responses->[0]->author->userid,
-                 system => $fault->system,
+    $user = $fault->responses->[0]->author->userid;
+    %defaults = (system => $fault->system,
                  status => $fault->status,
                  location => $fault->location,
                  type => $fault->type,
@@ -778,24 +630,14 @@ sub file_fault_form {
   print $q->hidden(-name=>'show_output',
                    -default=>'true');
 
-  # Embed the fault ID and status if we are editing a fault
+  # Embed the status if we are editing a fault
   if ($fault) {
-    print $q->hidden(-name=>'faultid', -default=>$fault->id);
     print $q->hidden(-name=>'status', -default=>$defaults{status});
   }
 
   print "<td align=right><b>User:</b></td><td>";
 
-  # DISABLE USER FIELD IF FORM IS FOR EDITING
-  if (! $fault) {
-    print $q->textfield(-name=>'user',
-                        -size=>'16',
-                        -maxlength=>'90',
-                        -default=>$defaults{user},);
-  } else {
-    print " <strong>$defaults{user}</strong>";
-    print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
-  }
+  print " <strong>${user}</strong>";
 
   my $sys_label = _get_system_label( $category );
 
@@ -998,7 +840,7 @@ sub file_fault_form {
 
 Create and display a form for submitting or editing a response.
 
-  $fcgi->response_form(respid => $respid,
+  $comp->response_form(respid => $respid,
                        fault => $fault_obj);
 
 Accepts arguments in hash format.  The following keys will be used:
@@ -1028,8 +870,9 @@ sub response_form {
 
   my ( $labels, $values ) = $self->get_status_labels( $fault );
 
-  # Set defaults.  Use cookie values if param values aren't available.
+  # Set defaults.
   my %defaults;
+  my $user;
   if ($respid) {
     # Setup defaults for response editing
     my $resp = OMP::FaultUtil->getResponse($respid, $fault);
@@ -1043,15 +886,15 @@ sub response_form {
       $text = "<html>" . $text;
     }
 
-    %defaults = (user => $resp->author->userid,
-                 text => $text,
+    %defaults = (text => $text,
                  submitlabel => "Submit changes",);
+    $user = $resp->author->userid;
   } else {
 
-    %defaults = (user => $self->user,
-                 text => undef,
+    %defaults = (text => undef,
                  status => $fault->status,
                  submitlabel => "Submit response",);
+    $user = $self->page->auth->user->userid;
   }
 
   # Param list values take precedence
@@ -1061,29 +904,19 @@ sub response_form {
     }
   }
 
-  print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print start_form_absolute($q);
+  print "<table border=0><tr><td align=right><b>User: </b></td><td>";
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
                    -default=>$formkey);
   print $q->hidden(-name=>'show_output', -default=>['true']);
-  print $q->hidden(-name=>'faultid', -default=>$fault->id);
 
   # Embed the response ID if we are editing a response
   print $q->hidden(-name=>'respid', -default=>$respid)
     if ($respid);
 
-  # DISABLE USER FIELD IF FORM IS FOR EDITING
-  if (! $respid) {
-    print $q->textfield(-name=>'user',
-                        -size=>'25',
-                        -maxlength=>'75',
-                        -default=>$defaults{user},);
-  } else {
-    print " <strong>$defaults{user}</strong>";
-    print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
-  }
+  print " <strong>${user}</strong>";
 
   # Only show the status if we are filing a new response
   if (! $respid) {
@@ -1102,15 +935,15 @@ sub response_form {
   print "</td></tr><td colspan=2 align=right>";
   print $q->submit(-name=>'respond',
                    -label=>$defaults{submitlabel});
-  print $q->endform;
   print "</td></table>";
+  print $q->endform;
 }
 
 =item B<show_faults>
 
 Show a list of faults.
 
-  $fcgi->show_faults(faults => \@faults,
+  $comp->show_faults(faults => \@faults,
                      orderby => 'response',
                      descending => 1,
                      url => "fbfault.pl"
@@ -1229,12 +1062,14 @@ sub show_faults {
     # Make the fault ID cell stand out if the fault is urgent
     print ($fault->isUrgent ? "<td class=\"cell_standout\">" : "<td>");
     print "$faultid</td>";
-    print qq[<td><b><a href="$url?id=$faultid">$subject</a></b> &nbsp;];
+    # Does $url already have a query parameter?
+    my $query = (($url =~ /\?/) ? '&' : '?') . "fault=$faultid";
+    print qq[<td><b><a href="$url$query">$subject</a></b> &nbsp;];
 
     # Show affected projects?
     if ($q->param('show_affected') and $fault->projects) {
       print "<br>";
-      my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
+      my @projlinks = map {"<a href='projecthome.pl?project=$_'>$_</a>"} $fault->projects;
       print join (" | ", @projlinks);
     }
 
@@ -1253,7 +1088,7 @@ sub show_faults {
 
 
     print "<td align='center'>$replies</td>";
-    print "<td><b><a href='$url?id=$faultid'>[View/Respond]</a></b></td>";
+    print "<td><b><a href='$url$query'>[View/Respond]</a></b></td>";
   }
 
   print "</table>";
@@ -1263,7 +1098,7 @@ sub show_faults {
 
 Create a simple form for sending faults to a printer.
 
-  $fcgi->print_form($advanced, @faultids);
+  $comp->print_form($advanced, @faultids);
 
 If the first argument is true then advanced options will be displayed.
 Last argument is an array containing the fault IDs of the faults to be
@@ -1306,9 +1141,9 @@ sub print_form {
 
 Create a title heading that identifies the current page
 
-  $fcgi->titlebar(\@title);
+  $comp->titlebar($category, \@title);
 
-Only argument should be an array reference containing the titlebar elements.
+Arguments should be category and an array reference containing the titlebar elements.
 First element in the array will be placed in a shaded top-bar.  Second
 element will appear in a smaller font below the top-bar.
 
@@ -1316,10 +1151,9 @@ element will appear in a smaller font below the top-bar.
 
   sub titlebar {
     my $self = shift;
+    my $cat = shift;
     my $title = shift;
     my $q = $self->cgi;
-
-    my $cat = $self->category;
 
     my $toptitle =
       _is_safety( $cat )
@@ -1345,12 +1179,12 @@ element will appear in a smaller font below the top-bar.
 Take the arguments from the fault filing form and parse them so they
 can be used to create the fault and fault response objects.
 
-  $fcgi->parse_file_fault_form();
+  $comp->parse_file_fault_form();
 
 Returns the following keys:
 
   subject, faultdate, timelost, system, type, status, urgency,
-  projects, author, text, remote, shifttype
+  projects, text, remote, shifttype
 
 =cut
 
@@ -1462,13 +1296,6 @@ sub parse_file_fault_form {
     }
   }
 
-  my $author = $q->param('user');
-
-  # User may be a hidden param
-  (! $author) and $author = $q->param('user_hidden');
-
-  $parsed{author} = OMP::UserServer->getUser($author);
-
   # The text.  Put it in <pre> tags if there isn't an <html>
   # tag present
   my $text = $q->param('message');
@@ -1480,10 +1307,10 @@ sub parse_file_fault_form {
 
 =item B<category_xml>
 
-Return a snippet of xml containing the name of the current category
+Return a snippet of XML containing the name of the given category
 surrounded by an opening and closing category tag.
 
-  $xmlpart = $fcgi->category_xml();
+  $xmlpart = $comp->category_xml($category);
 
 Returns an empty string if the given category is 'ANYCAT' or if the only
 argument is undef.
@@ -1492,7 +1319,7 @@ argument is undef.
 
 sub category_xml {
   my $self = shift;
-  my $cat = $self->category;
+  my $cat = shift;
 
   if (defined $cat and $cat ne "ANYCAT") {
     return "<category>$cat</category>";

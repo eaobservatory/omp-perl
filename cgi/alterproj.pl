@@ -13,17 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
-use OMP::General;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-$cgi->html_title("Alter Project");
-
-$cgi->write_page_staff(
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::alter_proj,
-    \&OMP::CGIPage::Project::alter_proj,
-    1);
+    undef,
+    'staff',
+    'Alter Project');

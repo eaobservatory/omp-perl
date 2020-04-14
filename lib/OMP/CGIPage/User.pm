@@ -34,21 +34,9 @@ use OMP::ProjServer;
 use OMP::User;
 use OMP::UserServer;
 
-use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
-
-require Exporter;
+use base qw/OMP::CGIPage/;
 
 $| = 1;
-
-@ISA = qw/Exporter/;
-
-@EXPORT_OK = (qw/details project_users project_users_output list_users edit_details/);
-
-%EXPORT_TAGS = (
-                'all' =>[ @EXPORT_OK ],
-               );
-
-Exporter::export_tags(qw/ all /);
 
 # Width for HTML tables
 our $TABLEWIDTH = '100%';
@@ -61,15 +49,13 @@ our $TABLEWIDTH = '100%';
 
 Create a page with all details concerning a user.
 
-  details( $cgi,\%cookie );
-
-Arguments should be that of C<CGI> object and a hash reference containing cookie details.
+  $comp->details();
 
 =cut
 
 sub details {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $q = $self->cgi;
 
   # Get user object
   my $user;
@@ -102,8 +88,7 @@ sub details {
   my @projects;
   my @support;
   try {
-    my $db = new OMP::ProjDB(ProjectID => $cookie{projectid},
-                             DB => new OMP::DBbackend,);
+    my $db = new OMP::ProjDB(DB => new OMP::DBbackend);
 
     my $xml = "<ProjQuery>".
       "<person>".$user->userid."</person>".
@@ -156,13 +141,13 @@ sub details {
       print "<table><tr><td></td><td>Receives email</td>";
 
       for (@{$capacities{$_}}) {
-        print "<tr><td><a href=$url/projecthome.pl?urlprojid=".$_->projectid.">".
+        print "<tr><td><a href=$url/projecthome.pl?project=".$_->projectid.">".
           $_->projectid."</a></td>";
 
         if ($_->contactable($user->userid)) {
-          print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/mail.gif alt='Receives project emails' border=0></a></td>";
+          print "<td align=center><a href=$url/projusers.pl?project=".$_->projectid."><img src=$iconurl/mail.gif alt='Receives project emails' border=0></a></td>";
         } else {
-          print "<td align=center><a href=$url/projusers.pl?urlprojid=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
+          print "<td align=center><a href=$url/projusers.pl?project=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
         }
       }
 
@@ -192,7 +177,7 @@ sub details {
     for my $category (sort keys %faults) {
       for (@{$faults{$category}}) {
         print "<tr><td>" . $_->category ."</td>";
-        print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
+        print "<td><a href=\"viewfault.pl?fault=".$_->faultid."\">".$_->subject."</a></td></tr>";
       }
     }
     print "</table><br>";
@@ -203,14 +188,14 @@ sub details {
 
 Create a page listing all OMP users.
 
-  list_users($q);
-
-Takes an C<OMP::CGI> object as an argument.
+  $page->list_users();
 
 =cut
 
 sub list_users {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   print "<h2>OMP users</h2>";
 
@@ -308,19 +293,20 @@ sub list_users {
 
 Create a page displaying users associated with a project.
 
-  project_users( $cgi, \%cookie );
+  $page->project_users($projectid);
 
-First argument should be an object of the class C<OMP::CGI>.  Second
-argument should be a hash reference representing cookie data.
+First argument should be the project ID.
 
 =cut
 
 sub project_users {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   # Get the project info
-  my $project = OMP::ProjServer->projectDetails($cookie{projectid}, $cookie{password}, "object");
+  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, "object");
 
   # Get contacts
   my @contacts = $project->investigators;
@@ -328,7 +314,7 @@ sub project_users {
   # Get contactables
   my %contactable = $project->contactable;
 
-  print "<h3>Users associated with project $cookie{projectid}</h3>";
+  print "<h3>Users associated with project ${projectid}</h3>";
 
   # Display users in a table along with a checkbox for
   # indicating contactable status
@@ -366,19 +352,18 @@ sub project_users {
 
 Parse project_users page form and display output.
 
-  project_users_output( $cgi, \%cookie );
-
-Takes an C<OMP::CGI> object and a reference to a hash containing cookie
-data as arguments.
+  $page->project_users_output($projectid);
 
 =cut
 
 sub project_users_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   # Get project details
-  my $project = OMP::ProjServer->projectDetails($cookie{projectid}, $cookie{password}, "object");
+  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, "object");
 
   # Get contacts
   my @contacts = $project->investigators;
@@ -402,8 +387,7 @@ sub project_users_output {
 
     # Store user contactable info to database (have to actually store
     # entire project back to database)
-    my $db = new OMP::ProjDB( ProjectID => $cookie{projectid},
-                              'Password' => $cookie{'password'},
+    my $db = new OMP::ProjDB( ProjectID => $projectid,
                               DB => new OMP::DBbackend, );
 
     try {
@@ -411,7 +395,7 @@ sub project_users_output {
       $db->updateContactability( \%new_contactable );
       $project->contactable(%new_contactable);
 
-      print "<h3>Contactable information for project $cookie{projectid} has been updated</h3>";
+      print "<h3>Contactable information for project ${projectid} has been updated</h3>";
     } otherwise {
       my $E = shift;
       print "An error prevented the contactable information from being updated:<br>$E";
@@ -430,15 +414,17 @@ sub project_users_output {
 
 =item B<edit_details>
 
-Edit a user\'s details.  Takes an C<OMP::Query> object as the only argument.
+Edit a user's details.  Takes an C<OMP::Query> object as the only argument.
 A URL paramater called B<user> should be used for passing the OMP user ID.
 
-  edit_details($q);
+  $page->edit_details();
 
 =cut
 
 sub edit_details {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   my $userid = $q->url_param("user");
 
@@ -608,21 +594,23 @@ sub edit_details {
 }
 
 sub add_user {
-    my $q = shift;
+    my $self = shift;
 
-    _add_user_form($q, undef);
+    $self->_add_user_form(undef);
 }
 
 sub add_user_output {
-    my $q = shift;
+    my $self = shift;
+
+    my $q = $self->cgi;
 
     my $userid = $q->param('new_user_id');
-    my $message = _add_user_try(
-        $q, $userid,
+    my $message = $self->_add_user_try(
+        $userid,
         $q->param('new_user_name'),
         $q->param('new_user_email'));
 
-    return _add_user_form($q, $message) if defined $message;
+    return $self->_add_user_form($message) if defined $message;
 
     print
         $q->h2('New OMP User Account Added'),
@@ -633,8 +621,10 @@ sub add_user_output {
 }
 
 sub _add_user_form {
-    my $q = shift;
+    my $self = shift;
     my $message = shift;
+
+    my $q = $self->cgi;
 
     print $q->h2('Add New OMP User Account');
 
@@ -668,10 +658,12 @@ sub _add_user_form {
 # Attempt to add a new user account.  In the event of a problem,
 # a message is returned.
 sub _add_user_try {
-    my $q = shift;
+    my $self = shift;
     my $userid = uc(shift);
     my $name = shift;
     my $email = shift;
+
+    my $q = $self->cgi;
 
     # Trim leading / trailing spaces.
     foreach my $element (\$userid, \$name, \$email) {

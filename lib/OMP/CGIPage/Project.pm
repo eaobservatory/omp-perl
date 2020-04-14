@@ -41,6 +41,8 @@ use OMP::ProjServer;
 use OMP::TimeAcctDB;
 use OMP::SiteQuality;
 
+use base qw/OMP::CGIPage/;
+
 $| = 1;
 
 =head1 Routines
@@ -53,30 +55,33 @@ Display a fault along with a list of faults associated with the project.
 Also provide a link to the feedback comment submission page for responding
 to the fault.
 
-  $fp->fb_fault_content();
+  $page->fb_fault_content($projectid);
 
 =cut
 
 sub fb_fault_content {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
 
   # Get a fault component object
-  my $faultcomp = new OMP::CGIComponent::Fault( CGI => $q );
+  my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
 
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations(lc($cookie{projectid}),0);
+  my @faults = $faultdb->getAssociations(lc($projectid),0);
 
-  print $q->h2("Feedback: Project $cookie{projectid}: View Faults");
+  print $q->h2("Feedback: Project ${projectid}: View Faults");
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
+  $comp->proj_status_table($projectid);
 
   print "<font size=+1><b>Faults</b></font><br>";
-  # Display the first fault if a faultid isnt specified in the URL
+  # Display the first fault if a fault isnt specified in the URL
   my $showfault;
-  if ($q->url_param('id')) {
+  if ($q->url_param('fault')) {
     my %faults = map {$_->faultid, $_} @faults;
-    my $faultid = $q->url_param('id');
+    my $faultid = $q->url_param('fault');
     $showfault = $faults{$faultid};
   } else {
     $showfault = $faults[0];
@@ -84,44 +89,46 @@ sub fb_fault_content {
 
   $faultcomp->show_faults(faults => \@faults,
                           descending => 0,
-                          url => "fbfault.pl",);
+                          url => "fbfault.pl?project=$projectid",);
 
   print "<hr>";
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
   print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-  $faultcomp->fault_table($showfault, 'noedit');
-  print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
+  $faultcomp->fault_table($showfault, no_edit => 1);
+  print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?project=$projectid&subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
 }
 
 =item B<fb_proj_summary>
 
 Show project status, MSB done summary (no comments), and active MSB summary
 
-  fb_proj_summary($cgi, %cookie);
-
-%cookie should contain a projectid and password key.
+  $page->fb_proj_summary($projectid);
 
 =cut
 
 sub fb_proj_summary {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h2("Project $cookie{projectid}");
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
+  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
+
+  print $q->h2("Project ${projectid}");
 
   # Project status table
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
+  $comp->proj_status_table($projectid);
   print $q->hr;
   print $q->h2("MSBs observed");
 
   # Observed MSB table
-  OMP::CGIComponent::MSB::fb_msb_observed($q, $cookie{projectid});
+  $msbcomp->fb_msb_observed($projectid);
 
   print $q->hr;
   print $q->h2("MSBs to be observed");
 
   # MSBs to be observed table
-  OMP::CGIComponent::MSB::fb_msb_active($q, @cookie{qw/projectid password/});
+  $msbcomp->fb_msb_active($projectid);
 
   print $q->hr;
 }
@@ -130,16 +137,19 @@ sub fb_proj_summary {
 
 Create a page with a form prompting for the semester to list projects for.
 
-  list_projects($cgi);
+  $page->list_projects();
 
 =cut
 
 sub list_projects {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   print $q->h2("List projects");
 
-  OMP::CGIComponent::Project::list_projects_form($q);
+  my $comp = OMP::CGIComponent::Project->new(page => $self);
+  $comp->list_projects_form();
 
   print $q->hr;
 }
@@ -148,13 +158,16 @@ sub list_projects {
 
 Create a page with a project listing for given semester and a form.
 
-  list_projects_output($cgi);
+  $page->list_projects_output();
 
 =cut
 
 sub list_projects_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
+  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
 
   my $semester = $q->param('semester');
   my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
@@ -171,7 +184,7 @@ sub list_projects_output {
 
   my $xmlquery = "<ProjQuery><state>$state</state><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
 
-  OMP::General->log_message("Projects list retrieved by user $cookie{userid}");
+  OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
@@ -253,18 +266,18 @@ sub list_projects_output {
     # Display a list of projects if any were returned
     print $q->h2("Projects for semester $semester");
 
-    OMP::CGIComponent::Project::list_projects_form($q);
+    $comp->list_projects_form();
 
     print $q->hr;
 
     if ($q->param('table_format')) {
 
       if ($order eq 'priority') {
-        OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q);
+        $comp->proj_sum_table(\@sorted);
       } else {
         # Display table with semester and country headings
         # since we sorted by project ID
-        OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q, 1);
+        $comp->proj_sum_table(\@sorted, 1);
       }
 
     } else {
@@ -272,30 +285,29 @@ sub list_projects_output {
       my $pub = public_url();
 
       foreach my $project (@sorted) {
-        print "<a href='$pub/projecthome.pl?urlprojid=" . $project->projectid . "'>";
+        print "<a href='$pub/projecthome.pl?project=" . $project->projectid . "'>";
         print $q->h2('Project ' . $project->projectid);
         print "</a>";
-        my %details = (projectid=>$project->projectid, password=>$cookie{password});
-        OMP::CGIComponent::Project::proj_status_table($q, %details);
+        $comp->proj_status_table($project->projectid);
 
         print $q->h3('MSBs observed');
-        OMP::CGIComponent::MSB::fb_msb_observed($q, $project->projectid);
+        $msbcomp->fb_msb_observed($project->projectid);
 
         print $q->h3('MSBs to be observed');
-        OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid,$cookie{'password'});
+        $msbcomp->fb_msb_active($project->projectid);
       }
 
     }
 
     print $q->hr;
 
-    OMP::CGIComponent::Project::list_projects_form($q);
+    $comp->list_projects_form();
 
   } else {
     # Otherwise just put the form back up
     print $q->h2("No projects for semester $semester matching your query");
 
-    OMP::CGIComponent::Project::list_projects_form($q);
+    $comp->list_projects_form();
 
     print $q->hr;
   }
@@ -305,18 +317,20 @@ sub list_projects_output {
 
 Create a page which has a simple summary of the project and links to the rest of the system that are easy to follow.
 
-  project_home($cgi, %cookie);
+  $page->project_home($projectid);
 
 =cut
 
 sub project_home {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
+  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
 
   # Get the project details
-  my $project = OMP::ProjServer->projectDetails( $cookie{projectid},
-                                                 $cookie{password},
-                                                 'object' );
+  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, 'object');
 
   # Store the details we want to display later
   my $projectid = $project->projectid;
@@ -379,7 +393,7 @@ sub project_home {
     <tr><td><b>Country:</b></td><td>$country</td>
     <tr><td><b>Semester:</b></td><td>$semester</td>
     <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
-    <tr><td colspan=2><a href="$pub/props.pl?urlprojid=$cookie{projectid}">Click here to view the science case for this project</a></td>
+    <tr><td colspan=2><a href="$pub/props.pl?project=${projectid}">Click here to view the science case for this project</a></td>
     <tr><td colspan=2><a href="$proposal_url">Click here to view this project in the proposal system</a></td>
     </table>
 _HEADER_
@@ -433,7 +447,7 @@ _HEADER_
 
   # Link to obslog for current day
   my $today = OMP::DateTools->today();
-  print "<br><a href=\"utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$today\">".
+  print "<br><a href=\"utprojlog.pl?project=${projectid}&utdate=$today\">".
     "Click here to remote eavesdrop</a><br>";
 
   # Display nights where data was taken
@@ -455,7 +469,7 @@ _HEADER_
       my $cannot_retrieve;
       try {
 	  my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
-	  my $projinst = OMP::SpServer->programInstruments($cookie{projectid});
+	  my $projinst = OMP::SpServer->programInstruments(${projectid});
 
 	  # See if the instrument in the project are listed in noretrieve
 	  my %inproj = map { (uc($_), undef ) } @$projinst;
@@ -476,7 +490,7 @@ _HEADER_
       for my $ymd (sort keys %accounts) {
 
 	  # Make a link to the obslog page
-	  my $obslog_url = "utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd";
+	  my $obslog_url = "utprojlog.pl?project=${projectid}&utdate=$ymd";
 
 	  # If project is an unretrievable project, link to project log with
 	  # 'noretrv' paramater so that no data retrieval links will appear
@@ -536,28 +550,27 @@ _HEADER_
   # Display observed MSBs if any data have been taken for this project
   if (@$nights) {
     print "<h3>The following MSBs have been observed:</h3>";
-    OMP::CGIComponent::MSB::fb_msb_observed($q, $cookie{projectid});
+    $msbcomp->fb_msb_observed($projectid);
     print "<br>";
   } else {
     print "<h3>No MSBs have been observed</h3>";
   }
 
   # Link to the MSB history page
-  print "Click <a href='msbhist.pl'>here</a> for more details on the observing history of each MSB.";
+  print "Click <a href='msbhist.pl?project=$projectid'>here</a> for more details on the observing history of each MSB.";
 
   # Display remaining MSBs
   print "<h3>MSBs remaining to be observed:</h3>";
-  OMP::CGIComponent::MSB::fb_msb_active($q, @cookie{qw/projectid password/});
+  $msbcomp->fb_msb_active($projectid);
 
   # Link to the program details page
-  print "<br>Click <a href='fbmsb.pl'>here</a> for more details on the science program.";
+  print "<br>Click <a href='fbmsb.pl?project=$projectid'>here</a> for more details on the science program.";
 
   # Link to the region plot / download
-  print '<br>Click <a href="spregion.pl">here</a> to download or plot the regions observed in this program.';
+  print '<br>Click <a href="spregion.pl?project=' . $projectid . '">here</a> to download or plot the regions observed in this program.';
 
   # Get the "important" feedback comments
-  my $comments = OMP::FBServer->getComments($cookie{projectid},
-                                            $cookie{password},
+  my $comments = OMP::FBServer->getComments($projectid,
                                             [OMP__FB_IMPORTANT],);
 
   # Link to feedback comments page (if there are any important
@@ -569,7 +582,7 @@ _HEADER_
       print "<h3>There are " . scalar(@$comments) . " important comments";
     }
     print " for this project.</h3>";
-    print "Click <a href='feedback.pl'>here</a> to see them.";
+    print "Click <a href='feedback.pl?project=$projectid'>here</a> to see them.";
   } else {
     print "<h3>There are no important comments for this project</h3>";
   }
@@ -582,25 +595,27 @@ _HEADER_
 Generate a page showing details for a project and allowing for the
 submission of feedback comments
 
-  proj_sum_page($q, %cookie);
+  $page->proj_sum_page();
 
 =cut
 
 sub proj_sum_page {
-  my $q = shift;
+  my $self = shift;
 
-  my %cookie;
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
+  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
 
   # Get project ID from form or display form
-  if ($q->param('projectid')) {
-    $cookie{projectid} = $q->param('projectid');
+  if ($q->param('project')) {
+    my $projectid = $q->param('project');
 
     # Display project details
-    OMP::CGIComponent::Project::proj_status_table($q, %cookie);
+    $comp->proj_status_table($projectid);
 
     # Submit feedback comment or display form
     if ($q->param('Submit')) {
-      OMP::CGIComponent::Feedback::submit_fb_comment($q, $cookie{projectid});
+      $fbcomp->submit_fb_comment($projectid);
       print "<P>";
 
       # Link back to start page
@@ -609,17 +624,17 @@ sub proj_sum_page {
     } else {
       # Form for adding feedback comment
       print "<strong>Add a feedback comment</strong><br>";
-      OMP::CGIComponent::Feedback::comment_form($q, %cookie);
+      $fbcomp->comment_form($projectid);
     }
 
   } else {
     print start_form_absolute($q);
     print "Project ID: ";
-    print $q->textfield(-name=>"projectid",
+    print $q->textfield(-name=>"project",
                         1-size=>12,
                         -maxlength=>32,);
     print "&nbsp;";
-    print $q->submit(-name=>"projectid_submit",
+    print $q->submit(-name=>"project_submit",
                      -label=>"Submit",);
   }
 
@@ -632,15 +647,13 @@ View summary text of a science program.
 =cut
 
 sub program_summary {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
+    my $projectid = shift;
 
-    # Retrieve the science program.
-    my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
-    die 'Did not recieve valid project ID.' unless $projectid;
+    my $q = $self->cgi;
 
     select(STDERR);
-    my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid, $cookie{'password'});
+    my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid);
     select(STDOUT);
 
     unless (defined $sp) {
@@ -663,122 +676,108 @@ sub program_summary {
 
 View proposals for specific projects.
 
-  proposals($q, %cookie);
+  $page->proposals($projectid);
 
 =cut
 
 sub proposals {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  my $projectid;
+  my $q = $self->cgi;
 
-  if ($q->param) {
-    my $projstring = $q->url_param('urlprojid');
-    (! $projstring) and $projstring = $q->param('projectid');
+  # Proposals directory
+  my $propdir = OMP::Config->getData('propdir');
 
-    # Got the project ID, untaint it
-    $projectid = OMP::General->extract_projectid($projstring);
+  # Which directories to use?
+  my @dirs;
+  push(@dirs, $propdir);
 
-    # Proposals directory
-    my $propdir = OMP::Config->getData('propdir');
+  my $propfilebase = $projectid;
 
-    # Which directories to use?
-    my @dirs;
-    push(@dirs, $propdir);
-    ($cookie{notlocal}) and push(@dirs, $propdir . "/restricted");
+  $propfilebase =~ s/\W//g;
+  $propfilebase = lc($propfilebase);
 
-    my $propfilebase = $projectid;
+  my %extensions = (ps => "application/postscript",
+                    pdf => "application/pdf",
+                    "ps.gz" => "application/postscript",
+                    "txt" => "text/plain",);
 
-    $propfilebase =~ s/\W//g;
-    $propfilebase = lc($propfilebase);
+  my $propfile;
+  my $type;
+  #  File name to offer for file being downloaded.
+  my $offer = 'proposal';
 
-    my %extensions = (ps => "application/postscript",
-                      pdf => "application/pdf",
-                      "ps.gz" => "application/postscript",
-                      "txt" => "text/plain",);
-
-    my $propfile;
-    my $type;
-    #  File name to offer for file being downloaded.
-    my $offer = 'proposal';
-
-  dirloop:
-    for my $dir (@dirs) {
-      for my $ext (qw/ps pdf ps.gz txt/) {
-        my $name = "$propfilebase.$ext";
-        if (-e "$dir/$name") {
-          $propfile = "$dir/$name";
-          $offer .= '-' . $name;
-          $type = $extensions{$ext};
-          last dirloop;
-        }
+dirloop:
+  for my $dir (@dirs) {
+    for my $ext (qw/ps pdf ps.gz txt/) {
+      my $name = "$propfilebase.$ext";
+      if (-e "$dir/$name") {
+        $propfile = "$dir/$name";
+        $offer .= '-' . $name;
+        $type = $extensions{$ext};
+        last dirloop;
       }
     }
-
-    if ($propfile) {
-
-      # Read in proposal file
-      open( my $fh, '<', $propfile);
-      my @file = <$fh>;   # Slurrrp!
-
-      close($fh);
-
-      # Serve proposal
-      print $q->header( -type=>$type,
-                        -Content_Disposition => qq[attachment; filename=$offer]
-                      );
-
-      print join("",@file);
-
-      # Enter log message
-      my $message = "Proposal for $projectid retrieved.";
-      OMP::General->log_message( $message );
-
-    } else {
-      # Proposal file not found
-
-      print $q->header;
-
-      print "<h2>Proposal file not available</h2>";
-    }
-
-  } else {
-    # Didn't get project ID, put up form?
   }
 
+  if ($propfile) {
+
+    # Read in proposal file
+    open( my $fh, '<', $propfile);
+    my @file = <$fh>;   # Slurrrp!
+
+    close($fh);
+
+    # Serve proposal
+    print $q->header( -type=>$type,
+                      -Content_Disposition => qq[attachment; filename=$offer]
+                    );
+
+    print join("",@file);
+
+    # Enter log message
+    my $message = "Proposal for $projectid retrieved.";
+    OMP::General->log_message( $message );
+
+  } else {
+    # Proposal file not found
+
+    print $q->header;
+
+    print "<h2>Proposal file not available</h2>";
+  }
 }
 
 =item B<support>
 
 Create a page listing staff contacts for a project and which also provides a form for defining which is the primary staff contact.
 
-  support($cgi);
+  $page->support();
 
 =cut
 
 sub support {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   # Try and get a project ID
-  my $projectid = OMP::General->extract_projectid($q->param('projectid'));
-  (! $projectid) and $projectid = OMP::General->extract_projectid($q->url_param('urlprojid'));
+  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
 
   # A form for providing a project ID
-  print start_form_absolute($q);
+  print start_form_absolute($q, -method => 'GET');
   print "<strong>Project ID: </strong>";
-  print $q->textfield(-name=>'projectid',
+  print $q->textfield(-name=>'project',
                       -size=>12,
                       -maxlength=>32,);
-  print " " . $q->submit(-name=>'get_projectid', -value=>'Submit');
+  print " " . $q->submit(-name=>'get_project', -value=>'Submit');
   print $q->end_form;
   print "<hr>";
 
-  return if (! $projectid);
+  return unless defined $projectid;
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                'Password' => $cookie{'password'},
                                 DB => new OMP::DBbackend, );
 
   # Verify that project exists
@@ -791,9 +790,9 @@ sub support {
   # Get project details (as object)
   my $project;
   try {
-    $project = $projdb->projectDetails("object");
+    $project = $projdb->projectDetailsNoAuth("object");
   }
-  catch OMP::Error::Authentication with {
+  catch OMP::Error with {
 
     my ( $E ) = @_;
     print "<h3>An error occurred while getting project details.</h3>",
@@ -868,8 +867,6 @@ sub support {
                            -linebreak=>'true',
                            -labels=>\%labels,);
 
-  # Hide project ID in form
-  print $q->hidden(-name=>'projectid', -default=>$projectid);
   print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
   print $q->end_form;
   print "<br><small>Note: Only primary support contacts will receive project email.</small>";
@@ -879,18 +876,18 @@ sub support {
 
 Create a page for adjusting a project's properties.
 
-  alter_proj($cgi_object, %cookie);
+  $page->alter_proj();
 
 =cut
 
 sub alter_proj {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::Project(page => $self);
 
   # Obtain project ID
-  my $projectid = OMP::CGIComponent::Project::obtain_projectid( $q );
-
-  my $userid = $cookie{userid};
+  my $projectid = $comp->obtain_projectid( );
 
   return unless $projectid;
 
@@ -907,17 +904,14 @@ sub alter_proj {
 
   print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
 
-  return process_project_changes( $q, $userid, $project, $projdb )
+  return $self->process_project_changes( $project, $projdb )
     if $q->param('alter_submit');
 
   # Display form for updating project details
   print start_form_absolute($q, -name=>'alter_project');
 
-  print $q->hidden(-name=>'projectid',
+  print $q->hidden(-name=>'project',
                     -default=>$project->projectid,);
-
-  print $q->hidden(-name=>'userid',
-                    -default=>$userid,);
 
   print "<table>";
 
@@ -1072,8 +1066,10 @@ sub alter_proj {
 }
 
 sub process_project_changes {
+  my $self = shift;
+  my ( $project, $projdb ) = @_;
 
-  my ( $q, $userid, $project, $projdb ) = @_;
+  my $q = $self->cgi;
 
   my @msg; # Build up output message
 
@@ -1083,7 +1079,7 @@ sub process_project_changes {
     my $users = $q->param( $type );
     try {
 
-      push @msg, update_users( $project, $type, split /[;,\s]+/, $users );
+      push @msg, $self->update_users( $project, $type, split /[;,\s]+/, $users );
     }
     catch OMP::Error with {
 
@@ -1224,9 +1220,8 @@ sub process_project_changes {
   # Get OMP user object
   if ( $q->param( 'send-mail' ) ) {
 
-    my $user_obj = OMP::UserServer->getUser($userid);
     OMP::FBServer->addComment($project->projectid,
-                              {author => $user_obj,
+                              {author => $self->auth->user,
                                 subject => 'Project details altered',
                                 text => "The following changes have been made to this project:\n\n".
                                 join("\n", @msg)},
@@ -1251,7 +1246,7 @@ sub process_project_changes {
 }
 
 sub update_users {
-
+  my $self = shift;
   my ( $proj, $type, @userid ) = @_;
 
   return unless $proj && (scalar @userid or $type ne 'pi');

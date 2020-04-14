@@ -31,7 +31,8 @@ use CGI::Carp qw/fatalsToBrowser/;
 use OMP::Auth;
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
-use OMP::ProjServer;
+use OMP::DBbackend;
+use OMP::ProjDB;
 use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
@@ -93,7 +94,7 @@ sub new {
 
 =over 4
 
-=item B<name>
+=item B<theme>
 
 The C<HTML::WWWTheme> associated with this class.
 
@@ -392,20 +393,27 @@ sub write_page {
     elsif ($auth_type eq 'project') {
       # Require project access.
 
-      my $projectid = OMP::General->extract_projectid($q->url_param('id'));
-      die 'Project ID not specified or not valid'
+      my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+      return $self->_write_project_choice()
         unless defined $projectid;
 
       return $self->_write_forbidden()
         unless $auth->is_staff or $auth->has_project($projectid);
 
       push @args, $projectid;
-      $self->_sidebar($projectid);
+      $self->_sidebar_project($projectid);
+      $self->html_title($projectid . ': ' . $self->html_title());
     }
     else {
       croak 'Unrecognized auth_type value';
     }
   }
+
+  my $extra = $self->_write_page_extra();
+  throw OMP::Error::BadArgs("hashref not returned by _write_page_extra")
+      unless 'HASH' eq ref $extra;
+  return if (exists $extra->{'abort'} and $extra->{'abort'});
+  push @args, @{$extra->{'args'}} if exists $extra->{'args'};
 
   my $mode_output = ($q->param('show_output')  or $q->url_param('output'))
                 && !($q->param('show_content') or $q->url_param('content'));
@@ -432,6 +440,32 @@ sub write_page {
     unless $opt{'no_header'} && $mode_output;
 
   return;
+}
+
+=item B<_write_page_extra>
+
+Method to prepare extra information for the L<write_page> system.  Subclasses
+should override this method to perform any additional steps required.  A
+reference to a hash must be returned.  This may contain:
+
+=over 4
+
+=item abort
+
+Stop processing if true.  This can be used, for example, if some kind of
+selection page has been shown.
+
+=item args
+
+Reference to an array of additional arguments to pass to the handler methods.
+
+=back
+
+=cut
+
+sub _write_page_extra {
+    my $self = shift;
+    return {};
 }
 
 =item B<write_page_logout>
@@ -512,15 +546,15 @@ Set the URL of the style-sheet
   }
 }
 
-=item B<_sidebar>
+=item B<_sidebar_project>
 
-Create and display a sidebar with a 'logout' link
+Set up a project sidebar.
 
-  $cgi->_sidebar();
+  $page->_sidebar_project($projectid);
 
 =cut
 
-sub _sidebar {
+sub _sidebar_project {
   my $self = shift;
   my $projectid = shift;
   my $theme = $self->theme;
@@ -528,22 +562,23 @@ sub _sidebar {
 
   $theme->SetMoreLinksTitle("<font color=#ffffff>Project $projectid</font>");
 
-  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl'>$projectid Project home</a>",
-                      "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
-                      "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
-                      "<a class='sidemain' href='spregion.pl'>Program regions</a>",
-                      "<a class='sidemain' href='spsummary.pl'>Program summary</a>",
-                      "<a class='sidemain' href='fbcomment.pl'>Add comment</a>",
-                      "<a class='sidemain' href='msbhist.pl'>MSB History</a>",
-                      "<a class='sidemain' href='projusers.pl'>Contacts</a>",
-                      "<a class='sidemain' href='/'>OMP home</a>",);
+  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl?project=$projectid'>Project home</a>",
+                      "<a class='sidemain' href='feedback.pl?project=$projectid'>Feedback entries</a>",
+                      "<a class='sidemain' href='fbmsb.pl?project=$projectid'>Program details</a>",
+                      "<a class='sidemain' href='spregion.pl?project=$projectid'>Program regions</a>",
+                      "<a class='sidemain' href='spsummary.pl?project=$projectid'>Program summary</a>",
+                      "<a class='sidemain' href='fbcomment.pl?project=$projectid'>Add comment</a>",
+                      "<a class='sidemain' href='msbhist.pl?project=$projectid'>MSB History</a>",
+                      "<a class='sidemain' href='projusers.pl?project=$projectid'>Contacts</a>");
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
-  push (@sidebarlinks, "<a class='sidemain' href='fbfault.pl'>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
+  push (@sidebarlinks, "<a class='sidemain' href='fbfault.pl?project=$projectid'>Faults</a>&nbsp;&nbsp;<span class='sidemain'>(" . scalar(@faults) . ")</span>")
     if ($faults[0]);
+
+  push @sidebarlinks, "&nbsp;<br><a class='sidemain' href='/'>OMP Home</a>";
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }
@@ -691,6 +726,62 @@ sub _write_forbidden {
   print $q->p($q->img({-src => '/images/banner_white.gif'})),
       $q->h1('Forbidden'),
       $q->p('The system was unable to verify your access to this page.');
+
+  $self->_write_footer();
+}
+
+=item B<_write_project_choice>
+
+Create a page with a project choice form.
+
+  $cgi->_write_project_choice();
+
+=cut
+
+sub _write_project_choice {
+  my $self = shift;
+  my $q = $self->cgi;
+
+  $self->_write_header();
+
+  my %proj_opts = ();
+  my $datalist = '';
+  if (defined $self->auth->user) {
+    my %projects = ();
+    my $userid = $self->auth->user->userid;
+    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
+
+    foreach my $xml ('<ProjQuery><person>' . $userid . '</person></ProjQuery>',
+                     '<ProjQuery><support>' . $userid . '</support></ProjQuery>') {
+
+        $projects{$_->projectid} = 1 foreach $db->listProjects(new OMP::ProjQuery(XML => $xml));
+    }
+    my @projects = sort keys %projects;
+    if (@projects) {
+      $proj_opts{'-list'} = 'projects';
+      $datalist = join '',
+        '<datalist id="projects">',
+        (map {'<option value="' . $_ .'" />'} @projects),
+        '</datalist>';
+    }
+  }
+
+  print $q->p($q->img({-src => '/images/banner_white.gif'})),
+      $q->h1('Project');
+
+  print $q->p("Please select a project."),
+      start_form_absolute($q, -method => 'GET'),
+      $q->table(
+        $q->Tr(
+          $q->td('Project:'),
+          $q->td($q->textfield(
+            -name => 'project',
+            -size => 17,
+            -maxlength => 30, %proj_opts) . $datalist,
+          $q->td($q->submit(
+            -value => "Submit",
+            -name => ''))))),
+      $q->endform;
 
   $self->_write_footer();
 }

@@ -25,7 +25,7 @@ use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
-use OMP::CGIComponent::IncludeFile qw/include_file_ut/;
+use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::Weather;
 use OMP::Constants qw(:done);
 use OMP::DBbackend;
@@ -33,6 +33,8 @@ use OMP::General;
 use OMP::MSBServer;
 use OMP::NightRep;
 use OMP::TimeAcctDB;
+
+use base qw/OMP::CGIPage/;
 
 $| = 1;
 
@@ -44,13 +46,13 @@ $| = 1;
 
 Create a page summarizing activity for a particular night.
 
-  night_report($cgi, %cookie);
+  $page->night_report($self);
 
 =cut
 
 sub night_report {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $q = $self->cgi();
 
   my $date_format = "%Y-%m-%d";
 
@@ -229,9 +231,10 @@ sub night_report {
 
   print "<p>";
 
+  my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
 
   # Link to CSO fits tau plot
-  my $plot_html = OMP::CGIComponent::Weather::tau_plot_code($utdate);
+  my $plot_html = $weathercomp->tau_plot_code($utdate);
   ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
 
   # Link to WVM graph
@@ -240,13 +243,13 @@ sub night_report {
   }
 
   # Retrieve HTML for the various plots.
-  my $extinction_html = OMP::CGIComponent::Weather::extinction_plot_code( $utdate );
-  my $forecast_html = OMP::CGIComponent::Weather::forecast_plot_code( $utdate );
-  my $meteogram_html = OMP::CGIComponent::Weather::meteogram_plot_code( $utdate );
-  my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
-  my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
-  my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
-  my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
+  my $extinction_html = $weathercomp->extinction_plot_code( $utdate );
+  my $forecast_html = $weathercomp->forecast_plot_code( $utdate );
+  my $meteogram_html = $weathercomp->meteogram_plot_code( $utdate );
+  my $opacity_html = $weathercomp->opacity_plot_code( $utdate );
+  my $seeing_html = $weathercomp->seeing_plot_code( $utdate );
+  my $transp_html = $weathercomp->transparency_plot_code( $utdate );
+  my $zeropoint_html = $weathercomp->zeropoint_plot_code( $utdate );
 
   print "Weather information: ";
 
@@ -283,7 +286,8 @@ sub night_report {
 
   if ($tel eq 'JCMT') {
     print "\n<h2>Data Quality Analysis</h2>\n\n";
-    include_file_ut('dq-nightly', $utdate->ymd());
+    OMP::CGIComponent::IncludeFile->new(page => $self)->include_file_ut(
+        'dq-nightly', $utdate->ymd());
   }
 
   # Display tau plot
@@ -293,7 +297,7 @@ sub night_report {
   my $wvm_html;
 
   if (! $utdate_end) {
-#      $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate->ymd);
+#      $wvm_html = $weathercomp->wvm_graph_code($utdate->ymd);
 #      print $wvm_html;
   }
 

@@ -12,7 +12,7 @@ use warnings;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
+use OMP::CGIComponent::CaptureImage;
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIDBHelper;
 use OMP::DBbackend;
@@ -23,6 +23,8 @@ use OMP::ProjDB;
 use OMP::SiteQuality;
 use OMP::QStatus qw/query_queue_status/;
 use OMP::QStatus::Plot qw/create_queue_status_plot/;
+
+use base qw/OMP::CGIPage/;
 
 our $telescope = 'JCMT';
 
@@ -37,10 +39,9 @@ Creates a page allowing the user to select the queue status viewing options.
 =cut
 
 sub view_queue_status {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
 
-    _show_input_page($q);
+    $self->_show_input_page();
 }
 
 =item B<view_queue_status_output>
@@ -50,8 +51,9 @@ Outputs the queue status plot.
 =cut
 
 sub view_queue_status_output {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
+
+    my $q = $self->cgi;
 
     my %opt = (telescope => $telescope);
 
@@ -123,7 +125,7 @@ sub view_queue_status_output {
         @proj_order = sort keys %$proj_msb;
     }
 
-    _show_input_page($q, project => \@proj_order);
+    $self->_show_input_page(project => \@proj_order);
 
     my @project = $q->param('project');
     my $proj_msb_filt = {};
@@ -140,8 +142,10 @@ sub view_queue_status_output {
 
     print $q->h2('Search results');
 
+    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+
     if (%$proj_msb_filt) {
-        print $q->p(capture_png_as_img($q, sub {
+        print $q->p($capture->capture_png_as_img(sub {
                 create_queue_status_plot(
                     $proj_msb_filt, $utmin, $utmax,
                     output => '-',
@@ -149,7 +153,7 @@ sub view_queue_status_output {
                 );
             }));
 
-        _show_result_table($q, $proj_msb, \@project, \@proj_order);
+        $self->_show_result_table($proj_msb, \@project, \@proj_order);
     }
     else {
         print $q->p($q->i('No observations found'));
@@ -169,8 +173,10 @@ Shows the input parameters form.
 =cut
 
 sub _show_input_page {
-    my $q = shift;
+    my $self = shift;
     my %opt = @_;
+
+    my $q = $self->cgi;
 
     my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
     my $semester = OMP::DateTools->determine_semester();
@@ -262,10 +268,12 @@ Shows a table of the query results.
 =cut
 
 sub _show_result_table {
-    my $q = shift;
+    my $self = shift;
     my $proj_msb = shift;
     my $proj_search = shift;
     my $proj_order = shift;
+
+    my $q = $self->cgi;
 
     my @proj_shown = ();
     my @proj_hidden = ();
@@ -358,9 +366,9 @@ sub _project_link {
     my $project = shift;
 
     return
-        $q->a({-href => 'projecthome.pl?urlprojid=' . $project}, $project) .
+        $q->a({-href => 'projecthome.pl?project=' . $project}, $project) .
         ' (' .
-        $q->a({-href => 'sourceplot.pl?projid=' . $project}, 'plot') .
+        $q->a({-href => 'sourceplot.pl?project=' . $project}, 'plot') .
         ')';
 }
 

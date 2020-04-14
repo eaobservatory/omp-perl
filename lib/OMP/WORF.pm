@@ -49,7 +49,7 @@ require Exporter;
 our @ISA = qw/Exporter/;
 
 our %EXPORT_TAGS = (
-    'all' => [qw/worf_determine_class new plot obs parse_display_options
+    'all' => [qw/worf_determine_class plot obs parse_display_options
                  file_exists fits ndf/],
   );
 

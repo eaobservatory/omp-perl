@@ -301,19 +301,16 @@ returned as either pre-formatted text or as a data structure (array of
 hashes for each MSB with each hash containing an array of hashes for
 each observation).
 
-  $text = OMP::SpServer->programDetails($project,$password,'ascii' );
-  $array = OMP::SpServer->programDetails($project,$password,'data' );
+  $text = OMP::SpServer->programDetails($project,'ascii' );
+  $array = OMP::SpServer->programDetails($project,'data' );
 
 Note that this may cause problems for a strongly typed language.
-
-The project password is required.
 
 =cut
 
 sub programDetails {
   my $class = shift;
   my $projectid = shift;
-  my $password = shift;
   my $mode = lc(shift);
   $mode ||= 'ascii';
 
@@ -326,12 +323,11 @@ sub programDetails {
     # Create new DB object
     my $db = new OMP::MSBDB(
                             ProjectID => $projectid,
-                            Password => $password,
                             DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
     # without sending explicit notification
-    my $sp = $db->fetchSciProg(1);
+    my $sp = $db->fetchSciProgNoAuth(1);
 
     # Create a summary of the science program
     $summary = $sp->summary($mode);

@@ -33,15 +33,10 @@ BEGIN {
   $ENV{'HDS_SCRATCH'} = "/tmp";
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::WORF;
 
-my $query = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $query );
-$cgi->html_title("WORF: WWW Observing Remotely Facility");
-
-# write the page
-
-$cgi->write_page( \&thumbnails_page, \&thumbnails_page );
-
+OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(
+    'thumbnails_page',
+    undef,
+    'project',
+    title => 'WORF: WWW Observing Remotely Facility');

@@ -36,23 +36,9 @@ use OMP::ProjServer;
 use OMP::WORF;
 use OMP::Error qw/ :try /;
 
-use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
+use base qw/OMP::CGIComponent/;
 
 our $VERSION = '2.000';
-
-require Exporter;
-
-@ISA = qw/Exporter/;
-@EXPORT_OK = qw( obs_table obs_summary obs_inst_summary obs_comment_form
-                 obs_add_comment cgi_to_obs cgi_to_obsgroup
-                 print_obslog_header print_obslog_footer
-                 print_obscomment_footer );
-
-%EXPORT_TAGS = (
-                'all' => [ @EXPORT_OK ]
-               );
-
-Exporter::export_tags(qw/ all /);
 
 # Colours for displaying observation status.
 
@@ -74,8 +60,6 @@ our %status_label = ( OMP__OBS_GOOD() => 'Good',
 
 =head1 Routines
 
-All routines are exported by default.
-
 =over 4
 
 =item B<obs_table>
@@ -83,7 +67,7 @@ All routines are exported by default.
 Prints an HTML table containing a summary of information about a
 group of observations.
 
-  obs_table( $obsgroup, $options );
+  $comp->obs_table( $obsgroup, $options );
 
 The first argument is the C<OMP::Info::ObsGroup>
 object, and the third optional argument tells the function how to
@@ -129,6 +113,7 @@ This function will print a colour legend before the table.
 =cut
 
 sub obs_table {
+  my $self = shift;
   my $obsgroup = shift;
   my %options = @_;
 
@@ -138,20 +123,20 @@ sub obs_table {
   my $commentlink;
   if( exists( $options{commentstyle} ) && defined( $options{commentstyle} ) &&
       lc( $options{commentstyle} ) eq 'staff' ) {
-    $commentlink = 'staffobscomment.pl';
+    $commentlink = 'staffobscomment.pl?';
   } else {
-    $commentlink = 'fbobscomment.pl';
+    $commentlink = 'fbobscomment.pl?project=' . $options{'projectid'} . '&';
   }
 
   my $worflink;
   if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
       lc( $options{worfstyle} ) eq 'staff' ) {
-    $worflink = 'staffworf.pl';
+    $worflink = 'staffworf.pl?';
   } elsif (exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
              lc( $options{worfstyle} ) eq 'none' ) {
       $worflink = 'none';
   } else {
-    $worflink = 'fbworf.pl';
+    $worflink = 'fbworf.pl?project=' . $options{'projectid'} . '&';
   }
 
   my $showcomments;
@@ -461,7 +446,7 @@ sub obs_table {
       $param{'timegap'} = 1
         if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
 
-      print qq[</td><td><a class="link_dark_small" href="$commentlink?]
+      print qq[</td><td><a class="link_dark_small" href="$commentlink]
             . join( '&', map { $_ . '=' . $param{ $_ } } grep { defined $param{$_} } keys %param )
             . qq[">comment</a></td>];
     }
@@ -486,7 +471,7 @@ sub obs_table {
                 $worf = new OMP::WORF( obs => $obs );
               }
               if( $worf->file_exists( suffix => '', group => 0 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print "<a class=\"link_dark_small\" href=\"${worflink}ut=";
                 print $obsut;
                 print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
                 print "\">raw</a> ";
@@ -501,7 +486,7 @@ sub obs_table {
               my @ind_suffices = $worf->suffices;
               foreach my $suffix ( @ind_suffices ) {
                 next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print "<a class=\"link_dark_small\" href=\"${worflink}ut=";
                 print $obsut;
                 print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
                 print "&suffix=$suffix\">$suffix</a> ";
@@ -518,14 +503,14 @@ sub obs_table {
               # Get a list of suffices
               my @grp_suffices = $worf->suffices( 1 );
               if( $worf->file_exists( suffix => '', group => 1 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print "<a class=\"link_dark_small\" href=\"${worflink}ut=";
                 print $obsut;
                 print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
                 print "&group=1\">group</a> ";
               }
               foreach my $suffix ( @grp_suffices ) {
                 next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print "<a class=\"link_dark_small\" href=\"${worflink}ut=";
                 print $obsut;
                 print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
                 print "&suffix=$suffix&group=1\">$suffix</a> ";
@@ -787,26 +772,27 @@ sub format_msb_comment {
 
 Prints a table containing a summary about a given observation
 
-  obs_summary( $cgi, $obs, $cookie );
+  $comp->obs_summary( $obs, $projectid );
 
-The first argument is a C<CGI> object, the second is an
-C<Info::Obs> object, and the third is an C<OMP::Cookie> object.
+The first argument is an C<Info::Obs> object and the second is the project ID.
 
 =cut
 
 sub obs_summary {
-  my $cgi = shift;
+  my $self = shift;
   my $obs = shift;
-  my $cookie = shift;
+  my $projectid = shift;
+
+  my $cgi = $self->cgi;
 
   # Verify that we do have an Info::Obs object.
   if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
     throw OMP::Error::BadArgs("Must supply an Info::Obs object");
   }
 
-  if( exists( $cookie->{'projectid'} ) && defined( $cookie->{'projectid'} ) &&
-      $obs->isScience && (lc( $obs->projectid ) ne lc( $cookie->{'projectid'} ) ) ) {
-    throw OMP::Error( "Observation does not match project " . $cookie->{'projectid'} );
+  if( defined( $projectid ) &&
+      $obs->isScience && (lc( $obs->projectid ) ne lc( $projectid ) ) ) {
+    throw OMP::Error( "Observation does not match project " . $projectid );
   }
 
   my @comments = $obs->comments;
@@ -854,10 +840,9 @@ sub obs_summary {
 Prints a table summarizing observations taken for a telescope,
 broken up by instrument.
 
-  ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
+  ( $inst, $ut ) = $comp->obs_inst_summary( $projectid );
 
-The first argument must be a C<CGI> object and the second argument
-is a reference to a hash containing the cookie information.
+The first argument is the project ID.
 
 The function will return the name of the active instrument in the
 table and the UT date for the observations. These two values are
@@ -875,9 +860,10 @@ of observations for the current UT date.
 =cut
 
 sub obs_inst_summary {
-  my $q = shift;
-  my $cookie = shift;
+  my $self = shift;
+  my $projectid = shift;
 
+  my $q = $self->cgi;
   my $qv = $q->Vars;
 
   my $ut = ( defined( $qv->{'ut'} ) ? $qv->{'ut'} : OMP::DateTools->today() );
@@ -890,15 +876,10 @@ sub obs_inst_summary {
   my $telescope;
   # Form an instrument array, depending on where we're at. If we don't know
   # where we are, just push every single instrument onto the array.
-  #
-  # First, check the 'projectid' in the cookie.
-  my $projectid = $cookie->{'projectid'};
-  my $password = $cookie->{'password'};
   my $obsloglink;
-  if( defined( $projectid ) && ! OMP::General->am_i_staff( $projectid ) ) {
-    my $proj = OMP::ProjServer->projectDetails( $projectid,
-                                                $password,
-                                                'object' );
+  if( defined( $projectid ) ) {
+    my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
+                                                      'object' );
     if( defined( $proj ) ) {
       $telescope = uc( $proj->telescope );
     }
@@ -977,18 +958,18 @@ sub obs_inst_summary {
 
 Prints a form that is used to enter a comment about an observation.
 
-  obs_comment_form( $cgi, $obs, $cookie );
+  $comp->obs_comment_form( $obs, $projectid );
 
-The first argument must be a C<CGI> object, the second must be an
-C<Info::Obs> object, and the third is a hash reference containing
-cookie information.
+The first argument must be a an C<Info::Obs> object.
 
 =cut
 
 sub obs_comment_form {
-  my $q = shift;
+  my $self = shift;
   my $obs = shift;
-  my $cookie = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   my @status_value = sort keys %status_label;
 
@@ -1012,20 +993,15 @@ sub obs_comment_form {
     throw OMP::Error::BadArgs("Must supply Info::Obs object");
   }
 
-  if( exists( $cookie->{'projectid'} ) && defined( $cookie->{'projectid'} ) &&
-      $obs->isScience && lc( $cookie->{'projectid'} ) ne lc( $obs->projectid ) ) {
-    throw OMP::Error("The projectid for the observation (" . $obs->projectid . ") does not match the project you are logged in as (" . $cookie->{'projectid'} . ")");
+  if( defined( $projectid ) &&
+      $obs->isScience && lc( $projectid ) ne lc( $obs->projectid ) ) {
+    throw OMP::Error("The projectid for the observation (" . $obs->projectid . ") does not match the project you are logged in as (" . $projectid . ")");
   }
 
   print start_form_absolute($q);
   print '<table border="0" width="100%"><tr><td width="20%">';
   print "Author: </td><td>";
-
-  print $q->textfield( -name => 'user',
-                       -size => '16',
-                       -maxlength => '90',
-                       -default => $cookie->{user},
-                     );
+  print $self->auth->user->userid;
 
   print "</td></tr>\n";
   print "<tr><td>Status: </td><td>";
@@ -1098,40 +1074,25 @@ sub obs_comment_form {
 
 Store a comment in the database.
 
-  obs_add_comment( $cgi );
-
-The only argument should be the C<CGI> object.
+  $comp->obs_add_comment();
 
 =cut
 
 sub obs_add_comment {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   # Set up variables.
   my $qv = $q->Vars;
-  my $user = $qv->{'user'};
   my $status = $qv->{'status'};
   my $text = ( defined( $qv->{'text'} ) ? $qv->{'text'} : "" );
 
-  if( ! defined($user)) {
-#    print "Must supply user in order to store a comment.<br>\n";
-    return;
-  }
-
   # Get the Info::Obs object from the CGI object
-  my $obs = cgi_to_obs( $q );
-
-  # Get the OMP::User object.
-  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-  my $user_obj = $udb->getUser( $user );
-
-  if( ! defined( $user_obj ) ) {
-    print "Must supply valid user in order to store a comment.<br>\n";
-    return;
-  }
+  my $obs = $self->cgi_to_obs( );
 
   # Form the Info::Comment object.
-  my $comment = new OMP::Info::Comment( author => $user_obj,
+  my $comment = new OMP::Info::Comment( author => $self->auth->user,
                                         text => $text,
                                         status => $status,
                                       );
@@ -1147,11 +1108,11 @@ sub obs_add_comment {
 
 =item B<cgi_to_obs>
 
-Given a C<CGI> object, return an C<Info::Obs> object.
+Return an C<Info::Obs> object.
 
-  $obs = cgi_to_obs( $cgi );
+  $obs = $comp->cgi_to_obs( );
 
-In order for this method to work properly, the C<CGI> object
+In order for this method to work properly, the parent page's C<CGI> object
 must have the following variables:
 
 =over 8
@@ -1176,7 +1137,9 @@ inst - The instrument that the observation was taken with. Case-insensitive.
 =cut
 
 sub cgi_to_obs {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   my $verify =
    { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/,
@@ -1231,12 +1194,11 @@ sub cgi_to_obs {
 
 =item B<cgi_to_obsgroup>
 
-Given a C<CGI> object and a reference to cookie information, return an
-C<Info::ObsGroup> object.
+Given a hash of information, return an C<Info::ObsGroup> object.
 
-  $obsgroup = cgi_to_obsgroup( $cgi, \%cookie, ut => $ut, inst => $inst );
+  $obsgroup = $comp->cgi_to_obsgroup( ut => $ut, inst => $inst );
 
-In order for this method to work properly, the cookie hash
+In order for this method to work properly, the hash
 should have the following keys:
 
 =over 8
@@ -1245,26 +1207,11 @@ should have the following keys:
 
 ut - In the form YYYY-MM-DD.
 
-=item *
-
-inst - The instrument that the observation was taken with. Case-insensitive.
-
-=item *
-
-projid - The project ID for which observations will be returned.
-
 =back
 
-The C<inst> and C<projid> variables are optional, but either one or the
-other (or both) must be defined.
-
-The parameters following the cookie are optional and can include:
+Other parameters are optional and can include:
 
 =over 8
-
-=item *
-
-ut - The UT date in the form YYYY-MM-DD.
 
 =item *
 
@@ -1280,14 +1227,19 @@ telescope - The telescope that the observations were taken with.
 
 =back
 
-These parameters will override any values contained in the C<CGI> object.
+The C<inst> and C<projid> variables are optional, but either one or the
+other (or both) must be defined.
+
+These parameters will override any values contained in the parent page's
+C<CGI> object.
 
 =cut
 
 sub cgi_to_obsgroup {
-  my $q = shift;
-  my $cookie = shift;
+  my $self = shift;
   my %args = @_;
+
+  my $q = $self->cgi;
 
   my $ut = defined( $args{'ut'} ) ? $args{'ut'} : undef;
   my $inst = defined( $args{'inst'} ) ? uc( $args{'inst'} ) : undef;
@@ -1305,8 +1257,6 @@ sub cgi_to_obsgroup {
   $inst = ( defined( $inst ) ? $inst : uc( $qv->{'inst'} ) );
   $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
   $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
-
-  $projid = ( defined( $projid ) ? $projid : $cookie->{'projectid'} );
 
   if( !defined( $telescope ) || length( $telescope . '' ) == 0 ) {
     if( defined( $inst ) && length( $inst . '' ) != 0) {
@@ -1368,15 +1318,14 @@ sub cgi_to_obsgroup {
 
 Prints a header for obslog.
 
-  print_obslog_header( $q );
-
-The only argument is the C<CGI> object.
+  $comp->print_obslog_header();
 
 =cut
 
 sub print_obslog_header {
-  my $q = shift;
+  my $self = shift;
 
+  my $q = $self->cgi;
   my $qv = $q->Vars;
 
   print "Welcome to obslog.<hr>\n";
@@ -1421,23 +1370,21 @@ sub print_obslog_header {
 
 Print a footer.
 
-  print_obslog_footer( $cgi );
-
-Only argument is the C<CGI> object.
+  $comp->print_obslog_footer();
 
 Currently essentially a no-op.
 
 =cut
 
 sub print_obslog_footer {
-
+  my $self = shift;
 }
 
 =item B<print_obscomment_footer>
 
 Prints a footer.
 
-  print_obscomment_footer( $cgi );
+  $comp->print_obscomment_footer( );
 
 The only argument is the C<CGI> object.
 
@@ -1446,7 +1393,7 @@ Currently a no-op.
 =cut
 
 sub print_obscomment_footer {
-
+  my $self = shift;
 }
 
 =item B<_cleanse_query_value>

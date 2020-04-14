@@ -7,9 +7,9 @@ OMP::CGIComponent::Weather - Web display of weather information
 =head1 SYNOPSIS
 
   use OMP::CGIComponent::Weather;
-
-  $html = OMP::CGIComponent::Weather::wvm_graph_code;
-  $html = OMP::CGIComponent::Weather::tau_plot_code;
+  my $comp = new OMP::CGIComponent::Weather(page => $page);
+  $html = $comp->wvm_graph_code;
+  $html = $comp->tau_plot_code;
 
 =head1 DESCRIPTION
 
@@ -28,6 +28,8 @@ use OMP::DateTools;
 use OMP::General;
 use Time::Seconds qw(ONE_DAY);
 
+use base qw/OMP::CGIComponent/;
+
 $| = 1;
 
 =head1 Routines
@@ -38,13 +40,14 @@ $| = 1;
 
 Return HTML snippet for displaying an extinction plot.
 
-  $html = extinction_plot_code( $utdate );
+  $html = $comp->extinction_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub extinction_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $extinction_plot_dir = OMP::Config->getData( 'extinction-plot-url' );
@@ -68,13 +71,14 @@ sub extinction_plot_code {
 
 Return HTML snippet for displaying a forecast plot.
 
-  $html = forecast_plot_code( $utdate );
+  $html = $comp->forecast_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub forecast_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $forecast_plot_dir = OMP::Config->getData( 'forecast-plot-url' );
@@ -100,13 +104,14 @@ sub forecast_plot_code {
 
 Return HTML snippet for displaying a meteogram plot.
 
-  $html = meteogram_plot_code( $utdate );
+  $html = $comp->meteogram_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub meteogram_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $gifdate = $utdate;
@@ -132,13 +137,14 @@ sub meteogram_plot_code {
 
 Return HTML snippet for displaying a opacity plot.
 
-  $html = opacity_plot_code( $utdate );
+  $html = $comp->opacity_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub opacity_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $opacity_plot_dir = OMP::Config->getData( 'opacity-plot-url' );
@@ -165,13 +171,14 @@ sub opacity_plot_code {
 
 Return HTML snippet for displaying a seeing plot.
 
-  $html = seeing_plot_code( $utdate );
+  $html = $comp->seeing_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub seeing_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $seeing_plot_dir = OMP::Config->getData( 'seeing-plot-url' );
@@ -195,7 +202,7 @@ sub seeing_plot_code {
 
 Return HTML snippet for displaying a tau plot.
 
-  $html = tau_plot_code($utdate);
+  $html = $comp->tau_plot_code($utdate);
 
 Takes a UT date string as the only argument.  Returns undef if no tau plot
 exists for the given date.
@@ -203,6 +210,7 @@ exists for the given date.
 =cut
 
 sub tau_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   # Setup tau fits image info
@@ -233,13 +241,14 @@ sub tau_plot_code {
 
 Return HTML snippet for displaying a transparency plot.
 
-  $html = transparency_plot_code( $utdate );
+  $html = $comp->transparency_plot_code( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
 sub transparency_plot_code {
+  my $self = shift;
   my $utdate = shift;
 
   my $transparency_plot_dir = OMP::Config->getData( 'transparency-plot-url' );
@@ -267,7 +276,7 @@ sub transparency_plot_code {
 Return HTML snippet for displaying a wvm graph.  Takes UT start and end dates as
 the only arguments
 
-  $wvm_html = wvm_graph_code('2003-03-22', '2003-03-25');
+  $wvm_html = $comp->wvm_graph_code('2003-03-22', '2003-03-25');
 
 UT end date is optional and if not provided the graph will display for
 a 24 hour period beginning on the UT start date.
@@ -275,6 +284,7 @@ a 24 hour period beginning on the UT start date.
 =cut
 
 sub wvm_graph_code {
+  my $self = shift;
   my $wvmstart = shift;
   my $wvmend = shift;
 

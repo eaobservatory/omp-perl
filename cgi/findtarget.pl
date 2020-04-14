@@ -13,15 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::FindTarget;
 
-my $q = new CGI();
-my $ompcgi = new OMP::CGIPage(CGI => $q);
-
-my $title = $ompcgi->html_title();
-$ompcgi->html_title("$title: Find Target");
-
-$ompcgi->write_page_staff(\&OMP::CGIPage::FindTarget::find_targets,
-                          \&OMP::CGIPage::FindTarget::find_targets_output,
-                          1);
+OMP::CGIPage::FindTarget->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::FindTarget::find_targets,
+    \&OMP::CGIPage::FindTarget::find_targets_output,
+    'staff',
+    title => 'Find Target');

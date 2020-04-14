@@ -7,7 +7,7 @@ OMP::FBServer - Feedback information Server class
 =head1 SYNOPSIS
 
   OMP::FBServer->addComment( $project, $commentHash );
-  OMP::FBServer->getComments( $project, $password, $status );
+  OMP::FBServer->getComments( $project, $status );
 
 =head1 DESCRIPTION
 
@@ -112,21 +112,20 @@ sub addComment {
 =item B<getComments>
 
 Return comments associated with the specified project.  With just the
-project ID and password given this method will default to returning all
-comments.  The third argument should be an array reference containing the
+project ID given this method will default to returning all
+comments.  The second argument should be an array reference containing the
 desired status types of the comments to be returned.  Status types are
 defined in C<OMP::Constants>.  Final argument is optional and should be
 either 'ascending' or 'descending' depending on the order in which you
 want the comments to come back.
 
-    OMP::FBServer->getComments( $project, $password, \@status, [$order]);
+    OMP::FBServer->getComments( $project, \@status, [$order]);
 
 =cut
 
 sub getComments {
   my $class = shift;
   my $projectid = shift;
-  my $password = shift;
   my $status = shift;
   my $order = shift;
 
@@ -141,7 +140,6 @@ sub getComments {
   try {
 
     my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-                                  Password => $password,
                                   DB => $class->dbConnection, );
 
     $commentref = $db->getComments( %args );

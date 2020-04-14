@@ -124,16 +124,6 @@ sub getComments {
       if (defined ($args{$part}));
   }
 
-  # Verify project password if projectid is set
-  if ($self->projectid) {
-    # Verify the password
-    my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
-                                  DB => $self->db );
-
-    throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
-      unless $projdb->verifyPassword( $self->password );
-  }
-
   # Form complete XML Query
   my $xml = "<FBQuery>".
     ($self->projectid ? "<projectid>". $self->projectid ."</projectid>" : "").

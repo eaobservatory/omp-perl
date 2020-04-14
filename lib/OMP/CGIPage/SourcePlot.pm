@@ -15,12 +15,14 @@ done by OMP::GetCoords::Plot module.
 
 use strict;
 
-use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
+use OMP::CGIComponent::CaptureImage;
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::GetCoords::Plot qw/plot_sources/;
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
+
+use base qw/OMP::CGIPage/;
 
 =head1 Subroutines
 
@@ -33,10 +35,9 @@ Creates a page allowing the user to select the source plotting options.
 =cut
 
 sub view_source_plot {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
 
-    _show_inputpage($q);
+    $self->_show_inputpage();
 }
 
 =item B<view_source_plot_output>
@@ -46,11 +47,10 @@ Outputs the source plot.
 =cut
 
 sub view_source_plot_output {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
 
-    _show_inputpage($q);
-    _show_plot($q);
+    $self->_show_inputpage();
+    $self->_show_plot();
 }
 
 =back
@@ -66,7 +66,9 @@ Prints the HTML input panel.
 =cut
 
 sub _show_inputpage {
-    my $q = shift;
+    my $self = shift;
+
+    my $q = $self->cgi;;
 
     print
         $q->p('Plot sources from an OMP project'),
@@ -80,7 +82,7 @@ sub _show_inputpage {
                 ]),
                 $q->td([
                     'Project(s)',
-                    $q->textfield(-name => 'projid', size => 16),
+                    $q->textfield(-name => 'project', size => 16),
                     'One or more separated by "@"',
                 ]),
                 $q->td([
@@ -155,7 +157,9 @@ Prints HTML to show the source plot.
 =cut
 
 sub _show_plot {
-    my $q = shift;
+    my $self = shift;
+
+    my $q = $self->cgi;
 
     my $projid = "";
     my $utdate = "";
@@ -167,7 +171,7 @@ sub _show_plot {
     my $labpos = "";
     my @msg    = ();
 
-    my $proj = $q->param('projid');
+    my $proj = $q->param('project');
     $proj =~ /^([\w\/\$\.\_\@]+)$/ && ($projid = $1) || (do {
            $projid = "";
            push @msg, "***ERROR*** must specify a project!";
@@ -228,9 +232,11 @@ sub _show_plot {
         $opt{'agrid'} = $agrid  if (defined $agrid && $agrid ne "");
         $opt{'label'} = $labpos if (defined $labpos && $labpos ne "");
 
+        my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+
         print
             $q->h2($projid),
-            $q->p(capture_png_as_img($q, sub {
+            $q->p($capture->capture_png_as_img(sub {
                 plot_sources(
                     output => '-',
                     hdevice => '/PNG',

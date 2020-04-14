@@ -34,17 +34,10 @@ BEGIN {
   $ENV{'HDS_SCRATCH'} = "/tmp";
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::WORF;
 
-# Set up global variables, system variables, etc.
-
-my $query = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $query );
-$cgi->html_title("WORF: UKIRT WWW Observing Remotely Facility");
-
-# write the page
-
-$cgi->write_page_noauth( \&display_page, \&display_page );
-
+OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(
+    'display_page',
+    undef,
+    'no_auth',
+    title => 'WORF: WWW Observing Remotely Facility');

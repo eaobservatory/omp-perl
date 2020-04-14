@@ -1443,7 +1443,7 @@ sub projectsummary_ashtml {
                 }
             }
             print "<tr class='row_$bgcolor'>";
-            print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
+            print "<td><a href='$ompurl/projecthome.pl?project=$proj' class='link_light'>$proj</a></td><td>";
             printf($format, $account->{total}->hours);
             print " [unconfirmed]" if ($pending);
             print "</td>";
@@ -1630,7 +1630,7 @@ sub ashtml {
     print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
 
     for my $proj (keys %msbs) {
-      print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?urlprojid=$proj' class='link_dark'>$proj</a></td>";
+      print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?project=$proj' class='link_dark'>$proj</a></td>";
       print "<td>$alt_msb_column</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
 
       for my $msb (@{$msbs{$proj}}) {
@@ -1678,11 +1678,11 @@ sub ashtml {
     }
       for my $fault (@{$faults{$date}}) {
         print "<tr class=sum_other valign=top>";
-        print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
+        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
 
         my $time = gmtime($fault->date->epoch);
         print "<td class='$timecellclass'>". $time->strftime("%H:%M UT") ."</td>";
-        print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
+        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
         print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
         print "<td class='shift' align=right>". $fault->shifttype ."</td>";
         print "</tr>";
@@ -1698,7 +1698,7 @@ sub ashtml {
     print "<a name=\"shiftcom\"></a>";
 
     if ($comments[0]) {
-      OMP::CGIComponent::Shiftlog::display_shift_table( \@comments );
+      OMP::CGIComponent::Shiftlog->new()->display_shift_table( \@comments );
     } else {
       print "<strong>No Shift comments available</strong>";
     }
@@ -1732,12 +1732,13 @@ sub ashtml {
 
         print "<pre>" if ($plaintext);
 
-        OMP::CGIComponent::Obslog::obs_table($grp,
-                                             sort => 'chronological',
-                                             worfstyle => $worfstyle,
-                                             commentstyle => $commentstyle,
-                                             text => $plaintext,
-                                            );
+        OMP::CGIComponent::Obslog->new()->obs_table(
+            $grp,
+            sort => 'chronological',
+            worfstyle => $worfstyle,
+            commentstyle => $commentstyle,
+            text => $plaintext,
+        );
 
         print "</pre>" if ($plaintext);
 

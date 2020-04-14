@@ -13,12 +13,9 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Feedback;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-$cgi->write_page( \&OMP::CGIPage::Feedback::fb_output,
-                  \&OMP::CGIPage::Feedback::fb_output );
+OMP::CGIPage::Feedback->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Feedback::fb_output,
+    undef,
+    'project');

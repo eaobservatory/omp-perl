@@ -13,30 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::User;
-use OMP::NetTools;
-use OMP::UserServer;
-use OMP::Error qw(:try);
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-
-my $user;
-try {
-  $user = OMP::UserServer->getUser($q->url_param('user'));
-} otherwise {
-  $user = "Unknown User";
-};
-
-(! $user) and $user = "Unknown User";
-
-$cgi->html_title("$title: Edit User Details for $user");
-
-$cgi->write_page_staff(
+OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::edit_details,
-    \&OMP::CGIPage::User::edit_details,
-    1);
+    undef,
+    'staff',
+    title => 'Edit User Details');

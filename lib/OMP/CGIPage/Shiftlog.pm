@@ -25,19 +25,9 @@ use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Shiftlog;
 
+use base qw/OMP::CGIPage/;
+
 our $VERSION = '2.000';
-
-require Exporter;
-
-our @ISA = qw/Exporter/;
-our @EXPORT = qw(shiftlog_page);
-
-our %EXPORT_TAGS = (
-                    'all' => [ @EXPORT ]
-                    );
-
-Exporter::export_tags(qw/ all /);
-
 
 =head1 Routines
 
@@ -50,29 +40,29 @@ All routines are exported by default.
 Creates a page with a form for filing a shiftlog entry
 after a form on that page has been submitted.
 
-  shiftlog_page( $cgi );
-
-The only argument is the C<CGI> object.
+  $page->shiftlog_page([$projectid]);
 
 =cut
 
 sub shiftlog_page {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  my $parsed = parse_query( $q );
+  my $comp = new OMP::CGIComponent::Shiftlog(page => $self);
 
-  print_header();
+  my $parsed = $comp->parse_query();
 
-  submit_comment( $parsed );
+  $comp->print_header();
 
-  display_shift_comments( $parsed, \%cookie );
+  $comp->submit_comment( $parsed );
 
-  display_comment_form( $q, $parsed );
+  $comp->display_shift_comments( $parsed );
 
-  display_date_form( $q, $parsed );
+  $comp->display_comment_form( $parsed );
 
-  display_telescope_form( $q, $parsed );
+  $comp->display_date_form( $parsed );
+
+  $comp->display_telescope_form( $parsed );
 }
 
 =back

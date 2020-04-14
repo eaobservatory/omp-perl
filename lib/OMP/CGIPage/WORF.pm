@@ -22,34 +22,26 @@ use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 use Net::Domain qw/ hostfqdn /;
 
-use OMP::CGIComponent::Obslog qw/ obs_table /;
+use OMP::CGIComponent::Obslog;
 use OMP::CGIComponent::WORF;
 use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Info::Obs;
 use OMP::WORF;
 
-our $VERSION = '2.000';
-
-require Exporter;
-
-our @ISA = qw/Exporter/;
-
-our %EXPORT_TAGS = (
-    'all' => [qw/display_page thumbnails_page/]
-  );
-
-Exporter::export_tags(qw/ all /);
+use base qw/OMP::CGIPage/;
 
 =head1 Routines
-
-All routines are exported by default.
 
 =cut
 
 sub display_page {
-  my $cgi = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $comp = OMP::CGIComponent::WORF->new(page => $self);
+
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
   # Filter out CGI variables.
@@ -140,20 +132,13 @@ sub display_page {
     $suffix = $1;
   }
 
-  my $projectid;
-  my $password;
-
-  if( exists( $cookie{projectid} ) && defined( $cookie{projectid} ) ) {
-    $projectid = $cookie{projectid};
-    $password = $cookie{password};
-  } else {
+  unless( defined( $projectid ) ) {
     $projectid = 'staff';
   }
 
   my $project;
   if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetails( $projectid,
-                                                $password,
+    $project = OMP::ProjServer->projectDetailsNoAuth( $projectid,
                                                 'object' );
   }
 
@@ -172,7 +157,7 @@ sub display_page {
   push @obs, $obs;
   my $group = new OMP::Info::ObsGroup( obs => \@obs );
   $group->commentScan;
-  obs_table( $group );
+  OMP::CGIComponent::Obslog->new(page => $self)->obs_table( $group, projectid => $projectid );
 
 # Display the observation.
   print "<br>\n";
@@ -222,36 +207,31 @@ sub display_page {
   print ( defined( $cgi_group ) ? "%26group%3d$cgi_group" : '' );
   print "%29%3b\">Open with Aladin Java applet</a> (imaging mode only)<br><br>\n";
 
-  OMP::CGIComponent::WORF::options_form( $cgi );
+  $comp->options_form();
 
 #  print_worf_footer();
 
 }
 
 sub thumbnails_page {
-  my $cgi = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
-  my $projectid;
-  my $password;
-
-  if( exists( $cookie{projectid} ) && defined( $cookie{projectid} ) ) {
-    $projectid = $cookie{projectid};
-    $password = $cookie{password};
-  } else {
+  unless (defined $projectid) {
     $projectid = 'staff';
   }
 
   my $project;
   my $worflink;
   if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetails( $projectid,
-                                                $password,
+    $project = OMP::ProjServer->projectDetailsNoAuth( $projectid,
                                                 'object' );
-    $worflink = "fbworf.pl";
+    $worflink = "fbworf.pl?project=${projectid}&";
   } else {
-    $worflink = "staffworf.pl";
+    $worflink = "staffworf.pl?";
   }
 
   # Figure out which telescope we're doing.
@@ -444,7 +424,7 @@ sub thumbnails_page {
         my $key = $instrument . $curgrp;
         if( $displayed{$key} ) { next FILELOOP; }
         print "<td>";
-        print "<a href=\"$worflink?ut=$obsut&runnr=";
+        print "<a href=\"${worflink}ut=$obsut&runnr=";
         print $curgrp . "&inst=" . $obs->instrument;
         if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
         print "\">";
@@ -496,7 +476,7 @@ sub thumbnails_page {
             my $key = $instrument . $curgrp . $suffix;
             if( $displayed{$key} ) { next FILELOOP; }
             print "<td>";
-            print "<a href=\"$worflink?ut=$obsut&runnr=";
+            print "<a href=\"${worflink}ut=$obsut&runnr=";
             print $curgrp . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
             if( $instrument !~ /heterodyne/ ) { print "&group=1"; }

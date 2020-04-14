@@ -8,7 +8,7 @@ OMP::CGIComponent::WORF - CGI functions for WORF, the WWW Observing Remotely Fac
 
   use OMP::CGIComponent::WORF;
 
-  display_observation( $obs, $cgi );
+  $comp->display_observation( $obs, $suffix );
 
 =head1 DESCRIPTION
 
@@ -24,32 +24,23 @@ use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
-use OMP::CGIComponent::Obslog qw/ cgi_to_obs /;
+use OMP::CGIComponent::Obslog;
 use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
 use OMP::WORF;
 
+use base qw/OMP::CGIComponent/;
+
 our $VERSION = '2.000';
 
-require Exporter;
-
-our @ISA = qw/Exporter/;
-
-our %EXPORT_TAGS = (
-    'all' => [qw/display_graphic display_observation
-                 options_form obsnumsort return_fits return_ndf/]
-  );
-
-Exporter::export_tags(qw/ all /);
-
 =head1 Routines
-
-All routines are exported by default.
 
 =cut
 
 sub display_graphic {
-  my $cgi = shift;
+  my $self = shift;
+
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
   my $ut;
@@ -108,23 +99,24 @@ sub display_graphic {
 
   }
 
-  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
 
-  display_observation( $cgi, $obs, $suffix );
+  $self->display_observation( $obs, $suffix );
 
 }
 
 =item B<display_observation>
 
-  display_observation( $cgi, $obs, $suffix );
+  $comp->display_observation( $obs, $suffix );
 
 =cut
 
 sub display_observation {
-  my $cgi = shift;
+  my $self = shift;
   my $obs = shift;
   my $suffix = shift;
 
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
   my $worf = new OMP::WORF( obs => $obs,
@@ -140,14 +132,14 @@ sub display_observation {
 
 Returns a FITS file via STDOUT.
 
-  return_fits( $cgi );
-
-The only parameter is the C<CGI> object, and is mandatory.
+  $comp->return_fits();
 
 =cut
 
 sub return_fits {
-  my $cgi = shift;
+  my $self = shift;
+
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
   my $ut;
@@ -184,7 +176,7 @@ sub return_fits {
     $group = 1;
   }
 
-  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
 
   my $worf = new OMP::WORF( obs => $obs,
                             suffix => $suffix,
@@ -199,14 +191,14 @@ sub return_fits {
 
 Returns an NDF file via STDOUT.
 
-  return_ndf( $cgi );
-
-The only parameter is the C<CGI> object, and is mandatory.
+  $comp->return_ndf();
 
 =cut
 
 sub return_ndf {
-  my $cgi = shift;
+  my $self = shift;
+
+  my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
   my $ut;
@@ -243,7 +235,7 @@ sub return_ndf {
     $group = 1;
   }
 
-  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
 
   my $worf = new OMP::WORF( obs => $obs,
                             suffix => $suffix,
@@ -257,14 +249,16 @@ sub return_ndf {
 
 Displays a form allowing the user to change display options.
 
-  options_form( $cgi );
+  $comp->options_form();
 
 The only parameter is the C<CGI> object, and is mandatory.
 
 =cut
 
 sub options_form {
-  my $cgi = shift;
+  my $self = shift;
+
+  my $cgi = $self->cgi;
 
   my @autocut_value = qw/ 100 99 98 95 90 80 70 50 /;
 

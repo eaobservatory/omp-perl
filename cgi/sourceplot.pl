@@ -13,15 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::SourcePlot;
 
-my $q = new CGI();
-my $ompcgi = new OMP::CGIPage(CGI => $q);
-
-my $title = $ompcgi->html_title();
-$ompcgi->html_title("$title: Source Plot");
-
-$ompcgi->write_page_staff(\&OMP::CGIPage::SourcePlot::view_source_plot,
-                          \&OMP::CGIPage::SourcePlot::view_source_plot_output,
-                          1);
+OMP::CGIPage::SourcePlot->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::SourcePlot::view_source_plot,
+    \&OMP::CGIPage::SourcePlot::view_source_plot_output,
+    'staff',
+    title => 'Source Plot');

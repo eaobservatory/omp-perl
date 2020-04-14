@@ -8,9 +8,8 @@ OMP::CGIComponent - Helper DB subroutines for building CGI pages
 
   use OMP::CGIDBHelper;
 
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid, $password );
-  my $details = OMP::CGIDBHelper::safeProgramDetails( $projectid,
-                   $password, $mode );
+  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
+  my $details = OMP::CGIDBHelper::safeProgramDetails( $projectid, $mode );
 
 =head1 DESCRIPTION
 
@@ -39,7 +38,7 @@ Retrieves the specified science program from the database without leaving
 a feedback entry. Handles exceptions and prints HTML to stdout when reporting
 errors.
 
-  $sp = safeFetchSciProg( $projectid, $password );
+  $sp = safeFetchSciProg( $projectid );
 
 $sp will be undef if an error occurred.
 
@@ -47,17 +46,15 @@ $sp will be undef if an error occurred.
 
 sub safeFetchSciProg {
   my $projectid = uc(shift);
-  my $password = shift;
 
   my $sp;
   try {
 
     # Use the lower-level method to fetch the science program so we
     # can disable the feedback comment associated with this action
-    my $db = new OMP::MSBDB( Password => $password,
-                             ProjectID => $projectid,
+    my $db = new OMP::MSBDB( ProjectID => $projectid,
                              DB => new OMP::DBbackend, );
-    $sp = $db->fetchSciProg(1);
+    $sp = $db->fetchSciProgNoAuth(1);
   } catch OMP::Error::UnknownProject with {
     print "<p>Science program for <em>$projectid</em> not present in database<p>";
   } catch OMP::Error::SpTruncated with {
@@ -75,25 +72,23 @@ sub safeFetchSciProg {
 Similar to the OMP::SpServer->programDetails method, except exceptions are
 caught and errors written to stdout in HTML.
 
-  $details = safeProgramDetails( $projectid, $password, $type );
+  $details = safeProgramDetails( $projectid, $type );
 
-Returns undef on error. An optional 4th argument can be used to suppress
+Returns undef on error. An optional 3rd argument can be used to suppress
 the error messages to stdout if true.
 
-  $details = safeProgramDetails( $projectid, $password, $type, 1 );
+  $details = safeProgramDetails( $projectid, $type, 1 );
 
 =cut
 
 sub safeProgramDetails {
   my $projectid = uc(shift);
-  my $password = shift;
   my $type = shift;
   my $quiet = shift;
 
   my $msbsum;
   try {
     $msbsum = OMP::SpServer->programDetails($projectid,
-                                            $password,
                                             $type);
   } catch OMP::Error::UnknownProject with {
     print "<p>Science program for <em>$projectid</em> not present in database<p>"

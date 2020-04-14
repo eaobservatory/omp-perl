@@ -274,7 +274,7 @@ sub userhtml {
 
    $html .=
     sprintf
-      qq( <a href="%s/projusers.pl?urlprojid=%s"><img src="%s" alt="%s" border="0"></a>),
+      qq( <a href="%s/projusers.pl?project=%s"><img src="%s" alt="%s" border="0"></a>),
       $public . $cgidir,
       $project,
       join( '/', $iconsdir, $mail[0] ),

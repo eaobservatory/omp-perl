@@ -13,21 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
 use OMP::CGIPage::Fault;
-use OMP::NetTools;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage::Fault( CGI => $q );
-
-$cgi->html_title("OMP Fault System: Update response");
-
-# If the user is outside the JAC network write the page with
-# authentication
-if (OMP::NetTools->is_host_local) {
-  $cgi->write_page('update_resp_content',
-                         'update_resp_output');
-} else {
-  $cgi->write_page_staff('update_resp_content',
-                         'update_resp_output');
-}
+OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
+    'update_resp_content',
+    'update_resp_output',
+    'staff',
+    title => 'Update Response');

@@ -30,14 +30,7 @@ BEGIN {
   $ENV{'HDS_SCRATCH'} = "/tmp";
 }
 
-# OMP Modules
 use OMP::CGIComponent::WORF;
+use OMP::CGIPage::WORF;
 
-use strict;
-
-# Set up global variables, system variables, etc.
-
-my $query = new CGI;
-
-return_ndf( $query );
-
+OMP::CGIComponent::WORF->new(page => OMP::CGIPage::WORF->new(cgi => new CGI()))->return_ndf();
