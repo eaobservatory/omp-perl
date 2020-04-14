@@ -287,8 +287,8 @@ sub storeSciProg {
 
   # And file with feedback system unless told otherwise
   unless ($args{NoFeedback}) {
-    # Add a little note if we used the admin password
-    my $note = $self->_password_text_info();
+    # Add a little note indicating the user name if given.
+    my $note = (exists $args{'User'}) ? ('[by user ' . $args{'User'}->userid . ']') : '';
 
     $self->_notify_feedback_system(
                                    subject => "Science program submitted",
@@ -360,6 +360,7 @@ Additional options:
 
     raw - return raw science program XML (without constructing
           an OMP::SciProg object.
+    user - an OMP::User representing the person making this request
 
 =cut
 
@@ -369,7 +370,9 @@ sub fetchSciProgNoAuth {
 
   my $sp = $self->_really_fetch_sciprog(raw => $opt{'raw'});
 
-  $self->_clear_counter_add_feedback_post_fetch( $sp )
+  my $note = (exists $opt{'user'}) ? ('[by user ' . $opt{'user'}->userid . ']') : undef;
+
+  $self->_clear_counter_add_feedback_post_fetch( $sp, $note )
     unless $internal or $opt{'raw'};
 
   return $sp;

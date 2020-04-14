@@ -58,23 +58,21 @@ Store an OMP Science Program (as XML) in the database. The password
 must match that associated with the project specified in the science
 program.
 
-  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog, $password);
+  [$summary, $timestamp] = OMP::SpServer->storeProgram(
+    $sciprog, $provider, $username, $password [, $force]);
 
 Returns an array containing the summary of the science program (in
 plain text) that can be used to provide feedback to the user as well
 as the timestamp attached to the file in the database (for consistency
 checking).
 
-An optional third parameter can be used to control the behaviour
+An optional parameter can be used to control the behaviour
 if the timestamps do not match. If false an exception will be raised
 (of type C<SpChangedOnDisk>) and the store will fail if the timestamp
 of the program being stored does not match that already in the database.
 If true the timestamp test will be ignored and the program will be
 stored. This allows people to force the storing of a science program
 and should be used with care.
-
-  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog,
-                                                       $password, $force);
 
 This method automatically recognizes whether the science program is
 gzip compressed.
@@ -85,8 +83,9 @@ B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
 sub storeProgram {
   my $class = shift;
-
   my $xml = shift;
+  my $provider = shift;
+  my $username = shift;
   my $password = shift;
   my $force = shift;
 
@@ -125,15 +124,16 @@ sub storeProgram {
         "Please upgrade to at least version $minver, available from\n${url}\n");
     }
 
+    my ($projectid, $auth) = $class->get_verified_projectid(
+      $provider, $username, $password, $sp->projectID);
 
     # Create a new DB object
-    my $db = new OMP::MSBDB( Password => $password,
-                             ProjectID => $sp->projectID,
+    my $db = new OMP::MSBDB( ProjectID => $projectid,
                              DB => $class->dbConnection,
                            );
 
     # Store the science program
-    my @warnings = $db->storeSciProg( SciProg => $sp, Force => $force );
+    my @warnings = $db->storeSciProg( SciProg => $sp, Force => $force, NoAuth => 1, User => $auth->user );
 
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";
@@ -235,18 +235,14 @@ sub compressReturnedItem {
 
 Retrieve a science program from the database.
 
-  $xml = OMP::SpServer->fetchProgram( $project, $password );
+  $program = OMP::SpServer->fetchProgram( $project, $provider, $username, $password, [, "GZIP"] );
 
 The return argument is an XML representation of the science
 program (encoded in base64 for speed over SOAP if we are using
 SOAP).
 
-A third argument controls what form the returned science program should
-take.
-
-  $gzip = OMP::SpServer->fetchProgram( $project, $password, "GZIP" );
-
-See B<compressReturnedItem>
+A final argument controls what form the returned science program should
+take.  See B<compressReturnedItem>
 
 B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
@@ -254,24 +250,28 @@ B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
 sub fetchProgram {
   my $class = shift;
-  my $projectid = shift;
+  my $rawprojectid = shift;
+  my $provider = shift;
+  my $username = shift;
   my $password = shift;
   my $rettype = shift;
 
   my $t0 = [gettimeofday];
-  OMP::General->log_message( "fetchProgram: Begin.\nProject=$projectid\n");
+  OMP::General->log_message( "fetchProgram: Begin.\nProject=$rawprojectid\n");
 
   my $sp;
   my $E;
+
   try {
+    my ($projectid, $auth) = $class->get_verified_projectid(
+      $provider, $username, $password, $rawprojectid);
 
     # Create new DB object
-    my $db = new OMP::MSBDB( Password => $password,
-                             ProjectID => $projectid,
+    my $db = new OMP::MSBDB( ProjectID => $projectid,
                              DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
-    $sp = $db->fetchSciProg;
+    $sp = $db->fetchSciProgNoAuth(0, user => $auth->user);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

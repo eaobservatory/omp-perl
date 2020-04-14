@@ -27,6 +27,7 @@ use warnings;
 
 # External dependencies
 use SOAP::Lite;
+use OMP::Auth;
 use OMP::Config;
 use OMP::Constants qw/ :status :logging /;
 use OMP::Display;
@@ -38,6 +39,44 @@ our $VERSION = '2.000';
 =head1 METHODS
 
 =over 4
+
+=item B<get_verified_projectid>
+
+Validate the given project ID, attempt to authenticate the user based on
+the given credentials and check their authorization for the project.
+
+  my ($projectid, $auth) = $class->get_verified_projectid(
+      $provider, $username, $password, $rawprojectid);
+
+=cut
+
+sub get_verified_projectid {
+  my $class = shift;
+  my $provider = shift;
+  my $username = shift;
+  my $password = shift;
+  my $rawprojectid = shift;
+
+  unless ((defined $provider) and (defined $username)
+      and (defined $password) and (defined $rawprojectid)) {
+    throw OMP::Error::BadArgs('Some of your identifying information is missing. ' .
+      'You may need to update your OT to a newer version which supports user-based log in.');
+  }
+
+  # Authenticate user and check project authorization.
+  my $projectid = OMP::General->extract_projectid($rawprojectid);
+  throw OMP::Error::BadArgs('Project ID invalid.')
+    unless defined $projectid;
+
+  my $auth = OMP::Auth->log_in_userpass($provider, $username, $password);
+  throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
+    unless defined $auth->user;
+
+  throw OMP::Error::Authentication('Permission denied.')
+    unless $auth->is_staff or $auth->has_project($projectid);
+
+  return ($projectid, $auth);
+}
 
 =item B<throwException>
 
