@@ -36,7 +36,6 @@ use OMP::FaultDB;
 use OMP::FaultServer;
 use OMP::FaultGroup;
 use OMP::FaultUtil;
-use OMP::KeyServer;
 use OMP::MSBServer;
 use OMP::UserServer;
 
@@ -112,7 +111,6 @@ sub fault_table {
   my $sys_text = _get_system_label( $fault->category );
 
   print "<div class='black'>";
-  print start_form_absolute($q);
   print "<table width=$width bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
@@ -132,6 +130,7 @@ sub fault_table {
   unless ($noedit or $nostatus) {
 
     # Make a form element for changing the status
+    print start_form_absolute($q);
     print $q->hidden(-name=>'show_output', -default=>'true');
     print $q->popup_menu(-name=>'status',
                          -default=>$fault->status,
@@ -466,9 +465,6 @@ sub file_fault_form {
   my $fault = $args{fault};
   my $q = $self->cgi;
 
-  # Get a new key for this form
-  my $formkey = OMP::KeyServer->genKey;
-
   my $is_safety = _is_safety( $category );
 
   # Create values and labels for the popup_menus
@@ -616,10 +612,6 @@ sub file_fault_form {
 
   print "<table border=0 cellspacing=4><tr>";
   print start_form_absolute($q, -name => 'file_fault');
-
-  # Embed the key
-  print $q->hidden(-name=>'formkey',
-                   -default=>$formkey);
 
   # Embed fault category in case the user's cookie changes to
   # another category while fault is being filed
@@ -865,9 +857,6 @@ sub response_form {
   croak "Must provide a fault object\n"
     unless UNIVERSAL::isa($fault, "OMP::Fault");
 
-  # Get a new key for this form
-  my $formkey = OMP::KeyServer->genKey;
-
   my ( $labels, $values ) = $self->get_status_labels( $fault );
 
   # Set defaults.
@@ -907,9 +896,6 @@ sub response_form {
   print start_form_absolute($q);
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
 
-  # Embed the key
-  print $q->hidden(-name=>'formkey',
-                   -default=>$formkey);
   print $q->hidden(-name=>'show_output', -default=>['true']);
 
   # Embed the response ID if we are editing a response
@@ -1117,7 +1103,7 @@ sub print_form {
 
   print start_form_absolute($q);
 
-  # ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
+  print $q->hidden(-name=>'show_output', -default=>'true');
 
   print $q->hidden(-name=>'faults',
                    -default=>join(',',@faultids));

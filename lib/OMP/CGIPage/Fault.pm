@@ -44,7 +44,6 @@ use OMP::FaultServer;
 use OMP::Fault::Response;
 use OMP::User;
 use OMP::UserServer;
-use OMP::KeyServer;
 use OMP::Error qw(:try);
 
 use base qw(OMP::CGIPage);
@@ -100,6 +99,8 @@ Submit a fault and create a page that shows the status of the submission.
 
   $page->file_fault_output($category, undef);
 
+B<Note:> called with C<no_header> to allow redirect.
+
 =cut
 
 sub file_fault_output {
@@ -109,14 +110,6 @@ sub file_fault_output {
 
   my $q = $self->cgi;
   my $comp = $self->fault_component;
-
-  # Get the form key
-  my $formkey = $q->param('formkey');
-
-  # Croak if key is invalid
-  my $verifykey = OMP::KeyServer->verifyKey($formkey);
-  croak "Key is invalid [perhaps you already submitted this form?]"
-    unless ($verifykey);
 
   # Make sure all the necessary params were provided
   my %params = (Subject => "subject",
@@ -147,12 +140,14 @@ sub file_fault_output {
   # Put the form back up if params are missing
   my @title;
   if ($error[0]) {
+    $self->_write_header();
     push @title, "The following fields were not filled in:";
     $comp->titlebar($category, ["File Fault", join('<br>',@title)]);
     print "<ul>";
     print map {"<li>$_"} @error;
     print "</ul>";
     $comp->file_fault_form($category);
+    $self->_write_footer();
     return;
   }
 
@@ -191,28 +186,27 @@ sub file_fault_output {
     $faultid = OMP::FaultServer->fileFault($fault);
   } catch OMP::Error::MailError with {
     $E = shift;
-    print $q->h2("Fault has been filed, but an error has prevented it from being mailed:");
-    print "$E";
+    $self->_write_error(
+        "Fault has been filed, but an error has prevented it from being mailed:",
+        "$E")
   } catch OMP::Error::FatalError with {
     $E = shift;
-    print $q->h2("An error has prevented the fault from being filed:");
-    print "$E";
+    $self->_write_error(
+        "An error has prevented the fault from being filed:",
+        "$E");
   } otherwise {
     $E = shift;
-    print $q->h2("An error has occurred");
-    print "$E";
+    $self->_write_error(
+        "An error has occurred:",
+        "$E");
   };
 
-  # Show the fault if it was successfully filed
+  # Redirect to the fault if it was successfully filed
   if ($faultid) {
-
-    # Remove the key
-    OMP::KeyServer->removeKey($formkey);
-
-    my $f = OMP::FaultServer->getFault($faultid);
-    $comp->titlebar($category, ["File Fault", "Fault $faultid has been filed"]);
-
-    $comp->fault_table($f, no_status => 1);
+    print $q->redirect("viewfault.pl?fault=$faultid");
+  }
+  else {
+    $self->_write_error('Fault filed without exception but no fault ID returned.');
   }
 }
 
@@ -621,16 +615,6 @@ sub view_fault_content {
       return;
     }
 
-    # Send the fault to a printer if print button was clicked
-    if ($q->param('print')) {
-      my $printer = $q->param('printer');
-      my @fprint = split(',',$q->param('faults'));
-
-      OMP::FaultUtil->print_faults($printer, 0, @fprint);
-      $comp->titlebar($category, ["View Fault: $faultid", "Fault sent to printer $printer"]);
-      return;
-    }
-
     $comp->titlebar($category, ["View Fault: $faultid", $fault->subject]);
     $comp->fault_table($fault);
 
@@ -653,6 +637,8 @@ Process the view_fault_content "respond" and "close fault" forms
 
   $page->view_fault_output($category, $faultid);
 
+B<Note:> called with C<no_header> to allow redirect.
+
 =cut
 
 sub view_fault_output {
@@ -668,14 +654,6 @@ sub view_fault_output {
   my $fault = OMP::FaultServer->getFault($faultid);
 
   if ($q->param('respond')) {
-    # Get the form key
-    my $formkey = $q->param('formkey');
-
-    # Croak if key is invalid
-    my $verifykey = OMP::KeyServer->verifyKey($formkey);
-    croak "Key is invalid [perhaps you already submitted this form?]"
-      unless ($verifykey);
-
     # Make sure all the necessary params were provided
     my %params = (Response => "text",);
     my @error;
@@ -687,6 +665,7 @@ sub view_fault_output {
 
     # Put the form back up if params are missing
     if ($error[0]) {
+      $self->_write_header();
       push @title, "The following fields were not filled in:";
       $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
       print "<ul>";
@@ -694,6 +673,7 @@ sub view_fault_output {
       print "</ul>";
       $comp->response_form(fault => $fault);
       $comp->fault_table($fault);
+      $self->_write_footer();
       return;
     }
 
@@ -720,9 +700,9 @@ sub view_fault_output {
         push @title, "Fault status changed to \"" . $fault->statusText . "\"";
       } otherwise {
         $E = shift;
-        push @title, "An error prevented the fault status from being updated: $E";
       };
-
+      return $self->_write_error("An error prevented the fault status from being updated: $E")
+        if defined $E;
     }
 
     # The text.  Put it in <pre> tags if there isn't an <html>
@@ -748,20 +728,9 @@ sub view_fault_output {
       push @title, "Fault response successfully submitted";
     } otherwise {
       $E = shift;
-      push @title, "An error has prevented your response from being filed: $E";
-
     };
-
-    # Encountered an error, redisplay form
-    if ($E) {
-      $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
-      $comp->response_form(fault => $fault,);
-      $comp->fault_table($fault);
-      return;
-    }
-
-    # Remove key
-    OMP::KeyServer->removeKey($formkey);
+    return $self->_write_error("An error has prevented your response from being filed: $E")
+      if defined $E;
 
   } elsif ($q->param('change_status')) {
 
@@ -782,6 +751,7 @@ sub view_fault_output {
         $author = "user on $user[2]";
       }
 
+     my $E;
      try {
         # Right now we'll just do an update by resubmitting the fault
         # with the new status parameter.  But in principal we should
@@ -795,25 +765,28 @@ sub view_fault_output {
 
         push @title, "Fault status changed to \"" . $fault->statusText . "\"";
       } otherwise {
-        my $E = shift;
-        push @title, "An error has prevented the fault status from being updated: $E";
+        $E = shift;
       };
+      return $self->_write_error("An error has prevented the fault status from being updated: $E")
+        if defined $E;
+
     } else {
-      # Status is the same, dont update
-      push @title, "This fault already has a status of \"" . $fault->statusText . "\"";
+      return $self->_write_error("This fault already has a status of \"" . $fault->statusText . "\"");
     }
+  } elsif ($q->param('print')) {
+    # Send the fault to a printer if print button was clicked
+    my $printer = $q->param('printer');
+    my @fprint = split(',',$q->param('faults'));
+
+    OMP::FaultUtil->print_faults($printer, 0, @fprint);
+    $self->_write_header();
+    $comp->titlebar($category, ["View Fault: $faultid", "Fault sent to printer $printer"]);
+    print $q->p($q->a({-href => "viewfault.pl?fault=$faultid"}, 'Back to fault'));
+    $self->_write_footer();
+    return;
   }
 
-  $fault = OMP::FaultServer->getFault($faultid);
-
-  $comp->titlebar($category, ["View Fault ID: $faultid", join('<br>',@title)]);
-
-  $comp->fault_table($fault);
-  print "<br>";
-
-  # Form for printing
-  my @faults = ($fault->id);
-  $comp->print_form(0, @faults);
+  print $q->redirect("viewfault.pl?fault=$faultid");
 }
 
 =item B<update_fault_content>
@@ -864,6 +837,8 @@ the fault.
 
   $page->update_fault_output($category, $faultid);
 
+B<Note:> called with C<no_header> to allow redirect.
+
 =cut
 
 sub update_fault_output {
@@ -873,9 +848,6 @@ sub update_fault_output {
 
   my $q = $self->cgi;
   my $comp = $self->fault_component;
-
-  # For the titlebar
-  my @title;
 
   # Get host (and user maybe) info of the user who is modifying the fault
   my @user = OMP::NetTools->determine_host;
@@ -940,24 +912,17 @@ sub update_fault_output {
         OMP::FaultServer->updateResponse($fault->id, $response);
       }
 
-      push @title, "This fault has been updated";
-
-      # Get the fault in it's new form
-      $fault = OMP::FaultServer->getFault($faultid);
-
     } otherwise {
       $E = shift;
-      push @title, "An error has occurred which prevented the fault from being updated";
-      push @title, "$E";
+      $self->_write_error(
+          "An error has occurred which prevented the fault from being updated",
+          "$E");
     };
-  } else {
-    push @title, "No changes were made";
+
+    print $q->redirect("viewfault.pl?fault=$faultid");
   }
 
-  $comp->titlebar($category, ["Update Fault [". $fault-> id ."]", join('<br>',@title)]);
-
-  # Display the fault
-  $comp->fault_table($fault);
+  $self->_write_error("No changes were made");
 }
 
 =item B<update_resp_content>
@@ -1000,6 +965,8 @@ Submit changes to a fault response.
 
   $page->update_resp_output($category, $faultid);
 
+B<Note:> called with C<no_header> to allow redirect.
+
 =cut
 
 sub update_resp_output {
@@ -1036,22 +1003,16 @@ sub update_resp_output {
   # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
 
   # Submit the changes
-  my @title = ("Update Response");
   try {
     OMP::FaultServer->updateResponse($faultid, $response);
-    push @title, "Response has been updated"
+
+    print $q->redirect("viewfault.pl?fault=$faultid");
   } otherwise {
     my $E = shift;
-    push @title, "Unable to update response";
-    print "<pre>$E</pre>";
+    $self->_write_error(
+        "Unable to update response",
+        "$E");
   };
-
-  $comp->titlebar($category, \@title);
-
-  # Redisplay fault
-  $fault = OMP::FaultServer->getFault($faultid);
-
-  $comp->fault_table($fault);
 }
 
 =item B<fault_summary_content>

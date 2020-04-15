@@ -730,6 +730,29 @@ sub _write_forbidden {
   $self->_write_footer();
 }
 
+=item B<_write_error>
+
+Create a page with an error message.
+
+  $page->_write_error('Message', ...);
+
+This method includes a header and footer, so that it can
+be used from C<"no_header"> handler methods.
+
+=cut
+
+sub _write_error {
+  my $self = shift;
+
+  my $q = $self->cgi;
+
+  $self->_write_header('500 Internal Server Error');
+
+  print $q->h2('Error'), $q->p(\@_);
+
+  $self->_write_footer();
+}
+
 =item B<_write_project_choice>
 
 Create a page with a project choice form.

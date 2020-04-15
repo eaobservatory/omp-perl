@@ -19,4 +19,5 @@ OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'view_fault_content',
     'view_fault_output',
     'staff',
-    title => 'View Fault');
+    title => 'View Fault',
+    no_header => 1);
