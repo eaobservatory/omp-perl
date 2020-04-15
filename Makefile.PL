@@ -5,7 +5,6 @@ WriteMakefile(
     'VERSION'   => '0.01',
     'PREREQ_PM' => {
                     Test::More => 0,
-                    Crypt::PassGen => 0,
                     Number::Interval => 0,
                     Digest::MD5 => '2.20',
                     Astro::PAL  => '1.02',
