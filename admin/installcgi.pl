@@ -86,7 +86,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
-                   viewfault.pl worf.pl worf_file.pl worf_fits.pl worf_graphic.pl
+                   viewfault.pl worf_fits.pl worf_graphic.pl
                    worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
