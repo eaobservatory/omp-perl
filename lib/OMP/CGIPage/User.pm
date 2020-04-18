@@ -306,7 +306,7 @@ sub project_users {
   my $q = $self->cgi;
 
   # Get the project info
-  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, "object");
+  my $project = OMP::ProjServer->projectDetails($projectid, "object");
 
   # Get contacts
   my @contacts = $project->investigators;
@@ -363,7 +363,7 @@ sub project_users_output {
   my $q = $self->cgi;
 
   # Get project details
-  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, "object");
+  my $project = OMP::ProjServer->projectDetails($projectid, "object");
 
   # Get contacts
   my @contacts = $project->investigators;

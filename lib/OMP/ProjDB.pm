@@ -9,7 +9,6 @@ OMP::ProjDB - Manipulate the project database
   $projdb = new OMP::ProjDB( ProjectID => $projectid,
                              DB => $dbconnection );
 
-  $projdb->verifyPassword( $password );
   $projdb->verifyProject();
 
 =head1 DESCRIPTION
@@ -83,7 +82,7 @@ Inherits from C<OMP::BaseDB>.
 Add a new project to the database or replace an existing entry in the
 database.
 
-  $db->addProject( $project );
+  $db->addProject( $admin_password, $project );
 
 The argument is of class C<OMP::Project>.
 
@@ -92,26 +91,25 @@ in the database (this is for safety reasons). An optional second
 argument can control whether the project should always force
 overwrite. If this is true the old project details will be removed.
 
-  $db->addProject( $project, $force );
+  $db->addProject( $admin_password, $project, $force );
 
 Throws an exception of type C<OMP::Error::ProjectExists> if the
 project exists and force is not set to true.
 
-The password stored in the object instance will be verified to
+The password will be verified to
 determine if the user is allowed to update project details (this is
-effectively the administrator password and this is different from the
-individual project passwords and to the password used to log in to
-the database).
+effectively the administrator password.
 
 =cut
 
 sub addProject {
   my $self = shift;
+  my $admin_password = shift;
   my $project = shift;
   my $force = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_administrator_password( $self->password );
+  OMP::Password->verify_administrator_password( $admin_password );
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -127,55 +125,6 @@ sub addProject {
   # End transaction
   $self->_dbunlock;
   $self->_db_commit_trans;
-
-}
-
-=item B<verifyPassword>
-
-Verify that the supplied plain text password matches the password
-stored in the project database.
-
-  $verified = 1 if $db->verifyPassword( $plain_password );
-
-If the password is not supplied it is assumed to have been provided
-using the object constructor.
-
-  $verified = 1 if $db->verifyPassword( );
-
-Returns true if the passwords match.  Returns false if the project does
-not exist.
-
-=cut
-
-sub verifyPassword {
-  my $self = shift;
-
-  my $password;
-  if (@_) {
-    $password = shift;
-  } else {
-    $password = $self->password;
-  }
-
-  # Obviate the need for a db query by checking staff password
-  return 1 if OMP::Password->verify_staff_password( $password, 1 );
-
-  # Retrieve the contents of the table
-  my $verify;
-  my $E;
-  try {
-    my $project = $self->_get_project_row();
-
-    # Now verify the passwords
-    $verify = $project->verify_password( $password );
-  } catch OMP::Error::UnknownProject with {
-    # Ignore
-  } otherwise {
-    $E = shift;
-  };
-
-  croak "An error has occurred: $E" if defined $E;
-  return $verify;
 
 }
 
@@ -209,7 +158,7 @@ sub verifyProject {
 =item B<getTelescope>
 
 Simplified access to the telescope related to the specified
-project. Does not require a password. Returns the telescope
+project. Returns the telescope
 name or undef if the project does not exist.
 
   $tel = $proj->getTelescope();
@@ -287,17 +236,16 @@ sub verifyTelescope {
 Remove the project from future queries by setting the project
 state to 0 (disabled).
 
-  $db->disableProject();
-
-Requires the staff password.
+  $db->disableProject($staff_password);
 
 =cut
 
 sub disableProject {
   my $self = shift;
+  my $staff_password = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -332,7 +280,7 @@ sub disableProject {
 Re-enable a project so that it will show up in from future queries by
 setting the project state to 1 (enabled).
 
-  $db->enableProject();
+  $db->enableProject($staff_password);
 
 Requires the staff password.
 
@@ -340,9 +288,10 @@ Requires the staff password.
 
 sub enableProject {
   my $self = shift;
+  my $staff_password = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -388,68 +337,9 @@ The XML is in the format described in C<OMP::Project>.
 If the mode is not specified XML is returned in scalar context and
 a hash (not a reference) is returned in list context.
 
-Password verification is performed.
-
 =cut
 
 sub projectDetails {
-  my $self = shift;
-  my $mode = lc(shift);
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # Now that we have it we can verify the project password
-  # We dont use verifyPassword since that would involve an
-  # additional fetch from the database
-  throw OMP::Error::Authentication("Incorrect password for project ".
-                                  $self->projectid ."\n")
-    unless $project->verify_password( $self->password );
-
-  if (wantarray) {
-    $mode ||= "xml";
-  } else {
-    # An internal mode
-    $mode ||= "hash";
-  }
-
-  if ($mode eq 'xml') {
-    my $xml = $project->summary;
-    return $xml;
-  } elsif ($mode eq 'object') {
-    return $project;
-  } elsif ($mode eq 'data') {
-    my %hash = $project->summary;
-    return \%hash;
-  } elsif ($mode eq 'hash') {
-    my %hash = $project->summary;
-    return \%hash;
-  } else {
-    throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
-  }
-}
-
-=item B<projectDetailsNoAuth>
-
-Retrieve a summary of the current project without performing password
-verification. This is returned in either XML format, as a reference to
-a hash, as an C<OMP::Project> object or as a hash and is specified
-using the optional argument.
-
-  $xml = $proj->projectDetails( 'xml' );
-  $href = $proj->projectDetails( 'data' );
-  $obj  = $proj->projectDetails( 'object' );
-  %hash = $proj->projectDetails;
-
-The XML is in the format described in C<OMP::Project>.
-
-If the mode is not specified XML is returned in scalar context and
-a hash (not a reference) is returned in list context.
-
-=cut
-
-sub projectDetailsNoAuth {
   my $self = shift;
   my $mode = lc(shift);
 
@@ -900,7 +790,7 @@ sub _insert_project_row {
   $self->_db_insert_data( $PROJTABLE,
                           $proj->projectid, $pi,
                           $proj->title,
-                          $proj->semester, $proj->encrypted,
+                          $proj->semester,
                           $proj->allocated->seconds,
                           $proj->remaining->seconds, $proj->pending->seconds,
                           $proj->telescope,$taumin,$taumax,$seemin,$seemax,

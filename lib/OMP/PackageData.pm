@@ -551,7 +551,7 @@ sub _populate {
 
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
-  my $proj = OMP::ProjServer->projectDetailsNoAuth($self->projectid, 'object');
+  my $proj = OMP::ProjServer->projectDetails($self->projectid, 'object');
 
   my $tel = $proj->telescope;
 
@@ -982,7 +982,7 @@ sub add_fb_comment {
   $host = (length($host) > 0 ? $host : '<undefined>');
 
   # Get project PI name for inclusion in feedback message
-  my $project = OMP::ProjServer->projectDetailsNoAuth( $projectid, "object" );
+  my $project = OMP::ProjServer->projectDetails( $projectid, "object" );
   my $pi = $project->pi;
 
   OMP::FBServer->addComment(

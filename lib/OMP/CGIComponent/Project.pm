@@ -155,8 +155,8 @@ sub proj_status_table {
   my $q = $self->cgi;
 
   # Get the project details
-  my $project = OMP::ProjServer->projectDetailsNoAuth( $projectid,
-                                                       'object' );
+  my $project = OMP::ProjServer->projectDetails( $projectid,
+                                                 'object' );
 
   # Link to the science case
   my $pub = public_url();

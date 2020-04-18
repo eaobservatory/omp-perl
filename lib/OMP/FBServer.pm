@@ -184,10 +184,9 @@ sub alterStatus {
   my $E;
   try {
 
-    my $db = new OMP::FeedbackDB( Password => $adminpass,
-                                  DB => $class->dbConnection, );
+    my $db = new OMP::FeedbackDB( DB => $class->dbConnection, );
 
-    $db->alterStatus( $commentid, $status );
+    $db->alterStatus( $commentid, $adminpass, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

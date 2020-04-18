@@ -878,8 +878,8 @@ sub obs_inst_summary {
   # where we are, just push every single instrument onto the array.
   my $obsloglink;
   if( defined( $projectid ) ) {
-    my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
-                                                      'object' );
+    my $proj = OMP::ProjServer->projectDetails( $projectid,
+                                                'object' );
     if( defined( $proj ) ) {
       $telescope = uc( $proj->telescope );
     }

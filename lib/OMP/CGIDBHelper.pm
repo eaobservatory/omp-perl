@@ -54,7 +54,7 @@ sub safeFetchSciProg {
     # can disable the feedback comment associated with this action
     my $db = new OMP::MSBDB( ProjectID => $projectid,
                              DB => new OMP::DBbackend, );
-    $sp = $db->fetchSciProgNoAuth(1);
+    $sp = $db->fetchSciProg(1);
   } catch OMP::Error::UnknownProject with {
     print "<p>Science program for <em>$projectid</em> not present in database<p>";
   } catch OMP::Error::SpTruncated with {

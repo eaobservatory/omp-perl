@@ -46,13 +46,9 @@ foreach my $project (@ARGV) {
     if ($project =~ /^([A-Z0-9\/]+)$/i) {
         my $project = uc($1);
 
-        my $password = OMP::Password->get_password({
-            prompt => 'Password for project ' . $project . ': ',
-        });
-
         print STDERR 'Fetching project ', $project, "\n" if $verbose;
         $sp = OMP::SpServer->fetchProgram(
-            $project, $password, OMP::SpServer::OMP__SCIPROG_OBJ);
+            $project, OMP::Password->get_userpass(), OMP::SpServer::OMP__SCIPROG_OBJ);
     }
     elsif (-e $project) {
         print STDERR 'Reading file ', $project, "\n" if $verbose;

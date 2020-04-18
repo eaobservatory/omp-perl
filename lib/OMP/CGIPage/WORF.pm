@@ -138,7 +138,7 @@ sub display_page {
 
   my $project;
   if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetailsNoAuth( $projectid,
+    $project = OMP::ProjServer->projectDetails( $projectid,
                                                 'object' );
   }
 
@@ -227,7 +227,7 @@ sub thumbnails_page {
   my $project;
   my $worflink;
   if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetailsNoAuth( $projectid,
+    $project = OMP::ProjServer->projectDetails( $projectid,
                                                 'object' );
     $worflink = "fbworf.pl?project=${projectid}&";
   } else {

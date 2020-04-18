@@ -7,8 +7,7 @@ OMP::MSBDB - A database of MSBs
 =head1 SYNOPSIS
 
   $sp = new OMP::SciProg( XML => $xml );
-  $db = new OMP::MSBDB( Password => $passwd,
-                        ProjectID => $sp->projectID,
+  $db = new OMP::MSBDB( ProjectID => $sp->projectID,
                         DB => $connection,
                       );
 
@@ -41,7 +40,6 @@ use OMP::Error qw/ :try /;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
-use OMP::Password;
 use OMP::ProjDB;
 use OMP::ProjAffiliationDB;
 use OMP::Constants qw/ :done :fb :logging /;
@@ -105,14 +103,11 @@ use constant HAMAX => 4.5;
 Create a new instance of an C<OMP::MSBDB> object.
 
   $db = new OMP::MSBDB( ProjectID => $project,
-                        Password  => $passwd
                         DB => $connection,
                       );
 
-The password and project if arguments are required for Science Program
-access.  The password refers to the Project (see C<OMP::ProjDB>).
-MSB-based methods do not need to know this information so it does
-not always need to be supplied.
+The project argument is required for Science Program
+access.
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -141,17 +136,6 @@ All project IDs are upper-cased automatically.
 
 # inherit from base class
 
-=item B<password>
-
-The password associated with this object.
-
- $passwd = $db->password;
- $db->password( $passwd );
-
-=cut
-
-# inherit from base class
-
 =back
 
 =head2 General Methods
@@ -164,7 +148,7 @@ Store a science program object into the database.
 
   $status = $db->storeSciProg( SciProg => $sp );
 
-Requires a password and project identifier. If the FreezeTimeStamp
+Requires a project identifier. If the FreezeTimeStamp
 key is present and set to true timestamp checking is disabled and
 the timestamp is not updated when writing XML to disk. This is to
 allows the science program to be modified internally without affecting
@@ -180,8 +164,7 @@ and NoCache (unless set explicitly).
                                FreezeTimeStamp => 1,
                                NoFeedback => 1,
                                NoCache => 1,
-                               NoConstraintCheck => 0,
-                               NoAuth => 0 );
+                               NoConstraintCheck => 0 );
 
 The NoFeedback key can be used to disable the writing of an
 entry to the feedback table on store. This is useful when an MSB
@@ -193,9 +176,6 @@ from attempting to write a backup of the submitted science program
 to disk. This is important for MSB acceptance etc, since the
 purpose for the cache is to track a limited number of PI submissions,
 not to track MSB accepts.
-
-The C<NoAuth> switch, if true, will not verify the project password.
-Default is false (to verify).
 
 The C<Force> key can be used for force the saving of the program
 to the database even if the timestamps do not match. This option
@@ -235,9 +215,6 @@ sub storeSciProg {
   # (in some cases the password will be verified even if the project
   # does not exist)
   $self->_verify_project_exists;
-
-  # Verify the password as soon as possible
-  $self->_verify_project_password() unless $args{'NoAuth'};
 
   # Check them
   return undef unless exists $args{SciProg};
@@ -310,11 +287,11 @@ sub storeSciProg {
 
 Retrieve a science program from the database.
 
-  $sp = $db->fetchSciProg()
+  $sp = $db->fetchSciProg([$internal [, %opt]])
 
 It is returned as an C<OMP::SciProg> object.
 It is assumed that the DB object has already been instantiated
-with the relevant project ID and password.
+with the relevant project ID.
 
 Note that no file or database locking is involved. This method simply
 reads the file that is there and returns it. If it so happens that the
@@ -327,35 +304,6 @@ just as the file is being written).
 The optional argument can be used to disable feedback notification (ie if it
 is being called from an internal method) if true.
 
-=cut
-
-sub fetchSciProg {
-  my $self = shift;
-  my $internal = shift;
-
-  # Verify the password [staff access is allowed]
-  $self->_verify_project_password(1);
-
-  my $sp = $self->_really_fetch_sciprog;
-
-  unless ( $internal ) {
-
-    my $note = $self->_password_text_info;
-    $self->_clear_counter_add_feedback_post_fetch( $sp, $note );
-  }
-
-  return $sp;
-}
-
-=item B<fetchSciProgNoAuth>
-
-Retrieve a science program from the database.
-
-  $sp = $db->fetchSciProgNoAuth($internal, %opt)
-
-It is same as I<fetchSciProg> method in that it needs a project id.  It,
-however, does not need a password to verify.
-
 Additional options:
 
     raw - return raw science program XML (without constructing
@@ -364,9 +312,10 @@ Additional options:
 
 =cut
 
-sub fetchSciProgNoAuth {
-
-  my ( $self, $internal, %opt ) = @_;
+sub fetchSciProg {
+  my $self = shift;
+  my $internal = shift;
+  my %opt = @_;
 
   my $sp = $self->_really_fetch_sciprog(raw => $opt{'raw'});
 
@@ -384,16 +333,12 @@ Remove the science program from the database.
 
   $db->removeSciProg();
 
-Hopefully this is intentional. Project or administrator password
-is required (both password and project ID are obtained from the object).
+Hopefully this is intentional.
 
 =cut
 
 sub removeSciProg {
   my $self = shift;
-
-  # Verify the password
-  $self->_verify_project_password();
 
   # Before we do anything else we connect to the database
   # begin a transaction and lock out the tables.
@@ -410,19 +355,15 @@ sub removeSciProg {
   # Remove the observation and MSB entries
   $self->_clear_old_rows();
 
-  # Add a little note if we used the admin password
-  my $note = $self->_password_text_info();
-
   $self->_notify_feedback_system(
                                  subject => "Science program deleted",
                                  text => "Science program for project <b>".
-                                 $self->projectid ."</b> deleted $note\n",
+                                 $self->projectid ."</b> deleted\n",
                                  msgtype => OMP__FB_MSG_SP_DELETED,
                                 );
 
   OMP::General->log_message( "Science program deleted for project " .
-                             $self->projectid() .
-                             " $note\n"
+                             $self->projectid()
                            );
 
   # Now disconnect from the database and free the lock
@@ -438,7 +379,7 @@ science program.
 
  @instruments = $db->programInstruments( );
 
-Can return an empty list if nothing is in the database. Not password protected.
+Can return an empty list if nothing is in the database.
 
 =cut
 
@@ -581,7 +522,7 @@ sub fetchMSB {
   }
 
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProgNoAuth(1);
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -620,7 +561,7 @@ sub fetchMSB {
   my $projdb = new OMP::ProjDB( DB => $self->db,
                                 ProjectID => $sp->projectID,
                               );
-  my $pobj = $projdb->projectDetailsNoAuth( 'object' );
+  my $pobj = $projdb->projectDetails( 'object' );
 
   $msb->addFITStoObs( $pobj );
 
@@ -765,7 +706,7 @@ sub doneMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProgNoAuth(1);
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = _find_msb_tolerant($sp, $checksum);
@@ -825,7 +766,7 @@ sub doneMSB {
     # feedback table notification of this (since we have done that
     # already).
     $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1,
-                         NoAuth => 1, NoConstraintCheck => 1 );
+                         NoConstraintCheck => 1 );
 
     OMP::General->log_message("Science program stored back to database");
   }
@@ -987,7 +928,7 @@ sub undoMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProgNoAuth(1);
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = _find_msb_tolerant($sp, $checksum);
@@ -1018,7 +959,7 @@ sub undoMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1 );
 
 
   # Might want to send a message to the feedback system at this
@@ -1075,7 +1016,7 @@ sub alldoneMSB {
   # science program object. Unfortunately, since we intend to modify
   # the science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProgNoAuth(1);
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -1107,7 +1048,7 @@ sub alldoneMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1 );
 
   # Might want to send a message to the feedback system at this
   # point
@@ -1167,7 +1108,7 @@ sub suspendMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProgNoAuth(1);
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -1229,7 +1170,7 @@ sub suspendMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1 );
 
   # Disconnect
   $self->_dbunlock;
@@ -1273,8 +1214,7 @@ sub getSubmitted {
   my @projects;
   for my $projectid (@projectids) {
     my $projdb = new OMP::ProjDB( DB => $self->db,
-                                  ProjectID => $projectid,
-                                  Password => $self->password, );
+                                  ProjectID => $projectid );
 
     my $obj  = $projdb->projectDetails('object');
     push @projects, $obj;
@@ -1815,8 +1755,7 @@ sub _db_fetch_sciprog {
 
 Remove the observations lables and file feedback about science program
 retrieval given an C<OMP::SciProg> object.  It is meant to be run when
-science program is fetched for non-internal use (as in C<fetchSciProg>
-and C<fetchSciProgNoAuth> methods).
+science program is fetched for non-internal use (as in C<fetchSciProg>).
 
   $db->_clear_counter_add_feedback_post_fetch( $sciprog );
 
@@ -1864,67 +1803,12 @@ sub _verify_project_exists {
   my $proj = new OMP::ProjDB(
                              ProjectID => $self->projectid,
                              DB => $self->db,
-                             Password => $self->password,
                             );
   my $there = $proj->verifyProject();
 
   throw OMP::Error::UnknownProject("Project ".$self->projectid .
                                    " does not exist. Please try another project id" ) unless $there;
   return 1;
-}
-
-=item B<_verify_project_password>
-
-Verify that the supplied plain text password matches the encrypted
-password in the project database. This is just a thin wrapper around
-C<OMP::ProjDB::verifyPassword>.
-
-  $db->_verify_project_password();
-
-The project ID, database connection and password are obtained from the
-object.
-
-Throws C<OMP::Error::Authentication> exception if the password does
-not match.
-
-If the password matches the administrator password this routine always
-succeeds.
-
-If the optional argument is set to true, an additional comparison with
-the staff password will be used before querying the project
-database. In some cases staff can have access to project data and this
-provides a means to give some staff access without giving full
-administrator access.
-
-  $db->_verify_project_password( $allow_staff );
-
-THIS DOES NOT WORK AT THE MOMENT BECAUSE THE OMP::PROJECT CLASS
-ALWAYS CHECKS AGAINST STAFF,ADMIN AND QUEUE PASSWORD ANYWAY
-
-=cut
-
-sub _verify_project_password {
-  my $self = shift;
-  my $allow_staff = shift;
-
-  # Is the staff password sufficient?
-  if ($allow_staff) {
-    # dont throw an exception on failure
-    return if OMP::Password->verify_administrator_password($self->password, 1);
-  }
-
-  # Ask the project DB class
-  my $proj = new OMP::ProjDB(
-                             ProjectID => $self->projectid,
-                             DB => $self->db,
-                             Password => $self->password,
-                            );
-
-  $proj->verifyPassword()
-    or throw OMP::Error::Authentication("Incorrect password for project ID ".
-                                        $self->projectid );
-
-  return;
 }
 
 =item B<_verify_project_constraints>
@@ -1959,7 +1843,6 @@ sub _verify_project_constraints {
   my $projdb = new OMP::ProjDB(
                              ProjectID => $self->projectid,
                              DB => $self->db,
-                             Password => $self->password,
                             );
   my $proj = $projdb->_get_project_row();
   if (!defined $proj) {
@@ -2029,50 +1912,6 @@ sub _verify_project_constraints {
   }
 
   return @warnings;
-}
-
-=item B<_password_text_info>
-
-Retrieve some text describing whether the password was actually the
-staff, administrator or queue password. This can be appendended to
-feedback messages. Returns empty string if the actual project
-password was used.
-
-  $string = $self->_password_text_info();
-
-The assumption is that the password will verify against the project.
-Requires that the project details are retrieved from the project
-database. This is required in order to determine the associated
-queue information.
-
-=cut
-
-sub _password_text_info {
-  my $self = shift;
-  my $password = $self->password();
-
-  my $note = '';
-  if (OMP::Password->verify_administrator_password( $password, 1)) {
-    $note = "[using the administrator password]";
-  } elsif (OMP::Password->verify_staff_password( $password, 1)) {
-    $note = "[using the staff password]";
-  } else {
-    # get database connection
-    my $projdb = new OMP::ProjDB(
-                                 ProjectID => $self->projectid,
-                                 DB => $self->db,
-                                 Password => $self->password,
-                                );
-
-    # get the project information
-    my $proj = $projdb->projectDetails('object');
-
-    if ($proj && OMP::Password->verify_queman_password($password, $proj->country, 1)) {
-      $note = "[using the ".$proj->country." queue manager password]";
-    }
-  }
-
-  return $note;
 }
 
 =back

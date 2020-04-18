@@ -6,8 +6,8 @@ OMP::SpServer - Science Program Server class
 
 =head1 SYNOPSIS
 
-  $xml = OMP::SpServer->fetchProgram($project, $password);
-  $summary = OMP::SpServer->storeProgram($xml, $password, 0);
+  $xml = OMP::SpServer->fetchProgram($project, $provider, $username, $password);
+  $summary = OMP::SpServer->storeProgram($xml, $provider, $username, $password, 0);
 
 =head1 DESCRIPTION
 
@@ -133,7 +133,7 @@ sub storeProgram {
                            );
 
     # Store the science program
-    my @warnings = $db->storeSciProg( SciProg => $sp, Force => $force, NoAuth => 1, User => $auth->user );
+    my @warnings = $db->storeSciProg( SciProg => $sp, Force => $force, User => $auth->user );
 
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";
@@ -271,7 +271,7 @@ sub fetchProgram {
                              DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
-    $sp = $db->fetchSciProgNoAuth(0, user => $auth->user);
+    $sp = $db->fetchSciProg(0, user => $auth->user);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -327,7 +327,7 @@ sub programDetails {
 
     # Retrieve the Science Program object
     # without sending explicit notification
-    my $sp = $db->fetchSciProgNoAuth(1);
+    my $sp = $db->fetchSciProg(1);
 
     # Create a summary of the science program
     $summary = $sp->summary($mode);

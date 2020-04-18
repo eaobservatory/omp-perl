@@ -298,7 +298,7 @@ sub projlog_content {
   # Get a project object for this project
   my $proj;
   try {
-    $proj = OMP::ProjServer->projectDetailsNoAuth($projectid, "object");
+    $proj = OMP::ProjServer->projectDetails($projectid, "object");
   } otherwise {
     my $E = shift;
     croak "Unable to retrieve the details of this project:\n$E";

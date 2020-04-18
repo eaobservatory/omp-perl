@@ -330,7 +330,7 @@ sub project_home {
   my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
 
   # Get the project details
-  my $project = OMP::ProjServer->projectDetailsNoAuth($projectid, 'object');
+  my $project = OMP::ProjServer->projectDetails($projectid, 'object');
 
   # Store the details we want to display later
   my $projectid = $project->projectid;
@@ -790,7 +790,7 @@ sub support {
   # Get project details (as object)
   my $project;
   try {
-    $project = $projdb->projectDetailsNoAuth("object");
+    $project = $projdb->projectDetails("object");
   }
   catch OMP::Error with {
 

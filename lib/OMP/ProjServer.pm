@@ -123,9 +123,9 @@ Return the details of a single project. The summary is returned as a
 data structure (a reference to a hash), as an C<OMP::Project> object
 or as XML.
 
-  $href = OMP::ProjServer->projectDetails( $project, $password, "data" );
-  $xml = OMP::ProjServer->projectDetails( $project,$password, "xml" );
-  $obj = OMP::ProjServer->projectDetails( $project,$password, "object" );
+  $href = OMP::ProjServer->projectDetails( $project, "data" );
+  $xml = OMP::ProjServer->projectDetails( $project, "xml" );
+  $obj = OMP::ProjServer->projectDetails( $project, "object" );
 
 Note that this may cause problems for a strongly typed language.
 
@@ -136,7 +136,6 @@ The default is to return XML since that is a simple string.
 sub projectDetails {
   my $class = shift;
   my $projectid = shift;
-  my $password = shift;
   my $mode = lc(shift);
   $mode ||= 'xml';
 
@@ -149,66 +148,9 @@ sub projectDetails {
     my $db = new OMP::ProjDB(
                              ProjectID => $projectid,
                              DB => $class->dbConnection,
-                             Password => $password,
                             );
 
     $summary = $db->projectDetails( $mode );
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $summary;
-}
-
-=item B<projectDetailsNoAuth>
-
-Return the details of a single project, without performing project
-password verification. The summary is returned as a data structure
-(a reference to a hash), as an C<OMP::Project> object or as XML.
-
-  $href = OMP::ProjServer->projectDetailsNoAuth( $project, "data" );
-  $xml = OMP::ProjServer->projectDetailsNoAuth( $project, "xml" );
-  $obj = OMP::ProjServer->projectDetailsNoAuth( $project, "object" );
-
-Note that this may cause problems for a strongly typed language.
-
-The default is to return XML since that is a simple string.
-
-This method is insecure and so should not be present if ProjServer
-is attached to a SOAP server.
-
-=cut
-
-sub projectDetailsNoAuth {
-  my $class = shift;
-  my $projectid = shift;
-  my $mode = lc(shift);
-  $mode ||= 'xml';
-
-  OMP::General->log_message("ProjServer::projectDetailsNoAuth: $projectid\n");
-
-  my $E;
-  my $summary;
-  try {
-
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
-
-    $summary = $db->projectDetailsNoAuth( $mode );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -279,7 +221,7 @@ sub verifyProject {
 
 Add details of a project to the database.
 
-  OMP::ProjServer->addProject($password, $force, $projectid, $pi,
+  OMP::ProjServer->addProject($admin_password, $force, $projectid, $pi,
                               $coi, $support,
                               $title, $tagpriority, $country, $tagadj,
                               $semester, $allocated
@@ -317,7 +259,7 @@ separated.
 
 sub addProject {
   my $class = shift;
-  my $password = shift;
+  my $admin_password = shift;
   my $force = shift;
   my @project = @_;
   OMP::General->log_message("ProjServer::addProject: $project[0]\n");
@@ -439,12 +381,11 @@ sub addProject {
                                );
 
     my $db = new OMP::ProjDB(
-                             Password => $password,
                              DB => $class->dbConnection,
                              ProjectID => $proj->projectid,
                             );
 
-    $db->addProject( $proj, $force );
+    $db->addProject( $admin_password, $proj, $force );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -462,54 +403,6 @@ sub addProject {
   $class->throwException( $E ) if defined $E;
 
   return 1;
-}
-
-=item B<verifyPassword>
-
-Verify the project ID and password combination. Returns true (1) if
-the password is valid and false (0) otherwise.
-
-  $status = OMP::ProjServer->verifyPassword($projectid, $password);
-
-Password is plain text. Project ID is case insensitive.
-
-=cut
-
-sub verifyPassword {
-  my $class = shift;
-  my $projectid = shift;
-  my $password = shift;
-  OMP::General->log_message("ProjServer::verifyPassword: $projectid\n");
-
-  my $ok;
-  my $E;
-  try {
-
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                             Password => $password,
-                            );
-
-    $ok = $db->verifyPassword();
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return ($ok ? 1 : 0);
-
 }
 
 =item B<getTelescope>

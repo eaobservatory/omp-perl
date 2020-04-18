@@ -46,7 +46,6 @@ class.
 
 
   $db = new OMP::BaseDB( ProjectID => $project,
-                         Password  => $passwd
                          DB => $connection,
                        );
 
@@ -70,7 +69,6 @@ sub new {
   my $db = {
             InTrans => 0,
             Locked => 0,
-            Password => undef,
             ProjectID => undef,
             DB => undef,
            };
@@ -82,7 +80,7 @@ sub new {
   # Do this so that the values can be processed in a standard
   # manner. Note that the keys are directly related to the accessor
   # method name
-  for (qw/Password ProjectID/) {
+  for (qw/ProjectID/) {
     my $method = lc($_);
     $object->$method( $args{$_} ) if exists $args{$_};
   }
@@ -117,21 +115,6 @@ sub projectid {
     $self->{ProjectID} = uc(shift);
   }
   return $self->{ProjectID};
-}
-
-=item B<password>
-
-The password associated with this object.
-
- $passwd = $db->password;
- $db->password( $passwd );
-
-=cut
-
-sub password {
-  my $self = shift;
-  if (@_) { $self->{Password} = shift; }
-  return $self->{Password};
 }
 
 =item B<_locked>

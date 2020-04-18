@@ -61,7 +61,7 @@ sub fb_msb_active {
   my $projectid = shift;
 
   # Get project's associated telescope
-  my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
+  my $proj = OMP::ProjServer->projectDetails( $projectid,
                                               "object");
 
   my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, 'objects' );
@@ -118,7 +118,7 @@ sub fb_msb_observed {
                                                include_undo => 1});
 
   # Get project's associated telescope
-  my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
+  my $proj = OMP::ProjServer->projectDetails( $projectid,
                                               "object");
 
   # Generate the HTML table

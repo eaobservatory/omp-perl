@@ -156,7 +156,7 @@ for my $proj (keys %sorted) {
 
   _log_message( qq[Getting project details for $proj] );
 
-  my $proj_details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
+  my $proj_details = OMP::ProjServer->projectDetails($proj, "object");
 
   _log_err( $! );
 
