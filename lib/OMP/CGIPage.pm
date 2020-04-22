@@ -377,6 +377,8 @@ sub write_page {
 
   $self->auth(my $auth = OMP::Auth->log_in($q));
 
+  return if $auth->abort();
+
   if ($auth_type eq 'local_or_staff') {
     $auth_type = OMP::NetTools->is_host_local() ? 'no_auth' : 'staff';
   }
@@ -466,6 +468,39 @@ Reference to an array of additional arguments to pass to the handler methods.
 sub _write_page_extra {
     my $self = shift;
     return {};
+}
+
+=item B<write_page_finish_log_in>
+
+Complete a 2-step log in process.
+
+    $page->write_page_finish_log_in(%auth_options);
+
+The given options are passed to C<OMP::Auth-E<gt>log_in>.  It should either
+return an object with C<abort> or C<message> set.
+
+Note that this method invokes C<_write_error> rather than showing the log in
+page again with C<_write_login>.  This is because we may have ended up with
+the wrong set of query parameters.
+
+=cut
+
+sub write_page_finish_log_in {
+  my $self = shift;
+
+  my $q = $self->cgi;
+
+  $self->auth(my $auth = OMP::Auth->log_in($q, @_));
+
+  return if $auth->abort();
+
+  $self->_make_theme;
+
+  if (defined $self->auth->message) {
+    return $self->_write_error($self->auth->message);
+  }
+
+  return $self->_write_error('No log in process in progress.');
 }
 
 =item B<write_page_logout>
@@ -681,13 +716,26 @@ sub _write_login {
     print $q->p($q->strong($self->auth->message));
   }
 
-  print $q->p("Please enter your user name and password."),
+  print $q->div(
+    $q->p($q->a({}, 'Log in with Hedwig')),
+    $q->div(
+      start_form_absolute($q),
+      $q->p(
+        $q->hidden(-name => 'provider', -default => 'hedwig'),
+        $q->submit(-value => 'Log in with Hedwig', -name => 'submit_log_in'),
+      ),
+      $q->end_form()));
+
+  print $q->div(
+    $q->p($q->a({}, 'EAO staff log in')),
+    $q->div(
+    $q->p("Please enter your user name and password."),
       start_form_absolute($q),
       # This hidden field contains the 'login_form' param that lets us know we've just come
       # from the login form, so we'll be sure to run the form_content callback and not
       # form_output.
-      $q->hidden(-name=>'login_form',
-                 -default=>1,),
+      $q->hidden(-name=>'provider',
+                 -default=>'staff'),
       $q->hidden(-name=>'show_content',
                  -default=>1),
       $q->table(
@@ -704,7 +752,7 @@ sub _write_login {
                                -size=>17,
                                -maxlength=>30)),
           $q->td($q->submit(-value => "Submit", -name => 'submit_log_in')))),
-      $q->endform;
+      $q->end_form()));
 
   $self->_write_footer();
 }

@@ -78,7 +78,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
                    findtarget.pl
                    get_resource.pl
                    index.html
-                   listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
+                   listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
                    projecthome.pl projusers.pl projsum.pl props.pl
                    qstatus.pl queryfault.pl shiftlog.pl

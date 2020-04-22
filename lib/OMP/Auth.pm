@@ -21,6 +21,9 @@ our %PROVIDERS = (
     'staff' => {
         class => 'OMP::Auth::LDAP',
     },
+    'hedwig' => {
+        class => 'OMP::Auth::HedwigOAuth',
+    },
 );
 
 our $COOKIE_NAME = 'OMPLOGIN';
@@ -35,7 +38,7 @@ our $COOKIE_NAME = 'OMPLOGIN';
 
 Attempt to log a user in, using information from a CGI object.
 
-    my $auth = OMP::Auth->log_in($q);
+    my $auth = OMP::Auth->log_in($q, %opt);
 
 The L<cookie> method should subsequently be used to obtain the cookie
 which must be included in the HTTP header.
@@ -53,20 +56,35 @@ which must be included in the HTTP header.
 sub log_in {
     my $cls = shift;
     my $q = shift;
+    my %opt = @_;
 
     my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
 
     my $user = undef;
     my $token = undef;
     my $message = undef;
+    my $abort = undef;
+    my $redirect = undef;
 
     try {
-        if (defined $q->param('submit_log_in')) {
-            my $provider_class = $cls->_get_provider('staff');
+        if ((defined $q->param('submit_log_in')) or (exists $opt{'method'})) {
+            my $provider_name = $opt{'provider'} // $q->param('provider');
 
-            $user = $provider_class->log_in($q);
+            throw OMP::Error::Authentication('Authentication method not specified.')
+                unless defined $provider_name;
 
-            $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent());
+            my $provider_class = $cls->_get_provider($provider_name);
+
+            my $method = $opt{'method'} // 'log_in';
+            my $user_info = $provider_class->$method($q);
+
+            if (exists $user_info->{'user'}) {
+                $user = $user_info->{'user'};
+                $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent());
+            }
+
+            $abort = 1 if exists $user_info->{'abort'};
+            $redirect = $user_info->{'redirect'} if exists $user_info->{'redirect'};
         }
         else {
             my %cookie = $q->cookie(-name => $COOKIE_NAME);
@@ -89,6 +107,14 @@ sub log_in {
     $auth->user($user) if defined $user;
     $auth->cookie($cls->_make_cookie($q, '+1d', token => $token)) if defined $token;
 
+    if (defined $redirect) {
+        my %args = (-uri => $redirect);
+        $args{'-cookie'} = $auth->cookie if defined $token;
+        print $q->redirect(%args);
+        $abort = 1;
+    }
+
+    $auth->abort($abort) if defined $abort;
     return $auth;
 }
 
@@ -182,6 +208,7 @@ sub new {
         projects => undef,
         cookie => undef,
         message => undef,
+        abort => undef,
     };
 
     my $self = bless $c, $class;
@@ -285,6 +312,24 @@ sub message {
     }
 
     return $self->{'message'};
+}
+
+=item B<abort>
+
+This is a flag indicating whether the authentication provider wishes
+to abort the page rendering processes, e.g. because it has already
+generated a redirect.
+
+=cut
+
+sub abort {
+    my $self = shift;
+
+    if (@_) {
+        $self->{'abort'} = shift;
+    }
+
+    return $self->{'abort'};
 }
 
 =back

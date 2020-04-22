@@ -9,6 +9,8 @@ OMP::Auth::Base - Base class for user authentication modules
 use strict;
 use warnings;
 
+use OMP::Error;
+
 =head1 METHODS
 
 =head2 Class methods
@@ -20,7 +22,7 @@ use warnings;
 Attempt to get an OMP::User object representing the user logging in,
 using information from a CGI object.
 
-    my $user = $provider_class->log_in($q);
+    my $user_info = $provider_class->log_in($q);
 
 This base class implementation calls L<log_in_userpass> using the
 C<username> and C<password> CGI parameters.
@@ -31,8 +33,8 @@ sub log_in {
     my $cls = shift;
     my $q = shift;
 
-    return $cls->get_user_userpass(
-        $q->param('username'), $q->param('password'));
+    return {user => $cls->log_in_userpass(
+        $q->param('username'), $q->param('password'))};
 }
 
 =item B<log_in_userpass>
@@ -47,7 +49,8 @@ with a specific user name and password.
 sub log_in_userpass {
     my $cls = shift;
 
-    die 'Authentication provider can not use username and password.';
+    throw OMP::Error::Authentication(
+        'This authentication method can not use username and password.');
 }
 
 =back
