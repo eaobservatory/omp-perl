@@ -1036,8 +1036,7 @@ sub fault_summary_content {
   my $mindate = shift;
   my $maxdate = shift;
   my $q = $self->cgi;
-  my $ompurl = OMP::Config->getData('omp-url');
-  my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
+  my $iconurl = OMP::Config->getData('iconsdir');
   my %status = OMP::Fault->faultStatus;
   my %statusOpen = OMP::Fault->faultStatusOpen;
 
@@ -1409,7 +1408,7 @@ sub _sidebar_fault {
 
   push @sidebarlinks,
     $self->_make_side_link( $query_link{'ANYCAT'}->{'url'}, 'All Faults', '<br><br>' ),
-    $self->_make_side_link( OMP::Config->getData('omp-url'), 'OMP Home' ),
+    $self->_make_side_link( '/', 'OMP Home' ),
     $sidebarform;
 
   if (defined $cat and uc $cat ne "ANYCAT") {

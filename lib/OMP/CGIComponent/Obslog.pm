@@ -21,7 +21,7 @@ use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 
-use OMP::CGIComponent::Helper qw/public_url start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
 use OMP::Display;
@@ -1348,7 +1348,7 @@ sub print_obslog_header {
   print $q->submit( -name => 'Submit New UT' );
   print $q->endform;
 
-  print '<a href="' .  public_url() . '/obslog_text.pl?ut="'
+  print '<a href="' . OMP::Config->getData( 'cgidir' ) . '/obslog_text.pl?ut="'
         . ( defined( $qv->{'ut'} ) ?  $qv->{'ut'} : $currentut );
 
   if( defined( $qv->{'inst'} ) ) {

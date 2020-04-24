@@ -6,8 +6,7 @@ OMP::CGIHelper - Helper for the OMP feedback system CGI scripts
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Helper;
-  use OMP::CGIComponent::Helper qw/public_url/;
+  use OMP::CGIComponent::Helper qw/start_form_absolute/;
 
 =head1 DESCRIPTION
 
@@ -35,7 +34,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/public_url private_url start_form_absolute/);
+@EXPORT_OK = (qw/start_form_absolute/);
 
 %EXPORT_TAGS = (
                 'all' =>[ @EXPORT_OK ],
@@ -49,42 +48,6 @@ our $TABLEWIDTH = 720;
 =head1 Routines
 
 =over 4
-
-=item B<public_url>
-
-Return the URL where public cgi scripts can be found.
-
-  $url = public_url();
-
-=cut
-
-sub public_url {
-  # Get the base URL
-  my $url = OMP::Config->getData( 'omp-url' );
-
-  # Now the CGI dir
-  my $cgidir = OMP::Config->getData( 'cgidir' );
-
-  return "$url" . "$cgidir";
-}
-
-=item B<private_url>
-
-Return the URL where private cgi scripts can be found.
-
-  $url = private_url();
-
-=cut
-
-sub private_url {
-  # Get the base URL
-  my $url = OMP::Config->getData( 'omp-private' );
-
-  # Now the CGI dir
-  my $cgidir = OMP::Config->getData( 'cgidir' );
-
-  return "$url" . "$cgidir";
-}
 
 =item B<start_form_absolute>
 

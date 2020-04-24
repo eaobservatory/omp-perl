@@ -408,8 +408,8 @@ sub msb_comments_by_project {
   my $q = $self->cgi;
   my %sorted;
 
-  # Get the Private and Public cgi-bin URLs
-  my $public_url = public_url();
+  # Get the cgi-bin URL
+  my $url = OMP::Config->getData( 'cgidir' );
 
   foreach my $msb (@$comments) {
     my $projectid = $msb->projectid;
@@ -418,7 +418,7 @@ sub msb_comments_by_project {
   }
 
   foreach my $projectid (sort keys %sorted) {
-    print $q->h2("Project: <a href='$public_url/projecthome.pl?project=$projectid'>$projectid</a>");
+    print $q->h2("Project: <a href='$url/projecthome.pl?project=$projectid'>$projectid</a>");
     my $sp = OMP::MSBServer->getSciProgInfo($projectid);
     $self->msb_comments(\@{$sorted{$projectid}}, $sp);
     print $q->hr;

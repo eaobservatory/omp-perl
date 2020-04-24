@@ -791,7 +791,7 @@ sub _mail_fault {
   my $from = ($responses[-1]->author->email ? $responses[-1]->author : $faultuser);
 
   # Get the fault message
-  my $msg = OMP::FaultUtil->format_fault($fault, 0);
+  my $msg = OMP::FaultUtil->format_fault($fault, 0, OMP::Config->getData('omp-url'));
 
   # Mail it off
   $self->_mail_information(message => $msg,

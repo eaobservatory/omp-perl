@@ -25,7 +25,6 @@ use Net::Domain qw/ hostfqdn /;
 use Time::Seconds qw/ ONE_DAY /;
 
 use OMP::CGIComponent::Obslog;
-use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Shiftlog;
@@ -340,7 +339,7 @@ sub projlog_content {
 
   print "<p><a href='#wvm'>View WVM graph</a>";
 
-  print '<p><a href="' . public_url() . qq[/obslog_text.pl?ut=$utdate&project=$projectid">]
+  print '<p><a href="' . OMP::Config->getData( 'cgidir' ) . qq[/obslog_text.pl?ut=$utdate&project=$projectid">]
         . "View text-based observation log</a>\n";
 
   # Make a form for submitting MSB comments if an 'Add Comment'

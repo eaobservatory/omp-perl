@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/public_url start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -159,8 +159,8 @@ sub proj_status_table {
                                                  'object' );
 
   # Link to the science case
-  my $pub = public_url();
-  my $case_href = qq[<a href="$pub/props.pl?project=$projectid">Science Case</a>];
+  my $url = OMP::Config->getData( 'cgidir' );
+  my $case_href = qq[<a href="$url/props.pl?project=$projectid">Science Case</a>];
 
   # Get the CoI email(s)
   my $coiemail = join(", ",map{
@@ -202,7 +202,7 @@ sub proj_sum_table {
 
   my $q = $self->cgi;
 
-  my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+  my $url = OMP::Config->getData('cgidir');
 
   print <<'TABLE';
   <table cellspacing=0>

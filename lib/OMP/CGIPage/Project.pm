@@ -282,10 +282,10 @@ sub list_projects_output {
 
     } else {
 
-      my $pub = public_url();
+      my $url = OMP::Config->getData('cgidir');
 
       foreach my $project (@sorted) {
-        print "<a href='$pub/projecthome.pl?project=" . $project->projectid . "'>";
+        print "<a href='$url/projecthome.pl?project=" . $project->projectid . "'>";
         print $q->h2('Project ' . $project->projectid);
         print "</a>";
         $comp->proj_status_table($project->projectid);
@@ -377,7 +377,7 @@ sub project_home {
   }
   print "</td></table>";
 
-  my $pub = public_url();
+  my $url = OMP::Config->getData('cgidir');
 
   my $proposal_url = 'https://proposals.eaobservatory.org/'
     . (lc $project->telescope)
@@ -393,7 +393,7 @@ sub project_home {
     <tr><td><b>Country:</b></td><td>$country</td>
     <tr><td><b>Semester:</b></td><td>$semester</td>
     <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
-    <tr><td colspan=2><a href="$pub/props.pl?project=${projectid}">Click here to view the science case for this project</a></td>
+    <tr><td colspan=2><a href="$url/props.pl?project=${projectid}">Click here to view the science case for this project</a></td>
     <tr><td colspan=2><a href="$proposal_url">Click here to view this project in the proposal system</a></td>
     </table>
 _HEADER_

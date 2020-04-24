@@ -258,12 +258,10 @@ sub userhtml {
     $emailstatus = undef;
   }
 
-  my $public = OMP::Config->getData('omp-url');
   my $cgidir = OMP::Config->getData('cgidir');
   my $iconsdir = OMP::Config->getData('iconsdir');
 
-  # Link to private pages if we are currently on a private page
-  my $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
+  my $url = $cgidir . "/userdetails.pl?user=" . $user->userid;
   my $html = qq(<a href="$url">$user</a>);
 
   # Append email status icon
@@ -275,7 +273,7 @@ sub userhtml {
    $html .=
     sprintf
       qq( <a href="%s/projusers.pl?project=%s"><img src="%s" alt="%s" border="0"></a>),
-      $public . $cgidir,
+      $cgidir,
       $project,
       join( '/', $iconsdir, $mail[0] ),
       $mail[1] ;

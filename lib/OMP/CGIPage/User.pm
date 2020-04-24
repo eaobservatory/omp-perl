@@ -130,9 +130,8 @@ sub details {
     }
   }
 
-  my $ompurl = OMP::Config->getData('omp-url');
-  my $url = $ompurl . OMP::Config->getData('cgidir');
-  my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
+  my $url = OMP::Config->getData('cgidir');
+  my $iconurl = OMP::Config->getData('iconsdir');
 
   # List projects by capacity
   for (keys %capacities) {
@@ -216,8 +215,6 @@ sub list_users {
     }
     my %hashTemp = map { $_ => 1 } @temparray;
     my @alphabet = sort keys %hashTemp;
-
-    my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
     # Print list of initials for anchors
     my $index = qq[<p>\n<a name="top"></a>| ];

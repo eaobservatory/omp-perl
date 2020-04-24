@@ -1268,7 +1268,7 @@ sub projectsummary_ashtml {
     my $date = $self->date->ymd;
     my $format = "%5.2f hrs\n";
 
-    my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+    my $ompurl = OMP::Config->getData('cgidir');
 
     # T i m e  A c c o u n t i n g
     # Get shifts from time accounting and from timelostbyshift.
@@ -1557,7 +1557,7 @@ sub ashtml {
   my $total_pending = 0.0;
   my $total_proj = 0.0; # Time spent on projects only
 
-  my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+  my $ompurl = OMP::Config->getData('cgidir');
 
   if ($worfstyle ne 'none') {
       print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
