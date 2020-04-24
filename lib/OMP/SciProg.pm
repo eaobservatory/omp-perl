@@ -92,7 +92,7 @@ sub new {
   # Unfortunately this does not work with older versions of libxml2
   # so until we upgrade mauiola we need to remove the line completely
   # Use non-greedy match
-  $xml =~ s/xmlns=\"http:\/\/(.*?)\"//;
+  $xml =~ s/xmlns=\"https?:\/\/(.*?)\"//;
 
   # Now convert XML to parse tree
   my $parser = new XML::LibXML;
@@ -1148,7 +1148,7 @@ sub apply_xslt {
     my $xml = $self->stringify();
 
     if ($xml !~ /xmlns=/) {
-        $xml =~ s/(<SpProg)/$1 xmlns="http:\/\/omp.eao.hawaii.edu\/schema\/TOML"/;
+        $xml =~ s/(<SpProg)/$1 xmlns="https:\/\/omp.eao.hawaii.edu\/schema\/TOML"/;
     }
 
     # Invoke xsltproc and pass it the XML.

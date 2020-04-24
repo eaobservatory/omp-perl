@@ -77,7 +77,7 @@ sub details {
   print $q->p(
       $user->html,
       ($user->email ? (" (".$user->email .")") : ''),
-      ($user->cadcuser ? (" (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ". $user->cadcuser.")\n") : ''),
+      ($user->cadcuser ? (" (<a href=\"https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca\">CADC UserID</a>: ". $user->cadcuser.")\n") : ''),
   );
 
   print $q->p('User account is obfuscated.') if $user->is_obfuscated();

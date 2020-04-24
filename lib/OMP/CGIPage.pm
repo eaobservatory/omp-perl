@@ -674,7 +674,7 @@ sub _write_header {
 
   $theme->SetHTMLStartString($start_string);
 
-  $theme->SetSideBarTop("<a class='sidemain' href='http://www.eao.hawaii.edu/'>EAO local home</a>");
+  $theme->SetSideBarTop("<a class='sidemain' href='https://www.eao.hawaii.edu/'>EAO local home</a>");
 
   # Get the location of blank.gif
   my $blankgif = OMP::Config->getData('blankgif');

@@ -216,7 +216,7 @@ sub tau_plot_code {
   # Setup tau fits image info
   my $dir = "/WWW/omp/data/taufits";
   my $www = "/data/taufits";
-  my $calibpage = "http://www.eaobservatory.org/jcmt/instrumentation/continuum/scuba-2/calibration/";
+  my $calibpage = "https://www.eaobservatory.org/jcmt/instrumentation/continuum/scuba-2/calibration/";
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
   $gifdate = substr($gifdate,0,8);

@@ -405,7 +405,7 @@ sub projlog_content {
 
   # Include nightly data quality analysis.
   print "\n<h2>Data Quality Analysis</h2>\n\n",
-        '<p><a href="http://pipelinesandarchives.blogspot.com/',
+        '<p><a href="https://pipelinesandarchives.blogspot.com/',
         '2013/03/new-omp-features-for-projects.html">',
         'Explanation of the graphs and tables.',
         "</a></p>\n\n";

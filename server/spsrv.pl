@@ -6,8 +6,8 @@ spsrv - Science Program Server
 
 =head1 SYNOPSIS
 
-  my $sp = new SOAP::Lite( uri => 'http://www.eao.hawaii.edu/OMP::SpServer',
-                           proxy => 'http://www.whereever.edu/cgi-bin/spsrv.pl'
+  my $sp = new SOAP::Lite( uri => 'https://www.eao.hawaii.edu/OMP::SpServer',
+                           proxy => 'https://www.whereever.edu/cgi-bin/spsrv.pl'
                           );
 
   $sp->storeProgram( $xml, $password );

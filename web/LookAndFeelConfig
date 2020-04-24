@@ -3,11 +3,11 @@
 @NAVBAR=0;
 @SIDEBARMENUTITLE=<font color=#ffffff>EAO</font>;
 @SIDEBARMENULINKS=
-<a class="sidemain" HREF="http://www.eaobservatory.org/">EAO Home</a>,
-<a class="sidemain" HREF="http://www.eaobservatory.org/jcmt/">JCMT</a>,
-<a class="sidemain" HREF="http://www.ukirt.hawaii.edu/">UKIRT</a>,
-<a class="sidemain" HREF="http://www.eao.hawaii.edu/weather/">Weather</a>,
-<a href="http://www.eao.hawaii.edu/weather/camera/jac/" class="sidemain">Web Cameras</a>;
+<a class="sidemain" HREF="https://www.eaobservatory.org/">EAO Home</a>,
+<a class="sidemain" HREF="https://www.eaobservatory.org/jcmt/">JCMT</a>,
+<a class="sidemain" HREF="https://www.ukirt.hawaii.edu/">UKIRT</a>,
+<a class="sidemain" HREF="https://www.eao.hawaii.edu/weather/">Weather</a>,
+<a href="https://www.eao.hawaii.edu/weather/camera/jac/" class="sidemain">Web Cameras</a>;
 
 @MORELINKSTITLE=<font color=#ffffff>OMP</font>;
 @INFO=

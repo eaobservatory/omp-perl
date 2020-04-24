@@ -34,6 +34,7 @@ use warnings;
 use Carp;
 
 # OMP dependencies
+use OMP::Config;
 use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
@@ -844,8 +845,9 @@ sub doneMSB {
           my $projectid = $self->projectid;
           my $utdate  = OMP::DateTools->today();
 
+          my $omp_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-          my $message_text = "The $telescope operator accepted an MSB (title=$msbtitle) from your project $projectid tonight ($utdate). If you want to follow tonight's observing, please go to the remote eavesdropping link in your OMP project page at http://omp.eao.hawaii.edu/cgi-bin/utprojlog.pl?project=$projectid&utdate=$utdate. You should be sent a summary of all of your observations taken tonight within 24 hours of the end of shift.";
+          my $message_text = "The $telescope operator accepted an MSB (title=$msbtitle) from your project $projectid tonight ($utdate). If you want to follow tonight's observing, please go to the remote eavesdropping link in your OMP project page at ${omp_url}/utprojlog.pl?project=$projectid&utdate=$utdate. You should be sent a summary of all of your observations taken tonight within 24 hours of the end of shift.";
 
           my $message_subject = "$telescope started observing your project on $utdate";
 
