@@ -569,7 +569,7 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $STYLE = OMP::Config->getData('omp-url') . OMP::Config->getData('www-css');
+  my $STYLE = OMP::Config->getData('www-css');
 
   sub _get_style {
     return $STYLE;
@@ -664,11 +664,10 @@ sub _write_header {
     unless (! exists $rssinfo{title});
 
   # Add omp icon and javascript
-  my $base_url = OMP::Config->getData('omp-url');
   my $jscript_url = OMP::Config->getData('www-js');
   my $favicon_url = OMP::Config->getData('www-favicon');
-  $start_string .= "<link rel='icon' href='${base_url}${favicon_url}'/>";
-  $start_string .= "<script type='text/javascript' src='${base_url}${_}'></script>" foreach @$jscript_url;
+  $start_string .= "<link rel='icon' href='${favicon_url}'/>";
+  $start_string .= "<script type='text/javascript' src='${_}'></script>" foreach @$jscript_url;
 
   # Close start string
   $start_string .= "</head>";
@@ -678,7 +677,7 @@ sub _write_header {
   $theme->SetSideBarTop("<a class='sidemain' href='http://www.eao.hawaii.edu/'>EAO local home</a>");
 
   # Get the location of blank.gif
-  my $blankgif = OMP::Config->getData('omp-url') . OMP::Config->getData('blankgif');
+  my $blankgif = OMP::Config->getData('blankgif');
   $theme->SetBlankGif($blankgif);
 
   my $user = $self->auth->user;
