@@ -1148,7 +1148,7 @@ sub apply_xslt {
     my $xml = $self->stringify();
 
     if ($xml !~ /xmlns=/) {
-        $xml =~ s/(<SpProg)/$1 xmlns="https:\/\/omp.eao.hawaii.edu\/schema\/TOML"/;
+        $xml =~ s/(<SpProg)/$1 xmlns="http:\/\/omp.eao.hawaii.edu\/schema\/TOML"/;
     }
 
     # Invoke xsltproc and pass it the XML.
