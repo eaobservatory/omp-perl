@@ -28,9 +28,10 @@ use Astro::Telescope;
 use Time::Piece qw/ :override /;
 
 use OMP::Config;
-use OMP::SpServer;
+use OMP::DBbackend;
 use OMP::SciProg;
 use OMP::MSB;
+use OMP::MSBDB;
 use OMP::Error qw/ :try /;
 
 use vars qw/ $VERSION @ISA @EXPORT_OK/;
@@ -244,26 +245,23 @@ sub get_coords  {
   if( $method =~ /^o/i and $#projids > -1 ) {
 
 
-    # Get staff password
-    my $access = OMP::Config->getData( "hdr_database.password" );
-
     # Retrieve Science Project objects
     my @sciprogs;
     foreach my $projid ( @projids ) {
       printf "Retrieve science program for $projid\n" if( $debug );
       my $E;
       try {
-        my $sp =  OMP::SpServer->fetchProgram($projid,$access,1);
+        my $db = new OMP::MSBDB(DB => new OMP::DBbackend(), ProjectID => $projid);
+        my $sp = $db->fetchSciProg(1);
         push( @sciprogs,$sp );
       } catch OMP::Error with {
         # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
         $E = shift;
-        print "Error SpServer: $E\n" if ( $debug );
+        print "Error MSBDB: $E\n" if ( $debug );
       } otherwise {
         # This is "normal" errors. At the moment treat them like any other
         $E = shift;
-        print "Error SpServer: $E\n" if ( $debug );
+        print "Error MSBDB: $E\n" if ( $debug );
       }
     }
 
