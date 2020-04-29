@@ -47,7 +47,7 @@ foreach my $project (@ARGV) {
         my $project = uc($1);
 
         print STDERR 'Fetching project ', $project, "\n" if $verbose;
-        $sp = OMP::SpServer->fetchProgram(
+        ($sp) = OMP::SpServer->fetchProgram(
             $project, OMP::Password->get_userpass(), OMP::SpServer::OMP__SCIPROG_OBJ);
     }
     elsif (-e $project) {
