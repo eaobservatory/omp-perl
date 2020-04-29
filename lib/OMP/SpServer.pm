@@ -95,6 +95,9 @@ sub storeProgram {
 
   my ($string, $timestamp);
   my $E;
+  my $projectid;
+  my $auth;
+  my @headers;
   try {
 
     # Attempt to gunzip it if it looks like a gzip stream
@@ -124,7 +127,7 @@ sub storeProgram {
         "Please upgrade to at least version $minver, available from\n${url}\n");
     }
 
-    my ($projectid, $auth) = $class->get_verified_projectid(
+    ($projectid, $auth, @headers) = $class->get_verified_projectid(
       $provider, $username, $password, $sp->projectID);
 
     # Create a new DB object
@@ -170,7 +173,7 @@ sub storeProgram {
 
   OMP::General->log_message( "storeProgram: Complete in ".
                              tv_interval($t0)." seconds. Stored with timestamp $timestamp\n");
-  return [$string, $timestamp];
+  return [$string, $timestamp], @headers;
 }
 
 =item B<compressReturnedItem>
@@ -261,9 +264,12 @@ sub fetchProgram {
 
   my $sp;
   my $E;
+  my $projectid;
+  my $auth;
+  my @headers;
 
   try {
-    my ($projectid, $auth) = $class->get_verified_projectid(
+    ($projectid, $auth, @headers) = $class->get_verified_projectid(
       $provider, $username, $password, $rawprojectid);
 
     # Create new DB object
@@ -290,8 +296,8 @@ sub fetchProgram {
 
     OMP::General->log_message("fetchProgram: Complete in ".tv_interval($t0)." seconds\n");
 
-    return $string;
 
+    return $string, @headers;
 }
 
 =item B<programDetails>

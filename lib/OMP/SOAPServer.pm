@@ -28,10 +28,12 @@ use warnings;
 # External dependencies
 use SOAP::Lite;
 use OMP::Auth;
+use OMP::AuthDB;
 use OMP::Config;
 use OMP::Constants qw/ :status :logging /;
 use OMP::Display;
 use OMP::General;
+use OMP::NetTools;
 
 our $VERSION = '2.000';
 
@@ -45,8 +47,11 @@ our $VERSION = '2.000';
 Validate the given project ID, attempt to authenticate the user based on
 the given credentials and check their authorization for the project.
 
-  my ($projectid, $auth) = $class->get_verified_projectid(
+  my ($projectid, $auth, @headers) = $class->get_verified_projectid(
       $provider, $username, $password, $rawprojectid);
+
+The method may return additional SOAP headers which should be sent
+to the client.
 
 =cut
 
@@ -75,7 +80,18 @@ sub get_verified_projectid {
   throw OMP::Error::Authentication('Permission denied.')
     unless $auth->is_staff or $auth->has_project($projectid);
 
-  return ($projectid, $auth);
+  # If this was a new log in, generate an OMP token and return
+  # via SOAP headers.
+  my @headers;
+  if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
+    my (undef, $addr, undef) = OMP::NetTools->determine_host;
+    my $adb = new OMP::AuthDB(DB => $class->dbConnection);
+    my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer');
+    push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
+    push @headers, SOAP::Header->new(name => 'token', value => $token);
+  }
+
+  return ($projectid, $auth, @headers);
 }
 
 =item B<throwException>

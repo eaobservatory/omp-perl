@@ -95,6 +95,23 @@ sub log_in_oauth {
     }
 }
 
+=item B<log_in_userpass>
+
+Instead of username and password, expect the redirect_uri and authorization
+code from an OAuth session initiated by the OT (or other program).
+
+=cut
+
+sub log_in_userpass {
+    my $cls = shift;
+    throw OMP::Error::Authentication('Invalid username -- should be the redirect URI.')
+        unless shift =~ /^(http.*)$/;
+    my $redirect_uri = $1;
+    my $code = shift;
+
+    return $cls->_finish_oauth($code, $redirect_uri);
+}
+
 sub _finish_oauth {
     my $cls = shift;
     my $code = shift;

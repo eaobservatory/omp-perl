@@ -24,6 +24,9 @@ our %PROVIDERS = (
     'hedwig' => {
         class => 'OMP::Auth::HedwigOAuth',
     },
+    'omptoken' => {
+        class => 'OMP::Auth::OMPToken',
+    },
 );
 
 our $COOKIE_NAME = 'OMPLOGIN';
