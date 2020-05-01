@@ -817,21 +817,12 @@ sub _write_project_choice {
   my %proj_opts = ();
   my $datalist = '';
   if (defined $self->auth->user) {
-    my %projects = ();
-    my $userid = $self->auth->user->userid;
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
-
-    foreach my $xml ('<ProjQuery><person>' . $userid . '</person></ProjQuery>',
-                     '<ProjQuery><support>' . $userid . '</support></ProjQuery>') {
-
-        $projects{$_->projectid} = 1 foreach $db->listProjects(new OMP::ProjQuery(XML => $xml));
-    }
-    my @projects = sort keys %projects;
-    if (@projects) {
+    my $projects = $self->auth->projects;
+    if (@$projects) {
       $proj_opts{'-list'} = 'projects';
       $datalist = join '',
         '<datalist id="projects">',
-        (map {'<option value="' . $_ .'" />'} @projects),
+        (map {'<option value="' . $_ .'" />'} sort @$projects),
         '</datalist>';
     }
   }

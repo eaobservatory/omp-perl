@@ -137,7 +137,7 @@ sub details {
   for (keys %capacities) {
     if ($capacities{$_}) {
       print "<h3>$_ on</h3>";
-      print "<table><tr><td></td><td>Receives email</td>";
+      print "<table><tr><td></td><td>Receives email</td><td>OMP access</td>";
 
       for (@{$capacities{$_}}) {
         print "<tr><td><a href=$url/projecthome.pl?project=".$_->projectid.">".
@@ -148,6 +148,8 @@ sub details {
         } else {
           print "<td align=center><a href=$url/projusers.pl?project=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
         }
+
+        print '<td align="center">' . ($_->omp_access($user->userid) ? '&#x2605;' : '&nbsp;') . '</td>';
       }
 
       print "</table>";
@@ -308,8 +310,9 @@ sub project_users {
   # Get contacts
   my @contacts = $project->investigators;
 
-  # Get contactables
+  # Get contactables and those with OMP access.
   my %contactable = $project->contactable;
+  my %access = $project->omp_access;
 
   print "<h3>Users associated with project ${projectid}</h3>";
 
@@ -317,7 +320,7 @@ sub project_users {
   # indicating contactable status
   print start_form_absolute($q);
   print "<table>";
-  print "<tr><td>Name (click for details)</td><td>Receive email</td>";
+  print "<tr><td>Name (click for details)</td><td>Receive email</td><td>OMP access</td>";
 
   for (sort @contacts) {
     my $userid = $_->userid;
@@ -327,12 +330,17 @@ sub project_users {
 
     #Make sure they have an email address
     if ($_->email) {
-      print $q->checkbox(-name=>$userid,
+      print $q->checkbox(-name => 'email_' . $userid,
                          -checked=>$contactable{$userid},
                          -label=>"",);
     } else {
       print "<small>no email</small>";
     }
+
+    print "</td><td>",
+        $q->checkbox(-name => 'access_' . $userid,
+                     -checked => $access{$userid},
+                     -label => "");
     print "</td>";
   }
 
@@ -367,18 +375,29 @@ sub project_users_output {
 
   if ($q->param('update_contacts')) {
     my %new_contactable;
+    my %new_access;
 
     # Go through each of the contacts and store their new contactable values
-    my $count;
+    my $count_email;
+    my $count_access;
     for (@contacts) {
       my $userid = $_->userid;
-      $new_contactable{$userid} = ($q->param($userid) ? 1 : 0);
-      $count += $new_contactable{$userid};
+
+      $new_contactable{$userid} = ($q->param('email_' . $userid) ? 1 : 0);
+      $count_email += $new_contactable{$userid};
+
+      $new_access{$userid} = ($q->param('access_' . $userid) ? 1 : 0);
+      $count_access += $new_access{$userid};
     }
 
-    # Make sure atleast 1 person is getting emails
-    if ($count == 0) {
-      print "<h3>The system requires atleast 1 person to receive project emails.  Update aborted.</h3>";
+    # Make sure at least 1 person is getting emails
+    if ($count_email == 0) {
+      print "<h3>The system requires at least 1 person to receive project emails.  Update aborted.</h3>";
+      return;
+    }
+    # Same for OMP access.
+    if ($count_access == 0) {
+      print "<h3>The system requires at least 1 person to have OMP access.  Update aborted.</h3>";
       return;
     }
 
@@ -388,11 +407,12 @@ sub project_users_output {
                               DB => new OMP::DBbackend, );
 
     try {
-
       $db->updateContactability( \%new_contactable );
+      $db->updateOMPAccess( \%new_access );
       $project->contactable(%new_contactable);
+      $project->omp_access(%new_access);
 
-      print "<h3>Contactable information for project ${projectid} has been updated</h3>";
+      print "<h3>Contactable / OMP access information for project ${projectid} has been updated</h3>";
     } otherwise {
       my $E = shift;
       print "An error prevented the contactable information from being updated:<br>$E";
@@ -403,6 +423,15 @@ sub project_users_output {
 
     @contacts = $project->contacts;
     for (@contacts) {
+      my $userid = $_->userid;
+      print "<a href=userdetails.pl?user=$userid>". $_->name ."</a><br>";
+    }
+
+    print "<br>The following people have OMP access to this project:<br>";
+
+    my @access = grep {$project->omp_access($_->userid)}
+        ($project->investigators, $project->support);
+    for (@access) {
       my $userid = $_->userid;
       print "<a href=userdetails.pl?user=$userid>". $_->name ."</a><br>";
     }

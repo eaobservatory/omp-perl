@@ -165,7 +165,8 @@ sub proj_status_table {
   # Get the CoI email(s)
   my $coiemail = join(", ",map{
     OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
-      affiliation => $_->affiliation())
+      affiliation => $_->affiliation(),
+      access => $project->omp_access($_->userid))
     } $project->coi);
 
   # Get the support
@@ -173,7 +174,7 @@ sub proj_status_table {
 
   print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
         "<tr>",
-        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation())."</td>",
+        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation(), access => $project->omp_access($project->pi->userid))."</td>",
         "<td><b>Title:</b> " . $project->title . "</td>",
         "<td> $case_href </td></tr>",
         "<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",

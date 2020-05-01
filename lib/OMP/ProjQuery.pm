@@ -174,7 +174,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) },
-                           [qw/projectid telescope support coi semester person pi country/]);
+                           [qw/projectid telescope support coi semester person person_access pi country/]);
 
   # These entries are in more than one table so we have to
   # explicitly choose the project table
@@ -245,6 +245,15 @@ sub _post_process_hash {
   # but this is difficult since we have no way of grouping AND
   # entries
   # Maybe  support => { _JOIN => 'AND', capacity => 'SUPPORT', userid => 'Y'}
+
+  # For "person_access" query: this searches for a person in any capacity
+  # with a true value in the omp_access column of the ompprojuser table.
+  if (exists $href->{'person_access'}) {
+    my $U = $prefix . $counter;
+    $href->{'person_access'} = { _JOIN => 'AND', "$U.userid" => $href->{'person_access'},
+                         "$U.omp_access" => OMP::DBQuery::True->new(true => 1)};
+    $counter++;
+  }
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

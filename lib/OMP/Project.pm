@@ -99,6 +99,7 @@ sub new {
                     Support => [],
                     State => 1,
                     Contactable => {},
+                    OMPAccess => {},
                     ExpiryDate => undef,
                    }, $class;
 
@@ -382,8 +383,9 @@ Provide a list of colon-separated user IDs:
 
   $proj->support( "name1:name2" );
 
-By default when a support contact is updated it is made contactable. If this
-is not the case the C<contactable> method must be called explicitly.
+By default when a support contact is updated it is made contactable and
+granted OMP access. If this is not the case the C<contactable> and
+C<omp_access> methods must be called explicitly.
 
 =cut
 
@@ -397,8 +399,11 @@ sub support {
 
     my @user = $self->_handle_role( lc( $key ) , @_ );
 
-    # Force being contactable.
-    $self->contactable( $_->userid() => 1 ) for @user;
+    # Force being contactable and having OMP access.
+    for my $userid (map {$_->userid()} @user) {
+        $self->contactable( $userid => 1 );
+        $self->omp_access( $userid => 1 );
+    }
 
     $self->{ $key } = [ @user ];
   }
@@ -673,7 +678,9 @@ sub pi {
     $self->{PI} = $pi;
 
     # And force them to be contactable
-    $self->contactable( $pi->userid => 1 );
+    my $userid = $pi->userid;
+    $self->contactable( $userid => 1 );
+    $self->omp_access( $userid => 1 );
 
   }
   return $self->{PI};
@@ -1026,6 +1033,37 @@ sub contactable {
     return %{ $self->{Contactable} };
   } else {
     return $self->{Contactable};
+  }
+}
+
+=item B<contactable>
+
+A hash (indexed by OMP user ID) indicating whether a particular person
+should have OMP access.  This works in the same way as the C<contactable>
+method.
+
+=cut
+
+sub omp_access {
+  my $self = shift;
+  if (@_) {
+    if (scalar @_ == 1) {
+      # A single key
+      return $self->{OMPAccess}->{uc($_[0])};
+    } else {
+      # key/value pairs
+      my %args = @_;
+      for my $u (keys %args) {
+        # make sure we are case-insensitive
+        $self->{OMPAccess}->{uc($u)} = $args{$u};
+      }
+    }
+  }
+  # return something
+  if (wantarray) {
+    return %{ $self->{OMPAccess} };
+  } else {
+    return $self->{OMPAccess};
   }
 }
 

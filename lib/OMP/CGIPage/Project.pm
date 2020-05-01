@@ -342,7 +342,8 @@ sub project_home {
     my $remaining = $project->allRemaining->pretty_print;
   my $pi = OMP::Display->userhtml(
     $project->pi, $q, $project->contactable($project->pi->userid), $project->projectid,
-    affiliation => $project->pi()->affiliation());
+    affiliation => $project->pi()->affiliation(),
+    access => $project->omp_access($project->pi->userid));
   my $taurange = $project->taurange;
   my $seerange = $project->seeingrange;
   my $skyrange = $project->skyrange;
@@ -352,10 +353,11 @@ sub project_home {
   # Store coi and support html emails
   my $coi = join(", ",map{
     OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
-    affiliation => $_->affiliation())
+    affiliation => $_->affiliation(),
+    access => $project->omp_access($_->userid))
   } $project->coi);
 
-  my $support = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
+  my $support = join(", ",map{OMP::Display->userhtml($_, $q, undef, undef, access => $project->omp_access($_->userid))} $project->support);
 
   # Make a big header for the page with the project ID and title
   print "<table width=100%><tr><td>";
@@ -800,24 +802,31 @@ sub support {
   };
   return unless $project;
 
+  # Get support contacts
+  my @support = $project->support;
+
   # Make contact changes, if any
   if ($q->param('change_primary')) {
+    my %new_contactable;
+    my %new_access;
 
-    # Get new primary contacts (frox checkbox group)
-    my %primary = map {$_, undef} $q->param('primary');
+    for (@support) {
+      my $userid = $_->userid;
 
-    # Must have atleast one primary contact defined.
-    if (%primary) {
-      # Create a new contactability hash
-      my %contactable = map {
-        $_->userid, (exists $primary{$_->userid} ? 1 : 0)
-      } $project->support;
+      $new_contactable{$userid} = ($q->param('email_' . $userid) ? 1 : 0);
 
+      $new_access{$userid} = ($q->param('access_' . $userid) ? 1 : 0);
+    }
+
+    # Must have at least one primary contact defined.
+    if (scalar grep {$_} values %new_contactable) {
       # Store changes to DB
       my $E;
       try {
-        $projdb->updateContactability( \%contactable );
-        $project->contactable(%contactable);
+        $projdb->updateContactability( \%new_contactable );
+        $projdb->updateOMPAccess( \%new_access );
+        $project->contactable(%new_contactable);
+        $project->omp_access(%new_access);
       } otherwise {
         $E = shift;
         print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
@@ -827,12 +836,9 @@ sub support {
       print "<h3>Primary support contacts have been changed</h3>";
     } else {
       # No new primary contacts defined
-      print "<h3>Atleast one primary support contact must be defined.  Your changes have not been stored.</h3>";
+      print "<h3>At least one primary support contact must be defined.  Your changes have not been stored.</h3>";
     }
   }
-
-  # Get support contacts
-  my @support = $project->support;
 
   # Store primary
   my @primary = grep {$project->contactable($_->userid)} @support;
@@ -853,23 +859,27 @@ sub support {
     print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
   }
 
-  # Generate labels and values for primary support form
-  my %labels = map {$_->userid, $_->name} @support;
-  my @userids = sort map {$_->userid} @support;
-  my @defaults = map {$_->userid} @primary;
-
   # Form for defining primary support
-  print "<h3>Define primary support contacts</h3>";
-  print start_form_absolute($q, -name=>'define_primary');
-  print $q->checkbox_group(-name=>'primary',
-                           -values=>\@userids,
-                           -defaults=>\@defaults,
-                           -linebreak=>'true',
-                           -labels=>\%labels,);
+  my %contactable = $project->contactable;
+  my %access = $project->omp_access;
 
-  print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
-  print $q->end_form;
-  print "<br><small>Note: Only primary support contacts will receive project email.</small>";
+  print "<h3>Define primary support contacts</h3>";
+  print start_form_absolute($q, -name=>'define_primary'),
+    $q->start_table,
+    $q->Tr($q->th(['Contact', 'Primary', 'OMP access'])),
+    $q->Tr([map {$q->td([
+        $_->name,
+        $q->checkbox(-name => 'email_' . $_->userid,
+                     -checked => $contactable{$_->userid},
+                     -label => ""),
+        $q->checkbox(-name => 'access_' . $_->userid,
+                     -checked => $access{$_->userid},
+                     -label => ""),
+    ])} @support]),
+    $q->end_table,
+    $q->p($q->submit(-name=>'change_primary', -value=>'Submit')),
+    $q->end_form,
+    $q->p("<small>Note: Only primary support contacts will receive project email.</small>");
 }
 
 =item B<alter_proj>

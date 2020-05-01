@@ -560,31 +560,49 @@ It will update only those records which are actually changed.
 =cut
 
 sub updateContactability {
+  my $self = shift;
+  return $self->_updateUserFlag('contactable', @_);
+}
 
-  my ( $self, $contact ) = @_;
+=item B<updateOMPAccess>
+
+Updates project user OMP access in the same way as C<updateContactability>.
+
+=cut
+
+sub updateOMPAccess {
+  my $self = shift;
+  return $self->_updateUserFlag('omp_access', @_);
+}
+
+
+sub _updateUserFlag {
+  my $self = shift;
+  my $flag = shift;
+  my $users = shift;
 
   throw OMP::Error::FatalError( q/Need a hash of user ids as keys and /
-                                . q/truth values to update a user's contactability./
+                                . q/truth values to update a user's flags./
                               )
-    unless OMP::General->hashref_keys_size( $contact )
-    and ! scalar grep { ! defined $_ } keys %{ $contact } ;
+    unless OMP::General->hashref_keys_size( $users )
+    and ! scalar grep { ! defined $_ } keys %{ $users } ;
+
+  # Rely on _get_project_row() to validate a project; may throw exceptions.
+  my $proj = $self->_get_project_row;
+
+  my %users = $self->_remove_unchanged_flag( $proj, $flag, $users );
+  # No change in any user flags.
+  return unless scalar %users;
 
   # Begin transaction
   $self->_db_begin_trans;
   $self->_dblock;
 
-  # Rely on _get_project_row() to validate a project; may throw exceptions.
-  my $proj = $self->_get_project_row;
-
-  my %contact = $self->_remove_unchanged_contactability( $proj, $contact );
-  # No change in any user or contactability.
-  return unless scalar %contact;
-
   my $id = $proj->projectid;
-  for my $user ( keys %contact ) {
+  for my $user ( keys %users ) {
 
     $self->_db_update_data( $PROJUSERTABLE,
-                            { 'contactable' => $contact{ $user } ? 1 : 0 },
+                            { $flag => $users{ $user } ? 1 : 0 },
                               "projectid = '$id' AND userid = '$user'"
                           ) ;
   }
@@ -808,6 +826,7 @@ sub _insert_project_row {
   # Loop over all the users. Note that this is *not* the output from the
   # contacts method since that will only contain contactable people
   my %contactable = $proj->contactable;
+  my %omp_access = $proj->omp_access;
 
   # Group all the user information
   my %roles = (PI => [$proj->pi],
@@ -820,12 +839,14 @@ sub _insert_project_row {
 
     my $order = 1;
     for my $user (@{ $roles{$role} }) {
+      my $userid = $user->userid();
       $self->_insert_project_user( 'projectid' => $proj->projectid,
-                                    'userid' => $user->userid,
+                                    'userid' => $userid,
                                     'role' => $role,
-                                    'contactable' => $contactable{ $user->userid },
+                                    'contactable' => $contactable{ $userid },
                                     'capacity_order' => $order++,
                                     affiliation => $user->affiliation(),
+                                    omp_access => $omp_access{$userid},
                                   );
     }
   }
@@ -856,7 +877,7 @@ sub _insert_project_user {
                           undef,
                           map { $attr{$_} }
                               qw( projectid userid role contactable
-                                  capacity_order affiliation
+                                  capacity_order affiliation omp_access
                                 )
                         );
   return;
@@ -889,7 +910,7 @@ sub _get_projects {
   my $uproj_alias = 'P';
   my $userquery_sql = <<"USER_SQL";
   SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
-         $uproj_alias.contactable, $uproj_alias.affiliation,
+         $uproj_alias.contactable, $uproj_alias.affiliation, $uproj_alias.omp_access,
          U.uname, U.email
     FROM $PROJUSERTABLE $uproj_alias, $utable U
       WHERE $uproj_alias.userid = U.userid AND
@@ -900,6 +921,7 @@ USER_SQL
 
   my %projroles;
   my %projcontactable;
+  my %projompaccess;
   my %projqueue;
   my %projadj;
   my %projpri_queue;
@@ -939,6 +961,7 @@ WHERE_ORDER_SQL
                         ));
 
       $projcontactable{$projectid}->{$userid} = $row->{contactable};
+      $projompaccess{$projectid}->{$userid} = $row->{'omp_access'};
     }
 
     # Now do the queue info query
@@ -1030,6 +1053,7 @@ WHERE_ORDER_SQL
     $proj->support( @{ $projroles{$projectid}{SUPPORT} } )
       if exists $projroles{$projectid}{SUPPORT};
     $proj->contactable( %{$projcontactable{$projectid}} );
+    $proj->omp_access( %{$projompaccess{$projectid}} );
 
     # -------- Assign Queue information ---------
     # Store new info, but make sure we have cleared the hash first
@@ -1076,35 +1100,35 @@ sub _get_max_role_order {
 
 =pod
 
-=item B<_remove_unchanged_contactability>
+=item B<_remove_unchanged_flag>
 
 Given an C<OMP::Project> object and a hash reference of (possibly)
-updated user-contactable key-value pairs, returns a new hash reference
+updated user-flag key-value pairs, returns a new hash reference
 of the remaining changed, possibly none, pairs.
 
   $changed =
-    $db->_remove_unchanged_contactability( $project,
+    $db->_remove_unchanged_flag( $project, $flag,
                                           { 'USR1' => 1, 'USR2' => 0 }
                                         );
 
 =cut
 
-sub _remove_unchanged_contactability {
+sub _remove_unchanged_flag {
 
-  my ( $self, $proj, $updates ) = @_;
+  my ( $self, $proj, $flag, $updates ) = @_;
 
-  my %old_contact = $proj->contactable;
+  my %old_flag = $proj->$flag;
   my %changed;
   for my $user ( keys %{ $updates } ) {
 
-    my $contactable = $updates->{ $user };
+    my $flag = $updates->{ $user };
 
-    next if exists $old_contact{ $user }
-          && ( ( $contactable && $old_contact{ $user } )
-              || ( ! $contactable && ! $old_contact{ $user } )
+    next if exists $old_flag{ $user }
+          && ( ( $flag && $old_flag{ $user } )
+              || ( ! $flag && ! $old_flag{ $user } )
               ) ;
 
-    $changed{ $user } = $contactable;
+    $changed{ $user } = $flag;
   }
 
   return %changed;

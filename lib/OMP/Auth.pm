@@ -403,9 +403,8 @@ sub _fetch_projects {
     my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
 
     my @projects = $db->listProjects(new OMP::ProjQuery(
-        XML => '<ProjQuery><person>' . $userid . '</person></ProjQuery>'));
+        XML => '<ProjQuery><person_access>' . $userid . '</person_access></ProjQuery>'));
 
-    # TODO: filter by projects where user has authorization.
     return [map {$_->projectid} @projects];
 }
 

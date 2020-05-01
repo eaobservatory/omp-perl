@@ -283,6 +283,10 @@ sub userhtml {
     $html .= '<small>(' . $opt{'affiliation'} . ')</small>';
   }
 
+  if ((exists $opt{'access'}) and $opt{'access'}) {
+    $html .= ' &#x2605;';
+  }
+
   return $html;
 }
 
