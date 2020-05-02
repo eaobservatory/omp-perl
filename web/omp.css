@@ -553,3 +553,29 @@ table.bordered caption {
   padding: 5px;
   font-weight: bold;
 }
+
+div.log_in_panel {
+  margin: 10px 0px 10px 0px;
+  background: #DDD;
+  padding: 0px;
+}
+
+div.log_in_panel > p {
+  background: #BBB;
+  margin: 0px;
+  padding: 10px;
+}
+
+div.log_in_panel > p a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+}
+
+div.log_in_panel > p a:after {
+  content: " \00BB";
+}
+
+div.log_in_panel > div {
+  padding: 10px;
+}

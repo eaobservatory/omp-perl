@@ -715,18 +715,18 @@ sub _write_login {
     print $q->p($q->strong($self->auth->message));
   }
 
-  print $q->div(
-    $q->p($q->a({}, 'Log in with Hedwig')),
+  print $q->div({-class => 'log_in_panel'},
+    $q->p($q->a({-href => '#'}, 'Log in with Hedwig')),
     $q->div(
       start_form_absolute($q),
       $q->p(
-        $q->hidden(-name => 'provider', -default => 'hedwig'),
+        $q->hidden(-name => 'provider', -default => 'hedwig', -override => 1),
         $q->submit(-value => 'Log in with Hedwig', -name => 'submit_log_in'),
       ),
       $q->end_form()));
 
-  print $q->div(
-    $q->p($q->a({}, 'EAO staff log in')),
+  print $q->div({-class => 'log_in_panel'},
+    $q->p($q->a({-href => '#'}, 'EAO staff log in')),
     $q->div(
     $q->p("Please enter your user name and password."),
       start_form_absolute($q),
@@ -734,7 +734,7 @@ sub _write_login {
       # from the login form, so we'll be sure to run the form_content callback and not
       # form_output.
       $q->hidden(-name=>'provider',
-                 -default=>'staff'),
+                 -default=>'staff', -override => 1),
       $q->hidden(-name=>'show_content',
                  -default=>1),
       $q->table(
