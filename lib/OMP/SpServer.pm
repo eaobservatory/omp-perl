@@ -489,6 +489,23 @@ sub SpInsertCat {
   return [$spstr, $infostr];
 }
 
+=item B<getOTVersionInfo>
+
+Retrieve information about the current and minimum OT version.
+
+    my $versions = OMP::SpServer->getOTVersionInfo();
+    my ($current, $minimum) = @$versions;
+
+B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
+
+=cut
+
+sub getOTVersionInfo {
+  my $self = shift;
+
+  return [OMP::Config->getData('ot-cur-version'),
+          OMP::Config->getData('ot-min-version')];
+}
 
 =back
 

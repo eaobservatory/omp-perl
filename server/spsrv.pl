@@ -43,6 +43,7 @@ SOAP::Transport::HTTP::CGI->dispatch_to(qw/
     OMP::SpServer::SpInsertCat
     OMP::SpServer::fetchProgram
     OMP::SpServer::storeProgram
+    OMP::SpServer::getOTVersionInfo
   /)->options({compress_threshold=>500})->handle;
 
 =head1 INSTALLATION
