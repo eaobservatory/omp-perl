@@ -317,8 +317,8 @@ sub projlog_content {
     my $pkgdataurl = OMP::Config->getData('pkgdata-url');
 
     unless ($no_retrieve) {
-      print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
-      print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+      print "<a href='$pkgdataurl?project=$projectid&utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
+      print "<a href='$pkgdataurl?project=$projectid&utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
     }
   }
 
