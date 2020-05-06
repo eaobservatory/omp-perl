@@ -869,7 +869,7 @@ sub log_message {
   my $file2 = "omp_$today.log";
 
   # Create the message
-  my ($user, $host, $email) = OMP::NetTools->determine_host;
+  my (undef, undef, $email) = OMP::NetTools->determine_host;
 
   my $sevstr = $class->_log_level_string( $severity );
 

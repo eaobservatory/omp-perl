@@ -15,7 +15,7 @@ OMP::PackageData - Package up data for retrieval by PI
 
   $pkg->root_tmpdir("/tmp/ompdata");
 
-  $pkg->pkgdata;
+  $pkg->pkgdata(user => $user);
 
   $file = $pkg->tarfile;
 
@@ -415,7 +415,7 @@ sub utdir {
 Create temporary directory, copy data into the directory,
 create tar file and place tar file in FTP directory.
 
-  $pkg->pkgdata();
+  $pkg->pkgdata(user => $user);
 
 Once packaged, the tar file name can be retrieved using the
 tarfile() method.
@@ -428,6 +428,7 @@ need to have a temporary directory)
 
 sub pkgdata {
   my $self = shift;
+  my %opt = @_;
 
   # Add a comment to the log
   $self->_log_request();
@@ -453,7 +454,7 @@ sub pkgdata {
   $self->_mktarfile();
 
   # Send a message to the feedback system
-  $self->add_fb_comment();
+  $self->add_fb_comment(undef, $opt{'user'});
 
 }
 
@@ -958,11 +959,11 @@ sub _log_request {
 Send a message to the feedback system indicating that the data
 have been packaged.
 
-  $pkg->add_fb_comment();
+  $pkg->add_fb_comment( undef, $user );
 
 An optional argument can be used to supply additional text.
 
-  $pkg->add_fb_comment( "(via CADC)" );
+  $pkg->add_fb_comment( "(via CADC)", $user );
 
 =cut
 
@@ -970,16 +971,19 @@ sub add_fb_comment {
   my $self = shift;
   my $text = shift;
   $text = '' unless defined $text;
+  my $user = shift;
 
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
-  my ($user, $host, $email) = OMP::NetTools->determine_host;
+  (undef, my $host, undef) = OMP::NetTools->determine_host;
   my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
 
   # In some cases with weird firewalls the host is not actually available
   # Have not tracked down the reason yet so for now we allow it to
   # go through [else data retrieval does not work]
   $host = (length($host) > 0 ? $host : '<undefined>');
+
+  my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
 
   # Get project PI name for inclusion in feedback message
   my $project = OMP::ProjServer->projectDetails( $projectid, "object" );
@@ -993,7 +997,7 @@ sub add_fb_comment {
                              program => $0,
                              sourceinfo => $host,
                              status => OMP__FB_SUPPORT,
-                             text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
+                             text => "<html>Data have been requested $userinfo for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
                              msgtype => OMP__FB_MSG_DATA_REQUESTED,
                             }
                            )

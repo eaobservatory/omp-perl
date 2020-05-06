@@ -243,7 +243,8 @@ sub storeSciProg {
 
   # Write the Science Program to disk
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp},
-                          $args{Force}, $args{NoCache} )
+                          $args{Force}, $args{NoCache},
+                          ((exists $args{'User'}) ? $args{'User'} : undef) )
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
   # Get the summaries for each msb as a hash containing observations
@@ -1310,7 +1311,7 @@ sub listModifiedPrograms {
 
 Store the science program to the "database"
 
-  $status = $db->_store_sci_prog( $sp, $freeze, $force, $nocache );
+  $status = $db->_store_sci_prog( $sp, $freeze, $force, $nocache, $user );
 
 The XML is stored in the database. Transaction management deals with the
 case where the upload fails part way through.
@@ -1364,6 +1365,8 @@ sub _store_sci_prog {
     $nocache = $freeze;
   }
 
+  my $user = shift;
+
   # Check to see if sci prog exists already (if it does it returns
   # the timestamp else undef)
   my $tstamp = $self->_get_old_sciprog_timestamp;
@@ -1409,11 +1412,11 @@ sub _store_sci_prog {
       # Trigger email
 
       # Construct a simple error message
-      my ($user, $addr, $email) = OMP::NetTools->determine_host;
       my $projectid = uc($sp->projectID);
 
-      my $err = "Error writing science program ($projectid) to disk\n" .
-                "Request from $email\nReason:\n\n" . $E->text;
+      my $err = "Error writing science program ($projectid) to disk\n";
+      $err .= "Request from " . $user->userid . "\n" if defined $user;
+      $err .= "Reason:\n\n" . $E->text;
 
       OMP::General->log_message( $err, OMP__LOG_ERROR );
 

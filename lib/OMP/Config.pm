@@ -892,7 +892,7 @@ sub _determine_constants {
   } else {
     # Get the fully qualified domain name
     # being careful to disable checks for REMOTE_HOST
-    (my $user, $host, my $email) = OMP::NetTools->determine_host( 1 );
+    (undef, $host, undef) = OMP::NetTools->determine_host( 1 );
 
     # split the host name on dots
     ($host, $domain) = split(/\./,$host,2);

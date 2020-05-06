@@ -740,17 +740,6 @@ sub view_fault_output {
     my $status = $q->param('status');
 
     if ($status != $fault->status) {
-      # Get host (and user maybe) info
-      my @user = OMP::NetTools->determine_host;
-      my $author;
-
-      # Make author either an email address or "user on [machine name]"
-      if ($user[2] =~ /@/) {
-        $author = $user[0];
-      } else {
-        $author = "user on $user[2]";
-      }
-
      my $E;
      try {
         # Right now we'll just do an update by resubmitting the fault
@@ -761,7 +750,7 @@ sub view_fault_output {
         $fault->status($q->param('status'));
 
         # Resubmit the fault
-        OMP::FaultServer->updateFault($fault, $author);
+        OMP::FaultServer->updateFault($fault, $self->auth->user);
 
         push @title, "Fault status changed to \"" . $fault->statusText . "\"";
       } otherwise {
@@ -849,17 +838,6 @@ sub update_fault_output {
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  # Get host (and user maybe) info of the user who is modifying the fault
-  my @user = OMP::NetTools->determine_host;
-  my $author;
-
-  # Make author either an email address or "user on [machine name]"
-  if ($user[2] =~ /@/) {
-    $author = $user[0];
-  } else {
-    $author = "user on $user[2]";
-  }
-
   # Get the original fault
   my $fault = OMP::FaultServer->getFault($faultid);
 
@@ -899,7 +877,7 @@ sub update_fault_output {
         }
 
         # Store changes to DB
-        OMP::FaultServer->updateFault($fault, $author);
+        OMP::FaultServer->updateFault($fault, $self->auth->user);
       }
 
       if ($response_changed[0]) {

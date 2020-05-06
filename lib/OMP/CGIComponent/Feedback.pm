@@ -218,11 +218,11 @@ sub submit_fb_comment {
 
   # Get the address of the machine remotely running this cgi script to be given
   # to the addComment method as the sourceinfo param
-  my @host = OMP::NetTools->determine_host;
+  (undef, my $host, undef) = OMP::NetTools->determine_host;
 
   my $comment = { author => $self->auth->user,
                   subject => $q->param('subject'),
-                  sourceinfo => $host[1],
+                  sourceinfo => $host,
                   text => $q->param('text'),
                   program => $q->url(-relative=>1), # the name of the cgi script
                   status => OMP__FB_IMPORTANT, };

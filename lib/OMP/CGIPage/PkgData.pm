@@ -169,7 +169,7 @@ sub _package_data {
                                   incjunk => 0,
                                 );
 
-  $pkg->pkgdata;
+  $pkg->pkgdata(user => $self->auth->user);
   print "</PRE>\n";
 
   my @urls = $pkg->ftpurl;
@@ -241,7 +241,7 @@ sub _package_data_cadc {
    userid at both institutions, even if they are the same!</p>\n";
 
   # Write a feedback message even though we can not be sure the person will click on the link
-  $pkg->add_fb_comment( "(via CADC)" );
+  $pkg->add_fb_comment( "(via CADC)", $self->auth->user );
 
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;

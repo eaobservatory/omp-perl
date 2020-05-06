@@ -299,7 +299,7 @@ for my $proj (keys %sorted) {
 
   } else {
     # Provide a feedback comment informing project users that data has been obtained
-    my ($user, $host, $email) = OMP::NetTools->determine_host;
+    (undef, my $host, undef) = OMP::NetTools->determine_host;
     _log_message( qq[Adding comment for $proj (host: $host, status: $status)] );
 
     # The feedback comment is too long to add to the feedback system
