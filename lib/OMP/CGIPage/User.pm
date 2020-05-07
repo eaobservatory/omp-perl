@@ -23,6 +23,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
+use OMP::DBbackend::Hedwig2OMP;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FaultQuery;
@@ -72,12 +73,18 @@ sub details {
     return;
   }
 
+  my $hedwig2omp = new OMP::DBbackend::Hedwig2OMP();
+  my $hedwigids = $hedwig2omp->handle()->selectall_arrayref(
+    'SELECT hedwig_id FROM user WHERE omp_id = ?', {}, $user->userid);
+  my $hedwigprofile = 'https://proposals.eaobservatory.org/person/';
+
   print "<h3>User Details for $user</h3>";
 
   print $q->p(
       $user->html,
       ($user->email ? (" (".$user->email .")") : ''),
       ($user->cadcuser ? (" (<a href=\"https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca\">CADC UserID</a>: ". $user->cadcuser.")\n") : ''),
+      ((scalar @$hedwigids) ? (' (Hedwig ID: ' . (join ',', map {$q->a({-href => $hedwigprofile . $_->[0]}, $_->[0])} @$hedwigids) . ')') : ''),
   );
 
   print $q->p('User account is obfuscated.') if $user->is_obfuscated();
