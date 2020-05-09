@@ -104,7 +104,7 @@ sub file_comment_output {
 
   my $q = $self->cgi;
 
-  my $comp = OMP::CGIComponent::Obslog(page => $self);
+  my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
   # Insert the comment into the database.
   $comp->obs_add_comment();
