@@ -73,6 +73,9 @@ sub get_verified_projectid {
   throw OMP::Error::BadArgs('Project ID invalid.')
     unless defined $projectid;
 
+  # Ensure project ID is upper case before attempting authorization.
+  $projectid = uc $projectid;
+
   my $auth = OMP::Auth->log_in_userpass($provider, $username, $password);
   throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
     unless defined $auth->user;

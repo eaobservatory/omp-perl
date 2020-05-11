@@ -399,6 +399,9 @@ sub write_page {
       return $self->_write_project_choice()
         unless defined $projectid;
 
+      # Ensure project ID is upper case before attempting authorization.
+      $projectid = uc $projectid;
+
       return $self->_write_forbidden()
         unless $auth->is_staff or $auth->has_project($projectid);
 
