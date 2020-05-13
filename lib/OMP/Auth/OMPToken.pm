@@ -58,7 +58,7 @@ sub log_in_userpass {
     throw OMP::Error::Authentication('User name does not match session.')
         unless $username eq $user->userid();
 
-    return $user;
+    return {user => $user};
 }
 
 =back

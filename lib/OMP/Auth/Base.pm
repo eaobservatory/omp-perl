@@ -20,7 +20,8 @@ use OMP::Error;
 =item B<log_in>
 
 Attempt to get an OMP::User object representing the user logging in,
-using information from a CGI object.
+using information from a CGI object.  Returned as a hash, perhaps
+including a 'user' key.
 
     my $user_info = $provider_class->log_in($q);
 
@@ -33,16 +34,17 @@ sub log_in {
     my $cls = shift;
     my $q = shift;
 
-    return {user => $cls->log_in_userpass(
-        $q->param('username'), $q->param('password'))};
+    return $cls->log_in_userpass(
+        $q->param('username'), $q->param('password'));
 }
 
 =item B<log_in_userpass>
 
 Attempt to get an OMP::User object representing the user logging in
-with a specific user name and password.
+with a specific user name and password.  Returned as a hash, perhaps
+including a 'user' key.
 
-    my $user = $provider_class->log_in_userpass($username, $password);
+    my $user_info = $provider_class->log_in_userpass($username, $password);
 
 =cut
 

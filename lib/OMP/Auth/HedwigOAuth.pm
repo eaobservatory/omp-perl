@@ -109,7 +109,7 @@ sub log_in_userpass {
     my $redirect_uri = $1;
     my $code = shift;
 
-    return $cls->_finish_oauth($code, $redirect_uri);
+    return {user => $cls->_finish_oauth($code, $redirect_uri)};
 }
 
 sub _finish_oauth {

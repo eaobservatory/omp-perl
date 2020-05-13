@@ -144,7 +144,9 @@ sub log_in_userpass {
     try {
         my $provider_class = $cls->_get_provider($provider);
 
-        $user = $provider_class->log_in_userpass($username, $password);
+        my $user_info = $provider_class->log_in_userpass($username, $password);
+
+        $user = $user_info->{'user'} if exists $user_info->{'user'};
     }
     catch OMP::Error::Authentication with {
         my $error = shift;

@@ -72,7 +72,7 @@ sub log_in_userpass {
 
     my $result = $result[0];
     $result->is_staff(1);
-    return $result;
+    return {user => $result};
 }
 
 =back
