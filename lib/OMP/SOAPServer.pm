@@ -80,6 +80,11 @@ sub get_verified_projectid {
   throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
     unless defined $auth->user;
 
+  # Issue token using "projects" attribute directly, because if there is no
+  # project restriction, we do not wish to trigger fetching the user's projects.
+  # This also has to be extracted before calling "has_project".
+  my $rawproj = $auth->{'projects'};
+
   throw OMP::Error::Authentication('Permission denied.')
     unless $auth->is_staff or $auth->has_project($projectid);
 
@@ -89,7 +94,7 @@ sub get_verified_projectid {
   if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
     my (undef, $addr, undef) = OMP::NetTools->determine_host;
     my $adb = new OMP::AuthDB(DB => $class->dbConnection);
-    my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer');
+    my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer', $rawproj);
     push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
     push @headers, SOAP::Header->new(name => 'token', value => $token);
   }

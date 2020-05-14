@@ -49,16 +49,22 @@ sub log_in_userpass {
 
     my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
 
-    my $user = $db->verify_token($token);
+    my $user_info = $db->verify_token($token);
 
     throw OMP::Error::Authentication('Your session may have expired.')
-        unless defined $user;
+        unless defined $user_info;
+
+    my $user = $user_info->{'user'};
 
     # Double-check user ID (should not be necessary).
     throw OMP::Error::Authentication('User name does not match session.')
         unless $username eq $user->userid();
 
-    return {user => $user};
+    my %result = (user => $user);
+
+    $result{'projects'} = $user_info->{'projects'} if exists $user_info->{'projects'};
+
+    return \%result;
 }
 
 =back

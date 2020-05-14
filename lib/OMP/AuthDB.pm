@@ -75,9 +75,10 @@ sub issue_token {
 =item B<verify_token>
 
 If the given token is valid, return a partial OMP::User object.
+This is returned as the C<user> value of the returned hash.
 The database record is refreshed if necessary to extend its expiry.
 
-    my $user = $db->verify_token($token);
+    my $user_info = $db->verify_token($token);
 
 =cut
 
@@ -91,7 +92,7 @@ sub verify_token {
     $self->_expire_tokens();
 
     my $result = $self->_db_retrieve_data_ashash(
-        'select A.userid, A.expiry, A.is_staff, U.uname from ' . $AUTHTABLE .
+        'select A.userid, A.expiry, A.is_staff, U.uname, A.projects from ' . $AUTHTABLE .
         ' as A join ' . $OMP::UserDB::USERTABLE .
         ' as U on A.userid = U.userid where token = ?',
         $token);
@@ -117,10 +118,15 @@ sub verify_token {
     }
 
     $result = $result->[0];
-    return new OMP::User(
+    my %user_info = (user => new OMP::User(
         userid => $result->{'userid'},
         name => $result->{'uname'},
-        is_staff => $result->{'is_staff'});
+        is_staff => $result->{'is_staff'}));
+
+    $user_info{'projects'} = [split ',', $result->{'projects'}]
+        if defined $result->{'projects'};
+
+    return \%user_info;
 }
 
 =item B<remove_token>

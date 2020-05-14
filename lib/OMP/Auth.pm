@@ -27,6 +27,9 @@ our %PROVIDERS = (
     'omptoken' => {
         class => 'OMP::Auth::OMPToken',
     },
+    'legacy' => {
+        class => 'OMP::Auth::Legacy',
+    },
 );
 
 our $COOKIE_NAME = 'OMPLOGIN';
@@ -68,6 +71,7 @@ sub log_in {
     my $message = undef;
     my $abort = undef;
     my $redirect = undef;
+    my $projects = undef;
 
     try {
         if ((defined $q->param('submit_log_in')) or (exists $opt{'method'})) {
@@ -83,7 +87,8 @@ sub log_in {
 
             if (exists $user_info->{'user'}) {
                 $user = $user_info->{'user'};
-                $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent());
+                $projects = $user_info->{'projects'} if exists $user_info->{'projects'};
+                $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent(), $projects);
             }
 
             $abort = 1 if exists $user_info->{'abort'};
@@ -94,7 +99,11 @@ sub log_in {
 
             if (exists $cookie{'token'}) {
                 $token = $cookie{'token'};
-                $user = $db->verify_token($token);
+                my $user_info = $db->verify_token($token);
+                if (defined $user_info) {
+                    $user = $user_info->{'user'};
+                    $projects = $user_info->{'projects'} if exists $user_info->{'projects'};
+                }
             }
         }
     }
@@ -108,6 +117,7 @@ sub log_in {
 
     my $auth = $cls->new(message => $message);
     $auth->user($user) if defined $user;
+    $auth->projects($projects) if defined $projects;
     $auth->cookie($cls->_make_cookie($q, '+1d', token => $token)) if defined $token;
 
     if (defined $redirect) {
@@ -140,6 +150,7 @@ sub log_in_userpass {
 
     my $user = undef;
     my $message = undef;
+    my $projects = undef;
 
     try {
         my $provider_class = $cls->_get_provider($provider);
@@ -147,6 +158,7 @@ sub log_in_userpass {
         my $user_info = $provider_class->log_in_userpass($username, $password);
 
         $user = $user_info->{'user'} if exists $user_info->{'user'};
+        $projects = $user_info->{'projects'} if exists $user_info->{'projects'};
     }
     catch OMP::Error::Authentication with {
         my $error = shift;
@@ -158,6 +170,7 @@ sub log_in_userpass {
 
     my $auth = $cls->new(message => $message);
     $auth->user($user) if defined $user;
+    $auth->projects($projects) if defined $projects;
 
     return $auth;
 }
