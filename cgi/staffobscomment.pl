@@ -18,5 +18,5 @@ use OMP::CGIPage::Obslog;
 OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
     'file_comment',
     'file_comment_output',
-    'local_or_staff',
+    'staff',
     title => 'Observation Log');

@@ -18,5 +18,5 @@ use OMP::CGIPage::Fault;
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'query_fault_output',
     undef,
-    'local_or_staff',
+    'staff',
     title => 'Fault Query');

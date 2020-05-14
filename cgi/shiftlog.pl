@@ -22,5 +22,5 @@ use OMP::CGIPage::Shiftlog;
 OMP::CGIPage::Shiftlog->new(cgi => new CGI())->write_page(
     'shiftlog_page',
     undef,
-    'local_or_staff',
+    'staff',
     title => 'Shift Log');

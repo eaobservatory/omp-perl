@@ -18,6 +18,6 @@ use OMP::CGIPage::Fault;
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'file_fault',
     'file_fault_output',
-    'local_or_staff',
+    'staff',
     title => 'File Fault',
     no_header => 1);
