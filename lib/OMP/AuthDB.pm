@@ -35,7 +35,7 @@ our $REFRESH_SECONDS = 600;
 
 Create a token for the given user, store it in the database, and return it.
 
-    my $token = $db->issue_token($user, $addr, $agent);
+    my $token = $db->issue_token($user, $addr, $agent [, $projects]);
 
 =cut
 
@@ -44,6 +44,7 @@ sub issue_token {
     my $user = shift;
     my $addr = shift;
     my $agent = shift;
+    my $projects = shift;
 
     my $is_staff = !! $user->is_staff();
     my $userid = $user->userid();
@@ -52,6 +53,7 @@ sub issue_token {
 
     $addr = substr $addr, 0, 64 if defined $addr;
     $agent = substr $agent, 0, 255 if defined $agent;
+    my $projectspec = (defined $projects) ? (join ',', @$projects) : undef;
 
     my $token = $self->_make_token();
 
@@ -62,7 +64,7 @@ sub issue_token {
 
     $self->_db_insert_data($AUTHTABLE,
         $userid, $token, $expiry->strftime('%Y-%m-%d %T'),
-        $addr, $agent, $is_staff);
+        $addr, $agent, $is_staff, $projectspec);
 
     $self->_dbunlock();
     $self->_db_commit_trans();
