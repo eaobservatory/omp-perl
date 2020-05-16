@@ -1102,48 +1102,17 @@ sub rotator_config {
   # decide on slew option
   my $slew = "LONGEST_TRACK";
 
-  # for jiggle or stare we want to bounce to fill in gaps for subsequent configures
-  # but only if they are science observations and if this SpObs consists of multiple
-  # science observations.
-# 20090304: Disable bouncing since HARP seems to have 15/16 working receptors
-# Leave code in place to make it easy to change our minds.
-#  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' &&
-#      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
-#    $slew = "LONGEST_SLEW";
-#  } els
+  try {
+    $slew = OMP::Config->getData($self->cfgkey() . '.harp_rotator_slew');
+  } otherwise {
+    # Keep defaut.
+  };
 
-  # if we have a pointing following a science we bounce for the pointing
-  # else we stay as we are. This only happens if we have more than one
-  # science observation (else we are better off not bouncing) and some pointings
-  # The aim is for the sequence
-  #    point sci point sci
-  # to bounce after the sci so that we have a pointing that is aligned
-  # with the next sci.
-  if ($nobs->{science} > 1 && $nobs->{pointing} > 1) {
-
-    if (!defined $info{prev_obs_type}){
-      # first obs so always use LONGEST_TRACK
-      $slew = "LONGEST_TRACK";
-    } elsif ( $info{prev_obs_type} eq 'science'
-              && $info{obs_type} eq 'pointing') {
-      $slew = "LONGEST_SLEW";
-    } elsif ( $info{obs_type} eq 'science' ) {
-      $slew = "TRACK_TIME";
-    }
-  }
-
-  # only bounce if the MSB consists entirely of pointings
-  # ideally we'd like to bounce for continuous chunks of pointings but this is easier
-  # and solves the pointing run issue.
-  my $nonpnt = 0;
-  for my $t (keys %$nobs) {
-    $nonpnt += $nobs->{$t} unless $t eq 'pointing';
-  }
-
-  if ( $nonpnt == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
-    # if we only have pointings, bounce
-    $slew = "LONGEST_SLEW";
-  }
+  try {
+    $slew = OMP::Config->getData($self->cfgkey() . '.harp_rotator_slew_' . $info{'obs_type'});
+  } otherwise {
+    # Keep defaut or non-mode-specific value.
+  };
 
   $self->output("\tSelected rotator slew option: $slew\n");
 
