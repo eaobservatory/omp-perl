@@ -4306,6 +4306,7 @@ sub SpIterFolder {
       my $pix = $self->_get_pcdata( $child, 'pointingPixel');
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
       my $auto = $self->_str_to_bool( $autoTarget );
+      my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
 
       # Focus and pointing dont need explicit targets
       # Can only set the global autoTarget switch to true
@@ -4328,6 +4329,8 @@ sub SpIterFolder {
       my $inbeam = $self->_get_pcdata($child, "in_beam");
       $point{'point_focus_inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
 
+      $point{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
+
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%point });
 
 
@@ -4339,6 +4342,7 @@ sub SpIterFolder {
       my $steps = $self->_get_pcdata( $child, 'steps');
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
       my $auto = $self->_str_to_bool( $autoTarget );
+      my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
 
       # Focus and pointing dont need explicit targets
       # Can only set the global autoTarget switch to true
@@ -4362,6 +4366,8 @@ sub SpIterFolder {
 
       my $inbeam = $self->_get_pcdata($child, "in_beam");
       $focus{'point_focus_inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
+
+      $focus{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%focus });
 
