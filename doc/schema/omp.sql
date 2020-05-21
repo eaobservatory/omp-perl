@@ -6,6 +6,16 @@ CREATE TABLE `ompaffiliationalloc` (
   `observed` double NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`semester`,`affiliation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE `ompauth` (
+  `userid` varchar(32) NOT NULL,
+  `token` varchar(32) NOT NULL,
+  `expiry` datetime NOT NULL,
+  `addr` varchar(64) DEFAULT NULL,
+  `agent` varchar(255) DEFAULT NULL,
+  `is_staff` tinyint(1) NOT NULL DEFAULT 0,
+  `projects` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfault` (
   `faultid` double NOT NULL,
   `category` varchar(32) NOT NULL,
@@ -172,7 +182,6 @@ CREATE TABLE `ompproj` (
   `pi` varchar(32) NOT NULL,
   `title` varchar(255) DEFAULT NULL,
   `semester` varchar(10) NOT NULL,
-  `encrypted` varchar(20) NOT NULL,
   `allocated` double NOT NULL,
   `remaining` double NOT NULL,
   `pending` double NOT NULL,
@@ -221,6 +230,7 @@ CREATE TABLE `ompprojuser` (
   `contactable` tinyint(4) NOT NULL,
   `capacity_order` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `affiliation` varchar(32) DEFAULT NULL,
+  `omp_access` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`uniqid`),
   UNIQUE KEY `idx_ompprojuser_2` (`projectid`,`userid`,`capacity`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
