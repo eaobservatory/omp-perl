@@ -736,11 +736,17 @@ sub _write_login {
       # This hidden field contains the 'login_form' param that lets us know we've just come
       # from the login form, so we'll be sure to run the form_content callback and not
       # form_output.
-      $q->hidden(-name=>'provider',
-                 -default=>'staff', -override => 1),
       $q->hidden(-name=>'show_content',
                  -default=>1),
       $q->table(
+        $q->Tr(
+          $q->td('Password type:'),
+          $q->td($q->popup_menu(
+            -name => 'provider',
+            -defaut => 'staff',
+            -override => 1,
+            -values => ['staff', 'cadcac'],
+            -labels => {staff => 'EAO Staff', cadcac => 'CADC account'}))),
         $q->Tr(
           $q->td('User name:'),
           $q->td({-colspan => '2'},

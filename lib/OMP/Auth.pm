@@ -27,6 +27,9 @@ our %PROVIDERS = (
     'omptoken' => {
         class => 'OMP::Auth::OMPToken',
     },
+    'cadcac' => {
+        class => 'OMP::Auth::CADCAC',
+    },
 );
 
 our $COOKIE_NAME = 'OMPLOGIN';
