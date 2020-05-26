@@ -11,8 +11,10 @@ use warnings;
 
 use OMP::AuthDB;
 use OMP::Config;
+use OMP::Constants qw/:logging/;
 use OMP::DBbackend;
 use OMP::Error qw/:try/;
+use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 use OMP::User;
@@ -103,6 +105,7 @@ sub log_in {
         $message = $error->text();
     }
     otherwise {
+        OMP::General->log_message('Log in error: ' . shift . "\n", OMP__LOG_ERROR);
         $message = 'An unexpected error occurred.';
     };
 
@@ -153,6 +156,7 @@ sub log_in_userpass {
         $message = $error->text();
     }
     otherwise {
+        OMP::General->log_message('Log in error: ' . shift . "\n", OMP__LOG_ERROR);
         $message = 'An unexpected error occurred.';
     };
 
