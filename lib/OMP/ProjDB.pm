@@ -873,6 +873,7 @@ sub _insert_project_user {
 
   # Note that we must convert undef to 0 here for the DB
   $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
+  $attr{'omp_access'} = $attr{'omp_access'} ? 1 : 0;
   $self->_db_insert_data( $PROJUSERTABLE,
                           undef,
                           map { $attr{$_} }
