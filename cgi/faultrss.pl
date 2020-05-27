@@ -42,7 +42,7 @@ $rss->channel(title => "OMP Fault System",
 # Add faults to the channel
 for my $fault (@$faults) {
   my $title = $fault->category ." - ". $fault->subject;
-  my $link = $base_url ."/viewfault.pl?id=". $fault->id;
+  my $link = $base_url ."/viewfault.pl?fault=". $fault->id;
 
   # Use snippet of fault body as the item description
   my $desc = substr($fault->responses->[0]->text, 0, 87);

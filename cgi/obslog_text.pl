@@ -13,9 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
 use OMP::CGIPage::Obslog;
 
-my $query = new CGI;
-
-list_observations_txt( $query );
+OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
+    'list_observations_txt',
+    undef,
+    'project',
+    no_header => 1);

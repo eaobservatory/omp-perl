@@ -23,8 +23,11 @@ use OMP::Error qw/ :try /;
 use File::Basename;
 our $VERSION = '0.03';
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::ProjServer;
 use OMP::PackageData;
+
+use base qw/OMP::CGIPage/;
 
 =head1 PUBLIC FUNCTIONS
 
@@ -43,8 +46,10 @@ If inccal is not specified it defaults to true.
 =cut
 
 sub request_data {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   # First try and get the fault ID from the URL param list,
   # then try the normal param list.
@@ -60,10 +65,10 @@ sub request_data {
 
     # Need to decide whether we are using CADC or OMP for data retrieval
     # To do that we need to know the telescope name
-    my $tel = OMP::ProjServer->getTelescope( $cookie{projectid} );
+    my $tel = OMP::ProjServer->getTelescope( $projectid );
 
     if (!defined $tel) {
-      print "Error obtaining telescope name from project $cookie{projectid}\n";
+      print "Error obtaining telescope name from project $projectid\n";
       return;
     }
 
@@ -76,13 +81,13 @@ sub request_data {
     };
 
     if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i ) {
-      &_package_data_cadc($q, $utdate, $inccal, \%cookie);
+      $self->_package_data_cadc($projectid, $utdate, $inccal);
     } else {
-      &_package_data($q, $utdate, $inccal, \%cookie);
+      $self->_package_data($projectid, $utdate, $inccal);
     }
 
   } else {
-    &_write_form($q, \%cookie);
+    $self->_write_form($projectid);
   }
 
 }
@@ -98,17 +103,19 @@ sub request_data {
 
 Write the form requesting a UT date.
 
-  _write_form( $q, \%cookie );
+  $page->_write_form($projectid);
 
 =cut
 
 sub _write_form {
-  my $q = shift;
-  my $cookie = shift;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h2("Retrieve data for project ". $cookie->{projectid} );
+  my $q = $self->cgi;
+
+  print $q->h2("Retrieve data for project ". $projectid );
   print "<table border=0><tr><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print "<b>Enter a UT date: (YYYY-MM-DD)</b></td><td>";
   print $q->textfield(-name=>'utdate',
                       -size=>15,
@@ -131,17 +138,19 @@ sub _write_form {
 
 Write output HTML and package up the data.
 
-  _package_data( $q, $utdate_string, $inccal, \%cookie );
+  $page->_package_data( $projectid, $utdate_string, $inccal );
 
 =cut
 
 sub _package_data {
-  my $q = shift;
+  my $self = shift;
+  my $projectid = shift;
   my $utdate = shift;
   my $inccal = shift;
-  my $cookie = shift;
 
-  print $q->h2("Retrieving data for project ". $cookie->{projectid} .
+  my $q = $self->cgi;
+
+  print $q->h2("Retrieving data for project ". $projectid .
     " and UT date $utdate");
 
   print "<p><b>Copying files and creating tar archive(s).  This normally takes several minutes per Gbyte.  Please do not point your browser to another page until the process is complete.</b></p>";
@@ -155,13 +164,12 @@ sub _package_data {
   # we use verbose messages
   print "<PRE>\n";
   my $pkg = new OMP::PackageData( utdate => $utdate,
-                                  projectid => $cookie->{projectid},
-                                  password => $cookie->{password},
+                                  projectid => $projectid,
                                   inccal => $inccal,
                                   incjunk => 0,
                                 );
 
-  $pkg->pkgdata;
+  $pkg->pkgdata(user => $self->auth->user);
   print "</PRE>\n";
 
   my @urls = $pkg->ftpurl;
@@ -180,17 +188,19 @@ sub _package_data {
 
 Write output HTML and special form required for CADC retrieval
 
-  _package_data_cadc( $q, $utdate_string, $inccal, \%cookie );
+  $page->_package_data_cadc( $projectid, $utdate_string, $inccal );
 
 =cut
 
 sub _package_data_cadc {
-  my $q = shift;
+  my $self = shift;
+  my $projectid = shift;
   my $utdate = shift;
   my $inccal = shift;
-  my $cookie = shift;
 
-  print $q->h2("Determining data files associated with project ". $cookie->{projectid} .
+  my $q = $self->cgi;
+
+  print $q->h2("Determining data files associated with project ". $projectid .
     " and UT date $utdate");
 
   if ($inccal) {
@@ -206,8 +216,7 @@ sub _package_data_cadc {
   my $E;
   try {
     $pkg = new OMP::PackageData( utdate => $utdate,
-                                 projectid => $cookie->{projectid},
-                                 password => $cookie->{password},
+                                 projectid => $projectid,
                                  inccal => $inccal,
                                  incjunk => 0,
                                );
@@ -232,13 +241,13 @@ sub _package_data_cadc {
    userid at both institutions, even if they are the same!</p>\n";
 
   # Write a feedback message even though we can not be sure the person will click on the link
-  $pkg->add_fb_comment( "(via CADC)" );
+  $pkg->add_fb_comment( "(via CADC)", $self->auth->user );
 
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
 
   # Now form the CADC form
-  print $q->startform( -action => 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download' );
+  print $q->startform( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download' );
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();

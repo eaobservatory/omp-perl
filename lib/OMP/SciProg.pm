@@ -92,7 +92,7 @@ sub new {
   # Unfortunately this does not work with older versions of libxml2
   # so until we upgrade mauiola we need to remove the line completely
   # Use non-greedy match
-  $xml =~ s/xmlns=\"http:\/\/(.*?)\"//;
+  $xml =~ s/xmlns=\"https?:\/\/(.*?)\"//;
 
   # Now convert XML to parse tree
   my $parser = new XML::LibXML;

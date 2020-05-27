@@ -223,7 +223,7 @@ sub fetchCalProgram {
                              DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
-    $sp = $db->fetchSciProgNoAuth;
+    $sp = $db->fetchSciProg;
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

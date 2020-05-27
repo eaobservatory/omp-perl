@@ -39,7 +39,7 @@ use OMP::Config;
 Format a fault in such a way that it is readable in a mail viewer.  This
 method retains the HTML in fault responses and uses HTML for formatting.
 
-  $text = OMP::FaultUtil->format_fault($fault, $bottompost);
+  $text = OMP::FaultUtil->format_fault($fault, $bottompost, [$omp_url]);
 
 The first argument should be an C<OMP::Fault> object.  If the second argument
 is true then responses are displayed in ascending order (newer responses appear
@@ -51,14 +51,15 @@ sub format_fault {
   my $self = shift;
   my $fault = shift;
   my $bottompost = shift;
+  my $omp_url = shift // '';
 
   my $faultid = $fault->id;
 
   # Get the fault system URL
-  my $baseurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+  my $baseurl = $omp_url . OMP::Config->getData('cgidir');
 
   # Set link to response page
-  my $url = "$baseurl/viewfault.pl?id=$faultid";
+  my $url = "$baseurl/viewfault.pl?fault=$faultid";
 
   my $responselink = qq[<a href="$url">$url</a>];
 
@@ -376,7 +377,7 @@ sub getResponse {
     $fault_id = qr/(?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}/
         unless $fault_id;
 
-    $text =~ s!($fault_id)!<a href="$baseurl/viewfault.pl?id=$1">$1</a>!g;
+    $text =~ s!($fault_id)!<a href="$baseurl/viewfault.pl?fault=$1">$1</a>!g;
     return $text;
   }
 }

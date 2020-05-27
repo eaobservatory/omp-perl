@@ -46,11 +46,8 @@ my @files = readdir($dh);
 closedir $dh
   or die "Could not stop reading directory: $!\n";
 
-my $pass = OMP::Password->get_verified_password({
-    prompt => 'Enter administrator password: ',
-    verify => 'verify_administrator_password',
-});
 
+my ($provider, $username, $pass) = OMP::Password->get_userpass();
 
 # slurp mode
 $/ = undef;
@@ -68,7 +65,7 @@ foreach my $filename (@files) {
 
   try {
     # Force overwrite
-    OMP::SpServer->storeProgram( $xml, $pass, 1);
+    OMP::SpServer->storeProgram( $xml, $provider, $username, $pass, 1);
   } otherwise {
     my $E = shift;
     print "Error storing science program $filename: $E\n";

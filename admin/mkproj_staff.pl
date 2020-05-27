@@ -94,7 +94,6 @@ while (<>) {
                  ["EAO"],
                  0,
                  "EAO",
-                 "omptest",  # Password should be supplied by user
                  10000,
                  $tel,
                  undef, undef,

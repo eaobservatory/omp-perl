@@ -6,8 +6,7 @@ OMP::CGIHelper - Helper for the OMP feedback system CGI scripts
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Helper;
-  use OMP::CGIComponent::Helper qw/public_url/;
+  use OMP::CGIComponent::Helper qw/start_form_absolute/;
 
 =head1 DESCRIPTION
 
@@ -35,7 +34,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/public_url private_url/);
+@EXPORT_OK = (qw/start_form_absolute/);
 
 %EXPORT_TAGS = (
                 'all' =>[ @EXPORT_OK ],
@@ -50,40 +49,29 @@ our $TABLEWIDTH = 720;
 
 =over 4
 
-=item B<public_url>
+=item B<start_form_absolute>
 
-Return the URL where public cgi scripts can be found.
+Return a start form tag (generated using CGI->start_form) using
+an "absolute" URL (without host).  Any additional arguments are
+passed to that method.  The URL should only contain query
+parameters from current URL parameters (not posted form parameters).
 
-  $url = OMP::CGIComponent::Helper->public_url();
-
-=cut
-
-sub public_url {
-  # Get the base URL
-  my $url = OMP::Config->getData( 'omp-url' );
-
-  # Now the CGI dir
-  my $cgidir = OMP::Config->getData( 'cgidir' );
-
-  return "$url" . "$cgidir";
-}
-
-=item B<private_url>
-
-Return the URL where private cgi scripts can be found.
-
-  $url = OMP::CGIComponent::Helper->private_url();
+  print start_form_absolute($q);
 
 =cut
 
-sub private_url {
-  # Get the base URL
-  my $url = OMP::Config->getData( 'omp-private' );
+sub start_form_absolute {
+  my $q = shift;
+  my %args = @_;
 
-  # Now the CGI dir
-  my $cgidir = OMP::Config->getData( 'cgidir' );
+  my %url_opt = (-absolute => 1);
+  unless (exists $args{'-method'} and $args{'-method'} eq 'GET') {
+      # Create a new CGI object containing only the URL parameters.
+      $q = $q->new({map {$_ => $q->url_param($_)} $q->url_param()});
+      $url_opt{'-query'} = 1;
+  }
 
-  return "$url" . "$cgidir";
+  return $q->start_form(-action => $q->url(%url_opt), %args);
 }
 
 =back

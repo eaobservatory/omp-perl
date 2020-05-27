@@ -98,10 +98,10 @@ use OMP::SpRegion;
 
 # External modules
 use DateTime;
-use Term::ReadLine;
 
 # OMP classes
 use OMP::SciProg;
+use OMP::Password;
 use OMP::ProjServer;
 use OMP::SpServer;
 
@@ -141,17 +141,8 @@ if (-e $file) {
   $sp = new OMP::SciProg( FILE => $file);
 } elsif ( OMP::ProjServer->verifyProject( $file ) ) {
   # we have a project ID - we need to get permission
-
-  my $term = new Term::ReadLine 'Retrieve Science Programme';
-
-  # Needs Term::ReadLine::Gnu
-  my $attribs = $term->Attribs;
-  $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-  my $password = $term->readline( "Please enter project or staff password: ");
-  $attribs->{redisplay_function} = $attribs->{rl_redisplay};
-
   print STDERR "Retrieving science programme $file\n";
-  $sp = OMP::SpServer->fetchProgram( $file, $password, "OBJECT" );
+  ($sp) = OMP::SpServer->fetchProgram( $file, OMP::Password->get_userpass(), "OBJECT" );
 
 } else {
   die "Supplied argument ($file) is neither a file nor a project ID\n";

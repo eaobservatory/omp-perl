@@ -13,16 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
-use OMP::Error qw(:try);
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-
-$cgi->html_title("$title: Edit support contacts");
-$cgi->write_page_staff( \&OMP::CGIPage::Project::support,
-                        \&OMP::CGIPage::Project::support );
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Project::support,
+    undef,
+    'staff',
+    title => 'Edit support contacts');

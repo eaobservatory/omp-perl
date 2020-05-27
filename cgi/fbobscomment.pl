@@ -13,13 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Obslog;
 
-my $cquery = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $cquery );
-$cgi->html_title( "OMP Observation Log" );
-
-$cgi->write_page( \&file_comment, \&file_comment_output );
-
+OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
+    'file_comment',
+    'file_comment_output',
+    'project',
+    title => 'Observation Log');

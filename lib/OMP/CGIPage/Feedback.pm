@@ -24,6 +24,8 @@ use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 
+use base qw/OMP::CGIPage/;
+
 $| = 1;
 
 =head1 Routines
@@ -34,48 +36,57 @@ $| = 1;
 
 Creates a page with a comment form.
 
-  add_comment_content($cgi, %cookie);
+  $page->add_comment_content($projectid);
 
 =cut
 
 sub add_comment_content {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h2("Add feedback comment to project $cookie{projectid}");
+  my $q = $self->cgi;
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
-  OMP::CGIComponent::Feedback::fb_entries_hidden($q, %cookie);
-  OMP::CGIComponent::Feedback::comment_form($q, %cookie);
+  print $q->h2("Add feedback comment to project ${projectid}");
+
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+  my $comp = new OMP::CGIComponent::Feedback(page => $self);
+
+  $projcomp->proj_status_table($projectid);
+  $comp->fb_entries_hidden($projectid);
+  $comp->comment_form($projectid);
 }
 
 =item B<add_comment_output>
 
 Submits comment and creates a page saying it has done so.
 
-  add_comment_output($cgi, %cookie);
+  $page->add_comment_output($projectid);
 
 =cut
 
 sub add_comment_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
-  OMP::CGIComponent::Feedback::submit_fb_comment($q, $cookie{projectid});
-  OMP::CGIComponent::Feedback::fb_entries_hidden($q, %cookie);
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+  my $comp = new OMP::CGIComponent::Feedback(page => $self);
+
+  $projcomp->proj_status_table($projectid);
+  $comp->submit_fb_comment($projectid);
+  $comp->fb_entries_hidden($projectid);
 }
 
 =item B<fb_logout>
 
 Gives the user a cookie with an expiration date in the past, effectively deleting the cookie.
 
-  fb_logout($cgi);
+  $page->fb_logout();
 
 =cut
 
 sub fb_logout {
-  my $q = shift;
+  my $self = shift;
+  my $q = $self->cgi();
 
   print $q->h2("You are now logged out of the feedback system.");
   print "You may see feedback for a project by clicking <a href='projecthome.pl'>here</a>.";
@@ -85,19 +96,21 @@ sub fb_logout {
 
 Creates the page showing feedback entries.
 
-  fb_output($cgi, %cookie);
+  $page->fb_output($projectid);
 
 =cut
 
 sub fb_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h1("Feedback for project $cookie{projectid}");
+  my $q = $self->cgi;
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
-  OMP::CGIComponent::MSB::msb_sum_hidden($q, %cookie);
-  OMP::CGIComponent::Feedback::fb_entries($q, %cookie);
+  print $q->h1("Feedback for project ${projectid}");
+
+  OMP::CGIComponent::Project->new(page => $self)->proj_status_table($projectid);
+  OMP::CGIComponent::MSB->new(page => $self)->msb_sum_hidden($projectid);
+  OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid);
 }
 
 =back

@@ -13,18 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::User;
 
-my $q = new CGI();
-my $cgi = new OMP::CGIPage(CGI => $q);
-
-my $title = $cgi->html_title();
-
-$cgi->html_title("$title: New OMP User");
-
-$cgi->write_page_staff(
+OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::add_user,
     \&OMP::CGIPage::User::add_user_output,
-    1);
+    'staff',
+    title => 'New User');

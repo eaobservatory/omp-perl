@@ -15,15 +15,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::PkgData;
 
-# Create the new object for this transaction
-my $cquery = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $cquery );
-$cgi->html_title( "OMP Data retrieval" );
-
-# Now write the page
-$cgi->write_page( \&OMP::CGIPage::PkgData::request_data,
-                  \&OMP::CGIPage::PkgData::request_data
-                );
+OMP::CGIPage::PkgData->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::PkgData::request_data,
+    undef,
+    'project',
+    title =>  'Data Retrieval');

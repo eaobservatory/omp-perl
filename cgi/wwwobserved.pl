@@ -13,21 +13,9 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::MSB;
-use OMP::NetTools;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-# If the user is outside the JAC network write the page with
-# authentication
-if (OMP::NetTools->is_host_local) {
-  $cgi->write_page_noauth( \&OMP::CGIPage::MSB::observed,
-                           \&OMP::CGIPage::MSB::observed_output );
-} else {
-  $cgi->write_page_staff( \&OMP::CGIPage::MSB::observed,
-                          \&OMP::CGIPage::MSB::observed_output,
-                          "noauth" );
-}
+OMP::CGIPage::MSB->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::MSB::observed,
+    \&OMP::CGIPage::MSB::observed_output,
+    'staff');

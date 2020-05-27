@@ -15,7 +15,7 @@ OMP::PackageData - Package up data for retrieval by PI
 
   $pkg->root_tmpdir("/tmp/ompdata");
 
-  $pkg->pkgdata;
+  $pkg->pkgdata(user => $user);
 
   $file = $pkg->tarfile;
 
@@ -101,7 +101,6 @@ $Raw_Base_Re = qr{\b ( $Raw_Base_Re ) \b}xi;
 Object constructor. Requires a project and a ut date.
 
   $pkg = new OMP::PackageData( projectid => 'blah',
-                               password => $pass,
                                utdate => '2002-09-17');
 
 UT date can either be a Time::Piece object or a string in the
@@ -122,7 +121,6 @@ sub new {
                    Verbose => 1,
                    ObsGroup => undef,
                    TarFile => [],
-                   Password => undef,
                    UTDir => undef,
                    FTPDir => undef,
                    Key => undef,
@@ -160,23 +158,6 @@ sub projectid {
     $self->{ProjectID} = uc(shift);
   }
   return $self->{ProjectID};
-}
-
-=item B<password>
-
-The password required to access this project data.
-
-  $pass = $pkg->password();
-  $pkg->password('BLAH');
-
-=cut
-
-sub password {
-  my $self = shift;
-  if (@_) {
-    $self->{Password} = shift;
-  }
-  return $self->{Password};
 }
 
 =item B<utdate>
@@ -434,7 +415,7 @@ sub utdir {
 Create temporary directory, copy data into the directory,
 create tar file and place tar file in FTP directory.
 
-  $pkg->pkgdata();
+  $pkg->pkgdata(user => $user);
 
 Once packaged, the tar file name can be retrieved using the
 tarfile() method.
@@ -447,10 +428,7 @@ need to have a temporary directory)
 
 sub pkgdata {
   my $self = shift;
-
-  # Verify project password
-  OMP::ProjServer->verifyPassword($self->projectid, $self->password)
-      or throw OMP::Error::Authentication("Unable to verify project password");
+  my %opt = @_;
 
   # Add a comment to the log
   $self->_log_request();
@@ -476,7 +454,7 @@ sub pkgdata {
   $self->_mktarfile();
 
   # Send a message to the feedback system
-  $self->add_fb_comment();
+  $self->add_fb_comment(undef, $opt{'user'});
 
 }
 
@@ -549,7 +527,6 @@ Recognized keys are:
 
   utdate
   projectid
-  password
 
 The corresponding methods are used to initialise the object.
 All keys must be present.
@@ -563,13 +540,11 @@ sub _populate {
   my %args = @_;
 
   throw OMP::Error::BadArgs("Must supply both utdate and projectid keys")
-    unless exists $args{utdate} && exists $args{projectid}
-      && exists $args{password};
+    unless exists $args{utdate} && exists $args{projectid};
 
   # init the object
   $self->projectid( $args{projectid} );
   $self->utdate( $args{utdate} );
-  $self->password( $args{password} );
 
   # indicate whether we are including calibrations and junk
   $self->inccal( $args{inccal}) if exists $args{inccal};
@@ -577,7 +552,7 @@ sub _populate {
 
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
-  my $proj = OMP::ProjServer->projectDetails($self->projectid, $self->password, 'object');
+  my $proj = OMP::ProjServer->projectDetails($self->projectid, 'object');
 
   my $tel = $proj->telescope;
 
@@ -984,11 +959,11 @@ sub _log_request {
 Send a message to the feedback system indicating that the data
 have been packaged.
 
-  $pkg->add_fb_comment();
+  $pkg->add_fb_comment( undef, $user );
 
 An optional argument can be used to supply additional text.
 
-  $pkg->add_fb_comment( "(via CADC)" );
+  $pkg->add_fb_comment( "(via CADC)", $user );
 
 =cut
 
@@ -996,10 +971,11 @@ sub add_fb_comment {
   my $self = shift;
   my $text = shift;
   $text = '' unless defined $text;
+  my $user = shift;
 
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
-  my ($user, $host, $email) = OMP::NetTools->determine_host;
+  (undef, my $host, undef) = OMP::NetTools->determine_host;
   my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
 
   # In some cases with weird firewalls the host is not actually available
@@ -1007,8 +983,10 @@ sub add_fb_comment {
   # go through [else data retrieval does not work]
   $host = (length($host) > 0 ? $host : '<undefined>');
 
+  my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
+
   # Get project PI name for inclusion in feedback message
-  my $project = OMP::ProjServer->projectDetails( $projectid, $self->password, "object" );
+  my $project = OMP::ProjServer->projectDetails( $projectid, "object" );
   my $pi = $project->pi;
 
   OMP::FBServer->addComment(
@@ -1019,7 +997,7 @@ sub add_fb_comment {
                              program => $0,
                              sourceinfo => $host,
                              status => OMP__FB_SUPPORT,
-                             text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
+                             text => "<html>Data have been requested $userinfo for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
                              msgtype => OMP__FB_MSG_DATA_REQUESTED,
                             }
                            )

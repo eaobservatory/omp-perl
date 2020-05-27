@@ -1,6 +1,6 @@
 use strict;
 
-use Test::More tests => 3 + 9 * 2
+use Test::More tests => 2 + 9 * 2
   + 12        # obsid sequence
   + 9 * 3     # sanity check
   + 1 + 9 * 3 # accept & check...
@@ -17,11 +17,9 @@ use IO::File;
 use Data::Dumper;
 
 use OMP::Config;
-use OMP::SpServer;
 use OMP::MSBDB;
 use OMP::MSBQuery;
-
-use PASSWORD qw/staff_password/;
+use OMP::SciProg;
 
 my %prog = (
   'Raster 1' => {remaining => 1, nobs => 1},
@@ -55,8 +53,7 @@ my $project = 'UNITTEST01';
 die 'Not using test database' unless {$db->loginhash()}->{'database'}
                                   eq 'devomp';
 
-my $msbdb = new OMP::MSBDB(Password => staff_password(),
-                           ProjectID => $project,
+my $msbdb = new OMP::MSBDB(ProjectID => $project,
                            DB => $db);
 
 ok($msbdb, 'Log in to MSB DB');
@@ -78,9 +75,11 @@ eval {
 };
 is($@, '', 'Delete old science program');
 
-my $res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store science program');
+my $sp = new OMP::SciProg( XML => $xml );
+die 'Project ID from OMP::SciProg does not match'
+    unless $sp->projectID eq $project;
 
+my @warnings = $msbdb->storeSciProg( SciProg => $sp, Force => 1 );
 
 my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <projectid full="1">' . $project . '</projectid>

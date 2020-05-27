@@ -13,15 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
 
-my $q = new CGI;
-
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-$cgi->html_title("$title: View Faults");
-$cgi->write_page( \&OMP::CGIPage::Project::fb_fault_content,
-                  \&OMP::CGIPage::Project::fb_fault_content, );
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Project::fb_fault_content,
+    undef,
+    'project',
+    title => 'View Faults');

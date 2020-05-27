@@ -13,14 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
 
-my $q = new CGI;
-my $ompcgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $ompcgi->html_title;
-$ompcgi->html_title("$title: Project Details");
-$ompcgi->write_page_staff(
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::proj_sum_page,
-    \&OMP::CGIPage::Project::proj_sum_page);
+    undef,
+    'staff',
+    title => 'Project Details');

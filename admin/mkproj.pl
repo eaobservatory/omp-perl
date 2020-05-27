@@ -424,7 +424,6 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     $details{country},
     $details{tagadjustment},
     $details{semester},
-    "xxxxxx", # default password
     $details{allocation},
     $details{telescope},
     $taumin, $taumax,

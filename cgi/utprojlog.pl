@@ -13,14 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Obslog;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-$cgi->html_title("$title: Project log");
-$cgi->write_page( \&OMP::CGIPage::Obslog::projlog_content,
-                  \&OMP::CGIPage::Obslog::projlog_content );
+OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Obslog::projlog_content,
+    undef,
+    'project',
+    title => 'Project Log');

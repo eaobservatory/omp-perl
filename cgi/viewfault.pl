@@ -13,21 +13,11 @@ BEGIN {
   }
 }
 
-# Load OMP modules
 use OMP::CGIPage::Fault;
-use OMP::NetTools;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage::Fault( CGI => $q );
-
-$cgi->html_title("OMP Fault System: View Fault " . $q->url_param('id'));
-
-# If the user is outside the JAC network write the page with
-# authentication
-if (OMP::NetTools->is_host_local) {
-  $cgi->write_page('view_fault_content',
-                   'view_fault_output');
-} else {
-  $cgi->write_page_staff('view_fault_content',
-                         'view_fault_output');
-}
+OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
+    'view_fault_content',
+    'view_fault_output',
+    'staff',
+    title => 'View Fault',
+    no_header => 1);

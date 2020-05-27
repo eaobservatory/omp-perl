@@ -79,7 +79,6 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use Term::ReadLine;
 use List::Util qw/ max /;
 
 # Locate the OMP software through guess work
@@ -119,18 +118,7 @@ if ($version) {
   exit;
 }
 
-# First thing we do is ask for a password and possibly telescope
-my $term = new Term::ReadLine 'Gather RA coverage stats';
-
-# Verify password Needs Term::ReadLine::Gnu
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $password = $term->readline( "Please enter staff password: ");
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
-
-OMP::Password->verify_staff_password( $password );
-
-print "Password Verified. Now verifying project information.\n";
+my ($provider, $username, $password) = OMP::Password->get_userpass();
 
 
 # Form instrument string
@@ -165,7 +153,7 @@ if (@projects) {
     $telescope = uc($tel);
   } else {
     # Should be able to pass in a readline object if Tk not desired
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::General->determine_tel();
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
     die "Unable to determine telescope [too many choices]. Exiting.\n"
       if ref $telescope;
@@ -212,7 +200,7 @@ for my $proj (@projects) {
 
   my $sp;
   try {
-    $sp = OMP::SpServer->fetchProgram($proj->projectid, $password, "OBJECT");
+    ($sp) = OMP::SpServer->fetchProgram($proj->projectid, $provider, $username, $password, "OBJECT");
   } catch OMP::Error::UnknownProject with {
     print "Unable to retrieve science programme. Skipping\n";
   };

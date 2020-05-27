@@ -1,17 +1,15 @@
 use strict;
 
-use Test::More tests => 3
+use Test::More tests => 2
   + 5
-  + (1 + 5 * 3) * 5;
+  + (5 * 3) * 5;
 
 use IO::File;
 
 use OMP::Config;
-use OMP::SpServer;
 use OMP::MSBDB;
 use OMP::MSBQuery;
-
-use PASSWORD qw/staff_password/;
+use OMP::SciProg;
 
 my %prog = (
   'Raster 1' => {remaining => 1},
@@ -41,8 +39,7 @@ my $project = 'UNITTEST01';
 die 'Not using test database' unless {$db->loginhash()}->{'database'}
                                   eq 'devomp';
 
-my $msbdb = new OMP::MSBDB(Password => staff_password(),
-                           ProjectID => $project,
+my $msbdb = new OMP::MSBDB(ProjectID => $project,
                            DB => $db);
 
 ok($msbdb, 'Log in to MSB DB');
@@ -65,8 +62,7 @@ eval {
 };
 is($@, '', 'Delete old science program');
 
-my $res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store science program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 
 my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <projectid full="1">' . $project . '</projectid>
@@ -111,29 +107,24 @@ foreach my $title (keys %prog) {
 # Perform tests on alterations:
 
 set_field('Daisy 1', 'priority', 40);
-$res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store altered program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 check_changed('Daisy 1');
 
 set_field('Pong 1', 'noiseCalculationTau', 0.12);
-$res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store altered program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 check_changed('Pong 1');
 
 
 set_field('Raster 1', 'rest_freq', '3.52E11');
-$res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store altered program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 check_changed('Raster 1');
 
 set_field('Jiggle 1', 'PA', 45);
-$res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store altered program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 check_changed('Jiggle 1');
 
 set_field('Pong 2', 'c1', '12:34:56');
-$res = OMP::SpServer->storeProgram($xml, staff_password(), 1);
-ok(ref $res, 'Store altered program');
+$msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 check_changed('Pong 2');
 
 

@@ -6,10 +6,8 @@ OMP::CGIComponent - Components for OMP web pages
 
 =head1 SYNOPSIS
 
-  use CGI;
   use OMP::CGIComponent;
-  $query = new CGI;
-  $comp = new OMP::CGIComponent(CGI => $query);
+  $comp = new OMP::CGIComponent(page => $cgipage);
 
 =head1 DESCRIPTION
 
@@ -36,7 +34,7 @@ use OMP::Error;
 
 Create a new instance of an C<OMP::CGIComponent> object.
 
-  $comp = new OMP::CGIComponent(CGI => $query);
+  $comp = new OMP::CGIComponent(page => $cgipage);
 
 =cut
 
@@ -48,17 +46,14 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-           CGI => undef,
-           Password => undef,
-           ProjectID => undef,
+           page => undef,
           };
 
   my $object = bless $c, $class;
 
   # Populate object
   for my $key (keys %args) {
-    my $method = lc($key);
-    $object->method($args{$key});
+    $object->$key($args{$key});
   }
 
   return $object;
@@ -70,64 +65,65 @@ sub new {
 
 =over 4
 
+=item B<page>
+
+The OMP::CGIPage object.
+
+  $page = $comp->page;
+
+Argument is an object of the class C<OMP::CGIPage>.
+
+=cut
+
+sub page {
+  my $self = shift;
+  if (@_) {
+    my $page = shift;
+    throw OMP::Error::BadArgs("Object must be of class OMP::CGIPage")
+      unless (UNIVERSAL::isa($page, 'OMP::CGIPage'));
+    $self->{'page'} = $page;
+  }
+  return $self->{'page'};
+}
+
 =item B<cgi>
 
-The CGI object.
+Obtain the parent CGIPage's CGI object.
 
-  $query = $comp->cgi
-  $comp->cgi($query)
+  $q = $comp->cgi;
 
-Argument is an object of the class C<CGI>.
+The return value is an object of the class C<CGI>.
 
 =cut
 
 sub cgi {
   my $self = shift;
-  if (@_) {
-    my $q = shift;
-    throw OMP::Error::BadArgs ("Object must be of class CGI")
-      unless (UNIVERSAL::isa($q, 'CGI'));
-    $self->{CGI} = $q;
-  }
-  return $self->{CGI};
+
+  my $page = $self->page();
+  throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
+    unless defined $page;
+
+  return $page->cgi();
 }
 
-=item B<password>
+=item B<auth>
 
-The project password.
+Obtain the parent CGIPage's authentication object.
 
-  $query = $comp->password
-  $comp->password($password)
+  $auth = $comp->auth;
 
-Argument is a password for an OMP project.
+The return value is an object of the class C<OMP::Auth>.
 
 =cut
 
-sub password {
+sub auth {
   my $self = shift;
-  if (@_) {
-    $self->{Password} = shift;
-  }
-  return $self->{Password};
-}
 
-=item B<projectid>
+  my $page = $self->page();
+  throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
+    unless defined $page;
 
-The project ID.
-
-  $query = $comp->projectid
-  $comp->cgi($projectid)
-
-Argument is a valid OMP project ID.
-
-=cut
-
-sub projectid {
-  my $self = shift;
-  if (@_) {
-    $self->{ProjectID} = shift;
-  }
-  return $self->{ProjectID};
+  return $page->auth();
 }
 
 =back
@@ -141,10 +137,10 @@ sub projectid {
 Alter query parameters in the current URL.  Useful for creating links to the
 same script but with different parameters.
 
-  $url = $fcgi->url_args($key, $oldvalue, $newvalue);
+  $url = $comp->url_args($key, $newvalue);
 
-The first argument is the paramter name.  Second argument is that parameter's
-current value.  Last argument is the new value of the paramater. All arguments
+The first argument is the paramter name.
+Last argument is the new value of the paramater. All arguments
 are required.
 
 =cut
@@ -152,19 +148,14 @@ are required.
 sub url_args {
   my $self = shift;
   my $key = shift;
-  my $oldvalue = shift;
   my $newvalue = shift;
-  my $q = $self->cgi;
 
-  my $url = $q->self_url;
-  $url =~ s/(\;|\?|\&)$key\=$oldvalue//g;
-    if ($url =~ /\?/) {
-      $url .= "&" . $key . "=" . $newvalue;
-    } else {
-      $url .= "?" . $key . "=" . $newvalue;
-    }
+  # Clone the CGI object and alter the parameter.
+  my $q = $self->cgi->new;
+  $q->param($key, $newvalue);
 
-  return $url;
+  # Create an "absolute" URL (without path).
+  return $q->url(-absolute => 1, -query => 1);
 }
 
 =back

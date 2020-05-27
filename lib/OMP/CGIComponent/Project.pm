@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/ public_url /;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -33,6 +33,8 @@ use OMP::ProjServer;
 
 use File::Spec;
 
+use base qw/OMP::CGIComponent/;
+
 $| = 1;
 
 =head1 Routines
@@ -43,12 +45,14 @@ $| = 1;
 
 Create a form for taking the semester parameter
 
-  list_projects_form($cgi);
+  $comp->list_projects_form();
 
 =cut
 
 sub list_projects_form {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
 
@@ -84,7 +88,7 @@ sub list_projects_form {
   unshift @countries, 'Any';
 
   print "<table border=0><tr><td align=right>Semester: </td><td>";
-  print $q->startform;
+  print start_form_absolute($q);
   print $q->hidden(-name=>'show_output',
                    -default=>1,);
   print $q->popup_menu(-name=>'semester',
@@ -140,32 +144,29 @@ sub list_projects_form {
 Creates an HTML table containing information relevant to the status of
 a project.
 
-  proj_status_table( $cgi, %cookie);
-
-First argument should be the C<CGI> object.  The second argument
-should be a hash containing the contents of the C<OMP::Cookie> cookie
-object.
+  $comp->proj_status_table( $projectid );
 
 =cut
 
 sub proj_status_table {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   # Get the project details
-  my $project = OMP::ProjServer->projectDetailsNoAuth( $cookie{projectid},
-                                                       'object' );
-
-  my $projectid = $cookie{projectid};
+  my $project = OMP::ProjServer->projectDetails( $projectid,
+                                                 'object' );
 
   # Link to the science case
-  my $pub = public_url();
-  my $case_href = qq[<a href="$pub/props.pl?urlprojid=$projectid">Science Case</a>];
+  my $url = OMP::Config->getData( 'cgidir' );
+  my $case_href = qq[<a href="$url/props.pl?project=$projectid">Science Case</a>];
 
   # Get the CoI email(s)
   my $coiemail = join(", ",map{
     OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
-      affiliation => $_->affiliation())
+      affiliation => $_->affiliation(),
+      access => $project->omp_access($_->userid))
     } $project->coi);
 
   # Get the support
@@ -173,7 +174,7 @@ sub proj_status_table {
 
   print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
         "<tr>",
-        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation())."</td>",
+        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation(), access => $project->omp_access($project->pi->userid))."</td>",
         "<td><b>Title:</b> " . $project->title . "</td>",
         "<td> $case_href </td></tr>",
         "<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
@@ -188,7 +189,7 @@ sub proj_status_table {
 
 Display details for multiple projects in a tabular format.
 
-  proj_sum_table($projects, $cgi, $headings);
+  $comp->proj_sum_table($projects, $headings);
 
 If the third argument is true, table headings for semester and
 country will appear.
@@ -196,11 +197,13 @@ country will appear.
 =cut
 
 sub proj_sum_table {
+  my $self = shift;
   my $projects = shift;
-  my $q = shift;
   my $headings = shift;
 
-  my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+  my $q = $self->cgi;
+
+  my $url = OMP::Config->getData('cgidir');
 
   print <<'TABLE';
   <table cellspacing=0>
@@ -308,7 +311,7 @@ STATUS
         map { $images{ $status }->[ $_ ] } ( 1, 2 )
         ;
 
-      print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
+      print "<td><a href='$url/projecthome.pl?project=". $project->projectid ."'>". $project->projectid ."</a></td>";
       print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
       print "<td>". $support ."</td>";
       print "<td align=center>$nremaining/$nmsb</td>";
@@ -346,23 +349,25 @@ STATUS
 Provide a form for obtaining a project ID, and process the output, catching
 invalid project IDs.
 
-  obtain_projectid($q);
+  $comp->obtain_projectid();
 
 Returns a project ID.
 
 =cut
 
 sub obtain_projectid {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
 
   # Obtain project ID from query parameter list, otherwise display a form
   # requesting the project ID.
-  unless ($q->param('projectid')) {
-    OMP::CGIComponent::Project::projectid_form($q);
+  unless ($q->param('project')) {
+    $self->projectid_form();
     return;
   }
 
-  my $projectid = $q->param('projectid');
+  my $projectid = $q->param('project');
 
   # Verify project ID
   my $verify = OMP::ProjServer->verifyProject( $projectid );
@@ -370,7 +375,7 @@ sub obtain_projectid {
   # Display project ID form again if given ID was invalid
   unless ($verify) {
     print "The project ID you provided [$projectid] was invalid.<br><br>";
-    OMP::CGIComponent::Project::projectid_form($q);
+    $self->projectid_form();
     return;
   }
 
@@ -381,20 +386,22 @@ sub obtain_projectid {
 
 Display a form which takes a project ID.
 
-  projectid_form($cgi);
+  $comp->projectid_form();
 
 =cut
 
 sub projectid_form {
-  my $q = shift;
+  my $self = shift;
 
-  print $q->startform;
+  my $q = $self->cgi;
+
+  print start_form_absolute($q);
   print "Project ID: ";
-  print $q->textfield(-name=>"projectid",
+  print $q->textfield(-name=>"project",
                       -size=>12,
                       -maxlength=>32,);
   print "&nbsp;";
-  print $q->submit(-name=>"projectid_submit",
+  print $q->submit(-name=>"project_submit",
                    -label=>"Submit",);
 }
 

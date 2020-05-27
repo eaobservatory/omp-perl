@@ -24,11 +24,14 @@ use Carp;
 
 use Text::Wrap;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Constants qw(:fb);
 use OMP::Error qw(:try);
 use OMP::FBServer;
 use OMP::NetTools;
 use OMP::General;
+
+use base qw/OMP::CGIComponent/;
 
 $| = 1;
 
@@ -40,13 +43,15 @@ $| = 1;
 
 Display feedback comments
 
-  fb_entries($cgi, %cookie);
+  $comp->fb_entries($projectid);
 
 =cut
 
 sub fb_entries {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   my $status = [OMP__FB_IMPORTANT];
 
@@ -64,8 +69,7 @@ sub fb_entries {
   ($q->param("order")) and $order = $q->param("order")
     or $order = 'ascending';
 
-  my $comments = OMP::FBServer->getComments( $cookie{projectid},
-                                             $cookie{password},
+  my $comments = OMP::FBServer->getComments( $projectid,
                                              $status, $order);
 
   print "<SCRIPT LANGUAGE='javascript'> ";
@@ -75,8 +79,8 @@ sub fb_entries {
 
 
   print $q->h2("Feedback entries"),
-        $q->startform(-name=>'sortform'),
-        "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
+        start_form_absolute($q, -name=>'sortform'),
+        "<a href='fbcomment.pl?project=$projectid'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
         "Order: ",
         $q->hidden(-name=>'show_content',
                    -default=>1),
@@ -121,23 +125,24 @@ sub fb_entries {
           "<p>";
   }
 
-  print "<a href='fbcomment.pl'>Add a comment</a><p>",
+  print "<a href='fbcomment.pl?project=$projectid'>Add a comment</a><p>",
 }
 
 =item B<fb_entries_hidden>
 
 Generate text showing number of comments, but not actually displaying them.
 
-  fb_entries_hidden($cgi, %cookie);
+  $comp->fb_entries_hidden($projectid);
 
 =cut
 
 sub fb_entries_hidden {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  my $comments = OMP::FBServer->getComments($cookie{projectid},
-                                            $cookie{password},
+  my $q = $self->cgi;
+
+  my $comments = OMP::FBServer->getComments($projectid,
                                             [ OMP__FB_IMPORTANT,
                                               OMP__FB_INFO,
                                               OMP__FB_SUPPORT,
@@ -154,7 +159,7 @@ sub fb_entries_hidden {
   print " for this project.";
 
   if (scalar(@$comments) > 0) {
-    print "  Click <a href='feedback.pl'>here</a> to view the comments marked 'important'.";
+    print "  Click <a href='feedback.pl?project=$projectid'>here</a> to view the comments marked 'important'.";
   }
 
   print  $q->hr;
@@ -164,32 +169,25 @@ sub fb_entries_hidden {
 
 Create a feedback comment submission form.
 
-  comment_form($cgi, %cookie);
+  $comp->comment_form($projectid);
 
 =cut
 
 sub comment_form {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print "<table><tr valign='bottom'><td>";
-  print $q->startform,
+  my $q = $self->cgi;
 
-  # Store the cookie values in hidden fields so that they can be retrieved if the
-  # cookie expires before the comment is submitted.  Otherwise the comment will be
-  # lost and a login form will be popped up.  the addComment method doesn't
-  # actually require a password to work, however...
-
+  print start_form_absolute($q),
         $q->hidden(-name=>'show_output',
                    -default=>1),
-        $q->hidden(-name=>'projectid',
-                   -default=>$cookie{projectid}),
-        $q->br,
+        $q->hidden(-name=>'project',
+                   -default=>$projectid),
+        "<table><tr><td>",
         "User ID: </td><td>",
-        $q->textfield(-name=>'author',
-                      -size=>20,
-                      -maxlength=>32),
-        "</td><tr><td align='right'>Subject: </td><td>",
+        $self->auth->user->userid,
+        "</td></tr><tr><td align='right'>Subject: </td><td>",
         $q->textfield(-name=>'subject',
                       -size=>50,
                       -maxlength=>70),
@@ -199,8 +197,8 @@ sub comment_form {
                      -columns=>80),
         "</td><tr><td></td><td align='right'>",
         $q->submit("Submit"),
+        "</td></tr></table>",
         $q->endform;
-  print "</td></table>";
 
 }
 
@@ -208,25 +206,23 @@ sub comment_form {
 
 Submit a feedback comment
 
-  submit_fb_comment($q, $projectid);
+  $comp->submit_fb_comment($projectid);
 
 =cut
 
 sub submit_fb_comment {
-  my $q = shift;
+  my $self = shift;
   my $projectid = shift;
+
+  my $q = $self->cgi;
 
   # Get the address of the machine remotely running this cgi script to be given
   # to the addComment method as the sourceinfo param
-  my @host = OMP::NetTools->determine_host;
+  (undef, my $host, undef) = OMP::NetTools->determine_host;
 
-  # Get the OMP::User object
-  my $user = OMP::UserServer->getUser($q->param('author')) or
-    throw OMP::Error::BadArgs("Must supply a valid OMP User ID");
-
-  my $comment = { author => $user,
+  my $comment = { author => $self->auth->user,
                   subject => $q->param('subject'),
-                  sourceinfo => $host[1],
+                  sourceinfo => $host,
                   text => $q->param('text'),
                   program => $q->url(-relative=>1), # the name of the cgi script
                   status => OMP__FB_IMPORTANT, };

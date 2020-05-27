@@ -13,14 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::User;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-$cgi->html_title("$title: Project Contacts");
-$cgi->write_page( \&OMP::CGIPage::User::project_users,
-                  \&OMP::CGIPage::User::project_users_output );
+OMP::CGIPage::User->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::User::project_users,
+    \&OMP::CGIPage::User::project_users_output,
+    'project',
+    title => 'Project Contacts');

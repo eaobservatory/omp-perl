@@ -17,7 +17,6 @@ my $pass = OMP::Password->get_verified_password({
 
 # Connect to the database and create a proj db object
 my $db = new OMP::ProjDB( DB => new OMP::DBbackend,
-                          Password => $pass,
                         );
 
 while (<>) {
@@ -29,7 +28,7 @@ while (<>) {
   next unless length($line) > 0;
 
   $db->projectid( $line );
-  $db->disableProject();
+  $db->disableProject($pass);
 
 
 
