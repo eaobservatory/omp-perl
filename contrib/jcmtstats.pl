@@ -204,7 +204,7 @@ while ($ut <= $endut) {
 
     # No determine_country method exists, so we'll get project
     # details instead
-    my $details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
+    my $details = OMP::ProjServer->projectDetails($proj, "object");
 
     my $country = $details->country;
     #countrylist .= " $country" if ($country !~ /$countrylist/);

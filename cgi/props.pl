@@ -13,12 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-$cgi->write_page_proposals( \&OMP::CGIPage::Project::proposals,
-                            \&OMP::CGIPage::Project::proposals);
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Project::proposals,
+    undef,
+    'project',
+    no_header => 1);

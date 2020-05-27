@@ -65,6 +65,27 @@ There are no instance methods, only class (static) methods.
 
 =over 4
 
+=item B<get_userpass>
+
+Attempt to get an OMP::Auth provider name, username and password.
+
+  my ($provider, $username, $password) = OMP::Password->get_userpass();
+
+Currently assumes provider 'staff' and gets the username from C<$ENV{'USER'}>.
+
+=cut
+
+sub get_userpass {
+  my $cls = shift;
+  my $provider = 'staff';
+  my $username = $ENV{'USER'};
+  die 'Could not determine your username from the environment'
+    unless defined $username;;
+  my $password = $cls->get_password({
+    prompt => 'Please enter your password: '});
+  return $provider, $username, $password;
+}
+
 =item B<get_password>
 
 A wrapper around L<Term::ReadLine/"readline"> function to ask for

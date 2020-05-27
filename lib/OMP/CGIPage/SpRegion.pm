@@ -16,8 +16,11 @@ use CGI::Carp qw/fatalsToBrowser/;
 use PGPLOT;
 
 use OMP::CGIDBHelper;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::General;
 use Starlink::AST::PGPLOT;
+
+use base qw/OMP::CGIPage/;
 
 =head1 METHODS
 
@@ -30,14 +33,13 @@ Creates a page allowing the user to select the output format for the regions.
 =cut
 
 sub view_region {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
-  die 'Did not recieve valid project ID.' unless $projectid;
+  my $q = $self->cgi;
 
   print $q->h2('Download or Plot Regions for ' . uc($projectid)),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->p($q->b('Type of observations')),
         $q->blockquote(
           $q->radio_group(-name => 'type', -values => ['all', 'new', 'progress', 'complete'],
@@ -83,8 +85,10 @@ Outputs the region file.
 =cut
 
 sub view_region_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
 
   my %mime = (png => 'image/png',
               stcs => 'text/plain',
@@ -94,9 +98,6 @@ sub view_region_output {
 
 
   # Check input
-
-  my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
-  die 'Did not recieve valid project ID.' unless $projectid;
 
   die 'Invalid output format' unless $q->param('format') =~ /^(\w+)$/;
   my $format = $1;
@@ -112,7 +113,7 @@ sub view_region_output {
   # redirect its output as we have not yet printed the script header.
 
   select(STDERR);
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid, $cookie{'password'});
+  my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid);
   select(STDOUT);
 
   unless (defined $sp) {

@@ -6,8 +6,8 @@ msbsrv - MSB Server
 
 =head1 SYNOPSIS
 
-  my $msb = new SOAP::Lite( uri => 'http://www.eao.hawaii.edu/OMP::MSBServer',
-                           proxy => 'http://www.whereever.edu/cgi-bin/msbsrv.pl'
+  my $msb = new SOAP::Lite( uri => 'https://www.eao.hawaii.edu/OMP::MSBServer',
+                           proxy => 'https://www.whereever.edu/cgi-bin/msbsrv.pl'
                           );
 
   $sp->storeProgram( $xml, $password );

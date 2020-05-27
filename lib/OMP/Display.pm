@@ -258,12 +258,10 @@ sub userhtml {
     $emailstatus = undef;
   }
 
-  my $public = OMP::Config->getData('omp-url');
   my $cgidir = OMP::Config->getData('cgidir');
   my $iconsdir = OMP::Config->getData('iconsdir');
 
-  # Link to private pages if we are currently on a private page
-  my $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
+  my $url = $cgidir . "/userdetails.pl?user=" . $user->userid;
   my $html = qq(<a href="$url">$user</a>);
 
   # Append email status icon
@@ -274,8 +272,8 @@ sub userhtml {
 
    $html .=
     sprintf
-      qq( <a href="%s/projusers.pl?urlprojid=%s"><img src="%s" alt="%s" border="0"></a>),
-      $public . $cgidir,
+      qq( <a href="%s/projusers.pl?project=%s"><img src="%s" alt="%s" border="0"></a>),
+      $cgidir,
       $project,
       join( '/', $iconsdir, $mail[0] ),
       $mail[1] ;
@@ -283,6 +281,10 @@ sub userhtml {
 
   if ((exists $opt{'affiliation'}) and (defined $opt{'affiliation'})) {
     $html .= '<small>(' . $opt{'affiliation'} . ')</small>';
+  }
+
+  if ((exists $opt{'access'}) and $opt{'access'}) {
+    $html .= ' &#x2605;';
   }
 
   return $html;

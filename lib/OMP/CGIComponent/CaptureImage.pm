@@ -12,24 +12,25 @@ use CGI::Carp qw/set_message/;
 use MIME::Base64 qw/encode_base64/;
 use POSIX qw/WNOHANG/;
 
-use base qw/Exporter/;
-our @EXPORT_OK = qw/capture_png_as_img/;
+use base qw/OMP::CGIComponent/;
 
-=head1 SUBROUTINES
+=head1 METHODS
 
 =over 4
 
-=item capture_png_as_img($q, sub {...})
+=item $comp->capture_png_as_img(sub {...})
 
 Runs the given subroutine, which is expected to produce a PNG image
 on its standard output.  Then returns an E<lt>imgE<gt> tag, produced
-via the CGI object C<$q>, which encodes the image as a data URI.
+via the CGI object C<$self-E<gt>cgi>, which encodes the image as a data URI.
 
 =cut
 
-sub capture_png_as_img ($&) {
-    my $q = shift;
+sub capture_png_as_img {
+    my $self = shift;
     my $code = shift;
+
+    my $q = $self->cgi;
 
     # Note: the original implementation of this routine was to use the
     # Capture::Tiny module to capture the output, but some of the output from

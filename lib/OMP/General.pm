@@ -589,25 +589,6 @@ sub determine_tel {
 
 =over 4
 
-=item B<am_i_staff>
-
-Compare the supplied project ID with the internal staff project ID.
-
-  OMP::General->am_i_staff( $projectid );
-
-Returns true if the supplied project ID matches, false otherwise. This
-method does a case-insensitive match, and does not do password or database
-verification.
-
-=cut
-
-sub am_i_staff {
-  my $self = shift;
-  my $projectid = shift;
-
-  return $projectid =~ /^staff$/i;
-}
-
 =item B<determine_user>
 
 See if the user ID can be guessed from the system environment
@@ -888,7 +869,7 @@ sub log_message {
   my $file2 = "omp_$today.log";
 
   # Create the message
-  my ($user, $host, $email) = OMP::NetTools->determine_host;
+  my (undef, undef, $email) = OMP::NetTools->determine_host;
 
   my $sevstr = $class->_log_level_string( $severity );
 

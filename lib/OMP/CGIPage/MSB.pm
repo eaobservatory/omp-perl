@@ -22,11 +22,14 @@ use Carp;
 
 use OMP::CGIDBHelper;
 use OMP::CGIComponent::Feedback;
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
 use OMP::Error qw(:try);
 use OMP::DateTools;
+
+use base qw/OMP::CGIPage/;
 
 $| = 1;
 
@@ -40,19 +43,24 @@ Creates the page showing the project summary (lists MSBs).
 Also provides buttons for adding an MSB comment.
 Hides feedback entries.
 
-  fb_msb_content($cgi, %cookie)
+  $page->fb_msb_content($projectid);
 
 =cut
 
 sub fb_msb_content {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h1("Feedback for project $cookie{projectid}");
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
-  OMP::CGIComponent::Feedback::fb_entries_hidden($q, %cookie);
-  OMP::CGIComponent::MSB::msb_sum($q, %cookie);
+  print $q->h1("Feedback for project ${projectid}");
+
+  $projcomp->proj_status_table($projectid);
+  $fbcomp->fb_entries_hidden($projectid);
+  $comp->msb_sum($projectid);
 }
 
 =item B<fb_msb_output>
@@ -61,33 +69,34 @@ Creates the page showing the project summary (lists MSBs).
 Also creates and parses form for adding an MSB comment.
 Hides feedback entries.
 
-  fb_msb_output($cgi, %cookie);
+  $page->fb_msb_output($projectid);
 
 =cut
 
 sub fb_msb_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  print $q->h1("Feedback for project $cookie{projectid}");
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
-  OMP::CGIComponent::Feedback::fb_entries_hidden($q, %cookie);
+  print $q->h1("Feedback for project ${projectid}");
 
-  ($q->param("Add Comment")) and OMP::CGIComponent::MSB::msb_comment_form($q);
+  $projcomp->proj_status_table($projectid);
+  $fbcomp->fb_entries_hidden($projectid);
+
+  $comp->msb_comment_form() if $q->param("Add Comment");
 
   if ($q->param("Submit")) {
     try {
-      # Get the user object
-      my $user = OMP::UserServer->getUser($q->param('author')) or
-        throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
-
       # Create the comment object
-      my $comment = new OMP::Info::Comment( author => $user,
+      my $comment = new OMP::Info::Comment( author => $self->auth->user,
                                             text => $q->param('comment'),
                                             status => OMP__DONE_COMMENT );
 
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
+      OMP::MSBServer->addMSBcomment( $projectid, $q->param('msbid'), $comment);
       print $q->h2("MSB comment successfully submitted");
     } catch OMP::Error::MSBMissing with {
       print "MSB not found in database";
@@ -98,53 +107,59 @@ sub fb_msb_output {
 
   }
 
-  OMP::CGIComponent::MSB::msb_sum($q, %cookie);
+  $comp->msb_sum($projectid);
 }
 
 =item B<msb_hist_output>
 
 Create a page with a comment submission form or a message saying the comment was submitted.
 
-  msb_hist_output($cgi, %cookie);
+  $page->msb_hist_output($projectid);
 
 =cut
 
 sub msb_hist_output {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+
+  $projcomp->proj_status_table($projectid);
 
   # If they clicked the "Add Comment" button bring up a comment form
   if ($q->param("Add Comment")) {
     print $q->h2("Add a comment to MSB");
-    OMP::CGIComponent::MSB::msb_comment_form($q);
+    $comp->msb_comment_form();
   }
 
   # Perform any actions on the msb?
-  OMP::CGIComponent::MSB::msb_action($q);
+  $comp->msb_action();
 
   # Get the science program (if available)
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $cookie{projectid}, $cookie{password} );
+  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
 
   # Redisplay MSB comments
-  my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
-  OMP::CGIComponent::MSB::msb_comments($q, $commentref, $sp);
+  my $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
+  $comp->msb_comments($commentref, $sp);
 }
 
 =item B<msb_hist_content>
 
 Create a page with a summary of MSBs and their associated comments
 
-  msb_hist_content($cgi, %cookie);
+  $page->msb_hist_content($projectid);
 
 =cut
 
 sub msb_hist_content {
-  my $q = shift;
-  my %cookie = @_;
+  my $self = shift;
+  my $projectid = shift;
 
-  my $projectid = uc($cookie{projectid});
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
+  my $projcomp = new OMP::CGIComponent::Project(page => $self);
 
   my $commentref;
   if (! $q->param('show')) {
@@ -165,7 +180,7 @@ sub msb_hist_content {
   print $q->h2("MSB History for project $projectid");
 
   ### put code for not displaying non-existant msbs here? ###
-  OMP::CGIComponent::Project::proj_status_table($q, %cookie);
+  $projcomp->proj_status_table($projectid);
   print $q->hr;
 
   print "<SCRIPT LANGUAGE='javascript'> ";
@@ -174,7 +189,7 @@ sub msb_hist_content {
   print "</SCRIPT>";
 
 
-  print $q->startform(-name=>'sortform'),
+  print start_form_absolute($q, -name=>'sortform'),
         "<b>Show </b>",
 
         # we want to show this page again, not the output page, so
@@ -192,21 +207,23 @@ sub msb_hist_content {
         $q->p;
 
   # Get the science program (if available)
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid, $cookie{password} );
+  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
 
-  OMP::CGIComponent::MSB::msb_comments($q, $commentref, $sp);
+  $comp->msb_comments($commentref, $sp);
 }
 
 =item B<observed>
 
 Create a page with a list of all the MSBs observed for a given UT sorted by project
 
-  observed($cgi);
+  $page->observed();
 
 =cut
 
 sub observed {
-  my $q = shift;
+  my $self = shift;
+
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
 
 #  my $utdate = OMP::DateTools->today;
 
@@ -215,7 +232,7 @@ sub observed {
 #  (@$commentref) and print $q->h2("MSBs observed on $utdate")
 #    or print $q->h2("No MSBs observed on $utdate");
 
-  OMP::CGIComponent::MSB::observed_form($q);
+  $comp->observed_form();
 #  print $q->hr;
 
   # Create the MSB comment tables
@@ -228,25 +245,28 @@ sub observed {
 
 Create an msb comment page for private use with a comment submission form.
 
-  observed_output($cgi);
+  $page->observed_output();
 
 =cut
 
 sub observed_output {
-  my $q = shift;
+  my $self = shift;
+
+  my $q = $self->cgi;
+  my $comp = new OMP::CGIComponent::MSB(page => $self);
 
   # If they clicked the "Add Comment" button bring up a comment form
   if ($q->param("Add Comment")) {
     print $q->h2("Add a comment to MSB");
-    OMP::CGIComponent::MSB::msb_comment_form($q);
+    $comp->msb_comment_form();
     return;
   }
 
   # Perform any actions on the MSB.
-  OMP::CGIComponent::MSB::msb_action($q);
+  $comp->msb_action();
 
   # Display date / telescope form.
-  OMP::CGIComponent::MSB::observed_form($q);
+  $comp->observed_form();
 
   print $q->hr;
 
@@ -270,7 +290,7 @@ sub observed_output {
   for my $msb (@$commentref) {
     my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
                                   DB => $dbconnection );
-    my $proj = $projdb->projectDetailsNoAuth( 'object' );
+    my $proj = $projdb->projectDetails( 'object' );
     if (uc $proj->telescope eq uc $telescope) {
       push @msbs, $msb;
     }
@@ -278,7 +298,7 @@ sub observed_output {
 
   if (@msbs) {
     print $q->h2("MSBs observed on $utdate");
-    OMP::CGIComponent::MSB::msb_comments_by_project($q, \@msbs);
+    $comp->msb_comments_by_project(\@msbs);
 
   } else {
     print $q->h2("No MSBs observed on $utdate");

@@ -867,7 +867,7 @@ sub _store_msb_done_comment {
     # we can get some information.
     try {
       my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,);
-      my $sp = $msbdb->fetchSciProgNoAuth(1);
+      my $sp = $msbdb->fetchSciProg(1);
       my $msb = $sp->fetchMSB( $checksum );
       $msbinfo = $msb->info() if $msb;
     };

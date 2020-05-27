@@ -28,7 +28,6 @@ use warnings;
 
 use CGI qw/header/;
 use CGI::Carp qw/fatalsToBrowser/;
-use Exporter;
 use IO::File;
 
 use OMP::Config;
@@ -36,8 +35,7 @@ use OMP::General;
 use OMP::MSBServer;
 use OMP::NetTools;
 
-our @ISA = qw/Exporter/;
-our @EXPORT_OK = qw/include_file_ut/;
+use base qw/OMP::CGIComponent/;
 
 our %mime = (
   png  => 'image/png',
@@ -51,7 +49,7 @@ our %mime = (
 
 Includes a file based on the UT date.
 
- include_file_ut('dq-nightly', $utdate[, 'index.html']);
+ $comp->include_file_ut('dq-nightly', $utdate[, 'index.html']);
 
 The first parameter specifies the type of file,
 which allows the directory containing it to be
@@ -69,6 +67,7 @@ or 0 if it could not be found.
 =cut
 
 sub include_file_ut {
+  my $self = shift;
   my ($type, $utdate, $filename) = @_;
 
   # Determine directory to search for files.
@@ -109,64 +108,6 @@ sub include_file_ut {
   return 1;
 }
 
-=item B<get_resource>
-
-OMP::CGIPage handler for serving resource files generated
-offline (e.g. graphs).
-
-  get_resource($cgi, %cookie);
-
-This is done in the OMP so that we can check that
-the user is permitted to view the resource.
-
-Currently we check that the project had observations
-on the night in question.  If more 'types' of resources
-are to be added, it may be necessary to perform a
-different kind of authorization for each one.  Also allow
-local access to all resources.
-
-=cut
-
-sub get_resource {
-  my $q = shift;
-  my %cookie = @_;
-
-  my $type = $q->url_param('type');
-  my $utdate = $q->url_param('utdate');
-  my $filename = $q->url_param('filename');
-
-  unless (OMP::NetTools->is_host_local()) {
-    # Check we are allowed to access this project.
-    my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
-    croak 'Did not receive a valid project ID.' unless $projectid;
-
-    # Check UT date is valid.
-    $utdate =~ s/-//g;
-    if ($utdate =~ /^([0-9]{8})$/) {
-      $utdate = $1;
-    }
-    else {
-      croak('UT date string ['.$utdate.'] is not valid.');
-    }
-
-    my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                                 date => $utdate,
-                                                 comments => 0,
-                                                 transactions => 0,
-                                                 format => 'data',});
-
-    unless (scalar @$observed) {
-      print header(-status => '403 Forbidden');
-      print '<h1>403 Forbidden</h1>';
-      return;
-    }
-  }
-
-  _get_resource_ut($type, $utdate, $filename);
-}
-
-=back
-
 =head1 INTERNAL SUBROUTINES
 
 =over 4
@@ -176,7 +117,7 @@ sub get_resource {
 Finds and prints out the contents of a file which is to be
 found in a directory based on the UT date.
 
-  _get_resource_ut($type, $utdate, $filename)
+  $comp->_get_resource_ut($type, $utdate, $filename)
 
 An HTTP header is included based on the file
 type guessed from the extension.
@@ -184,6 +125,7 @@ type guessed from the extension.
 =cut
 
 sub _get_resource_ut {
+  my $self = shift;
   my ($type, $utdate, $filename) = @_;
 
   # Determine directory to search for files.

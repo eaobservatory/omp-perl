@@ -19,8 +19,11 @@ use strict;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
+use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
+
+use base qw/OMP::CGIPage/;
 
 =head1 Subroutines
 
@@ -33,10 +36,9 @@ Creates the find targets search page.
 =cut
 
 sub find_targets {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
 
-    _show_input_page($q);
+    $self->_show_input_page();
 }
 
 =item B<find_targets_output>
@@ -46,11 +48,10 @@ Outputs the list of targets.
 =cut
 
 sub find_targets_output {
-    my $q = shift;
-    my %cookie = @_;
+    my $self = shift;
 
-    _show_input_page($q);
-    _show_output($q);
+    $self->_show_input_page();
+    $self->_show_output();
 }
 
 =back
@@ -66,14 +67,16 @@ Outputs the input search form.
 =cut
 
 sub _show_input_page {
-    my $q = shift;
+    my $self = shift;
+
+    my $q = $self->cgi;
 
     print
         $q->p(
             'Perform a pencil-beam search for targets around a specified',
             'position or around targets from a specified projects.',
         ),
-        $q->start_form(),
+        start_form_absolute($q),
         $q->table(
             $q->Tr([
                 $q->td([
@@ -127,7 +130,9 @@ Outputs the search results.
 =cut
 
 sub _show_output {
-    my $q = shift;
+    my $self = shift;
+
+    my $q = $self->cgi;
 
     my @msg = (); # Message buffer.
 

@@ -791,7 +791,7 @@ sub _mail_fault {
   my $from = ($responses[-1]->author->email ? $responses[-1]->author : $faultuser);
 
   # Get the fault message
-  my $msg = OMP::FaultUtil->format_fault($fault, 0);
+  my $msg = OMP::FaultUtil->format_fault($fault, 0, OMP::Config->getData('omp-url'));
 
   # Mail it off
   $self->_mail_information(message => $msg,
@@ -875,7 +875,7 @@ sub _mail_fault_update {
 
   my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
+  $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?fault=" . $fault->id ."'>here</a>";
 
   my $email = $fault->author;
 

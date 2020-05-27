@@ -13,13 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage;
 use OMP::CGIPage::Project;
 
-my $q = new CGI();
-my $ompcgi = new OMP::CGIPage(CGI => $q);
-
-$ompcgi->write_page(
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::program_summary,
-    \&OMP::CGIPage::Project::program_summary,
-    0, 1);
+    undef,
+    'project',
+    no_header => 1);

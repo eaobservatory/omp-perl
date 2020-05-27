@@ -63,7 +63,7 @@ function toggle(systemID) {
 	  rowflag = (row.className == 'hide');
         }
         row.className = (rowflag) ? 'show' : 'hide';
-        img.src = (rowflag) ? 'http://omp.eao.hawaii.edu/images/hide.gif' : 'http://omp.eao.hawaii.edu/images/show.gif';
+        img.src = (rowflag) ? '/images/hide.gif' : '/images/show.gif';
       }
     }
   }
@@ -76,11 +76,11 @@ function toggleFunction(ID) {
   if (current == 'hide') {
     functionTag.innerHTML = 'Hide closed faults';
     functionTag.setAttribute('function', 'hide');
-    img.src = 'http://omp.eao.hawaii.edu/images/hide.gif'
+    img.src = '/images/hide.gif'
   } else {
     functionTag.innerHTML = 'Show closed faults';
     functionTag.setAttribute('function', 'show');
-    img.src = 'http://omp.eao.hawaii.edu/images/show.gif'
+    img.src = '/images/show.gif'
   }
 }
 
@@ -119,3 +119,12 @@ function filterUserTable() {
         });
     }
 }
+
+$(document).ready(function () {
+    var log_in_panels = $('div.log_in_panel');
+    log_in_panels.children('p').children('a').click(function () {
+        log_in_panels.children('div').hide();
+        $(this).parent().parent().children('div').show();
+    });
+    log_in_panels.children('p').children('a').first().click();
+});

@@ -115,8 +115,7 @@ my $dbconnection = new OMP::DBbackend;
 
 for my $id (split(',',$idstr)) {
   my $projdb = new OMP::ProjDB( ProjectID => $id,
-                                DB => $dbconnection,
-                                Password => $password, );
+                                DB => $dbconnection );
 
   # Get project
   my $proj = $projdb->projectDetails( 'object' );
@@ -129,12 +128,12 @@ for my $id (split(',',$idstr)) {
       print "Enabling project ". $proj->projectid ."... ";
 
       # Set state to enabled
-      $projdb->enableProject();
+      $projdb->enableProject($password);
     } else {
       print "Disabling project ". $proj->projectid ."... ";
 
       # Set state to enabled
-      $projdb->disableProject();
+      $projdb->disableProject($password);
     }
 
     print "done.\n";

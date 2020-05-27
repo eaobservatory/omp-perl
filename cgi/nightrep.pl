@@ -13,25 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::ObsReport;
-use OMP::NetTools;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-$cgi->html_title("Observing Report " . $q->url_param('utdate'));
-
-# If the user is outside the JAC network write the page with
-# authentication
-if (OMP::NetTools->is_host_local) {
-  $cgi->write_page_noauth( \&OMP::CGIPage::ObsReport::night_report,
-                           \&OMP::CGIPage::ObsReport::night_report );
-} else {
-  $cgi->write_page_staff( \&OMP::CGIPage::ObsReport::night_report,
-                          \&OMP::CGIPage::ObsReport::night_report,
-                          "noauth",);
-}
-
-
+OMP::CGIPage::ObsReport->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::ObsReport::night_report,
+    undef,
+    'local_or_staff',
+    title => 'Observing Report');

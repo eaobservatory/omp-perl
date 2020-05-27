@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 50;
+use Test::More tests => 47;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -34,7 +34,6 @@ my @coiemail = ( qw/email1@a email2@b email3@c / );
 my %project = (
               # country => ['UK','CA'],
                tagpriority => 5,
-               password => "atest",
                projectid => "M01Btj",
                pi => new OMP::User( userid => "JBLOGGS",
                                     name => "Joe Bloggs",
@@ -104,15 +103,6 @@ is($proj->tagpriority('UK'), 4, "Check new UK priority");
 $proj->tagadjustment( UK => -2 );
 is( $proj->queue( 'UK' ), 4, 'combined priority unchanged');
 is( $proj->tagpriority('UK'), 6, 'check adjusted UK priority');
-
-# Check the password
-is( $proj->password, $project{password}, "Check password" );
-ok( $proj->verify_password ,"verify password");
-print "# Password: ", $proj->password, " Encrypted form: ",
-  $proj->encrypted, "\n";
-
-# Check failing password
-ok(!$proj->verify_password("BADPASS"), "incorrect password check" );
 
 # T-O-O
 ok(!$proj->isTOO, "IS this not a T-O-O?");

@@ -13,14 +13,10 @@ BEGIN {
   }
 }
 
-# Load OMP modules
-use OMP::CGIPage;
 use OMP::CGIPage::MSB;
 
-my $q = new CGI;
-my $cgi = new OMP::CGIPage( CGI => $q );
-
-my $title = $cgi->html_title;
-$cgi->html_title("$title: MSB History");
-$cgi->write_page( \&OMP::CGIPage::MSB::msb_hist_content,
-                  \&OMP::CGIPage::MSB::msb_hist_output );
+OMP::CGIPage::MSB->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::MSB::msb_hist_content,
+    \&OMP::CGIPage::MSB::msb_hist_output,
+    'project',
+    title => 'MSB History');

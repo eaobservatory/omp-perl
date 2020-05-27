@@ -380,6 +380,9 @@ sub _create_sql_recurse {
   } elsif (UNIVERSAL::isa($entry, 'OMP::DBQuery::Null')) {
     $sql = $self->_querify($column, $entry->null(), 'null');
 
+  } elsif (UNIVERSAL::isa($entry, 'OMP::DBQuery::True')) {
+    $sql = $self->_querify($column, $entry->true(), 'true');
+
   } elsif (ref($entry) eq 'HASH') {
     # Call myself but join with an OR or AND
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
@@ -804,6 +807,10 @@ sub _querify {
     my $expr = $value ? 'NULL' : 'NOT NULL';
     return "($name IS $expr)";
   }
+  elsif ($cmp eq 'true') {
+    my $expr = $value ? '' : 'NOT';
+    return "($expr $name)";
+  }
 
   # Lookup table for comparators
   my %cmptable = (
@@ -1049,6 +1056,27 @@ sub null {
     $self->{'null'} = shift;
   }
   return $self->{'null'};
+}
+
+package OMP::DBQuery::True;
+
+sub new {
+  my $class = shift;
+  my %opt = @_;
+
+  my $self = bless {
+    true => $opt{'true'},
+  }, $class;
+
+  return $self;
+}
+
+sub true {
+  my $self = shift;
+  if (@_) {
+    $self->{'true'} = shift;
+  }
+  return $self->{'true'};
 }
 
 =head1 AUTHORS

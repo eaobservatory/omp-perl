@@ -32,7 +32,6 @@ use warnings;
 use warnings::register;
 use Carp;
 use Time::Seconds;
-use OMP::Password;
 use OMP::SiteQuality;
 use OMP::User;
 
@@ -78,8 +77,6 @@ sub new {
                     Allocated => Time::Seconds->new(0),
                     Title => '',
                     Telescope => undef,
-                    Encrypted => undef,
-                    Password => undef,
                     ProjectID => undef,
 
                     # weather constrints
@@ -102,6 +99,7 @@ sub new {
                     Support => [],
                     State => 1,
                     Contactable => {},
+                    OMPAccess => {},
                     ExpiryDate => undef,
                    }, $class;
 
@@ -385,8 +383,9 @@ Provide a list of colon-separated user IDs:
 
   $proj->support( "name1:name2" );
 
-By default when a support contact is updated it is made contactable. If this
-is not the case the C<contactable> method must be called explicitly.
+By default when a support contact is updated it is made contactable and
+granted OMP access. If this is not the case the C<contactable> and
+C<omp_access> methods must be called explicitly.
 
 =cut
 
@@ -400,8 +399,11 @@ sub support {
 
     my @user = $self->_handle_role( lc( $key ) , @_ );
 
-    # Force being contactable.
-    $self->contactable( $_->userid() => 1 ) for @user;
+    # Force being contactable and having OMP access.
+    for my $userid (map {$_->userid()} @user) {
+        $self->contactable( $userid => 1 );
+        $self->omp_access( $userid => 1 );
+    }
 
     $self->{ $key } = [ @user ];
   }
@@ -629,77 +631,6 @@ sub primaryqueue {
   return $self->{PrimaryQueue};
 }
 
-=item B<password>
-
-Plain text version of the password (if available). If this object has
-been instantiated from a database table it is likely that only the
-encrypted password is available (see C<encrypted> method). If this
-password is updated the encrypted version is automatically updated.
-
-  $plain = $proj->password;
-  $proj->password( $plain );
-
-If the plain password is C<undef>, the plain password is cleared but
-the encrypted password will not be cleared.
-
-=cut
-
-sub password {
-  my $self = shift;
-  if (@_) {
-    my $plain = shift;
-
-    # If the password is defined we encrypt it, else
-    # just undefine the password without modifying encrypted
-    # version. This is also necessary to allow the encrypted()
-    # method to clear the plain text password
-    if (defined $plain) {
-      # Encrypt and store it
-      # Note that we store the plain password after this
-      # step to prevent the encrypted() method clearing it
-      # and ruining everything [the easy approach is simply
-      # to not use the accessor method]
-      $self->encrypted( OMP::Password->encrypt_password( $plain ) );
-
-    }
-
-    # Now store the plain password
-    $self->{Password} = $plain;
-
-  }
-
-  return $self->{Password};
-}
-
-
-=item B<encrypted>
-
-Encrypted password associated with the project.
-
-  $password = $proj->encrypted;
-
-If available, the plain text password can be obtained using
-the C<password> method. The encrypted password is updated
-if the plain text password is updated. Also, if the encrypted
-password is updated the plain text version is cleared.
-
-=cut
-
-sub encrypted {
-  my $self = shift;
-  if (@_) {
-    $self->{Encrypted} = shift;
-
-    # Clear the plain text password
-    # Note that undef is treated as a special case so that
-    # we dont get into infinite recursion when password() calls
-    # this method.
-    $self->password(undef);
-  }
-  return $self->{Encrypted};
-}
-
-
 =item B<pending>
 
 The amount of time (in seconds) that is to be removed from the
@@ -747,7 +678,9 @@ sub pi {
     $self->{PI} = $pi;
 
     # And force them to be contactable
-    $self->contactable( $pi->userid => 1 );
+    my $userid = $pi->userid;
+    $self->contactable( $userid => 1 );
+    $self->omp_access( $userid => 1 );
 
   }
   return $self->{PI};
@@ -1103,6 +1036,37 @@ sub contactable {
   }
 }
 
+=item B<contactable>
+
+A hash (indexed by OMP user ID) indicating whether a particular person
+should have OMP access.  This works in the same way as the C<contactable>
+method.
+
+=cut
+
+sub omp_access {
+  my $self = shift;
+  if (@_) {
+    if (scalar @_ == 1) {
+      # A single key
+      return $self->{OMPAccess}->{uc($_[0])};
+    } else {
+      # key/value pairs
+      my %args = @_;
+      for my $u (keys %args) {
+        # make sure we are case-insensitive
+        $self->{OMPAccess}->{uc($u)} = $args{$u};
+      }
+    }
+  }
+  # return something
+  if (wantarray) {
+    return %{ $self->{OMPAccess} };
+  } else {
+    return $self->{OMPAccess};
+  }
+}
+
 =item B<queue>
 
 Queue entries and corresponding priorities (see also C<country> and
@@ -1277,52 +1241,6 @@ sub expirydate {
 
 =over 4
 
-=item B<verify_password>
-
-Verify that the plain text password matches the encrypted
-password.
-
-If an argument is supplied it is assumed to be a plain text password
-that we are comparing with the encrypted version in the object.
-
-  $verified = 1 if $proj->verify_password();
-  $verified = 1 if $proj->verify_password( $plain );
-
-This is useful if we are trying to do password verification with
-an externally supplied password (note that if we simply stored
-the plain text password in the object using C<password()> the
-encrypted password would automatically be regenerated.
-
-Note that because we currently use unix C<crypt> we are limited to 8
-characters. We could overcome this by shifting to MD5.
-
-Returns false if either of the passwords are missing.
-
-The password is B<always> compared with the encrypted administrator
-password before comparing it to the encrypted project password.  The
-encrypted project password is only used if the staff password
-fails to verify.
-
-Additionally, each country has a special queue manager password
-that is also checked.
-
-=cut
-
-sub verify_password {
-  my $self = shift;
-  my $plain;
-  if (@_) {
-    $plain = shift;
-  } else {
-    $plain = $self->password;
-  }
-
-  return OMP::Password->verify_password( $plain,
-                                         $self->encrypted,
-                                         [ $self->country ],
-                                         1);
-}
-
 =item B<conditionstxt>
 
 A short textual summary of the site quality constraints associated
@@ -1449,7 +1367,7 @@ sub summary {
 
   # retrieve the information from the object
   my %summary;
-  for my $key (qw/allocated coi coiemail country encrypted password pending
+  for my $key (qw/allocated coi coiemail country pending
                pi piemail projectid remaining semester tagpriority
                support supportemail /) {
     $summary{$key} = $self->$key;

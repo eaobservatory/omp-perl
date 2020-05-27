@@ -7,12 +7,11 @@ OMP::FeedbackDB - Manipulate the feedback database
 =head1 SYNOPSIS
 
   $db = new OMP::FeedbackDB( ProjectID => $projectid,
-                             Password => $password,
                              DB => $dbconnection );
 
   $db->addComment( $comment );
   $db->getComments( \@status );
-  $db->alterStatus( $commentid, $status );
+  $db->alterStatus( $commentid, $admin_password, $status );
 
 
 =head1 DESCRIPTION
@@ -60,7 +59,6 @@ our $FBTABLE = "ompfeedback";
 Create a new instance of an C<OMP::FeedbackDB> object.
 
   $db = new OMP::FeedbackDB( ProjectID => $project,
-                             Password => $password,
                              DB => $connection );
 
 If supplied, the database connection object must be of type
@@ -122,16 +120,6 @@ sub getComments {
   for my $part (qw/status msgtype/) {
     $xmlpart{$part} = join("", map {"<$part>" . $_ . "</$part>"} @{$args{$part}})
       if (defined ($args{$part}));
-  }
-
-  # Verify project password if projectid is set
-  if ($self->projectid) {
-    # Verify the password
-    my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
-                                  DB => $self->db );
-
-    throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
-      unless $projdb->verifyPassword( $self->password );
   }
 
   # Form complete XML Query
@@ -290,7 +278,7 @@ sub addComment {
 
 Alters the status of a comment.
 
-  $db->alterStatus( $commentid, $status);
+  $db->alterStatus( $commentid, $admin_password, $status);
 
 Last argument should be a feedback constant as defined in C<OMP::Constants>.
 
@@ -299,10 +287,11 @@ Last argument should be a feedback constant as defined in C<OMP::Constants>.
 sub alterStatus {
   my $self = shift;
   my $commentid = shift;
+  my $admin_password = shift;
   my $status = shift;
 
   # Verify admin password.
-  OMP::Password->verify_administrator_password( $self->password );
+  OMP::Password->verify_administrator_password( $admin_password );
 
   # Begin trans
   $self->_db_begin_trans;

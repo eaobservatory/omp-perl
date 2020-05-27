@@ -9,7 +9,7 @@
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK3 CORRTASK4 CORRTASK6 CORRTASK7 IFTASK</tasks>
+         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK2 CORRTASK4 CORRTASK6 CORRTASK7 IFTASK</tasks>
          <recipe NAME="grid_pssw">
             <parameters 
                         JOS_MIN="30"
@@ -1508,6 +1508,7 @@
             <lo2 id="2" freq="6520"/>
             <lo2 id="3" freq="6730"/>
             <lo3 freq="2000.0"/>
+            <quadrant id="0" subband_mode="4"/>
             <quadrant id="1" subband_mode="4"/>
             <quadrant id="2" subband_mode="4"/>
             <quadrant id="3" subband_mode="4"/>
@@ -1553,8 +1554,8 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="8" dcm_id="8" receptor_id="DB" spw_id="SPW1"/>
-            <map_id cm_id="9" dcm_id="9" receptor_id="DB" spw_id="SPW2"/>
+            <map_id cm_id="4" dcm_id="4" receptor_id="DB" spw_id="SPW1"/>
+            <map_id cm_id="5" dcm_id="5" receptor_id="DB" spw_id="SPW2"/>
             <map_id cm_id="12" dcm_id="12" receptor_id="DD" spw_id="SPW1"/>
             <map_id cm_id="13" dcm_id="13" receptor_id="DD" spw_id="SPW2"/>
             <map_id cm_id="20" dcm_id="20" receptor_id="DC" spw_id="SPW1"/>
@@ -2732,6 +2733,7 @@
          <in_ref ref="TREC_MEDIAN"/>
          <in_ref ref="ETAL"/>
          <in_ref ref="WEATHER"/>
+         <in_ref ref="WVM"/>
       </source_params>
       <s_object_list>
          <source_object ref="SPECTRUM_RESULT"/>
@@ -2806,10 +2808,10 @@
    <dr_machine virtual_machine="number9" real_machine="acsis9"/>
    <dr_machine virtual_machine="number10" real_machine="acsis10"/>
    <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
-   <dr_machine virtual_machine="fe_wrapper_machine" real_machine="acsis11"/>
+   <dr_machine virtual_machine="fe_wrapper_machine" real_machine="omp3"/>
    <dr_disp_machine virtual_machine="dr_disp_machine" real_machine="acsis10"/>
-   <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="awa"/>
-   <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
+   <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="palila"/>
+   <dr_machine virtual_machine="namakanui" real_machine="koloa" no_nuke="1"/>
 
    
 
@@ -2847,6 +2849,8 @@
    <monitor_process id="fe_monitor" interface="FE_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source=""/>
 
    <monitor_process id="ws_monitor" interface="WEATHER_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="ENVIRO"/>
+
+   <monitor_process id="wvm_monitor" interface="WVM_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="WVM"/>
 
    <monitor_process id="if_monitor" interface="IF_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="IFTASK"/>
 
@@ -3151,6 +3155,23 @@
       <param id="WEATHER.CSO_SRC" type="string"/>
       <param id="WEATHER.JCMT_TAU_TIME" type="string"/>
       <param id="WEATHER.Seeing_TIME" type="string"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="WVM_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="wvm_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="WVM" type="record"/>
+      <param id="WVM.SKY_TEMP12" type="float" units="K"/>
+      <param id="WVM.SKY_TEMP42" type="float" units="K"/>
+      <param id="WVM.SKY_TEMP78" type="float" units="K"/>
+      <param id="WVM.TAU_TAI" type="double"/>
    </out_parameters>
 </interface>
 

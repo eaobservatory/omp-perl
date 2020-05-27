@@ -6,8 +6,8 @@ spsrv - Science Program Server
 
 =head1 SYNOPSIS
 
-  my $sp = new SOAP::Lite( uri => 'http://www.eao.hawaii.edu/OMP::SpServer',
-                           proxy => 'http://www.whereever.edu/cgi-bin/spsrv.pl'
+  my $sp = new SOAP::Lite( uri => 'https://www.eao.hawaii.edu/OMP::SpServer',
+                           proxy => 'https://www.whereever.edu/cgi-bin/spsrv.pl'
                           );
 
   $sp->storeProgram( $xml, $password );
@@ -39,9 +39,12 @@ use OMP::SpServer;
 
 use SOAP::Transport::HTTP;
 
-SOAP::Transport::HTTP::CGI->dispatch_to("OMP::SpServer")
-  ->options({compress_threshold=>500})
-  ->handle;
+SOAP::Transport::HTTP::CGI->dispatch_to(qw/
+    OMP::SpServer::SpInsertCat
+    OMP::SpServer::fetchProgram
+    OMP::SpServer::storeProgram
+    OMP::SpServer::getOTVersionInfo
+  /)->options({compress_threshold=>500})->handle;
 
 =head1 INSTALLATION
 

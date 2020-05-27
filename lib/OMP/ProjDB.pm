@@ -9,9 +9,6 @@ OMP::ProjDB - Manipulate the project database
   $projdb = new OMP::ProjDB( ProjectID => $projectid,
                              DB => $dbconnection );
 
-  $projdb->issuePassword();
-
-  $projdb->verifyPassword( $password );
   $projdb->verifyProject();
 
 =head1 DESCRIPTION
@@ -41,8 +38,6 @@ use OMP::General;
 use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::SiteQuality;
-
-use Crypt::PassGen qw/passgen/;
 
 use Time::Seconds;
 
@@ -87,7 +82,7 @@ Inherits from C<OMP::BaseDB>.
 Add a new project to the database or replace an existing entry in the
 database.
 
-  $db->addProject( $project );
+  $db->addProject( $admin_password, $project );
 
 The argument is of class C<OMP::Project>.
 
@@ -96,26 +91,25 @@ in the database (this is for safety reasons). An optional second
 argument can control whether the project should always force
 overwrite. If this is true the old project details will be removed.
 
-  $db->addProject( $project, $force );
+  $db->addProject( $admin_password, $project, $force );
 
 Throws an exception of type C<OMP::Error::ProjectExists> if the
 project exists and force is not set to true.
 
-The password stored in the object instance will be verified to
+The password will be verified to
 determine if the user is allowed to update project details (this is
-effectively the administrator password and this is different from the
-individual project passwords and to the password used to log in to
-the database).
+effectively the administrator password.
 
 =cut
 
 sub addProject {
   my $self = shift;
+  my $admin_password = shift;
   my $project = shift;
   my $force = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_administrator_password( $self->password );
+  OMP::Password->verify_administrator_password( $admin_password );
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -131,55 +125,6 @@ sub addProject {
   # End transaction
   $self->_dbunlock;
   $self->_db_commit_trans;
-
-}
-
-=item B<verifyPassword>
-
-Verify that the supplied plain text password matches the password
-stored in the project database.
-
-  $verified = 1 if $db->verifyPassword( $plain_password );
-
-If the password is not supplied it is assumed to have been provided
-using the object constructor.
-
-  $verified = 1 if $db->verifyPassword( );
-
-Returns true if the passwords match.  Returns false if the project does
-not exist.
-
-=cut
-
-sub verifyPassword {
-  my $self = shift;
-
-  my $password;
-  if (@_) {
-    $password = shift;
-  } else {
-    $password = $self->password;
-  }
-
-  # Obviate the need for a db query by checking staff password
-  return 1 if OMP::Password->verify_staff_password( $password, 1 );
-
-  # Retrieve the contents of the table
-  my $verify;
-  my $E;
-  try {
-    my $project = $self->_get_project_row();
-
-    # Now verify the passwords
-    $verify = $project->verify_password( $password );
-  } catch OMP::Error::UnknownProject with {
-    # Ignore
-  } otherwise {
-    $E = shift;
-  };
-
-  croak "An error has occurred: $E" if defined $E;
-  return $verify;
 
 }
 
@@ -213,7 +158,7 @@ sub verifyProject {
 =item B<getTelescope>
 
 Simplified access to the telescope related to the specified
-project. Does not require a password. Returns the telescope
+project. Returns the telescope
 name or undef if the project does not exist.
 
   $tel = $proj->getTelescope();
@@ -286,81 +231,21 @@ sub verifyTelescope {
   }
 }
 
-=item B<issuePassword>
-
-Generate a new password for the current project and email it to
-the Principal Investigator. The password in the project database
-is updated.
-
-  $db->issuePassword( $addr );
-
-The argument can be used to specify the internet address (and if known
-the uesr name in email address format) of the remote system requesting
-the password. Designed specifically for use by CGI scripts. If the
-value is not defined it will be assumed that we are running this
-routine from the host computer (using the REMOTE_ADDR environment
-variable if it is set).
-
-Note that there are no return values. It either succeeds or fails.
-
-=cut
-
-sub issuePassword {
-  my $self = shift;
-  my $ip = shift;
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # We need to think carefully about transaction management
-  # since we do not want to send out the email only for the
-  # transaction to be backed out because of an error that occurred
-  # just after the email was sent. The safest approach, I think,
-  # is to send the email as the very last thing. If the email
-  # fails to send the password will not be changed. We need to
-  # finish the transaction immediately after sending the email.
-
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
-
-  # Generate a new plain text password
-  my $newpassword = $self->_generate_password;
-
-  # Store this password in the project object
-  # This will automatically encrypt it
-  $project->password( $newpassword );
-
-  # Store the encrypted password in the database
-  $self->_update_project_row( $project );
-
-  # Mail the password to the right people
-  $self->_mail_password( $project, $ip );
-
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
-  return;
-}
-
 =item B<disableProject>
 
 Remove the project from future queries by setting the project
 state to 0 (disabled).
 
-  $db->disableProject();
-
-Requires the staff password.
+  $db->disableProject($staff_password);
 
 =cut
 
 sub disableProject {
   my $self = shift;
+  my $staff_password = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -395,7 +280,7 @@ sub disableProject {
 Re-enable a project so that it will show up in from future queries by
 setting the project state to 1 (enabled).
 
-  $db->enableProject();
+  $db->enableProject($staff_password);
 
 Requires the staff password.
 
@@ -403,9 +288,10 @@ Requires the staff password.
 
 sub enableProject {
   my $self = shift;
+  my $staff_password = shift;
 
   # Verify that we can update the database
-  OMP::Password->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -451,68 +337,9 @@ The XML is in the format described in C<OMP::Project>.
 If the mode is not specified XML is returned in scalar context and
 a hash (not a reference) is returned in list context.
 
-Password verification is performed.
-
 =cut
 
 sub projectDetails {
-  my $self = shift;
-  my $mode = lc(shift);
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # Now that we have it we can verify the project password
-  # We dont use verifyPassword since that would involve an
-  # additional fetch from the database
-  throw OMP::Error::Authentication("Incorrect password for project ".
-                                  $self->projectid ."\n")
-    unless $project->verify_password( $self->password );
-
-  if (wantarray) {
-    $mode ||= "xml";
-  } else {
-    # An internal mode
-    $mode ||= "hash";
-  }
-
-  if ($mode eq 'xml') {
-    my $xml = $project->summary;
-    return $xml;
-  } elsif ($mode eq 'object') {
-    return $project;
-  } elsif ($mode eq 'data') {
-    my %hash = $project->summary;
-    return \%hash;
-  } elsif ($mode eq 'hash') {
-    my %hash = $project->summary;
-    return \%hash;
-  } else {
-    throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
-  }
-}
-
-=item B<projectDetailsNoAuth>
-
-Retrieve a summary of the current project without performing password
-verification. This is returned in either XML format, as a reference to
-a hash, as an C<OMP::Project> object or as a hash and is specified
-using the optional argument.
-
-  $xml = $proj->projectDetails( 'xml' );
-  $href = $proj->projectDetails( 'data' );
-  $obj  = $proj->projectDetails( 'object' );
-  %hash = $proj->projectDetails;
-
-The XML is in the format described in C<OMP::Project>.
-
-If the mode is not specified XML is returned in scalar context and
-a hash (not a reference) is returned in list context.
-
-=cut
-
-sub projectDetailsNoAuth {
   my $self = shift;
   my $mode = lc(shift);
 
@@ -733,31 +560,49 @@ It will update only those records which are actually changed.
 =cut
 
 sub updateContactability {
+  my $self = shift;
+  return $self->_updateUserFlag('contactable', @_);
+}
 
-  my ( $self, $contact ) = @_;
+=item B<updateOMPAccess>
+
+Updates project user OMP access in the same way as C<updateContactability>.
+
+=cut
+
+sub updateOMPAccess {
+  my $self = shift;
+  return $self->_updateUserFlag('omp_access', @_);
+}
+
+
+sub _updateUserFlag {
+  my $self = shift;
+  my $flag = shift;
+  my $users = shift;
 
   throw OMP::Error::FatalError( q/Need a hash of user ids as keys and /
-                                . q/truth values to update a user's contactability./
+                                . q/truth values to update a user's flags./
                               )
-    unless OMP::General->hashref_keys_size( $contact )
-    and ! scalar grep { ! defined $_ } keys %{ $contact } ;
+    unless OMP::General->hashref_keys_size( $users )
+    and ! scalar grep { ! defined $_ } keys %{ $users } ;
+
+  # Rely on _get_project_row() to validate a project; may throw exceptions.
+  my $proj = $self->_get_project_row;
+
+  my %users = $self->_remove_unchanged_flag( $proj, $flag, $users );
+  # No change in any user flags.
+  return unless scalar %users;
 
   # Begin transaction
   $self->_db_begin_trans;
   $self->_dblock;
 
-  # Rely on _get_project_row() to validate a project; may throw exceptions.
-  my $proj = $self->_get_project_row;
-
-  my %contact = $self->_remove_unchanged_contactability( $proj, $contact );
-  # No change in any user or contactability.
-  return unless scalar %contact;
-
   my $id = $proj->projectid;
-  for my $user ( keys %contact ) {
+  for my $user ( keys %users ) {
 
     $self->_db_update_data( $PROJUSERTABLE,
-                            { 'contactable' => $contact{ $user } ? 1 : 0 },
+                            { $flag => $users{ $user } ? 1 : 0 },
                               "projectid = '$id' AND userid = '$user'"
                           ) ;
   }
@@ -773,23 +618,6 @@ sub updateContactability {
 =head2 Internal Methods
 
 =over 4
-
-=item B<_generate_password>
-
-Generate a password suitable for use with a project.
-
-  $password = $db->_generate_password;
-
-=cut
-
-sub _generate_password {
-  my $self = shift;
-
-  my ($password) = passgen( NLETT => 8, NWORDS => 1);
-
-  return $password;
-
-}
 
 =item B<_get_total_alloc>
 
@@ -980,7 +808,7 @@ sub _insert_project_row {
   $self->_db_insert_data( $PROJTABLE,
                           $proj->projectid, $pi,
                           $proj->title,
-                          $proj->semester, $proj->encrypted,
+                          $proj->semester,
                           $proj->allocated->seconds,
                           $proj->remaining->seconds, $proj->pending->seconds,
                           $proj->telescope,$taumin,$taumax,$seemin,$seemax,
@@ -998,6 +826,7 @@ sub _insert_project_row {
   # Loop over all the users. Note that this is *not* the output from the
   # contacts method since that will only contain contactable people
   my %contactable = $proj->contactable;
+  my %omp_access = $proj->omp_access;
 
   # Group all the user information
   my %roles = (PI => [$proj->pi],
@@ -1010,12 +839,14 @@ sub _insert_project_row {
 
     my $order = 1;
     for my $user (@{ $roles{$role} }) {
+      my $userid = $user->userid();
       $self->_insert_project_user( 'projectid' => $proj->projectid,
-                                    'userid' => $user->userid,
+                                    'userid' => $userid,
                                     'role' => $role,
-                                    'contactable' => $contactable{ $user->userid },
+                                    'contactable' => $contactable{ $userid },
                                     'capacity_order' => $order++,
                                     affiliation => $user->affiliation(),
+                                    omp_access => $omp_access{$userid},
                                   );
     }
   }
@@ -1046,7 +877,7 @@ sub _insert_project_user {
                           undef,
                           map { $attr{$_} }
                               qw( projectid userid role contactable
-                                  capacity_order affiliation
+                                  capacity_order affiliation omp_access
                                 )
                         );
   return;
@@ -1079,7 +910,7 @@ sub _get_projects {
   my $uproj_alias = 'P';
   my $userquery_sql = <<"USER_SQL";
   SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
-         $uproj_alias.contactable, $uproj_alias.affiliation,
+         $uproj_alias.contactable, $uproj_alias.affiliation, $uproj_alias.omp_access,
          U.uname, U.email
     FROM $PROJUSERTABLE $uproj_alias, $utable U
       WHERE $uproj_alias.userid = U.userid AND
@@ -1090,6 +921,7 @@ USER_SQL
 
   my %projroles;
   my %projcontactable;
+  my %projompaccess;
   my %projqueue;
   my %projadj;
   my %projpri_queue;
@@ -1129,6 +961,7 @@ WHERE_ORDER_SQL
                         ));
 
       $projcontactable{$projectid}->{$userid} = $row->{contactable};
+      $projompaccess{$projectid}->{$userid} = $row->{'omp_access'};
     }
 
     # Now do the queue info query
@@ -1220,6 +1053,7 @@ WHERE_ORDER_SQL
     $proj->support( @{ $projroles{$projectid}{SUPPORT} } )
       if exists $projroles{$projectid}{SUPPORT};
     $proj->contactable( %{$projcontactable{$projectid}} );
+    $proj->omp_access( %{$projompaccess{$projectid}} );
 
     # -------- Assign Queue information ---------
     # Store new info, but make sure we have cleared the hash first
@@ -1264,116 +1098,37 @@ sub _get_max_role_order {
   return $order->[0]{ $column } || 0;
 }
 
-=item B<_mail_password>
-
-Mail the password associated with the supplied project to the
-principal investigator of the project.
-
-  $db->_mail_password( $project, $addr );
-
-The first argument should be of type C<OMP::Project>. The second
-(optional) argument can be used to specify the internet address of the
-computer (and if available the user) requesting the password.  If it
-is not supplied the routine will assume the current user and host, or
-use the REMOTE_ADDR and REMOTE_USER environment variables if they are
-set (they are usually only set when running in a web environment).
-
-=cut
-
-sub _mail_password {
-  my $self = shift;
-  my $proj = shift;
-
-  if (UNIVERSAL::isa( $proj, "OMP::Project")) {
-
-    # Get projectid
-    my $projectid = $proj->projectid;
-
-    throw OMP::Error::BadArgs("Unable to obtain project id to mail\n")
-      unless defined $projectid;
-
-    # Get the plain text password
-    my $password = $proj->password;
-
-    throw OMP::Error::BadArgs("Unable to obtain plain text password to mail\n")
-      unless defined $password;
-
-    # Try and work out who is making the request
-    my ($user, $ip, $addr) = OMP::NetTools->determine_host;
-
-    # List of recipients of mail
-    my @addr = $proj->contacts;
-
-    throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
-
-
-    # First thing to do is to register this action with
-    # the feedback system
-    my $fbmsg = "<html>New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
-      join(",", map {$_->html} @addr)."\n";
-
-    # Disable transactions since we can only have a single
-    # transaction at any given time with a single handle
-    $self->_notify_feedback_system(
-                                   subject => "Password change for $projectid",
-                                   text => $fbmsg,
-                                   status => OMP__FB_INFO,
-                                   msgtype => OMP__FB_MSG_PASSWD_ISSUED,
-                                   );
-
-    # Now set up the mail
-
-    # Mail message content
-    my $msg = "\nNew password for project $projectid: $password\n\n" .
-      "This password was generated automatically at the request\nof $addr.\n".
-        "\nPlease do not reply to this email message directly.\n";
-
-    $self->_mail_information(
-                             message => $msg,
-                             to => \@addr,
-                             from => OMP::User->new(name => "omp-auto-reply"),
-                             subject => "[$projectid] OMP reissue of password for $projectid",
-                            );
-  } else {
-
-    throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
-
-
-  }
-
-}
-
 =pod
 
-=item B<_remove_unchanged_contactability>
+=item B<_remove_unchanged_flag>
 
 Given an C<OMP::Project> object and a hash reference of (possibly)
-updated user-contactable key-value pairs, returns a new hash reference
+updated user-flag key-value pairs, returns a new hash reference
 of the remaining changed, possibly none, pairs.
 
   $changed =
-    $db->_remove_unchanged_contactability( $project,
+    $db->_remove_unchanged_flag( $project, $flag,
                                           { 'USR1' => 1, 'USR2' => 0 }
                                         );
 
 =cut
 
-sub _remove_unchanged_contactability {
+sub _remove_unchanged_flag {
 
-  my ( $self, $proj, $updates ) = @_;
+  my ( $self, $proj, $flag, $updates ) = @_;
 
-  my %old_contact = $proj->contactable;
+  my %old_flag = $proj->$flag;
   my %changed;
   for my $user ( keys %{ $updates } ) {
 
-    my $contactable = $updates->{ $user };
+    my $flag = $updates->{ $user };
 
-    next if exists $old_contact{ $user }
-          && ( ( $contactable && $old_contact{ $user } )
-              || ( ! $contactable && ! $old_contact{ $user } )
+    next if exists $old_flag{ $user }
+          && ( ( $flag && $old_flag{ $user } )
+              || ( ! $flag && ! $old_flag{ $user } )
               ) ;
 
-    $changed{ $user } = $contactable;
+    $changed{ $user } = $flag;
   }
 
   return %changed;
