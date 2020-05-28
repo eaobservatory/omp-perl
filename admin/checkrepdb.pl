@@ -106,7 +106,6 @@ use Time::HiRes qw/gettimeofday tv_interval/;
 use OMP::BaseDB;
 use OMP::DBbackend;
 use OMP::Error qw/:try/;
-use OMP::KeyDB;
 
 my $progress = 0;
 
@@ -156,18 +155,18 @@ do {
         pod2usage('-exitval' => 1, '-verbose' => 2) if $help;
     };
 
-    my ($primary_kdb, $primary_db_down,
-        $secondary_kdb, $secondary_db_down,
+    my ($primary_dbh, $primary_db_down,
+        $secondary_dbh, $secondary_db_down,
         $tmp);
 
     my @msg;
 
-    ($primary_kdb, $primary_db_down, $tmp) = check_db_up($primary_db);
+    ($primary_dbh, $primary_db_down, $tmp) = check_db_up($primary_db);
     push @msg, $tmp;
 
     # Only check secondary database if it was defined.
     if (defined $secondary_db) {
-        ($secondary_kdb, $secondary_db_down, $tmp) = check_db_up($secondary_db);
+        ($secondary_dbh, $secondary_db_down, $tmp) = check_db_up($secondary_db);
         push @msg, $tmp;
     }
     else {
@@ -184,7 +183,7 @@ do {
 
             if ($run{'replication'}) {
                 ($tmp, $key_replication) = check_rep(
-                    $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
+                    $primary_db, $primary_dbh, $secondary_db, $secondary_dbh,
                     'wait'  => $wait,
                     'tries' => $tries);
                 push @msg, $tmp;
@@ -264,13 +263,15 @@ do {
 
 
 sub check_rep {
-    my ($pri_db, $pri_kdb, $sec_db, $sec_kdb, %wait) = @_;
+    my ($pri_db, $pri_dbh, $sec_db, $sec_dbh, %wait) = @_;
 
     my $msg = '';
     my $critical = 0;
 
+    return ('Replication check not currently supported', 1);
+
     my ($key, $verify, $time_msg) =
-        check_key_rep($pri_db, $sec_db, $pri_kdb, $sec_kdb, %wait);
+        check_key_rep($pri_db, $sec_db, $pri_dbh, $sec_dbh, %wait);
 
     $msg .= $time_msg;
 
@@ -289,6 +290,11 @@ sub check_rep {
 
 sub check_key_rep {
     my ($pri_db, $sec_db, $pri_kdb, $sec_kdb, %opt) = @_;
+
+    die 'Subroutine check_key_rep is not currently useable';
+    # We get a database handle rather than "Key DB", which no longer
+    # exists.  If we start using replication again, we must check using
+    # another table, e.g. ompauth.
 
     my $wait  = $opt{'wait'}  || 20;
     my $tries = $opt{'tries'} || 15;
@@ -333,14 +339,14 @@ sub check_db_up {
 
     progress("Checking if $db is up");
 
-    my $kdb;
+    my $dbh;
     my $down = 0;
 
     my $err_die;
     $ENV{OMP_DBSERVER} = $db;
 
     try {
-        $kdb = OMP::KeyDB->new('DB' => OMP::DBbackend->new(1));
+        $dbh = OMP::DBbackend->new(1);
     }
     catch OMP::Error::BadCfgKey with {
         my ($e) = @_;
@@ -355,7 +361,7 @@ sub check_db_up {
     die $err_die if $err_die;
 
     return (
-        $kdb, $down,
+        $dbh, $down,
         "Database server $db is " . ($down ? "down!\n" : "up. [OK]\n"));
 }
 
