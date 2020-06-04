@@ -34,21 +34,8 @@ use OMP::FindTarget qw/find_and_display_targets/;
 # not 0: debug output
 my $debug = 0;
 
-# Authorize access via staff password
-my $password = (exists $ENV{'STAFF_PASSWORD'})
-             ? $ENV{'STAFF_PASSWORD'} : undef;
-unless (defined $password) {
-    require Term::ReadLine;
-    my $term = new Term::ReadLine 'Find OMP targets';
-
-    # Needs Term::ReadLine::Gnu
-    my $attribs = $term->Attribs;
-    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-    $password = $term->readline( "Please enter staff password: ");
-    $attribs->{redisplay_function} = $attribs->{rl_redisplay};
-}
-
-OMP::Password->verify_staff_password($password);
+# Authorize access via staff requirement
+OMP::Password->get_verified_auth('staff');
 
 # Program name
 my $program = ( split( /\//, $0 ) )[-1];

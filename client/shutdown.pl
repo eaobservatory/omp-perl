@@ -74,6 +74,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::DBbackend;
 use OMP::General;
 use OMP::Info::Comment;
+use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::ShiftDB;
 use OMP::TimeAcctDB;
@@ -123,17 +124,12 @@ if (defined $tel and exists $telescopes{uc($tel)}) {
   die "Must provide a valid telescope\n";
 }
 
-# Get and verify user ID
-my $prompt = "Your OMP user ID: ";
-my $userid = $term->readline($prompt);
-my $udb = new OMP::UserDB( DB => $dbconnection );
-my $user = $udb->getUser( $userid );
-die "Invalid user: $userid\n"
-  unless (defined $user);
+# Get staff auth
+my $auth = OMP::Password->get_verified_auth('staff');
 
 
 # Get shift type
-$prompt = "SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ";
+my $prompt = "SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ";
 my $shift = $term->readline($prompt);
 $shift =  uc($shift);
 die "Invalid shift: $shift\n"
@@ -225,7 +221,7 @@ while ($currentdt <= $enddt) {
   push (@taccts, $t);
 
   # Create shiftlog comments
-  my $comment = new OMP::Info::Comment(author => $user,
+  my $comment = new OMP::Info::Comment(author => $auth->user,
                                        text   => $shutreason,
                                        date   => $starttimetp);
 

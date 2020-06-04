@@ -85,7 +85,6 @@ use strict;
 use Getopt::Long;
 use IO::File;
 use Pod::Usage;
-use Term::ReadLine;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -127,9 +126,6 @@ if ($version) {
 unless (defined $commentfile and defined $projectsfile and defined $author) {
     die "The following arguments are not optional: -comment, -projects, -userid";
 }
-
-# Setup term
-my $term = new Term::ReadLine('Submit a feedback comment to multiple projects');
 
 # Get the author user
 my $user = OMP::UserServer->getUser($author);
@@ -191,12 +187,8 @@ print
     ($dry_run ? 'will not' : 'will'),
     " be submitted\n\n";
 
-# Verify staff password
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $passwd = $term->readline('Please enter the staff password: ');
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
-OMP::Password->verify_staff_password($passwd);
+# Verify staff membership
+OMP::Password->get_verified_auth('staff');
 
 # Submit the comment for each project
 foreach my $projectid (@projects) {

@@ -60,6 +60,7 @@ use Term::ReadLine;
 # Does mean we need to connect to the database though
 use OMP::MSBDB;
 use OMP::DBbackend;
+use OMP::Password;
 
 
 # Options
@@ -71,20 +72,14 @@ my $status = GetOptions("help" => \$help,
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
+OMP::Password->get_verified_auth('staff');
 
 # Ask for the project id
 my $term = new Term::ReadLine 'Rem Sci Prog';
 my $project = $term->readline( "Project ID of science program to delete: ");
 
-# Needs Term::ReadLine::Gnu
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $password = $term->readline( "Password [project or admin]: ");
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
-
 # Create the new object
 my $db = new OMP::MSBDB(
-                        Password => $password,
                         ProjectID => $project,
                         DB => new OMP::DBbackend,
                        );
