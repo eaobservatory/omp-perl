@@ -15,26 +15,8 @@ OMP::Password - Password related things.
   #  Single try.
   my $pass =
     OMP::Password->get_password({
-      'prompt' => 'Enter staff password: '
+      'prompt' => 'Enter password: '
     });
-
-  try {
-    my $ok = OMP::Password->verify_staff_password( $pass );
-  }
-  catch OMP::Error::Authentication with {
-    my $err = shift;
-    throw $err;
-  };
-  print "password: $pass\n";
-
-  #  Ask 3 times for a staff password, disable exceptions.
-  $pass =
-    OMP::Password->get_verified_password({
-      'tries' => 3,
-      'verify' => 'verify_staff_password',
-      'exception' => 0
-    });
-  print "password: $pass\n";
 
 
 =head1 DESCRIPTION
@@ -319,176 +301,12 @@ sub verify_password {
   my $queue = shift;
   my $retval = shift;
 
-  # Test admin, staff and queue
-  return 1 if $self->verify_queman_password( $plain, $queue, 1 );
-
   # Do tests with exception handling disabled
   # Then throw exception if required at end
   return 1 if $self->_verify_password( $plain, $encrypted, 1 );
 
   return $self->_handle_bad_status( $retval, "Failed to verify general password" );
 
-}
-
-=item B<verify_administrator_password>
-
-Compare the supplied password with the administrator password. Throw
-an exception if the two do not match. This safeguard is used to
-prevent people from modifying the contents of the project database
-without having permission.
-
-  OMP::Password->verify_administrator_password( $input );
-
-Note that the supplied password is assumed to be unencrypted.
-
-An optional second argument can be used to disable the exception
-throwing. If the second argument is true the routine will return
-true or false depending on whether the password is verified.
-
-  $isokay = OMP::Password->verify_administrator_password( $input, 1 );
-
-Always fails if the supplied password is undefined.
-
-=cut
-
-sub verify_administrator_password {
-  my $self = shift;
-  my $password = shift;
-  my $retval = shift;
-
-  # The encrypted admin password
-  # At some point we'll pick this up from somewhere else.
-  my $admin = OMP::Config->getData("password.admin");
-
-  return $self->_verify_password( $password, $admin, $retval, "Failed to match administrator password" );
-}
-
-=pod
-
-=item B<verify_staff_password>
-
-Compare the supplied password with the staff password. Throw
-an exception if the two do not match. This provides access to some
-parts of the system normally restricted to principal investigators.
-
-  OMP::Password->verify_staff_password( $input );
-
-Note that the supplied password is assumed to be unencrypted.
-
-An optional second argument can be used to disable the exception
-throwing. If the second argument is true the routine will return
-true or false depending on whether the password is verified.
-
-  $isokay = OMP::Password->verify_staff_password( $input, 1 );
-
-Always fails if the supplied password is undefined.
-
-The password is always compared with the administrator password
-first.
-
-The password is verified by both looking at the "password.staff"
-config file entry (done first) and also the "password.external"
-config file entry.
-
-=cut
-
-sub verify_staff_password {
-  my $self = shift;
-  my $password = shift;
-  my $retval = shift;
-
-  # First try admin password
-  my $status = OMP::Password->verify_administrator_password( $password,1);
-
-  # Return immediately if all is well
-  # Else try against the staff password
-  return $status if $status;
-
-  # The encrypted staff password
-  # At some point we'll pick this up from somewhere else.
-  my @trials = ( OMP::Config->getData("password.staff") );
-
-  # we may not have an external available
-  try {
-    push(@trials, OMP::Config->getData("password.external"));
-
-    # Non-JAC UKIRT support staff.
-    push(@trials, OMP::Config->getData("password.extern-ukirt-supp"));
-  } catch OMP::Error::BadCfgKey with {
-    # do not worry about a lack of external
-  };
-
-  return $self->_verify_password( $password, \@trials, $retval, "Failed to match staff password" );
-}
-
-=pod
-
-=item B<verify_queman_password>
-
-Compare the supplied password with the queue manager password. Throw
-an exception if the two do not match. This provides access to some
-parts of the system normally restricted to queue managers.
-
-  OMP::Password->verify_queueman_password( $input, $queue );
-
-Note that the supplied password is assumed to be unencrypted. The
-queue name (usually country name) must be supplied and can be supplied
-as a reference to an array of multiple queue names.
-
-An optional third argument can be used to disable the exception
-throwing. If the second argument is true the routine will return
-true or false depending on whether the password is verified.
-
-  $isokay = OMP::Password->verify_queman_password( $input, $queue, 1 );
-
-Always fails if the supplied password is undefined. The country
-must be defined unless the password is either the staff or administrator
-password (which is compared first).
-
-=cut
-
-sub verify_queman_password {
-  my $self = shift;
-  my $password = shift;
-  my $queue = shift;
-  my $retval = shift;
-
-  # First try staff password
-  my $status = OMP::Password->verify_staff_password( $password,1);
-
-  # Return immediately if all is well
-  # Else try against the queue password
-  return $status if $status;
-
-  # if we do not have an input password we abort
-  return $self->_handle_bad_status( $retval, "No queue defined for queue manager verification" )
-    if !defined $queue;
-
-  # Expand queues
-  my @queues;
-  if (defined $queue) {
-    @queues = ( ref($queue) ? @$queue : $queue );
-  }
-
-  # Assume that the queue password is in the config file
-  # indexed by the queue name. This will generate an exception
-  # if the queue password is not available so we trap that because
-  # we don't require that every queue has a queue manager password
-  my @qpass;
-  for my $q (@queues) {
-    try {
-      push(@qpass,OMP::Config->getData( "password." . lc($q) ));
-    } catch OMP::Error::BadCfgKey with {
-      # ignore
-    };
-  }
-
-  # if we have no passwords we must be failing verification
-  if (!@qpass) {
-    return $self->_handle_bad_status( $retval, "No queue manager password defined for queue $queue" );
-  };
-
-  return $self->_verify_password( $password, \@qpass, $retval, "Failed to match password for queue $queue" );
 }
 
 =back

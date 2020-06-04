@@ -27,13 +27,6 @@ use Time::Seconds;
 require_ok('OMP::General');
 require_ok('OMP::SiteQuality');
 
-print "# Verification\n";
-
-# At least test that we fail to match the admin password
-# (after always matching for some time!)
-#ok( ! OMP::General->verify_administrator_password( "blah", 1 ),
-#  "Check that we fail to verify the admin password");
-
 print "# Project ID\n";
 
 my @input = (

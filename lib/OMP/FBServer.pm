@@ -165,20 +165,19 @@ sub getComments {
 =item B<alterStatus>
 
 Alter the status of a comment, rendering it either hidden or visible.
-Requires an admin password. Last argument should be a feedback constant
+Last argument should be a feedback constant
 as defined in C<OMP::Constants>.
 
 Does not return anything, but will throw an error if it fails to alter
 the status.
 
-  OMP::FBServer->alterStatus( $commentid, $adminpass, $status );
+  OMP::FBServer->alterStatus( $commentid, $status );
 
 =cut
 
 sub alterStatus {
   my $class = shift;
   my $commentid = shift;
-  my $adminpass = shift;
   my $status = shift;
 
   my $E;
@@ -186,7 +185,7 @@ sub alterStatus {
 
     my $db = new OMP::FeedbackDB( DB => $class->dbConnection, );
 
-    $db->alterStatus( $commentid, $adminpass, $status );
+    $db->alterStatus( $commentid, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
