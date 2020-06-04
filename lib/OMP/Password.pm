@@ -31,11 +31,13 @@ use warnings;
 
 our $VERSION = qw/$REVISION$/[1];
 
+use Carp;
 use Term::ReadLine;
 
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
 use OMP::Config;
+use OMP::Auth;
 
 =pod
 
@@ -53,19 +55,40 @@ Attempt to get an OMP::Auth provider name, username and password.
 
   my ($provider, $username, $password) = OMP::Password->get_userpass();
 
-Currently assumes provider 'staff' and gets the username from C<$ENV{'USER'}>.
+Currently assumes provider 'staff'.
 
 =cut
 
 sub get_userpass {
   my $cls = shift;
   my $provider = 'staff';
-  my $username = $ENV{'USER'};
-  die 'Could not determine your username from the environment'
-    unless defined $username;;
+  my $username = $cls->get_username();
   my $password = $cls->get_password({
     prompt => 'Please enter your password: '});
   return $provider, $username, $password;
+}
+
+=item B<get_username>
+
+Read the username from the environment.  If not present,
+or if it is a shared account, prompt for the username.
+
+=cut
+
+sub get_username {
+  my $cls = shift;
+
+  my %shared = map {$_ => 1} OMP::Config->getData('shared-account');
+
+  if ((exists $ENV{'USER'})
+        and (defined $ENV{'USER'})
+        and (not $shared{$ENV{'USER'}})) {
+    return $ENV{'USER'};
+  }
+
+  my $term = Term::ReadLine->new('Username Entry', *STDERR, *STDERR);
+
+  return $term->readline('Please enter your username: ');
 }
 
 =item B<get_password>
@@ -132,6 +155,38 @@ sub _copy_new_hash_values {
     $orig->{ $k } = $opt->{ $k } if exists $opt->{ $k };
   }
   return;
+}
+
+=item B<get_verified_auth>
+
+Prompt the user for their username (if necessary) and password
+using C<get_userpass> and then log in with C<log_in_userpass>
+and check the resultant C<OMP::Auth> for the specified type.
+
+  my $auth = OMP::Password->get_verified_auth('staff');
+
+=cut
+
+sub get_verified_auth {
+  my $cls = shift;
+  my $auth_type = shift;
+
+  croak 'No auth_type specified' unless defined $auth_type;
+
+  my $auth = OMP::Auth->log_in_userpass($cls->get_userpass);
+
+  throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
+    unless defined $auth->user;
+
+  if ($auth_type eq 'staff') {
+    throw OMP::Error::Authentication('Permission denied.')
+      unless $auth->is_staff;
+  }
+  else {
+      croak 'Unrecognized auth_type value';
+  }
+
+  return $auth;
 }
 
 =head1 AUTHORS
