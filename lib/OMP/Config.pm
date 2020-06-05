@@ -1129,8 +1129,8 @@ specific files overrides that found in the basic defaults.
 Site-wide configuration files can be specified by using the "siteconfig"
 key. This should contain the name of a file that can contain site configuration
 information. It should be in the same format as the normal config file
-and is not expected to be in CVS. This can be used to store local encrypted
-passwords. Contents from the site file are read in last and override
+and is not expected to be in CVS.
+Contents from the site file are read in last and override
 entries in the original config file. "mergeconfig" can be used if nested
 data should be merged rather than overridden.
 

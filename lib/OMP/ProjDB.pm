@@ -35,7 +35,6 @@ use OMP::User;
 use OMP::UserDB;
 use OMP::NetTools;
 use OMP::General;
-use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::SiteQuality;
 
@@ -82,7 +81,7 @@ Inherits from C<OMP::BaseDB>.
 Add a new project to the database or replace an existing entry in the
 database.
 
-  $db->addProject( $admin_password, $project );
+  $db->addProject( $project );
 
 The argument is of class C<OMP::Project>.
 
@@ -91,25 +90,17 @@ in the database (this is for safety reasons). An optional second
 argument can control whether the project should always force
 overwrite. If this is true the old project details will be removed.
 
-  $db->addProject( $admin_password, $project, $force );
+  $db->addProject( $project, $force );
 
 Throws an exception of type C<OMP::Error::ProjectExists> if the
 project exists and force is not set to true.
-
-The password will be verified to
-determine if the user is allowed to update project details (this is
-effectively the administrator password.
 
 =cut
 
 sub addProject {
   my $self = shift;
-  my $admin_password = shift;
   my $project = shift;
   my $force = shift;
-
-  # Verify that we can update the database
-  OMP::Password->verify_administrator_password( $admin_password );
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -236,16 +227,12 @@ sub verifyTelescope {
 Remove the project from future queries by setting the project
 state to 0 (disabled).
 
-  $db->disableProject($staff_password);
+  $db->disableProject();
 
 =cut
 
 sub disableProject {
   my $self = shift;
-  my $staff_password = shift;
-
-  # Verify that we can update the database
-  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -280,18 +267,12 @@ sub disableProject {
 Re-enable a project so that it will show up in from future queries by
 setting the project state to 1 (enabled).
 
-  $db->enableProject($staff_password);
-
-Requires the staff password.
+  $db->enableProject();
 
 =cut
 
 sub enableProject {
   my $self = shift;
-  my $staff_password = shift;
-
-  # Verify that we can update the database
-  OMP::Password->verify_staff_password( $staff_password );
 
   # First thing to do is to retrieve the table row
   # for this project

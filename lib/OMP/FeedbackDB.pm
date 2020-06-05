@@ -11,7 +11,7 @@ OMP::FeedbackDB - Manipulate the feedback database
 
   $db->addComment( $comment );
   $db->getComments( \@status );
-  $db->alterStatus( $commentid, $admin_password, $status );
+  $db->alterStatus( $commentid, $status );
 
 
 =head1 DESCRIPTION
@@ -39,7 +39,6 @@ use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
-use OMP::Password;
 
 use Text::Wrap;
 
@@ -278,7 +277,7 @@ sub addComment {
 
 Alters the status of a comment.
 
-  $db->alterStatus( $commentid, $admin_password, $status);
+  $db->alterStatus( $commentid, $status);
 
 Last argument should be a feedback constant as defined in C<OMP::Constants>.
 
@@ -287,11 +286,7 @@ Last argument should be a feedback constant as defined in C<OMP::Constants>.
 sub alterStatus {
   my $self = shift;
   my $commentid = shift;
-  my $admin_password = shift;
   my $status = shift;
-
-  # Verify admin password.
-  OMP::Password->verify_administrator_password( $admin_password );
 
   # Begin trans
   $self->_db_begin_trans;

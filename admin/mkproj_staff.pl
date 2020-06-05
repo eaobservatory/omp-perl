@@ -66,10 +66,7 @@ use OMP::Password;
 
 my $force = 0;
 
-my $pass = OMP::Password->get_verified_password({
-                'prompt' => 'Enter administrator password: ',
-                'verify' => 'verify_administrator_password',
-            }) ;
+OMP::Password->get_verified_auth('staff');
 
 while (<>) {
   chomp;
@@ -118,7 +115,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject( $pass, $force, @details );
+    OMP::ProjServer->addProject( $force, @details );
   }
 
 }

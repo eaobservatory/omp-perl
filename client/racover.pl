@@ -142,7 +142,7 @@ if (@projects) {
   }
 
   # Convert to project objects (needs password)
-  @projects = map { OMP::ProjServer->projectDetails( $_, $password, "object" ); } @projects;
+  @projects = map { OMP::ProjServer->projectDetails( $_, "object" ); } @projects;
 
 } else {
   # We do not have projects, so use the country/semester/telescope search

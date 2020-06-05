@@ -74,7 +74,6 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP classes
 use OMP::General;
-use OMP::Password;
 use OMP::DBbackend;
 use OMP::QStatus qw/query_queue_status/;
 use Time::Piece qw/ :override /;
@@ -103,40 +102,22 @@ if ($version) {
   exit;
 }
 
-# First thing we do is ask for a password and possibly telescope
-
-my $password = (exists $ENV{'STAFF_PASSWORD'})
-             ? $ENV{'STAFF_PASSWORD'} : undef;
-
 my $telescope = (defined $tel) ? uc($tel) : undef;
 
-unless (defined $telescope and defined $password) {
+unless (defined $telescope) {
   require Term::ReadLine;
   my $term = new Term::ReadLine 'Gather queue parameters';
 
-  unless (defined $telescope) {
-    # Should be able to pass in a readline object if Tk not desired
-    $telescope = OMP::General->determine_tel($term);
-    die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
-    die "Unable to determine telescope [too many choices]. Exiting.\n"
-       if ref $telescope;
-  }
-
-  unless (defined $password) {
-    # Needs Term::ReadLine::Gnu
-    my $attribs = $term->Attribs;
-    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-    $password = $term->readline( "Please enter staff password: ");
-    $attribs->{redisplay_function} = $attribs->{rl_redisplay};
-  }
+  $telescope = OMP::General->determine_tel($term);
+  die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
+  die "Unable to determine telescope [too many choices]. Exiting.\n"
+     if ref $telescope;
 }
-
-OMP::Password->verify_staff_password( $password );
 
 # Calculate localtime to GMT offset (hours)
 my $tzoffset = gmtime()->tzoffset->hours;
 
-print "Password Verified. Now analyzing ".
+print "Analyzing ".
    (defined $country ? uc($country) . ' ' : '') .
      "queue status.\n";
 
@@ -219,7 +200,6 @@ for my $p (keys %projq) {
 # Now populate the project hash with project details
 my $backend = new OMP::DBbackend();
 my $projdb = new OMP::ProjDB(
-                             Password => $password,
                              DB => $backend,
                             );
 

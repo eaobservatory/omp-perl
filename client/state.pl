@@ -62,7 +62,6 @@ $| = 1; # Make unbuffered
 
 use Getopt::Long;
 use Pod::Usage;
-use Term::ReadLine;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -72,6 +71,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::DBbackend;
 use OMP::General;
 use OMP::ProjDB;
+use OMP::Password;
 
 our $VERSION = '2.000';
 
@@ -99,14 +99,7 @@ if ($enable and $disable) {
   die "Use either -disable or -enable, not both.\n";
 }
 
-# Setup term
-my $term = new Term::ReadLine 'Disable or enable a project';
-
-# Get administrator password
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $password = $term->readline( "Please enter the staff password: ");
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
+OMP::Password->get_verified_auth('staff');
 
 print "\n";
 
@@ -128,12 +121,12 @@ for my $id (split(',',$idstr)) {
       print "Enabling project ". $proj->projectid ."... ";
 
       # Set state to enabled
-      $projdb->enableProject($password);
+      $projdb->enableProject();
     } else {
       print "Disabling project ". $proj->projectid ."... ";
 
       # Set state to enabled
-      $projdb->disableProject($password);
+      $projdb->disableProject();
     }
 
     print "done.\n";

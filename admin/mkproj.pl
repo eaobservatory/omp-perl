@@ -264,12 +264,8 @@ if (any_err()) {
     exit 1;
 }
 
-my $pass;
 unless ($dry_run) {
-    $pass = OMP::Password->get_verified_password({
-                'prompt' => 'Enter administrator password: ',
-                'verify' => 'verify_administrator_password',
-            }) ;
+    OMP::Password->get_verified_auth('staff');
 }
 
 # Loop over each project and add it in
@@ -444,7 +440,7 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Now add the project
   try {
-    OMP::ProjServer->addProject( $pass, $force, @project_args);
+    OMP::ProjServer->addProject( $force, @project_args);
 
   } catch OMP::Error::ProjectExists with {
     print " - but the project already exists. Skipping.\n";
