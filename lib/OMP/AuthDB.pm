@@ -89,7 +89,7 @@ sub verify_token {
     $self->_expire_tokens();
 
     my $result = $self->_db_retrieve_data_ashash(
-        'select A.userid, A.expiry, A.is_staff, U.uname from ' . $AUTHTABLE .
+        'select A.userid, A.expiry, A.is_staff, U.uname, U.email from ' . $AUTHTABLE .
         ' as A join ' . $OMP::UserDB::USERTABLE .
         ' as U on A.userid = U.userid where token = ?',
         $token);
@@ -118,6 +118,7 @@ sub verify_token {
     return new OMP::User(
         userid => $result->{'userid'},
         name => $result->{'uname'},
+        email => $result->{'email'},
         is_staff => $result->{'is_staff'});
 }
 
