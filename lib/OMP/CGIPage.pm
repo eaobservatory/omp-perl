@@ -291,14 +291,25 @@ The login verification process is skipped
 
 Require staff log-in.
 
-=item local_or_staff
-
-Require access from a local machine, or with staff log-in.
-
 =item project
 
-Require membership of the project specified by the 'id' query parameter,
+Require membership of the project specified by the "project" query parameter,
 or staff log-in.
+
+=back
+
+These options can be prefixed as follows (in this order):
+
+=over 4
+
+=item local_or_
+
+Allow access from a local machine.
+
+=item staff_or_
+
+Allow access with staff log-in, even if futher authorization information
+is not provided (e.g. the project ID for "project" C<auth_type>).
 
 =back
 
@@ -379,31 +390,41 @@ sub write_page {
 
   return if $auth->abort();
 
-  if ($auth_type eq 'local_or_staff') {
-    $auth_type = OMP::NetTools->is_host_local() ? 'no_auth' : 'staff';
+  my $auth_ok = 0;
+
+  if ($auth_type =~ '^local_or_(\w+)$') {
+    $auth_type = $1;
+    $auth_ok = 1 if OMP::NetTools->is_host_local();
   }
+
+ if ($auth_type =~ '^staff_or_(\w+)$') {
+    $auth_type = $1;
+    $auth_ok = 1 if $auth->is_staff();
+ }
 
   my @args = ();
   unless ($auth_type eq 'no_auth') {
     # Check to see if any login information has been provided. If not then
     # put up a login page.
-    return $self->_write_login() unless defined $auth->user();
+    return $self->_write_login() unless ($auth_ok or defined $auth->user());
 
     if ($auth_type eq 'staff') {
-      return $self->_write_forbidden() unless $auth->is_staff();
+      return $self->_write_forbidden() unless ($auth_ok or $auth->is_staff());
     }
     elsif ($auth_type eq 'project') {
       # Require project access.
 
       my $projectid = OMP::General->extract_projectid($q->url_param('project'));
-      return $self->_write_project_choice()
-        unless defined $projectid;
-
-      # Ensure project ID is upper case before attempting authorization.
-      $projectid = uc $projectid;
+      unless (defined $projectid) {
+        return $self->_write_project_choice() unless $auth_ok;
+      }
+      else {
+        # Ensure project ID is upper case before attempting authorization.
+        $projectid = uc $projectid;
+      }
 
       return $self->_write_forbidden()
-        unless $auth->is_staff or $auth->has_project($projectid);
+        unless ($auth_ok or $auth->is_staff or $auth->has_project($projectid));
 
       push @args, $projectid;
       $self->_sidebar_project($projectid);

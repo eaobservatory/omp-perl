@@ -49,7 +49,7 @@ our %mime = (
 
 Includes a file based on the UT date.
 
- $comp->include_file_ut('dq-nightly', $utdate[, 'index.html']);
+ $comp->include_file_ut('dq-nightly', $utdate[, filename => 'index.html'][, projectid => $projectid]);
 
 The first parameter specifies the type of file,
 which allows the directory containing it to be
@@ -68,7 +68,11 @@ or 0 if it could not be found.
 
 sub include_file_ut {
   my $self = shift;
-  my ($type, $utdate, $filename) = @_;
+  my $type = shift;
+  my $utdate = shift;
+  my %opt = @_;
+
+  my $projectid = (exists $opt{'projectid'}) ? $opt{'projectid'} : undef;
 
   # Determine directory to search for files.
   my $directory = OMP::Config->getData('directory-'.$type);
@@ -83,7 +87,7 @@ sub include_file_ut {
   }
 
   # Apply default filename if not provided.
-  $filename = 'index.html' unless $filename;
+  my $filename = (exists $opt{'filename'}) ? $opt{'filename'} : 'index.html';
 
   my $pathname = join('/', $directory, $utdate, $filename);
 
@@ -98,7 +102,7 @@ sub include_file_ut {
   my $fh = new IO::File($pathname);
 
   foreach (<$fh>) {
-    s/src="([^"]+)"/'src="' . _resource_url($type, $utdate, $1) . '"'/eg;
+    s/src="([^"]+)"/'src="' . _resource_url($type, $utdate, $1, $projectid) . '"'/eg;
     print;
   }
 
@@ -180,10 +184,14 @@ the user has permission to see it.
 =cut
 
 sub _resource_url {
-  my ($type, $utdate, $filename) = @_;
-  return 'get_resource.pl?type=' . $type
+  my ($type, $utdate, $filename, $projectid) = @_;
+  my $url = 'get_resource.pl?type=' . $type
        . '&amp;utdate=' . $utdate
        . '&amp;filename=' . $filename;
+
+  $url .= '&amp;project=' . $projectid if defined $projectid;
+
+  return $url;
 }
 
 =back

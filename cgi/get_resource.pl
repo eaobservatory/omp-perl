@@ -18,5 +18,5 @@ use OMP::CGIPage::IncludeFile;
 OMP::CGIPage::IncludeFile->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::IncludeFile::get_resource,
     undef,
-    'local_or_staff',
+    'local_or_staff_or_project',
     no_header => 1);
