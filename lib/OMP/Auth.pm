@@ -31,8 +31,6 @@ our %PROVIDERS = (
     },
 );
 
-our $COOKIE_NAME = 'OMPLOGIN';
-
 =head1 METHODS
 
 =head2 Class methods
@@ -92,7 +90,7 @@ sub log_in {
             $redirect = $user_info->{'redirect'} if exists $user_info->{'redirect'};
         }
         else {
-            my %cookie = $q->cookie(-name => $COOKIE_NAME);
+            my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
 
             if (exists $cookie{'token'}) {
                 $token = $cookie{'token'};
@@ -180,7 +178,7 @@ sub log_out {
     my $cls = shift;
     my $q = shift;
 
-    my %cookie = $q->cookie(-name => $COOKIE_NAME);
+    my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
 
     if (exists $cookie{'token'}) {
         my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
@@ -429,7 +427,7 @@ sub _make_cookie {
     my %values = @_;
 
     return $q->cookie(
-        -name => $COOKIE_NAME,
+        -name => OMP::Config->getData('cookie-name'),
         -value => \%values,
         -domain => OMP::Config->getData('cookie-domain'),
         -expires => $expiry);
