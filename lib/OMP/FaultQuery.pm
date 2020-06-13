@@ -90,32 +90,35 @@ sub sql {
   # should be possible. [isfault can be used to search for all faults
   # responded to by person X or all faults filed by person X]
   my $r_table = '';
-  my $r_sql = '';
   if ($subsql =~ /\bR\.\w/) { # Look for R. field
-    $r_table = ", $resptable R";
-    $r_sql = " R.faultid = F.faultid ";
+    $r_table = " JOIN $resptable R ON R.faultid = F.faultid ";
   }
 
   # Construct the the where clause. Depends on which
   # additional queries are defined
-  my @where = grep { $_ } ($r_sql, $subsql);
-  my $where = '';
-  $where = " WHERE " . join( " AND ", @where)
-    if @where;
+  my $where = $subsql ? " WHERE $subsql " : '';
+
+  # Determine if we have "relevance" information to prepare.
+  my (@frel, @rrel);
+  push @{/\bR\.\w/ ? \@rrel : \@frel}, $_ foreach $self->_qhash_relevance();
+  my ($frel, $rrel) = map {(scalar @$_) ? (join ' + ', @$_) : '0'} (\@frel, \@rrel);
 
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
   my $select = $options{'no_text'}
     ? "F.*, R.respid, R.date, R.author, R.isfault"
-    : "*";
-  my $sql = "SELECT $select FROM $faulttable F, $resptable R
-             WHERE F.faultid IN (
-                 SELECT F.faultid
+    : "F.*, R.*";
+  $select .= ", $frel + SUBSEL.relevance AS relevance";
+
+  my $sql = "SELECT $select FROM $faulttable F
+             JOIN $resptable R ON F.faultid = R.faultid
+             JOIN (
+                 SELECT F.faultid, SUM($rrel) AS relevance
                  FROM $faulttable F $r_table
                  $where
-             )
-             AND F.faultid = R.faultid
+                 GROUP BY F.faultid
+             ) AS SUBSEL ON F.faultid = SUBSEL.faultid
              ORDER BY R.isfault desc, R.date";
 
   return "$sql\n";

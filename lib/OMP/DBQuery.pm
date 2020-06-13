@@ -405,7 +405,39 @@ sub _create_sql_recurse {
   return $sql;
 }
 
+=item B<_qhash_relevance>
 
+Get a list of relevance expressions for the TEXTFIELD values in this query.
+
+  my @relevance = $q->_qhash_relevance();
+
+=cut
+
+sub _qhash_relevance {
+  my $self = shift;
+
+  return $self->_qhash_relevance_recurse($self->query_hash());
+}
+
+sub _qhash_relevance_recurse {
+  my $self = shift;
+  my $query = shift;
+
+  my @relevance = ();
+
+  while (my ($colname, $entry) = each %$query) {
+    next if $colname =~ /^_/;
+    if (ref($entry) eq 'ARRAY') {
+      if ($colname =~ /^TEXTFIELD__/) {
+        push @relevance, $self->_create_sql_recurse($colname, $entry);
+      }
+    } elsif (ref($entry) eq 'HASH') {
+      push @relevance, $self->_qhash_relevance_recurse($entry);
+    }
+  }
+
+  return @relevance;
+}
 
 =item B<_convert_to_perl>
 

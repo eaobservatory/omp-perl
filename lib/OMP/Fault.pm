@@ -1114,6 +1114,7 @@ sub new {
                      ShiftType => undef,
                      Remote => undef,
                      Subject => undef,
+                     Relevance => undef,
                     }, $class;
 
 
@@ -1800,6 +1801,21 @@ sub date {
 
   # Else return the file date
   return $self->filedate;
+}
+
+=item B<relevance>
+
+Relevance score, if this fault was retrieved from the database
+using a "full text" search.
+
+  $score = $fault->relevance();
+
+=cut
+
+sub relevance {
+  my $self = shift;
+  $self->{Relevance} = shift if @_;
+  return $self->{Relevance};
 }
 
 =back
