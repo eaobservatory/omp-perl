@@ -772,6 +772,7 @@ sub _write_login {
           $q->td('Password:'),
           $q->td(
             $q->password_field(-name=>'password',
+                               -default => '', -override => 1,
                                -size=>17,
                                -maxlength=>30)),
           $q->td($q->submit(-value => "Submit", -name => 'submit_log_in')))),
