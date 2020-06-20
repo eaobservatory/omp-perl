@@ -425,6 +425,9 @@ sub query_fault_output {
     # Get the text param and unescape things like &amp; &quot;
     my $text = $q->param('text');
     if (defined $text) {
+      my $text_boolean = $q->param('text_boolean');
+      my $modestr = $text_boolean ? ' mode="boolean"' : '';
+
       $text = OMP::Display::escape_entity($text);
       my $text_search = $q->param('text_search');
       if ($text_search eq 'text') {
@@ -436,8 +439,8 @@ sub query_fault_output {
       else {
         push @xml,
           '<or>',
-          "<text>$text</text>",
-          "<subject>$text</subject>",
+          "<text$modestr>$text</text>",
+          "<subject$modestr>$text</subject>",
           '</or>';
       }
     }

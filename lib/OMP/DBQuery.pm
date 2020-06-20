@@ -357,6 +357,7 @@ sub _create_sql_recurse {
     if ($colname =~ /^TEXTFIELD__/) {
       $colname =~ s/^TEXTFIELD__//;
       $cmp = 'fulltext';
+      $cmp .= 'boolean' if $colname =~ s/^BOOLEAN__//;
     }
 
     # Link all of the search queries together with an OR [must be inside
@@ -831,9 +832,10 @@ sub _querify {
   $cmp = lc($cmp);
 
   # Special case for fulltext search.
-  if ($cmp eq 'fulltext') {
+  if ($cmp eq 'fulltext' or $cmp eq 'fulltextboolean') {
     $value =~ s/([\\'])/\\$1/g;
-    return "(MATCH ($name) AGAINST ('$value'))";
+    my $modifier = $cmp eq 'fulltextboolean' ? ' IN BOOLEAN MODE' : '';
+    return "(MATCH ($name) AGAINST ('$value'$modifier))";
   }
   elsif ($cmp eq 'null') {
     my $expr = $value ? 'NULL' : 'NOT NULL';

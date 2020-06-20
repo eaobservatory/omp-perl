@@ -196,13 +196,19 @@ sub _post_process_hash {
       my $key = "R.$_";
       $href->{$key} = $href->{$_};
       delete $href->{$_};
+      $href->{'_attr'}->{$key} = delete $href->{'_attr'}->{$_}
+        if exists $href->{'_attr'}->{$_};
     }
   }
 
   # These are TEXT columns so need special kluging
   for (qw/ subject R.text /) {
     if (exists $href->{$_}) {
-      my $key = "TEXTFIELD__" . $_;
+      my $prefix = 'TEXTFIELD__';
+      $prefix .= 'BOOLEAN__' if exists $href->{'_attr'}->{$_}
+        and exists $href->{'_attr'}->{$_}->{'mode'}
+        and $href->{'_attr'}->{$_}->{'mode'} eq 'boolean';
+      my $key = $prefix . $_;
       $href->{$key} = $href->{$_};
       delete $href->{$_};
     }

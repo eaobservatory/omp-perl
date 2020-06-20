@@ -367,7 +367,12 @@ sub query_fault_form {
                         -labels=>{text=>"text",
                                   subject=>"subject",
                                   both=>"both"});
-  print "</b></td><tr><td colspan=2>";
+  print "</b>";
+  print ' (' . $q->checkbox(-name => 'text_boolean', -value => 1, -label => 'boolean mode')
+    . ' ' . $q->a({-href => "https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode",
+                   -target => "_blank"}, '?')
+    . ')';
+  print "</td><tr><td colspan=2>";
   print $q->textfield(-name=>'text',
                       -size=>44,
                       -maxlength=>256,);
