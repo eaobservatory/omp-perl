@@ -410,7 +410,7 @@ sub projlog_content {
         'Explanation of the graphs and tables.',
         "</a></p>\n\n";
   OMP::CGIComponent::IncludeFile->new(page => $self)->include_file_ut(
-      'dq-nightly', $utdate);
+      'dq-nightly', $utdate, projectid => $projectid);
 }
 
 =back

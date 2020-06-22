@@ -367,7 +367,12 @@ sub query_fault_form {
                         -labels=>{text=>"text",
                                   subject=>"subject",
                                   both=>"both"});
-  print "</b></td><tr><td colspan=2>";
+  print "</b>";
+  print ' (' . $q->checkbox(-name => 'text_boolean', -value => 1, -label => 'boolean mode')
+    . ' ' . $q->a({-href => "https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode",
+                   -target => "_blank"}, '?')
+    . ')';
+  print "</td><tr><td colspan=2>";
   print $q->textfield(-name=>'text',
                       -size=>44,
                       -maxlength=>256,);
@@ -943,8 +948,8 @@ Takes the following key/value pairs as arguments:
   url        - The absolute or relative path to the script to be
                used for the view/respond link
   orderby    - Should be either 'response' (to sort by date of
-               latest response) 'filedate', or 'timelost' (by amount
-               of time lost).
+               latest response) 'filedate', 'timelost' (by amount
+               of time lost) or 'relevance'.
   showcat    - true if a category column should be displayed
 
 Only the B<faults> key is required.
@@ -1001,6 +1006,9 @@ sub show_faults {
 
         'timelost' =>
           sub { $a->timelost <=> $b->timelost },
+
+        'relevance' =>
+          sub {$a->relevance() <=> $b->relevance()},
       );
 
     my $sort;
