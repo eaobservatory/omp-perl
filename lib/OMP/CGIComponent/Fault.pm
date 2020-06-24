@@ -139,7 +139,7 @@ sub fault_table {
     print " ";
     print $q->submit(-name=>'change_status',
                      -label=>'Change',);
-    print $q->endform;
+    print $q->end_form;
   } else {
     # Display only
     print $fault->statusText;
@@ -387,7 +387,7 @@ sub query_fault_form {
   print $q->submit(-name=>"major", -label=>"Major faults");
   print $q->submit(-name=>"recent", -label=>"Recent faults (2 days)");
   print $q->submit(-name=>"current", -label=>"Current faults (14 days)");
-  print $q->endform;
+  print $q->end_form;
   print "</td></table>";
 }
 
@@ -444,7 +444,7 @@ sub view_fault_form {
                       -maxlength=>32);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit(-name=>'Submit');
-  print $q->endform;
+  print $q->end_form;
   print "</td></table>";
 }
 
@@ -828,7 +828,7 @@ sub file_fault_form {
   print "</b></td><tr><td colspan='2' align=right>";
   print $q->submit(-name=>'submit',
                    -label=>$submittext,);
-  print $q->endform;
+  print $q->end_form;
   print "</td></table>";
 
 }
@@ -927,7 +927,7 @@ sub response_form {
   print $q->submit(-name=>'respond',
                    -label=>$defaults{submitlabel});
   print "</td></table>";
-  print $q->endform;
+  print $q->end_form;
 }
 
 =item B<show_faults>
@@ -1128,7 +1128,7 @@ sub print_form {
                                    combined => "Combined",},);
   }
 
-  print $q->endform;
+  print $q->end_form;
 }
 
 =item B<titlebar>

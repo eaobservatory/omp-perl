@@ -135,7 +135,7 @@ sub list_projects_form {
                      -checked=>'true',);
   print "&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
-  print $q->endform();
+  print $q->end_form();
   print "</td></tr></table>";
 }
 

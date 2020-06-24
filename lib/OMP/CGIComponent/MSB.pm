@@ -378,7 +378,7 @@ TABLE
               start_form_absolute($q),
               $q->submit($remove_button), $remove_note,
               OMP::Display->make_hidden_fields( $q, { %common_hidden } ),
-              $q->endform
+              $q->end_form
             )
           ) ;
     }
@@ -475,7 +475,7 @@ sub msb_comment_form {
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit("Submit");
   print "</td></table>";
-  print $q->endform;
+  print $q->end_form;
 }
 
 =item B<msb_sum>
@@ -714,7 +714,7 @@ sub observed_form {
                        -default=>0,);
   print "</td><td colspan=2>";
   print $q->submit("View Comments");
-  print $q->endform;
+  print $q->end_form;
   print "</td></table>";
 
 }
@@ -856,7 +856,7 @@ sub _print_transaction_comments {
               @buttons, "\n",
               @{ $args->{'hidden' } }, "\n",
               $query->hidden(-name => 'transaction', -default => $cur),
-              $query->endform, "\n", )
+              $query->end_form, "\n", )
           : ( '&nbsp;' );
 
         print

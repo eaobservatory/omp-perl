@@ -219,7 +219,7 @@ sub night_report {
                         $q->submit( -name  => "view_report",
                                     -label => "Submit"
                                   ) ,
-                        $q->endform()
+                        $q->end_form()
                       )
             );
 

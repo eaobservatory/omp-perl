@@ -383,7 +383,7 @@ sub options_form {
 
   print $cgi->submit( -name => 'Submit' );
 
-  print $cgi->endform;
+  print $cgi->end_form;
 
 }
 

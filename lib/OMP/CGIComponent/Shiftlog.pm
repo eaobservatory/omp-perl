@@ -294,7 +294,7 @@ sub display_comment_form {
                       -value => $v->{'telescope'},
                     );
   print $cgi->submit( -name => 'Submit Comment' );
-  print $cgi->endform;
+  print $cgi->end_form;
 
 }
 
@@ -334,7 +334,7 @@ sub display_date_form {
                       -value => 'UT',
                     );
   print $cgi->submit( -name => 'Submit New Date' );
-  print $cgi->endform;
+  print $cgi->end_form;
 
 }
 
@@ -374,7 +374,7 @@ sub display_telescope_form {
                       -value => $v->{'zone'},
                     );
   print $cgi->submit( -name => 'Submit New Telescope' );
-  print $cgi->endform;
+  print $cgi->end_form;
 }
 
 =item B<submit_comment>

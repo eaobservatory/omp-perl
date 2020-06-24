@@ -203,7 +203,7 @@ sub msb_hist_content {
                        -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
         $q->submit("Refresh"),
-        $q->endform,
+        $q->end_form,
         $q->p;
 
   # Get the science program (if available)

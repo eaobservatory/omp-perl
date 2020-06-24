@@ -867,7 +867,7 @@ sub _write_project_choice {
           $q->td($q->submit(
             -value => "Submit",
             -name => ''))))),
-      $q->endform;
+      $q->end_form;
 
   $self->_write_footer();
 }

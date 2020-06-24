@@ -808,7 +808,7 @@ sub update_fault_content {
                         -maxlength=>32);
     print "</td><tr><td colspan=2 align=right>";
     print $q->submit(-name=>'Submit');
-    print $q->endform;
+    print $q->end_form;
     print "</td></table>";
   } else {
 

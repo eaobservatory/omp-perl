@@ -104,7 +104,7 @@ sub fb_entries {
                        -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;",
         $q->submit("Refresh"),
-        $q->endform,
+        $q->end_form,
         $q->p;
 
   foreach my $row (@$comments) {
@@ -198,7 +198,7 @@ sub comment_form {
         "</td><tr><td></td><td align='right'>",
         $q->submit("Submit"),
         "</td></tr></table>",
-        $q->endform;
+        $q->end_form;
 
 }
 
