@@ -247,7 +247,8 @@ sub _package_data_cadc {
   my $obsgrp = $pkg->obsGrp;
 
   # Now form the CADC form
-  print $q->start_form( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download' );
+  print $q->start_form( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download',
+                        -enctype => 'application/x-www-form-urlencoded' );
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
