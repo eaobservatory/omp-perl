@@ -1054,6 +1054,7 @@ sub alter_proj {
     $q->td([
         'Expiry date',
         $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')),
+        ' (for Rapid Turnaround projects only)',
     ]),
   );
 
