@@ -766,16 +766,50 @@ sub frontend_config {
     # IFs to take into account the flip. The OT always sends a USB configuration for best
     if ($sb eq 'LSB') {
         # Determine IF frequency about which to mirror when flipping from
-        # BEST (as USB) to LSB.  Normally this is the configured IF frequency
-        # but when the IF bandwidth is asymmetric we must use the center
-        # of the IF band instead.
-        my %if_middle_freq = (
-            uu => 5.65e9,
-            aweoweo => 5.65e9,
-        );
+        # BEST (as USB) to LSB.  Initially use the configured IF frequency
+        # but when the IF bandwidth is asymmetric we must check the subsystems
+        # are within the IF band.
 
-        $sideband_flip = (exists $if_middle_freq{$instrument_name})
-            ? $if_middle_freq{$instrument_name}: $iffreq;
+        $sideband_flip = $iffreq;
+
+        my @if_freq_limit = ();
+        try {
+          @if_freq_limit = OMP::Config->getData(
+            'acsis_translator.if_freq_limit_' . $instrument_name);
+        } catch OMP::Error::BadCfgKey with {
+          # Do nothing.
+        };
+
+        if (@if_freq_limit) {
+          my ($if_freq_low, $if_freq_high) = @if_freq_limit;
+
+          # See what the frequency range will be once flipped -- actual
+          # flip performed later once we have checked that the subsystems
+          # will fit in the IF band.  Assuming that the subsystems do fit
+          # before mirroring, we should only need to nudge in one direction,
+          # so there is no need to track +ve and -ve nudges here.
+
+          my $nudge = 0.0;
+          my $n_subsystem = 0;
+
+          foreach my $ss (@{$fc{subsystems}}) {
+            $n_subsystem ++;
+            my $half_bw = $ss->{'bw'} / 2.0;
+            my $flipped = (2.0 * $sideband_flip) - $ss->{'if'};
+
+            my $low_excess = $if_freq_low - ($flipped - $half_bw);
+            if ($low_excess > 0.0 and $low_excess / 2.0 > $nudge) {
+                $nudge = $low_excess / 2.0;
+            }
+
+            my $high_excess = ($flipped + $half_bw) - $if_freq_high;
+            if ($high_excess > 0.0 and $high_excess / 2.0 > - $nudge) {
+                $nudge = - $high_excess / 2.0;
+            }
+          }
+
+          $sideband_flip += $nudge;
+        }
 
         $self->output(sprintf("\tIF frequencies will be mirrored about %.3f GHz to change sideband\n",
             $sideband_flip / 1.0e9));
