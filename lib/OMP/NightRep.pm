@@ -1323,7 +1323,9 @@ sub projectsummary_ashtml {
 
 
         if (exists($acct{$tel.'_SHUTDOWN'})) {
-            $shuttime = $acct{$tel.'_SHUTDOWN'}->timespent->hours;
+            my $shutdown = $acct{$tel.'_SHUTDOWN'};
+            $shuttime = $shutdown->{'total'}->hours
+                if exists $shutdown->{'total'};
         }
         my %timelost = $self->timelostbyshift;
         if (exists($timelost{$shift})) {

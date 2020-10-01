@@ -1066,7 +1066,7 @@ sub obs_comment_form {
 
   print "</td></tr></table>\n";
 
-  print $q->endform;
+  print $q->end_form;
 
 }
 
@@ -1346,7 +1346,7 @@ sub print_obslog_header {
   print "<br>\n";
 
   print $q->submit( -name => 'Submit New UT' );
-  print $q->endform;
+  print $q->end_form;
 
   print '<a href="' . OMP::Config->getData( 'cgidir' ) . '/obslog_text.pl?ut="'
         . ( defined( $qv->{'ut'} ) ?  $qv->{'ut'} : $currentut );

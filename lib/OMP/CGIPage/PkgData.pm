@@ -129,7 +129,7 @@ sub _write_form {
   print "</td><tr><td colspan=2 align=right>";
 
   print $q->submit(-name=>'Submit');
-  print $q->endform;
+  print $q->end_form;
   print "</td></table>";
 
 }
@@ -247,7 +247,8 @@ sub _package_data_cadc {
   my $obsgrp = $pkg->obsGrp;
 
   # Now form the CADC form
-  print $q->startform( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download' );
+  print $q->start_form( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download',
+                        -enctype => 'application/x-www-form-urlencoded' );
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
@@ -269,7 +270,7 @@ sub _package_data_cadc {
                     -default => 'omp' ), "\n";
 
   print $q->submit(-name => "Retrieve from CADC" );
-  print $q->endform;
+  print $q->end_form;
 
 }
 

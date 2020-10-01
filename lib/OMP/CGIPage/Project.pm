@@ -333,7 +333,6 @@ sub project_home {
   my $project = OMP::ProjServer->projectDetails($projectid, 'object');
 
   # Store the details we want to display later
-  my $projectid = $project->projectid;
   my $country = $project->country;
   my $title = $project->title;
   my $semester = $project->semester;
@@ -1053,7 +1052,8 @@ sub alter_proj {
   print $q->Tr(
     $q->td([
         'Expiry date',
-        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')),
+        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')) .
+        ' (for Rapid Turnaround projects only)',
     ]),
   );
 

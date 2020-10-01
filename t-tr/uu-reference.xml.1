@@ -292,7 +292,7 @@
       <HEADER TYPE="STRING"
               KEYWORD="INSTAP"
               COMMENT="Receptor at tracking centre (if any)"
-              VALUE="NU1L" />
+              VALUE="NU1U" />
       <HEADER TYPE="FLOAT"
               KEYWORD="INSTAP_X"
               COMMENT="[arcsec] Aperture X off. rel. to instr centre"
@@ -1255,8 +1255,8 @@
                      MECH_TUNING="ONCE" />
       <RECEPTOR_MASK RECEPTOR_ID="NU0L" VALUE="ON"/>
       <RECEPTOR_MASK RECEPTOR_ID="NU0U" VALUE="ON"/>
-      <RECEPTOR_MASK RECEPTOR_ID="NU1L" VALUE="NEED"/>
-      <RECEPTOR_MASK RECEPTOR_ID="NU1U" VALUE="ON"/>
+      <RECEPTOR_MASK RECEPTOR_ID="NU1L" VALUE="ON"/>
+      <RECEPTOR_MASK RECEPTOR_ID="NU1U" VALUE="NEED"/>
    </FRONTEND_CONFIG>
    <INSTRUMENT NAME="FE_UU"
                SERIAL="UU"
@@ -1382,7 +1382,7 @@
 
       
 
-      <INST_AP NAME="NU1L" />
+      <INST_AP NAME="NU1U" />
       <DOME MODE="BASE" />
    </TCS_CONFIG>
    <ACSIS_CONFIG>
@@ -3192,10 +3192,14 @@
             <dr_machine virtual_machine="number9" real_machine="acsis9"/>
             <dr_machine virtual_machine="number10" real_machine="acsis10"/>
             <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
-            <dr_machine virtual_machine="fe_wrapper_machine" real_machine="omp3"/>
-            <!-- dr_disp_machine removed -->
-            <!-- dr_disp_machine removed -->
+            <dr_machine virtual_machine="fe_wrapper_machine" real_machine="koloa"/>
             <dr_machine virtual_machine="namakanui" real_machine="koloa" no_nuke="1"/>
+            
+            <!-- dr_disp_machine removed -->
+            <!-- dr_disp_machine removed -->
+            <!-- dr_disp_machine removed -->
+            <!-- dr_disp_machine removed -->
+
 
             
 

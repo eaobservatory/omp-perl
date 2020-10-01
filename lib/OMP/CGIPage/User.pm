@@ -357,7 +357,7 @@ sub project_users {
   print $q->submit(-name=>"update_contacts",
                    -value=>"Update",);
   print "</table>";
-  print $q->endform;
+  print $q->end_form;
 }
 
 =item B<project_users_output>

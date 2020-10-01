@@ -62,11 +62,11 @@ my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
 # Indexed simply by subband bandwidth
 our %BWMAP = (
               '250MHz' => {
-                           # Parking frequency, channel 1 (Hz)
+                           # Parking frequency, first channel (Hz)
                            f_park => 2.5E9,
                           },
               '1GHz' => {
-                         # Parking frequency, channel 1 (Hz)
+                         # Parking frequency, first channel (Hz)
                          f_park => 2.0E9,
                         },
              );
@@ -766,16 +766,50 @@ sub frontend_config {
     # IFs to take into account the flip. The OT always sends a USB configuration for best
     if ($sb eq 'LSB') {
         # Determine IF frequency about which to mirror when flipping from
-        # BEST (as USB) to LSB.  Normally this is the configured IF frequency
-        # but when the IF bandwidth is asymmetric we must use the center
-        # of the IF band instead.
-        my %if_middle_freq = (
-            uu => 5.65e9,
-            aweoweo => 5.65e9,
-        );
+        # BEST (as USB) to LSB.  Initially use the configured IF frequency
+        # but when the IF bandwidth is asymmetric we must check the subsystems
+        # are within the IF band.
 
-        $sideband_flip = (exists $if_middle_freq{$instrument_name})
-            ? $if_middle_freq{$instrument_name}: $iffreq;
+        $sideband_flip = $iffreq;
+
+        my @if_freq_limit = ();
+        try {
+          @if_freq_limit = OMP::Config->getData(
+            'acsis_translator.if_freq_limit_' . $instrument_name);
+        } catch OMP::Error::BadCfgKey with {
+          # Do nothing.
+        };
+
+        if (@if_freq_limit) {
+          my ($if_freq_low, $if_freq_high) = @if_freq_limit;
+
+          # See what the frequency range will be once flipped -- actual
+          # flip performed later once we have checked that the subsystems
+          # will fit in the IF band.  Assuming that the subsystems do fit
+          # before mirroring, we should only need to nudge in one direction,
+          # so there is no need to track +ve and -ve nudges here.
+
+          my $nudge = 0.0;
+          my $n_subsystem = 0;
+
+          foreach my $ss (@{$fc{subsystems}}) {
+            $n_subsystem ++;
+            my $half_bw = $ss->{'bw'} / 2.0;
+            my $flipped = (2.0 * $sideband_flip) - $ss->{'if'};
+
+            my $low_excess = $if_freq_low - ($flipped - $half_bw);
+            if ($low_excess > 0.0 and $low_excess / 2.0 > $nudge) {
+                $nudge = $low_excess / 2.0;
+            }
+
+            my $high_excess = ($flipped + $half_bw) - $if_freq_high;
+            if ($high_excess > 0.0 and $high_excess / 2.0 > - $nudge) {
+                $nudge = - $high_excess / 2.0;
+            }
+          }
+
+          $sideband_flip += $nudge;
+        }
 
         $self->output(sprintf("\tIF frequencies will be mirrored about %.3f GHz to change sideband\n",
             $sideband_flip / 1.0e9));
@@ -3408,6 +3442,9 @@ sub bandwidth_mode {
     # Shift to be used in 3- and 4-subband hybrids.
     my $subband_shift = $nchan_per_sub - 2 * $olap_in_chan;
 
+    # Note: the band sketches below are drawn for USB and assume
+    # that the channels are numbered from high IF downwards.
+
     if ($nsubband == 1) {
       # middle usable channel
       #         [ |  :  | ]
@@ -3416,16 +3453,16 @@ sub bandwidth_mode {
 
     } elsif ($nsubband == 2) {
       # Subband 1 is referenced to LO channel and subband 2 to HI
-      #             [:|     | ]
       #     [ |     |:]
+      #             [:|     | ]
       @refchan = ($nch_lo, $nch_hi);
       @sbif = ($s->{'if'}) x 2;
 
     } elsif ($nsubband == 3) {
       # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      #              :  [ |     | ]
       # [ |     | ]  :
+      #              :  [ |     | ]
       @refchan = ($nch_mid,
                   $nch_mid - $subband_shift,
                   $nch_mid + $subband_shift);
@@ -3433,10 +3470,10 @@ sub bandwidth_mode {
 
     } elsif ($nsubband == 4) {
       # Subbands all referenced to the centre IF.
-      #                 [:|     | ]
       #         [ |     |:]
-      # [ |     | ]      :
+      #                 [:|     | ]
       #                  :      [ |     | ]
+      # [ |     | ]      :
       @refchan = ($nch_lo,
                   $nch_hi,
                   $nch_hi + $subband_shift,
@@ -3458,11 +3495,11 @@ sub bandwidth_mode {
       " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E6)." MHz)\n");
 
     # For the LO2 settings we need to offset the IF by the number of channels
-    # from the beginning of the band
+    # from the beginning of the band.  (This appears to give the high-IF end of the band.)
     my @chan_offset = map { $sbif[$_] + ($refchan[$_] * $chanwid) } (0..$#sbif);
 
-    # Now calculate the exact LO2 for each IF (parking frequency is for band center
-    # and IF is reported by the OT for the band centre
+    # Now calculate the exact LO2 for each IF (parking frequency is for first channel
+    # and IF is reported by the OT for the band centre).
     my @lo2exact = map { $_ + $bwmap{f_park} } @chan_offset;
     $s->{lo2exact} = \@lo2exact;
 
@@ -3485,8 +3522,8 @@ sub bandwidth_mode {
 
     $s->{align_shift} = \@align_shift;
 
-    $self->output("\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (chann)\n",
-                  map { sprintf( "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+    $self->output("\tRefChan  FirstChanIF (GHz)  LO2 Exact (GHz)  LO2 Quantized (GHz)  Correction (chan)\n",
+                  map { sprintf( "\t%7d  %17.6f  %15.6f  %19.6f  %17.3f\n",
                                  $refchan[$_], $chan_offset[$_]/1E9,
                                  $lo2exact[$_]/1E9,
                                  $lo2true[$_]/1E9,
