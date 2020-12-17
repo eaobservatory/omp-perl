@@ -486,8 +486,6 @@ _HEADER_
 
       print "<h3>Observations were acquired on the following dates:</h3>";
 
-      my $pkg_url = OMP::Config->getData('pkgdata-url');
-
       for my $ymd (sort keys %accounts) {
 
 	  # Make a link to the obslog page
