@@ -113,6 +113,15 @@ sub storeProgram {
     OMP::General->log_message( "storeProgram: Project " .
                              $sp->projectID . "\n");
 
+    # Temporary special error message for UKIRT projects.  (This
+    # guesses the telescope based on the project code in order to
+    # respond quickly and bypass the other checks.)
+    if ($sp->projectID =~ /^U\//i) {
+      OMP::General->log_message("storeProgram: apparent UKIRT project code\n");
+      throw OMP::Error::SpStoreFail(
+        "MSB submissions should be to the UKIRT database at the IFA.");
+    }
+
     # Check the version number and abort if it is too old
     my $minver = OMP::Config->getData('ot-min-version');
     my $otver = $sp->ot_version;
@@ -269,6 +278,15 @@ sub fetchProgram {
   my @headers;
 
   try {
+    # Temporary special error message for UKIRT projects.  (This
+    # guesses the telescope based on the project code in order to
+    # respond quickly and bypass the other checks.)
+    if ($rawprojectid =~ /^U\//i) {
+      OMP::General->log_message("fetchProgram: apparent UKIRT project code\n");
+      throw OMP::Error::SpRetrieveFail(
+        "MSB submissions should be to the UKIRT database at the IFA.");
+    }
+
     ($projectid, $auth, @headers) = $class->get_verified_projectid(
       $provider, $username, $password, $rawprojectid);
 
