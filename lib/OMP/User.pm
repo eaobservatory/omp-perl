@@ -69,6 +69,7 @@ sub new {
                     Affiliation => undef,
                     NoFaultCC => 0,
                     IsStaff => 0,
+                    StaffAccess => 0,
                    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -428,6 +429,24 @@ sub is_staff {
     return $self->{'IsStaff'};
 }
 
+=item B<staff_access>
+
+Whether or not the user may log in as a staff member.
+
+B<Note:> please see also the C<is_staff> method which indicates
+whether the user is currently logged in as a staff member.
+This method may only apply to certain authentication providers.
+
+=cut
+
+sub staff_access {
+    my $self = shift;
+    if (@_) {
+        $self->{'StaffAccess'} = !! shift;
+    }
+    return $self->{'StaffAccess'};
+}
+
 =back
 
 =head2 General
@@ -507,6 +526,7 @@ sub text_summary {
   $text .=   "CADC:   " .(defined $cadcuser ? $email : "UNDEFINED")."\n";
   $text .=   'OBFUSCATED:  ' . $self->is_obfuscated() ."\n";
   $text .=   'NO_FAULT_CC: ' . $self->no_fault_cc() . "\n";
+  $text .=   'STAFF_ACCESS: ' . $self->staff_access() . "\n";
 
   return $text;
 }

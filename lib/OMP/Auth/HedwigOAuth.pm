@@ -159,6 +159,10 @@ sub _finish_oauth {
         'Your linked OMP account appears not to exist.')
         unless defined $user;
 
+    # Log in as staff if the user has
+    # the "staff_access" flag in their OMP account.
+    $user->is_staff(1) if $user->staff_access();
+
     return $user;
 }
 
