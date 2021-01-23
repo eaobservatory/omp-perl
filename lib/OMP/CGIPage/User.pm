@@ -87,6 +87,8 @@ sub details {
       ((scalar @$hedwigids) ? (' (Hedwig ID: ' . (join ',', map {$q->a({-href => $hedwigprofile . $_->[0]}, $_->[0])} @$hedwigids) . ')') : ''),
   );
 
+  print $q->p('User has access to staff log in.') if $user->staff_access();
+
   print $q->p('User account is obfuscated.') if $user->is_obfuscated();
 
   print $q->p('Fault CC messages suppressed.') if $user->no_fault_cc();

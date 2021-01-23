@@ -276,5 +276,6 @@ CREATE TABLE `ompuser` (
   `cadcuser` varchar(20) DEFAULT NULL,
   `obfuscated` tinyint(4) NOT NULL DEFAULT 0,
   `no_fault_cc` tinyint(4) NOT NULL DEFAULT 0,
+  `staff_access` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`userid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

@@ -380,6 +380,7 @@ sub _add_user {
                           $user->cadcuser,
                           $user->is_obfuscated(),
                           $user->no_fault_cc(),
+                          0,  # staff_access
                         );
 
 }
