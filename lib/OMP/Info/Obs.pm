@@ -43,9 +43,7 @@ use OMP::ObslogDB;
 use OMP::DBbackend;
 use Scalar::Util qw/ blessed /;
 
-use Astro::FITS::Header::NDF;
-use Astro::FITS::Header::GSD;
-use Astro::FITS::Header::CFITSIO;
+use Astro::FITS::Header;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Telescope;
@@ -54,8 +52,6 @@ use Storable qw/ dclone /;
 use Time::Piece;
 use Text::Wrap qw/ $columns &wrap /;
 use File::Basename;
-
-use NDF qw/ :ndf :err /;
 
 # Text wrap column size.
 $Text::Wrap::columns = 72;
@@ -134,6 +130,8 @@ sub readfile {
 
     if( $filename =~ /\.sdf$/ ) {
 
+      require NDF; NDF->import(qw/:ndf :err/);
+      require Astro::FITS::Header::NDF;
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
 
       # Open the NDF environment.
@@ -142,7 +140,7 @@ sub readfile {
       err_begin( $STATUS );
 
       # Retrieve the FrameSet.
-      ndf_find( NDF::DAT__ROOT, $filename, my $indf, $STATUS );
+      ndf_find( &NDF::DAT__ROOT, $filename, my $indf, $STATUS );
       $frameset = ndfGtwcs( $indf, $STATUS );
       ndf_annul( $indf, $STATUS );
       ndf_end( $STATUS );
@@ -162,10 +160,12 @@ sub readfile {
 
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
 
+      require Astro::FITS::Header::GSD;
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
 
     } elsif ($filename =~ /\.(fits)$/) {
 
+      require Astro::FITS::Header::CFITSIO;
       $FITS_header = new Astro::FITS::Header::CFITSIO(File => $filename, ReadOnly => 1);
 
     } else {
