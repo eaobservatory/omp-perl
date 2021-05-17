@@ -33,7 +33,6 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::ObslogDB;
 use OMP::ProjServer;
-use OMP::WORF;
 use OMP::Error qw/ :try /;
 
 use base qw/OMP::CGIComponent/;
@@ -468,6 +467,7 @@ sub obs_table {
             if( $worfraw{$currentinst} ) {
               # Form an OMP::WORF object for the obs
               if( ! defined( $worf ) ) {
+                require OMP::WORF;
                 $worf = new OMP::WORF( obs => $obs );
               }
               if( $worf->file_exists( suffix => '', group => 0 ) ) {
@@ -481,6 +481,7 @@ sub obs_table {
             # Then the individual reduced.
             if( $worfreduced{$currentinst} ) {
               if( ! defined( $worf ) ) {
+                require OMP::WORF;
                 $worf = new OMP::WORF( obs => $obs );
               }
               my @ind_suffices = $worf->suffices;
@@ -498,6 +499,7 @@ sub obs_table {
             # And the group reduced.
             if( $worfreduced{$currentinst} ) {
               if( ! defined( $worf ) ) {
+                require OMP::WORF;
                 $worf = new OMP::WORF( obs => $obs );
               }
               # Get a list of suffices

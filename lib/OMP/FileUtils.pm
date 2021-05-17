@@ -24,6 +24,7 @@ use warnings::register;
 
 use JAC::Setup qw/hdrtrans/;
 
+use Astro::FITS::Header;
 use Astro::FITS::HdrTrans;
 use File::Basename qw[ fileparse ];
 use File::Spec;

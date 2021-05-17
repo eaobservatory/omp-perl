@@ -37,15 +37,6 @@ use base qw/ OMP::WORF /;
 
 our $VERSION = '2.000';
 
-require Exporter;
-
-our @EXPORT = qw( plot suffices );
-our %EXPORT_TAGS = (
-                    'all' => [ qw( @EXPORT ) ],
-                    );
-
-Exporter::export_tags(qw/ all /);
-
 =head1 METHODS
 
 =head2 Accessor Methods

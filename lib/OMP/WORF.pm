@@ -44,17 +44,6 @@ our $VERSION = '2.000';
 # Cache the Starlink task for ndf2fits.
 our $TASK;
 
-require Exporter;
-
-our @ISA = qw/Exporter/;
-
-our %EXPORT_TAGS = (
-    'all' => [qw/worf_determine_class plot obs parse_display_options
-                 file_exists fits ndf/],
-  );
-
-Exporter::export_tags(qw/ all /);
-
 =head1 METHODS
 
 =head2 Constructor
@@ -1248,34 +1237,6 @@ sub _return_ndf {
 =head1 SUBROUTINES
 
 =over 4
-
-=item B<worf_determine_class>
-
-  $worfclass = worf_determine_class( $obs );
-
-Used to determine the subclass for a given C<Info::Obs> object. If no subclass
-can be determined, returns the base class.
-
-Returns a string.
-
-=cut
-
-sub worf_determine_class {
-  my $obs = shift;
-
-  my $inst_dhs = uc( $obs->inst_dhs );
-
-  my $class;
-
-  if( defined( $inst_dhs ) ) {
-    $class = "OMP::WORF::$inst_dhs";
-  } else {
-    $class = "OMP::WORF";
-  }
-
-  return $class;
-
-}
 
 =item B<clean_bad_pixels>
 

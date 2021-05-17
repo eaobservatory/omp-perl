@@ -38,14 +38,11 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Config;
 use OMP::FileUtils;
-use Astro::FITS::Header::NDF;
-use Astro::FITS::Header::CFITSIO;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
-use NDF;
 
 use vars qw/ $FallbackToFiles $SkipDBLookup $AnyDate
              $QueryCache $MakeCache
@@ -899,6 +896,9 @@ sub _query_files {
         my $FITS_header;
         my $frameset;
         if ( $file =~ /\.sdf$/ ) {
+          require NDF; NDF->import(qw/:ndf :err/);
+          require Astro::FITS::Header::NDF;
+
           $FITS_header = new Astro::FITS::Header::NDF( File => $file );
 
           # Open the NDF environment.
@@ -910,7 +910,7 @@ sub _query_files {
           # open but we read the header okay above, simply abort from
           # retrieving the frameset since we know that HDS containers
           # will not usually have a .WCS (especially inside a .HEADER)
-          ndf_find( NDF::DAT__ROOT, $file, my $indf, $STATUS );
+          ndf_find( &NDF::DAT__ROOT, $file, my $indf, $STATUS );
           if ($STATUS == &NDF::SAI__OK) {
             ndf_state( $indf, "WCS", my $isthere, $STATUS);
             $frameset = ndfGtwcs( $indf, $STATUS ) if $isthere;
@@ -936,9 +936,11 @@ sub _query_files {
           err_end( $STATUS );
 
         } elsif ( $file =~ /\.(gsd|dat)$/ ) {
+          require Astro::FITS::Header::GSD;
           $FITS_header = new Astro::FITS::Header::GSD( File => $file );
 
         } elsif ($file =~ /\.(fits)$/) {
+          require Astro::FITS::Header::CFITSIO;
           $FITS_header = new Astro::FITS::Header::CFITSIO(File => $file, ReadOnly => 1);
 
         } else {
