@@ -259,6 +259,39 @@ sub extract_user_from_href {
 
 }
 
+=item B<get_flex>
+
+Get a user object representing "flex".
+
+    my $flex = OMP::User->get_flex();
+
+Note: this constructs and returns a new object, so that it can
+be modified if necessary (as is done by as_email_hdr_via_flex).
+
+=cut
+
+sub get_flex {
+    my $class = shift;
+    return $class->new(
+        name => 'OMP',
+        email => 'flex@eaobservatory.org');
+}
+
+=item B<get_omp_group>
+
+Get a user object representing the OMP Group mailing list.
+
+    my $user = OMP::User->get_omp_group();
+
+=cut
+
+sub get_omp_group {
+    my $class = shift;
+    return $class->new(
+        name => 'OMP Group',
+        email => 'omp_group@eao.hawaii.edu');
+}
+
 =back
 
 =head2 Accessors
@@ -656,7 +689,7 @@ field where an email is being sent via flex.  This appends
 sub as_email_hdr_via_flex {
     my $self = shift;
 
-    my $flex = $self->new(email => 'flex@eaobservatory.org');
+    my $flex = $self->get_flex();
 
     my $name = $self->name();
     $flex->name($name . ' (via flex)') if defined $name;

@@ -209,7 +209,7 @@ if ($debug) {
 
 #print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
-    my $msg = MIME::Lite->new( From => 'flex@eaobservatory.org',
+    my $msg = MIME::Lite->new( From => OMP::User->get_flex()->as_email_hdr(),
                                To => $support,
                                Subject => $subject,
                                Data => $text, );

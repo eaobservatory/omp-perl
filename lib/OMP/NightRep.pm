@@ -57,6 +57,7 @@ use Time::Piece qw/ :override /;
 use Text::Wrap;
 use OMP::BaseDB;
 use OMP::Display;
+use OMP::User;
 
 # This is the key used to specify warnings in result hashes
 use vars qw/ $WARNKEY /;
@@ -1760,8 +1761,7 @@ Mail a text version of the report to the relevant mailing list.
 
 An optional argument can be used to specify the details of the person
 filing the report. Supplied as an OMP::User object. Defaults to
-an email adress of "flex@maildomain" if no argument is specified,
-where "maildomain" is stored in the config system.
+flex if no argument is specified.
 
 =cut
 
@@ -1784,7 +1784,7 @@ sub mail_report {
   if (defined $user && defined $user->email) {
     $from = $user;
   } else {
-    $from = OMP::User->new(email => 'flex@' . OMP::Config->getData('maildomain'),);
+    $from = OMP::User->get_flex();
   }
 
   # and mail it

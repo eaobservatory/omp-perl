@@ -38,6 +38,7 @@ use OMP::Info::Comment;
 use OMP::ObsQuery;
 use Time::Piece;
 use Time::Seconds;
+use OMP::User;
 use OMP::UserDB;
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
@@ -203,7 +204,7 @@ sub _mail_staff_no_good {
   my $from = OMP::Config->getData( 'mail.from-obs-rejected',
                                    'telescope' => $tel
                                   )
-              || 'flex@eaobservatory.org';
+              || OMP::User->get_flex()->email();
 
   # Only for useful Subject: header.
   my $com_user = $comment->author();

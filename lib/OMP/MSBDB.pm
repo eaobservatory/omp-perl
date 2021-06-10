@@ -54,6 +54,7 @@ use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
 use OMP::TLEDB qw/standardize_tle_name tle_row_to_coord/;
+use OMP::User;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -1420,8 +1421,8 @@ sub _store_sci_prog {
 
       OMP::General->log_message( $err, OMP__LOG_ERROR );
 
-      my %deferr = ( to => [OMP::User->new(email=>'omp_group@eao.hawaii.edu')],
-                     from => new OMP::User->new(email=>'omp_group@eao.hawaii.edu'),
+      my %deferr = ( to => [OMP::User->get_omp_group()],
+                     from => OMP::User->get_flex(),
                      subject => 'failed to write sci prog to disk');
       $self->_mail_information(%deferr, message => $err);
     };

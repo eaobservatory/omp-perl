@@ -63,10 +63,10 @@ use OMP::UserServer;
 our $VERSION = '0.003';
 
 # Address to which we send rejected messages for inspection.
-my $REJECT_ADDRESS = 'omp_group@eao.hawaii.edu';
+my $REJECT_ADDRESS = OMP::User->get_omp_group()->as_email_hdr();
 
 # Address from which we send rejected messages.
-my $REJECT_FROM_ADDRESS = 'flex@eaobservatory.org';
+my $REJECT_FROM_ADDRESS = OMP::User->get_flex()->as_email_hdr_via_flex();
 
 my ($help, $DRY_RUN);
 GetOptions(
