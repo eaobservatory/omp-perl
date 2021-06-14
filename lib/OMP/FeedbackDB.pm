@@ -35,6 +35,7 @@ use OMP::Display;
 use OMP::FBQuery;
 use OMP::Project;
 use OMP::ProjDB;
+use OMP::User;
 use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
@@ -395,7 +396,7 @@ sub _mail_comment {
     or $subject = "$args{comment}->{subject}";
 
   my $from = (defined $args{comment}->{author} ?
-              $args{comment}->{author} : OMP::User->new(email=>'flex@' . OMP::Config->getData('maildomain')));
+              $args{comment}->{author} : OMP::User->get_flex());
 
   # Setup message details
   my %details = ( message => $msg,

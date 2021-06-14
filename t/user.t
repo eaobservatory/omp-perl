@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 75;
+use Test::More tests => 77;
 use strict;
 require_ok("OMP::User");
 
@@ -144,9 +144,12 @@ $user = new OMP::User(
 );
 
 is($user->as_email_hdr(), 'john@smith.me', 'Email-only header');
-is($user->as_email_hdr_via_flex(), 'flex@eaobservatory.org', 'Email-only header (flex)');
+is($user->as_email_hdr_via_flex(), '"OMP" <flex@eaobservatory.org>', 'Email-only header (flex)');
 
 $user = new OMP::User();
 
 is($user->as_email_hdr(), 'No contact information', 'Empty email header');
-is($user->as_email_hdr_via_flex(), 'flex@eaobservatory.org', 'Empty email header (flex)');
+is($user->as_email_hdr_via_flex(), '"OMP" <flex@eaobservatory.org>', 'Empty email header (flex)');
+
+is(OMP::User->get_flex()->as_email_hdr(), '"OMP" <flex@eaobservatory.org>', 'Flex email header');
+is(OMP::User->get_omp_group()->as_email_hdr(), '"OMP Group" <omp_group@eao.hawaii.edu>', 'OMP group header');

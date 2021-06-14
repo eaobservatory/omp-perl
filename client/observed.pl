@@ -308,7 +308,7 @@ for my $proj (keys %sorted) {
     my @contacts = $proj_details->contacts;
 
     my $basedb = new OMP::BaseDB(DB => new OMP::DBbackend,);
-    my $flexuser = OMP::User->new(email=>'flex@eaobservatory.org');
+    my $flexuser = OMP::User->get_flex();
 
     # This line is copied from the FeedbackDB::addComment method.
     my $message_formatted = OMP::Display->preify_text($fullmessage);
