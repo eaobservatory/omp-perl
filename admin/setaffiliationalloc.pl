@@ -52,7 +52,7 @@ my $status = GetOptions(
     'tel=s' => \$telescope,
 );
 
-pod2usage(0) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $help;
 
 die 'Telescope not specified'
     unless defined $telescope;
