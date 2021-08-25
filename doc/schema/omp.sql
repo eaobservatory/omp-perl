@@ -233,6 +233,33 @@ CREATE TABLE `ompprojuser` (
   PRIMARY KEY (`uniqid`),
   UNIQUE KEY `idx_ompprojuser_2` (`projectid`,`userid`,`capacity`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE `ompsched` (
+  `telescope` varchar(32) NOT NULL,
+  `date` date NOT NULL,
+  `holiday` tinyint(1) NOT NULL DEFAULT 0,
+  `queue` varchar(32) DEFAULT NULL,
+  `staff_op` varchar(80) DEFAULT NULL,
+  `staff_eo` varchar(80) DEFAULT NULL,
+  `staff_it` varchar(80) DEFAULT NULL,
+  `notes` varchar(80) DEFAULT NULL,
+  PRIMARY KEY (`telescope`,`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE `ompschedqueue` (
+  `telescope` varchar(32) NOT NULL,
+  `queue` varchar(32) NOT NULL,
+  `name` varchar(80) NOT NULL,
+  `hidden` tinyint(1) NOT NULL DEFAULT 0,
+  `background` varchar(32) DEFAULT NULL,
+  `foreground` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`telescope`,`queue`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE `ompschedslot` (
+  `telescope` varchar(32) NOT NULL,
+  `date` date NOT NULL,
+  `time` time NOT NULL,
+  `queue` varchar(32) NOT NULL,
+  PRIMARY KEY (`telescope`,`date`,`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompsciprog` (
   `projectid` varchar(32) NOT NULL,
   `timestamp` int(11) NOT NULL,
