@@ -27,6 +27,7 @@ use 5.006;
 use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
+use Template;
 
 use OMP::Auth;
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
@@ -552,6 +553,27 @@ sub write_page_logout {
   $content->($self);
 
   $self->_write_footer();
+}
+
+=item B<render_template>
+
+Renders a Template::Toolkit template from the "templ" directory (as specified
+by the www-templ configuration parameter.)
+
+    $cgi->render_template($name, \%context);
+
+=cut
+
+sub render_template {
+    my $self = shift;
+    my $name = shift;
+    my $context = shift;
+
+    my $template = new Template({
+        INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+    }) or die "Could not configure template object: $Template::ERROR";
+
+    $template->process($name, $context) or die $template->error();
 }
 
 =back
