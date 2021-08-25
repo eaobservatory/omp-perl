@@ -1,0 +1,113 @@
+<h1>[% title | html %]</h1>
+
+[% IF is_edit %]
+    <form method="post" action="edsched.pl?tel=[% telescope %]&semester=[% semester %]">
+    [% SET queues = queue_info.keys.sort %]
+    [% MACRO queue_select BLOCK %]
+                        <select name="[% name %]">
+                            <option value=""></option>
+                            [% FOREACH queue = queues %]
+                                <option value="[% queue %]" [% IF queue_selected == queue %]selected="selected"[% END %]>[% queue | truncate(max_len, '-') %]</option>
+                            [% END %]
+                        </select>
+    [% END %]
+[% ELSIF is_staff %]
+    <p>
+        <a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
+    </p>
+[% END %]
+
+<table class="bordered" style="width: [% is_edit ? 180 : 120 %]ex;">
+[% SET prev_month = "none" %]
+[% SET slot_width = 4 %]
+[% SET num_slot = slot_times.size %]
+[% FOREACH day = schedule %]
+    [% SET month = day.date_local.fullmonth %]
+    [% SET date_str = day.date.strftime("%Y-%m-%d") %]
+    [% IF month != prev_month %]
+        [% SET prev_month = month %]
+        <tr>
+            <th colspan="[% num_slot + (is_staff ? 5 : 2) + (is_edit ? 1 : 0) %]" style="padding: 2ex;">[% month %] [% day.date_local.year %]</th>
+        </tr>
+        <tr>
+            [% IF is_staff %]
+                <th rowspan="2" width="7%">TSS</th>
+                <th rowspan="2" width="7%">EO</th>
+                <th rowspan="2" width="7%">IT</th>
+            [% END %]
+            <th rowspan="2" width="5%">Start<br/>date</th>
+            [% IF is_edit %]
+            <th rowspan="2">Hol?</th>
+            [% END %]
+            <th rowspan="2">Notes</th>
+            <th width="[% num_slot * slot_width %]%"colspan="[% num_slot %]">Queue</th>
+        </tr>
+        <tr>
+            [% FOREACH slot = slot_times %]
+                <th width="[% slot_width %]%" style="font-size: 8pt;">[% slot %]</th>
+            [% END %]
+        </tr>
+    [% END %]
+    <tr>
+        [% IF is_staff %]
+            [% UNLESS is_edit %]
+                <td>[% day.staff_op | html %]</td>
+                <td>[% day.staff_eo | html %]</td>
+                <td>[% day.staff_it | html %]</td>
+            [% ELSE %]
+                <td rowspan="2"><input type="text" name="staff_op_[% date_str %]" size="6" value="[% day.staff_op | html %]" /></td>
+                <td rowspan="2"><input type="text" name="staff_eo_[% date_str %]" size="6" value="[% day.staff_eo | html %]" /></td>
+                <td rowspan="2"><input type="text" name="staff_it_[% date_str %]" size="6" value="[% day.staff_it | html %]" /></td>
+            [% END %]
+        [% END %]
+        [% IF day.holiday and not is_edit -%]
+            <td rowspan="[% is_edit ? 2 : 1 %]" style="background: #CCCCCC">h
+        [%- ELSIF day.date_local.day_of_week == 6 || day.date_local.day_of_week == 0 -%]
+            <td rowspan="[% is_edit ? 2 : 1 %]" style="background: #DDDDDD">s
+        [%- ELSE -%]
+            <td rowspan="[% is_edit ? 2 : 1 %]">
+        [%- END -%]
+                [%- day.date_local.day_of_month %]
+                [% IF is_edit %]
+                    <br />[% day.date_local.monname %]
+                [% END %]
+        </td>
+        [% UNLESS is_edit %]
+            <td>[% day.notes | html %]</td>
+            [% FOREACH slot = day.slots_merged %]
+                [% IF slot.queue.defined and queue_info.exists(slot.queue) %]
+                    [% SET info = queue_info.item(slot.queue) %]
+                [% ELSE %]
+                    [% SET info = 0 %]
+                [% END %]
+                <td colspan="[% slot.num %]" width="width: [% slot.num * slot_width %]%" [% IF info %]style="[% IF info.background.defined %]background: [% info.background %]; [% END %][% IF info.foreground.defined %]color: [% info.foreground %]; [% END %]"[% END %]>
+                    [% IF info and slot.num == num_slot %]
+                        [% info.name | html %]
+                    [% ELSE %]
+                        [% slot.queue | html %]
+                    [% END %]
+                </td>
+            [% END %]
+        [% ELSE %]
+                <td rowspan="2"><input type="checkbox" name="holiday_[% date_str %]" [% IF day.holiday %]checked="checked"[% END %]/ value="1"></td>
+                <td rowspan="2"><input type="text" name="notes_[% date_str %]" size="20" value="[% day.notes | html %]" /></td>
+                <td colspan="[% num_slot %]">
+                    [% queue_select(name=("queue_" _ date_str), max_len=20, queue_selected=day.queue) %]
+                </td>
+            </tr>
+            <tr>
+                [% FOREACH slot = day.slots_full %]
+                    <td>[% queue_select(name=("queue_" _ date_str _ slot.time.strftime("_%H-%M-%S")), max_len=3, queue_selected=(((slot.queue.defined) and (slot.queue != day.queue)) ? slot.queue : "")) %]</td>
+                [% END %]
+        [% END %]
+    </tr>
+[% END %]
+</table>
+
+[% IF is_edit %]
+    <p>
+        <input type="submit" name="submit" value="Save" />
+        <input type="hidden" name="show_output" value="1" />
+    </p>
+    </form>
+[% END %]
