@@ -242,6 +242,7 @@ CREATE TABLE `ompsched` (
   `staff_eo` varchar(80) DEFAULT NULL,
   `staff_it` varchar(80) DEFAULT NULL,
   `notes` varchar(80) DEFAULT NULL,
+  `notes_private` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompschedqueue` (

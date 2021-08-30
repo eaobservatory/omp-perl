@@ -156,11 +156,11 @@ sub update_schedule {
     my $sth_sched = $dbh->prepare(
         'INSERT INTO `' . $SCHEDTABLE . '`'
         . ' (`telescope`, `date`, `holiday`, `queue`'
-        . ', `staff_op`, `staff_eo`, `staff_it`, `notes`)'
-        . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        . ', `staff_op`, `staff_eo`, `staff_it`, `notes`, `notes_private`)'
+        . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         . ' ON DUPLICATE KEY UPDATE'
         . ' `holiday`=?, `queue`=?, `staff_op`=?'
-        . ', `staff_eo`=?, `staff_it`=?, `notes`=?');
+        . ', `staff_eo`=?, `staff_it`=?, `notes`=?, `notes_private`=?');
     my $sth_slot_del = $dbh->prepare(
         'DELETE FROM `'. $SCHEDSLOTTABLE . '`'
         . ' WHERE `telescope`=? AND `date`=?');
@@ -178,7 +178,7 @@ sub update_schedule {
     foreach my $day (@$sched) {
         my @key = ($day->telescope(), $day->date()->strftime('%Y-%m-%d'));
         my @val = ($day->holiday(), $day->queue(), $day->staff_op(),
-            $day->staff_eo(), $day->staff_it(), $day->notes());
+            $day->staff_eo(), $day->staff_it(), $day->notes(), $day->notes_private());
         $sth_sched->execute(@key, @val, @val)
             or throw OMP::Error::DBError("Error inserting/updating table $SCHEDTABLE: $DBI::errstr");
 

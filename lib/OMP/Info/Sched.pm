@@ -32,6 +32,7 @@ __PACKAGE__->CreateAccessors(
     staff_eo => '$',
     staff_it => '$',
     notes => '$',
+    notes_private => '$',
     slots => '@OMP::Info::Sched::Slot',
 );
 

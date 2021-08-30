@@ -39,7 +39,7 @@
             [% IF is_edit %]
             <th rowspan="2">Hol?</th>
             [% END %]
-            <th rowspan="2">Notes</th>
+            <th rowspan="2">Notes (private?)</th>
             <th width="[% num_slot * slot_width %]%"colspan="[% num_slot %]">Queue</th>
         </tr>
         <tr>
@@ -73,7 +73,13 @@
                 [% END %]
         </td>
         [% UNLESS is_edit %]
-            <td>[% day.notes | html %]</td>
+            [% IF ! day.notes_private %]
+                <td>[% day.notes | html %]</td>
+            [% ELSIF is_staff %]
+                <td style="color: red;">[% day.notes | html %]</td>
+            [% ELSE %]
+                <td>&nbsp;</td>
+            [% END %]
             [% FOREACH slot = day.slots_merged %]
                 [% IF slot.queue.defined and queue_info.exists(slot.queue) %]
                     [% SET info = queue_info.item(slot.queue) %]
@@ -90,7 +96,10 @@
             [% END %]
         [% ELSE %]
                 <td rowspan="2"><input type="checkbox" name="holiday_[% date_str %]" [% IF day.holiday %]checked="checked"[% END %]/ value="1"></td>
-                <td rowspan="2"><input type="text" name="notes_[% date_str %]" size="20" value="[% day.notes | html %]" /></td>
+                <td rowspan="2">
+                    <input type="text" name="notes_[% date_str %]" size="20" value="[% day.notes | html %]" />
+                    <input type="checkbox" name="notes_private_[% date_str %]" [% IF day.notes_private %]checked="checked"[% END %] value="1" />
+                </td>
                 <td colspan="[% num_slot %]">
                     [% queue_select(name=("queue_" _ date_str), max_len=20, queue_selected=day.queue) %]
                 </td>

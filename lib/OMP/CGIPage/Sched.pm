@@ -165,6 +165,7 @@ sub sched_edit_output {
         $day->staff_eo(_str_or_undef($q->param('staff_eo_' . $date_str)));
         $day->staff_it(_str_or_undef($q->param('staff_it_' . $date_str)));
         $day->notes(_str_or_undef($q->param('notes_' . $date_str)));
+        $day->notes_private($q->param('notes_private_' . $date_str) ? 1 : 0);
         $day->holiday($q->param('holiday_' . $date_str) ? 1 : 0);
 
         my @slots = ();
