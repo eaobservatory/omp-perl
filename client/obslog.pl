@@ -270,7 +270,8 @@ if(defined($opt{tel})) {
 # for an observation. It assumes that OBS comments status is an integer
 # starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
-my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff', '#ff0000' );
+#                       good    questionable   bad     rejected     junk
+my @CONTENTCOLOUR = ( '#000000', '#ff7e00', '#ff3333', '#0000ff', '#ff00ff' );
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
