@@ -1,8 +1,8 @@
-package OMP::Info::Sched;
+package OMP::Info::Sched::Night;
 
 =head1 Name
 
-OMP::Info::Sched - Information about one night in a telescope schedule
+OMP::Info::Sched::Night - Information about one night in a telescope schedule
 
 =cut
 

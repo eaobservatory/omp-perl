@@ -11,7 +11,7 @@ use strict;
 use Time::Piece;
 use Time::Seconds qw/ONE_DAY/;
 
-use OMP::Info::Sched;
+use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
 use base qw/OMP::BaseDB/;
@@ -116,11 +116,11 @@ sub get_schedule {
         my $datestr = $date->strftime('%Y-%m-%d');
         my $info;
         unless (exists $days{$datestr}) {
-            $info = new OMP::Info::Sched(
+            $info = new OMP::Info::Sched::Night(
                 telescope => $tel, date => $date);
         }
         else {
-            $info = new OMP::Info::Sched(%{$days{$datestr}});
+            $info = new OMP::Info::Sched::Night(%{$days{$datestr}});
 
             if (exists $slots{$datestr}) {
                 my @slots;
@@ -140,9 +140,9 @@ sub get_schedule {
 =item update_schedule
 
 Update the schedule table with new and/or updated records.  Requires a
-reference to an array of C<OMP::Info::Sched> objects.
+reference to an array of C<OMP::Info::Sched::Night> objects.
 
-    $db->updat_schedule(\@sched);
+    $db->update_schedule(\@sched);
 
 =cut
 

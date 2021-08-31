@@ -26,7 +26,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::DBbackend;
 use OMP::SchedDB;
-use OMP::Info::Sched;
+use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
 use base qw/OMP::CGIPage/;
