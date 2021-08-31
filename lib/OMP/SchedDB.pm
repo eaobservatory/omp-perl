@@ -11,6 +11,7 @@ use strict;
 use Time::Piece;
 use Time::Seconds qw/ONE_DAY/;
 
+use OMP::Info::Sched;
 use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
@@ -134,7 +135,7 @@ sub get_schedule {
         push @schedule, $info;
     }
 
-    return \@schedule;
+    return new OMP::Info::Sched(nights => \@schedule);
 }
 
 =item update_schedule

@@ -84,7 +84,7 @@ sub _sched_view {
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
 
-    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
+    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
 
     $self->render_template('sched_view_edit.html', {
@@ -139,7 +139,7 @@ sub sched_edit_content {
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
 
-    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
+    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel);
 
     $self->render_template('sched_view_edit.html', {
@@ -173,7 +173,7 @@ sub sched_edit_output {
     # parameters to read.
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
 
-    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
+    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
 
     foreach my $day (@$sched) {
         my $date_str = $day->date()->strftime('%Y-%m-%d');
