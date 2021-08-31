@@ -42,7 +42,7 @@
             [% IF is_edit %]
             <th rowspan="2">Hol?</th>
             [% END %]
-            <th rowspan="2">Notes (private?)</th>
+            <th rowspan="2">Notes [% IF is_edit %](private?)[% END %]</th>
             <th width="[% num_slot * slot_width %]%"colspan="[% num_slot %]">Queue</th>
         </tr>
         <tr>
