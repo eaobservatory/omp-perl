@@ -65,6 +65,22 @@ sub _sched_view {
     my $is_staff = shift;
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
+    my ($semester_next, $semester_prev, @semester_options);
+    if ($semester =~ /^(\d\d)([AB])$/) {
+        if ($2 eq 'A') {
+            $semester_prev = sprintf('%02d%s', $1 - 1, 'B');
+            $semester_next = sprintf('%02d%s', $1, 'B');
+        }
+        else {
+            $semester_prev = sprintf('%02d%s', $1, 'A');
+            $semester_next = sprintf('%02d%s', $1 + 1, 'A');
+        }
+    }
+    if (OMP::DateTools->determine_semester(tel => $tel) =~ /^(\d\d)([AB])$/) {
+        for (my ($year, $suffix) = ($1, $2); $year > 14; ($year, $suffix) = ($suffix eq 'B') ? ($year, 'A') : ($year - 1, 'B')) {
+            push @semester_options, sprintf('%02d%s', $year, $suffix);
+        }
+    }
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
 
@@ -80,6 +96,9 @@ sub _sched_view {
         is_edit => 0,
         telescope => $tel,
         semester => $semester,
+        semester_next => $semester_next,
+        semester_prev => $semester_prev,
+        semester_options => \@semester_options,
     });
 }
 

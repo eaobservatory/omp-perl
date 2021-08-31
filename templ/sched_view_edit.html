@@ -11,10 +11,30 @@
                             [% END %]
                         </select>
     [% END %]
-[% ELSIF is_staff %]
+[% ELSE %]
+    [% nav_links = BLOCK %]
+    <form method="get" action="[% IF ! is_staff %]pub[% END %]sched.pl">
     <p>
-        <a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
+        <a href="[% IF ! is_staff %]pub[% END %]sched.pl?tel=[% telescope %]&semester=[% semester_prev %]">&laquo; [% semester_prev %]</a>
+        &nbsp; &nbsp; &nbsp;
+        <input type="hidden" name="tel" value="[% telescope %]" />
+        <select name="semester">
+            [% FOREACH semester_option = semester_options %]
+                <option value="[% semester_option %]" [% IF semester_option == semester %]selected="selected"[% END %]>[% semester_option %]</option>
+            [% END %]
+        </select>
+        <input type="submit" value="View" />
+        &nbsp; &nbsp; &nbsp;
+        <a href="[% IF ! is_staff %]pub[% END %]sched.pl?tel=[% telescope %]&semester=[% semester_next %]">[% semester_next %] &raquo;</a>
     </p>
+    </form>
+    [% END %]
+    [% nav_links %]
+    [% IF is_staff %]
+        <p>
+            <a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
+        </p>
+    [% END %]
 [% END %]
 
 <table class="bordered schedule" style="width: [% is_edit ? 180 : 120 %]ex;">
@@ -131,4 +151,6 @@
         <input type="hidden" name="show_output" value="1" />
     </p>
     </form>
+[% ELSE %]
+    [% nav_links %]
 [% END %]
