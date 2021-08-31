@@ -110,7 +110,7 @@
                     [% SET info = 0 %]
                 [% END %]
                 <td colspan="[% slot.num %]" width="width: [% slot.num * slot_width %]%" [% IF info %]style="[% IF info.background.defined %]background: [% info.background %]; [% END %][% IF info.foreground.defined %]color: [% info.foreground %]; [% END %]"[% END %]>
-                    [% IF info and slot.num == num_slot %]
+                    [% IF info and slot.num >= 6 %]
                         [% info.name | html %]
                     [% ELSE %]
                         [% slot.queue | html %]
