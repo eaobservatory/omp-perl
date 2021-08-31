@@ -11,6 +11,7 @@ use strict;
 use Carp;
 
 use Time::Piece;
+use Time::Seconds qw/ONE_HOUR/;
 
 use base qw/OMP::Info::Base/;
 
@@ -27,6 +28,18 @@ __PACKAGE__->CreateAccessors(
 
 =over 4
 
+=item B<time_local>
+
+Return the time in the local time zone.
+
+=cut
+
+sub time_local {
+    my $self = shift;
+
+    return $self->{'time'} + ONE_HOUR * 14;
+}
+
 =item B<stringify>
 
 Convert the object to a string.
@@ -36,7 +49,7 @@ Convert the object to a string.
 sub stringify {
     my $self = shift;
     return '('
-        . $self->time->strftime('%H:%M')
+        . $self->time_local()->strftime('%H:%M')
         . ' '
         . ((defined $self->queue()) ? $self->queue() : '??')
         . ')';
