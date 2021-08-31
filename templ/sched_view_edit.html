@@ -4,7 +4,7 @@
     <form method="post" action="edsched.pl?tel=[% telescope %]&semester=[% semester %]">
     [% SET queues = queue_info.keys.sort %]
     [% MACRO queue_select BLOCK %]
-                        <select name="[% name %]">
+                        <select name="[% name %]" tabindex="[% tabindex %]">
                             <option value=""></option>
                             [% FOREACH queue = queues %]
                                 <option value="[% queue %]" [% IF queue_selected == queue %]selected="selected"[% END %]>[% queue | truncate(max_len, '-') %]</option>
@@ -17,11 +17,14 @@
     </p>
 [% END %]
 
-<table class="bordered" style="width: [% is_edit ? 180 : 120 %]ex;">
+<table class="bordered schedule" style="width: [% is_edit ? 180 : 120 %]ex;">
 [% SET prev_month = "none" %]
 [% SET slot_width = 4 %]
 [% SET num_slot = slot_times.size %]
+[% SET num_day = schedule.size %]
+[% SET i_day = 0 %]
 [% FOREACH day = schedule %]
+    [% SET i_day = i_day + 1 %]
     [% SET month = day.date_local.fullmonth %]
     [% SET date_str = day.date.strftime("%Y-%m-%d") %]
     [% IF month != prev_month %]
@@ -55,9 +58,9 @@
                 <td>[% day.staff_eo | html %]</td>
                 <td>[% day.staff_it | html %]</td>
             [% ELSE %]
-                <td rowspan="2"><input type="text" name="staff_op_[% date_str %]" size="6" value="[% day.staff_op | html %]" /></td>
-                <td rowspan="2"><input type="text" name="staff_eo_[% date_str %]" size="6" value="[% day.staff_eo | html %]" /></td>
-                <td rowspan="2"><input type="text" name="staff_it_[% date_str %]" size="6" value="[% day.staff_it | html %]" /></td>
+                <td rowspan="2"><input type="text" name="staff_op_[% date_str %]" size="6" value="[% day.staff_op | html %]" tabindex="[% i_day %]" /></td>
+                <td rowspan="2"><input type="text" name="staff_eo_[% date_str %]" size="6" value="[% day.staff_eo | html %]" tabindex="[% num_day + i_day %]" /></td>
+                <td rowspan="2"><input type="text" name="staff_it_[% date_str %]" size="6" value="[% day.staff_it | html %]" tabindex="[% num_day * 2 + i_day %]" /></td>
             [% END %]
         [% END %]
         [% IF day.holiday and not is_edit -%]
@@ -95,19 +98,28 @@
                 </td>
             [% END %]
         [% ELSE %]
-                <td rowspan="2"><input type="checkbox" name="holiday_[% date_str %]" [% IF day.holiday %]checked="checked"[% END %]/ value="1"></td>
+                <td rowspan="2"><input type="checkbox" name="holiday_[% date_str %]" [% IF day.holiday %]checked="checked"[% END %] value="1" tabindex="[% num_day * 3 + i_day %]" /></td>
                 <td rowspan="2">
-                    <input type="text" name="notes_[% date_str %]" size="20" value="[% day.notes | html %]" />
-                    <input type="checkbox" name="notes_private_[% date_str %]" [% IF day.notes_private %]checked="checked"[% END %] value="1" />
+                    <input type="text" name="notes_[% date_str %]" size="20" value="[% day.notes | html %]" tabindex="[% num_day * 4 + i_day * 2 - 1 %]" />
+                    <input type="checkbox" name="notes_private_[% date_str %]" [% IF day.notes_private %]checked="checked"[% END %] value="1" tabindex="[% num_day * 4 + i_day * 2 %]" />
                 </td>
-                <td colspan="[% num_slot %]">
-                    [% queue_select(name=("queue_" _ date_str), max_len=20, queue_selected=day.queue) %]
+                <td colspan="[% num_slot %]" style="text-align: left;">
+                    [% queue_select(name=("queue_" _ date_str), max_len=20, queue_selected=day.queue, tabindex=(num_day * 6 + i_day)) %]
+                    [% SET num_slot_set = 0 %]
+                    [% slot_control = BLOCK %]
+                        [% SET i_slot = 0 %]
+                        [% FOREACH slot = day.slots_full %]
+                            [% SET i_slot = i_slot + 1 %]
+                            [% SET slot_set = ((slot.queue.defined) and (slot.queue != day.queue)) %]
+                            [% IF slot_set %][% SET num_slot_set = num_slot_set + 1 %][% END %]
+                            <td>[% queue_select(name=("queue_" _ date_str _ slot.time.strftime("_%H-%M-%S")), max_len=3, queue_selected=(slot_set ? slot.queue : ""), tabindex=(num_day * 7 + (i_day - 1) * (num_slot + 1) + i_slot + 1)) %]</td>
+                        [% END %]
+                    [% END %]
+                    <input type="checkbox" name="slot_shown_[% date_str %]" tabindex="[% num_day * 7 + (i_day - 1) * (num_slot + 1) + 1 %]" [% IF num_slot_set %]checked="checked"[% END %] />
                 </td>
             </tr>
-            <tr>
-                [% FOREACH slot = day.slots_full %]
-                    <td>[% queue_select(name=("queue_" _ date_str _ slot.time.strftime("_%H-%M-%S")), max_len=3, queue_selected=(((slot.queue.defined) and (slot.queue != day.queue)) ? slot.queue : "")) %]</td>
-                [% END %]
+            <tr id="slots_[% date_str %]">
+                [% slot_control %]
         [% END %]
     </tr>
 [% END %]

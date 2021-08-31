@@ -450,7 +450,7 @@ sub write_page {
   $mode_output ||= ($opt{'no_header'} and $form_same);
 
   # Print HTML header (including sidebar)
-  $self->_write_header()
+  $self->_write_header(undef, \%opt)
     unless $opt{'no_header'} && $mode_output;
 
   # Now everything is ready for our output.
@@ -669,7 +669,9 @@ sub _sidebar_project {
 
 Create the document header (and provide the cookie).
 
-  $cgi->_write_header();
+  $cgi->_write_header(undef, \%opt);
+
+  $cgi->_write_header($status);
 
 The header will also link the created document to the style sheet and
 RSS feed.
@@ -679,6 +681,7 @@ RSS feed.
 sub _write_header {
   my $self = shift;
   my $status = shift;
+  my $opt = shift // {};
 
   my $style = $self->_get_style;
   my %rssinfo = $self->rss_feed;
@@ -691,10 +694,10 @@ sub _write_header {
   # Make sure there is a cookie if we're going to provide
   # it in the header
 
-  my %opt = (-expires => '-1d');
-  $opt{'-cookie'} = $cookie if defined $cookie;
-  $opt{'-status'} = $status if defined $status;
-  print $q->header(%opt);
+  my %header_opt = (-expires => '-1d');
+  $header_opt{'-cookie'} = $cookie if defined $cookie;
+  $header_opt{'-status'} = $status if defined $status;
+  print $q->header(%header_opt);
 
   my $title = $self->html_title;
 
@@ -711,6 +714,7 @@ sub _write_header {
 
   # Add omp icon and javascript
   my $jscript_url = OMP::Config->getData('www-js');
+  push @$jscript_url, map {'/' . $_} @{$opt->{'javascript'}} if exists $opt->{'javascript'};
   my $favicon_url = OMP::Config->getData('www-favicon');
   $start_string .= "<link rel='icon' href='${favicon_url}'/>";
   $start_string .= "<script type='text/javascript' src='${_}'></script>" foreach @$jscript_url;
