@@ -128,11 +128,11 @@ foreach my $fields (@{Text::CSV::csv(in => $ARGV[0])}) {
         telescope => $tel,
         date => $date_ut,
         holiday => $holiday,
-        queue => $queue,
-        staff_op => $staff_op,
-        staff_eo => $staff_eo,
-        staff_it => $staff_it,
-        notes => $notes,
+        queue => _str_or_undef($queue),
+        staff_op => _str_or_undef($staff_op),
+        staff_eo => _str_or_undef($staff_eo),
+        staff_it => _str_or_undef($staff_it),
+        notes => _str_or_undef($notes),
         notes_private => 0,
     );
 
@@ -159,6 +159,11 @@ unless ($dry_run) {
     }
 }
 
+sub _str_or_undef {
+    my $value = shift;
+    return undef if $value eq '';
+    return $value;
+}
 __END__
 
 =head1 COPYRIGHT
