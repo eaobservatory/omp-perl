@@ -301,7 +301,7 @@ CREATE TABLE `ompuser` (
   `uname` varchar(255) NOT NULL,
   `email` varchar(64) DEFAULT NULL,
   `alias` varchar(32) DEFAULT NULL,
-  `cadcuser` varchar(20) DEFAULT NULL,
+  `cadcuser` varchar(32) DEFAULT NULL,
   `obfuscated` tinyint(4) NOT NULL DEFAULT 0,
   `no_fault_cc` tinyint(4) NOT NULL DEFAULT 0,
   `staff_access` tinyint(4) NOT NULL DEFAULT 0,
