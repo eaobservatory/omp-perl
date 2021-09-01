@@ -90,7 +90,8 @@ our %QUEUE = (
     EHT => 'VLBI',
     UHFLEX => 'UH',
     EAO => 'PI',
-    EA => 'EAVN',
+    EA => 'VLBI',
+    EAVN => 'VLBI',
     'E&C' => 'EC',
     'STUDIES-SXDS' => 'LAP',
 );
