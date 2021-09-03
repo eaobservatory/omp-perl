@@ -431,10 +431,10 @@ sub query_fault_output {
       $text = OMP::Display::escape_entity($text);
       my $text_search = $q->param('text_search');
       if ($text_search eq 'text') {
-        push @xml, "<text>$text</text>";
+        push @xml, "<text$modestr>$text</text>";
       }
       elsif ($text_search eq 'subject') {
-        push @xml, "<subject>$text</subject>";
+        push @xml, "<subject$modestr>$text</subject>";
       }
       else {
         push @xml,

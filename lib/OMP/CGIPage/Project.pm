@@ -391,7 +391,7 @@ sub project_home {
     <tr><td><b>Principal Investigator:</b></td><td>$pi</td>
     <tr><td><b>Co-investigators:</b></td><td>$coi</td>
     <tr><td><b>Support:</b></td><td>$support</td>
-    <tr><td><b>Country:</b></td><td>$country</td>
+    <tr><td><b>Queue:</b></td><td>$country</td>
     <tr><td><b>Semester:</b></td><td>$semester</td>
     <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
     <tr><td colspan=2><a href="$url/props.pl?project=${projectid}">Click here to view the science case for this project</a></td>

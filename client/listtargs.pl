@@ -48,9 +48,13 @@ Display the full manual page.
 
 Produce a list of regions to be observed.
 
-=item B<-format> stcs | ast
+=item B<-format> stcs | ast | moc-json | moc-text
 
 Selects the format in which to report the regions.
+
+=item B<-mocorder>
+
+Maximum MOC order if writing a region in MOC format.
 
 =item B<-type> new | progress | complete
 
@@ -109,7 +113,8 @@ our $VERSION = '2.000';
 
 # Options
 my ($format, $mode_type, $plotting_method, $plotting_system,
-    $help, $man, $version, $mode_region, $mode_plot, $plotting_bounds)
+    $help, $man, $version, $mode_region, $mode_plot, $plotting_bounds,
+    $moc_order)
   = ('stcs', undef, 'cmpregion', 'fk5');
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
@@ -117,6 +122,7 @@ my $status = GetOptions("help" => \$help,
                         "region" => \$mode_region,
                         "plot" => \$mode_plot,
                         'format=s' => \$format,
+                        'mocorder=i' => \$moc_order,
                         'type=s' => \$mode_type,
                         'plottingmethod=s' => \$plotting_method,
                         'plottingsystem=s' => \$plotting_system,
@@ -213,6 +219,18 @@ sub region_report {
     }
     elsif (lc($format) eq 'ast') {
       $region->write_ast(type => $mode_type);
+    }
+    elsif ($format =~ /^moc-/i) {
+      my %moc_opts = (type => $mode_type, order => $moc_order);
+      if (lc($format) eq 'moc-json') {
+        $moc_opts{'json'} = 1;
+      }
+      elsif (lc($format) eq 'moc-text') {
+      }
+      else {
+        die 'Unknown MOC format ' . $format;
+      }
+      print $region->get_moc(%moc_opts);
     }
     else {
       die 'Unknown region output format ' . $format;

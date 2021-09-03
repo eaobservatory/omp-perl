@@ -116,6 +116,7 @@ use Tk::NoteBook;
 use Tk::Radiobutton;
 use Tk::Dialog;
 use Tk::Font;
+use Tk::Adjuster;
 
 use Getopt::Long;
 use Time::Piece qw/ :override /;
@@ -270,7 +271,8 @@ if(defined($opt{tel})) {
 # for an observation. It assumes that OBS comments status is an integer
 # starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
-my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff', '#ff0000' );
+#                       good    questionable   bad     rejected     junk
+my @CONTENTCOLOUR = ( '#000000', '#ff7e00', '#ff3333', '#0000ff', '#ff00ff' );
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
@@ -356,6 +358,8 @@ sub create_main_window {
   my $nbFrame = $mainFrame->Frame( );
   $notebook = $nbFrame->NoteBook( );
 
+  my $adjuster = $mainFrame->Adjuster();
+
   # Shiftlog frame
   my $shiftFrame = $mainFrame->Frame();
   create_shiftlog_widget( $shiftFrame );
@@ -378,8 +382,10 @@ sub create_main_window {
                      );
 
   $shiftFrame->pack( -side => 'bottom',
-                    -fill => 'x',
+                    -fill => 'both',
                     -expand => 1);
+
+  $adjuster->packAfter($shiftFrame, -side=>'bottom');
 
   $nbFrame->pack( -side => 'bottom',
                   -fill => 'both',
@@ -1700,10 +1706,10 @@ sub create_shiftlog_widget {
   # Create a holder frame
   my $shiftlog = $w->Frame()->pack( -side => 'top',
                                     -expand => 1,
-                                    -fill => 'x' );
+                                    -fill => 'both' );
 
   my $topbar = $shiftlog->Frame->pack( -side => 'top',
-                                       -expand => 1,
+                                       -expand => 0,
                                        -fill => 'x' );
 
   # Create the text widget so that we can store the reference
@@ -1713,7 +1719,7 @@ sub create_shiftlog_widget {
                                            -font => $opt{'font-var'},
                                          )->pack( -side => 'bottom',
                                                   -expand => 1,
-                                                  -fill => 'x');
+                                                  -fill => 'both');
 
   # This variable controls whether we are in Local time or UT
   # Options are "LocalTime" and "UT"

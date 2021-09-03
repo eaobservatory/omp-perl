@@ -68,7 +68,7 @@ sub view_queue_status_output {
     do {
         my $country = $q->param('country');
         if (defined $country and $country ne 'Any') {
-            die 'invalid country' unless $country =~ /^([-_A-Za-z0-9]+)$/;
+            die 'invalid queue' unless $country =~ /^([-_A-Za-z0-9]+)$/;
             $opt{'country'} = $1;
         }
     };
@@ -213,7 +213,7 @@ sub _show_input_page {
                         : $q->i('No projects from previous search')
                     ),
                 $q->td([
-                    $q->b('Country'),
+                    $q->b('Queue'),
                     $q->popup_menu(-name => 'country',
                                    -values => \@countries,
                                    -default => 'Any')

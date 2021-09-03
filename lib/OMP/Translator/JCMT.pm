@@ -1249,6 +1249,19 @@ sub header_config {
                                   map { $self->$_ } qw[ verbose outhdl ]
                                 );
 
+  # Also process instrument-specific exclusion file.
+  my $inst = lc($self->ocs_frontend($info{instrument}));
+  throw OMP::Error::FatalError('No instrument defined - can not check for header exclude file')
+    unless defined $inst;
+
+  $xfile = File::Spec->catfile($self->wiredir, "header", $inst . "_exclude_inst");
+
+  @toexclude = $hdr->read_header_exclusion_file( $xfile );
+
+  $hdr->remove_excluded_headers( \@toexclude,
+                                  map { $self->$_ } qw[ verbose outhdl ]
+                                );
+
   # Get all the items that we are to be processed by the translator
   my @items = $hdr->item( sub {
                             defined $_[0]->source

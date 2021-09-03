@@ -71,7 +71,7 @@ my $initpath = $config->getData('web-install.initpath');
 my @srcdirs = qw/ cgi server web /;
 push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
-my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
+my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    faultrss.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
@@ -80,14 +80,15 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl
                    index.html
                    listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
-                   projecthome.pl projusers.pl projsum.pl props.pl
-                   qstatus.pl queryfault.pl retrieve_data.pl shiftlog.pl
+                   projecthome.pl projusers.pl projsum.pl props.pl pubsched.pl
+                   qstatus.pl queryfault.pl retrieve_data.pl sched.pl shiftlog.pl
                    sourceplot.pl spregion.pl spsummary.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
                    viewfault.pl worf_fits.pl worf_graphic.pl
-                   worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
+                   worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl
+                   sched_edit.js /;
 
 # Files to be installed in both public and private roots
 my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js jquery.js LookAndFeelConfig robots.txt /;

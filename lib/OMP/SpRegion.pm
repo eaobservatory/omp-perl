@@ -311,6 +311,41 @@ sub write_stcs {
   $ch->Write($cmp);
 }
 
+=item B<get_moc>
+
+Get a MOC representation.
+
+Options:
+
+=over 4
+
+=item max_order
+
+=item json
+
+=back
+
+=cut
+
+sub get_moc {
+    my $self = shift;
+    my %opt = @_;
+    my $type = $opt{'type'} || 'all';
+    die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
+        unless exists $self->{'separate'}{$type};
+    my $max_order = $opt{'order'} // 16;
+    my $json = !! $opt{'json'};
+
+    DEFER_CMPREGION && $self->_build_cmpregion($type);
+
+    my $cmp = $self->{'cmp'}->{$type};
+    return unless $cmp;
+
+    my $moc = new Starlink::AST::Moc(sprintf 'MaxOrder=%i', $max_order);
+    $moc->AddRegion(Starlink::AST::Region::AST__OR(), $cmp);
+
+    return $moc->GetMocString($json);
+}
 
 =item B<plot_pgplot>
 

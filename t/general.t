@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 188;
+use Test::More tests => 189;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -314,6 +314,7 @@ my %extract = (
                'E21AC001'  => 'EAO Canadian supplemental call project E21AC001',
                'E21AK001'  => 'EAO South Korean supplemental call project E21AK001',
                'E21AZ001'  => 'EAO Chinese supplemental project E21AZ001',
+               'M21BF001'  => 'EAO I.F. queue project M21BF001',
                'u/02b/d03' => 'u/02b/d03 is a UKIRT DDT project',
                'm03au05fb' => 'a fallback project: m03au05fb',
                'u/ec/1'    => 'A UKIRT E&C project u/ec/1',

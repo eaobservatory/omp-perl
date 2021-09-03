@@ -117,7 +117,7 @@ sub list_projects_form {
                        -values=>\@values,
                        -labels=>\%labels,
                        -default=>'dontcare',);
-  print "</td></tr><tr><td align='right'>Country: </td><td>";
+  print "</td></tr><tr><td align='right'>Queue: </td><td>";
   print $q->popup_menu(-name=>'country',
                        -values=>\@countries,
                        -default=>'Any',);
@@ -181,7 +181,7 @@ sub proj_status_table {
         "<td><b>Staff Contact:</b> $supportemail</td></tr>",
         "<tr><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
         "<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
-        "<td><b>Country:</b>" . $project->country . "</td></tr>",
+        "<td><b>Queue:</b>" . $project->country . "</td></tr>",
         "</table><p>";
 }
 
@@ -261,7 +261,7 @@ TABLE
         if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
           $hsem = $project->semester_ori;
           $hcountry = $project->country;
-          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td></tr>\n";
+          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Queue: $hcountry</td></td></tr>\n";
         }
       }
 

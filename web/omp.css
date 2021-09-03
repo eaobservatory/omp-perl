@@ -579,3 +579,7 @@ div.log_in_panel > p a:after {
 div.log_in_panel > div {
   padding: 10px;
 }
+
+table.schedule td, table.schedule th {
+    text-align: center;
+}

@@ -1826,7 +1826,7 @@ sub correlator {
         $slot_mapping = [2, 3, 0, 1];
       }
       elsif (2 == scalar @hwmap) {
-        if (($info{'PROJECTID'} eq 'M17BL004')
+        if ((grep {$info{'PROJECTID'} eq $_} qw/M17BL004 M21AH07C/)
                 and (exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
                 and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
                 and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
