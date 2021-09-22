@@ -220,9 +220,6 @@ sub proj_sum_table {
   <td>Completed</td>
   <td>Instruments</td>
   <td>Tau range</td>
-  <td>Seeing range</td>
-  <td>Cloud</td>
-  <td>Sky Brightness</td>
   <td>Title</td>
   </tr>
 TABLE
@@ -262,7 +259,7 @@ TABLE
         if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
           $hsem = $project->semester_ori;
           $hcountry = $project->country;
-          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Queue: $hcountry</td></td></tr>\n";
+          print "<tr bgcolor='$bgcolor{heading}'><td colspan=13>Semester: $hsem, Queue: $hcountry</td></td></tr>\n";
         }
       }
 
@@ -285,12 +282,8 @@ TABLE
 
       # Get seeing and tau info
       my $taurange = $project->taurange;
-      my $seerange = $project->seeingrange;
-      my $skyrange = $project->skyrange;
 
       $taurange = '--' if OMP::SiteQuality::is_default( 'TAU',$taurange );
-      $seerange = '--' if OMP::SiteQuality::is_default( 'SEEING',$seerange );
-      $skyrange = '--' if OMP::SiteQuality::is_default( 'SKY',$skyrange );
 
       # programInstruments() may return empty array reference.
       my $instruments = OMP::SpServer->programInstruments( $project->projectid );
@@ -327,9 +320,6 @@ STATUS
           : '--' ;
 
       print "<td align=center>$taurange</td>";
-      print "<td align=center>$seerange</td>";
-      print "<td align=center>". $project->cloudtxt ."</td>";
-      print "<td align=center>$skyrange</td>";
       print "<td>". $project->title ."</td>";
 
       print "</tr>\n";
