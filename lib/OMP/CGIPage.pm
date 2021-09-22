@@ -708,6 +708,8 @@ sub _write_header {
   $start_string .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$style\" title=\"ompstyle\">"
     unless (! $style);
 
+  $start_string .= '<meta name="theme-color" content="#55559b" />';
+
   # Link to RSS feed
   $start_string .= "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"$rssinfo{title}\" href=\"$rssinfo{href}\" />"
     unless (! exists $rssinfo{title});
