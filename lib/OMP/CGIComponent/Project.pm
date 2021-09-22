@@ -211,6 +211,7 @@ sub proj_sum_table {
   <td>Enabled(v) / Disabled(x)</td>
   <td>Project ID</td>
   <td>PI</td>
+  <td>PI affilation</td>
   <td>Support</td>
   <td># MSBs</td>
   <td>Priority</td>
@@ -313,6 +314,7 @@ STATUS
 
       print "<td><a href='$url/projecthome.pl?project=". $project->projectid ."'>". $project->projectid ."</a></td>";
       print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
+      print '<td>'. ($project->pi->affiliation // '&nbsp;') . '</td>';
       print "<td>". $support ."</td>";
       print "<td align=center>$nremaining/$nmsb</td>";
       print "<td align=center>". $project->tagpriority ."</td>";
