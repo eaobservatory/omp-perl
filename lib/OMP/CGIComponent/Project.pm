@@ -211,7 +211,7 @@ sub proj_sum_table {
   <td>Enabled(v) / Disabled(x)</td>
   <td>Project ID</td>
   <td>PI</td>
-  <td>PI affilation</td>
+  <td>PI affiliation</td>
   <td>Support</td>
   <td># MSBs</td>
   <td>Priority</td>
