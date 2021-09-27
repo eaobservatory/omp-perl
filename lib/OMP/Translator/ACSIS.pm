@@ -3502,12 +3502,12 @@ sub bandwidth_mode {
       # Subbands all referenced to the centre IF.
       #         [ |     |:]
       #                 [:|     | ]
-      #                  :      [ |     | ]
       # [ |     | ]      :
+      #                  :      [ |     | ]
       @refchan = ($nch_lo,
                   $nch_hi,
-                  $nch_hi + $subband_shift,
-                  $nch_lo - $subband_shift);
+                  $nch_lo - $subband_shift,
+                  $nch_hi + $subband_shift);
       @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
