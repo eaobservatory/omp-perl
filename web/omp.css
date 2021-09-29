@@ -592,6 +592,7 @@ input[type="submit"], input[type="text"], input[type="password"], input[type="nu
 
 input[type="submit"], select, input[type="file"]::file-selector-button, input[type="button"] {
     background: #EEE;
+    color: #000;
 }
 
 input[type="submit"]:hover, select:hover, input[type="file"]::file-selector-button:hover, input[type="button"]:hover {
