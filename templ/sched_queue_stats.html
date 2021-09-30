@@ -1,0 +1,61 @@
+<h1>[% title | html %]</h1>
+
+<p>
+    <br /><a href="sched.pl?tel=[% telescope %]&semester=[% semester %]">View schedule</a>
+    <br /><a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
+</p>
+
+
+<table class="bordered">
+    <tr>
+        <th rowspan="2">Queue</th>
+        <th colspan="2">Nights &dagger;</th>
+        <th colspan="2">Slots &ddagger;</th>
+    </tr>
+    <tr>
+        <th>(number)</th>
+        <th>(percentage)</th>
+        <th>(number)</th>
+        <th>(percentage)</th>
+    </tr>
+    [% FOREACH queue = queues %]
+        <tr>
+            [% IF queue_info.exists(queue) %]
+                [% SET info = queue_info.item(queue) %]
+                <td style="[% IF info.background.defined %]background: [% info.background %]; [% END %][% IF info.foreground.defined %]color: [% info.foreground %]; [% END %]">[% info.name | html %]</td>
+            [% ELSE %]
+                <td>[% queue | html %]</td>
+            [% END %]
+            [% IF queue_night.exists(queue) %]
+                <td style="text-align: center;">[% queue_night.item(queue) %]</td>
+                <td style="text-align: center;">[% 100 * queue_night.item(queue) / total_night | format('%.1f') %] %</td>
+            [% ELSE %]
+                <td style="text-align: center;">&mdash;</td>
+                <td style="text-align: center;">&mdash;</td>
+            [% END %]
+            [% IF queue_slot.exists(queue) %]
+                <td style="text-align: center;">[% queue_slot.item(queue) %]</td>
+                <td style="text-align: center;">[% 100 * queue_slot.item(queue) / total_slot | format('%.1f') %] %</td>
+            [% ELSE %]
+                <td style="text-align: center;">&mdash;</td>
+                <td style="text-align: center;">&mdash;</td>
+            [% END %]
+        </tr>
+    [% END %]
+</table>
+
+<p>
+&dagger;
+The &ldquo;nights&rdquo; columns indicate the number of
+nights for which each queue was selected as the primary queue,
+regardless of any individual slot assignments which may
+have been made on those nights.
+</p>
+
+<p>
+&ddagger;
+The &ldquo;slots&rdquo; columns indicate the number of
+slots assigned to each queue, counting both individual
+slot assignments and slots for which no individual
+assignment was made, in which case the primary queue for the night is used.
+</p>

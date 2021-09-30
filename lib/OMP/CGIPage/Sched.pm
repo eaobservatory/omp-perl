@@ -207,6 +207,51 @@ sub sched_edit_output {
     print $q->redirect("sched.pl?tel=$tel&semester=$semester");
 }
 
+sub sched_view_queue_stats {
+    my $self = shift;
+
+    my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
+    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+
+    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
+    my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
+
+    my %queue_night = ();
+    my %queue_slot = ();
+    my $total_night = 0;
+    my $total_slot = 0;
+
+    foreach my $night (@{$sched->nights()}) {
+        $queue_night{$night->queue // 'Unassigned'} ++;
+        $total_night ++;
+        foreach my $slot_info (@{$night->slots_full()}) {
+            $queue_slot{$slot_info->{'queue'} // 'Unassigned'} ++;
+            $total_slot ++;
+        }
+    }
+
+    # Create full list of queues present.
+    my %queues = ();
+    $queues{$_} = 1 foreach keys %queue_night;
+    $queues{$_} = 1 foreach keys %queue_slot;
+
+    # Make sure dividing by total will not cause a divide by zero error.
+    $total_night = 1 unless $total_night;
+    $total_slot = 1 unless $total_slot;
+
+    $self->render_template('sched_queue_stats.html', {
+        title => "$tel Schedule $semester Queue Statistics",
+        queues => [sort keys %queues],
+        queue_night => \%queue_night,
+        queue_slot => \%queue_slot,
+        queue_info => $queue_info,
+        total_night => $total_night,
+        total_slot => $total_slot,
+        telescope => $tel,
+        semester => $semester,
+    });
+}
+
 sub _str_or_undef {
     my $value = shift;
     return undef if $value eq '';
