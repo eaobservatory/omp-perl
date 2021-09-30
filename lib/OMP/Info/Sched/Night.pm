@@ -52,6 +52,30 @@ sub date_local {
     return $self->{'date'} - ONE_DAY;
 }
 
+=item B<date_local_next>
+
+Return the next date in the local time zone.
+
+=cut
+
+sub date_local_next {
+    my $self = shift;
+
+    return $self->date_local + ONE_DAY;
+}
+
+=item B<date_next>
+
+Return the next date.
+
+=cut
+
+sub date_next {
+    my $self = shift;
+
+    return $self->{'date'} + ONE_DAY;
+}
+
 =item B<slots_merged>
 
 Return a list of "merged" schedule slots.  Each entry is a hash
