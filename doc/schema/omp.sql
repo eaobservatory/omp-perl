@@ -245,6 +245,16 @@ CREATE TABLE `ompsched` (
   `notes_private` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE `ompschedcal` (
+  `calid` int(11) NOT NULL AUTO_INCREMENT,
+  `telescope` varchar(16) NOT NULL,
+  `name` varchar(80) NOT NULL,
+  `pattern` varchar(80) NOT NULL,
+  `include_holiday` tinyint(1) NOT NULL DEFAULT 0,
+  `token` varchar(80) NOT NULL,
+  PRIMARY KEY (`calid`),
+  UNIQUE KEY `token` (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompschedqueue` (
   `telescope` varchar(32) NOT NULL,
   `queue` varchar(32) NOT NULL,

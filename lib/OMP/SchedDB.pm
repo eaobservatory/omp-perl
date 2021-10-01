@@ -21,6 +21,7 @@ use base qw/OMP::BaseDB/;
 our $SCHEDTABLE = 'ompsched';
 our $SCHEDSLOTTABLE = 'ompschedslot';
 our $SCHEDQUEUETABLE = 'ompschedqueue';
+our $SCHEDCALTABLE = 'ompschedcal';
 
 =head1 METHODS
 
@@ -196,6 +197,46 @@ sub update_schedule {
     # End transaction.
     $self->_dbunlock();
     $self->_db_commit_trans();
+}
+
+=item get_schedule_calendar
+
+Retrieve a telescope schedule calendar configuration by token.
+
+    my $cal_info = $db->get_schedule_calendar($token);
+
+=cut
+
+sub get_schedule_calendar {
+    my $self = shift;
+    my $token = shift;
+
+    my $result = $self->_db_retrieve_data_ashash(
+        'SELECT * FROM ' . $SCHEDCALTABLE . ' WHERE token=?',
+        $token);
+
+    return undef unless 1 == scalar @$result;
+    return $result->[0];
+}
+
+=item list_schedule_calendars
+
+Retrieve all telescope schedule calendar configurations.
+
+    my $cal_list = $db->list_schedule_calendars(tel => $tel);
+
+=cut
+
+sub list_schedule_calendars {
+    my $self = shift;
+    my %opt = @_;
+
+    my $tel = $opt{'tel'} or die 'Telescope not specified';
+
+    return $self->_db_retrieve_data_ashash(
+        'SELECT * FROM ' . $SCHEDCALTABLE . ' WHERE telescope=?'
+        . ' ORDER BY name ASC',
+        $tel);
 }
 
 1;
