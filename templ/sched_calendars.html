@@ -1,0 +1,30 @@
+<h1>[% title | html %]</h1>
+
+<ul>
+<li>
+The calendar URLs listed below can be used to subscribe
+to schedule entries matching the given patterns.
+</li>
+
+<li>
+The URLs should be kept private as they grant
+password-free access to corresponding schedule entries.
+</li>
+</ul>
+
+<table class="bordered">
+    <tr>
+        <th>Name</th>
+        <th>Pattern</th>
+        <th>Holidays?</th>
+        <th>Calendar URL</th>
+    </tr>
+    [% FOR calendar = calendars %]
+        <tr>
+            <td>[% calendar.name | html %]</td>
+            <td><tt>[% calendar.pattern | html %]</tt></td>
+            <td style="text-align: center;">[% IF calendar.include_holiday %]&check;[% ELSE %]&cross;[% END %]</td>
+            <td><tt style="user-select: all;">[% base_url _ '?token=' _ calendar.token %]</tt></td>
+        </tr>
+    [% END %]
+</table>

@@ -19,12 +19,16 @@ use strict;
 use warnings;
 
 use Carp;
+use Data::ICal;
+use Data::ICal::Entry::Event;
+use Time::Piece ':override';
 use Time::Seconds qw/ONE_DAY ONE_HOUR/;
 
 use OMP::CGIDBHelper;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::DBbackend;
+use OMP::NetTools;
 use OMP::SchedDB;
 use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
@@ -250,6 +254,203 @@ sub sched_view_queue_stats {
         telescope => $tel,
         semester => $semester,
     });
+}
+
+sub sched_cal_list {
+    my $self = shift;
+
+    my $q = $self->cgi;
+
+    my $tel = $q->url_param('tel')
+        or die 'Telescope not selected';
+
+    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+
+    my $cal_list = $db->list_schedule_calendars(tel => $tel);
+
+    $self->render_template('sched_calendars.html', {
+        title => "$tel Schedule Calendars",
+        telescope => $tel,
+        calendars => $cal_list,
+        base_url => OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir') . '/schedcal.pl',
+    });
+}
+
+sub sched_cal_view {
+    my $self = shift;
+
+    my $q = $self->cgi;
+
+    my $token = $q->url_param('token')
+        or die 'Access token not specified';
+
+    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+
+    my $cal_info = $db->get_schedule_calendar($token);
+
+    die 'Access token not recognized'
+        unless defined $cal_info;
+
+    my $cal = _create_calendar(
+        $db,
+        $cal_info->{'telescope'},
+        $cal_info->{'name'},
+        $cal_info->{'pattern'},
+        $cal_info->{'include_holiday'},
+    );
+
+    my $name = lc $cal_info->{'name'};
+    $name =~ s/[^0-9a-z]/_/g;
+
+    print $q->header(
+        -type => 'text/calendar',
+        -attachment => (sprintf 'calendar_%s.ics', $name),
+    );
+
+    print $cal;
+}
+
+sub _create_calendar {
+    my $db = shift;
+    my $tel = shift;
+    my $queryname = shift;
+    my $queryregexp = shift;
+    my $include_holiday = shift;
+
+    my $summary_prefix = $tel;
+    my $query = qr/$queryregexp/;
+    my $now = gmtime()->strftime('%Y%m%dT%H%M%SZ');
+
+    my $uid_query = lc $queryname;
+    $uid_query =~ s/[^0-9a-z]/_/g;
+
+    my $semester = OMP::DateTools->determine_semester(tel => $tel);
+    my $semester_next;
+    if ($semester =~ /^(\d\d)([AB])$/) {
+        if ($2 eq 'A') {
+            $semester_next = sprintf('%02d%s', $1, 'B');
+        }
+        else {
+            $semester_next = sprintf('%02d%s', $1 + 1, 'A');
+        }
+    }
+
+    my ($start, $end) = OMP::DateTools->semester_boundary(
+        tel => $tel, semester => [$semester, $semester_next]);
+
+    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
+
+    my (undef, $localhost, undef) = OMP::NetTools->determine_host(1);
+
+    my $cal = new Data::ICal(
+        calname => (sprintf 'JCMT Calendar - %s', $queryname),
+        rfc_strict => 1,
+    );
+
+    # List of fields to search, giving the name, accessor method
+    # and whether it refers to the previous local date.
+    my @items = (
+        ['Night', 'staff_op', 0],
+        ['Morning', 'staff_eo', 1],
+        ['IT', 'staff_it', 0],
+    );
+
+    # Assemble hash of nights by "next" date string.  This will allow us to
+    # find the previous night object for items which require it.
+    my %night_by_next = ();
+
+    foreach my $night (@{$sched->nights}) {
+        my $date_next = ($night->date_local + ONE_DAY)->strftime('%Y%m%d');
+        $night_by_next{$date_next} = $night;
+    }
+
+    # Track previous value of each item, in case of use of dittos
+    # on the schedule.
+    my %prev = map {$_->[0] => undef} @items;
+
+    foreach my $date_next (sort keys %night_by_next) {
+        my $night = $night_by_next{$date_next};
+        my $date = $night->date_local->strftime('%Y%m%d');
+        my $night_prev = (exists $night_by_next{$date}) ? $night_by_next{$date} : undef;
+
+        if ($include_holiday) {
+            if ($night->holiday) {
+                my $event = new Data::ICal::Entry::Event();
+
+                $event->add_properties(
+                    created => $now,
+                    dtend => [$date_next, {VALUE => 'DATE'}],
+                    dtstamp => $now,
+                    dtstart => [$date, {VALUE => 'DATE'}],
+                    summary => (sprintf '%s: %s', $summary_prefix, 'Holiday'),
+                    transp => 'TRANSPARENT',
+                    uid => (sprintf 'omp-jcmt-%s-hol-%s@%s', $uid_query, $date, $localhost),
+                );
+
+                $cal->add_entry($event);
+            }
+        }
+
+        my @info = ();
+        my @desc = ();
+        foreach my $item (@items) {
+            my ($title, $method, $is_date_prev) = @$item;
+
+            # Look at $night unless this is an entry we get from the
+            # previous night, in which case use $night_prev.
+            my $item_night = $is_date_prev ? $night_prev : $night;
+            next unless defined $item_night;
+
+            my $val = $item_night->$method;
+            if (defined $val) {
+                # Check for ditto.
+                if ($val eq '"') {
+                    if (defined $prev{$title}) {
+                        $val = $prev{$title};
+                    }
+                    else {
+                        next;
+                    }
+                }
+                else {
+                    $prev{$title} = $val;
+                }
+
+                if ($val =~ $query) {
+                    push @info, $title;
+                    push @desc, sprintf '%s: %s', $title, $val;
+                }
+            }
+            else {
+                undef $prev{$title};
+            }
+        }
+
+        next unless scalar @info;
+        my $info = join ', ', @info;
+
+        if (defined $night->notes) {
+            unshift @desc, $night->notes;
+        }
+        my $desc = join "\n", @desc;
+
+        my $event = new Data::ICal::Entry::Event();
+
+        $event->add_properties(
+            created => $now,
+            description => $desc,
+            dtend => [$date_next, {VALUE => 'DATE'}],
+            dtstamp => $now,
+            dtstart => [$date, {VALUE => 'DATE'}],
+            summary => (sprintf '%s: %s', $summary_prefix, $info),
+            transp => 'TRANSPARENT',
+            uid => (sprintf 'omp-jcmt-%s-%s@%s', $uid_query, $date, $localhost),
+        );
+
+        $cal->add_entry($event);
+    }
+
+    return $cal->as_string;
 }
 
 sub _str_or_undef {
