@@ -98,7 +98,9 @@
                 <td rowspan="2"><input type="text" name="staff_eo_[% date_str %]" size="6" value="[% day.staff_eo | html %]" tabindex="[% num_day * 3 + i_day %]" /></td>
             [% END %]
         [% END %]
-        [%- IF day.date_local_next.day_of_week == 6 || day.date_local_next.day_of_week == 0 -%]
+        [% IF day.holiday_next and not is_edit -%]
+            <td rowspan="[% is_edit ? 2 : 1 %]" style="background: #CCCCCC">h
+        [%- ELSIF day.date_local_next.day_of_week == 6 || day.date_local_next.day_of_week == 0 -%]
             <td rowspan="[% is_edit ? 2 : 1 %]" style="background: #DDDDDD">s
         [%- ELSE -%]
             <td rowspan="[% is_edit ? 2 : 1 %]">

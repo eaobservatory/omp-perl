@@ -27,6 +27,7 @@ __PACKAGE__->CreateAccessors(
     telescope => '$',
     date => 'Time::Piece',
     holiday => '$',
+    holiday_next => '$',
     queue => '$',
     staff_op => '$',
     staff_eo => '$',

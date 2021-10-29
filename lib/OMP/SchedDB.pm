@@ -89,10 +89,14 @@ sub get_schedule {
         die 'Neither date nor start and end specified';
     }
 
+    # Fetch the SCHEDTABLE results for one extra night so that
+    # the holiday_next field can be filled in.
+    my $end_next = $end + ONE_DAY;
+
     my $result_days = $self->_db_retrieve_data_ashash(
         'SELECT * FROM ' . $SCHEDTABLE
         . ' WHERE telescope=? AND `date` BETWEEN ? AND ?',
-        $tel, $start->strftime('%Y-%m-%d'), $end->strftime('%Y-%m-%d'));
+        $tel, $start->strftime('%Y-%m-%d'), $end_next->strftime('%Y-%m-%d'));
 
     my $result_slots = $self->_db_retrieve_data_ashash(
         'SELECT * FROM ' . $SCHEDSLOTTABLE
@@ -116,6 +120,7 @@ sub get_schedule {
 
     for (my $date = $start; $date <= $end; $date += ONE_DAY) {
         my $datestr = $date->strftime('%Y-%m-%d');
+        my $datestr_next = ($date + ONE_DAY)->strftime('%Y-%m-%d');
         my $info;
         unless (exists $days{$datestr}) {
             $info = new OMP::Info::Sched::Night(
@@ -123,6 +128,9 @@ sub get_schedule {
         }
         else {
             $info = new OMP::Info::Sched::Night(%{$days{$datestr}});
+            if (exists $days{$datestr_next}) {
+                $info->holiday_next($days{$datestr_next}->{'holiday'});
+            }
 
             if (exists $slots{$datestr}) {
                 my @slots;
