@@ -1055,7 +1055,7 @@ sub obs_comment_form {
                 -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
               ),
     $q->hidden( -name => 'oid',
-                -value => $q->param( 'oid' ),
+                -value => scalar $q->param( 'oid' ),
               ),
     $q->hidden( -name => 'show_output',
                 -value => 1,

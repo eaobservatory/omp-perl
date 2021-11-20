@@ -642,8 +642,8 @@ sub add_user_output {
     my $userid = $q->param('new_user_id');
     my $message = $self->_add_user_try(
         $userid,
-        $q->param('new_user_name'),
-        $q->param('new_user_email'));
+        (scalar $q->param('new_user_name')),
+        (scalar $q->param('new_user_email')));
 
     return $self->_add_user_form($message) if defined $message;
 

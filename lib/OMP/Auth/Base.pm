@@ -35,7 +35,7 @@ sub log_in {
     my $q = shift;
 
     return $cls->log_in_userpass(
-        $q->param('username'), $q->param('password'));
+        (scalar $q->param('username')), (scalar $q->param('password')));
 }
 
 =item B<log_in_userpass>

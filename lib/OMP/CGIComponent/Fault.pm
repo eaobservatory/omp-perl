@@ -1188,12 +1188,12 @@ sub parse_file_fault_form {
 
   my $category = $q->param( 'category' );
 
-  my %parsed = (subject => $q->param('subject'),
-                type => $q->param('type'),
-                status => $q->param('status'),
+  my %parsed = (subject => scalar $q->param('subject'),
+                type => scalar $q->param('type'),
+                status => scalar $q->param('status'),
       );
 
-  my @params = $q->param;
+  my @params = $q->multi_param;
   my %paramhash = map { $_ => 1 } @params;
   if(exists($paramhash{remote})){
       $parsed{'remote'} = $q->param('remote');
@@ -1223,7 +1223,7 @@ sub parse_file_fault_form {
   }
 
   # Determine urgency and condition
-  my @checked = $q->param('condition');
+  my @checked = $q->multi_param('condition');
   my %urgency = OMP::Fault->faultUrgency;
   my %condition = OMP::Fault->faultCondition;
   $parsed{urgency} = $urgency{Normal};
@@ -1239,7 +1239,7 @@ sub parse_file_fault_form {
 
   # Get the associated projects
   if ($q->param('assoc') or $q->param('assoc2')) {
-    my @assoc = $q->param('assoc');
+    my @assoc = $q->multi_param('assoc');
 
     # Strip out commas and seperate on spaces
     my $assoc2 = $q->param('assoc2');

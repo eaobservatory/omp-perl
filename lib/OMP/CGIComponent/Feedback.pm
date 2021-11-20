@@ -221,9 +221,9 @@ sub submit_fb_comment {
   (undef, my $host, undef) = OMP::NetTools->determine_host;
 
   my $comment = { author => $self->auth->user,
-                  subject => $q->param('subject'),
+                  subject => scalar $q->param('subject'),
                   sourceinfo => $host,
-                  text => $q->param('text'),
+                  text => scalar $q->param('text'),
                   program => $q->url(-relative=>1), # the name of the cgi script
                   status => OMP__FB_IMPORTANT, };
 
