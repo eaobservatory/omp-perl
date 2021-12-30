@@ -91,7 +91,7 @@ sub log_in_oauth {
 
     return {
         user => $user,
-        redirect => $q->param('state') // 'cgi-bin/projecthome.pl',
+        redirect => (scalar $q->param('state')) // 'cgi-bin/projecthome.pl',
     }
 }
 

@@ -62,8 +62,8 @@ sub night_report {
 
   # Get delta and start UT date from multi night form
   if ($q->param('utdate_end')) {
-    $utdate = OMP::DateTools->parse_date($q->param('utdate_form'));
-    $utdate_end = OMP::DateTools->parse_date($q->param('utdate_end'));
+    $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate_form'));
+    $utdate_end = OMP::DateTools->parse_date(scalar $q->param('utdate_end'));
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")

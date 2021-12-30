@@ -150,7 +150,7 @@ sub msb_action {
       # Create the comment object
       my $trans = $q->param( 'transaction' );
       my $comment = new OMP::Info::Comment( author => $self->auth->user,
-                                            text => $q->param('comment'),
+                                            text => scalar $q->param('comment'),
                                             status => OMP__DONE_COMMENT,
                                             ( $trans ? ( 'tid' => $trans )
                                               : ()
@@ -158,9 +158,8 @@ sub msb_action {
                                           );
 
       # Add the comment
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'),
-                                     $q->param('msbid'),
-                                     $comment );
+      OMP::MSBServer->addMSBcomment(
+            (scalar $q->param('projectid')), (scalar $q->param('msbid')), $comment);
       print $q->h2("MSB comment successfully submitted");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
@@ -173,7 +172,7 @@ sub msb_action {
   } elsif ($q->param("Remove")) {
     # Mark msb as 'all done'
     try {
-      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum') );
+      OMP::MSBServer->alldoneMSB((scalar $q->param('projectid')), (scalar $q->param('checksum')));
       print $q->h2("MSB removed from consideration");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
@@ -187,7 +186,7 @@ sub msb_action {
     # Unmark msb as 'done'.
     try {
       OMP::MSBServer->undoMSB(
-          $q->param('projectid'), $q->param('checksum'), $q->param('transaction'));
+          (scalar $q->param('projectid')), (scalar $q->param('checksum')), (scalar $q->param('transaction')));
       print $q->h2("MSB done mark removed");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
@@ -200,7 +199,7 @@ sub msb_action {
   } elsif ($q->param("unRemove")) {
     # Unremove a removed MSB.
     try {
-      OMP::MSBServer->unremoveMSB( $q->param('projectid'), $q->param('checksum') );
+      OMP::MSBServer->unremoveMSB((scalar $q->param('projectid')), (scalar $q->param('checksum')));
       print $q->h2("MSB no longer removed from consideration");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
@@ -445,10 +444,10 @@ sub msb_comment_form {
   my %defaults;
   if ($defaults) {
     # Use query param values as defaults
-    %defaults = map {$_, $q->param($_)} qw/comment msbid/;
+    %defaults = map {$_, scalar $q->param($_)} qw/comment msbid/;
   } else {
     %defaults = (comment => undef,
-                 msbid =>$q->param('checksum'),)
+                 msbid => scalar $q->param('checksum'))
   }
 
   print start_form_absolute($q);
@@ -463,7 +462,7 @@ sub msb_comment_form {
         'submit_msb_comment' => 1,
         # This is checksum not transaction id.
         'msbid' => $defaults{'msbid'},
-        'transaction' => $q->param( 'transaction' )
+        'transaction' => scalar $q->param( 'transaction' )
       }
     ),
     _make_non_empty_hidden_fields( $q, qw[ projectid utdate telescope ]) ;
@@ -906,7 +905,7 @@ sub _make_non_empty_hidden_fields {
     OMP::Display->make_hidden_fields(
       $cgi,
       { map
-          { length $cgi->param( $_ ) ? ( $_ => $cgi->param( $_ ) )
+          { length $cgi->param( $_ ) ? ( $_ => scalar $cgi->param( $_ ) )
               : ()
           }
           @fields

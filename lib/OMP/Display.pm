@@ -120,7 +120,7 @@ sub make_hidden_fields {
   $filter = sub { 1 } unless $filter;
 
   return
-    map { $filter->( $cgi->param( $_ ) )
+    map { $filter->(scalar $cgi->param($_))
           ? $cgi->hidden( '-name' => $_, '-default' => $fields->{ $_ } )
           : ()
         }

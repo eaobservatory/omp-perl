@@ -255,7 +255,7 @@ sub query_fault_output {
   # Print faults if print button was clicked
   if ($q->param('print')) {
     my $printer = $q->param('printer');
-    my @fprint = split(',',$q->param('faults'));
+    my @fprint = split(',', scalar $q->param('faults'));
 
     my $separate = 0;  # Argument governs whether faults are printed combined
     if ($q->param('print_method') eq "separate") {
@@ -750,7 +750,7 @@ sub view_fault_output {
         # have a method for doing an explicit status update.
 
         # Change the status parameter
-        $fault->status($q->param('status'));
+        $fault->status(scalar $q->param('status'));
 
         # Resubmit the fault
         OMP::FaultServer->updateFault($fault, $self->auth->user);
@@ -768,7 +768,7 @@ sub view_fault_output {
   } elsif ($q->param('print')) {
     # Send the fault to a printer if print button was clicked
     my $printer = $q->param('printer');
-    my @fprint = split(',',$q->param('faults'));
+    my @fprint = split(',', scalar $q->param('faults'));
 
     OMP::FaultUtil->print_faults($printer, 0, @fprint);
     $self->_write_header();

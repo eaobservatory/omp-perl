@@ -182,18 +182,18 @@ sub sched_edit_output {
     foreach my $day (@$sched) {
         my $date_str = $day->date()->strftime('%Y-%m-%d');
 
-        my $queue = _str_or_undef($q->param('queue_' . $date_str));
+        my $queue = _str_or_undef(scalar $q->param('queue_' . $date_str));
         $day->queue($queue);
-        $day->staff_op(_str_or_undef($q->param('staff_op_' . $date_str)));
-        $day->staff_eo(_str_or_undef($q->param('staff_eo_' . $date_str)));
-        $day->staff_it(_str_or_undef($q->param('staff_it_' . $date_str)));
-        $day->notes(_str_or_undef($q->param('notes_' . $date_str)));
-        $day->notes_private($q->param('notes_private_' . $date_str) ? 1 : 0);
-        $day->holiday($q->param('holiday_' . $date_str) ? 1 : 0);
+        $day->staff_op(_str_or_undef(scalar $q->param('staff_op_' . $date_str)));
+        $day->staff_eo(_str_or_undef(scalar $q->param('staff_eo_' . $date_str)));
+        $day->staff_it(_str_or_undef(scalar $q->param('staff_it_' . $date_str)));
+        $day->notes(_str_or_undef(scalar $q->param('notes_' . $date_str)));
+        $day->notes_private((scalar $q->param('notes_private_' . $date_str)) ? 1 : 0);
+        $day->holiday((scalar $q->param('holiday_' . $date_str)) ? 1 : 0);
 
         my @slots = ();
         for my $slot_option (@{$day->slots_full()}) {
-            my $slot_queue = _str_or_undef($q->param(
+            my $slot_queue = _str_or_undef(scalar $q->param(
                 'queue_' . $date_str . $slot_option->{'time'}->strftime('_%H-%M-%S')));
             push @slots, new OMP::Info::Sched::Slot(
                 telescope => $tel,

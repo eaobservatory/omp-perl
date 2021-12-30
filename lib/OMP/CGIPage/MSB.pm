@@ -93,7 +93,7 @@ sub fb_msb_output {
     try {
       # Create the comment object
       my $comment = new OMP::Info::Comment( author => $self->auth->user,
-                                            text => $q->param('comment'),
+                                            text => scalar $q->param('comment'),
                                             status => OMP__DONE_COMMENT );
 
       OMP::MSBServer->addMSBcomment( $projectid, $q->param('msbid'), $comment);

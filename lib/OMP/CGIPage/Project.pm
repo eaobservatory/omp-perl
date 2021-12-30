@@ -1104,7 +1104,7 @@ sub process_project_changes {
                                   'update' => 'title',
                                   'field-text' => 'title',
                                   'old' => $project->title,
-                                  'new' => $q->param( 'title' )
+                                  'new' => scalar $q->param( 'title' )
                                 );
 
   # Check whether allocation has changed

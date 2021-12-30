@@ -127,7 +127,7 @@ sub view_queue_status_output {
 
     $self->_show_input_page(project => \@proj_order);
 
-    my @project = $q->param('project');
+    my @project = $q->multi_param('project');
     my $proj_msb_filt = {};
     if (scalar @project) {
         # Filter hash by project.
