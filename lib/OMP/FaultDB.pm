@@ -852,7 +852,7 @@ sub _mail_fault_update {
   for (@details_changed) {
     if ($_ =~ /system/) {
       $_ = "systemText";
-    } elsif ($_ =~ /type/) {
+    } elsif ($_ =~ /^type/) {
       $_ = "typeText";
     } elsif ($_ =~ /status/) {
       $_ = "statusText";
