@@ -3303,6 +3303,7 @@ sub bandwidth_mode {
   # Keep track of duplicates
   # A subsystem is a dupe if the IF, overlap, channels and  bandwidth are the same
   my %dupe_ss;
+  my $allow_duplicate = OMP::Config->getData('acsis_translator.allow_duplicate_subsystem');
 
   # loop over each subsystem
   my $spectrum_id = 0;
@@ -3338,6 +3339,12 @@ sub bandwidth_mode {
 
     $dupe_ss{$unique_ss}++;
     if ($dupe_ss{$unique_ss} > 1 ) {
+      unless ($allow_duplicate) {
+        throw OMP::Error::TranslateFail(
+          'Duplicate subsystem in heterodyne setup.'
+          . ' You can force the translation of the observation by enabling'
+          . ' allow_duplicate_subsystem in the acsis_translator settings.');
+      }
       my $newkey = $unique_ss;
       my $count = 1;
       while (exists $dupe_ss{$newkey}) {
