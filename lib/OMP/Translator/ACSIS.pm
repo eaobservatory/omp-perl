@@ -3884,7 +3884,20 @@ sub calc_jos_times {
   # N_CALSAMPLES depends entirely on the step time and the time from
   # the config file. Number of cal samples. This is hard-wired in
   # seconds but in units of STEP_TIME
-  my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
+  my $caltime = undef;
+
+  # Allow override for planets, by name.
+  if ($info{'coords'}->type eq 'PLANET') {
+    try {
+      $caltime = OMP::Config->getData('acsis_translator.cal_time_' . $info{'coords'}->planet());
+    } catch OMP::Error::BadCfgKey with {
+      # Do nothing.
+    };
+  }
+
+  # Otherwise use standard value.
+  $caltime = OMP::Config->getData('acsis_translator.cal_time')
+    unless defined $caltime;
 
   # if caltime is less than step time (eg scan) we still need to do at
   # least 1 cal
