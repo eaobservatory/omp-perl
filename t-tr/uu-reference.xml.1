@@ -627,6 +627,18 @@
               VALUE="" >
          <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="END" />
       </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMSTART"
+              COMMENT="[K] Ambient load temperature at start of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="START" />
+      </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMEND"
+              COMMENT="[K] Ambient load temperature at end of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="END" />
+      </HEADER>
       <HEADER TYPE="BLANKFIELD"
       />
       <HEADER TYPE="COMMENT"
@@ -2137,6 +2149,23 @@
                   <in_ref ref="ETAL"/>
                   <function name="lvalue"/>
                   
+                  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_TAU"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_TAU"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_C"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_C"/>
+                  <function name="lvalue"/>
                </ro_recipe>
             </reducer>
             <reducer id="A_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_DISPLAY.ent">
@@ -2657,7 +2686,7 @@
                       Tsys(n) = -----------------------  * Jamb * C
                                  AMBIENT - CAL_REFSKY
 
-                                1-eta_l  Jload-Jspill		 Jload-Jatm             
+                                1-eta_l  Jload-Jspill                Jload-Jatm             
                       C  = 1 +  ------- -------------*exp(tau*A) +   ----------- * [exp(tau*A)-1]  
                                  eta_l      Jload                      Jload                
 
@@ -2720,6 +2749,9 @@
                   <in_ref ref="GROUP"/>
                   <in_ref ref="CAL_TAU"/>
                   <function name="near"/>
+                  <function name="enter"/>
+                  <out_object id="TSYS_TAU"/>
+                  <function name="lvalue"/>
                   <function name="multiply"/>      
                   <float>   2.71828182846 </float> 
                   <function name="swapxy"/>
@@ -2779,7 +2811,7 @@
                   <function name="rvalue"/>
                   <function name="enter"/>
                   <in_ref ref="JATM"/>
-                  q<function name="rvalue"/>
+                  <function name="rvalue"/>
                   <function name="swapxy"/>
                   <function name="subtract"/>
                   <function name="divide"/>    
@@ -2794,7 +2826,7 @@
                   <float> 1.0 </float>
                   <function name="add"/>
                   <function name="enter"/>
-                  <out_object id="C"/>
+                  <out_object id="TSYS_C"/>
                   <function name="lvalue"/>
 
                   
@@ -3113,6 +3145,8 @@
                <in_ref ref="INTERVAL"/>
                <in_ref ref="TSYS_MEDIAN"/>
                <in_ref ref="TREC_MEDIAN"/>
+               <in_ref ref="TSYS_C"/>
+               <in_ref ref="TSYS_TAU"/>
                <in_ref ref="ETAL"/>
                <in_ref ref="WEATHER"/>
                <in_ref ref="WVM"/>

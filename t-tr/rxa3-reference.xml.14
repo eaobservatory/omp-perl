@@ -627,6 +627,18 @@
               VALUE="" >
          <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="END" />
       </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMSTART"
+              COMMENT="[K] Ambient load temperature at start of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="START" />
+      </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMEND"
+              COMMENT="[K] Ambient load temperature at end of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="END" />
+      </HEADER>
       <HEADER TYPE="BLANKFIELD"
       />
       <HEADER TYPE="COMMENT"
@@ -1909,6 +1921,23 @@
                   <in_ref ref="ETAL"/>
                   <function name="lvalue"/>
                   
+                  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_TAU"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_TAU"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_C"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_C"/>
+                  <function name="lvalue"/>
                </ro_recipe>
             </reducer>
             <reducer id="A_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_DISPLAY.ent">
@@ -2728,6 +2757,13 @@
                   <in_ref ref="TREC_MEDIAN"/>
                   <function name="lvalue"/>
                   
+                  
+                  <float>  0.0   </float>
+                  <out_object id="TSYS_TAU"/>
+                  <function name="lvalue"/>
+                  <float>  0.0   </float>
+                  <out_object id="TSYS_C"/>
+                  <function name="lvalue"/>
                </ro_recipe>
             </reducer>
             
@@ -3092,6 +3128,8 @@
                <in_ref ref="INTERVAL"/>
                <in_ref ref="TSYS_MEDIAN"/>
                <in_ref ref="TREC_MEDIAN"/>
+               <in_ref ref="TSYS_C"/>
+               <in_ref ref="TSYS_TAU"/>
                <in_ref ref="ETAL"/>
                <in_ref ref="WEATHER"/>
                <in_ref ref="WVM"/>
