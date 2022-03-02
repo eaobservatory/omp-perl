@@ -380,6 +380,8 @@ sub write_page {
 
   croak 'No auth_type specified' unless defined $auth_type;
 
+  my $template = (exists $opt{'template'}) ? $opt{'template'} : undef;
+
   if (defined $opt{'title'}) {
     $self->html_title($opt{'title'});
   }
@@ -451,22 +453,45 @@ sub write_page {
 
   # Print HTML header (including sidebar)
   $self->_write_header(undef, \%opt)
-    unless $opt{'no_header'} && $mode_output;
+    unless (defined $template) || ($opt{'no_header'} && $mode_output);
 
   # Now everything is ready for our output.
 
   # See if we should show content (display forms)
-  unless ($mode_output)  {
-    $self->_call_method($form_content, @args);
-  } else {
-    $self->_call_method($form_output, @args);
+  my $result = $mode_output
+    ? $self->_call_method($form_output, @args)
+    : $self->_call_method($form_content, @args);
+
+  unless ($opt{'no_header'} && $mode_output) {
+    unless (defined $template) {
+      # Write the footer
+      $self->_write_footer()
+    }
+    else {
+      $self->_write_http_header(undef, \%opt);
+      $self->render_template('index.html', {
+        %{$self->_write_page_context_extra(\%opt)},
+        %$result});
+    }
   }
 
-  # Write the footer
-  $self->_write_footer()
-    unless $opt{'no_header'} && $mode_output;
-
   return;
+}
+
+sub _write_page_context_extra {
+    my $self = shift;
+    my $opt = shift;
+
+    my $jscript_url = OMP::Config->getData('www-js');
+    push @$jscript_url, map {'/' . $_} @{$opt->{'javascript'}} if exists $opt->{'javascript'};
+
+    return {
+        omp_title => $self->html_title,
+        omp_style => $self->_get_style,
+        omp_favicon => OMP::Config->getData('www-favicon'),
+        omp_javascript => $jscript_url,
+        omp_user => $self->auth->user,
+    };
 }
 
 =item B<_write_page_extra>
@@ -596,12 +621,11 @@ sub _call_method {
 
   if (ref($method) eq 'CODE') {
     # It's a code reference; call it with self as the object.
-    $method->($self, @_);
+    return $method->($self, @_);
   } else {
     # It's a method name, run it on self.
-    $self->$method(@_);
+    return $self->$method(@_);
   }
-  return;
 }
 
 =item B<_get_style>
@@ -664,6 +688,28 @@ sub _sidebar_project {
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
+=item B<_write_http_header>
+
+Write the HTTP header, including cookie if present.
+
+    $cgi->_write_http_header($status, \%opt);
+
+=cut
+
+sub _write_http_header {
+  my $self = shift;
+  my $status = shift;
+  my $opt = shift;
+
+  my $q = $self->cgi;
+  my $cookie = $self->auth->cookie;
+
+  my %header_opt = (-expires => '-1d');
+  $header_opt{'-cookie'} = $cookie if defined $cookie;
+  $header_opt{'-status'} = $status if defined $status;
+
+  print $q->header(%header_opt);
+}
 
 =item B<_write_header>
 
@@ -686,18 +732,12 @@ sub _write_header {
   my $style = $self->_get_style;
   my %rssinfo = $self->rss_feed;
 
-  my $q = $self->cgi;
-  my $cookie = $self->auth->cookie;
   my $theme = $self->theme;
 
   # Print the header info
   # Make sure there is a cookie if we're going to provide
   # it in the header
-
-  my %header_opt = (-expires => '-1d');
-  $header_opt{'-cookie'} = $cookie if defined $cookie;
-  $header_opt{'-status'} = $status if defined $status;
-  print $q->header(%header_opt);
+  $self->_write_http_header($status, $opt);
 
   my $title = $self->html_title;
 
