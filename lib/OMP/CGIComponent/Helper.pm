@@ -34,7 +34,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/start_form_absolute/);
+@EXPORT_OK = (qw/start_form_absolute url_absolute/);
 
 %EXPORT_TAGS = (
                 'all' =>[ @EXPORT_OK ],
@@ -72,6 +72,19 @@ sub start_form_absolute {
   }
 
   return $q->start_form(-action => $q->url(%url_opt), %args);
+}
+
+=item B<url_absolute>
+
+Get an "absolute" URL (without host) including only query parameters.
+
+=cut
+
+sub url_absolute {
+    my $q = shift;
+    return $q->new({
+        map {$_ => $q->url_param($_)} $q->url_param()
+    })->url(-absolute => 1, -query => 1);
 }
 
 =back
