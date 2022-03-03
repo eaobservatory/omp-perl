@@ -1,3 +1,4 @@
+[% WRAPPER "layout.html" %]
 <h1>[% title | html %]</h1>
 
 [% IF is_edit %]
@@ -168,4 +169,5 @@
     </form>
 [% ELSE %]
     [% nav_links %]
+[% END %]
 [% END %]

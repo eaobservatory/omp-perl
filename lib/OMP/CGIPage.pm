@@ -469,7 +469,7 @@ sub write_page {
     }
     else {
       $self->_write_http_header(undef, \%opt);
-      $self->render_template('index.html', {
+      $self->render_template($template, {
         %{$self->_write_page_context_extra(\%opt)},
         %$result});
     }
