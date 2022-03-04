@@ -98,41 +98,6 @@ sub fb_fault_content {
   print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?project=$projectid&subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
 }
 
-=item B<fb_proj_summary>
-
-Show project status, MSB done summary (no comments), and active MSB summary
-
-  $page->fb_proj_summary($projectid);
-
-=cut
-
-sub fb_proj_summary {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
-
-  print $q->h2("Project ${projectid}");
-
-  # Project status table
-  $comp->proj_status_table($projectid);
-  print $q->hr;
-  print $q->h2("MSBs observed");
-
-  # Observed MSB table
-  $msbcomp->fb_msb_observed($projectid);
-
-  print $q->hr;
-  print $q->h2("MSBs to be observed");
-
-  # MSBs to be observed table
-  $msbcomp->fb_msb_active($projectid);
-
-  print $q->hr;
-}
-
 =item B<list_projects>
 
 Create a page with a form prompting for the semester to list projects for.

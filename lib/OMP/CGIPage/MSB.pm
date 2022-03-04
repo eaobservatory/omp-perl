@@ -37,32 +37,6 @@ $| = 1;
 
 =over 4
 
-=item B<fb_msb_content>
-
-Creates the page showing the project summary (lists MSBs).
-Also provides buttons for adding an MSB comment.
-Hides feedback entries.
-
-  $page->fb_msb_content($projectid);
-
-=cut
-
-sub fb_msb_content {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::MSB(page => $self);
-  my $projcomp = new OMP::CGIComponent::Project(page => $self);
-  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
-
-  print $q->h1("Feedback for project ${projectid}");
-
-  $projcomp->proj_status_table($projectid);
-  $fbcomp->fb_entries_hidden($projectid);
-  $comp->msb_sum($projectid);
-}
-
 =item B<fb_msb_output>
 
 Creates the page showing the project summary (lists MSBs).
