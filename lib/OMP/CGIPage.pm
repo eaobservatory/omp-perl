@@ -30,7 +30,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Template;
 
 use OMP::Auth;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::ProjDB;
@@ -555,29 +555,29 @@ sub write_page_finish_log_in {
 
 =item B<write_page_logout>
 
-Creates a logout page and gives a cookie that has already expired.  A code reference
-should be the only argument.
+Creates a logout page and gives a cookie that has already expired.
 
-  $cgi->write_page_logout( \&content );
+  $cgi->write_page_logout(\&content, %opt);
 
 =cut
 
 sub write_page_logout {
   my $self = shift;
   my $content = shift;
+  my %opt = @_;
 
   my $q = $self->cgi;
 
   $self->auth(OMP::Auth->log_out($q));
 
-  $self->html_title('Log out');
+  $self->html_title($opt{'title'});
 
-  $self->_make_theme;
-  $self->_write_header();
+  my $result = $self->_call_method($content);
 
-  $content->($self);
-
-  $self->_write_footer();
+  $self->_write_http_header(undef, \%opt);
+  $self->render_template($opt{'template'}, {
+    %{$self->_write_page_context_extra(\%opt)},
+    %$result});
 }
 
 =item B<render_template>
@@ -796,57 +796,15 @@ Create a page with a login form.
 
 sub _write_login {
   my $self = shift;
+  my %opt = ();
   my $q = $self->cgi;
 
-  $self->_write_header();
-
-  print $q->p($q->img({-src => '/images/banner_white.gif'})),
-      $q->h1('Log in');
-
-  if (defined $self->auth->message) {
-    print $q->p($q->strong($self->auth->message));
-  }
-
-  print $q->div({-class => 'log_in_panel'},
-    $q->p($q->a({-href => '#'}, 'Log in with Hedwig')),
-    $q->div(
-      start_form_absolute($q),
-      $q->p(
-        $q->hidden(-name => 'provider', -default => 'hedwig', -override => 1),
-        $q->submit(-value => 'Log in with Hedwig', -name => 'submit_log_in'),
-      ),
-      $q->end_form()));
-
-  print $q->div({-class => 'log_in_panel'},
-    $q->p($q->a({-href => '#'}, 'EAO staff log in')),
-    $q->div(
-    $q->p("Please enter your user name and password."),
-      start_form_absolute($q),
-      # This hidden field contains the 'login_form' param that lets us know we've just come
-      # from the login form, so we'll be sure to run the form_content callback and not
-      # form_output.
-      $q->hidden(-name=>'provider',
-                 -default=>'staff', -override => 1),
-      $q->hidden(-name=>'show_content',
-                 -default=>1),
-      $q->table(
-        $q->Tr(
-          $q->td('User name:'),
-          $q->td({-colspan => '2'},
-            $q->textfield(-name=>'username',
-                          -size=>17,
-                          -maxlength=>30))),
-        $q->Tr(
-          $q->td('Password:'),
-          $q->td(
-            $q->password_field(-name=>'password',
-                               -default => '', -override => 1,
-                               -size=>17,
-                               -maxlength=>30)),
-          $q->td($q->submit(-value => "Submit", -name => 'submit_log_in')))),
-      $q->end_form()));
-
-  $self->_write_footer();
+  $self->_write_http_header(undef, \%opt);
+  $self->render_template('log_in.html', {
+    %{$self->_write_page_context_extra(\%opt)},
+    message => $self->auth->message,
+    target => url_absolute($q),
+  });
 }
 
 =item B<_write_forbidden>
@@ -859,15 +817,16 @@ Create a page with "forbidden" error message.
 
 sub _write_forbidden {
   my $self = shift;
-  my $q = $self->cgi;
+  my %opt = ();
 
-  $self->_write_header('403 Forbidden');
-
-  print $q->p($q->img({-src => '/images/banner_white.gif'})),
-      $q->h1('Forbidden'),
-      $q->p('The system was unable to verify your access to this page.');
-
-  $self->_write_footer();
+  $self->_write_http_header('403 Forbidden', \%opt);
+  $self->render_template('error.html', {
+    %{$self->_write_page_context_extra(\%opt)},
+    error_title => 'Forbidden',
+    error_messages => [
+      'The system was unable to verify your access to this page.',
+    ],
+  });
 }
 
 =item B<_write_error>
@@ -883,14 +842,14 @@ be used from C<"no_header"> handler methods.
 
 sub _write_error {
   my $self = shift;
+  my %opt = ();
 
-  my $q = $self->cgi;
-
-  $self->_write_header('500 Internal Server Error');
-
-  print $q->h2('Error'), $q->p(\@_);
-
-  $self->_write_footer();
+  $self->_write_http_header('500 Internal Server Error', \%opt);
+  $self->render_template('error.html', {
+    %{$self->_write_page_context_extra(\%opt)},
+    error_title => 'Error',
+    error_messages => \@_,
+  });
 }
 
 =item B<_write_project_choice>
@@ -903,41 +862,24 @@ Create a page with a project choice form.
 
 sub _write_project_choice {
   my $self = shift;
+  my %opt = ();
   my $q = $self->cgi;
 
-  $self->_write_header();
-
+  my $project_choices = undef;
   my %proj_opts = ();
-  my $datalist = '';
   if (defined $self->auth->user) {
     my $projects = $self->auth->projects;
     if (@$projects) {
-      $proj_opts{'-list'} = 'projects';
-      $datalist = join '',
-        '<datalist id="projects">',
-        (map {'<option value="' . $_ .'" />'} sort @$projects),
-        '</datalist>';
+      $project_choices = [sort @$projects];
     }
   }
 
-  print $q->p($q->img({-src => '/images/banner_white.gif'})),
-      $q->h1('Project');
-
-  print $q->p("Please select a project."),
-      start_form_absolute($q, -method => 'GET'),
-      $q->table(
-        $q->Tr(
-          $q->td('Project:'),
-          $q->td($q->textfield(
-            -name => 'project',
-            -size => 17,
-            -maxlength => 30, %proj_opts) . $datalist,
-          $q->td($q->submit(
-            -value => "Submit",
-            -name => ''))))),
-      $q->end_form;
-
-  $self->_write_footer();
+  $self->_write_http_header(undef, \%opt);
+  $self->render_template('project_choice.html', {
+    %{$self->_write_page_context_extra(\%opt)},
+    project_choices => $project_choices,
+    target => $q->url(-absolute => 1),
+  });
 }
 
 =back

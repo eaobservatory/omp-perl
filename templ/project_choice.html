@@ -1,0 +1,32 @@
+[% WRAPPER "layout.html" %]
+<p>
+    <img src="/images/banner_white.gif" width="572" height="198" />
+</p>
+
+<h1>Project</h1>
+
+<p>
+    Please select a project.
+</p>
+
+<form method="get" action="[% target %]">
+    <table>
+        <tr>
+            <td>Project:</td>
+            <td>
+                <input type="text" name="project"  size="17" maxlength="30" [% IF project_choices.defined %]list="projects"[% END %] />
+                [% IF project_choices.defined %]
+                    <datalist id="projects">
+                        [% FOR project_choice = project_choices %]
+                            <option value="[% project_choice | html %]" />
+                        [% END %]
+                    </datalist>
+                [% END %]
+            </td>
+            <td>
+                <input type="submit" name="" value="Submit" />
+            </td>
+        </tr>
+    </table>
+</form>
+[% END %]

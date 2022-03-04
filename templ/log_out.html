@@ -1,0 +1,10 @@
+[% WRAPPER "layout.html" %]
+[% IF message.defined %]
+<h2>[% message | html %]</h2>
+[% END %]
+
+<p>
+    You may see feedback for a project by clicking
+    <a href="/cgi-bin/projecthome.pl">here</a>.
+</p>
+[% END %]
