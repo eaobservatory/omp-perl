@@ -60,10 +60,6 @@ sub fb_msb_active {
   my $self = shift;
   my $projectid = shift;
 
-  # Get project's associated telescope
-  my $proj = OMP::ProjServer->projectDetails( $projectid,
-                                              "object");
-
   my $proj_info = OMP::MSBServer->getSciProgInfo($projectid, with_observations => 1);
 
   my $active = [$proj_info->msb()];
@@ -96,7 +92,7 @@ sub fb_msb_active {
       }
 
       # Now print the table (with an est. time column) if we have content
-      $self->msb_table(msbs=>$active, est_column=>1, opacity_column=>1, telescope=>$proj->telescope,);
+      $self->msb_table(msbs=>$active, est_column=>1, opacity_column=>1);
 
     }
   }
@@ -119,12 +115,8 @@ sub fb_msb_observed {
                                                format => 'data',
                                                include_undo => 1});
 
-  # Get project's associated telescope
-  my $proj = OMP::ProjServer->projectDetails( $projectid,
-                                              "object");
-
   # Generate the HTML table
-  (@$observed) and $self->msb_table(msbs=>$observed, telescope=> $proj->telescope);
+  (@$observed) and $self->msb_table(msbs=>$observed);
 }
 
 my ( $NBSP ) = ( '&nbsp;' );
@@ -559,8 +551,7 @@ Create a table containing information about given MSBs
 
   $comp->msb_table(
             msbs=>$msbs,
-            est_column=>$show_estimated,
-            telescope=>$telescope,);
+            est_column=>$show_estimated);
 
 
 Arguments should be provided in hash form, with the following
@@ -570,7 +561,6 @@ keys:
   est_column - True if an "Est. time" column, for presenting the estimated
                time in seconds, should be presented.
   opacity_column - True if opacity range column should be presented.
-  telescope  - A telescope name.
 
 =cut
 
@@ -579,7 +569,7 @@ sub msb_table {
   my %args = @_;
 
   # Check for required arguments
-  for my $key (qw/msbs telescope/) {
+  for my $key (qw/msbs/) {
     throw OMP::Error::BadArgs("The argument [$key] is required.")
       unless (defined $args{$key});
   }
@@ -588,11 +578,9 @@ sub msb_table {
   my $program = $args{msbs};
   my $est_column = $args{est_column};
   my $opacity_column = $args{'opacity_column'};
-  my $telescope = $args{telescope};
 
   # Decide whether to show MSB targets or MSB name
-  my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-                                               telescope => $telescope,);
+  my $display_msb_name = 1;
   my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
   print "<table width=100%>";
