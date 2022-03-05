@@ -64,7 +64,9 @@ sub fb_msb_active {
   my $proj = OMP::ProjServer->projectDetails( $projectid,
                                               "object");
 
-  my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, 'objects' );
+  my $proj_info = OMP::MSBServer->getSciProgInfo($projectid, with_observations => 1);
+
+  my $active = [$proj_info->msb()];
 
   if (defined $active) {
 
