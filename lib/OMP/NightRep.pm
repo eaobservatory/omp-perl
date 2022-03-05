@@ -1624,22 +1624,17 @@ sub ashtml {
     # Get observed MSBs
     my %msbs = $self->msbs;
 
-    # Decide whether to show MSB targets or MSB name
-    my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-                                                 telescope => $self->telescope,);
-    my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
-
     print "<table class='sum_table' cellspacing='0' width='600'>";
     print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
 
     for my $proj (keys %msbs) {
       print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?project=$proj' class='link_dark'>$proj</a></td>";
-      print "<td>$alt_msb_column</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
+      print "<td>Name</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
 
       for my $msb (@{$msbs{$proj}}) {
         print "<tr class='row_a'>";
         print "<td></td>";
-        print "<td>". ($display_msb_name ? $msb->title : substr($msb->targets,0,30)) ."</td>";
+        print "<td>". $msb->title ."</td>";
         print "<td>". $msb->wavebands ."</td>";
         print "<td>". $msb->instruments ."</td>";
         print "<td>". $msb->nrepeats ."</td>";

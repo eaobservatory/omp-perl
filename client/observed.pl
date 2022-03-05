@@ -169,14 +169,8 @@ for my $proj (keys %sorted) {
     ($proj_details->allRemaining->seconds > 0 ? $proj_details->allRemaining->pretty_print : "0") ."\n\n";
 
   # MSB Summary
-
-  # Decide whether to show MSB targets or MSB name
-  my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-                                               telescope => $proj_details->telescope,);
-  my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
-
   $msg .= "Observed MSBs\n-----------\n\n";
-  $msg .= sprintf "$hfmt\n", "Project", $alt_msb_column, "Instrument",
+  $msg .= sprintf "$hfmt\n", "Project", "Name", "Instrument",
     "Waveband";
 
   # UKIRT KLUGE: Find out if project is a UKIRT project
@@ -188,7 +182,7 @@ for my $proj (keys %sorted) {
     # This will be problematic if the format is modified
     $msg .= sprintf "$fmt\n",
       $proj,$msbid->nrepeats,
-        substr(($display_msb_name ? $msbid->title : $msbid->target),0,20),
+        substr($msbid->title,0,20),
           substr($msbid->instrument,0,20),
             substr($msbid->waveband,0,10);
   }
