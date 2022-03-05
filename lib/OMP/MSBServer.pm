@@ -258,12 +258,13 @@ Retrieve science program information object.
 sub getSciProgInfo {
   my $class = shift;
   my $project = shift;
+  my %opt = @_;
 
   my $db = new OMP::MSBDB(
     ProjectID => $project,
     DB => $class->dbConnection);
 
-  return $db->getSciProgInfo();
+  return $db->getSciProgInfo(%opt);
 }
 
 =item B<queryMSB>

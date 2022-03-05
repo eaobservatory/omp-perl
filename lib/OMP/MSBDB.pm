@@ -417,10 +417,13 @@ the C<fetchSciProg> method should be used instead.
 
 sub getSciProgInfo {
   my $self = shift;
+  my %opt = @_;
 
   my $projectid = $self->projectid();
 
-  my @msbs = $self->_fetch_row(projectid => $projectid);
+  my @msbs = $self->_fetch_row(
+    projectid => $projectid,
+    with_observations => $opt{'with_observations'});
 
   return new OMP::Info::SciProg(
     projectid => $projectid,
@@ -2251,13 +2254,16 @@ returns the first matching MSB object.
 
   @objects = $db->_fetch_row( projectid => $p );
 
-No attempt is made to retrieve the corresponding observation information.
+No attempt is made to retrieve the corresponding observation information
+unless an option C<with_observations> is specified.
 
 =cut
 
 sub _fetch_row {
   my $self = shift;
   my %query = @_;
+
+  my $with_observations = delete $query{'with_observations'};
 
   # Get the project id if it is here and not specified already
   $query{projectid} = $self->projectid
@@ -2284,6 +2290,24 @@ sub _fetch_row {
   # to do or not.
 #  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
 #    unless @$ref;
+
+  if ($with_observations) {
+    $sql = "SELECT * FROM $OBSTABLE WHERE "
+      . join("AND", @substrings)
+      . " ORDER BY obsid ASC";
+    print "STATEMENT: $sql\n" if $DEBUG;
+
+    my $obsref = $self->_db_retrieve_data_ashash(
+      $sql, map {$query{$_}} sort keys %query);
+    my %msb_obs = ();
+    foreach (@$obsref) {
+      $_->{'waveband'} = new Astro::WaveBand(
+        Instrument => $_->{instrument},
+        Wavelength => $_->{wavelength});
+      push @{$msb_obs{delete $_->{'msbid'}}}, $_;
+    }
+    $_->{'observations'} = $msb_obs{$_->{'msbid'}} foreach @$ref;
+  }
 
   # if we are returning multiple results create OMP::Info::MSB objects
   if ($multi) {
