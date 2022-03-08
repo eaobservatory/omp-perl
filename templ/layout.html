@@ -30,6 +30,28 @@
             <li><a href="/cgi-bin/projecthome.pl">Feedback system</a></li>
             <li><a href="/cgi-bin/queryfault.pl">Fault system</a></li>
         </ul>
+        [% IF omp_side_bar.defined %]
+            [% FOREACH side_bar = omp_side_bar %]
+                <p>[% side_bar.title %]</p>
+                <ul>
+                    [% FOREACH entry = side_bar.entries %]
+                        <li><a href="[% entry.1 %]">[% entry.0 %]</a>[% IF entry.2.defined %] [% entry.2 | html %][% END %]</li>
+                    [% END %]
+                    [% IF side_bar.options.fault_id_panel %]
+                        <li>&nbsp;</li>
+                        <li>
+                            <form method="get" action="/cgi-bin/viewfault.pl" enctype="multipart/form-data">
+                                Fault ID
+                                <br />
+                                <input type="text" name="fault"  size="12" maxlength="20" />
+                                <br />
+                                <input type="submit" name="View Fault" value="View fault" />
+                            </form>
+                        </li>
+                    [% END %]
+                </ul>
+            [% END %]
+        [% END %]
 
         [% IF omp_user.defined %]
             <p>

@@ -1405,7 +1405,23 @@ sub _sidebar_fault {
       $self->_make_side_link( qq[filefault.pl?cat=$cat], qq[File $prop $text] ),
       $self->_make_side_link( $query_link{ uc $cat }->{'url'}, qq[View ${text}s], '<br>&nbsp;' )
       ;
+
+    $self->side_bar(
+      "$cat $suffix",
+      [
+        ["File $prop $text" => "filefault.pl?cat=$cat"],
+        ["View ${text}s" => $query_link{ uc $cat }->{'url'}],
+      ]);
   }
+
+  $self->side_bar(
+    'Fault system',
+    [
+        (map {[$query_link{$_}->{'text'} => $query_link{$_}->{'url'}]}
+            grep {$_ ne 'ANYCAT'} $self->_fault_sys_links_order()),
+        ['All Faults' => $query_link{'ANYCAT'}->{'url'}],
+    ],
+    fault_id_panel => 1);
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }

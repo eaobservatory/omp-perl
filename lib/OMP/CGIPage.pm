@@ -75,6 +75,7 @@ sub new {
            Theme => undef,
            Title => 'OMP Feedback System',
            Auth => undef,
+           SideBar => [],
           };
 
   # create the object (else we cant use accessor methods)
@@ -199,6 +200,37 @@ sub auth {
     $self->{Auth} = $auth;
   }
   return $self->{Auth};
+}
+
+=item B<side_bar>
+
+Add a section to the side bar:
+
+    $cgi->side_bar($title, \@entries, %opts);
+
+Where each value of C<@entries> is a list giving the
+name of the link, the URL, and optionally any extra information
+to show after it:
+
+    @entries[0] = [$name, $url, [$extra_info]];
+
+Or retrieve a reference to the side bar sections array:
+
+    my $side_bar = $cgi->side_bar();
+
+=cut
+
+sub side_bar {
+    my $self = shift;
+    if (@_) {
+        my ($title, $entries, %opts) = @_;
+        push @{$self->{'SideBar'}}, {
+            title => $title,
+            entries => $entries,
+            options => \%opts,
+        };
+    }
+    return $self->{'SideBar'};
 }
 
 =back
@@ -491,6 +523,7 @@ sub _write_page_context_extra {
         omp_favicon => OMP::Config->getData('www-favicon'),
         omp_javascript => $jscript_url,
         omp_user => $self->auth->user,
+        omp_side_bar => $self->side_bar,
     };
 }
 
@@ -686,6 +719,18 @@ sub _sidebar_project {
   push @sidebarlinks, "&nbsp;<br><a class='sidemain' href='/'>OMP Home</a>";
 
   $theme->SetInfoLinks(\@sidebarlinks);
+
+  $self->side_bar("Project $projectid", [
+    ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
+    ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
+    ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+    ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
+    ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
+    ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
+    ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
+    [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
+    (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
+  ]);
 }
 
 =item B<_write_http_header>
