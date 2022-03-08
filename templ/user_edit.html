@@ -1,0 +1,37 @@
+[% WRAPPER "layout.html" %]
+
+[% IF ! messages.empty %]
+    [% FOREACH message = messages %]
+        <p style="color: red">[% message | html %]</p>
+    [% END %]
+[% END %]
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td>User ID:</td>
+            <td>[% user.userid %]</td>
+        </tr>
+        <tr>
+            <td>Name:</td>
+            <td><input type="text" name="name" value="[% user.name | html %]" size="24" maxlength="255" /></td>
+        </tr>
+        <tr>
+            <td>Email:</td>
+            <td><input type="text" name="email" value="[% user.email | html %]" size="32" maxlength="64" /></td>
+        </tr>
+        <tr>
+            <td>CADC ID:</td>
+            <td><input type="text" name="cadcuser" value="[% user.cadcuser | html %]" size="32" maxlength="64" /></td>
+        </tr>
+        <tr>
+            <td>Faults:</td>
+            <td><label><input type="checkbox" name="no_fault_cc" value="1" [% IF user.no_fault_cc %]checked="checked"[% END %] />suppress response email messages</label></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><input type="submit" name="edit" value="Change details" /></td>
+        </tr>
+    </table>
+</form>
+[% END %]

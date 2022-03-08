@@ -20,7 +20,7 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::DBbackend::Hedwig2OMP;
@@ -60,38 +60,22 @@ sub details {
 
   # Get user object
   my $user;
+  my $E = undef;
   try {
     $user = OMP::UserServer->getUser($q->url_param('user'));
   } otherwise {
-    my $E = shift;
-    print "Unable to retrieve user:<br>$E";
-    return;
+    $E = shift;
   };
 
-  if (! $user) {
-    print "Unable to retrieve details for unknown user [".$q->url_param('user')."]";
-    return;
-  }
+  return $self->_write_error("Unable to retrieve user: $E")
+    if defined $E;
+
+  return $self->_write_error("Unable to retrieve details for unknown user [".$q->url_param('user')."]")
+    unless $user;
 
   my $hedwig2omp = new OMP::DBbackend::Hedwig2OMP();
-  my $hedwigids = $hedwig2omp->handle()->selectall_arrayref(
-    'SELECT hedwig_id FROM user WHERE omp_id = ?', {}, $user->userid);
-  my $hedwigprofile = 'https://proposals.eaobservatory.org/person/';
-
-  print "<h3>User Details for $user</h3>";
-
-  print $q->p(
-      $user->html,
-      ($user->email ? (" (".$user->email .")") : ''),
-      ($user->cadcuser ? (" (<a href=\"https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca\">CADC UserID</a>: ". $user->cadcuser.")\n") : ''),
-      ((scalar @$hedwigids) ? (' (Hedwig ID: ' . (join ',', map {$q->a({-href => $hedwigprofile . $_->[0]}, $_->[0])} @$hedwigids) . ')') : ''),
-  );
-
-  print $q->p('User has access to staff log in.') if $user->staff_access();
-
-  print $q->p('User account is obfuscated.') if $user->is_obfuscated();
-
-  print $q->p('Fault CC messages suppressed.') if $user->no_fault_cc();
+  my @hedwigids = map {$_->[0]} @{$hedwig2omp->handle()->selectall_arrayref(
+    'SELECT hedwig_id FROM user WHERE omp_id = ?', {}, $user->userid)};
 
   # Get projects user belongs to
   my @projects;
@@ -117,10 +101,11 @@ sub details {
     @support = $db->listProjects($query);
 
   } otherwise {
-    my $E = shift;
-    print "Unable to retrieve projects for user:<br>$E";
-    return;
+    $E = shift;
   };
+
+  return $self->_write_error("Unable to retrieve projects for user: $E")
+    if defined $E;
 
   # Sort out user's capacity for each project
   my %capacities;
@@ -139,32 +124,6 @@ sub details {
     }
   }
 
-  my $url = OMP::Config->getData('cgidir');
-  my $iconurl = OMP::Config->getData('iconsdir');
-
-  # List projects by capacity
-  for (keys %capacities) {
-    if ($capacities{$_}) {
-      print "<h3>$_ on</h3>";
-      print "<table><tr><td></td><td>Receives email</td><td>OMP access</td>";
-
-      for (@{$capacities{$_}}) {
-        print "<tr><td><a href=$url/projecthome.pl?project=".$_->projectid.">".
-          $_->projectid."</a></td>";
-
-        if ($_->contactable($user->userid)) {
-          print "<td align=center><a href=$url/projusers.pl?project=".$_->projectid."><img src=$iconurl/mail.gif alt='Receives project emails' border=0></a></td>";
-        } else {
-          print "<td align=center><a href=$url/projusers.pl?project=".$_->projectid."><img src=$iconurl/nomail.gif alt='Ignores project emails' border=0></a></td>";
-        }
-
-        print '<td align="center">' . ($_->omp_access($user->userid) ? '&#x2605;' : '&nbsp;') . '</td>';
-      }
-
-      print "</table>";
-    }
-  }
-
   # Query for faults user is associated with
   my $today = OMP::DateTools->today . "T23:59";
   my $xml = "<FaultQuery>".
@@ -180,18 +139,14 @@ sub details {
   my %faults;
   map {push @{$faults{$_->category}}, $_} @$faults;
 
-  if (%faults) {
-    print "<h4>User associated faults for the past 2 weeks</h4>";
-    print "<table>";
-    print "<td>Category</td><td align=center>Subject</td>";
-    for my $category (sort keys %faults) {
-      for (@{$faults{$category}}) {
-        print "<tr><td>" . $_->category ."</td>";
-        print "<td><a href=\"viewfault.pl?fault=".$_->faultid."\">".$_->subject."</a></td></tr>";
-      }
-    }
-    print "</table><br>";
-  }
+  return {
+    user => $user,
+    hedwig_ids => \@hedwigids,
+    hedwig_profile => 'https://proposals.eaobservatory.org/person/',
+    icon_url => OMP::Config->getData('iconsdir'),
+    project_capacities => \%capacities,
+    faults => \%faults,
+  };
 }
 
 =item B<list_users>
@@ -207,94 +162,18 @@ sub list_users {
 
   my $q = $self->cgi;
 
-  print "<h2>OMP users</h2>";
-
-  print $q->p(
-    $q->a({href => 'add_user.pl'}, 'Add a new user account')
-  );
-
   my $users = OMP::UserServer->queryUsers( "<UserQuery><obfuscated>0</obfuscated></UserQuery>" );
 
   my $rowclass = 'row_shaded';
 
-  if (@$users) {
+  # Set up list of initials
+  my %hashTemp = map {uc substr($_->userid, 0, 1) => 1} @$users;
+  my @alphabet = sort keys %hashTemp;
 
-    # Set up list of initials
-    my @temparray;
-    for (@$users) {
-       push @temparray, uc substr($_->userid,0,1);
-    }
-    my %hashTemp = map { $_ => 1 } @temparray;
-    my @alphabet = sort keys %hashTemp;
-
-    # Print list of initials for anchors
-    my $index = qq[<p>\n<a name="top"></a>| ];
-    foreach my $letter (@alphabet) {
-       $index .= qq{<a href="#${letter}">${letter}</a> | };
-     }
-    $index .= "</p>\n";
-
-    my $letnr = 0;
-    my $letter = $alphabet[$letnr];
-
-    print $index, "\n";
-
-    print $q->p('Filter: ', $q->textfield(
-        -name => 'user_filter', -onkeyup => 'filterUserTable()'));
-
-    print "<TABLE id=\"user_table\" border='0' cellspacing='0' cellpadding='4' width=$TABLEWIDTH>\n";
-
-    my $colnr = 5;
-    print "<TR class='${rowclass}'>";
-    print "<TH>OMP userid</TH>";
-    print "<TH>Name</TH>";
-    print "<TH>Email</TH>";
-    print "<TH>CADC user</TH>";
-    print "<TH>Update</TH>";
-    print "</TR>\n";
-
-    my $index_row =
-      sprintf
-          qq{<tr class="index-title"><td colspan="%d" align=left>}
-        . qq{<a name="%%s">%%s</a> <i>(<a class="index-title-link" href="#top">top</a>)</i>}
-        . qq{</td></tr>\n},
-        ${colnr};
-
-    printf $index_row, ( $letter ) x 2;
-
-    for (@$users) {
-
-      while ( $_->userid !~ /^${letter}/i && $letnr < $#alphabet ) {
-        $letnr++;
-        $letter = $alphabet[$letnr];
-        printf $index_row, ( $letter ) x 2;
-      }
-
-      my $userid = $_->userid();
-      my $email = $_->email();
-      my $cadcuser = $_->cadcuser();
-
-      # Make lower-case version for more efficient filtering.
-      my $query_str = lc join ' ', $_->name(), $userid, $email, $cadcuser;
-
-      print "<TR class='${rowclass}' data-query=\"" . OMP::Display::escape_entity($query_str) . "\">";
-      print "<TD>" . $userid ."</TD>";
-      print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
-      print "<TD>" . $email . "</TD>";
-      print "<TD>" . $cadcuser . "</TD>";
-      print "<TD><a href=\"update_user.pl?user=".$userid."\">Update</a></TD>";
-      print "</TR>\n";
-
-      # Alternate row style
-      $rowclass = ($rowclass eq 'row_shaded' ? 'row_clear' : 'row_shaded');
-    }
-    print "</TABLE>\n";
-
-    print $index;
-
-  } else {
-    print "No OMP users found!<br>\n";
-  }
+  return {
+    letters => \@alphabet,
+    users => $users,
+  };
 }
 
 =item B<project_users>
@@ -465,10 +344,11 @@ sub edit_details {
 
   my $user = OMP::UserServer->getUser($userid);
 
-  if (!defined $user) {
-    print "User [$userid] does not exist in the database.<br>";
-    return;
+  unless (defined $user) {
+    return $self->_write_error("User [$userid] does not exist in the database.");
   }
+
+  my @messages;
 
   if ($q->param("edit")) {
     my %from_form;
@@ -477,7 +357,6 @@ sub edit_details {
     # was no value previously and no value now, then we do not need to warn
     # if there is still no value later. Do not allow information to be deleted
     # though (so don't allow a field to be cleared)
-    my $doupdate = 1; # allow updates
     if ( $q->param("name") ) {
       # we were given a value
       if ($q->param("name") =~ /^([\w\s\.\-\(\)']+)$/) {
@@ -487,13 +366,11 @@ sub edit_details {
         $from_form{name} =~ s/\s*$//;
       } else {
         # did not pass test so do not update
-        $doupdate = 0;
-        print "The name you provided [".$q->param("name")."] is invalid.<br>";
+        push @messages, "The name you provided [".$q->param("name")."] is invalid.";
       }
     } elsif ($user->name) {
       # there is currently a value but none was supplied
-      $doupdate = 0;
-      print "Clearing of name field is not supported by this form.<br>";
+      push @messages, "Clearing of name field is not supported by this form.";
     }
 
     if ( $q->param("email") ) {
@@ -502,13 +379,11 @@ sub edit_details {
         $from_form{email} = $1;
       } else {
         # did not pass test so do not update
-        $doupdate = 0;
-        print "The email you provided [".$q->param("email")."] is invalid.<br>";
+        push @messages, "The email you provided [".$q->param("email")."] is invalid.";
       }
     } elsif ($user->email) {
       # there is currently a value but none was supplied
-      $doupdate = 0;
-      print "Clearing of email address field is not supported by this form.<br>";
+      push @messages, "Clearing of email address field is not supported by this form.";
     }
 
     if ( $q->param("cadcuser") ) {
@@ -517,21 +392,16 @@ sub edit_details {
         $from_form{cadcuser} = $1;
       } else {
         # did not pass test so do not update
-        $doupdate = 0;
-        print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
+        push @messages, "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.";
       }
     } elsif ($user->cadcuser) {
       # there is currently a value but none was supplied
-      $doupdate = 0;
-      print "Clearing of CADC user name field is not supported by this form.<br>";
+      push @messages, "Clearing of CADC user name field is not supported by this form.";
     }
 
     $from_form{'no_fault_cc'} = $q->param('no_fault_cc') ? 1 : 0;
 
-    if (!$doupdate) {
-      print "User details were not updated.";
-    } else {
-
+    unless (scalar @messages) {
       # see if anything changed, and update the object if it has
       my $changed;
       for my $key (qw/ name email cadcuser /) {
@@ -566,72 +436,29 @@ sub edit_details {
       if ($changed) {
         try {
           OMP::UserServer->updateUser( $user );
-          print "User details for ".$user->userid." have been updated.<br>";
         } otherwise {
           my $E = shift;
-          print "An error has occurred: $E<br>";
-          print "User details were not updated.";
+          push @messages, "An error has occurred: $E";
         };
+        return $self->_write_redirect('/cgi-bin/userdetails.pl?user=' . $user->userid)
+          unless scalar @messages;
       } else {
-        print "No change to supplied details.<br>\n";
+        push @messages, "No change to supplied details.";
       }
     }
   }
 
-  print start_form_absolute($q),
-      $q->table(
-          $q->Tr([
-              $q->td([
-                  'User ID:',
-                  $user->userid,
-             ]),
-             $q->td([
-                 'Name:',
-                 $q->textfield(
-                     -name => "name",
-                     -default => $user->name,
-                     -size => 24,
-                     -maxlength => 255),
-             ]),
-             $q->td([
-                 'Email:',
-                 $q->textfield(
-                     -name => "email",
-                     -default => $user->email,
-                     -size => 32,
-                     -maxlength => 64),
-             ]),
-             $q->td([
-                 'CADC ID:',
-                 $q->textfield(
-                     -name => "cadcuser",
-                     -default => $user->cadcuser,
-                     -size => 32,
-                     -maxlength => 64),
-             ]),
-             $q->td([
-                  'Faults:',
-                  $q->checkbox(
-                    -name => 'no_fault_cc',
-                    -checked => $user->no_fault_cc(),
-                    -value => '1',
-                    -label => 'suppress response email messages'),
-             ]),
-             $q->td([
-                 '&nbsp;',
-                 $q->submit(
-                     -name => "edit",
-                     -label => "Change Details"),
-             ])
-          ]),
-      ),
-      $q->end_form;
+  return {
+    messages => \@messages,
+    target => url_absolute($q),
+    user => $user,
+  };
 }
 
 sub add_user {
     my $self = shift;
 
-    $self->_add_user_form(undef);
+    return $self->_add_user_form(undef);
 }
 
 sub add_user_output {
@@ -647,12 +474,7 @@ sub add_user_output {
 
     return $self->_add_user_form($message) if defined $message;
 
-    print
-        $q->h2('New OMP User Account Added'),
-        $q->p(
-            'The OMP user account',
-            $q->a({-href => 'userdetails.pl?user=' . $userid}, $userid),
-            'has been added.');
+    return $self->_write_redirect("/cgi-bin/userdetails.pl?user=$userid");
 }
 
 sub _add_user_form {
@@ -661,33 +483,13 @@ sub _add_user_form {
 
     my $q = $self->cgi;
 
-    print $q->h2('Add New OMP User Account');
-
-    print $q->p({-style => 'color: red'}, $message) if defined $message;
-
-    print
-        start_form_absolute($q),
-        $q->table(
-            $q->Tr([
-                $q->td([
-                    'User ID',
-                    $q->textfield(-name => 'new_user_id'),
-                ]),
-                $q->td([
-                    'Full name',
-                    $q->textfield(-name => 'new_user_name'),
-                ]),
-                $q->td([
-                    'Email address',
-                    $q->textfield(-name => 'new_user_email'),
-                ]),
-            ]),
-        ),
-        $q->p(
-            $q->hidden(-name => 'show_output', -value => 'true'),
-            $q->submit(-value => 'Add account'),
-        ),
-        $q->end_form();
+    return {
+        target => url_absolute($q),
+        message => $message,
+        new_user_id => ($q->param('new_user_id') // ''),
+        new_user_name => ($q->param('new_user_name') // ''),
+        new_user_email => ($q->param('new_user_email') // ''),
+    };
 }
 
 # Attempt to add a new user account.  In the event of a problem,
@@ -741,7 +543,7 @@ sub _add_user_try {
         OMP::UserServer->addUser($omp_user);
     } otherwise {
         my $E = shift;
-        $message = 'Unable to add user: ' . $q->escapeHTML($E);
+        $message = 'Unable to add user: ' . $E;
     };
 
     return $message;

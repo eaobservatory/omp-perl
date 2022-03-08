@@ -19,4 +19,5 @@ OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::details,
     undef,
     'local_or_staff',
-    title => 'User Details');
+    title => 'User Details',
+    template => 'user_details.html');

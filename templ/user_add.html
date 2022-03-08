@@ -1,0 +1,30 @@
+[% WRAPPER "layout.html" %]
+
+<h2>Add New OMP User Account</h2>
+
+[% IF message.defined %]
+    <p style="color: red">[% message | html %]</p>
+[% END %]
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td>User ID</td>
+            <td><input type="text" name="new_user_id" value="[% new_user_id | html %]" /></td>
+        </tr>
+        <tr>
+            <td>Full name</td>
+            <td><input type="text" name="new_user_name" value="[% new_user_name | html %]" /></td>
+        </tr>
+        <tr>
+            <td>Email address</td>
+            <td><input type="text" name="new_user_email" value="[% new_user_email | html %]" /></td>
+        </tr>
+    </table>
+
+    <p>
+        <input type="hidden" name="show_output" value="true"  />
+        <input type="submit" name="submit" value="Add account" />
+    </p>
+</form>
+[% END %]

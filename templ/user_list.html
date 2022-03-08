@@ -1,0 +1,60 @@
+[% WRAPPER "layout.html" %]
+<h2>OMP users</h2>
+
+<p>
+    <a href="/cgi-bin/add_user.pl">Add a new user account</a>
+</p>
+
+[% IF users.empty %]
+    <p>
+        No OMP users found!
+    </p>
+[% ELSE %]
+    <p>
+        <a name="top"></a>|
+        [% FOREACH letter = letters %]
+           <a href="#[% letter %]">[% letter %]</a> |
+        [% END %]
+    </p>
+
+    <p>
+        Filter:
+        <input type="text" name="user_filter" onkeyup="filterUserTable()" />
+    </p>
+
+    <table id="user_table" border="0" cellspacing="0" cellpadding="4" width="1000">
+        <tr class="row_shaded">
+            <th>OMP user ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>CADC user ID</th>
+            <th>Update</th>
+        </tr>
+        [% SET letter = letters.0 %]
+        [% INCLUDE letter_row %]
+        [% FOREACH user = users %]
+            [% SET user_letter = user.userid.substr(0, 1) %]
+            [% IF user_letter != letter %]
+                [% SET letter = user_letter %]
+                [% INCLUDE letter_row %]
+            [% END %]
+            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]" data-query="[% user.name.lower _ ' ' _ user.userid.lower _ ' ' _ user.email.lower | html %]">
+                <td>[% user.userid | html %]</td>
+                <td><a href="/cgi-bin/userdetails.pl?user=[% user.userid | uri %]">[% user.name | html %]</a></td>
+                <td>[% user.email | html %]</td>
+                <td>[% user.cadcuser | html %]</td>
+                <td><a href="/cgi-bin/update_user.pl?user=[% user.userid | uri %]">Update</a></td>
+            </tr>
+        [% END %]
+</table>
+[% END %]
+[% END %]
+
+[% BLOCK letter_row %]
+    <tr class="index-title">
+        <td colspan="5" align="left">
+            <a name="[% letter %]">[% letter %]</a>
+            <i>(<a class="index-title-link" href="#top">top</a>)</i>
+        </td>
+    </tr>
+[% END %]
