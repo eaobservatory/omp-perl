@@ -467,7 +467,7 @@ sub write_page {
       # Write the footer
       $self->_write_footer()
     }
-    else {
+    elsif (defined $result) {
       $self->_write_http_header(undef, \%opt);
       $self->render_template($template, {
         %{$self->_write_page_context_extra(\%opt)},
@@ -850,6 +850,27 @@ sub _write_error {
     error_title => 'Error',
     error_messages => \@_,
   });
+
+  return undef;
+}
+
+=item B<_write_redirect>
+
+Create a redirect response.
+
+    $page->_write_redirect($url);
+
+=cut
+
+sub _write_redirect {
+    my $self = shift;
+    my $url = shift;
+
+    my $q = $self->cgi;
+
+    print $q->redirect($url);
+
+    return undef;
 }
 
 =item B<_write_project_choice>
