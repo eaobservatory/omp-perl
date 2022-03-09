@@ -35,7 +35,7 @@ use warnings;
 use warnings::register;
 
 use OMP::DateTools;
-use OMP::Error;
+use OMP::Error qw/:try/;
 use OMP::NetTools;
 use File::Spec;
 use File::Basename;
@@ -295,6 +295,39 @@ sub getData {
   } else {
     return $retval;
   }
+}
+
+=item B<getDataSearch>
+
+Retrieve the data associated with the first of the supplied keys
+which exists.
+
+  $value = OMP::Config->getDataSearch($key, $alternate_key);
+
+An exception is thrown if none of the keys given exist.
+
+=cut
+
+sub getDataSearch {
+  my $self = shift;
+  my @keys = @_;
+
+  foreach my $key (@keys) {
+    my $value = undef;
+
+    try {
+      $value = $self->getData($key);
+    } catch OMP::Error::BadCfgKey with {
+      # Do nothing.
+    };
+
+    return $value if defined $value;
+  }
+
+  throw OMP::Error::BadCfgKey(
+    'None of the keys ['
+    . (join ', ', @keys)
+    . '] could be found in OMP config system');
 }
 
 =item B<getTelescopes>

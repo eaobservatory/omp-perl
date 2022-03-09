@@ -19,4 +19,5 @@ OMP::CGIPage::Sched->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Sched::sched_view_queue_stats,
     undef,
     'local_or_staff',
-    title => 'Schedule Queue Statistics');
+    title => 'Schedule Queue Statistics',
+    template => 'sched_queue_stats.html');

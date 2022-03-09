@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 10;
+use Test::More tests => 15;
 use File::Spec;
 
 BEGIN {
@@ -35,6 +35,7 @@ BEGIN {
 }
 
 use OMP::Config;
+use OMP::Error qw/:try/;
 my $c = "OMP::Config";
 
 is($c->getData("scalar"), "default", "Test scalar key");
@@ -55,3 +56,32 @@ is($c->getData("hierarch.eso"),"test","hierarchical keyword");
 is($c->getData("over"),"fromsite","Site config override");
 is($c->getData("database.server"),"SYB","Site config override hierarchical");
 
+is($c->getData('some_section.some_parameter'), '20', 'Direct query of some_parameter');
+
+my $threw = 0;
+try {
+  $c->getDataSearch(
+    'some_section.some_parameter_zzz',
+    'some_section.some_parameter_www');
+} catch OMP::Error::BadCfgKey with {
+  $threw = 1;
+};
+ok($threw, 'getDataSearch threw error for non-existent keys');
+
+
+is($c->getDataSearch(
+        'some_section.some_parameter_xxx',
+        'some_section.some_parameter'),
+    '40', 'getDataSearch first value');
+
+is($c->getDataSearch(
+        'some_section.some_parameter_zzz',
+        'some_section.some_parameter'),
+    '20', 'getDataSearch last value');
+
+is($c->getDataSearch(
+        'some_section.some_parameter_zzz',
+        'some_section.some_parameter_yyy',
+        'some_section.some_parameter_xxx',
+        'some_section.some_parameter'),
+    '10', 'getDataSearch second value');

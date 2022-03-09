@@ -1,0 +1,99 @@
+[% WRAPPER "layout.html" top_bar_title="East Asian Observatory" %]
+<div class="home_panel general_access">
+<p>
+    <img src="/images/omp.png" width="400" height="100" />
+</p>
+<p>
+    This is the EAO Observation Management Project (OMP) web portal.
+</p>
+<p>
+    The OMP provides tools and defines processes to aid with
+    flexibly-scheduled observing at JCMT.
+</p>
+<p>
+    It builds upon the JCMT Observation Management Project and the
+    UKIRT Observatory Reduction and Acquisition Control project.
+</p>
+
+<ul>
+<li>
+<p>General access</p>
+
+<ul>
+[% WRAPPER link_group title = "Project feedback system" %]
+    <li><a href="/cgi-bin/projecthome.pl">Access a project</a></li>
+    <li><a href="/cgi-bin/projsum.pl">Comment on a project</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Instructional documentation" %]
+    <li><a href="https://www.eaobservatory.org/JCMT/observing-tool/">Preparing and submitting with the OT</a></li>
+    <li><a href="https://www.eaobservatory.org/jcmt/observing/software-installation/#observing-tool">Acquiring and installing the OT</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Useful links" %]
+    <li><a href="https://www.eaobservatory.org/jcmt/">Telescope web site and information</a></li>
+    <li><a href="/cgi-bin/pubsched.pl?tel=JCMT">Telescope observer schedule</a></li>
+    <li><a href="https://www.eaobservatory.org/jcmt/observing/">Telescope observing process</a></li>
+[% END %]
+</ul>
+</li>
+</ul>
+</div>
+
+<div class="home_panel restricted_access">
+<ul>
+<li>
+<p>Restricted access</p>
+
+<ul>
+[% WRAPPER link_group title = "Observing reports" %]
+    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT">View an observing report</a></li>
+    <li><a href="/cgi-bin/shiftlog.pl?telescope=JCMT">View shift log comments</a></li>
+    <li><a href="/cgi-bin/wwwobserved.pl?telescope=JCMT">View an MSB summary</a></li>
+    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT&delta=7">View a weekly synopsis</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Project administration" %]
+    <li><a href="/cgi-bin/listprojects.pl">View and sort projects</a></li>
+    <li><a href="/cgi-bin/ompusers.pl">View and edit user details</a></li>
+    <li><a href="/cgi-bin/alterproj.pl">View and edit project details</a></li>
+    <li><a href="/cgi-bin/edit_support.pl">View and edit support contacts</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Target tools" %]
+    <li><a href="/cgi-bin/sourceplot.pl">View target observability</a></li>
+    <li><a href="/cgi-bin/findtarget.pl">View target positioning</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Useful links" %]
+    <li><a href="/cgi-bin/sched.pl?tel=JCMT">Telescope support schedule</a></li>
+    <li><a href="/cgi-bin/qstatus.pl">Telescope queue snapshot</a></li>
+    <li><a href="https://www.eao.hawaii.edu/monitoring/tonight/jcmt/">Telescope nightly snapshot</a></li>
+[% END %]
+
+[% WRAPPER link_group title = "Fault system" %]
+    [% FOREACH fault_category IN fault_categories %]
+        <li>
+            <a href="/cgi-bin/queryfault.pl?cat=[% fault_category.0 %]">[% fault_category.1 %]</a>
+            &mdash; (<a href="/cgi-bin/filefault.pl?cat=[% fault_category.0 %]">file</a>)
+        </li>
+    [% END %]
+    <li>
+        <a href="/cgi-bin/queryfault.pl?cat=ANYCAT">All faults</a>
+    </li>
+[% END %]
+</ul>
+</li>
+</ul>
+</div>
+[% END %]
+
+[% BLOCK link_group %]
+    <li>
+        <p>[% title %]</p>
+
+        <ul>
+            [% content %]
+        </ul>
+    </li>
+[% END %]

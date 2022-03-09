@@ -1,0 +1,51 @@
+[% WRAPPER "layout.html" %]
+<p>
+    <img src="/images/banner_white.gif" width="572" height="198" />
+</p>
+
+<h1>Log in</h1>
+
+[% IF message.defined %]
+    <p>
+        <b>[% message | html %]</b>
+    </p>
+[% END %]
+
+<div class="log_in_panel">
+    <p><a href="#">Log in with Hedwig</a></p>
+    <div>
+        <form method="post" action="[% target %]">
+            <p>
+                <input type="hidden" name="provider" value="hedwig"  />
+                <input type="submit" name="submit_log_in" value="Log in with Hedwig" />
+            </p>
+        </form>
+    </div>
+</div>
+
+<div class="log_in_panel">
+    <p><a href="#">EAO staff log in</a></p>
+    <div>
+        <p>
+            Please enter your user name and password.
+        </p>
+        <form method="post" action="[% target %]">
+            <table>
+                <tr>
+                    <td>User name:</td>
+                    <td colspan="2"><input type="text" name="username"  size="17" maxlength="30" /></td>
+                </tr>
+                <tr>
+                    <td>Password:</td>
+                    <td><input type="password" name="password"  size="17" maxlength="30" /></td>
+                    <td>
+                        <input type="hidden" name="provider" value="staff" />
+                        <input type="hidden" name="show_content" value="1" />
+                        <input type="submit" name="submit_log_in" value="Submit" />
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+[% END %]

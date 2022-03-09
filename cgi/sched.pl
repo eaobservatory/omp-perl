@@ -19,4 +19,5 @@ OMP::CGIPage::Sched->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Sched::staff_sched_view,
     undef,
     'local_or_staff',
-    title => 'Telescope Schedule');
+    title => 'Telescope Schedule',
+    template => 'sched_view_edit.html');

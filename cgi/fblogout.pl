@@ -16,4 +16,6 @@ BEGIN {
 use OMP::CGIPage::Feedback;
 
 OMP::CGIPage::Feedback->new(cgi => new CGI())->write_page_logout(
-    \&OMP::CGIPage::Feedback::fb_logout);
+    \&OMP::CGIPage::Feedback::fb_logout,
+    title => 'Log out',
+    template => 'log_out.html');

@@ -624,6 +624,18 @@
               VALUE="" >
          <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="END" />
       </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMSTART"
+              COMMENT="[K] Ambient load temperature at start of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="START" />
+      </HEADER>
+      <HEADER TYPE="FLOAT"
+              KEYWORD="TAMEND"
+              COMMENT="[K] Ambient load temperature at end of observation"
+              VALUE="" >
+         <DRAMA TASK="FE_" PARAM="TEMP_AMBIENT" EVENT="END" />
+      </HEADER>
       <HEADER TYPE="BLANKFIELD"
       />
       <HEADER TYPE="COMMENT"
@@ -1272,7 +1284,7 @@
       
       <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
       <bw units="MHz" value="1800" />
-      <smu_offset X="0.13" Y="0.16" Z="0.19" />
+      <!-- smu_offset removed -->
       <!-- pointing_offset removed -->
       <waveBand band="D" label="D" units="Hz" centre="667.5E9" width="85.0E9" >
          <etal>0.95</etal>

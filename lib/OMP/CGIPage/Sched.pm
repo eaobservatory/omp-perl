@@ -91,7 +91,7 @@ sub _sched_view {
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
 
-    $self->render_template('sched_view_edit.html', {
+    return {
         title => "$tel Schedule $semester",
         schedule => $sched,
         queue_info => $queue_info,
@@ -103,7 +103,7 @@ sub _sched_view {
         semester_next => $semester_next,
         semester_prev => $semester_prev,
         semester_options => \@semester_options,
-    });
+    };
 }
 
 sub _sched_view_edit_info {
@@ -146,7 +146,7 @@ sub sched_edit_content {
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel);
 
-    $self->render_template('sched_view_edit.html', {
+    return {
         title => "Edit $tel Schedule $semester",
         schedule => $sched,
         slot_times => [map {($_->{'time'} + 14 * ONE_HOUR)->strftime('%H:%M')} @{$sched->[0]->slots_full()}],
@@ -155,7 +155,7 @@ sub sched_edit_content {
         is_edit => 1,
         telescope => $tel,
         semester => $semester,
-    });
+    };
 }
 
 =item B<sched_edit_output>
@@ -243,7 +243,7 @@ sub sched_view_queue_stats {
     $total_night = 1 unless $total_night;
     $total_slot = 1 unless $total_slot;
 
-    $self->render_template('sched_queue_stats.html', {
+    return {
         title => "$tel Schedule $semester Queue Statistics",
         queues => [sort keys %queues],
         queue_night => \%queue_night,
@@ -253,7 +253,7 @@ sub sched_view_queue_stats {
         total_slot => $total_slot,
         telescope => $tel,
         semester => $semester,
-    });
+    };
 }
 
 sub sched_cal_list {
@@ -268,12 +268,12 @@ sub sched_cal_list {
 
     my $cal_list = $db->list_schedule_calendars(tel => $tel);
 
-    $self->render_template('sched_calendars.html', {
+    return {
         title => "$tel Schedule Calendars",
         telescope => $tel,
         calendars => $cal_list,
         base_url => OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir') . '/schedcal.pl',
-    });
+    };
 }
 
 sub sched_cal_view {

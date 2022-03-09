@@ -86,10 +86,10 @@ Gives the user a cookie with an expiration date in the past, effectively deletin
 
 sub fb_logout {
   my $self = shift;
-  my $q = $self->cgi();
 
-  print $q->h2("You are now logged out of the feedback system.");
-  print "You may see feedback for a project by clicking <a href='projecthome.pl'>here</a>.";
+  return {
+    message => "You are now logged out of the feedback system.",
+  };
 }
 
 =item B<fb_output>

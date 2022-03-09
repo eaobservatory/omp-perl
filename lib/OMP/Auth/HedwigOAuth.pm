@@ -14,6 +14,7 @@ use OIDC::Lite::Client::WebServer;
 use OIDC::Lite::Model::IDToken;
 
 use OMP::Config;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DBbackend;
 use OMP::DBbackend::Hedwig2OMP;
 use OMP::Error;
@@ -50,12 +51,10 @@ sub log_in {
     my $cls = shift;
     my $q = shift;
 
-    my $state = $q->new({map {$_ => $q->url_param($_)} $q->url_param()})->url(-absolute => 1, -query => 1);
-
     my $redirect = $cls->_get_client()->uri_to_redirect(
         redirect_uri => OMP::Config->getData('auth_hedwig.url_redir'),
         scope => 'openid',
-        state => $state,
+        state => url_absolute($q),
     );
 
     return {redirect => $redirect};

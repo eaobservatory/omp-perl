@@ -1,3 +1,4 @@
+[% WRAPPER "layout.html" %]
 <h1>[% title | html %]</h1>
 
 [% IF is_edit %]
@@ -34,6 +35,7 @@
         <p>
             <a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
             <br /><a href="schedstat.pl?tel=[% telescope %]&semester=[% semester %]">Queue statistics</a>
+            <br /><a href="schedcallist.pl?tel=[% telescope %]">Calendar subscriptions</a>
         </p>
     [% END %]
 [% END %]
@@ -167,4 +169,5 @@
     </form>
 [% ELSE %]
     [% nav_links %]
+[% END %]
 [% END %]

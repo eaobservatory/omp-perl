@@ -1,0 +1,47 @@
+<html>
+<head>
+    <title>[% omp_title | html %]</title>
+    <meta name="theme-color" content="#55559b" />
+    <link rel="stylesheet" type="text/css" href="[% omp_style %]" title="ompstyle" />
+    <link rel="icon" type="image/x-icon" href="[% omp_favicon %]" />
+    [% FOREACH script_url = omp_javascript %]
+        <script type="text/javascript" src="[% script_url %]"></script>
+    [% END %]
+</head>
+<body>
+    [% IF top_bar_title.defined %]
+    <div id="layout_top_bar">
+        <p>[% top_bar_title %]</p>
+    </div>
+    [% END %]
+    <div id="layout_side_bar">
+        <p>EAO</p>
+        <ul>
+            <li><a href="https://www.eaobservatory.org/">EAO home</a></li>
+            <li><a href="https://www.eao.hawaii.edu/">EAO local</a></li>
+            <li><a href="https://www.eaobservatory.org/jcmt/">JCMT home</a></li>
+            <li><a href="https://www.eao.hawaii.edu/weather/">Weather</a></li>
+            <li><a href="https://www.eao.hawaii.edu/weather/camera/jac/">Web cameras</a></li>
+        </ul>
+
+        <p>OMP</p>
+        <ul>
+            <li><a href="/">OMP home</a></li>
+            <li><a href="/cgi-bin/projecthome.pl">Feedback system</a></li>
+            <li><a href="/cgi-bin/queryfault.pl">Fault system</a></li>
+        </ul>
+
+        [% IF omp_user.defined %]
+            <p>
+                [% omp_user.name %]
+                [% IF omp_user.is_staff %]&#x2605;[% END %]
+                <br />
+                <a href="/cgi-bin/fblogout.pl">Log out</a>
+            </p>
+        [% END %]
+    </div>
+    <div id="layout_content">
+        [% content %]
+    </div>
+</body>
+</html>

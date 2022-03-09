@@ -1826,7 +1826,7 @@ sub correlator {
         $slot_mapping = [2, 3, 0, 1];
       }
       elsif (2 == scalar @hwmap) {
-        if ((grep {$info{'PROJECTID'} eq $_} qw/M17BL004 M21AH07C/)
+        if ((grep {$info{'PROJECTID'} eq $_} qw/M17BL004 M21AH07C M22AH07C/)
                 and (exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
                 and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
                 and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
@@ -3492,7 +3492,13 @@ sub bandwidth_mode {
       # Subband 1 is referenced to LO channel and subband 2 to HI
       #     [ |     |:]
       #             [:|     | ]
-      @refchan = ($nch_lo, $nch_hi);
+      my $frontend = $self->ocs_frontend($info{'instrument'});
+      if ($frontend =~ /harp/i) {
+        @refchan = ($nch_lo, $nch_hi);
+      }
+      else {
+        @refchan = ($nch_hi, $nch_lo);
+      }
       @sbif = ($s->{'if'}) x 2;
 
     } elsif ($nsubband == 3) {
@@ -3875,10 +3881,18 @@ sub calc_jos_times {
   my $jos = shift;
   my %info = @_;
 
+  # Some parameters may be modified for specific named sources?
+  my $config_suffix = undef;
+  if ($info{'coords'}->type eq 'PLANET') {
+    $config_suffix = $info{'coords'}->planet();
+  }
+
   # N_CALSAMPLES depends entirely on the step time and the time from
   # the config file. Number of cal samples. This is hard-wired in
   # seconds but in units of STEP_TIME
-  my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
+  my $caltime = OMP::Config->getDataSearch(
+    (defined $config_suffix ? 'acsis_translator.cal_time_' . $config_suffix : ()),
+    'acsis_translator.cal_time');
 
   # if caltime is less than step time (eg scan) we still need to do at
   # least 1 cal
@@ -3906,7 +3920,9 @@ sub calc_jos_times {
   } else {
 
     # Now specify the maximum time between cals in steps
-    $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
+    $calgap = OMP::Config->getDataSearch(
+        (defined $config_suffix ? 'acsis_translator.time_between_cal_' . $config_suffix : ()),
+        'acsis_translator.time_between_cal');
 
     # Now calculate the maximum time between refs in steps
     $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
