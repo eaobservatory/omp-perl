@@ -653,6 +653,8 @@ div.home_panel.restricted_access ul p {
 
 div.home_panel > ul > li > ul > li > p {
     font-size: 150%;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 div.log_in_panel {
