@@ -174,14 +174,6 @@ sub find_and_display_targets {
         my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
 
         if ($n == 1 || $ref ne $pref ) {
-          if ($ref =~ /^\d/) {
-            my ($ra_r, $dec_r) = split /\s+/, $ref;
-            my ($sign_ra, @hh) = palDr2tf(2, $ra_r);
-            my ($sign,    @dd) = palDr2af(2, $dec_r);
-            $ref = sprintf "%2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d",
-                         $hh[0], $hh[1], $hh[2], $hh[3],
-                         $sign, $dd[0], $dd[1], $dd[2], $dd[3];
-          }
           print "Targets within $dsep arcsecs from  ${ref}:\n";
           $pref = $ref;
         }
