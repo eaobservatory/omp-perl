@@ -83,7 +83,6 @@ sub find_and_display_targets {
                 AND M2.projectid = P2.projectid
                 AND Q2.msbid = M2.msbid
                 AND P2.telescope LIKE \"$tel\"
-                AND P2.semester LIKE \"$sem\"
                 AND Q2.coordstype = \"RADEC\"
                 AND P.projectid NOT LIKE P2.projectid
                 AND P.projectid NOT LIKE '%EC%'
