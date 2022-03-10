@@ -18,7 +18,7 @@ use OMP::ProjDB;
 use OMP::MSBDB;
 
 use base qw/Exporter/;
-our @EXPORT_OK = qw/find_and_display_targets/;
+our @EXPORT_OK = qw/find_and_display_targets find_targets display_targets/;
 
 our $debug = 0;
 
@@ -33,6 +33,10 @@ Finds and displays targets.
 =cut
 
 sub find_and_display_targets {
+    display_targets(find_targets(@_));
+}
+
+sub find_targets {
     my %opt = @_;
 
     my $dsep = undef;
@@ -156,6 +160,14 @@ sub find_and_display_targets {
 
     # Disconnect from DB server
     $db->disconnect();
+
+    return $row_ref unless wantarray;
+    return ($row_ref, $dsep);
+}
+
+sub display_targets {
+    my $row_ref = shift;
+    my $dsep = shift;
 
     # Print output
     my ($hh, $mm, $ss, $sss, $sign, $dd, $am, $as, $ass );
