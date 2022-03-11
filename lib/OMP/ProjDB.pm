@@ -509,9 +509,13 @@ sub listCountries {
   my %args = @_;
 
   # Kluge. We should not be doing SQL at this level
-  # Note that current project table does not know which telescope
-  # it belongs to!
-  my $cref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT country FROM $PROJQUEUETABLE" );
+  my $query = "SELECT DISTINCT country FROM $PROJQUEUETABLE";
+  my @params = ();
+  if (defined $args{'telescope'}) {
+    $query .= " JOIN $PROJTABLE ON $PROJTABLE.projectid=$PROJQUEUETABLE.projectid WHERE telescope = ?";
+    push @params, $args{'telescope'};
+  }
+  my $cref = $self->_db_retrieve_data_ashash($query, @params);
   return map { $_->{country} } @$cref;
 }
 
