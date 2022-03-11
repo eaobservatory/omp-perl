@@ -18,19 +18,16 @@ use base qw/OMP::CGIComponent/;
 
 =over 4
 
-=item $comp->capture_png_as_img(sub {...})
+=item $comp->capture_png_as_data(sub {...})
 
 Runs the given subroutine, which is expected to produce a PNG image
-on its standard output.  Then returns an E<lt>imgE<gt> tag, produced
-via the CGI object C<$self-E<gt>cgi>, which encodes the image as a data URI.
+on its standard output.  Then returns the image as a data URI.
 
 =cut
 
-sub capture_png_as_img {
+sub capture_png_as_data {
     my $self = shift;
     my $code = shift;
-
-    my $q = $self->cgi;
 
     # Note: the original implementation of this routine was to use the
     # Capture::Tiny module to capture the output, but some of the output from
@@ -76,7 +73,7 @@ sub capture_png_as_img {
     # unexpected characters in case what we have isn't all text!
     if ($exitcode) {
         if ($png !~ /^\x89PNG/) {
-            my @output = ($q->b('Error'));
+            my @output = ();
 
             foreach my $line (split "\n", $png) {
                 next unless $line && $line !~ /^Content-type/;
@@ -84,18 +81,16 @@ sub capture_png_as_img {
                 push @output, $line;
             }
 
-            return $q->br(\@output);
+            die 'Error creating image: ' . join ' ', @output;
         }
         else {
-            return $q->b('Error after start of image');
+            die 'Error after start of image';
         }
     }
 
     # At this point we should have a valid PNG image -- base64
-    # encode it to create the data URI image tag.
-    return $q->img({
-        src => 'data:image/png;base64,' . encode_base64($png, ''),
-    });
+    # encode it to create the data URI.
+    return 'data:image/png;base64,' . encode_base64($png, '');
 }
 
 1;

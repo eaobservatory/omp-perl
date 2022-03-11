@@ -19,9 +19,9 @@ use strict;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DateTools;
-use OMP::FindTarget qw/find_and_display_targets/;
+use OMP::FindTarget;
 
 use base qw/OMP::CGIPage/;
 
@@ -38,7 +38,7 @@ Creates the find targets search page.
 sub find_targets {
     my $self = shift;
 
-    $self->_show_input_page();
+    return $self->_show_input_page();
 }
 
 =item B<find_targets_output>
@@ -50,8 +50,10 @@ Outputs the list of targets.
 sub find_targets_output {
     my $self = shift;
 
-    $self->_show_input_page();
-    $self->_show_output();
+    return {
+        %{$self->_show_input_page()},
+        %{$self->_show_output()},
+    };
 }
 
 =back
@@ -71,56 +73,17 @@ sub _show_input_page {
 
     my $q = $self->cgi;
 
-    print
-        $q->p(
-            'Perform a pencil-beam search for targets around a specified',
-            'position or around targets from a specified projects.',
-        ),
-        start_form_absolute($q),
-        $q->table(
-            $q->Tr([
-                $q->td([
-                    'Project(s)',
-                    $q->textfield(-name => 'projid', -size => 16),
-                    '(No default)',
-                ]),
-                $q->td('&nbsp;') .
-                    $q->td({-align => 'center'}, 'or') .
-                    $q->td('&nbsp;'),
-                $q->td([
-                    'RA',
-                    $q->textfield(-name => 'ra', -size => 16),
-                    '(dd:am:as.s No default)',
-                ]),
-                $q->td([
-                    'Dec',
-                    $q->textfield(-name => 'dec', -size => 16),
-                    '(dd:am:as.s No default)',
-                ]),
-                $q->td({-colspan => 3}, '&nbsp;'),
-                $q->td('Telescope') . $q->td({-colspan => 2},
-                    $q->radio_group(
-                        -name => 'tel',
-                        -values => ['UKIRT', 'JCMT'],
-                        -default => 'UKIRT',
-                    ),
-                ),
-                $q->td([
-                    'Max. separation',
-                    $q->textfield(-name => 'sep', -size => 16),
-                    '(600 arcsec)',
-                ]),
-                $q->td([
-                    'Semester',
-                    $q->textfield(-name => 'sem', -size => 16),
-                    '(current)',
-                ]),
-            ]),
-        ),
-        $q->p(
-            $q->hidden(-name => 'show_output', -value => 'true'),
-            $q->submit(-value => 'Find targets')),
-        $q->end_form();
+    return {
+        target => url_absolute($q),
+        values => {
+            projid => (scalar $q->param('projid')),
+            ra => (scalar $q->param('ra')),
+            dec => (scalar $q->param('dec')),
+            tel => (scalar $q->param('tel')) // 'JCMT',
+            sep => (scalar $q->param('sep')),
+            sem => (scalar $q->param('sem')),
+        },
+    };
 }
 
 =item _show_output
@@ -169,18 +132,14 @@ sub _show_output {
     ( $ssem =~ /^([\w\d\*]+)$/ ) && ($sem = $ssem) || ($sem = OMP::DateTools->determine_semester(tel => $tel));
     $sem =~ s/^m//i;
 
-    if ( $ra eq "" && $dec eq "" &&  $proj eq "" ) {
-      push @msg, "***ERROR*** must specify a valid project or a RA,Dec!";
+    if ( $ra eq "" || $dec eq "" and $proj eq "" ) {
+      push @msg, "Error: must specify a valid project or a RA,Dec!";
       push @msg, "RA, dec: '$rra', '$ddec'; Proj: '$prj'";
     }
 
-    if (@msg) {
-        print $q->p(\@msg);
-    }
-    else {
-        print $q->start_p(), $q->start_pre();
-
-        find_and_display_targets(
+    my ($targets, $results, $result_sep);
+    unless (@msg) {
+        ($targets, $result_sep) = OMP::FindTarget::find_targets(
             proj => $proj,
             ra   => $ra,
             dec  => $dec,
@@ -189,8 +148,25 @@ sub _show_output {
             tel  => $tel,
         );
 
-        print $q->end_pre(), $q->end_p();
+        unless (scalar @$targets) {
+            push @msg, 'No targets found.';
+        }
+        else {
+            $results = [map {
+                my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$_;
+                my $coord = new Astro::Coords(
+                    ra => $ra, dec => $dec, type => 'J2000', units=> 'rad');
+                {reference => $ref, project => $proj, target => $target, separation => $sep,
+                ra => $coord->ra2000, dec => $coord->dec2000, instrument => $instr};
+            } @$targets];
+        }
     }
+
+    return {
+        messages => \@msg,
+        results => $results,
+        result_sep => $result_sep,
+    };
 }
 
 1;

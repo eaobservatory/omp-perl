@@ -1,0 +1,82 @@
+[% WRAPPER "layout.html" %]
+<p>
+    Perform a pencil-beam search for targets around a specified position
+    or around targets from a specified projects.
+</p>
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td>Project(s)</td>
+            <td><input type="text" name="projid" value="[% values.projid %]" size="16" /></td>
+            <td>(No default)</td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td align="center">or</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td>RA</td>
+            <td><input type="text" name="ra" value="[% values.ra %]" size="16" /></td>
+            <td>(dd:am:as.s No default)</td>
+        </tr>
+            <tr><td>Dec</td>
+            <td><input type="text" name="dec" value="[% values.dec %]" size="16" /></td>
+            <td>(dd:am:as.s No default)</td>
+        </tr>
+        <tr>
+            <td colspan="3">&nbsp;</td>
+        </tr>
+        <tr>
+            <td>Telescope</td>
+            <td colspan="2">
+                [% FOREACH telescope IN ['JCMT', 'UKIRT'] %]
+                    <label><input type="radio" name="tel" value="[% telescope %]" [% IF values.tel == telescope %]checked="checked"[% END %]/>[% telescope %]</label>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>Max. separation</td>
+            <td><input type="text" name="sep" value="[% values.sep %]" size="16" /></td>
+            <td>(600 arcsec)</td>
+        </tr>
+        <tr>
+            <td>Semester</td>
+            <td><input type="text" name="sem" value="[% values.sem %]" size="16" /></td>
+            <td>(current)</td>
+        </tr>
+    </table>
+
+    <p>
+        <input type="hidden" name="show_output" value="true"  />
+        <input type="submit" name="submit" value="Find targets" />
+    </p>
+</form>
+
+[% FOR message = messages %]
+    <p>[% message | html %]</p>
+[% END %]
+
+[% IF results.defined %]
+    <table class="bordered">
+        [% SET prev_rev = '' %]
+        [% FOREACH result IN results %]
+            [% IF prev_rev != result.reference %]
+                [% SET prev_rev = result.reference %]
+                <tr>
+                    <td colspan="6">Targets within [% result_sep | html %] arcsecs from [% prev_rev | html %]</td>
+                </tr>
+            [% END %]
+            <tr>
+                <td>[% result.project | html %]</td>
+                <td>[% result.target | html %]</td>
+                <td>[% result.separation | format('%.0f"') %]</td>
+                <td>[% result.ra | html %]</td>
+                <td>[% result.dec | html %]</td>
+                <td>[% result.instrument | html %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% END %]
+[% END %]

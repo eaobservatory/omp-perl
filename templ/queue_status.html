@@ -1,0 +1,221 @@
+[% WRAPPER "layout.html" %]
+
+<h2>View Queue Status</h2>
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td>
+                <b>Semester</b>
+            </td>
+            <td>
+                <select name="semester">
+                    [% FOREACH semester IN semesters %]
+                        <option [% IF semester == values.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+            <td rowspan="8">
+                [% IF ! projects.empty %]
+                    <b>Project</b>
+                    <br/>
+                    <select name="project" size="10" multiple="multiple">
+                        [% FOREACH project IN projects %]
+                            <option value="[% project | html %]" [% IF values.projects.$project %]selected="selected"[% END %]>[% project | html %]</option>
+                        [% END %]
+                    </select>
+                [% ELSE %]
+                    <i>No projects from previous search</i>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Queue</b>
+            </td>
+            <td>
+                <select name="country">
+                    <option [% IF ! values.country.defined %]selected="selected"[% END %] value="Any">Any</option>
+                    [% FOREACH country IN countries %]
+                        <option [% IF country == values.country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Affiliation</b>
+            </td>
+            <td>
+                <select name="affiliation">
+                    <option [% IF ! values.affiliation.defined %]selected="selected"[% END %] value="Any">Any</option>
+                    [% FOREACH affiliation IN affiliations %]
+                        <option [% IF affiliation.0 == values.affiliation %]selected="selected"[% END %] value="[% affiliation.0 %]">[% affiliation.1 %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Instrument</b>
+            </td>
+            <td>
+                <select name="instrument">
+                    <option [% IF ! values.instrument.defined %]selected="selected"[% END %] value="Any">Any</option>
+                    [% FOREACH instrument IN instruments %]
+                        <option [% IF instrument == values.instrument %]selected="selected"[% END %] value="[% instrument | html %]">[% instrument | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Band</b>
+            </td>
+            <td>
+                <select name="band">
+                    <option [% IF ! values.band.defined %]selected="selected"[% END %] value="Any">Any</option>
+                    [% FOREACH band IN bands %]
+                        <option [% IF band == values.band %]selected="selected"[% END %] value="[% band | html %]">[% band | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Date</b>
+            </td>
+            <td>
+                <input type="text" name="date" [% IF values.date.defined %]value="[% values.date.strftime('%Y-%m-%d') %]" [% END %]/>
+                (default today)
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Order</b>
+            </td>
+            <td>
+                [% FOREACH order IN orders %]
+                    <label>
+                        <input type="radio" name="order" value="[% order.0 | html %]" [% IF (order.0 == values.order) || (loop.first && ! values.order.defined) %]checked="checked"[% END %] />
+                        [% order.1 %]
+                    </label>
+                    [% IF ! loop.last %]
+                        <br/>
+                    [% END %]
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>
+                &nbsp;
+            </td>
+            <td>
+                <input type="hidden" name="show_output" value="true" />
+                <input type="submit" name="submit" value="Plot" />
+            </td>
+        </tr>
+    </table>
+</form>
+
+[% IF results.defined %]
+    <h2>Search results</h2>
+
+    [% IF plot.defined %]
+        <p>
+            <img src="[% plot %]" />
+        </p>
+    [% END %]
+
+    [% IF results.empty %]
+        <p>
+            <i>No observations found</i>
+        </p>
+    [% ELSE %]
+        [% USE format %]
+        [% percentage = format("%.1f%%") %]
+        [% integer = format("%i") %]
+        <table>
+            <tr>
+                <th align="left">Project</th>
+                <th align="left">MSB</th>
+                <th align="left">Target</th>
+                <th align="left">RA</th>
+                <th align="left">Dec</th>
+                <th align="left">Type</th>
+                <th align="left">Instrument</th>
+                <th align="left">Tau</th>
+                <th align="left">Remaining</th>
+                <th align="left">Time</th>
+                <th align="left">Completion</th>
+                <th align="left">Priority</th>
+            </tr>
+            [% FOR result = results %]
+                [% SET project = result.0 %]
+                [% SET shown = result.1 %]
+                [% FOREACH msb IN project.values %]
+                    [% SET msb_first = loop.first %]
+                    [% FOREACH obs IN msb.observations %]
+                        [% SET obs_first = loop.first %]
+                        [% FOREACH coord IN obs.coords %]
+                            <tr [% IF ! shown %]style="opacity: 0.5;"[% END %]>
+                                [% IF msb_first %]
+                                    <td>
+                                        <a href="/cgi-bin/projecthome.pl?project=[% msb.projectid %]">[% msb.projectid %]</a>
+                                        (<a href="/cgi-bin/sourceplot.pl?project=[% msb.projectid %]">plot</a>)
+                                    </td>
+                                [% ELSE %]
+                                    <td>&nbsp;</td>
+                                [% END %]
+                                [% IF obs_first && loop.first %]
+                                    <td>[% msb.title | html %]</td>
+                                [% ELSE %]
+                                    <td>&nbsp;</td>
+                                [% END %]
+                                [% IF coord.name.defined %]
+                                    <td>[% coord.name | html %]</td>
+                                [% ELSE %]
+                                    <td>Unnamed target</td>
+                                [% END %]
+                                [% SET type = (coord.type == 'INTERP') ? 'RADEC' : coord.type  %]
+                                [% IF type == 'RADEC' %]
+                                    <td>[% coord.ra | html %]</td>
+                                    <td>[% coord.dec | html %]</td>
+                                [% ELSE %]
+                                    <td>&mdash;</td>
+                                    <td>&mdash;</td>
+                                [% END %]
+                                <td>[% type | html %]</td>
+                                [% IF obs_first && loop.first %]
+                                    <td>[% obs.instrument | html %]</td>
+                                [% ELSE %]
+                                    <td>&nbsp;</td>
+                                [% END %]
+                                [% IF msb_first && obs_first && loop.first %]
+                                    <td>[% msb.tau | html %]</td>
+                                    <td>[% msb.remaining | html %]</td>
+                                    <td>
+                                        [% integer(msb.timeest / 60) %] min
+                                        [% integer(msb.timeest % 60) %] sec
+                                    </td>
+                                [% ELSE %]
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                [% END %]
+                                [% IF msb_first && obs_first && loop.first %]
+                                    <td>[% percentage(msb.completion) %]</td>
+                                    <td>[% integer(msb.priority) %]</td>
+                                [% ELSE %]
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                [% END %]
+                            </tr>
+                        [% END %]
+                    [% END %]
+                [% END %]
+            [% END %]
+        </table>
+    [% END %]
+[% END %]
+[% END %]
