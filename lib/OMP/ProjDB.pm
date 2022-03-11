@@ -416,11 +416,17 @@ Retrieve all the semesters associated with projects in the database.
 
 sub listSemesters {
   my $self = shift;
+  my %opts = @_;
 
   # Kluge. We should not be doing SQL at this level
-  # Note that current project table does not know which telescope
-  # it belongs to!
-  my $semref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT semester FROM $PROJTABLE" );
+  my $query = "SELECT DISTINCT semester FROM $PROJTABLE";
+  my @params = ();
+  if (defined $opts{'telescope'}) {
+    $query .= ' WHERE telescope = ?';
+    push @params, $opts{'telescope'};
+  }
+
+  my $semref = $self->_db_retrieve_data_ashash($query, @params);
   return sort map { $_->{semester} } @$semref
 
 }
