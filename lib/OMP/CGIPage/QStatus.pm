@@ -56,7 +56,6 @@ sub view_queue_status_output {
     my $q = $self->cgi;
 
     my %opt = (telescope => $telescope);
-    my $selected_band = undef;
 
     do {
         my $semester = $q->param('semester');
@@ -69,7 +68,7 @@ sub view_queue_status_output {
     do {
         my $country = $q->param('country');
         if (defined $country and $country ne 'Any') {
-            die 'invalid queue' unless $country =~ /^([-_A-Za-z0-9]+)$/;
+            die 'invalid queue' unless $country =~ /^([-_A-Za-z0-9+]+)$/;
             $opt{'country'} = $1;
         }
     };
@@ -94,9 +93,7 @@ sub view_queue_status_output {
         my $band = $q->param('band');
         if (defined $band and $band ne 'Any') {
             die 'invalid band' unless $band =~ /^([1-5])$/;
-            $selected_band = $1;
-            my $r = OMP::SiteQuality::get_tauband_range($telescope, $1);
-            $opt{'tau'} = ($r->min() + $r->max()) / 2.0;
+            $opt{'band'} = $1;
         }
     };
 
@@ -108,9 +105,18 @@ sub view_queue_status_output {
         }
     };
 
+    my %query_opt = %opt;
+    if (exists $query_opt{'band'}) {
+        my $r = OMP::SiteQuality::get_tauband_range($telescope, delete $query_opt{'band'});
+        $query_opt{'tau'} = ($r->min() + $r->max()) / 2.0;
+    }
+    if ((exists $query_opt{'country'}) and ($query_opt{'country'} =~ /\+/)) {
+        $query_opt{'country'} = [split /\+/, $query_opt{'country'}];
+    }
+
     # Pass options to query_queue_status.
     my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %opt);
+        return_proj_msb => 1, %query_opt);
 
     my @proj_order;
     my $order = $q->param('order');
@@ -142,7 +148,6 @@ sub view_queue_status_output {
 
     my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
 
-    $opt{'band'} = $selected_band;
     $opt{'order'} = $order;
     $opt{'projects'} = {map {$_ => 1} @project};
     my $context = $self->_show_input_page(\%opt, projects => \@proj_order);
@@ -188,10 +193,12 @@ sub _show_input_page {
     my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
-    unshift @semesters, $semester unless grep {$_ eq $semester} @semesters;
+    push @semesters, $semester unless grep {$_ eq $semester} @semesters;
     $values->{'semester'} //= $semester;
 
     my @countries = grep {! /^ *$/ || /^serv$/i} $db->listCountries(telescope => $telescope);
+    # Add special combinations (see fault 20210831.001).
+    push @countries, 'PI+IF';
 
     my @affiliation_codes = sort {
         $AFFILIATION_NAMES{$a} cmp $AFFILIATION_NAMES{$b}

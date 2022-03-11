@@ -155,7 +155,8 @@ sub query_queue_status {
         my $query = new OMP::MSBQuery(XML => '<MSBQuery>' .
             '<telescope>' . $telescope . '</telescope>' .
             (exists $opt{'country'}
-                ? '<country>' . $opt{'country'} . '</country>'
+                ? (join '', map {'<country>' . $_ . '</country>'}
+                        ((ref $opt{'country'}) ? @{$opt{'country'}} : $opt{'country'}))
                 : '') .
             (exists $opt{'semester'}
                 ? '<semester>' . $opt{'semester'} . '</semester>'
