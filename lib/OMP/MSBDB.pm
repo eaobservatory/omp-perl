@@ -1241,7 +1241,7 @@ sub getSubmitted {
 Return the total number of MSBs, and the total number of active MSBs, for a
 given list of projects.
 
-  %projectid = $db->getMSBCount(@projectids);
+  \%projectid = $db->getMSBCount(@projectids);
 
 The only argument is a list (or reference to a list) of project IDs.
 Returns a hash of hashes indexed by project ID where the second-level
@@ -1255,8 +1255,7 @@ is returned for that project.
 sub getMSBCount {
   my $self = shift;
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
-  my %result = $self->_get_msb_count(@projectids);
-  return %result;
+  return $self->_get_msb_count(@projectids);
 }
 
 =item B<getMSBtitle>
@@ -3459,6 +3458,8 @@ sub _get_msb_count {
   my $self = shift;
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
 
+  return {} unless @projectids;
+
   # SQL query
   my $sql = "SELECT projectid, COUNT(*) AS \"count\" FROM $MSBTABLE\n".
     "WHERE projectid IN (". join(",", map {"\"".uc($_)."\""} @projectids).")\n";
@@ -3476,7 +3477,7 @@ sub _get_msb_count {
     }
   }
 
-  return %projectid;
+  return \%projectid;
 }
 
 =back
