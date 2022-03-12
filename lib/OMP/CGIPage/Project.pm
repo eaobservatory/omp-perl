@@ -438,7 +438,7 @@ _HEADER_
 	  my $projinst = OMP::SpServer->programInstruments(${projectid});
 
 	  # See if the instrument in the project are listed in noretrieve
-	  my %inproj = map { (uc($_), undef ) } @$projinst;
+	  my %inproj = map { (uc($_), undef ) } (exists $projinst->{$projectid} ? @{$projinst->{$projectid}} : ());
 
 	  for my $nr (@noretrieve) {
 	      if (exists $inproj{uc($nr)}) {

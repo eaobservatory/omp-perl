@@ -377,30 +377,36 @@ sub removeSciProg {
 
 =item B<getInstruments>
 
-Returns a list of all the instruments currently associated with this
+Returns a list of all the instruments currently associated with each
 science program.
 
- @instruments = $db->programInstruments( );
-
-Can return an empty list if nothing is in the database.
+ \%instruments = $db->getInstruments(@projectids);
 
 =cut
 
 sub getInstruments {
   my $self = shift;
+  my @projectids = @_;
+
+  return {} unless @projectids;
 
   # This needs to be quick. The old way was to simply get the science program
   # and summarise it. Way to slow with the large science programs used in surveys.
   # Simply go straight to the ompobs table.
 
-  my $projectid = $self->projectid;
-
   # No XML query interface to science programs, so we'll have to do an SQL query
-  my $sql = "SELECT instrument FROM $OBSTABLE WHERE projectid = '$projectid' group by instrument";
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+  my $sql = 'SELECT projectid, '
+    . 'GROUP_CONCAT(DISTINCT instrument ORDER BY instrument SEPARATOR ",") AS instruments '
+    . "FROM $OBSTABLE WHERE projectid IN (" .
+        (join ',', ('?',) x scalar @projectids)
+    . ') GROUP BY projectid';
+  my $ref = $self->_db_retrieve_data_ashash($sql, @projectids);
 
-  my @results = map { $_->{instrument} } @$ref;
-  return sort @results;
+  my %results = map {
+    $_->{'projectid'} => [split /,/, $_->{'instruments'}]
+  } @$ref;
+
+  return \%results;
 }
 
 =item B<getSciProgInfo>
