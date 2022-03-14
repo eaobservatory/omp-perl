@@ -41,18 +41,20 @@ $| = 1;
 
 =over 4
 
-=item B<list_project_form>
+=item B<list_projects_form>
 
 Create a form for taking the semester parameter
 
-  $comp->list_projects_form();
+  $comp->list_projects_form(telescope => $telescope);
 
 =cut
 
 sub list_projects_form {
   my $self = shift;
+  my %opt = @_;
 
   my $q = $self->cgi;
+  my $telescope = $opt{'telescope'};
 
   my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
 
@@ -60,13 +62,10 @@ sub list_projects_form {
   # so it can be defaulted in addition to the list of all semesters
   # in the database
   my $sem = OMP::DateTools->determine_semester;
-  my @sem = $db->listSemesters;
+  my @sem = $db->listSemesters(telescope => $telescope);
 
   # Make sure the current semester is a selectable option
   push @sem, $sem unless grep {$_ =~ /$sem/i} @sem;
-
-  # Get the telescopes for our popup menu
-  my @tel = $db->listTelescopes;
 
   my @support =
     sort {$a->[0] cmp $b->[0]}
@@ -74,14 +73,13 @@ sub list_projects_form {
     $db->listSupport;
 
   # Take serv out of the countries list
-  my @countries = grep {$_ !~ /^serv$/i} $db->listCountries;
+  my @countries = grep {$_ !~ /^serv$/i} $db->listCountries(telescope => $telescope);
   push @countries, 'PI+IF';
 
   return {
     target => url_absolute($q),
     semesters => [sort @sem],
     semester_selected => $sem,
-    telescopes => [sort @tel],
     statuses => [
         [active => 'Time remaining'],
         [inactive => 'No time remaining'],

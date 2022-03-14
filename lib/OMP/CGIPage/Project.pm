@@ -43,6 +43,8 @@ use OMP::SiteQuality;
 
 use base qw/OMP::CGIPage/;
 
+our $telescope = 'JCMT';
+
 $| = 1;
 
 =head1 Routines
@@ -111,7 +113,7 @@ sub list_projects {
 
   my $comp = OMP::CGIComponent::Project->new(page => $self);
 
-  return $comp->list_projects_form();
+  return $comp->list_projects_form(telescope => $telescope);
 }
 
 =item B<list_projects_output>
@@ -133,13 +135,11 @@ sub list_projects_output {
   my $status = ($q->param('status') eq 'all' ? undef : $q->param('status'));
   my $support = $q->param('support');
   my $country = $q->param('country');
-  my $telescope = $q->param('telescope');
   my $order = $q->param('order');
 
   undef $semester if $semester =~ /any/i;
   undef $support if $support eq '';
   undef $country if $country eq '';
-  undef $telescope if $telescope eq '';
 
   my $xmlquery = '<ProjQuery>' .
     "<state>$state</state><status>$status</status>" .
@@ -230,7 +230,7 @@ sub list_projects_output {
   }
 
   return {
-    %{$comp->list_projects_form()},
+    %{$comp->list_projects_form(telescope => $telescope)},
     %{$comp->proj_sum_table(\@sorted, ($order ne 'priority'))},
     values => {
       semester => $semester,
@@ -238,7 +238,6 @@ sub list_projects_output {
       status => $status,
       support =>$support,
       country => $country,
-      telescope => $telescope,
       order => $order,
     },
   };

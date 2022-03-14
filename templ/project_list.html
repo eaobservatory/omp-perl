@@ -13,15 +13,6 @@
             </select></td>
         </tr>
         <tr>
-            <td align='right'>Telescope:</td>
-            <td><select name="telescope">
-                <option [% UNLESS values.telescope.defined %]selected="selected"[% END %] value="">Any</option>
-                [% FOREACH telescope IN telescopes %]
-                    <option [% IF telescope == values.telescope %]selected="selected"[% END %] value="[% telescope | html %]">[% telescope | html %]</option>
-                [% END %]
-            </select></td>
-        </tr>
-        <tr>
             <td align='right'>Show:</td>
             <td>
                 [% FOREACH status IN statuses %]
