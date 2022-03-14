@@ -109,14 +109,9 @@ Create a page with a form prompting for the semester to list projects for.
 sub list_projects {
   my $self = shift;
 
-  my $q = $self->cgi;
-
-  print $q->h2("List projects");
-
   my $comp = OMP::CGIComponent::Project->new(page => $self);
-  $comp->list_projects_form();
 
-  print $q->hr;
+  return $comp->list_projects_form();
 }
 
 =item B<list_projects_output>
@@ -132,7 +127,6 @@ sub list_projects_output {
 
   my $q = $self->cgi;
   my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
 
   my $semester = $q->param('semester');
   my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
@@ -143,16 +137,23 @@ sub list_projects_output {
   my $order = $q->param('order');
 
   undef $semester if $semester =~ /any/i;
-  ($support eq 'dontcare') and $support = undef;
-  ($country =~ /any/i) and $country = undef;
-  ($telescope =~ /any/i) and $telescope = undef;
+  undef $support if $support eq '';
+  undef $country if $country eq '';
+  undef $telescope if $telescope eq '';
 
-  my $xmlquery = "<ProjQuery><state>$state</state><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
+  my $xmlquery = '<ProjQuery>' .
+    "<state>$state</state><status>$status</status>" .
+    "<semester>$semester</semester><support>$support</support>" .
+    ((defined $country)
+        ? (join '', map {"<country>$_</country>"} split /\+/, $country)
+        : '') .
+    "<telescope>$telescope</telescope></ProjQuery>";
 
   OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
+  my @sorted = ();
   if (@$projects) {
     # Group by either project ID or TAG priority
     # If grouping by project ID, group by telescope, semester, and
@@ -164,7 +165,6 @@ sub list_projects_output {
     # database do the sorting and grouping for us in the future,
     # although that will require OMP::ProjQuery to support
     # <orderby> and <groupby> tags
-    my @sorted;
 
     if ($order eq 'projectid') {
 
@@ -227,55 +227,21 @@ sub list_projects_output {
         }
       }
     }
-
-    # Display a list of projects if any were returned
-    print $q->h2("Projects for semester $semester");
-
-    $comp->list_projects_form();
-
-    print $q->hr;
-
-    if ($q->param('table_format')) {
-
-      if ($order eq 'priority') {
-        $comp->proj_sum_table(\@sorted);
-      } else {
-        # Display table with semester and country headings
-        # since we sorted by project ID
-        $comp->proj_sum_table(\@sorted, 1);
-      }
-
-    } else {
-
-      my $url = OMP::Config->getData('cgidir');
-
-      foreach my $project (@sorted) {
-        print "<a href='$url/projecthome.pl?project=" . $project->projectid . "'>";
-        print $q->h2('Project ' . $project->projectid);
-        print "</a>";
-        $comp->proj_status_table($project->projectid);
-
-        print $q->h3('MSBs observed');
-        $msbcomp->fb_msb_observed($project->projectid);
-
-        print $q->h3('MSBs to be observed');
-        $msbcomp->fb_msb_active($project->projectid);
-      }
-
-    }
-
-    print $q->hr;
-
-    $comp->list_projects_form();
-
-  } else {
-    # Otherwise just put the form back up
-    print $q->h2("No projects for semester $semester matching your query");
-
-    $comp->list_projects_form();
-
-    print $q->hr;
   }
+
+  return {
+    %{$comp->list_projects_form()},
+    %{$comp->proj_sum_table(\@sorted, ($order ne 'priority'))},
+    values => {
+      semester => $semester,
+      state => $state,
+      status => $status,
+      support =>$support,
+      country => $country,
+      telescope => $telescope,
+      order => $order,
+    },
+  };
 }
 
 =item B<project_home>

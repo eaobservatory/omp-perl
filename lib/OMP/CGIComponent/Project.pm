@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -63,80 +63,46 @@ sub list_projects_form {
   my @sem = $db->listSemesters;
 
   # Make sure the current semester is a selectable option
-  my @a = grep {$_ =~ /$sem/i} @sem;
-  (!@a) and unshift @sem, $sem;
-
-  # Add "Any" to semester list.
-  unshift @sem, 'Any';
+  push @sem, $sem unless grep {$_ =~ /$sem/i} @sem;
 
   # Get the telescopes for our popup menu
   my @tel = $db->listTelescopes;
-  unshift @tel, "Any";
 
-  my @support = $db->listSupport;
-  my @sorted = sort {$a->userid cmp $b->userid} @support;
-  my @values = map {$_->userid} @sorted;
-
-  my %labels = map {$_->userid, $_} @support;
-  $labels{dontcare} = "Any";
-  unshift @values, 'dontcare';
-
-  my @c = $db->listCountries;
+  my @support =
+    sort {$a->[0] cmp $b->[0]}
+    map {[$_->userid, $_->name]}
+    $db->listSupport;
 
   # Take serv out of the countries list
-  my @countries = grep {$_ !~ /^serv$/i} @c;
-  unshift @countries, 'Any';
+  my @countries = grep {$_ !~ /^serv$/i} $db->listCountries;
+  push @countries, 'PI+IF';
 
-  print "<table border=0><tr><td align=right>Semester: </td><td>";
-  print start_form_absolute($q);
-  print $q->hidden(-name=>'show_output',
-                   -default=>1,);
-  print $q->popup_menu(-name=>'semester',
-                       -values=>\@sem,
-                       -default=>uc($sem),);
-  print "</td></tr><tr><td align='right'>Telescope: </td><td>";
-  print $q->popup_menu(-name=>'telescope',
-                       -values=>\@tel,
-                       -default=>'Any',);
-  print "</td></tr><tr><td align='right'>Show: </td><td>";
-  print $q->radio_group(-name=>'status',
-                        -values=>['active', 'inactive', 'all'],
-                        -labels=>{active=>'Time remaining',
-                                  inactive=>'No time remaining',
-                                  all=>'Both',},
-                        -default=>'active',);
-  print "<br>";
-  print $q->radio_group(-name=>'state',
-                        -values=>[1,0,'all'],
-                        -labels=>{1=>'Enabled',
-                                  0=>'Disabled',
-                                  all=>'Both',},
-                        -default=>1,);
-  print "</td></tr><tr><td align='right'>Support: </td><td>";
-  print $q->popup_menu(-name=>'support',
-                       -values=>\@values,
-                       -labels=>\%labels,
-                       -default=>'dontcare',);
-  print "</td></tr><tr><td align='right'>Queue: </td><td>";
-  print $q->popup_menu(-name=>'country',
-                       -values=>\@countries,
-                       -default=>'Any',);
-  print "</td></tr><tr><td align='right'>Order by:</td><td colspan=2>";
-  print $q->radio_group(-name=>'order',
-                        -values=>['priority', 'projectid', 'adj-priority'],
-                        -labels=>{priority => 'Priority',
-                                  projectid => 'Project ID',
-                                  'adj-priority' => 'Adjusted priority',},
-                        -default=>'priority',);
-  print "</td></tr><tr><td colspan=2>";
-  print $q->checkbox(-name=>'table_format',
-                     -value=>1,
-                     -label=>'Display using tabular format',
-                     -checked=>'true',);
-  print "&nbsp;&nbsp;&nbsp;";
-  print $q->submit(-name=>'Submit');
-  print $q->end_form();
-  print "</td></tr></table>";
+  return {
+    target => url_absolute($q),
+    semesters => [sort @sem],
+    semester_selected => $sem,
+    telescopes => [sort @tel],
+    statuses => [
+        [active => 'Time remaining'],
+        [inactive => 'No time remaining'],
+        [all => 'Both'],
+    ],
+    states => [
+        [1 =>'Enabled'],
+        [0 => 'Disabled'],
+        [all => 'Both'],
+    ],
+    supports => \@support,
+    countries => [sort @countries],
+    orders => [
+        [priority => 'Priority'],
+        [projectid => 'Project ID'],
+        ['adj-priority' => 'Adjusted priority'],
+    ],
+    values => {
+        semester => $sem,
+    },
+  }
 }
 
 =item B<proj_status_table>
@@ -201,139 +167,26 @@ sub proj_sum_table {
   my $projects = shift;
   my $headings = shift;
 
-  my $q = $self->cgi;
-
-  my $url = OMP::Config->getData('cgidir');
-
-  print <<'TABLE';
-  <table cellspacing=0>
-  <tr align=center>
-  <td>Enabled(v) / Disabled(x)</td>
-  <td>Project ID</td>
-  <td>PI</td>
-  <td>PI affiliation</td>
-  <td>Support</td>
-  <td># MSBs</td>
-  <td>Priority</td>
-  <td>Adjusted priority</td>
-  <td>Allocated</td>
-  <td>Completed</td>
-  <td>Instruments</td>
-  <td>Tau range</td>
-  <td>Title</td>
-  </tr>
-TABLE
-
-  my %bgcolor = (dark => "#6161aa",
-                 light => "#8080cc",
-                 disabled => "#e26868",
-                 heading => "#c2c5ef",);
-
-  # Images, with width & height, to distinguish between enabled & disabled
-  # projects more easily than just by background colors.
-  my $img_dir = OMP::Config->getData( 'iconsdir' );
-  my %images = ( 'enabled' => [qw( tick-green-24.png 23 24 )],
-                  'disabled' => [qw( cross-red-24.png 23 24 )]
-                );
-
-  my $rowclass = 'row_shaded';
-
-  my $hsem;
-  my $hcountry;
-
   # Count msbs for each project
-  my @projectids = map {$_->projectid} @$projects;
-  my %msbcount = OMP::MSBServer->getMSBCount(@projectids);
-
-  #  XXX Just catch any errors thrown by OMP::SpServer->programInstruments.
-  #  This try-catch should really be around the acutal usage of
-  #  programInstruments(), but that may cause a slowdown when looped over many
-  #  times.
+  my $proj_msbcount = {};
+  my $proj_instruments = {};
   try {
-    foreach my $project (@$projects) {
-
-      if ($headings) {
-        # If the country or semester for this project are different
-        # than the previous project row, create a new heading
-
-        if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
-          $hsem = $project->semester_ori;
-          $hcountry = $project->country;
-          print "<tr bgcolor='$bgcolor{heading}'><td colspan=13>Semester: $hsem, Queue: $hcountry</td></td></tr>\n";
-        }
-      }
-
-      # Get MSB counts
-      my $nmsb = $msbcount{$project->projectid}{total};
-      my $nremaining = $msbcount{$project->projectid}{active};
-      (! defined $nmsb) and $nmsb = 0;
-      (! defined $nremaining) and $nremaining = 0;
-
-      my $adj_priority = '--';
-      for ( $project ) {
-
-        # Suppress printing of adjusted priority when it will be the same as
-        # already assigned priority.
-        if ( my $adj = $_->tagadjustment( $_->primaryqueue ) ) {
-
-          $adj_priority = $_->tagpriority() + $adj;
-        }
-      }
-
-      # Get seeing and tau info
-      my $taurange = $project->taurange;
-
-      $taurange = '--' if OMP::SiteQuality::is_default( 'TAU',$taurange );
-
-      # programInstruments() may return empty array reference.
-      my $instruments = OMP::SpServer->programInstruments( $project->projectid );
-
-      my $support = join(", ", map {$_->userid} $project->support);
-
-      # Make it noticeable if the project is disabled
-      (! $project->state) and $rowclass = 'row_disabled';
-
-      print "<tr class=${rowclass} valign=top>";
-
-      my $status = !! $project->state ? 'enabled' : 'disabled';
-      printf <<'STATUS',
-        <td align="center" valign="top"><img
-          alt="%s" src="%s" width="%d" height="%d"></td>
-STATUS
-        $status,
-        File::Spec->catfile( $img_dir, $images{ $status }->[0] ),
-        map { $images{ $status }->[ $_ ] } ( 1, 2 )
-        ;
-
-      print "<td><a href='$url/projecthome.pl?project=". $project->projectid ."'>". $project->projectid ."</a></td>";
-      print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
-      print '<td>'. ($project->pi->affiliation // '&nbsp;') . '</td>';
-      print "<td>". $support ."</td>";
-      print "<td align=center>$nremaining/$nmsb</td>";
-      print "<td align=center>". $project->tagpriority ."</td>";
-      print "<td align=center>". $adj_priority ."</td>";
-      print "<td align=center>". $project->allocated->pretty_print ."</td>";
-      print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
-
-      printf '<td align="center">%s</td>',
-        scalar @{ $instruments } ? join '<br />', @{ $instruments }
-          : '--' ;
-
-      print "<td align=center>$taurange</td>";
-      print "<td>". $project->title ."</td>";
-
-      print "</tr>\n";
-
-      # Alternate row class style
-      ($rowclass eq 'row_shaded') and $rowclass = 'row_clear'
-        or $rowclass = 'row_shaded';
-    }
+    my @projectids = map {$_->projectid} @$projects;
+    $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
+    $proj_instruments = OMP::SpServer->programInstruments(@projectids);
   }
   catch OMP::Error with { }
   otherwise { };
 
-  print "</table>";
-
+  return {
+    results => $projects,
+    show_headings => $headings,
+    project_msbcount => $proj_msbcount,
+    project_instruments => $proj_instruments,
+    taurange_is_default => sub {
+        return OMP::SiteQuality::is_default('TAU', $_[0]);
+    },
+  };
 }
 
 =item B<obtain_projectid>
