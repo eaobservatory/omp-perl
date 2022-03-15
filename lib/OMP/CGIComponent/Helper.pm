@@ -78,11 +78,15 @@ sub start_form_absolute {
 
 Get an "absolute" URL (without host) including only query parameters.
 
+    my $url = url_absolute($q, [%extra_query_parameters]);
+
 =cut
 
 sub url_absolute {
     my $q = shift;
+    my %extra_params = @_;
     return $q->new({
+        %extra_params,
         map {$_ => $q->url_param($_)} $q->url_param()
     })->url(-absolute => 1, -query => 1);
 }

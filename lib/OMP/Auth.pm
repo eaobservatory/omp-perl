@@ -83,7 +83,8 @@ sub log_in {
 
             if (exists $user_info->{'user'}) {
                 $user = $user_info->{'user'};
-                $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent());
+                $token = $db->issue_token(
+                    $user, $q->remote_addr(), $q->user_agent(), $user_info->{'duration'});
             }
 
             $abort = 1 if exists $user_info->{'abort'};

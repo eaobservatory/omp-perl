@@ -22,7 +22,10 @@ use OMP::UserDB;
 use base qw/OMP::BaseDB/;
 
 our $AUTHTABLE = 'ompauth';
-our $DURATION = new Time::Seconds(ONE_DAY);
+our %DURATION = (
+    default => new Time::Seconds(8 * ONE_HOUR),
+    remember => new Time::Seconds(ONE_WEEK),
+);
 our $REFRESH_SECONDS = 600;
 
 =head1 METHODS
@@ -35,7 +38,10 @@ our $REFRESH_SECONDS = 600;
 
 Create a token for the given user, store it in the database, and return it.
 
-    my $token = $db->issue_token($user, $addr, $agent);
+    my $token = $db->issue_token($user, $addr, $agent, $duration_type);
+
+The C<$duration_type> should be one of the types named in the C<%DURATION>
+hash, i.e. "default" or "remember".
 
 =cut
 
@@ -44,6 +50,7 @@ sub issue_token {
     my $user = shift;
     my $addr = shift;
     my $agent = shift;
+    my $duration_type = shift;
 
     my $is_staff = !! $user->is_staff();
     my $userid = $user->userid();
@@ -53,16 +60,20 @@ sub issue_token {
     $addr = substr $addr, 0, 64 if defined $addr;
     $agent = substr $agent, 0, 255 if defined $agent;
 
-    my $token = $self->_make_token();
+    throw OMP::Error::BadArgs('Duration type not specified')
+        unless defined $duration_type;
+    throw OMP::Error::BadArgs('Unknown duration type')
+        unless exists $DURATION{$duration_type};
+    my $expiry = Time::Piece::gmtime() + $DURATION{$duration_type};
 
-    my $expiry = Time::Piece::gmtime() + $DURATION;
+    my $token = $self->_make_token();
 
     $self->_db_begin_trans();
     $self->_dblock();
 
     $self->_db_insert_data($AUTHTABLE,
         $userid, $token, $expiry->strftime('%Y-%m-%d %T'),
-        $addr, $agent, $is_staff);
+        $addr, $agent, $is_staff, $duration_type);
 
     $self->_dbunlock();
     $self->_db_commit_trans();
@@ -89,7 +100,8 @@ sub verify_token {
     $self->_expire_tokens();
 
     my $result = $self->_db_retrieve_data_ashash(
-        'select A.userid, A.expiry, A.is_staff, U.uname, U.email from ' . $AUTHTABLE .
+        'select A.userid, A.expiry, A.is_staff, A.duration, U.uname, U.email' .
+        ' from ' . $AUTHTABLE .
         ' as A join ' . $OMP::UserDB::USERTABLE .
         ' as U on A.userid = U.userid where token = ?',
         $token);
@@ -99,9 +111,13 @@ sub verify_token {
     throw OMP::Error::DBError('Multiple key matches found')
         if 1 < scalar @$result;
 
-    my $expiry = OMP::DateTools->parse_date($result->[0]->{'expiry'}) - Time::Piece::gmtime();
-    if (($DURATION->seconds() - $expiry->seconds()) > $REFRESH_SECONDS) {
-        my $new_expiry = Time::Piece::gmtime() + $DURATION;
+    $result = $result->[0];
+
+    my $duration = $DURATION{$result->{'duration'}};
+
+    my $expiry = OMP::DateTools->parse_date($result->{'expiry'}) - Time::Piece::gmtime();
+    if (($duration->seconds() - $expiry->seconds()) > $REFRESH_SECONDS) {
+        my $new_expiry = Time::Piece::gmtime() + $duration;
 
         $self->_db_begin_trans();
         $self->_dblock();
@@ -114,7 +130,6 @@ sub verify_token {
         $self->_db_commit_trans();
     }
 
-    $result = $result->[0];
     return new OMP::User(
         userid => $result->{'userid'},
         name => $result->{'uname'},
@@ -190,7 +205,8 @@ sub get_token_info {
     $self->_expire_tokens();
 
     return $self->_db_retrieve_data_ashash(
-        'select expiry, addr, agent from ' . $AUTHTABLE . ' where userid = ?',
+        'select expiry, addr, agent, duration from ' . $AUTHTABLE .
+        ' where userid = ?',
         $userid);
 }
 
