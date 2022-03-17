@@ -433,6 +433,7 @@ sub _make_cookie {
         -name => OMP::Config->getData('cookie-name'),
         -value => \%values,
         -domain => OMP::Config->getData('cookie-domain'),
+        -secure => OMP::Config->getData('cookie-secure'),
         -expires => $expiry);
 }
 
