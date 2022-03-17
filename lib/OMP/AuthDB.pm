@@ -43,6 +43,9 @@ Create a token for the given user, store it in the database, and return it.
 The C<$duration_type> should be one of the types named in the C<%DURATION>
 hash, i.e. "default" or "remember".
 
+In array context, also returns the duration used for the given type
+in a form suitable for generating HTTP cookies.
+
 =cut
 
 sub issue_token {
@@ -78,7 +81,8 @@ sub issue_token {
     $self->_dbunlock();
     $self->_db_commit_trans();
 
-    return $token;
+    return $token unless wantarray;
+    return $token, _duration_description($duration_type);
 }
 
 =item B<verify_token>
@@ -87,6 +91,9 @@ If the given token is valid, return a partial OMP::User object.
 The database record is refreshed if necessary to extend its expiry.
 
     my $user = $db->verify_token($token);
+
+In array context, also returns the token duration
+in a form suitable for generating HTTP cookies.
 
 =cut
 
@@ -113,7 +120,8 @@ sub verify_token {
 
     $result = $result->[0];
 
-    my $duration = $DURATION{$result->{'duration'}};
+    my $duration_type = $result->{'duration'};
+    my $duration = $DURATION{$duration_type};
 
     my $expiry = OMP::DateTools->parse_date($result->{'expiry'}) - Time::Piece::gmtime();
     if (($duration->seconds() - $expiry->seconds()) > $REFRESH_SECONDS) {
@@ -130,11 +138,14 @@ sub verify_token {
         $self->_db_commit_trans();
     }
 
-    return new OMP::User(
+    my $user = new OMP::User(
         userid => $result->{'userid'},
         name => $result->{'uname'},
         email => $result->{'email'},
         is_staff => $result->{'is_staff'});
+
+    return $user unless wantarray;
+    return $user, _duration_description($duration_type);
 }
 
 =item B<remove_token>
@@ -256,6 +267,31 @@ sub _make_token {
         unless defined $bytes;
 
     return encode_base64($bytes, '');
+}
+
+=item B<_duration_description>
+
+Create a description of a token duration of a form
+suitable for use with CGI->cookie.
+
+=cut
+
+sub _duration_description {
+    my $duration_type = shift;
+
+    die 'Unknown duration type'
+        unless exists $DURATION{$duration_type};
+
+    my $duration = $DURATION{$duration_type};
+
+    my $days = int($duration->days);
+    return sprintf '+%id', $days if $days > 0;
+
+    my $hours = int($duration->hours);
+    return sprintf '+%ih', $hours if $hours > 0;
+
+    my $seconds = int($duration->seconds);
+    return sprintf '+%is', $seconds;
 }
 
 =back
