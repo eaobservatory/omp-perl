@@ -97,6 +97,7 @@ sub log_in {
             if (exists $cookie{'token'}) {
                 $token = $cookie{'token'};
                 ($user, $duration) = $db->verify_token($token);
+                undef $token unless defined $user;
             }
         }
     }
