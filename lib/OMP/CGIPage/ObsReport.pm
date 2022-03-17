@@ -75,7 +75,7 @@ sub night_report {
                                 # to include last day
   } elsif ($q->param('utdate_form')) {
     # Get UT date from single night form
-    $utdate = OMP::DateTools->parse_date($q->param('utdate_form'));
+    $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate_form'));
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
