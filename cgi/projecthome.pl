@@ -19,4 +19,5 @@ OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::project_home,
     undef,
     'project',
-    title => 'Project Home');
+    title => 'Project Home',
+    template => 'project_home.html');

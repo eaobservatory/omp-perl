@@ -64,38 +64,23 @@ sub fb_msb_active {
 
   my $active = [$proj_info->msb()];
 
-  if (defined $active) {
-
-    # First go through the array quickly to make sure we have
-    # some valid entries
-    my @remaining = grep { $_->remaining > 0 } @$active;
-    my $total = @$active;
-    my $left = @remaining;
-    my $done = $total - $left;
-    if ($left == 0) {
-      if ($total == 1) {
-        print "The MSB present in the science program has been observed.<br>\n";
-      } else {
-        print "All $total MSBs in the science program have been observed.<br>\n";
-      }
-
-    } else {
-
-      # Nice little message letting us know no of msbs present in the table
-      # that have not been observed.
-      if ($done > 0) {
-        if ($done == 1) {
-          print "$done out of $total MSBs present in the science program has been observed.<br>\n";
-        } else {
-          print "$done out of $total MSBs present in the science program have been observed.<br>\n";
-        }
-      }
-
-      # Now print the table (with an est. time column) if we have content
-      $self->msb_table(msbs=>$active, est_column=>1, opacity_column=>1);
-
-    }
+  # First go through the array quickly to make sure we have
+  # some valid entries
+  my @remaining = grep { $_->remaining > 0 } @$active;
+  my $total = @$active;
+  my $left = @remaining;
+  my $msbs = undef;
+  if ($left > 0) {
+    # Now print the table (with an est. time column) if we have content
+    $msbs = $self->msb_table(msbs => $active);
   }
+
+  return {
+    msbs => $msbs,
+    total => $total,
+    left => $left,
+    done => $total - $left,
+  };
 }
 
 =item B<fb_msb_observed>
@@ -115,8 +100,8 @@ sub fb_msb_observed {
                                                format => 'data',
                                                include_undo => 1});
 
-  # Generate the HTML table
-  (@$observed) and $self->msb_table(msbs=>$observed);
+  return undef unless scalar @$observed;
+  return $self->msb_table(msbs => $observed);
 }
 
 my ( $NBSP ) = ( '&nbsp;' );
@@ -549,18 +534,12 @@ sub msb_sum_hidden {
 
 Create a table containing information about given MSBs
 
-  $comp->msb_table(
-            msbs=>$msbs,
-            est_column=>$show_estimated);
-
+  $comp->msb_table(msbs => $msbs);
 
 Arguments should be provided in hash form, with the following
 keys:
 
   msbs       - An array reference containing C<OMP::Info::MSB> objects (required).
-  est_column - True if an "Est. time" column, for presenting the estimated
-               time in seconds, should be presented.
-  opacity_column - True if opacity range column should be presented.
 
 =cut
 
@@ -574,39 +553,11 @@ sub msb_table {
       unless (defined $args{$key});
   }
 
-  my $q = $self->cgi;
   my $program = $args{msbs};
-  my $est_column = $args{est_column};
-  my $opacity_column = $args{'opacity_column'};
-
-  # Decide whether to show MSB targets or MSB name
-  my $display_msb_name = 1;
-  my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
-
-  print "<table width=100%>";
-  print "<tr bgcolor=#bcbee3><td><b>MSB</b></td>";
-  print "<td><b>$alt_msb_column</b></td>";
-  print "<td><b>Waveband</b></td>";
-  print "<td><b>Instrument</b></td>";
-
-  # Show the estimated time column  if it's been asked for
-  print "<td><b>Est. time</b></td>"
-    unless (! $est_column);
-
-  print '<td><b>Opacity range</b></td>' if $opacity_column;
-
-  # Only bother with a remaining column if we have remaining
-  # information
-  print "<td><b>Remaining</b></td>"
-    if (defined $program->[0]->remaining);
-
-  # And let's have an N Repeats column if that's available
-  print "<td><b>N Repeats</b></td>"
-    if (defined $program->[0]->nrepeats);
 
   # Note that this doesnt really work as code shared for MSB and
   # MSB Done summaries
-  my $i;
+  my @filtered;
   foreach my $msb (@$program) {
     # skip if we have a remaining field and it is 0 or less
     # dont skip if the remaining field is simply undefined
@@ -617,41 +568,10 @@ sub msb_table {
     next if (scalar @{$msb->comments} &&
              $msb->comments->[0]->status == &OMP__DONE_FETCH);
 
-    # Create a summary table
-    $i++;
-    print "<tr><td>$i</td>";
-
-    print "<td>" . ($display_msb_name ? $msb->title : $msb->target) . "</td>";
-    print "<td>" . $msb->waveband . "</td>";
-    print "<td>" . $msb->instrument . "</td>";
-
-    if ($est_column) {
-      if ($msb->timeest) {
-        # Convert estimated time from seconds to hours
-        my $timeest = sprintf "%.2f hours", ($msb->timeest / ONE_HOUR);
-        print "<td>$timeest</td>";
-      } else {
-        print "<td>--</td>";
-      }
-    }
-
-    if ($opacity_column) {
-      my $opacity_range = $msb->tau();
-      if ($opacity_range) {
-        print '<td>' . $opacity_range . '</td>';
-      }
-      else {
-        print "<td>--</td>";
-      }
-    }
-
-    print "<td>" . $msb->remaining . "</td>"
-      unless (! defined $msb->remaining);
-    print "<td>" . $msb->nrepeats . "</td>"
-      unless (! defined $msb->nrepeats);
+    push @filtered, $msb;
   }
 
-  print "</table>\n";
+  return \@filtered;
 }
 
 =item B<observed_form>
