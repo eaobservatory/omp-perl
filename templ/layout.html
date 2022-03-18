@@ -1,9 +1,11 @@
 <html>
 <head>
     <title>[% omp_title | html %]</title>
-    <meta name="theme-color" content="#55559b" />
-    <link rel="stylesheet" type="text/css" href="[% omp_style %]" title="ompstyle" />
-    <link rel="icon" type="image/x-icon" href="[% omp_favicon %]" />
+    <meta name="theme-color" content="[% omp_theme_color %]" />
+    [% FOREACH style_url IN omp_style %]
+        <link rel="stylesheet" type="text/css" href="[% style_url %]" />
+    [% END %]
+    <link rel="icon" type="image/png" href="[% omp_favicon %]" />
     [% FOREACH script_url = omp_javascript %]
         <script type="text/javascript" src="[% script_url %]"></script>
     [% END %]

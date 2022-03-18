@@ -521,6 +521,7 @@ sub _write_page_context_extra {
         omp_title => $self->html_title,
         omp_style => $self->_get_style,
         omp_favicon => OMP::Config->getData('www-favicon'),
+        omp_theme_color => OMP::Config->getData('www-theme-color'),
         omp_javascript => $jscript_url,
         omp_user => $self->auth->user,
         omp_side_bar => $self->side_bar,
@@ -672,7 +673,7 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $STYLE = OMP::Config->getData('www-css');
+  my $STYLE = [OMP::Config->getData('www-css')];
 
   sub _get_style {
     return $STYLE;
@@ -790,10 +791,11 @@ sub _write_header {
   my $start_string = "<html><head><title>$title</title>";
 
   # Link to style sheet
-  $start_string .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$style\" title=\"ompstyle\">"
-    unless (! $style);
+  foreach my $stylesheet (@$style) {
+      $start_string .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$stylesheet\" title=\"ompstyle\">";
+  }
 
-  $start_string .= '<meta name="theme-color" content="#55559b" />';
+  $start_string .= '<meta name="theme-color" content="' . OMP::Config->getData('www-theme-color') . '" />';
 
   # Link to RSS feed
   $start_string .= "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"$rssinfo{title}\" href=\"$rssinfo{href}\" />"
