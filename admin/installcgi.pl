@@ -47,6 +47,7 @@ use File::Path qw/make_path/;
 use File::Spec;
 use Getopt::Long;
 use IO::File;
+use Pod::Usage;
 
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
@@ -56,10 +57,10 @@ use OMP::Error qw[ :try ];
 
 my $dry_run = undef;
 my $install_images = undef;
-my $status = GetOptions(
+GetOptions(
     "dry-run" => \$dry_run,
     'images' => \$install_images,
-);
+) or pod2usage(2);
 
 my $config = OMP::Config->new;
 
