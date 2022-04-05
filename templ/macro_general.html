@@ -1,0 +1,3 @@
+[% MACRO render_user_name(user) BLOCK %]
+    <a href="/cgi-bin/userdetails.pl?user=[% user.userid | uri %]">[% user.name | html %]</a>
+[% END -%]

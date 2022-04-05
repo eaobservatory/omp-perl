@@ -1,0 +1,24 @@
+[% USE wrap -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_fault.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>[% title | html %]</h1>
+
+<p><b>Subject: [% fault_info.fault.subject | html %]</b></p>
+
+[% IF missing_fields.defined %]
+    <p>The following fields were not filled in:</p>
+
+    <ul>
+        [% FOREACH missing_field IN missing_fields %]
+            <li>[% missing_field | html %]</li>
+        [% END %]
+    </ul>
+[% ELSE %]
+    [% render_fault_thread(fault_info) %]
+[% END %]
+
+<h2>Respond to this fault</h2>
+
+[% render_response_form(response_info) %]
+[% END %]

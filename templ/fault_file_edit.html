@@ -1,0 +1,201 @@
+[% USE scalar -%]
+[% WRAPPER "layout.html" %]
+<h1>[% title | html %]</h1>
+
+[% IF missing_fields.defined %]
+    <p>The following fields were not filled in:</p>
+
+    <ul>
+        [% FOREACH missing_field IN missing_fields %]
+            <li>[% missing_field | html %]</li>
+        [% END %]
+    </ul>
+[% END %]
+
+<form method="post" action="[% target | url %]" name="file_fault">
+    <table border="0" cellspacing="4">
+        <tr>
+            <td align="right"><b>User:</b></td>
+            <td>
+                [% IF fault.defined %]
+                    [% fault.scalar.responses.0.author.name | html %]
+                [% ELSE %]
+                    [% omp_user.name | html %]
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><b>[% system_label | html %]:</b></td>
+            <td>
+                <select name="system">
+                    [% IF ! values.system.defined %]
+                        <option selected="selected" value="">Select a [% system_description %]</option>
+                    [% END %]
+                    [% FOREACH system IN systems %]
+                        <option value="[% system.0 %]" [% IF system.0 == values.system %]selected="selected"[% END %]>[% system.1 | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><b>Type:</b></td>
+            <td>
+                <select name="type">
+                    [% IF ! values.type.defined %]
+                        <option selected="selected" value="">Select a type</option>
+                    [% END %]
+                    [% FOREACH type IN types %]
+                        <option value="[% type.0 %]" [% IF type.0 == values.type %]selected="selected"[% END %]>[% type.1 | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        [% IF ! fault.defined %]
+            [% IF has_location %]
+                <tr>
+                    <td align="right"><b>Location:</b></td>
+                    <td>
+                        <select name="location">
+                            [% IF ! values.location.defined %]
+                                <option selected="selected" value="">Select a location</option>
+                            [% END %]
+                            [% FOREACH location IN locations %]
+                                <option value="[% location.0 %]" [% IF location.0 == values.location %]selected="selected"[% END %]>[% location .1 | html %]</option>
+                            [% END %]
+                        </select>
+                    </td>
+                </tr>
+            [% END %]
+            <tr>
+                <td align="right"><b>Status:</b></td>
+                <td>
+                    <select name="status">
+                        [% FOREACH status IN statuses %]
+                            <option [% IF status.0 == values.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+        [% END %]
+        [% IF has_time_loss %]
+            <tr>
+                <td align="right"><b>Time lost:</b></td>
+                <td>
+                    <input type="text" name="loss" size="4" maxlength="10" value="[% values.loss | html %]" />
+                    <small>(minutes)</small>
+                </td>
+            </tr>
+        [% END %]
+        [% IF has_time_occurred %]
+            <tr valign="top">
+                <td align="right"><b>Time of fault:</b></td>
+                <td>
+                    <input type="text" name="time" size="20" maxlength="128" value="[% values.time | html %]" />
+                    &nbsp;
+                    <select name="tz">
+                        [% FOREACH tz IN ['UT', 'HST'] %]
+                            <option [% IF tz == values.tz %]selected="selected"[% END %] value="[% tz %]">[% tz %]</option>
+                        [% END %]
+                    </select>
+                    &nbsp;
+                    <input type="button" value="Now" onclick="document.forms['file_fault']['time'].value = (new Date()).toISOString().substr(0, 16); document.forms['file_fault']['tz'].value = 'UT';"/>
+                    <br />
+                    <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>
+                </td>
+            </tr>
+        [% END %]
+        [% IF shifts.size > 1 %]
+            <tr>
+                <td align=right><b>Shift Type:</b></td>
+                <td>
+                    <select name="shifttype">
+                        [% FOREACH shift IN shifts %]
+                            <option value="[% shift.0 | html %]" [% IF shift.0 == values.shifttype %]selected="selected"[% END %]>[% shift.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+        [% END %]
+        [% IF remotes.size > 1 %]
+            <tr>
+                <td align="right"><b>Remote Status:</b></td>
+                <td>
+                    <select name="remote">
+                        [% FOREACH remote IN remotes %]
+                            <option value="[% remote.0 | html %]">[% remote.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+        [% END %]
+        <tr>
+            <td align="right"><b>Subject:</b></td>
+            <td><input type="text" name="subject" size="60" maxlength="128" value="[% values.subject | html %]" /></td>
+        </tr>
+        <tr>
+            <td colspan="2"><small>Please remember to identify the instrument being used and the data frame number if either are relevant.</small></td>
+        </tr>
+        <tr>
+            <td colspan="2" align="right">
+                <textarea name="message" rows="20" cols="78">[% values.message | html %]</textarea>
+            </td>
+        </tr>
+        [% IF has_project_assoc %]
+            <tr valign="top">
+                <td align="right"><b>Projects:</b></td>
+                <td>
+                    [% IF projects.empty %]
+                        Projects associated with this fault may be specified here.
+                    [% ELSE %]
+                        [% FOREACH project IN projects %]
+                            <label><input type="checkbox" name="assoc" value="[% project.0 | html %]" [% IF project.1 %]checked="checked"[% END %] />[% project.0 | html %]</label>
+                            <br />
+                        [% END %]
+                        Associated projects may also be specified here if not listed above.
+                    [% END %]
+                    <br />
+                    <input type="text" name="assoc2" size="50" maxlength="300" value="[% values.assoc2 | html %]" />
+                    <br />
+                    <small>(separated by spaces)</small>
+                </td>
+            </tr>
+        [% END %]
+        <tr valign="top">
+            <td align="right"><b>This fault is:</b></td>
+            <td>
+                [% FOREACH condition IN conditions %]
+                    <label><input type="checkbox" name="condition" value="[% condition.0 | html %]" [% IF values.${condition.2} %]checked="checked"[% END %] /> [% condition.1 | html %]</label>
+                    [% IF ! loop.last %]<br />[% END %]
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" align="right">
+                [% IF fault.defined %]
+                    <input type="submit" name="submit" value="Submit changes" />
+                [% ELSE %]
+                    <input type="submit" name="submit" value="Submit fault" />
+                [% END %]
+                <input type="hidden" name="show_output" value="true" />
+                [% IF fault.defined %]
+                    <input type="hidden" name="status" value="[% values.status | html %]" />
+                [% END %]
+                [% IF shifts.size == 1 %]
+                    <input type="hidden" name="shifttype" value="[% shifts.0.0 | html %]" />
+                [% END %]
+                [% IF remotes.size == 1 %]
+                    <input type="hidden" name="remote" value="[% remotes.0.0 | html %]" />
+                [% END %]
+            </td>
+        </tr>
+    </table>
+</form>
+
+[% IF ! warnings.empty %]
+    <h2>Warnings</h2>
+
+    [% FOREACH warning IN warnings %]
+        <p>[% warning | html %]</p>
+    [% END %]
+[% END %]
+[% END %]

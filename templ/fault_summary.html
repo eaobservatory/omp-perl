@@ -1,0 +1,133 @@
+<p>
+  <b>Faults returned by query:</b> [% summary.num_faults %]
+  <br />
+  [% IF summary.date_min.defined && summary.date_max.defined %]
+  <b>Query period:</b> [% summary.date_min.strftime('%Y%m%d %H:%M') %] &ndash; [% summary.date_max.strftime('%Y%m%d %H:%M %Z') %]
+  <br />
+  [% END %]
+  <b>Matching faults filed in period:</b> [% summary.num_faults_filed %]
+  <br />
+  <b>Total time lost:</b> [% summary.time_lost_total %] hours
+  <br />
+  <b>Open faults:</b> [% summary.total.open %]
+</p>
+
+[% IF summary.total.open > 0 %]
+    [% SET toggleDef = 'show' %]
+    [% SET toggleClass = 'hide' %]
+    [% SET toggleText = 'Show closed faults' %]
+[% ELSE %]
+    [% SET toggleDef = 'hide' %]
+    [% SET toggleClass = 'show' %]
+    [% SET toggleText = 'Hide closed faults' %]
+[% END %]
+
+[% SET all_systems = '' %][% FOREACH system IN summary.system_ids.values %][% SET all_systems = all_systems _ ",'" _ system _ "'" %][% END %]
+
+<table bgcolor="#afafe0" cellspacing="1">
+    <tr>
+        <td>
+            <table width="100%" cellspacing="0" cellpadding="2" border="0">
+                <tr>
+                    <td colspan="7">
+                        <font size="+1"><b>All faults</b></font>
+                        [% IF (summary.total.open > 0) && (summary.total.closed > 0) %]
+                            &nbsp;
+                            <a href="#" class="link_option" onclick="toggle('function__toggleClosed'[% all_systems %]); return false"><img border="0" src="/images/[% toggleDef %].gif" width="10" height="10" id="imgfunction__toggleClosed" /></a>
+                            <a href="#" class="link_option" onclick="toggle('function__toggleClosed'[% all_systems %]); return false"><span id="function__toggleClosed" function="[% toggleDef %]">[% toggleText %]</span></a>
+                        [% END %]
+                    </td>
+                </tr>
+                [% FOREACH system IN summary.faults.keys.sort %]
+                    [% SET system_time_lost = 0 %]
+                    [% SET system_id = summary.system_ids.$system %]
+                    <tr>
+                        <td colspan="2" class="row_system_title">[% system | html %] <span class="misc_info">(total: [% summary.total.$system %])</span></td>
+                        <td class='row_system'>Filed by</td>
+                        <td class='row_system'>Last response by</td>
+                        <td class='row_system'>Time lost</td>
+                        <td class='row_system'>Responses</td>
+                        <td class='row_system'>Days idle</td>
+                    </tr>
+                    [% FOREACH status IN ['open', 'closed'] %]
+                        [% SET entries = summary.faults.$system.$status %]
+                        [% IF ! entries.empty %]
+                            [% IF status == 'open' %]
+                                [% SET bgcolor = '#8080cc' %]
+                            [% ELSE %]
+                                [% SET bgcolor = '#6767af' %]
+                                <tr>
+                                <td class="row_closed_title" colspan="4">
+                                    <a class="link_option" href="#" onclick="toggle('[% system_id %]'); return false"><img border="0" src="/images/[% toggleDef %].gif" width="10" height="10" id="img[% system_id %]" /></a>
+                                    <a class="link_option" href="#" onclick="toggle('[% system_id %]'); return false">Closed faults</a>
+                                </td>
+                                <td class="row_closed"><span id="info[% system_id %]" value="[% summary.time_lost.$status.$system %]">
+                                    [% IF toggleClass == 'hide' %]
+                                        [% summary.time_lost.$status.$system %]
+                                    [% END %]
+                                </span></td>
+                                <td colspan="2" class="row_closed">&nbsp;</td>
+                                </tr>
+                            [% END %]
+                            [% FOREACH type IN entries.keys.sort %]
+                                [% SET row_id = system_id _ '_' _ summary.type_ids.$type %]
+                                <tr [% IF status == 'closed' %]id="[% row_id %]" class="[% toggleClass %]"[% END %]>
+                                    <td bgcolor="[% bgcolor %]" colspan="7"><font color="[% bgcolor %]">----</font><strong><span class="fault_summary_misc">[% type | html %]</span></strong></td>
+                                </tr>
+                                [% FOREACH fault IN entries.$type %]
+                                    [% SET responses = fault.scalar.responses %]
+                                    [% SET system_time_lost = system_time_lost + fault.timelost %]
+                                    [% SET fault_row_id = row_id _ '_' _ loop.count %]
+                                    <tr [% IF status == 'closed' %] id="[% fault_row_id %]" class="[% toggleClass %]"[% END %] bgcolor="[% bgcolor %]">
+                                        <td>
+                                            <font color="[% bgcolor %]">------</font>
+                                            [% IF fault.timelost > 0 %]
+                                                <img src="/images/timelost.gif" alt="Fault lost time" height="13" width="10" />
+                                            [% ELSE %]
+                                                <img src="/images/spacer.gif" height="13" width="10" />
+                                            [% END %]
+                                            <a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_fault_id">[% fault.id | html %]</a>
+                                        </td>
+                                        <td>
+                                            <a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_fault_subject">[% IF fault.subject %][% fault.subject | html %][% ELSE %]No subject[% END %]</a>
+                                            [% IF summary.show_projects %]
+                                                [% SET projects = fault.projects %]
+                                                [% IF ! projects.empty %]
+                                                    <br />
+                                                    <span class="proj_fault_link">
+                                                        [% FOREACH project IN projects %]
+                                                            [% IF ! loop.first %] | [% END %]
+                                                            <a href="/cgi-bin/projecthome.pl?project=[% project.upper | uri %]">[% project.upper | html %]</a>
+                                                        [% END %]
+                                                    </span>
+                                                [% END %]
+                                            [% END %]
+                                        </td>
+                                        <td align="right" class="fault_summary_userid">
+                                            [% render_user_name(responses.0.author) %]
+                                        </td>
+                                        <td align="right" class="fault_summary_userid">
+                                            [% IF responses.size > 1 %]
+                                                [% render_user_name(responses.-1.author) %]
+                                            [% ELSE %]
+                                                n/a
+                                            [% END %]
+                                        </td>
+                                        <td align="right"><span class="fault_numbers">[% fault.timelost | html %]</span></td>
+                                        <td align="right"><span class="fault_numbers">[% responses.size - 1 %]</span></td>
+                                        <td align="right"><span class="fault_numbers">[% summary.days_since_date(responses.-1.date) %]</span></td>
+                                    </tr>
+                                [% END %]
+                            [% END %]
+                        [% END %]
+                    [% END %]
+                    <tr bgcolor="#afafe0">
+                        <td colspan="4" align="right">Total time lost</td>
+                        <td align="right"><span class="fault_total">[% system_time_lost %]</span></td>
+                        <td colspan="2">&nbsp;</td>
+                    </tr>
+                [% END %]
+            </table>
+        </td>
+    </tr>
+</table>

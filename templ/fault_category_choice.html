@@ -1,0 +1,21 @@
+[% WRAPPER "layout.html" %]
+
+<h2>You may search for and file faults in the following categories:</h2>
+
+<ul>
+    [% FOREACH category IN categories %]
+        <li>
+            <a href="[% category.url %]">[% category.text | html %]</a> for [% category.extra %]
+        </li>
+    [% END %]
+</ul>
+
+<h2>Or</h2>
+
+<ul>
+    <li>
+        <a href="[% category_any.url %]">Search</a> for [% category_any.extra %]
+    </li>
+</ul>
+
+[% END %]

@@ -20,4 +20,4 @@ OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'file_fault_output',
     'staff',
     title => 'File Fault',
-    no_header => 1);
+    template => 'fault_file_edit.html');
