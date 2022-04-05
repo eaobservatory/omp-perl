@@ -23,7 +23,7 @@ use strict;
 use warnings;
 use Carp;
 
-use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Display;
 use OMP::DateTools;
@@ -172,38 +172,6 @@ sub query_fault_form {
             timelost show_affected chronic summary
             text text_boolean/,
     },
-  };
-}
-
-=item B<query_faults>
-
-Do a fault query and return a reference to an array of fault objects
-
-  $comp->query_faults([$days]);
-
-Optional argument is the number of days delta to return faults for.
-
-=cut
-
-sub query_faults {
-  my $self = shift;
-  my $days = shift;
-  my $xml;
-
-  if ($days) {
-    my $t = gmtime;
-    $xml = "<FaultQuery><date delta='$days'>" . $t->ymd . "</date></FaultQuery>";
-  } else {
-    $xml = "<FaultQuery></FaultQuery>";
-  }
-
-  my $faults;
-  try {
-    $faults = OMP::FaultServer->queryFaults($xml, "object");
-    return $faults;
-  } otherwise {
-    my $E = shift;
-    throw OMP::Error "$E";
   };
 }
 
@@ -572,49 +540,6 @@ sub show_faults {
       faults => \@faults,
       view_url => ($url . (($url =~ /\?/) ? '&' : '?') . 'fault='),
   };
-}
-
-=item B<print_form>
-
-Create a simple form for sending faults to a printer.
-
-  $comp->print_form($advanced, @faultids);
-
-If the first argument is true then advanced options will be displayed.
-Last argument is an array containing the fault IDs of the faults to be
-printed.
-
-=cut
-
-sub print_form {
-  my $self = shift;
-  my $advanced = shift;
-  my @faultids = @_;
-  my $q = $self->cgi;
-
-  # Get printers
-  my @printers = OMP::Config->getData('printers');
-
-  print start_form_absolute($q);
-
-  print $q->hidden(-name=>'show_output', -default=>'true');
-
-  print $q->hidden(-name=>'faults',
-                   -default=>join(',',@faultids));
-  print $q->submit(-name=>'print',
-                   -label=>'Send to printer');
-  print "&nbsp;";
-  print $q->popup_menu(-name=>'printer',
-                       -values=>\@printers,);
-  if ($advanced) {
-    print "<br>Using method ";
-    print $q->popup_menu(-name=>'print_method',
-                         -values=>["separate","combined"],
-                         -labels=>{separate => "One fault per page",
-                                   combined => "Combined",},);
-  }
-
-  print $q->end_form;
 }
 
 =item B<category_title>
