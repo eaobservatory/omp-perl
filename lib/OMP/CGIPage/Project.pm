@@ -339,56 +339,6 @@ sub project_home {
   };
 }
 
-=item B<proj_sum_page>
-
-Generate a page showing details for a project and allowing for the
-submission of feedback comments
-
-  $page->proj_sum_page();
-
-=cut
-
-sub proj_sum_page {
-  my $self = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
-
-  # Get project ID from form or display form
-  if ($q->param('project')) {
-    my $projectid = $q->param('project');
-
-    # Display project details
-    $comp->proj_status_table($projectid);
-
-    # Submit feedback comment or display form
-    if ($q->param('Submit')) {
-      $fbcomp->submit_fb_comment($projectid);
-      print "<P>";
-
-      # Link back to start page
-      print "<a href='". $q ->url(-relative=>1) ."'>View details for another project</a>";
-
-    } else {
-      # Form for adding feedback comment
-      print "<strong>Add a feedback comment</strong><br>";
-      $fbcomp->comment_form($projectid);
-    }
-
-  } else {
-    print start_form_absolute($q);
-    print "Project ID: ";
-    print $q->textfield(-name=>"project",
-                        1-size=>12,
-                        -maxlength=>32,);
-    print "&nbsp;";
-    print $q->submit(-name=>"project_submit",
-                     -label=>"Submit",);
-  }
-
-}
-
 =item B<program_summary>
 
 View summary text of a science program.
