@@ -434,6 +434,7 @@ sub getSciProgInfo {
   return new OMP::Info::SciProg(
     projectid => $projectid,
     msb => \@msbs,
+    timestamp => $self->_get_old_sciprog_timestamp,
   );
 }
 

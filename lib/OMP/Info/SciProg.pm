@@ -30,6 +30,7 @@ Create the accessor methods from a signature of their contents.
 __PACKAGE__->CreateAccessors(
     projectid => '$__UC__',
     msb => '@OMP::Info::MSB',
+    timestamp => '$',
 );
 
 =end __PRIVATE__
