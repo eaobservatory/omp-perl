@@ -88,6 +88,34 @@ sub existsMSB {
     return defined $self->fetchMSB($checksum);
 }
 
+=item B<getMSBCount>
+
+Get the total number of MSBs.
+
+=cut
+
+sub getMSBCount {
+    my $self = shift;
+    return scalar @{$self->msb};
+}
+
+=item B<getMSBCountActive>
+
+Get the number of active MSBs.
+
+=cut
+
+sub getMSBCountActive {
+    my $self = shift;
+
+    my $num = 0;
+    foreach my $msb ($self->msb()) {
+        $num ++ if $msb->remaining > 0;
+    }
+
+    return $num;
+}
+
 =back
 
 =head1 SEE ALSO
