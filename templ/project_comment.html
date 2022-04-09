@@ -1,0 +1,44 @@
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Add feedback comment to project [% project.projectid | html %]</h1>
+
+[% render_project_status_table(project) %]
+
+[% render_feedback_count(project, num_comments) %]
+
+<hr />
+
+[% IF ! messages.empty %]
+    [% FOREACH message IN messages %]
+        <p>
+            [% message | html %]
+        </p>
+    [% END %]
+[% END %]
+
+[% IF target.defined %]
+    <form method="post" action="[% target | url %]">
+        <table>
+            <tr>
+                <td align="right">User:</td>
+                <td>[% omp_user.name | html %]</td>
+            </tr>
+            <tr>
+                <td align="right">Subject:</td>
+                <td><input type="text" name="subject" size="50" maxlength="70" value="[% values.subject | html %]" /></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td><textarea name="text" rows="10" cols="80"></textarea></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td align="right">
+                    <input type="submit" name="Submit" value="Submit" />
+                    <input type="hidden" name="show_output" value="1" />
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END %]
+[% END %]

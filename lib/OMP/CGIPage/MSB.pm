@@ -20,9 +20,11 @@ use strict;
 use warnings;
 use Carp;
 
+use Time::Seconds;
+
 use OMP::CGIDBHelper;
 use OMP::CGIComponent::Feedback;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
@@ -52,36 +54,49 @@ sub fb_msb_output {
   my $projectid = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::MSB(page => $self);
-  my $projcomp = new OMP::CGIComponent::Project(page => $self);
+
   my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
 
-  print $q->h1("Feedback for project ${projectid}");
+  my $checksum = undef;
+  my $prog_info = undef;
+  my @messages = ();
 
-  $projcomp->proj_status_table($projectid);
-  $fbcomp->fb_entries_hidden($projectid);
+  if ($q->param("submit_add_comment")) {
+    $checksum = $q->param('checksum');
+  }
+  elsif ($q->param("submit_msb_comment")) {
+    my $error = undef;
 
-  $comp->msb_comment_form() if $q->param("Add Comment");
-
-  if ($q->param("Submit")) {
     try {
       # Create the comment object
       my $comment = new OMP::Info::Comment( author => $self->auth->user,
                                             text => scalar $q->param('comment'),
                                             status => OMP__DONE_COMMENT );
-
-      OMP::MSBServer->addMSBcomment( $projectid, $q->param('msbid'), $comment);
-      print $q->h2("MSB comment successfully submitted");
+      OMP::MSBServer->addMSBcomment( $projectid, (scalar $q->param('checksum')), $comment);
+      push @messages, 'MSB comment successfully submitted.';
     } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
+      $error = "MSB not found in database.";
     } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to submit the comment: $Error";
+      my $E = shift;
+      $error = "An error occurred while attempting to submit the comment: $E";
     };
 
+    return $self->_write_error($error) if defined $error;
+  }
+  else {
+    $prog_info = OMP::MSBServer->getSciProgInfo($projectid, with_observations => 1);
   }
 
-  $comp->msb_sum($projectid);
+  return {
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      num_comments => $fbcomp->fb_entries_count($projectid),
+      target => url_absolute($q),
+      prog_info => $prog_info,
+      comment_msb_checksum => $checksum,
+      messages => \@messages,
+      pretty_print_seconds => sub {return Time::Seconds->new($_[0])->pretty_print;},
+      timestamp_as_utc => sub {return sprintf "%s UTC", scalar gmtime($_[0]);},
+  };
 }
 
 =item B<msb_hist_output>

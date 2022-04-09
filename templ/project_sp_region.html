@@ -1,0 +1,63 @@
+[% WRAPPER "layout.html" %]
+<h2>[% title | html %]</h2>
+
+<form method="post" action="[% target %]">
+    <p><b>Type of observations</b></p>
+    <blockquote>
+        [% FOREACH selection = selections %]
+            <label><input type="radio" name="type" value="[% selection.0 %]" [% IF loop.first %]checked="checked"[% END %] />[% selection.1 %]</label>
+            [% IF ! loop.last %]
+                <br />
+            [% END %]
+        [% END %]
+    </blockquote>
+    <p><b>Output format</b></p>
+    <blockquote>
+        [% FOREACH format = formats %]
+            <label><input type="radio" name="format" value="[% format.0 %]" [% IF loop.first %]checked="checked"[% END %] />[% format.1 %]</label>
+            [% IF ! loop.last %]
+                <br />
+            [% END %]
+        [% END %]
+    </blockquote>
+    <p>
+        <input type="hidden" name="show_output" value="true" />
+        <input type="submit" name="submit" value="Download / plot" />
+    </p>
+</form>
+
+<h3>Notes</h3>
+
+<p>
+    The downloaded region files can be plotted using the <tt>kappa</tt> package command <tt>ardplot</tt>.
+    For example to overlay the region on an existing file:
+</p>
+
+<pre>display IMAGE.sdf
+ardplot region=REGION.ast</pre>
+
+<p>
+    This should also work for the STC-S files.
+</p>
+
+<p>
+    In the PNG image plot, observations are color-coded as follows:
+</p>
+
+<ul>
+    <li>
+        <b>White:</b>
+        new observations.
+    </li>
+    <li>
+        <b>Red:</b>
+        observations in progress,
+        when it is possible to determine that an observation has been observed,
+        otherwise it will appear white until complete.
+    </li>
+    <li>
+        <b>Blue:</b>
+        completed observations.
+    </li>
+</ul>
+[% END %]

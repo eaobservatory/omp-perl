@@ -24,7 +24,6 @@ use Time::Seconds qw(ONE_HOUR);
 use CGI qw/ :html *Tr *td /;
 
 use OMP::CGIComponent::Helper;
-use OMP::CGIDBHelper;
 use OMP::Constants qw(:done);
 use OMP::DBServer;
 use OMP::Display;
@@ -456,78 +455,28 @@ sub msb_comment_form {
   print $q->end_form;
 }
 
-=item B<msb_sum>
+=item B<msb_count>
 
-Displays the project details (lists all MSBs)
+Returns the current number of MSBs.
 
-  $comp->msb_sum($projectid);
-
-=cut
-
-sub msb_sum {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  print $q->h2("MSB summary");
-  my $msbsum = OMP::CGIDBHelper::safeProgramDetails( $projectid,
-                                                     'htmlcgi' );
-  print $msbsum if defined $msbsum;
-
-}
-
-=item B<msb_sum_hidden>
-
-Creates text showing current number of msbs, but not actually display the
-program details.
-
-  $comp->msb_sum_hidden($projectid);
+    my $num_msbs = $comp->msb_count($projectid);
 
 =cut
 
-sub msb_sum_hidden {
+sub msb_count {
   my $self = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;;
-
-  my $sp;
-  my @msbs;
+  my $num_msbs = undef;
   try {
-    my $db = OMP::MSBDB->new(DB=>new OMP::DBbackend,
-                             ProjectID => $projectid );
+    my $msbs = OMP::MSBServer->getMSBCount($projectid);
+    $num_msbs = (exists $msbs->{$projectid}) ?  $msbs->{$projectid}->{'total'} : 0;
 
-    # Our XML query for retrieving all MSBs
-    my $xml = "<MSBQuery>"
-      ."<projectid full=\"1\">$projectid</projectid>"
-        ."<disableconstraint>all</disableconstraint>"
-          ."</MSBQuery>";
-
-    my $query = new OMP::MSBQuery( XML => $xml );
-
-    # Run the query
-    @msbs = $db->queryMSB($query);
-
-  } catch OMP::Error::UnknownProject with {
-    print "Science program for $projectid not present in database";
   } otherwise {
     my $E = shift;
-    print "Error obtaining science program details for project $projectid [$E]";
   };
 
-
-  print $q->h2("Current MSB status");
-  if (scalar(@msbs) == 1) {
-    print "1 MSB currently stored in the database.";
-    print " Click <a href='fbmsb.pl?project=$projectid'>here</a> to list its contents.";
-  } else {
-    print scalar(@msbs) . " MSBs currently stored in the database.";
-    print " Click <a href='fbmsb.pl?project=$projectid'>here</a> to list them all."
-      unless (! @msbs);
-  }
-  print $q->hr;
-
+  return $num_msbs;
 }
 
 =item B<msb_table>

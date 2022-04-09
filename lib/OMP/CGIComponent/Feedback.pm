@@ -8,7 +8,7 @@ OMP::CGIComponent::Feedback - Web display of feedback system comments
 
   use OMP::CGIComponent::Feedback;
 
-  $content_html = OMP::CGIComponent::Feedback::fb_entries;
+  $entries = OMP::CGIComponent::Feedback::fb_entries;
 
 =head1 DESCRIPTION
 
@@ -24,16 +24,12 @@ use Carp;
 
 use Text::Wrap;
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Constants qw(:fb);
 use OMP::Error qw(:try);
 use OMP::FBServer;
 use OMP::NetTools;
-use OMP::General;
 
 use base qw/OMP::CGIComponent/;
-
-$| = 1;
 
 =head1 Routines
 
@@ -55,92 +51,47 @@ sub fb_entries {
 
   my $status = [OMP__FB_IMPORTANT];
 
-  if ($q->param("show") ne undef) {
+  my $selected_status = $q->param("status");
+  if (defined $selected_status) {
     my %status;
     $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
     $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
     $status{&OMP__FB_SUPPORT} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT];
     $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
 
-    $status = $status{$q->param("show")};
+    $status = $status{$selected_status};
   }
 
-  my $order;
-  ($q->param("order")) and $order = $q->param("order")
-    or $order = 'ascending';
+  my $order = (scalar $q->param("order"))  // 'ascending';
 
   my $comments = OMP::FBServer->getComments( $projectid,
                                              $status, $order);
 
-  print "<SCRIPT LANGUAGE='javascript'> ";
-  print "function mysubmit() ";
-  print "{document.sortform.submit()}";
-  print "</SCRIPT>";
-
-
-  print $q->h2("Feedback entries"),
-        start_form_absolute($q, -name=>'sortform'),
-        "<a href='fbcomment.pl?project=$projectid'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
-        "Order: ",
-        $q->hidden(-name=>'show_content',
-                   -default=>1),
-        $q->popup_menu(-name=>'order',
-                       -values=>[qw/ascending descending/],
-                       -default=>'ascending',
-                       -onChange=>'mysubmit()'),
-        "&nbsp;&nbsp;&nbsp;",
-        "Show: ",
-
-        $q->popup_menu(-name=>'show',
-                       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT, OMP__FB_HIDDEN],
-                       -default=>OMP__FB_IMPORTANT,
-                       -labels=>
-                          { OMP__FB_IMPORTANT() => 'important',
-                            OMP__FB_INFO()      => 'info',
-                            OMP__FB_SUPPORT()   => 'support',
-                            OMP__FB_HIDDEN()    => 'hidden'
-                          },
-
-                       -onChange=>'mysubmit()'),
-        "&nbsp;&nbsp;",
-        $q->submit("Refresh"),
-        $q->end_form,
-        $q->p;
-
-  foreach my $row (@$comments) {
-    # make the date more readable here
-    # make the author a mailto link here
-
-    # Wrap the message text
-    my $text = wrap('', '' ,$row->{'text'});
-
-    my $date = OMP::DateTools->display_date($row->{date});
-
-    print "<font size=+1>Entry $row->{entrynum} (on $date by ",
-
-          # If author is not defined display sourceinfo as the author
-          ($row->{author} ? OMP::Display->userhtml($row->{author}, $q) : $row->{sourceinfo}) . " )</font><br>",
-          "<b>Subject: $row->{'subject'}</b><br>",
-          "$text",
-          "<p>";
+  return {
+    comments => $comments,
+    orders => [qw/ascending descending/],
+    statuses => [
+        [OMP__FB_IMPORTANT() => 'important'],
+        [OMP__FB_INFO()      => 'info'],
+        [OMP__FB_SUPPORT()   => 'support'],
+        [OMP__FB_HIDDEN()    => 'hidden'],
+    ],
+    selected_status => $selected_status,
+    selected_order => $order,
   }
-
-  print "<a href='fbcomment.pl?project=$projectid'>Add a comment</a><p>",
 }
 
-=item B<fb_entries_hidden>
+=item B<fb_entries_count>
 
-Generate text showing number of comments, but not actually displaying them.
+Return the number of comments.
 
-  $comp->fb_entries_hidden($projectid);
+    my $num_comments = $comp->fb_entries_count($projectid);
 
 =cut
 
-sub fb_entries_hidden {
+sub fb_entries_count {
   my $self = shift;
   my $projectid = shift;
-
-  my $q = $self->cgi;
 
   my $comments = OMP::FBServer->getComments($projectid,
                                             [ OMP__FB_IMPORTANT,
@@ -149,57 +100,7 @@ sub fb_entries_hidden {
                                               OMP__FB_HIDDEN
                                             ],
                                             );
-  print $q->h2("Feedback entries");
-    if (scalar(@$comments) == 1) {
-      print "There is 1 comment";
-    } else {
-      print "There are " . scalar(@$comments) . " comments";
-    }
-
-  print " for this project.";
-
-  if (scalar(@$comments) > 0) {
-    print "  Click <a href='feedback.pl?project=$projectid'>here</a> to view the comments marked 'important'.";
-  }
-
-  print  $q->hr;
-}
-
-=item B<comment_form>
-
-Create a feedback comment submission form.
-
-  $comp->comment_form($projectid);
-
-=cut
-
-sub comment_form {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  print start_form_absolute($q),
-        $q->hidden(-name=>'show_output',
-                   -default=>1),
-        $q->hidden(-name=>'project',
-                   -default=>$projectid),
-        "<table><tr><td>",
-        "User ID: </td><td>",
-        $self->auth->user->userid,
-        "</td></tr><tr><td align='right'>Subject: </td><td>",
-        $q->textfield(-name=>'subject',
-                      -size=>50,
-                      -maxlength=>70),
-        "</td><tr><td></td><td>",
-        $q->textarea(-name=>'text',
-                     -rows=>10,
-                     -columns=>80),
-        "</td><tr><td></td><td align='right'>",
-        $q->submit("Submit"),
-        "</td></tr></table>",
-        $q->end_form;
-
+  return scalar @$comments;
 }
 
 =item B<submit_fb_comment>
@@ -227,14 +128,21 @@ sub submit_fb_comment {
                   program => $q->url(-relative=>1), # the name of the cgi script
                   status => OMP__FB_IMPORTANT, };
 
+  my @messages;
   try {
     OMP::FBServer->addComment( $projectid, $comment );
-    print "<h2>Your comment has been submitted.</h2>";
+    push @messages,'Your comment has been submitted.';
+
   } otherwise {
     my $E = shift;
-    print "<h2>An error has prevented your comment from being submitted</h2>";
-    print "<pre>$E</pre>";
+    push @messages,
+        'An error has prevented your comment from being submitted:',
+        "$E";
   };
+
+  return {
+      messages => \@messages,
+  }
 }
 
 =back

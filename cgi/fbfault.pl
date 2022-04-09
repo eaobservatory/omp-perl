@@ -19,4 +19,5 @@ OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::fb_fault_content,
     undef,
     'project',
-    title => 'View Faults');
+    title => 'View Faults',
+    template => 'project_faults.html');

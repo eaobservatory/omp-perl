@@ -1,3 +1,4 @@
+[% PROCESS "macro_project.html" -%]
 [% WRAPPER "layout.html" %]
 
 <h2>[% project.projectid | html %]: [% project.title | html %]</h2>
@@ -14,26 +15,21 @@
     </p>
 [% END %]
 
-[% MACRO project_member(member) BLOCK %]
-    <a href="/cgi-bin/userdetails.pl?user=[% member.userid | html %]">[% member.name | html %]</a>
-    <a href="/cgi-bin/projusers.pl?project=[% project.projectid | html %]">[% IF project.contactable(member.userid) %]<img src="/images/mail.gif" alt="receives email" />[% ELSE %]<img src="/images/nomail.gif" alt="ignores email" />[% END %]</a>[% IF member.affiliation.defined %] <small>([% member.affiliation | html %])</small>[% END %][% IF project.omp_access(member.userid) %] &#x2605;[% END -%]
-[% END %]
-
 <table>
     <tr>
         <td><b>Principal Investigator:</b></td>
-        <td>[% project_member(project.pi) %]</td>
+        <td>[% render_project_member(project, project.pi) %]</td>
     </tr>
     <tr>
         <td><b>Co-investigators:</b></td>
         <td>[% FOREACH coi IN project.coi %]
-            [% project_member(coi) %][% IF ! loop.last %],[% END %]
+            [% render_project_member(project, coi) %][% IF ! loop.last %],[% END %]
         [% END %]</td>
     </tr>
     <tr>
         <td><b>Support:</b></td>
         <td>[% FOREACH support IN project.support %]
-            [% project_member(support) %][% IF ! loop.last %],[% END %]
+            [% render_project_member(project, support) %][% IF ! loop.last %],[% END %]
         [% END %]</td>
     </tr>
     <tr>

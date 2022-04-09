@@ -34,6 +34,7 @@ use OMP::FBServer;
 use OMP::UserServer;
 use OMP::DateTools;
 use OMP::General;
+use OMP::MSBDB;
 use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
@@ -66,7 +67,6 @@ sub fb_fault_content {
   my $projectid = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
 
   # Get a fault component object
   my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
@@ -74,11 +74,6 @@ sub fb_fault_content {
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid),0);
 
-  print $q->h2("Feedback: Project ${projectid}: View Faults");
-
-  $comp->proj_status_table($projectid);
-
-  print "<font size=+1><b>Faults</b></font><br>";
   # Display the first fault if a fault isnt specified in the URL
   my $showfault;
   if ($q->url_param('fault')) {
@@ -89,15 +84,16 @@ sub fb_fault_content {
     $showfault = $faults[0];
   }
 
-  $faultcomp->show_faults(faults => \@faults,
-                          descending => 0,
-                          url => "fbfault.pl?project=$projectid",);
-
-  print "<hr>";
-  print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
-  print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-  $faultcomp->fault_table($showfault, no_edit => 1);
-  print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?project=$projectid&subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
+  return {
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      fault_list => $faultcomp->show_faults(
+          faults => \@faults,
+          descending => 0,
+          url => "fbfault.pl?project=$projectid"),
+      fault_info => (defined $showfault
+          ? $faultcomp->fault_table($showfault, no_edit => 1)
+          : undef),
+  };
 }
 
 =item B<list_projects>
@@ -351,19 +347,27 @@ sub program_summary {
 
     my $q = $self->cgi;
 
-    select(STDERR);
-    my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid);
-    select(STDOUT);
+    my $sp = undef;
+    my $error = undef;
+    try {
+        my $db = new OMP::MSBDB(
+            ProjectID => $projectid,
+            DB => new OMP::DBbackend);
+        $sp = $db->fetchSciProg(1);
+    } catch OMP::Error::UnknownProject with {
+        $error = "Science program for $projectid not present in the database.";
+    } catch OMP::Error::SpTruncated with {
+        $error = "Science program for $projectid is in the database but has been truncated.";
+    } otherwise {
+        my $E = shift;
+        $error = "Error obtaining science program details for project $projectid: $E";
+    };
 
-    unless (defined $sp) {
-        print
-            $q->header(),
-            $q->start_html('Error: no science program'),
-            $q->h2('Error'),
-            $q->p('The science program could not be fetched for this project.'),
-            $q->end_html();
-        return;
-    }
+    return $self->_write_error($error)
+        if defined $error;
+
+    return $self->_write_error('The science program could not be fetched for this project.')
+        unless defined $sp;
 
     # Program retrieved successfully: apply summary XSLT.
     print $q->header(-type => 'text/plain');

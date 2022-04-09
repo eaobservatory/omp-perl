@@ -1,0 +1,122 @@
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Feedback for project [% project.projectid | html %]</h1>
+
+[% render_project_status_table(project) %]
+
+[% render_feedback_count(project, num_comments) %]
+
+<hr />
+
+[% IF ! messages.empty %]
+    [% FOREACH message IN messages %]
+        <p>
+            [% message | html %]
+        </p>
+    [% END %]
+[% END %]
+
+[% IF comment_msb_checksum.defined %]
+    <h2>Add a comment to MSB</h2>
+
+    <form method="post" action="[% target | url %]">
+        <table border="0">
+            <tr>
+                <td>User:</td>
+                <td>[% omp_user.name | html %]</td>
+            </tr>
+            <tr>
+                <td valign="top">Comment:</td>
+                <td><textarea name="comment"  rows="5" cols="80"></textarea></td>
+            </tr>
+            <tr>
+                <td colspan="2" align="right">
+                    <input type="hidden" name="checksum" value="[% comment_msb_checksum | html %]"  />
+                    <input type="hidden" name="show_output" value="1"  />
+                    <input type="submit" name="submit_msb_comment" value="Submit" />
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END %]
+
+[% IF prog_info.defined %]
+    <h2>MSB summary</h2>
+
+    <table border="0">
+        <tr>
+            <td>Project ID:</td>
+            <td><b>[% prog_info.projectid | html %]</b></td>
+        </tr>
+        <tr>
+            <td>Time Submitted:</td>
+            <td><b>[% IF prog_info.timestamp.defined %][% timestamp_as_utc(prog_info.timestamp) | html %][% ELSE %]unknown[% END %]</b></td>
+        </tr>
+        <tr>
+            <td>Number of MSBs:</td>
+            <td><b>[% prog_info.getMSBCount | html %]<b></td>
+        </tr>
+        <tr>
+            <td>Active MSBs:</td>
+            <td><b>[% prog_info.getMSBCountActive | html %]</b></td>
+        </tr>
+    </table>
+
+    [% FOREACH msb IN prog_info.msb %]
+        <h3>
+            [% msb.title | html %]
+            [% IF ! msb.remaining.defined %]
+                (remaining count unknown)
+            [% ELSIF msb.isRemoved %]
+                (removed from consideration)
+            [% ELSIF msb.remaining == 0 %]
+                (complete)
+            [% ELSE %]
+                ([% msb.remaining | html %] remaining to be observed)
+            [% END %]
+        </h3>
+
+        <table border="0">
+            <tr>
+                <td>Duration:</td>
+                <td><b>[% pretty_print_seconds(msb.timeest) | html %]</b></td>
+                <td>Priority:</td>
+                <td><b>[% msb.priority | html %]</b></td>
+            </tr>
+            <tr>
+                <td>Seeing:</td>
+                <td><b>[% msb.seeing | html %]</b></td>
+                <td>Tau:</td>
+                <td><b>[% msb.tau | html %]</b></td>
+            </tr>
+        </table>
+
+        <table border="1">
+            <tr bgcolor="#7979aa">
+                <td>#</td>
+                <td>Instrument</td>
+                <td>Target</td>
+                <td>Coords</td>
+                <td>Waveband</td>
+            </tr>
+            [% FOREACH obs IN msb.observations %]
+                <tr bgcolor="#7979aa">
+                    <td>[% loop.count %]</td>
+                    <td>[% obs.instrument | html %]</td>
+                    <td>[% obs.target | html %]</td>
+                    <td>[% obs.coords | html %]</td>
+                    <td>[% obs.waveband | html %]</td>
+                </tr>
+            [% END %]
+        </table>
+
+        <form method="post" action="[% target %]">
+            <p>
+                <input type="hidden" name="checksum" value="[% msb.checksum | html %]" />
+                <input type="hidden" name="show_output" value="1" />
+                <input type="submit" name="submit_add_comment" value="Add Comment" />
+            </p>
+        </form>
+    [% END %]
+[% END %]
+[% END %]
