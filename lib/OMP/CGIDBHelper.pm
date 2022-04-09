@@ -9,7 +9,6 @@ OMP::CGIComponent - Helper DB subroutines for building CGI pages
   use OMP::CGIDBHelper;
 
   my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
-  my $details = OMP::CGIDBHelper::safeProgramDetails( $projectid, $mode );
 
 =head1 DESCRIPTION
 
@@ -65,44 +64,6 @@ sub safeFetchSciProg {
   };
 
   return $sp;
-}
-
-=item B<safeProgramDetails>
-
-Similar to the OMP::SpServer->programDetails method, except exceptions are
-caught and errors written to stdout in HTML.
-
-  $details = safeProgramDetails( $projectid, $type );
-
-Returns undef on error. An optional 3rd argument can be used to suppress
-the error messages to stdout if true.
-
-  $details = safeProgramDetails( $projectid, $type, 1 );
-
-=cut
-
-sub safeProgramDetails {
-  my $projectid = uc(shift);
-  my $type = shift;
-  my $quiet = shift;
-
-  my $msbsum;
-  try {
-    $msbsum = OMP::SpServer->programDetails($projectid,
-                                            $type);
-  } catch OMP::Error::UnknownProject with {
-    print "<p>Science program for <em>$projectid</em> not present in database<p>"
-      unless $quiet;
-  } catch OMP::Error::SpTruncated with {
-    print "<p>Science program for <em>$projectid</em> is in the database but has been truncated. Please report this problem.<p>"
-      unless $quiet;
-  } otherwise {
-    my $E = shift;
-    print "<p>Error obtaining science program details for project <em>$projectid</em> <p><pre>$E</pre><p>"
-      unless $quiet;
-  };
-
-  return $msbsum;
 }
 
 =back
