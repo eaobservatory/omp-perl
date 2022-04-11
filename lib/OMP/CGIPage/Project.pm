@@ -468,46 +468,42 @@ sub support {
   # Try and get a project ID
   my $projectid = OMP::General->extract_projectid($q->url_param('project'));
 
-  # A form for providing a project ID
-  print start_form_absolute($q, -method => 'GET');
-  print "<strong>Project ID: </strong>";
-  print $q->textfield(-name=>'project',
-                      -size=>12,
-                      -maxlength=>32,);
-  print " " . $q->submit(-name=>'get_project', -value=>'Submit');
-  print $q->end_form;
-  print "<hr>";
-
-  return unless defined $projectid;
+  return {
+    target_base => $q->url(-absolute => 1),
+    project_id => $projectid,
+    contacts => undef,
+  } unless defined $projectid;
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
                                 DB => new OMP::DBbackend, );
 
   # Verify that project exists
   my $verify = $projdb->verifyProject;
-  if (! $verify) {
-    print "<h3>No project with ID of [$projectid] exists</h3>";
-    return;
-  }
+  return $self->_write_error("No project with ID of [$projectid] exists.")
+      unless $verify;
 
   # Get project details (as object)
   my $project;
+  my $E;
   try {
     $project = $projdb->projectDetails("object");
   }
   catch OMP::Error with {
-
-    my ( $E ) = @_;
-    print "<h3>An error occurred while getting project details.</h3>",
-      "<p>$E</p>";
+    $E = shift;
   };
-  return unless $project;
+
+  return $self->_write_error(
+      "An error occurred while getting project details.",
+      "$E") if defined $E;
+
+  return $self->_write_error("Could not get project details.")
+      unless $project;
 
   # Get support contacts
   my @support = $project->support;
 
   # Make contact changes, if any
-  if ($q->param('change_primary')) {
+  if ($q->param('update_contacts')) {
     my %new_contactable;
     my %new_access;
 
@@ -530,14 +526,16 @@ sub support {
         $project->omp_access(%new_access);
       } otherwise {
         $E = shift;
-        print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
       };
-      return if ($E);
 
-      print "<h3>Primary support contacts have been changed</h3>";
+      return $self->_write_error(
+          "An error occurred.  Your changes have not been stored.",
+          "$E") if defined $E;
+
     } else {
       # No new primary contacts defined
-      print "<h3>At least one primary support contact must be defined.  Your changes have not been stored.</h3>";
+      return $self->_write_error(
+          "At least one primary support contact must be defined.  Your changes have not been stored.");
     }
   }
 
@@ -547,40 +545,22 @@ sub support {
   # Store secondary
   my @secondary = grep {! $project->contactable($_->userid)} @support;
 
-  print "<h3>Editing support contacts for $projectid</h3>";
-
-  # List primary
-  print "<strong>Support contacts</strong>: ";
-  print join(", ", map {OMP::Display->userhtml($_, $q)} @primary);
-
-  # List secondary
-  if (@secondary) {
-    print "<br>";
-    print "<strong>Secondary support contacts</strong>: ";
-    print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
-  }
-
-  # Form for defining primary support
   my %contactable = $project->contactable;
   my %access = $project->omp_access;
 
-  print "<h3>Define primary support contacts</h3>";
-  print start_form_absolute($q, -name=>'define_primary'),
-    $q->start_table,
-    $q->Tr($q->th(['Contact', 'Primary', 'OMP access'])),
-    $q->Tr([map {$q->td([
-        $_->name,
-        $q->checkbox(-name => 'email_' . $_->userid,
-                     -checked => $contactable{$_->userid},
-                     -label => ""),
-        $q->checkbox(-name => 'access_' . $_->userid,
-                     -checked => $access{$_->userid},
-                     -label => ""),
-    ])} @support]),
-    $q->end_table,
-    $q->p($q->submit(-name=>'change_primary', -value=>'Submit')),
-    $q->end_form,
-    $q->p("<small>Note: Only primary support contacts will receive project email.</small>");
+  return {
+    target_base => $q->url(-absolute => 1),
+    project_id => $projectid,
+
+    target => url_absolute($q),
+    contacts => [map {my $userid = $_->userid; {
+          user => $_,
+          contactable => $contactable{$userid},
+          access => $access{$userid}};
+      } sort {$a->name cmp $b->name} @support],
+    primary => \@primary,
+    secondary => \@secondary,
+  };
 }
 
 =item B<alter_proj>

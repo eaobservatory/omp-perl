@@ -58,3 +58,45 @@
         [% END %]
     </p>
 [% END -%]
+[% MACRO render_contact_form(target, contacts) BLOCK %]
+  <form method="post" action="[% target %]">
+      <table>
+          <tr>
+              <td>Name</td>
+              <td>Receive email</td>
+              <td>OMP access</td>
+          </tr>
+
+          [% FOREACH contact IN contacts %]
+              <tr>
+                  <td>[% render_user_name(contact.user) %]</td>
+                  <td>
+                      [% IF contact.user.email %]
+                          <label><input type="checkbox" name="email_[% contact.user.userid | html %]" value="on" [% IF contact.contactable %]checked="checked"[% END %] /></label>
+                      [% ELSE %]
+                          <small>no email</small>
+                      [% END %]
+                  </td>
+                  <td>
+                      <label><input type="checkbox" name="access_[% contact.user.userid | html %]" value="on" [% IF contact.access %]checked="checked"[% END %] /></label>
+                  </td>
+              </tr>
+          [% END %]
+          <tr>
+              <td colspan="3" align="right">
+                  <input type="hidden" name="show_output" value="1" />
+                  <input type="submit" name="update_contacts" value="Update" />
+              </td>
+          </tr>
+      </table>
+  </form>
+[% END -%]
+[% MACRO render_project_choice(target, project_id) BLOCK %]
+  <form method="get" action="[% target %]">
+      <p>
+          <b>Project ID:</b>
+          <input type="text" name="project" value="[% project_id | html %]" size="12" maxlength="32" />
+          <input type="submit" name="" value="Submit" />
+      </p>
+  </form>
+[% END -%]

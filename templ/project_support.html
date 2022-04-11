@@ -1,0 +1,32 @@
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+
+[% render_project_choice(target_base, project_id) %]
+
+[% IF contacts.defined %]
+    <hr />
+
+    <h1>Editing support contacts for [% project_id | html %]</h1>
+
+    [% IF ! primary.empty %]
+        <p>
+            <b>Support contacts:</b>
+            [% FOREACH contact IN primary %]
+                [% render_user_name(contact) %]
+            [% END %]
+        </p>
+    [% END %]
+
+     [% IF ! secondary.empty %]
+        <p>
+            <b>Secondary support contacts:</b>
+            [% FOREACH contact IN secondary %]
+                [% render_user_name(contact) %]
+            [% END %]
+        </p>
+    [% END %]
+
+   [% render_contact_form(target, contacts) %]
+[% END %]
+[% END %]

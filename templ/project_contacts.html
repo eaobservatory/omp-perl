@@ -1,0 +1,7 @@
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Users associated with project [% project.projectid | html %]</h1>
+
+[% render_contact_form(target, contacts) %]
+[% END %]

@@ -20,7 +20,7 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::DBbackend::Hedwig2OMP;
@@ -202,48 +202,20 @@ sub project_users {
   my %contactable = $project->contactable;
   my %access = $project->omp_access;
 
-  print "<h3>Users associated with project ${projectid}</h3>";
-
-  # Display users in a table along with a checkbox for
-  # indicating contactable status
-  print start_form_absolute($q);
-  print "<table>";
-  print "<tr><td>Name (click for details)</td><td>Receive email</td><td>OMP access</td>";
-
-  for (sort @contacts) {
-    my $userid = $_->userid;
-    print "<tr><td>";
-    print "<a href=userdetails.pl?user=$userid>". $_->name ."</a>";
-    print "</td><td>";
-
-    #Make sure they have an email address
-    if ($_->email) {
-      print $q->checkbox(-name => 'email_' . $userid,
-                         -checked=>$contactable{$userid},
-                         -label=>"",);
-    } else {
-      print "<small>no email</small>";
-    }
-
-    print "</td><td>",
-        $q->checkbox(-name => 'access_' . $userid,
-                     -checked => $access{$userid},
-                     -label => "");
-    print "</td>";
-  }
-
-  print "<tr><td colspan=2 align=right>";
-  print $q->hidden(-name=>'show_output',
-                   -default=>1,);
-  print $q->submit(-name=>"update_contacts",
-                   -value=>"Update",);
-  print "</table>";
-  print $q->end_form;
+  return {
+    target => url_absolute($q),
+    project => $project,
+    contacts => [map {my $userid = $_->userid; {
+          user => $_,
+          contactable => $contactable{$userid},
+          access => $access{$userid}};
+      } sort {$a->name cmp $b->name} @contacts],
+  };
 }
 
 =item B<project_users_output>
 
-Parse project_users page form and display output.
+Parse project_users page form and redirect back to project page.
 
   $page->project_users_output($projectid);
 
@@ -280,13 +252,11 @@ sub project_users_output {
 
     # Make sure at least 1 person is getting emails
     if ($count_email == 0) {
-      print "<h3>The system requires at least 1 person to receive project emails.  Update aborted.</h3>";
-      return;
+      return $self->_write_error('The system requires at least 1 person to receive project emails.  Update aborted.');
     }
     # Same for OMP access.
     if ($count_access == 0) {
-      print "<h3>The system requires at least 1 person to have OMP access.  Update aborted.</h3>";
-      return;
+      return $self->_write_error('The system requires at least 1 person to have OMP access.  Update aborted.');
     }
 
     # Store user contactable info to database (have to actually store
@@ -294,36 +264,24 @@ sub project_users_output {
     my $db = new OMP::ProjDB( ProjectID => $projectid,
                               DB => new OMP::DBbackend, );
 
+    my $error = undef;
     try {
       $db->updateContactability( \%new_contactable );
       $db->updateOMPAccess( \%new_access );
       $project->contactable(%new_contactable);
       $project->omp_access(%new_access);
 
-      print "<h3>Contactable / OMP access information for project ${projectid} has been updated</h3>";
     } otherwise {
       my $E = shift;
-      print "An error prevented the contactable information from being updated:<br>$E";
-      return;
+      $error = "An error prevented the contactable information from being updated: $E";
     };
 
-    print "The following people will receive emails associated with this project:<br>";
+    return $self->_write_error($error) if defined $error;
 
-    @contacts = $project->contacts;
-    for (@contacts) {
-      my $userid = $_->userid;
-      print "<a href=userdetails.pl?user=$userid>". $_->name ."</a><br>";
-    }
-
-    print "<br>The following people have OMP access to this project:<br>";
-
-    my @access = grep {$project->omp_access($_->userid)}
-        ($project->investigators, $project->support);
-    for (@access) {
-      my $userid = $_->userid;
-      print "<a href=userdetails.pl?user=$userid>". $_->name ."</a><br>";
-    }
+    return $self->_write_redirect('/cgi-bin/projecthome.pl?project=' . $projectid);
   }
+
+  return $self->_write_error('No update operation specified?');
 }
 
 =item B<edit_details>
