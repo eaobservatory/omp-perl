@@ -1,21 +1,21 @@
 [% MACRO render_project_member(project, member) BLOCK %]
     <a href="/cgi-bin/userdetails.pl?user=[% member.userid | html %]">[% member.name | html %]</a>
-    <a href="/cgi-bin/projusers.pl?project=[% project.projectid | html %]">[% IF project.contactable(member.userid) %]<img src="/images/mail.gif" alt="receives email" />[% ELSE %]<img src="/images/nomail.gif" alt="ignores email" />[% END %]</a>[% IF member.affiliation.defined %] <small>([% member.affiliation | html %])</small>[% END %][% IF project.omp_access(member.userid) %] &#x2605;[% END -%]
+    <a href="/cgi-bin/[% is_support ? 'edit_support.pl' : 'projusers.pl' %]?project=[% project.projectid | html %]">[% IF project.contactable(member.userid) %]<img src="/images/mail.gif" alt="receives email" />[% ELSE %]<img src="/images/nomail.gif" alt="ignores email" />[% END %]</a>[% IF member.affiliation.defined %] <small>([% member.affiliation | html %])</small>[% END %][% IF project.omp_access(member.userid) %] &#x2605;[% END -%]
 [% END -%]
 [% MACRO render_project_status_table(project) BLOCK %]
     <table class="infobox" cellspacing="1" cellpadding="2" width="100%">
         <tr>
-            <td><b>PI:</b>[% render_project_member(project, project.pi) %]</td>
+            <td><b>PI:</b>[% render_project_member(project, project.pi, is_support=0) %]</td>
             <td><b>Title:</b> [% project.title | html %]</td>
             <td><a href="/cgi-bin/props.pl?project=[% project.projectid %]">Science Case</a>
             </td>
         </tr>
         <tr>
             <td colspan="2"><b>CoI:</b>[% FOREACH coi IN project.coi %]
-                [% render_project_member(project, coi) %][% IF ! loop.last %],[% END %]
+                [% render_project_member(project, coi, is_support=0) %][% IF ! loop.last %],[% END %]
             [% END %]</td>
             <td><b>Staff Contact:</b>[% FOREACH support IN project.support %]
-                [% render_project_member(project, support) %][% IF ! loop.last %],[% END %]
+                [% render_project_member(project, support, is_support=1) %][% IF ! loop.last %],[% END %]
             [% END %]</td>
         </tr>
         <tr>

@@ -18,18 +18,18 @@
 <table>
     <tr>
         <td><b>Principal Investigator:</b></td>
-        <td>[% render_project_member(project, project.pi) %]</td>
+        <td>[% render_project_member(project, project.pi, is_support=0) %]</td>
     </tr>
     <tr>
         <td><b>Co-investigators:</b></td>
         <td>[% FOREACH coi IN project.coi %]
-            [% render_project_member(project, coi) %][% IF ! loop.last %],[% END %]
+            [% render_project_member(project, coi, is_support=0) %][% IF ! loop.last %],[% END %]
         [% END %]</td>
     </tr>
     <tr>
         <td><b>Support:</b></td>
         <td>[% FOREACH support IN project.support %]
-            [% render_project_member(project, support) %][% IF ! loop.last %],[% END %]
+            [% render_project_member(project, support, is_support=1) %][% IF ! loop.last %],[% END %]
         [% END %]</td>
     </tr>
     <tr>
