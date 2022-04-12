@@ -187,67 +187,6 @@ sub proj_sum_table {
   };
 }
 
-=item B<obtain_projectid>
-
-Provide a form for obtaining a project ID, and process the output, catching
-invalid project IDs.
-
-  $comp->obtain_projectid();
-
-Returns a project ID.
-
-=cut
-
-sub obtain_projectid {
-  my $self = shift;
-
-  my $q = $self->cgi;
-
-  # Obtain project ID from query parameter list, otherwise display a form
-  # requesting the project ID.
-  unless ($q->param('project')) {
-    $self->projectid_form();
-    return;
-  }
-
-  my $projectid = $q->param('project');
-
-  # Verify project ID
-  my $verify = OMP::ProjServer->verifyProject( $projectid );
-
-  # Display project ID form again if given ID was invalid
-  unless ($verify) {
-    print "The project ID you provided [$projectid] was invalid.<br><br>";
-    $self->projectid_form();
-    return;
-  }
-
-  return $projectid;
-}
-
-=item B<projectid_form>
-
-Display a form which takes a project ID.
-
-  $comp->projectid_form();
-
-=cut
-
-sub projectid_form {
-  my $self = shift;
-
-  my $q = $self->cgi;
-
-  print start_form_absolute($q);
-  print "Project ID: ";
-  print $q->textfield(-name=>"project",
-                      -size=>12,
-                      -maxlength=>32,);
-  print "&nbsp;";
-  print $q->submit(-name=>"project_submit",
-                   -label=>"Submit",);
-}
-
 =head1 SEE ALSO
 
 C<OMP::CGI::ProjectPage>

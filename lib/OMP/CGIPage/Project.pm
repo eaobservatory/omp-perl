@@ -22,7 +22,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Time::Seconds;
 
 use OMP::CGIComponent::Fault;
-use OMP::CGIComponent::Feedback;
+use OMP::CGIComponent::Feedback qw/url_absolute/;
 use OMP::CGIComponent::Helper;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
@@ -575,47 +575,32 @@ sub alter_proj {
   my $self = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
 
-  # Obtain project ID
-  my $projectid = $comp->obtain_projectid( );
+  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
 
-  return unless $projectid;
-
-  print "<h3>Alter project details for ". uc($projectid) ."</h3>";
+  return {
+    target_base => $q->url(-absolute => 1),
+    project => undef,
+  } unless defined $projectid;
 
   # Connect to the database
-  my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+                                DB => new OMP::DBbackend );
 
-  # Set the project ID in the DB object
-  $projdb->projectid( $projectid );
+  # Verify that project exists
+  my $verify = $projdb->verifyProject;
+  return $self->_write_error("No project with ID of [$projectid] exists.")
+      unless $verify;
 
   # Retrieve the project object
   my $project = $projdb->_get_project_row();
 
-  print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
-
   return $self->process_project_changes( $project, $projdb )
     if $q->param('alter_submit');
-
-  # Display form for updating project details
-  print start_form_absolute($q, -name=>'alter_project');
-
-  print $q->hidden(-name=>'project',
-                    -default=>$project->projectid,);
-
-  print "<table>";
 
   my $pi = $project->pi->userid();
   my $pi_affiliation = $project->pi->affiliation();
   $pi .= ':' . $pi_affiliation if defined $pi_affiliation;
-  print qq[<tr><td align="right">PI</td> <td>],
-    $q->textfield( 'pi', $pi, 32, 32 ),
-    qq[</td></tr>];
-
-  print qq[<tr><td align="right">Title</td> <td>],
-    $q->textfield( 'title', $project->title, 50, 255 ),
-    qq[</td></tr>];
 
   my $coi = join "\n", map {
     my $userid = $_->userid();
@@ -623,138 +608,65 @@ sub alter_proj {
     $userid .= ':' . $coi_affiliation if defined $coi_affiliation;
     $userid;
   } $project->coi;
-  print qq[<tr><td align="right">Co-I</td> <td>],
-    $q->textarea( -name => 'coi',
-                  -default => $coi,
-                  -rows => 5,
-                  -columns => 32,
-                ),
-    qq[</td></tr>];
 
-  my $supp = join "\n", map { $_->userid } $project->support;
-  print qq[<tr><td align="right">Support</td> <td>],
-    $q->textarea( -name => 'support',
-                  -default => $supp,
-                  -rows => 5,
-                  -columns => 32,
-                ),
-    qq[</td></tr>];
+  my $supp = join "\n", map {
+    my $userid = $_->userid;
+    my $supp_affiliation = $_->affiliation();
+    $userid .= ':' . $supp_affiliation if defined $supp_affiliation;
+    $userid;
+  } $project->support;
 
   # Allocation
-  print "<tr><td align='right'>Allocation</td>";
   my $allocated = $project->allocated;
   my $remaining = $project->remaining;
 #    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
   my $alloc_h = int( $allocated / 3600 );
   my $alloc_m = int( ( $allocated - $alloc_h * 3600 ) / 60 );
   my $alloc_s = $allocated - $alloc_h * 3600 - $alloc_m * 60;
-  print "<td>";
-  print $q->textfield('alloc_h',$alloc_h,3,5);
-  print " hours ";
-  print $q->textfield('alloc_m',$alloc_m,2,2);
-  print " minutes ";
-  print $q->textfield('alloc_s',$alloc_s,2,2);
-  print " seconds";
-  print "</td></tr><tr><td align='right'>Remaining</td><td>". $remaining->pretty_print;
-  print "</td></tr>";
-
-  # Semester
-  print "<tr><td align='right'>Semester</td>";
-  my $semester = $project->semester;
 
   # Get semester options
-  my @semesters = $projdb->listSemesters();
-
-  print "<td>";
-  print $q->popup_menu(-name=>'semester',
-                        -default=>$semester,
-                        -values=>[@semesters]);
-  print "</td></tr>";
-
-  # Cloud
-  print "<tr><td align='right'>Cloud</td>";
-  my $cloud = $project->cloudrange;
+  my @semesters = $projdb->listSemesters(telescope => $project->telescope);
 
   # Get cloud options
   my %cloud_lut = OMP::SiteQuality::get_cloud_text();
   my %cloud_labels = map {$cloud_lut{$_}->max(), $_} keys %cloud_lut;
-
-  print "<td>";
-  print $q->popup_menu(-name=>'cloud',
-                        -default=>int($cloud->max()),
-                        -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
-                        -labels=>\%cloud_labels,);
-  print "</td></tr>";
+  my @clouds = sort {$b->[0] <=> $a->[0]} map {
+      [$cloud_lut{$_}->max(), $_]
+  } keys %cloud_lut;
 
   # Tag adjustment
-  print "<tr><td align='right' valign='top'>TAG adj.</td>";
   my %tagpriority = $project->queue;
   my %tagadj = $project->tagadjustment;
+  my @priority = ();
 
-  my $keycount;
-  for my $queue (keys %tagpriority) {
-    $keycount++;
-    print "<tr><td></td>"
-      if ($keycount > 1);
-
-    print "<td valign='top'>";
-    print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
-      unless ($keycount > 1);
-
-    print $q->textfield("tag_${queue}",
-                        ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
-                        4,32);
-    print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
-
-    print "</td></tr>";
+  for my $queue (sort keys %tagpriority) {
+    push @priority, {
+        queue => $queue,
+        adj => ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+        priority => $tagpriority{$queue},
+    };
   }
 
-  # TAU Range
-  print "<tr><td align='right' valign='top'>TAU range</td>";
-  my $taurange = $project->taurange;
-  my $taumin = $taurange->min();
-  my $taumax = $taurange->max();
-  print "<td>";
-  print $q->textfield("taumin", $taumin, 3, 4);
-  print " - ";
-  print $q->textfield("taumax", $taumax, 3, 4);
-  print "</td></tr>";
+  return {
+    target_base => undef,
 
-  # Seeing Range
-  print "<tr><td align='right' valign='top'>Seeing range</td>";
-  my $seeingrange = $project->seeingrange;
-  my $seeingmin = $seeingrange->min();
-  my $seeingmax = $seeingrange->max();
-  print "<td>";
-  print $q->textfield("seeingmin", $seeingmin, 3, 4);
-  print " - ";
-  print $q->textfield("seeingmax", $seeingmax, 3, 4);
-  print "</td></tr>";
+    project => $project,
+    target => url_absolute($q),
+    values => {
+        pi => $pi,
+        coi => $coi,
+        support => $supp,
+        alloc_h => $alloc_h,
+        alloc_m => $alloc_m,
+        alloc_s => $alloc_s,
+        cloud => int($project->cloudrange->max()),
+        priority => \@priority,
+    },
+    semesters => \@semesters,
+    clouds => \@clouds,
 
-  print $q->Tr(
-    $q->td([
-        'Expiry date',
-        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')) .
-        ' (for Rapid Turnaround projects only)',
-    ]),
-  );
-
-  print "</table>";
-
-  print q[<p>],
-    $q->checkbox( -name => 'send-mail',
-                  -checked => 0,
-                  -value => 1,
-                  -label => 'Send email about project changes'
-                ),
-    q[</p><p>],
-    $q->submit( -name=>"alter_submit",
-                -label=>"Submit",
-              ),
-    ( '&nbsp;' ) x 4,
-    $q->reset,
-    q[</p>],
-    $q->end_form();
+    messages => undef,
+  };
 }
 
 sub process_project_changes {
@@ -765,9 +677,9 @@ sub process_project_changes {
 
   my @msg; # Build up output message
 
-  my $err;
   for my $type ( qw[ pi coi support ] ) {
 
+    my $err;
     my $users = $q->param( $type );
     try {
 
@@ -776,11 +688,11 @@ sub process_project_changes {
     catch OMP::Error with {
 
       my ( $e ) = @_;
-      $err = _print_user_err( $e->text );
+      $err = $e->text;
     };
-  }
 
-  return if $err;
+    return $self->_write_error($err) if defined $err;
+  }
 
   push @msg,
     _update_project_make_message( $project,
@@ -910,7 +822,7 @@ sub process_project_changes {
   # Generate feedback message
 
   # Get OMP user object
-  if ( $q->param( 'send-mail' ) ) {
+  if ( $q->param( 'send_mail' ) ) {
 
     OMP::FBServer->addComment($project->projectid,
                               {author => $self->auth->user,
@@ -923,18 +835,23 @@ sub process_project_changes {
   # Now store the changes
   $projdb->_update_project_row( $project );
 
-  if ($msg[0]) {
-    print join("<br>", @msg);
-
-    print '<br><br>',
-      ( scalar @msg == 1 ? 'This change has' : 'These changes have' ),
-      ' been committed.<br>';
+  if (scalar @msg) {
+    push @msg,
+      ( scalar @msg == 1 ? 'This change has' : 'These changes have' ) .
+      ' been committed.';
 
   } else {
-    print "<br>No changes were submitted.</br>";
+    push @msg, "No changes were submitted.";
   }
 
-  return;
+  return {
+    target_base => undef,
+
+    project => $project,
+    target => undef,
+
+    messages => \@msg,
+  };
 }
 
 sub update_users {
@@ -984,7 +901,7 @@ sub _make_user {
   ($userid, $affiliation) = split ':', $userid, 2;
 
   my $user = OMP::UserServer->getUser( $userid )
-    or throw OMP::Error "Unknown user id given: $userid";
+    or throw OMP::Error "Unknown user ID given: $userid";
 
   if (defined $affiliation) {
     throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
@@ -994,18 +911,6 @@ sub _make_user {
   }
 
   return $user;
-}
-
-sub _print_user_err {
-
-  my ( $text ) = @_;
-
-  return unless $text && (
-    $text =~ m/^Unknown user id given/
-    || $text =~ m/not recognized by the OMP$/);
-
-  printf "<p>%s</p>\n", $text;
-  return 1;
 }
 
 sub _match_string {
