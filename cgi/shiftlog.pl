@@ -23,4 +23,5 @@ OMP::CGIPage::Shiftlog->new(cgi => new CGI())->write_page(
     'shiftlog_page',
     undef,
     'staff',
-    title => 'Shift Log');
+    title => 'Shift Log',
+    template => 'shift_log.html');

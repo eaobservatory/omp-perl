@@ -1,0 +1,13 @@
+[% MACRO render_shift_log_entries(comments) BLOCK %]
+    <table class="sum_table" cellspacing="0" width="600">
+        [% FOREACH comment IN comments %]
+            [% SET bgcolor = loop.odd ? 'a' : 'b' %]
+            <tr class="row_[% bgcolor %]" valign="top">
+                <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
+                <td class="time_[% bgcolor %]">
+                    [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
+                <td class="subject">[% remove_text_pre(comment.text) %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% END -%]
