@@ -24,7 +24,6 @@ use Data::ICal::Entry::Event;
 use Time::Piece ':override';
 use Time::Seconds qw/ONE_DAY ONE_HOUR/;
 
-use OMP::CGIDBHelper;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::DBbackend;

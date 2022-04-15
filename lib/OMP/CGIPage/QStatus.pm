@@ -14,7 +14,6 @@ use CGI::Carp qw/fatalsToBrowser/;
 
 use OMP::CGIComponent::CaptureImage;
 use OMP::CGIComponent::Helper qw/url_absolute/;
-use OMP::CGIDBHelper;
 use OMP::DBbackend;
 use OMP::DateTools;
 use OMP::General;
