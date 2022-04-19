@@ -732,6 +732,11 @@ sub _sidebar_project {
     [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
     (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
   ]);
+
+  $self->side_bar("Project administration", [
+    ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
+    ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
+  ]) if $self->auth->is_staff;
 }
 
 =item B<_write_http_header>
