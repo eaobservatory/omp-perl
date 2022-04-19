@@ -35,7 +35,7 @@
         </ul>
         [% IF omp_side_bar.defined %]
             [% FOREACH side_bar = omp_side_bar %]
-                <p>[% side_bar.title %]</p>
+                <p>[% side_bar.title | html %]</p>
                 <ul>
                     [% FOREACH entry = side_bar.entries %]
                         <li><a href="[% entry.1 %]">[% entry.0 %]</a>[% IF entry.2.defined %] [% entry.2 | html %][% END %]</li>
