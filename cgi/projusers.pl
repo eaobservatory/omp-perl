@@ -13,11 +13,11 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::User;
+use OMP::CGIPage::Project;
 
-OMP::CGIPage::User->new(cgi => new CGI())->write_page(
-    \&OMP::CGIPage::User::project_users,
-    \&OMP::CGIPage::User::project_users_output,
+OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::Project::project_users,
+    undef,
     'project',
     title => 'Project Contacts',
     template => 'project_contacts.html');

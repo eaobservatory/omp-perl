@@ -31,7 +31,6 @@ use OMP::FaultServer;
 use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
-use OMP::ProjServer;
 use OMP::User;
 use OMP::UserServer;
 
@@ -174,114 +173,6 @@ sub list_users {
     letters => \@alphabet,
     users => $users,
   };
-}
-
-=item B<project_users>
-
-Create a page displaying users associated with a project.
-
-  $page->project_users($projectid);
-
-First argument should be the project ID.
-
-=cut
-
-sub project_users {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  # Get the project info
-  my $project = OMP::ProjServer->projectDetails($projectid, "object");
-
-  # Get contacts
-  my @contacts = $project->investigators;
-
-  # Get contactables and those with OMP access.
-  my %contactable = $project->contactable;
-  my %access = $project->omp_access;
-
-  return {
-    target => url_absolute($q),
-    project => $project,
-    contacts => [map {my $userid = $_->userid; {
-          user => $_,
-          contactable => $contactable{$userid},
-          access => $access{$userid}};
-      } sort {$a->name cmp $b->name} @contacts],
-  };
-}
-
-=item B<project_users_output>
-
-Parse project_users page form and redirect back to project page.
-
-  $page->project_users_output($projectid);
-
-=cut
-
-sub project_users_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  # Get project details
-  my $project = OMP::ProjServer->projectDetails($projectid, "object");
-
-  # Get contacts
-  my @contacts = $project->investigators;
-
-  if ($q->param('update_contacts')) {
-    my %new_contactable;
-    my %new_access;
-
-    # Go through each of the contacts and store their new contactable values
-    my $count_email;
-    my $count_access;
-    for (@contacts) {
-      my $userid = $_->userid;
-
-      $new_contactable{$userid} = ($q->param('email_' . $userid) ? 1 : 0);
-      $count_email += $new_contactable{$userid};
-
-      $new_access{$userid} = ($q->param('access_' . $userid) ? 1 : 0);
-      $count_access += $new_access{$userid};
-    }
-
-    # Make sure at least 1 person is getting emails
-    if ($count_email == 0) {
-      return $self->_write_error('The system requires at least 1 person to receive project emails.  Update aborted.');
-    }
-    # Same for OMP access.
-    if ($count_access == 0) {
-      return $self->_write_error('The system requires at least 1 person to have OMP access.  Update aborted.');
-    }
-
-    # Store user contactable info to database (have to actually store
-    # entire project back to database)
-    my $db = new OMP::ProjDB( ProjectID => $projectid,
-                              DB => new OMP::DBbackend, );
-
-    my $error = undef;
-    try {
-      $db->updateContactability( \%new_contactable );
-      $db->updateOMPAccess( \%new_access );
-      $project->contactable(%new_contactable);
-      $project->omp_access(%new_access);
-
-    } otherwise {
-      my $E = shift;
-      $error = "An error prevented the contactable information from being updated: $E";
-    };
-
-    return $self->_write_error($error) if defined $error;
-
-    return $self->_write_redirect('/cgi-bin/projecthome.pl?project=' . $projectid);
-  }
-
-  return $self->_write_error('No update operation specified?');
 }
 
 =item B<edit_details>
