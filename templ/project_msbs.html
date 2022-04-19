@@ -1,4 +1,6 @@
+[% PROCESS "macro_general.html" -%]
 [% PROCESS "macro_project.html" -%]
+[% PROCESS "macro_msb.html" -%]
 [% WRAPPER "layout.html" %]
 <h1>Feedback for project [% project.projectid | html %]</h1>
 
@@ -19,25 +21,7 @@
 [% IF comment_msb_checksum.defined %]
     <h2>Add a comment to MSB</h2>
 
-    <form method="post" action="[% target | url %]">
-        <table border="0">
-            <tr>
-                <td>User:</td>
-                <td>[% omp_user.name | html %]</td>
-            </tr>
-            <tr>
-                <td valign="top">Comment:</td>
-                <td><textarea name="comment"  rows="5" cols="80"></textarea></td>
-            </tr>
-            <tr>
-                <td colspan="2" align="right">
-                    <input type="hidden" name="checksum" value="[% comment_msb_checksum | html %]"  />
-                    <input type="hidden" name="show_output" value="1"  />
-                    <input type="submit" name="submit_msb_comment" value="Submit" />
-                </td>
-            </tr>
-        </table>
-    </form>
+    [% render_msb_comment_form(target, {checksum => comment_msb_checksum}) %]
 [% END %]
 
 [% IF prog_info.defined %]
@@ -113,8 +97,7 @@
         <form method="post" action="[% target %]">
             <p>
                 <input type="hidden" name="checksum" value="[% msb.checksum | html %]" />
-                <input type="hidden" name="show_output" value="1" />
-                <input type="submit" name="submit_add_comment" value="Add Comment" />
+                <input type="submit" name="submit_add_comment" value="Add comment" />
             </p>
         </form>
     [% END %]

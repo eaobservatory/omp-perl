@@ -1,0 +1,55 @@
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_msb.html" -%]
+[% WRAPPER "layout.html" %]
+
+<form method="get" action="[% target_base %]">
+    <table>
+        <tr>
+            <td align="right"><b>UT Date:</b></td>
+            <td><input type="text" name="utdate" value="[% values.utdate | html %]" size="15" maxlength="75" /></td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td align="right"><b>Telescope:</b></td>
+            <td><select name="telescope" >
+                [% FOREACH telescope IN telescopes %]
+                    <option [% IF telescope == values.telescope %]selected="selected"[% END %] value="[% telescope | html %]">[% telescope | html %]</option>
+                [% END %]
+            </select></td>
+            <td><input type="submit" name="" value="View MSBs" /></td>
+        </tr>
+    </table>
+</form>
+
+[% IF ! messages.empty %]
+    <hr />
+
+    [% FOREACH message IN messages %]
+        <p>[% message | html %]</p>
+    [% END %]
+[% END %]
+
+[% IF comment_msb_id_fields.defined %]
+    <hr />
+
+    <h2>Add a comment to MSB</h2>
+
+    [% render_msb_comment_form(target, comment_msb_id_fields) %]
+[% END %]
+
+[% IF projects.defined %]
+    <hr />
+
+    <h2>MSBs observed on [% values.utdate | html %]</h2>
+
+    [% IF projects.empty %]
+        <p>No MSBs observed.</p>
+    [% ELSE %]
+        [% FOREACH project_info IN projects %]
+            <h2>Project: <a href="/cgi-bin/projecthome.pl?project=[% project_info.project_id | uri %]">[% project_info.project_id | html %]</a></h2>
+
+            [% render_msb_comments(project_info.msb_info) %]
+        [% END %]
+    [% END %]
+[% END %]
+[% END %]

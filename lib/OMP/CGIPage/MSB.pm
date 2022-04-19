@@ -22,14 +22,14 @@ use Carp;
 
 use Time::Seconds;
 
-use OMP::CGIDBHelper;
 use OMP::CGIComponent::Feedback;
-use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
 use OMP::Error qw(:try);
 use OMP::DateTools;
+use OMP::MSBServer;
 
 use base qw/OMP::CGIPage/;
 
@@ -99,50 +99,15 @@ sub fb_msb_output {
   };
 }
 
-=item B<msb_hist_output>
-
-Create a page with a comment submission form or a message saying the comment was submitted.
-
-  $page->msb_hist_output($projectid);
-
-=cut
-
-sub msb_hist_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::MSB(page => $self);
-  my $projcomp = new OMP::CGIComponent::Project(page => $self);
-
-  $projcomp->proj_status_table($projectid);
-
-  # If they clicked the "Add Comment" button bring up a comment form
-  if ($q->param("Add Comment")) {
-    print $q->h2("Add a comment to MSB");
-    $comp->msb_comment_form();
-  }
-
-  # Perform any actions on the msb?
-  $comp->msb_action();
-
-  # Get the science program (if available)
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
-
-  # Redisplay MSB comments
-  my $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
-  $comp->msb_comments($commentref, $sp);
-}
-
-=item B<msb_hist_content>
+=item B<msb_hist>
 
 Create a page with a summary of MSBs and their associated comments
 
-  $page->msb_hist_content($projectid);
+  $page->msb_hist($projectid);
 
 =cut
 
-sub msb_hist_content {
+sub msb_hist {
   my $self = shift;
   my $projectid = shift;
 
@@ -150,60 +115,62 @@ sub msb_hist_content {
   my $comp = new OMP::CGIComponent::MSB(page => $self);
   my $projcomp = new OMP::CGIComponent::Project(page => $self);
 
-  my $commentref;
-  if (! $q->param('show')) {
-    # show all
-    $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
-  } elsif ($q->param('show') =~ /observed/) {
-    # show observed
-    my $xml = "<MSBDoneQuery><projectid>$projectid</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
+  # Perform any actions on the MSB.
+  my $response = $comp->msb_action(projectid => $projectid);
+  my $errors = $response->{'errors'};
+  my $messages = $response->{'messages'};
+  return $self->_write_error(@$errors) if scalar @$errors;
 
-    $commentref = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                               returnall => 1,
-                                               format => 'data'});
-  } else {
-    # show current
-    $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
+  my $show = $q->param('show') // 'all';
+  my $comment_msb_id_fields = undef;
+  my $msb_info;
+
+  if ($q->param("submit_add_comment")) {
+    $comment_msb_id_fields = {
+        checksum => scalar $q->param('checksum'),
+        transaction => scalar $q->param('transaction'),
+    };
+  }
+  else {
+    # Get the science program info (if available)
+    my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+
+    my $commentref;
+    if ($show =~ /observed/) {
+      # show observed
+      my $xml = "<MSBDoneQuery><projectid>$projectid</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
+
+      $commentref = OMP::MSBServer->observedMSBs({projectid => $projectid,
+                                                 returnall => 1,
+                                                 format => 'data'});
+    } else {
+      # show current
+      $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
+
+      if ($show =~ /current/) {
+        $commentref = [grep {$sp->existsMSB($_->checksum)} @$commentref] if defined $sp;
+      }
+    }
+
+    $msb_info = $comp->msb_comments($commentref, $sp);
   }
 
-  print $q->h2("MSB History for project $projectid");
-
-  ### put code for not displaying non-existant msbs here? ###
-  $projcomp->proj_status_table($projectid);
-  print $q->hr;
-
-  print "<SCRIPT LANGUAGE='javascript'> ";
-  print "function mysubmit() ";
-  print "{document.sortform.submit()}";
-  print "</SCRIPT>";
-
-
-  print start_form_absolute($q, -name=>'sortform'),
-        "<b>Show </b>",
-
-        # we want to show this page again, not the output page, so
-        # we'll include this hidden param
-        $q->hidden(-name=>'show_content',
-                   -default=>'show_content'),
-
-        $q->popup_menu(-name=>'show',
-                       -values=>[qw/all observed/],
-                       -default=>'all',
-                       -onChange=>'mysubmit()'),
-        "&nbsp;&nbsp;&nbsp;",
-        $q->submit("Refresh"),
-        $q->end_form,
-        $q->p;
-
-  # Get the science program (if available)
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
-
-  $comp->msb_comments($commentref, $sp);
+  return {
+      target => url_absolute($q),
+      target_base => $q->url(-absolute => 1),
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      msb_info => $msb_info,
+      values => {
+          show => $show,
+      },
+      comment_msb_id_fields => $comment_msb_id_fields,
+      messages => $messages,
+  };
 }
 
 =item B<observed>
 
-Create a page with a list of all the MSBs observed for a given UT sorted by project
+Create an MSB comment page for private use with a comment submission form.
 
   $page->observed();
 
@@ -212,86 +179,71 @@ Create a page with a list of all the MSBs observed for a given UT sorted by proj
 sub observed {
   my $self = shift;
 
-  my $comp = new OMP::CGIComponent::MSB(page => $self);
-
-#  my $utdate = OMP::DateTools->today;
-
-#  my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
-
-#  (@$commentref) and print $q->h2("MSBs observed on $utdate")
-#    or print $q->h2("No MSBs observed on $utdate");
-
-  $comp->observed_form();
-#  print $q->hr;
-
-  # Create the MSB comment tables
-#  msb_comments_by_project($q, $commentref);
-
-#  (@$commentref) and print observed_form($q);
-}
-
-=item B<observed_output>
-
-Create an msb comment page for private use with a comment submission form.
-
-  $page->observed_output();
-
-=cut
-
-sub observed_output {
-  my $self = shift;
-
   my $q = $self->cgi;
   my $comp = new OMP::CGIComponent::MSB(page => $self);
 
-  # If they clicked the "Add Comment" button bring up a comment form
-  if ($q->param("Add Comment")) {
-    print $q->h2("Add a comment to MSB");
-    $comp->msb_comment_form();
-    return;
-  }
+  my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
+
+  my $telescope = $q->url_param('telescope'),
+  my $utdate = $q->url_param('utdate');
+
+  my $comment_msb_id_fields = undef;
+  my $projects = undef;
 
   # Perform any actions on the MSB.
-  $comp->msb_action();
+  my $response = $comp->msb_action();
+  my $errors = $response->{'errors'};
+  my $messages = $response->{'messages'};
+  return $self->_write_error(@$errors) if scalar @$errors;
 
-  # Display date / telescope form.
-  $comp->observed_form();
-
-  print $q->hr;
-
-  my $utdate = $q->param('utdate');
-  my $telescope = $q->param('telescope');
-
-  # Do nothing if telescope not selected
-  if (! $telescope) {
-    print $q->h2("Please select a telescope");
-    return;
+  if ($q->param("submit_add_comment")) {
+    $comment_msb_id_fields = {
+        checksum => scalar $q->param('checksum'),
+        transaction => scalar $q->param('transaction'),
+        projectid => scalar $q->param('projectid'),
+    };
   }
+  elsif (defined $utdate and defined $telescope) {
 
-  my $dbconnection = new OMP::DBbackend;
-  my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
-                                                 returnall => 1,
-                                                 format => 'data'});
+    my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
+                                                   returnall => 1,
+                                                   format => 'data'});
 
-  # Now keep only the comments that are for the telescope we want
-  # to see observed msbs for
-  my @msbs;
-  for my $msb (@$commentref) {
-    my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
-                                  DB => $dbconnection );
-    my $proj = $projdb->projectDetails( 'object' );
-    if (uc $proj->telescope eq uc $telescope) {
-      push @msbs, $msb;
+    # Now keep only the comments that are for the telescope we want
+    # to see observed msbs for
+    my %sorted;
+    for my $msb (@$commentref) {
+      my @instruments = split /\W/, $msb->instrument;
+      next unless $telescope eq uc OMP::Config->inferTelescope('instruments', @instruments);
+
+      my $projectid = $msb->projectid;
+      push @{$sorted{$projectid}}, $msb;
     }
+
+    $projects = [map {
+        my $projectid = $_;
+        my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+        my $msb_info = $comp->msb_comments(\@{$sorted{$projectid}}, $sp);
+        {
+          project_id => $projectid,
+          msb_info => $msb_info,
+        };
+    } sort keys %sorted];
   }
 
-  if (@msbs) {
-    print $q->h2("MSBs observed on $utdate");
-    $comp->msb_comments_by_project(\@msbs);
+  return {
+      target => url_absolute($q),
+      target_base => $q->url(-absolute => 1),
+      telescopes => [$projdb->listTelescopes],
+      values => {
+          telescope => $telescope,
+          utdate => $utdate // OMP::DateTools->today,
 
-  } else {
-    print $q->h2("No MSBs observed on $utdate");
-  }
+      },
+      comment_msb_id_fields => $comment_msb_id_fields,
+      projects => $projects,
+      messages => $messages,
+  };
 }
 
 =back

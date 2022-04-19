@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -101,52 +101,6 @@ sub list_projects_form {
         semester => $sem,
     },
   }
-}
-
-=item B<proj_status_table>
-
-Creates an HTML table containing information relevant to the status of
-a project.
-
-  $comp->proj_status_table( $projectid );
-
-=cut
-
-sub proj_status_table {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  # Get the project details
-  my $project = OMP::ProjServer->projectDetails( $projectid,
-                                                 'object' );
-
-  # Link to the science case
-  my $url = OMP::Config->getData( 'cgidir' );
-  my $case_href = qq[<a href="$url/props.pl?project=$projectid">Science Case</a>];
-
-  # Get the CoI email(s)
-  my $coiemail = join(", ",map{
-    OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
-      affiliation => $_->affiliation(),
-      access => $project->omp_access($_->userid))
-    } $project->coi);
-
-  # Get the support
-  my $supportemail = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
-
-  print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
-        "<tr>",
-        "<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation(), access => $project->omp_access($project->pi->userid))."</td>",
-        "<td><b>Title:</b> " . $project->title . "</td>",
-        "<td> $case_href </td></tr>",
-        "<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
-        "<td><b>Staff Contact:</b> $supportemail</td></tr>",
-        "<tr><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
-        "<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
-        "<td><b>Queue:</b>" . $project->country . "</td></tr>",
-        "</table><p>";
 }
 
 =item B<proj_sum_table>
