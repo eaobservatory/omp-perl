@@ -40,19 +40,10 @@ Creates a page allowing the user to select the queue status viewing options.
 sub view_queue_status {
     my $self = shift;
 
-    return $self->_show_input_page({});
-}
-
-=item B<view_queue_status_output>
-
-Outputs the queue status plot.
-
-=cut
-
-sub view_queue_status_output {
-    my $self = shift;
-
     my $q = $self->cgi;
+
+    return $self->_show_input_page({})
+        unless $q->param('submit_plot');
 
     my %opt = (telescope => $telescope);
 

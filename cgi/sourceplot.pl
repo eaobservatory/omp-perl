@@ -17,7 +17,7 @@ use OMP::CGIPage::SourcePlot;
 
 OMP::CGIPage::SourcePlot->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::SourcePlot::view_source_plot,
-    \&OMP::CGIPage::SourcePlot::view_source_plot_output,
+    undef,
     'staff',
     title => 'Source Plot',
     template => 'source_plot.html');

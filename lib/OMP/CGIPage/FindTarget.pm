@@ -38,17 +38,10 @@ Creates the find targets search page.
 sub find_targets {
     my $self = shift;
 
-    return $self->_show_input_page();
-}
+    my $q = $self->cgi;
 
-=item B<find_targets_output>
-
-Outputs the list of targets.
-
-=cut
-
-sub find_targets_output {
-    my $self = shift;
+    return $self->_show_input_page()
+        unless $q->param('submit_find');
 
     return {
         %{$self->_show_input_page()},

@@ -17,7 +17,7 @@ use OMP::CGIPage::QStatus;
 
 OMP::CGIPage::QStatus->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::QStatus::view_queue_status,
-    \&OMP::CGIPage::QStatus::view_queue_status_output,
+    undef,
     'staff',
     title => 'Queue Status',
     template => 'queue_status.html');

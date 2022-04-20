@@ -1056,15 +1056,12 @@ sub obs_comment_form {
               ),
     $q->hidden( -name => 'oid',
                 -value => scalar $q->param( 'oid' ),
-              ),
-    $q->hidden( -name => 'show_output',
-                -value => 1,
               )
               ;
 
   print "\n</td></tr>\n<tr><td colspan=\"2\">";
 
-  print $q->submit( -name => 'Submit Comment' );
+  print $q->submit( -name => 'submit_comment', -value => 'Submit comment' );
 
   print "</td></tr></table>\n";
 

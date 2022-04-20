@@ -108,24 +108,12 @@ Create a page with a form prompting for the semester to list projects for.
 sub list_projects {
   my $self = shift;
 
+  my $q = $self->cgi;
+
   my $comp = OMP::CGIComponent::Project->new(page => $self);
 
-  return $comp->list_projects_form(telescope => $telescope);
-}
-
-=item B<list_projects_output>
-
-Create a page with a project listing for given semester and a form.
-
-  $page->list_projects_output();
-
-=cut
-
-sub list_projects_output {
-  my $self = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
+  return $comp->list_projects_form(telescope => $telescope)
+      unless $q->param('submit_search');
 
   my $semester = $q->param('semester');
   my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));

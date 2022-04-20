@@ -16,8 +16,8 @@ BEGIN {
 use OMP::CGIPage::Fault;
 
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
-    'view_fault_content',
-    'view_fault_output',
+    'view_fault',
+    undef,
     'staff',
     title => 'View Fault',
     template => 'fault_view.html');

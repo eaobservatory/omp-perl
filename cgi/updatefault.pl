@@ -16,8 +16,8 @@ BEGIN {
 use OMP::CGIPage::Fault;
 
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
-    'update_fault_content',
-    'update_fault_output',
+    'update_fault',
+    undef,
     'staff',
     title => 'Update Fault',
     template => 'fault_file_edit.html');

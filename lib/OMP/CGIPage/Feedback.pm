@@ -35,21 +35,31 @@ $| = 1;
 
 =over 4
 
-=item B<add_comment_content>
+=item B<add_comment>
 
-Creates a page with a comment form.
+Creates a page with a comment form, or submits comment and creates
+a page saying it has done so.
 
-  $page->add_comment_content($projectid);
+  $page->add_comment($projectid);
 
 =cut
 
-sub add_comment_content {
+sub add_comment {
   my $self = shift;
   my $projectid = shift;
 
   my $q = $self->cgi;
 
   my $comp = new OMP::CGIComponent::Feedback(page => $self);
+
+  if ($q->param('submit_add')) {
+    return {
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      target => undef,
+      %{$comp->submit_fb_comment($projectid)},
+      num_comments => $comp->fb_entries_count($projectid),
+    };
+  }
 
   return {
     project => OMP::ProjServer->projectDetails($projectid, 'object'),
@@ -60,28 +70,6 @@ sub add_comment_content {
         subject => (scalar $q->param('subject')),
     },
     messages => [],
-    num_comments => $comp->fb_entries_count($projectid),
-  };
-}
-
-=item B<add_comment_output>
-
-Submits comment and creates a page saying it has done so.
-
-  $page->add_comment_output($projectid);
-
-=cut
-
-sub add_comment_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $comp = new OMP::CGIComponent::Feedback(page => $self);
-
-  return {
-    project => OMP::ProjServer->projectDetails($projectid, 'object'),
-    target => undef,
-    %{$comp->submit_fb_comment($projectid)},
     num_comments => $comp->fb_entries_count($projectid),
   };
 }

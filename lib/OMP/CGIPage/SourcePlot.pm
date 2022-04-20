@@ -39,19 +39,11 @@ sub view_source_plot {
 
     my $q = $self->cgi;;
 
-    return $self->_show_inputpage({
-        proj => (scalar $q->param('project')),
-    });
-}
-
-=item B<view_source_plot_output>
-
-Outputs the source plot.
-
-=cut
-
-sub view_source_plot_output {
-    my $self = shift;
+    unless ($q->param('submit_plot')) {
+        return $self->_show_inputpage({
+            proj => (scalar $q->param('project')),
+        });
+    }
 
     my ($messages, $plot, $opt) = $self->_show_plot();
 

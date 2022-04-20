@@ -29,7 +29,8 @@ use base qw/OMP::CGIPage/;
 
 =item B<view_region>
 
-Creates a page allowing the user to select the output format for the regions.
+Creates a page allowing the user to select the output format for the regions,
+or outputs the region file.
 
 =cut
 
@@ -39,34 +40,23 @@ sub view_region {
 
   my $q = $self->cgi;
 
-  return {
-    title => 'Download or Plot Regions for ' . uc($projectid),
-    target => url_absolute($q),
-    selections => [
-      [all => 'All observations'],
-      [new => 'New observations'],
-      [progress => 'Observations in progress'],
-      [complete => 'Completed observations'],
-    ],
-    formats => [
-      [stcs => 'STC-S file'],
-      [ast => 'AST region file'],
-      [png => 'Plot as PNG image'],
-    ],
-  };
-}
-
-=item B<view_region_output>
-
-Outputs the region file.
-
-=cut
-
-sub view_region_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
+  unless ($q->param('submit_output')) {
+    return {
+      title => 'Download or Plot Regions for ' . uc($projectid),
+      target => url_absolute($q),
+      selections => [
+        [all => 'All observations'],
+        [new => 'New observations'],
+        [progress => 'Observations in progress'],
+        [complete => 'Completed observations'],
+      ],
+      formats => [
+        [stcs => 'STC-S file'],
+        [ast => 'AST region file'],
+        [png => 'Plot as PNG image'],
+      ],
+    };
+  }
 
   my %mime = (png => 'image/png',
               stcs => 'text/plain',
@@ -140,6 +130,8 @@ sub view_region_output {
   else {
     die 'Unrecognised format, not trapped by first check.';
   }
+
+  return undef;
 }
 
 =back

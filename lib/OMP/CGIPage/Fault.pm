@@ -75,7 +75,7 @@ sub fault_component {
 
 =item B<file_fault>
 
-Creates a page with a form for for filing a fault.
+Creates a page with a form for for filing a fault, or submit a fault.
 
   $page->file_fault($category, undef);
 
@@ -86,32 +86,17 @@ sub file_fault {
   my $category = shift;
   my $faultid = shift;
 
-  my $comp = $self->fault_component;
-
-  return {
-    title => $comp->category_title($category) . ': File Fault',
-    missing_fields => undef,
-    %{$comp->file_fault_form($category)},
-  };
-}
-
-=item B<file_fault_output>
-
-Submit a fault and create a page that shows the status of the submission.
-
-  $page->file_fault_output($category, undef);
-
-B<Note:> called with C<no_header> to allow redirect.
-
-=cut
-
-sub file_fault_output {
-  my $self = shift;
-  my $category = shift;
-  my $faultid = shift;
-
   my $q = $self->cgi;
+
   my $comp = $self->fault_component;
+
+  unless ($q->param('submit_file')) {
+    return {
+      title => $comp->category_title($category) . ': File Fault',
+      missing_fields => undef,
+      %{$comp->file_fault_form($category)},
+    };
+  }
 
   # Make sure all the necessary params were provided
   my %params = (Subject => "subject",
@@ -560,60 +545,30 @@ sub query_fault_output {
   }
 }
 
-=item B<view_fault_content>
+=item B<view_fault>
 
 Display a page showing a fault and providing a form for responding
-to the fault.
+to the fault, or process the view_fault_content "respond" and "close fault"
+forms.
 
-  $page->view_fault_content($category, $faultid);
+    $page->view_fault($category, $faultid);
 
 =cut
 
-sub view_fault_content {
+sub view_fault {
   my $self = shift;
   my $category = shift;
   my $faultid = shift;
-
-  my $q = $self->cgi;
-  my $comp = $self->fault_component;
 
   return $self->_write_error('Fault ID not specified.')
       unless $faultid;
 
-  # Got the fault ID, so display the fault
-  my $fault = OMP::FaultServer->getFault($faultid);
-
-  # Don't go any further if we got undef back instead of a fault
-  return $self->_write_error("Fault [$faultid] not found.")
-      unless $fault;
-
-  return {
-      title => $comp->category_title($category) . ': View Fault: ' . $faultid,
-      fault_info => $comp->fault_table($fault),
-      response_info => $comp->response_form(fault => $fault),
-      missing_fields => undef,
-  };
-}
-
-=item B<view_fault_output>
-
-Process the view_fault_content "respond" and "close fault" forms
-
-  $page->view_fault_output($category, $faultid);
-
-B<Note:> called with C<no_header> to allow redirect.
-
-=cut
-
-sub view_fault_output {
-  my $self = shift;
-  my $category = shift;
-  my $faultid = shift;
-
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
   my $fault = OMP::FaultServer->getFault($faultid);
+  return $self->_write_error("Fault [$faultid] not found.")
+      unless $fault;
 
   if ($q->param('respond')) {
     # Make sure all the necessary params were provided
@@ -718,19 +673,29 @@ sub view_fault_output {
       return $self->_write_error("This fault already has a status of \"" . $fault->statusText . "\"");
     }
   }
+  else {
+    return {
+        title => $comp->category_title($category) . ': View Fault: ' . $faultid,
+        fault_info => $comp->fault_table($fault),
+        response_info => $comp->response_form(fault => $fault),
+        missing_fields => undef,
+    };
+  }
 
   return $self->_write_redirect("/cgi-bin/viewfault.pl?fault=$faultid");
 }
 
 =item B<update_fault_content>
 
-Display a page with a form for updating fault details
+Display a page with a form for updating fault details, or
+Take parameters from the fault update page and update
+the fault.
 
   $page->update_fault_content($category, $faultid);
 
 =cut
 
-sub update_fault_content {
+sub update_fault {
   my $self = shift;
   my $category = shift;
   my $faultid = shift;
@@ -744,34 +709,13 @@ sub update_fault_content {
   # Get the fault
   my $fault = OMP::FaultServer->getFault($faultid);
 
-  return {
-      title => $comp->category_title($category) . ': Update Fault ['. $faultid .']',
-      missing_fields => undef,
-      %{$comp->file_fault_form($fault->category, fault => $fault)},
+  unless ($q->param('submit_update')) {
+      return {
+          title => $comp->category_title($category) . ': Update Fault ['. $faultid .']',
+          missing_fields => undef,
+          %{$comp->file_fault_form($fault->category, fault => $fault)},
+      }
   }
-}
-
-=item B<update_fault_output>
-
-Take parameters from the fault update content page and update
-the fault.
-
-  $page->update_fault_output($category, $faultid);
-
-B<Note:> called with C<no_header> to allow redirect.
-
-=cut
-
-sub update_fault_output {
-  my $self = shift;
-  my $category = shift;
-  my $faultid = shift;
-
-  my $q = $self->cgi;
-  my $comp = $self->fault_component;
-
-  # Get the original fault
-  my $fault = OMP::FaultServer->getFault($faultid);
 
   # Get new properties
   my %newdetails = $comp->parse_file_fault_form($category);
@@ -836,15 +780,16 @@ sub update_fault_output {
   $self->_write_error("No changes were made");
 }
 
-=item B<update_resp_content>
+=item B<update_resp>
 
-Create a form for updating fault details
+Create a form for updating fault details, or submit changes
+to a fault response.
 
-  $page->update_resp_content($category, $faultid);
+    $page->update_resp($category, $faultid);
 
 =cut
 
-sub update_resp_content {
+sub update_resp {
   my $self = shift;
   my $category = shift;
   my $faultid = shift;
@@ -865,30 +810,15 @@ sub update_resp_content {
       "Unable to retrieve fault with ID [$faultid]")
       unless $fault;
 
-  return {
-      title => $comp->category_title($category)
-          . ': Update Response [' . $faultid . ']',
-      response_info => $comp->response_form(
-          fault => $fault, respid => $respid),
-  };
-}
+  unless ($q->param('respond')) {
+      return {
+          title => $comp->category_title($category)
+              . ': Update Response [' . $faultid . ']',
+          response_info => $comp->response_form(
+              fault => $fault, respid => $respid),
+      };
+  }
 
-=item B<update_resp_output>
-
-Submit changes to a fault response.
-
-  $page->update_resp_output($category, $faultid);
-
-=cut
-
-sub update_resp_output {
-  my $self = shift;
-  my $category = shift;
-  my $faultid = shift;
-
-  my $q = $self->cgi;
-
-  my $respid = $q->param('respid');
   my $text = $q->param('text');
 
   # Prepare the text
@@ -901,9 +831,6 @@ sub update_resp_output {
 
   # Strip out ^M
   $text =~ s/\015//g;
-
-  # Get the fault
-  my $fault = OMP::FaultServer->getFault($faultid);
 
   # Get the response object
   my $response = OMP::FaultUtil->getResponse($respid, $fault);

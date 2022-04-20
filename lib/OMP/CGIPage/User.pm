@@ -307,23 +307,21 @@ sub edit_details {
 sub add_user {
     my $self = shift;
 
-    return $self->_add_user_form(undef);
-}
-
-sub add_user_output {
-    my $self = shift;
-
     my $q = $self->cgi;
 
-    my $userid = $q->param('new_user_id');
-    my $message = $self->_add_user_try(
-        $userid,
-        (scalar $q->param('new_user_name')),
-        (scalar $q->param('new_user_email')));
+    if ($q->param('submit_add')) {
+        my $userid = $q->param('new_user_id');
+        my $message = $self->_add_user_try(
+            $userid,
+            (scalar $q->param('new_user_name')),
+            (scalar $q->param('new_user_email')));
 
-    return $self->_add_user_form($message) if defined $message;
+        return $self->_add_user_form($message) if defined $message;
 
-    return $self->_write_redirect("/cgi-bin/userdetails.pl?user=$userid");
+        return $self->_write_redirect("/cgi-bin/userdetails.pl?user=$userid");
+    }
+
+    return $self->_add_user_form(undef);
 }
 
 sub _add_user_form {

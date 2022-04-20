@@ -172,11 +172,10 @@
         <tr>
             <td colspan="2" align="right">
                 [% IF fault.defined %]
-                    <input type="submit" name="submit" value="Submit changes" />
+                    <input type="submit" name="submit_update" value="Submit changes" />
                 [% ELSE %]
-                    <input type="submit" name="submit" value="Submit fault" />
+                    <input type="submit" name="submit_file" value="Submit fault" />
                 [% END %]
-                <input type="hidden" name="show_output" value="true" />
                 [% IF fault.defined %]
                     <input type="hidden" name="status" value="[% values.status | html %]" />
                 [% END %]

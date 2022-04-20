@@ -91,7 +91,6 @@
                                             <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
                                         [% END %]
                                     </select>
-                                    <input type="hidden" name="show_output" value="true"/>
                                     <input type="submit" name="change_status" value="Change"/>
                                 </form>
                             [% ELSE %]
@@ -195,7 +194,6 @@
             <tr>
                 <td colspan="2" align="right">
                     <input type="submit" name="respond" value="[% info.values.submitlabel | html %]" />
-                    <input type="hidden" name="show_output" value="true" />
                     [% IF info.response.defined %]
                         <input type="hidden" name="respid" value="[% info.response.id | html %]" />
                     [% END %]

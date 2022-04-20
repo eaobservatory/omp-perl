@@ -17,7 +17,7 @@ use OMP::CGIPage::User;
 
 OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::add_user,
-    \&OMP::CGIPage::User::add_user_output,
+    undef,
     'staff',
     title => 'New User',
     template => 'user_add.html');

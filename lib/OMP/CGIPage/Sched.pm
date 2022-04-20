@@ -129,13 +129,15 @@ sub _sched_view_edit_info {
     return ($tel, $semester, $start, $end);
 }
 
-=item B<sched_edit_content>
+=item B<sched_edit>
 
-Creates the page containing a form for editing a schedule.
+Creates the page containing a form for editing a schedule, and
+processes updates to the schedule.  Should redirect back to the schedule
+viewing page in the case of successful edit.
 
 =cut
 
-sub sched_edit_content {
+sub sched_edit {
     my $self = shift;
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
@@ -143,71 +145,56 @@ sub sched_edit_content {
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
-    my $queue_info = $db->get_sched_queue_info(tel => $tel);
+
+    my $q = $self->cgi;
+
+    if ($q->param('submit_save')) {
+        # The existing schedule for the given semester will give
+        # us lists of dates (and slot times) so that we know which form
+        # parameters to read.
+
+        foreach my $day (@$sched) {
+            my $date_str = $day->date()->strftime('%Y-%m-%d');
+
+            my $queue = _str_or_undef(scalar $q->param('queue_' . $date_str));
+            $day->queue($queue);
+            $day->staff_op(_str_or_undef(scalar $q->param('staff_op_' . $date_str)));
+            $day->staff_eo(_str_or_undef(scalar $q->param('staff_eo_' . $date_str)));
+            $day->staff_it(_str_or_undef(scalar $q->param('staff_it_' . $date_str)));
+            $day->notes(_str_or_undef(scalar $q->param('notes_' . $date_str)));
+            $day->notes_private((scalar $q->param('notes_private_' . $date_str)) ? 1 : 0);
+            $day->holiday((scalar $q->param('holiday_' . $date_str)) ? 1 : 0);
+
+            my @slots = ();
+            for my $slot_option (@{$day->slots_full()}) {
+                my $slot_queue = _str_or_undef(scalar $q->param(
+                    'queue_' . $date_str . $slot_option->{'time'}->strftime('_%H-%M-%S')));
+                push @slots, new OMP::Info::Sched::Slot(
+                    telescope => $tel,
+                    date => $day->date(),
+                    time => $slot_option->{'time'},
+                    queue => $slot_queue,
+                ) if defined $slot_queue
+                    and not ((defined $queue) and ($slot_queue eq $queue));
+            }
+            $day->slots(\@slots);
+        }
+
+        $db->update_schedule($sched);
+
+        return $self->_write_redirect("sched.pl?tel=$tel&semester=$semester");
+    }
 
     return {
         title => "Edit $tel Schedule $semester",
         schedule => $sched,
         slot_times => [map {($_->{'time'} + 14 * ONE_HOUR)->strftime('%H:%M')} @{$sched->[0]->slots_full()}],
-        queue_info => $queue_info,
+        queue_info => $db->get_sched_queue_info(tel => $tel),
         is_staff => 1,
         is_edit => 1,
         telescope => $tel,
         semester => $semester,
     };
-}
-
-=item B<sched_edit_output>
-
-Processes updated to the schedule.  Should redirect back to the schedule
-viewing page if successful.
-
-=cut
-
-sub sched_edit_output {
-    my $self = shift;
-
-    my $q = $self->cgi;
-
-    my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
-
-    # Fetch the existing schedule for the given semester: this will give
-    # us lists of dates (and slot times) so that we know which form
-    # parameters to read.
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
-
-    my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
-
-    foreach my $day (@$sched) {
-        my $date_str = $day->date()->strftime('%Y-%m-%d');
-
-        my $queue = _str_or_undef(scalar $q->param('queue_' . $date_str));
-        $day->queue($queue);
-        $day->staff_op(_str_or_undef(scalar $q->param('staff_op_' . $date_str)));
-        $day->staff_eo(_str_or_undef(scalar $q->param('staff_eo_' . $date_str)));
-        $day->staff_it(_str_or_undef(scalar $q->param('staff_it_' . $date_str)));
-        $day->notes(_str_or_undef(scalar $q->param('notes_' . $date_str)));
-        $day->notes_private((scalar $q->param('notes_private_' . $date_str)) ? 1 : 0);
-        $day->holiday((scalar $q->param('holiday_' . $date_str)) ? 1 : 0);
-
-        my @slots = ();
-        for my $slot_option (@{$day->slots_full()}) {
-            my $slot_queue = _str_or_undef(scalar $q->param(
-                'queue_' . $date_str . $slot_option->{'time'}->strftime('_%H-%M-%S')));
-            push @slots, new OMP::Info::Sched::Slot(
-                telescope => $tel,
-                date => $day->date(),
-                time => $slot_option->{'time'},
-                queue => $slot_queue,
-            ) if defined $slot_queue
-                and not ((defined $queue) and ($slot_queue eq $queue));
-        }
-        $day->slots(\@slots);
-    }
-
-    $db->update_schedule($sched);
-
-    print $q->redirect("sched.pl?tel=$tel&semester=$semester");
 }
 
 sub sched_view_queue_stats {

@@ -72,44 +72,12 @@ sub file_comment {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
-#print "calling file_comment<br>\n";
+  if ($q->param('submit_comment')) {
+    # Insert the comment into the database.
+    $comp->obs_add_comment();
+  }
+
   # Get the Info::Obs object
-  my $obs = $comp->cgi_to_obs();
-
-  # Print a summary about the observation.
-  $comp->obs_summary( $obs, $projectid );
-
-  # Display a form for adding a comment.
-  $comp->obs_comment_form( $obs, $projectid );
-
-  # Print a footer
-  $comp->print_obscomment_footer();
-
-}
-
-=item B<file_comment_output>
-
-Submit a comment and create a page with a form for filing a comment.
-
-  $page->file_comment_output( [$projectid] );
-
-The parameter C<$projectid> is given from C<fbobscomment.pl>
-but not C<staffobscomment.pl>.
-
-=cut
-
-sub file_comment_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
-
-  # Insert the comment into the database.
-  $comp->obs_add_comment();
-
-  # Get the updated Info::Obs object.
   my $obs = $comp->cgi_to_obs();
 
   # Print a summary about the observation.
