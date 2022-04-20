@@ -984,9 +984,6 @@ sub _write_page_extra {
         undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');
     }
 
-    $self->rss_feed({title => 'OMP Fault System (last 24 hours)',
-                     href => 'faultrss.pl'});
-
     $self->_sidebar_fault($cat);
 
     unless ((defined $cat)) {
