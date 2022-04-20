@@ -163,66 +163,6 @@ sub replace_entity {
   return $string;
 }
 
-=item B<userhtml>
-
-Returns html for a hyperlink to the user details page for a user.  Also
-displays an icon next to the hyperlink indicating whether or not the user
-receieves project emails.
-
-  $html = OMP::Display->userhtml($user, $cgi, $getemails, $projectid, %opts);
-
-First argument should be an C<OMP::User> object.  Second argument
-should be an C<OMP::CGI> object.  If the optional third
-argument is non-zero a "receives email" icon is displayed; if 0 an
-"ignores email" icon is displayed.  If undefined no icon is displayed.  Finally,
-If the third argument is defined the fourth argument, a project ID, is required.
-Thank you and goodnight!
-
-=cut
-
-sub userhtml {
-  my $self = shift;
-  my $user = shift;
-  my $cgi = shift;
-  my $emailstatus = shift;
-  my $project = shift;
-  my %opt = @_;
-  if (defined $emailstatus and ! defined $project) {
-    $emailstatus = undef;
-  }
-
-  my $cgidir = OMP::Config->getData('cgidir');
-  my $iconsdir = OMP::Config->getData('iconsdir');
-
-  my $url = $cgidir . "/userdetails.pl?user=" . $user->userid;
-  my $html = qq(<a href="$url">$user</a>);
-
-  # Append email status icon
-  if (defined $emailstatus) {
-
-    my @mail = $emailstatus ? ( 'mail.gif',  'receives email' )
-                : ( 'nomail.gif',  'ignores email' ) ;
-
-   $html .=
-    sprintf
-      qq( <a href="%s/projusers.pl?project=%s"><img src="%s" alt="%s" border="0"></a>),
-      $cgidir,
-      $project,
-      join( '/', $iconsdir, $mail[0] ),
-      $mail[1] ;
-  }
-
-  if ((exists $opt{'affiliation'}) and (defined $opt{'affiliation'})) {
-    $html .= '<small>(' . $opt{'affiliation'} . ')</small>';
-  }
-
-  if ((exists $opt{'access'}) and $opt{'access'}) {
-    $html .= ' &#x2605;';
-  }
-
-  return $html;
-}
-
 =back
 
 =head1 AUTHORS
