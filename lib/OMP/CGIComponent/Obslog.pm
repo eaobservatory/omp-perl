@@ -1013,7 +1013,7 @@ sub cgi_to_obs {
   my $obsid   = _cleanse_query_value( $q, 'oid',     $verify );
 
   # Form the Time::Piece object
-  my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
+  $ut = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
 
   # Get the telescope.
   my $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
@@ -1022,14 +1022,14 @@ sub cgi_to_obs {
   my $obs;
   if( $timegap ) {
     $obs = new OMP::Info::Obs::TimeGap( runnr => $runnr,
-                                        startobs => $startobs,
+                                        endobs => $ut,
                                         instrument => $inst,
                                         telescope => $telescope,
                                         obsid     => $obsid,
                                       );
   } else {
     $obs = new OMP::Info::Obs( runnr => $runnr,
-                               startobs => $startobs,
+                               startobs => $ut,
                                instrument => $inst,
                                telescope => $telescope,
                                obsid     => $obsid,

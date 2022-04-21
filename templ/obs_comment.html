@@ -9,13 +9,15 @@
         [% obs.runnr - 1 | html %]
         and
         [% obs.runnr | html %]
+        on
+        [% obs.endobs.ymd | html %]
     [% ELSE %]
         [% obs.instrument | html %]
         observation
         [% obs.runnr | html %]
+        on
+        [% obs.startobs.ymd | html %]
     [% END %]
-    on
-    [% obs.startobs.ymd | html %]
 </h1>
 
 [% UNLESS is_time_gap %]
