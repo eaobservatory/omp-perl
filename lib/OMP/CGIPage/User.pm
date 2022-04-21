@@ -138,6 +138,12 @@ sub details {
   my %faults;
   map {push @{$faults{$_->category}}, $_} @$faults;
 
+  $self->side_bar(
+      'User ' . $user->name,
+      [
+          ['Update details' => '/cgi-bin/update_user.pl?user=' . $user->userid],
+      ]);
+
   return {
     user => $user,
     hedwig_ids => \@hedwigids,
@@ -394,6 +400,32 @@ sub _add_user_try {
     };
 
     return $message;
+}
+
+=item B<_write_page_extra>
+
+Method to prepare extra information for the L<write_page> system,
+currently just the user database sidebar.
+
+=cut
+
+sub _write_page_extra {
+    my $self = shift;
+
+    $self->_sidebar_user_database() if $self->auth->is_staff;
+
+    return {};
+}
+
+sub _sidebar_user_database {
+    my $self = shift;
+
+    $self->side_bar(
+        'User database',
+        [
+            ['All users' => '/cgi-bin/ompusers.pl'],
+            ['Add new user' => '/cgi-bin/add_user.pl'],
+        ]);
 }
 
 =back
