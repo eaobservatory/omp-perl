@@ -293,14 +293,14 @@ for "nocomments".  If "incjunk" is false, then junk observations
 are excluded.  Comments will be retrieved in this case in order
 for status to be determined.
 
-A "verbose" flag can be used to turn on message output. Default
-is false.
+A "message_sink" subroutine reference can be provided, and will be
+used to report informational messages.
 
 =cut
 
 sub populate {
   my $self = shift;
-  my %def = ( verbose => 0, sort => 1 );
+  my %def = ( message_sink => undef, sort => 1 );
   my %args = (%def, @_);
 
   my $retainhdr = 0;
@@ -440,11 +440,11 @@ sub populate {
   # run the query
   $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments, $search );
 
-  # Apply filter (with "verbose" if desired to generate message output).
+  # Apply filter (with "message_sink" if desired to generate message output).
   my %filter_args = (
     sort => (exists $args{timegap} && $args{timegap} ? 0 : $args{sort}),
     incjunk => $incjunk,
-    verbose => $args{verbose},
+    message_sink => $args{'message_sink'},
   );
 
   # If we are really looking for a single project plus calibrations we
@@ -497,10 +497,10 @@ by time of observations (default=1) or whether all calibrations
 observations should be listed before science observations (false).
 The latter is useful for pipelining.
 
-A "verbose" key can be used to control print statements to stdout.
-Default is false.
+A "message_sink" key can be used to provide a subroutine to handle
+informational messages.
 
-  $grp->filter( projectid => $projectid, verbose => 1 );
+  $grp->filter( projectid => $projectid, message_sink => sub {...} );
 
 =cut
 
@@ -543,8 +543,8 @@ sub filter {
       if ((not defined $projectid) or (uc($obs->projectid) eq $projectid)) {
         $instruments{uc($obs->instrument)}++; # Keep track of instrument
         $obsmodes{$obsmode}++; # Keep track of obsmode
-        print "SCIENCE:     " .$obs->instrument ."/".$obsmode
-              . " [".$obs->target ."]\n" if $args{verbose};
+        $args{'message_sink'}->("SCIENCE:     " .$obs->instrument ."/".$obsmode
+              . " [".$obs->target ."]") if $args{'message_sink'};
         push(@proj, $obs);
       }
     } elsif ($inccal) {
@@ -583,21 +583,21 @@ sub filter {
 
     }
 
-    # And print out calibration matches
+    # And log calibration matches
     # since we do not want to list a whole load of pointless calibrations
-    if ($args{verbose}) {
+    if ($args{'message_sink'}) {
       for my $obs (@cal) {
         my $obsmode = $obs->mode || $obs->type;
-        print "CALIBRATION: ". $obs->instrument ."/".$obsmode
-              . " [".$obs->target."]\n";
+        $args{'message_sink'}->("CALIBRATION: ". $obs->instrument ."/".$obsmode
+              . " [".$obs->target."]");
       }
     }
 
     # warn if we have cals but no science
-    if ($args{verbose} && scalar(@proj) == 0 && $ncal > 0) {
+    if ($args{'message_sink'} && scalar(@proj) == 0 && $ncal > 0) {
       my $instlist = join(",",keys %calinst);
       my $plural = (keys %calinst > 1 ? "s" : "");
-      print STDOUT "\nThis request matched calibrations but no science observations (calibrations for instrument$plural $instlist)\n..."
+      $args{'message_sink'}->("This request matched calibrations but no science observations (calibrations for instrument$plural $instlist)...");
     }
 
     # Store
