@@ -74,7 +74,7 @@ push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
 my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    fbcomment.pl fbfault.pl fblogout.pl
-                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
+                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
                    findtarget.pl
                    get_resource.pl
@@ -88,7 +88,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
-                   viewfault.pl worf_fits.pl worf_graphic.pl
+                   viewfault.pl worf_fits.pl
                    worf_image.pl worf_ndf.pl wwwobserved.pl
                    sched_edit.js /;
 
