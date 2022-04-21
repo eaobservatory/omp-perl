@@ -25,6 +25,7 @@ use Net::Domain qw/ hostfqdn /;
 use Time::Seconds qw/ ONE_DAY /;
 
 use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Shiftlog;
@@ -72,23 +73,34 @@ sub file_comment {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
+  my $messages;
   if ($q->param('submit_comment')) {
     # Insert the comment into the database.
-    $comp->obs_add_comment();
+    my $response = $comp->obs_add_comment();
+    $messages = $response->{'messages'};
   }
 
   # Get the Info::Obs object
   my $obs = $comp->cgi_to_obs();
 
-  # Print a summary about the observation.
-  $comp->obs_summary( $obs, $projectid );
+  # Verify that we do have an Info::Obs object.
+  if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
+    throw OMP::Error::BadArgs("Must supply an Info::Obs object");
+  }
 
-  # Display a form for adding a comment.
-  $comp->obs_comment_form( $obs, $projectid );
+  if( defined( $projectid ) &&
+      $obs->isScience && (lc( $obs->projectid ) ne lc( $projectid ) ) ) {
+    throw OMP::Error( "Observation does not match project " . $projectid );
+  }
 
-  # Print a footer
-  $comp->print_obscomment_footer();
-
+  return {
+      target => url_absolute($q),
+      obs => $obs,
+      is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
+      status_class => \%OMP::CGIComponent::Obslog::css,
+      messages => $messages,
+      %{$comp->obs_comment_form($obs, $projectid)},
+  };
 }
 
 =item B<list_observations_txt>

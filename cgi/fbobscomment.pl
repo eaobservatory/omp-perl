@@ -19,4 +19,5 @@ OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
     'file_comment',
     undef,
     'project',
-    title => 'Observation Log');
+    title => 'Observation Comment',
+    template => 'obs_comment.html');

@@ -1,0 +1,79 @@
+[% USE scalar -%]
+[% WRAPPER "layout.html" %]
+<h1>
+    Comment for
+    [% IF is_time_gap %]
+        time gap between
+        [% obs.instrument | html %]
+        observations
+        [% obs.runnr - 1 | html %]
+        and
+        [% obs.runnr | html %]
+    [% ELSE %]
+        [% obs.instrument | html %]
+        observation
+        [% obs.runnr | html %]
+    [% END %]
+    on
+    [% obs.startobs.ymd | html %]
+</h1>
+
+[% UNLESS is_time_gap %]
+    [% IF obs.obsid.defined %]
+        <p>
+            <b>Observation ID:</b>
+            [% obs.obsid %]
+        </p>
+    [% END %]
+[% END %]
+
+[% IF messages.defined && ! messages.empty %]
+    [% FOREACH message IN messages %]
+        <p>
+            [% message | html %]
+        </p>
+    [% END %]
+[% END %]
+
+[% SET comments = obs.scalar.comments %]
+
+[% IF comments %]
+    <table border="0" class="sum_table" width="600">
+    [% FOREACH comment IN comments %]
+        [% SET status = comment.status %]
+        <tr class="[% loop.odd ? 'row_a' : 'row_b' %]">
+            <td class="[% (status_class.exists(status) ? status_class.$status : 'obslog-good') | html %]">
+                <b>[% comment.date.cdate | html %]  UT / [% comment.author.name | html %]:</b>
+                [% FOREACH comment_line IN comment.text.split("\n") %]
+                    <br />
+                    [% comment_line | html %]
+                [% END %]
+            </td>
+        </tr>
+    [% END %]
+    </table>
+[% END %]
+
+<form method="post" action="[% target | url %]">
+    <table>
+        <tr>
+            <td>Author:</td>
+            <td>[% omp_user.name | html %]</td>
+        </tr>
+        <tr>
+            <td>Status:</td>
+            <td><select name="status">
+                [% FOREACH status IN statuses %]
+                    <option [% IF status.0 == obs.status %]selected="selected"[% END %] value="[% status.0 | html %]">[% status.1 | html %]</option>
+                [% END %]
+            </select></td>
+        </tr>
+        <tr>
+            <td colspan="2"><textarea name="text" rows="20" cols="78">[% IF comments %][% comments.-1.text | html %][% END %]</textarea></td>
+        </tr>
+        <tr>
+            <td colspan="2"><input type="submit" name="submit_comment" value="Submit comment" /></td>
+        </tr>
+    </table>
+</form>
+[% END %]

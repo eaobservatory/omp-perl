@@ -770,73 +770,6 @@ sub format_msb_comment {
   return @comment;
 }
 
-=item B<obs_summary>
-
-Prints a table containing a summary about a given observation
-
-  $comp->obs_summary( $obs, $projectid );
-
-The first argument is an C<Info::Obs> object and the second is the project ID.
-
-=cut
-
-sub obs_summary {
-  my $self = shift;
-  my $obs = shift;
-  my $projectid = shift;
-
-  my $cgi = $self->cgi;
-
-  # Verify that we do have an Info::Obs object.
-  if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
-    throw OMP::Error::BadArgs("Must supply an Info::Obs object");
-  }
-
-  if( defined( $projectid ) &&
-      $obs->isScience && (lc( $obs->projectid ) ne lc( $projectid ) ) ) {
-    throw OMP::Error( "Observation does not match project " . $projectid );
-  }
-
-  my @comments = $obs->comments;
-
-  print qq[<table width="600" border="0" class="sum_table">\n],
-    '<tr class="sum_table_head"><td><strong class="small_title">',
-    "Comment for ",
-    $obs->instrument;
-
-  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-    print " timegap between observations ";
-    print ( $obs->runnr - 1 );
-    print " and ";
-    print $obs->runnr;
-  } else {
-    print " observation ";
-    print $obs->runnr;
-    if (defined $obs->obsid) {
-       print " (".$obs->obsid.")";
-    }
-  }
-  print " on " . $obs->startobs->ymd;
-  print "</strong></td></tr></table>\n";
-
-  if( defined( $comments[0] ) ) {
-    print '<table border="0" class="sum_table" width="600">';
-
-    my $rowclass = 'row_a';
-    foreach my $comment (@comments) {
-      print '<tr class="$rowclass"><td class=';
-      my $string = '"';
-      $string .= ( defined( $css{$comment->status} ) ) ? $css{$comment->status} : 'obslog-good';
-      $string .= '"><strong>' . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-      $string .= "</strong> " . $comment->text;
-      $string =~ s/\n/\<br\>/g;
-      print $string . "</td></tr>";
-      $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
-    }
-    print "</table>\n";
-  }
-}
-
 =item B<obs_inst_summary>
 
 Prints a table summarizing observations taken for a telescope,
@@ -958,9 +891,10 @@ sub obs_inst_summary {
 
 =item B<obs_comment_form>
 
-Prints a form that is used to enter a comment about an observation.
+Returns information for a form that is used to enter a comment about
+an observation or time gap.
 
-  $comp->obs_comment_form( $obs, $projectid );
+    $values = $comp->obs_comment_form( $obs, $projectid );
 
 The first argument must be a an C<Info::Obs> object.
 
@@ -971,102 +905,25 @@ sub obs_comment_form {
   my $obs = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;
-
-  my @status_value = sort keys %status_label;
-
-  # Note that we want Unknown to appear at the end
-  my %timegap_label = ( OMP__TIMEGAP_INSTRUMENT() => 'Instrument',
-                        OMP__TIMEGAP_WEATHER() => 'Weather',
-                        OMP__TIMEGAP_FAULT() => 'Fault',
-                        OMP__TIMEGAP_NEXT_PROJECT() => 'Next Project',
-                        OMP__TIMEGAP_PREV_PROJECT() => 'Last Project',
-                        OMP__TIMEGAP_NOT_DRIVER() => 'Observer Not Driver',
-                        OMP__TIMEGAP_SCHEDULED() => 'Scheduled Downtime',
-                        OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue Overhead',
-                        OMP__TIMEGAP_LOGISTICS() => 'Logistics',
-                      );
-  my @timegap_value = sort(keys %timegap_label);
-  $timegap_label{OMP__TIMEGAP_UNKNOWN()} = "Unknown";
-  push(@timegap_value, OMP__TIMEGAP_UNKNOWN );
-
-  # Verify we have an Info::Obs object.
-  if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
-    throw OMP::Error::BadArgs("Must supply Info::Obs object");
-  }
-
-  if( defined( $projectid ) &&
-      $obs->isScience && lc( $projectid ) ne lc( $obs->projectid ) ) {
-    throw OMP::Error("The projectid for the observation (" . $obs->projectid . ") does not match the project you are logged in as (" . $projectid . ")");
-  }
-
-  print start_form_absolute($q);
-  print '<table border="0" width="100%"><tr><td width="20%">';
-  print "Author: </td><td>";
-  print $self->auth->user->userid;
-
-  print "</td></tr>\n";
-  print "<tr><td>Status: </td><td>";
-
-  my $status = $obs->status;
-  my $comments = $obs->comments;
-  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-
-    print $q->popup_menu( -name => 'status',
-                          -values => \@timegap_value,
-                          -labels => \%timegap_label,
-                          -default => $status,
-                        );
-  } else {
-
-    print $q->popup_menu( -name => 'status',
-                          -values => \@status_value,
-                          -labels => \%status_label,
-                          -default => $status,
-                        );
-  }
-
-  print "</td></tr>\n";
-  print '<tr><td colspan="2">';
-
-  print $q->textarea( -name => 'text',
-                      -rows => 20,
-                      -columns => 78,
-                      -default => ( defined( $comments ) && defined( $comments->[0] ) ?
-                                    $comments->[0]->text :
-                                    "" ),
-                    );
-
-  my $ut = $obs->startobs->ymd;
-  my $runnr = $obs->runnr;
-  my $instrument = $obs->instrument;
-  print
-    "\n", join "\n",
-    $q->hidden( -name => 'ut',
-                -value => $ut,
-              ),
-    $q->hidden( -name => 'runnr',
-                -value => $runnr,
-              ),
-    $q->hidden( -name => 'inst',
-                -value => $instrument,
-              ),
-    $q->hidden( -name => 'timegap',
-                -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
-              ),
-    $q->hidden( -name => 'oid',
-                -value => scalar $q->param( 'oid' ),
-              )
-              ;
-
-  print "\n</td></tr>\n<tr><td colspan=\"2\">";
-
-  print $q->submit( -name => 'submit_comment', -value => 'Submit comment' );
-
-  print "</td></tr></table>\n";
-
-  print $q->end_form;
-
+  return {
+    statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
+        ? [
+            [OMP__TIMEGAP_UNKNOWN() => 'Unknown'],
+            [OMP__TIMEGAP_INSTRUMENT() => 'Instrument'],
+            [OMP__TIMEGAP_WEATHER() => 'Weather'],
+            [OMP__TIMEGAP_FAULT() => 'Fault'],
+            [OMP__TIMEGAP_NEXT_PROJECT() => 'Next project'],
+            [OMP__TIMEGAP_PREV_PROJECT() => 'Last project'],
+            [OMP__TIMEGAP_NOT_DRIVER() => 'Observer not driver'],
+            [OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime'],
+            [OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead'],
+            [OMP__TIMEGAP_LOGISTICS() => 'Logistics'],
+        ]
+        : [map {
+            [$_ => $status_label{$_}]
+        } sort keys %status_label]
+    ),
+  };
 }
 
 =item B<obs_add_comment>
@@ -1100,9 +957,9 @@ sub obs_add_comment {
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
   $odb->addComment( $comment, $obs );
 
-  # Display congratulatory message.
-  print "Comment successfully stored in database.<br>\n";
-
+  return {
+    messages => ['Comment successfully stored in database.'],
+  };
 }
 
 =item B<cgi_to_obs>
@@ -1112,7 +969,7 @@ Return an C<Info::Obs> object.
   $obs = $comp->cgi_to_obs( );
 
 In order for this method to work properly, the parent page's C<CGI> object
-must have the following variables:
+must have the following URL parameters:
 
 =over 8
 
@@ -1180,11 +1037,8 @@ sub cgi_to_obs {
   }
 
   # Comment-ise the Info::Obs object.
-  my @obs;
-  push @obs, $obs;
   my $db = new OMP::ObslogDB( DB => new OMP::DBbackend );
-  $db->updateObsComment( \@obs );
-  $obs = $obs[0];
+  $db->updateObsComment([$obs]);
 
   # And return the Info::Obs object.
   return $obs;
@@ -1379,25 +1233,9 @@ sub print_obslog_footer {
   my $self = shift;
 }
 
-=item B<print_obscomment_footer>
-
-Prints a footer.
-
-  $comp->print_obscomment_footer( );
-
-The only argument is the C<CGI> object.
-
-Currently a no-op.
-
-=cut
-
-sub print_obscomment_footer {
-  my $self = shift;
-}
-
 =item B<_cleanse_query_value>
 
-Returns the cleansed query parameter value given a CGI object, query
+Returns the cleansed URL parameter value given a CGI object,
 parameter name, and a hash reference of parameter names as keys &
 compiled regexen (capturing a value to be returned) as values.
 
@@ -1411,7 +1249,7 @@ sub _cleanse_query_value {
 
   my ( $q, $key, $verify ) = @_;
 
-  my $val = $q->param( $key );
+  my $val = $q->url_param( $key );
 
   return
     unless defined $val
