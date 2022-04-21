@@ -26,7 +26,7 @@ graphs) which may be included by the included HTML.
 use strict;
 use warnings;
 
-use CGI qw/header/;
+use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use IO::File;
 
@@ -157,12 +157,12 @@ sub _get_resource_ut {
   my $pathname = join('/', $directory, $utdate, $filename);
 
   unless (-e $pathname) {
-    print header(-status => '404 Not Found');
+    print $self->cgi->header(-status => '404 Not Found');
     print '<h1>404 Not Found</h1>';
     return;
   }
 
-  print header(-type => (exists $mime{$extension})
+  print $self->cgi->header(-type => (exists $mime{$extension})
                                   ? $mime{$extension}
                                   : 'application/octet-stream');
 

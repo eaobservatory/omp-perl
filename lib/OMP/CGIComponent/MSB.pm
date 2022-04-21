@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use Time::Seconds qw(ONE_HOUR);
-use CGI qw/ :html *Tr *td /;
+use CGI;
 
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Constants qw(:done);

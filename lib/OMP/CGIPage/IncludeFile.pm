@@ -17,7 +17,7 @@ OMP::CGIPage::IncludeFile - Include HTML fragments into OMP pages
 use strict;
 use warnings;
 
-use CGI qw/header/;
+use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use IO::File;
 
