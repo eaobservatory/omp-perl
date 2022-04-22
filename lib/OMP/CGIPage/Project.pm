@@ -435,9 +435,7 @@ dirloop:
   } else {
     # Proposal file not found
 
-    print $q->header;
-
-    print "<h2>Proposal file not available</h2>";
+    return $self->_write_error("Proposal file not available.");
   }
 }
 
