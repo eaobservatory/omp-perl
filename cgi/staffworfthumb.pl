@@ -38,4 +38,5 @@ OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(
     'thumbnails_page',
     undef,
     'local_or_staff',
-    title => 'WORF: WWW Observing Remotely Facility');
+    title => 'WORF: WWW Observing Remotely Facility',
+    template => 'worf_thumb.html');

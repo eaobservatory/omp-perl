@@ -41,4 +41,5 @@ OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(
     'display_page',
     undef,
     'project',
-    title => 'WORF: WWW Observing Remotely Facility');
+    title => 'WORF: WWW Observing Remotely Facility',
+    template => 'worf_display.html');

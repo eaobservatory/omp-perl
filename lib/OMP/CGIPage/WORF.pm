@@ -18,6 +18,7 @@ WORF web pages.
 use strict;
 use warnings;
 
+use Capture::Tiny qw/capture_stdout/;
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 use Net::Domain qw/ hostfqdn /;
@@ -36,6 +37,11 @@ use base qw/OMP::CGIPage/;
 =cut
 
 sub display_page {
+  my $self = shift;
+  return {content_html => capture_stdout {$self->_display_page(@_);}};
+}
+
+sub _display_page {
   my $self = shift;
   my $projectid = shift;
 
@@ -214,6 +220,11 @@ sub display_page {
 }
 
 sub thumbnails_page {
+  my $self = shift;
+  return {content_html => capture_stdout {$self->_thumbnails_page(@_);}};
+}
+
+sub _thumbnails_page {
   my $self = shift;
   my $projectid = shift;
 
