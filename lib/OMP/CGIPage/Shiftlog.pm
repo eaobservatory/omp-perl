@@ -72,7 +72,8 @@ sub shiftlog_page {
       return $self->_write_redirect(url_absolute($q));
   }
 
-  $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'});
+  $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'})
+    unless defined $projectid;
 
   return {
       target => url_absolute($q),
