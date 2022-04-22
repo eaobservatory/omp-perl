@@ -905,6 +905,9 @@ sub _reorganize_msb_done {
   my $self = shift;
   my $rows = shift;
 
+  my $udb = new OMP::UserDB(DB => $self->db);
+  my $users = $udb->getUserMultiple([keys %{{map {$_->{'userid'} => 1} grep {$_->{'userid'}} @$rows}}]);
+
   # Now need to go through all the rows forming the
   # data structure (need to organize the data structure
   # before forming the (optional) xml output)
@@ -926,7 +929,7 @@ sub _reorganize_msb_done {
                    tid => $row->{msbtid},);
 
     # Specify comment author if there is one
-    ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
+    ($row->{userid}) and $details{author} = $users->{$row->{userid}};
 
     # See if we've met this MSB already.  Organize by project
     # and checksum since checksum alone is not always unique.

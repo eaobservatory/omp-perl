@@ -196,6 +196,31 @@ sub getUser {
 
 }
 
+=item B<getUserMultiple>
+
+Method to retrieve multiple user records simultaneously.
+This is intended to be used when matching with retrieve database entries,
+so no fallback to alias is performed.  Returns a reference to a hash
+by user ID.
+
+    \%result = $db->getUserMultiple(\@user_ids);
+
+=cut
+
+sub getUserMultiple {
+  my $self = shift;
+  my $usernames = shift;
+
+  # Avoid fetching everyone if no-one is specified.
+  return {} unless @$usernames;
+
+  return {map {$_->userid => $_} $self->queryUsers(
+    new OMP::UserQuery(XML => join '',
+        '<UserQuery>',
+        (map {'<userid>'.$_.'</userid>'} @$usernames),
+        '</UserQuery>'))};
+}
+
 =item B<getUserExpensive>
 
 Returns a list of C<OMP::User> objects, given at least one of user

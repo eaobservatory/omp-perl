@@ -534,6 +534,7 @@ sub _reorganize_comments {
 
   # Connect to the user database
   my $db = new OMP::UserDB( DB => $self->db );
+  my $users = $db->getUserMultiple([keys %{{map {$_->{'commentauthor'} => 1} @$rows}}]);
 
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
@@ -559,7 +560,7 @@ sub _reorganize_comments {
       }
     }
 
-    my $comment = new OMP::Info::Comment(
+    push @return, new OMP::Info::Comment(
                 text => $row->{commenttext},
                 date => $date,
                 status => $row->{commentstatus},
@@ -568,13 +569,8 @@ sub _reorganize_comments {
                 telescope => $row->{telescope},
                 startobs => $startobs,
                 obsid => $obsid,
+                author => $users->{$row->{'commentauthor'}},
               );
-
-    # Retrieve the user information so we can create the author
-    # property.
-    my $author = $db->getUser( $row->{commentauthor} );
-    $comment->author($author);
-    push @return, $comment;
   }
 
   return @return;
