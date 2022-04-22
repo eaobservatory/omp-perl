@@ -17,7 +17,6 @@ use OMP::CGIPage::Fault;
 
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'update_resp',
-    undef,
     'staff',
     title => 'Update Response',
     template => 'fault_response_edit.html');

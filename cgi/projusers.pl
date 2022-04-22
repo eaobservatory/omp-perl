@@ -17,7 +17,6 @@ use OMP::CGIPage::Project;
 
 OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::project_users,
-    undef,
     'project',
     title => 'Project Contacts',
     template => 'project_contacts.html');

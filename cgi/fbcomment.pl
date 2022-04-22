@@ -17,7 +17,6 @@ use OMP::CGIPage::Feedback;
 
 OMP::CGIPage::Feedback->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Feedback::add_comment,
-    undef,
     'project',
     title => 'Add Feedback Comment',
     template => 'project_comment.html');

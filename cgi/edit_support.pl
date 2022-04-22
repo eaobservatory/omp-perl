@@ -17,7 +17,6 @@ use OMP::CGIPage::Project;
 
 OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::support,
-    undef,
     'staff',
     title => 'Edit support contacts',
     template => 'project_support.html');

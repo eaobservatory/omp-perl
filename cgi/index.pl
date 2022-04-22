@@ -17,7 +17,6 @@ use OMP::CGIPage::Home;
 
 OMP::CGIPage::Home->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Home::home_page_view,
-    undef,
     'no_auth',
     title => 'OMP@EAO: Observation Management Project @ East Asian Observatory',
     template => 'index.html');

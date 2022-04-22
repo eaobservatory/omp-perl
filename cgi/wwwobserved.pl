@@ -17,7 +17,6 @@ use OMP::CGIPage::MSB;
 
 OMP::CGIPage::MSB->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::MSB::observed,
-    undef,
     'staff',
     title => 'MSB Summary',
     template => 'msb_history.html');

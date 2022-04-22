@@ -17,7 +17,6 @@ use OMP::CGIPage::ObsReport;
 
 OMP::CGIPage::ObsReport->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::ObsReport::night_report,
-    undef,
     'local_or_staff',
     title => 'Observing Report',
     template => 'obs_log.html');

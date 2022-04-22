@@ -17,7 +17,6 @@ use OMP::CGIPage::User;
 
 OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::edit_details,
-    undef,
     'staff',
     title => 'Edit User Details',
     template => 'user_edit.html');

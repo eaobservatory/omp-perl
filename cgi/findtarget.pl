@@ -17,7 +17,6 @@ use OMP::CGIPage::FindTarget;
 
 OMP::CGIPage::FindTarget->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::FindTarget::find_targets,
-    undef,
     'staff',
     title => 'Find Target',
     template => 'find_target.html');

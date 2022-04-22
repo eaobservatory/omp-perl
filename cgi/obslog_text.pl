@@ -17,6 +17,5 @@ use OMP::CGIPage::Obslog;
 
 OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
     'list_observations_txt',
-    undef,
     'project',
-    no_header => 1);
+);

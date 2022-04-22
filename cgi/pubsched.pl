@@ -17,7 +17,6 @@ use OMP::CGIPage::Sched;
 
 OMP::CGIPage::Sched->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Sched::public_sched_view,
-    undef,
     'no_auth',
     title => 'Telescope Schedule',
     template => 'sched_view_edit.html');
