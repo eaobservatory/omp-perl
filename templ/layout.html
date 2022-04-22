@@ -38,7 +38,7 @@
                 <p>[% side_bar.title | html %]</p>
                 <ul>
                     [% FOREACH entry = side_bar.entries %]
-                        <li><a href="[% entry.1 %]">[% entry.0 %]</a>[% IF entry.2.defined %] [% entry.2 | html %][% END %]</li>
+                        <li><a href="[% entry.1 | html %]">[% entry.0 | html %]</a>[% IF entry.2.defined %] [% entry.2 | html %][% END %]</li>
                     [% END %]
                     [% IF side_bar.options.fault_id_panel %]
                         <li>&nbsp;</li>
