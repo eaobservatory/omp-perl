@@ -231,6 +231,8 @@ sub observed {
     } sort keys %sorted];
   }
 
+  $self->_sidebar_night($telescope, $utdate);
+
   return {
       target => url_absolute($q),
       target_base => $q->url(-absolute => 1),

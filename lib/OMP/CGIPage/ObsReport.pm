@@ -166,6 +166,8 @@ sub night_report {
   # ['seeing', 'UKIRT K-band seeing', $weathercomp->seeing_plot($utdate)],
   # ['extinction', 'UKIRT extinction', $weathercomp->extinction_plot($utdate)],
 
+  $self->_sidebar_night($tel, $utdate) unless $delta;
+
   return {
       target_base => $q->url(-absolute => 1),
 

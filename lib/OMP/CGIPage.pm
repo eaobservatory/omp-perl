@@ -739,6 +739,33 @@ sub _sidebar_project {
   ]) if $self->auth->is_staff;
 }
 
+=item B<_sidebar_night>
+
+Set up a side bar for staff-access night-based pages.
+
+  $page->_sidebar_night($telescope, $utdate);
+
+=cut
+
+sub _sidebar_night {
+  my $self = shift;
+  my $telescope = shift;
+  my $utdate = shift;
+
+  return unless defined $telescope and defined $utdate;
+
+  $telescope = uc $telescope;
+  $utdate = $utdate->ymd if ref $utdate;
+
+  $self->side_bar($utdate, [
+    ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
+    ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
+    ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+    ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
+        . "&mindate=$utdate&maxdate=$utdate&search=Search&cat=$telescope"],
+  ]);
+}
+
 =item B<_write_http_header>
 
 Write the HTTP header, including cookie if present.
