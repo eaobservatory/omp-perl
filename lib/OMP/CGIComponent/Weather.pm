@@ -8,8 +8,8 @@ OMP::CGIComponent::Weather - Web display of weather information
 
   use OMP::CGIComponent::Weather;
   my $comp = new OMP::CGIComponent::Weather(page => $page);
-  $html = $comp->wvm_graph_code;
-  $html = $comp->tau_plot_code;
+  my ($title, $url) = $comp->wvm_graph;
+  my ($title, $url) = $comp->tau_plot;
 
 =head1 DESCRIPTION
 
@@ -36,17 +36,17 @@ $| = 1;
 
 =over 4
 
-=item B<extinction_plot_code>
+=item B<extinction_plot>
 
-Return HTML snippet for displaying an extinction plot.
+Return information for displaying an extinction plot.
 
-  $html = $comp->extinction_plot_code( $utdate );
+  my ($title, $url) = $comp->extinction_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub extinction_plot_code {
+sub extinction_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -56,28 +56,21 @@ sub extinction_plot_code {
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
 
-  my $URL = "$extinction_plot_dir/trans_${gifdate}_cam1.png";
-
-  my $string = "<a name='extinction'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>WFCAM atmospheric extinction for camera 1</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'WFCAM atmospheric extinction for camera 1',
+    "$extinction_plot_dir/trans_${gifdate}_cam1.png";
 }
 
-=item B<forecast_plot_code>
+=item B<forecast_plot>
 
-Return HTML snippet for displaying a forecast plot.
+Return information for displaying a forecast plot.
 
-  $html = $comp->forecast_plot_code( $utdate );
+  my ($title, $url) = $comp->forecast_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub forecast_plot_code {
+sub forecast_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -89,28 +82,21 @@ sub forecast_plot_code {
   $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
   $gifdate = "$1-$2-$3";
 
-  my $URL = "$forecast_plot_dir/${gifdate}.jpg";
-
-  my $string = "<a name='forecast'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>MKWC forecast</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'MKWC forecast',
+    "$forecast_plot_dir/${gifdate}.jpg";
 }
 
-=item B<meteogram_plot_code>
+=item B<meteogram_plot>
 
-Return HTML snippet for displaying a meteogram plot.
+Return information for displaying a meteogram plot.
 
-  $html = $comp->meteogram_plot_code( $utdate );
+  my ($title, $url) = $comp->meteogram_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub meteogram_plot_code {
+sub meteogram_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -122,28 +108,21 @@ sub meteogram_plot_code {
 
   my $meteogram_plot_dir = OMP::Config->getData( 'meteogram-plot-url' );
 
-  my $URL = "$meteogram_plot_dir/${gifdate}.png";
-
-  my $string = "<a name='meteogram'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>EAO meteogram</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'EAO meteogram',
+    "$meteogram_plot_dir/${gifdate}.png";
 }
 
-=item B<opacity_plot_code>
+=item B<opacity_plot>
 
-Return HTML snippet for displaying a opacity plot.
+Return information for displaying an opacity plot.
 
-  $html = $comp->opacity_plot_code( $utdate );
+  my ($title, $url) = $comp->opacity_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub opacity_plot_code {
+sub opacity_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -155,29 +134,22 @@ sub opacity_plot_code {
   $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
   $gifdate = "$1-$2-$3";
 
-  my $URL = "$opacity_plot_dir/${gifdate}.png";
-
-  my $string = "<a name='opacity'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>Mauna Kea opacity</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'Maunakea opacity',
+    "$opacity_plot_dir/${gifdate}.png";
 }
 
 
-=item B<seeing_plot_code>
+=item B<seeing_plot>
 
-Return HTML snippet for displaying a seeing plot.
+Return information for displaying a seeing plot.
 
-  $html = $comp->seeing_plot_code( $utdate );
+  my ($title, $url) = $comp->seeing_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub seeing_plot_code {
+sub seeing_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -187,29 +159,22 @@ sub seeing_plot_code {
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
 
-  my $URL = "$seeing_plot_dir/$gifdate.png";
-
-  my $string = "<a name='seeing'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>K-band seeing corrected to zenith</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'K-band seeing corrected to zenith',
+    "$seeing_plot_dir/$gifdate.png";
 }
 
-=item B<tau_plot_code>
+=item B<tau_plot>
 
-Return HTML snippet for displaying a tau plot.
+Return information for displaying a tau plot.
 
-  $html = $comp->tau_plot_code($utdate);
+  my ($title, $url) = $comp->tau_plot($utdate);
 
 Takes a UT date string as the only argument.  Returns undef if no tau plot
 exists for the given date.
 
 =cut
 
-sub tau_plot_code {
+sub tau_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -229,25 +194,23 @@ sub tau_plot_code {
   }
 
   if ($gif) {
-    return "<a name='taufits'></a>"
-      ."<a href='$calibpage'><img src='$www/$gif'>"
-        ."<br>Click here to visit the calibration page</a>";
+    return 'Opacity fit', "$www/$gif";
   } else {
-    return undef;
+    return undef, undef;
   }
 }
 
-=item B<transparency_plot_code>
+=item B<transparency_plot>
 
-Return HTML snippet for displaying a transparency plot.
+Return information for displaying a transparency plot.
 
-  $html = $comp->transparency_plot_code( $utdate );
+  my ($title, $url) = $comp->transparency_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub transparency_plot_code {
+sub transparency_plot {
   my $self = shift;
   my $utdate = shift;
 
@@ -259,31 +222,24 @@ sub transparency_plot_code {
   $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
   $gifdate = "$1-$2-$3";
 
-  my $URL = "$transparency_plot_dir/${gifdate}.png";
-
-  my $string = "<a name='transparency'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>CFHT transparency</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'CFHT transparency',
+    "$transparency_plot_dir/${gifdate}.png";
 }
 
 
-=item B<wvm_graph_code>
+=item B<wvm_graph>
 
-Return HTML snippet for displaying a wvm graph.  Takes UT start and end dates as
+Return information for displaying a wvm graph.  Takes UT start and end dates as
 the only arguments
 
-  $wvm_html = $comp->wvm_graph_code('2003-03-22', '2003-03-25');
+  my ($title, $url) = $comp->wvm_graph('2003-03-22', '2003-03-25');
 
 UT end date is optional and if not provided the graph will display for
 a 24 hour period beginning on the UT start date.
 
 =cut
 
-sub wvm_graph_code {
+sub wvm_graph {
   my $self = shift;
   my $wvmstart = shift;
   my $wvmend = shift;
@@ -295,34 +251,27 @@ sub wvm_graph_code {
   $wvmstart = OMP::DateTools->parse_date($wvmstart);
   $wvmend = OMP::DateTools->parse_date($wvmend);
 
-  my $string;
-
-  if (! $wvmstart) {
-    $string .= "Error: No start date for WVM graph provided.";
-  } else {
-    # End date default is the end of the start date
-    ($wvmend) or $wvmend = $wvmstart + (ONE_DAY - 1);
-
-    $string .= "<a name='wvm'></a>";
-    $string .= "<br>";
-    $string .= "<strong class='small_title'>WVM graph</strong><p>";
-    $string .= "<div align=left>";
-    $string .= "<img src='${wvm_url}?datestart=". $wvmstart->datetime ."&dateend=". $wvmend->datetime ."'><br><br></div>";
+  unless ($wvmstart) {
+    return undef, undef;
   }
-  return $string;
+  # End date default is the end of the start date
+  ($wvmend) or $wvmend = $wvmstart + (ONE_DAY - 1);
+
+  return 'WVM graph',
+    "${wvm_url}?datestart=" . $wvmstart->datetime . "&dateend=" . $wvmend->datetime;
 }
 
-=item B<zeropoint_plot_code>
+=item B<zeropoint_plot>
 
-Return HTML snippet for displaying a zeropoint plot.
+Return information for displaying a zeropoint plot.
 
-  $html = zeropoint_plot_code( $utdate );
+  my ($title, $url) = zeropoint_plot( $utdate );
 
 Takes a UT date string as the only argument.
 
 =cut
 
-sub zeropoint_plot_code {
+sub zeropoint_plot {
   my $utdate = shift;
 
   my $zeropoint_plot_dir = OMP::Config->getData( 'zeropoint-plot-url' );
@@ -331,15 +280,8 @@ sub zeropoint_plot_code {
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
 
-  my $URL = "$zeropoint_plot_dir/zero_${gifdate}_cam1.png";
-
-  my $string = "<a name='zeropoint'></a>\n";
-  $string .= "<br>";
-  $string .= "<strong class='small_title'>WFCAM zero points for camera 1</strong><p>";
-  $string .= "<div align=left>";
-  $string .= "<img src='$URL'><br><br></p>";
-
-  return $string;
+  return 'WFCAM zero points for camera 1',
+    "$zeropoint_plot_dir/zero_${gifdate}_cam1.png";
 }
 
 =back

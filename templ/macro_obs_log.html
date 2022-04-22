@@ -1,0 +1,20 @@
+[% MACRO render_weather_plots(weather_plots) BLOCK %]
+  [% FOREACH weather_plot IN weather_plots %]
+      <p>
+          <strong class="small_title"><a name="[% weather_plot.0 | uri %]">[% weather_plot.2 | html %]</a></strong>
+          <br />
+          <img src="[% weather_plot.3 | html %]" />
+      </p>
+  [% END %]
+[% END -%]
+[% MACRO render_weather_plot_links(weather_plots) BLOCK %]
+    [% IF weather_plots.defined && ! weather_plots.empty %]
+        <p>
+            Weather information:
+            [% FOREACH weather_plot IN weather_plots %]
+                [% UNLESS loop.count % 4 %]<br />[% END %]
+                <a href="#[% weather_plot.0 | uri %]">[% weather_plot.1 | html %]</a>
+            [% END %]
+        </p>
+    [% END %]
+[% END -%]
