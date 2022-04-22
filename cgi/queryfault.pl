@@ -19,4 +19,6 @@ OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'query_fault_output',
     'staff',
     title => 'Fault Query',
-    template => 'fault_query.html');
+    template => 'fault_query.html',
+    javascript => ['fault_summary.js'],
+);

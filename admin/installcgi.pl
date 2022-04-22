@@ -93,7 +93,8 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    sched_edit.js /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp-dev.css omp.js jquery.js robots.txt /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp-dev.css
+    omp.js jquery.js fault_summary.js user_list.js robots.txt /;
 
 # Files which are renamed.
 my %renamed_files = (

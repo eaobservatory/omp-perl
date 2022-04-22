@@ -19,4 +19,6 @@ OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::list_users,
     'local_or_staff',
     title => 'OMP Users',
-    template => 'user_list.html');
+    template => 'user_list.html',
+    javascript => ['user_list.js'],
+);
