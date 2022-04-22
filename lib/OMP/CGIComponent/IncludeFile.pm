@@ -159,9 +159,12 @@ sub _get_resource_ut {
     return;
   }
 
-  print $self->cgi->header(-type => (exists $mime{$extension})
-                                  ? $mime{$extension}
-                                  : 'application/octet-stream');
+  print $self->cgi->header(
+      -type => exists $mime{$extension}
+          ? $mime{$extension}
+          : 'application/octet-stream',
+      -expires => '+10m',
+  );
 
   my $fh = new IO::File($pathname);
 
