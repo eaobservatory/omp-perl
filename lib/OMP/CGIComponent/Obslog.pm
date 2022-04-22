@@ -21,7 +21,6 @@ use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
 use OMP::Display;
@@ -770,125 +769,6 @@ sub format_msb_comment {
   return @comment;
 }
 
-=item B<obs_inst_summary>
-
-Prints a table summarizing observations taken for a telescope,
-broken up by instrument.
-
-  ( $inst, $ut ) = $comp->obs_inst_summary( $projectid );
-
-The first argument is the project ID.
-
-The function will return the name of the active instrument in the
-table and the UT date for the observations. These two values are
-normally given in the C<CGI> object.
-
-An instrument is "active" if it is given in the C<CGI> object. If
-no instrument is defined in the C<CGI> object, then the first
-instrument in the table (listed alphabetically) that has one or
-more observations for the UT date is considered "active".
-
-If a UT date is not supplied in the C<CGI> object, then the returned
-UT date will be the current one, and the table will give a summary
-of observations for the current UT date.
-
-=cut
-
-sub obs_inst_summary {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $qv = $q->Vars;
-
-  my $ut = ( defined( $qv->{'ut'} ) ? $qv->{'ut'} : OMP::DateTools->today() );
-
-  my $firstinst;
-  if( defined( $qv->{'inst'} ) ) {
-    $firstinst = $qv->{'inst'};
-  }
-
-  my $telescope;
-  # Form an instrument array, depending on where we're at. If we don't know
-  # where we are, just push every single instrument onto the array.
-  my $obsloglink;
-  if( defined( $projectid ) ) {
-    my $proj = OMP::ProjServer->projectDetails( $projectid,
-                                                'object' );
-    if( defined( $proj ) ) {
-      $telescope = uc( $proj->telescope );
-    }
-
-    $obsloglink = "fbobslog.pl";
-
-  } else {
-    $obsloglink = "staffobslog.pl";
-  }
-
-  if( ! defined( $telescope ) ) {
-
-    # Okay, the cookie didn't work, or we're on the staff project.
-    # Check the hostname of the computer the script is running on.
-    # If it's ulili, we're at JCMT. If it's mauiola, we're at UKIRT.
-    # Otherwise, we don't know where we are.
-    my $hostname = hostfqdn;
-    if( $hostname =~ /ulili/i ) {
-      $telescope = "JCMT";
-    } elsif( $hostname =~ /mauiola/i ) {
-      $telescope = "UKIRT";
-    }
-  }
-
-# DEBUGGING ONLY
-#$telescope = "JCMT";
-#$telescope = "UKIRT";
-
-  if( ! defined( $telescope ) ) {
-    throw OMP::Error( "Unable to determine telescope" );
-  }
-
-  # Form an ObsGroup object for the telescope.
-  my %results;
-  try {
-    my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
-                                       date => $ut,
-                                       projectid => $projectid,
-                                       inccal => 1,
-                                       ignorebad => 1,
-                                     );
-
-    %results = $grp->groupby('instrument');
-  }
-  catch OMP::Error with {
-    my $Error = shift;
-    print "Error in CGIObslog::obs_inst_summary: " . $Error->{'-text'} . "\n";
-  }
-  otherwise {
-    my $Error = shift;
-    print "Error in CGIObslog::obs_inst_summary: " . $Error->{'-text'} . "\n";
-  };
-
-  my @printarray;
-  if( scalar keys %results ) {
-    print "<table border=\"0\" class=\"sum_table\"><tr class=\"sum_table_head\"><td><strong class=\"small_title\">";
-    foreach my $inst ( sort keys %results ) {
-      my $header = "<a style=\"color: #05054f;\" href=\"$obsloglink?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
-      push @printarray, $header;
-      if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
-        $firstinst = $inst;
-      }
-    }
-    print join "</strong></td><td><strong class=\"small_title\">", @printarray;
-    print "</strong></td></tr></table><br>\n";
-
-    return ( $firstinst, $ut );
-
-  } else {
-    return ( undef, undef );
-  }
-
-}
-
 =item B<obs_comment_form>
 
 Returns information for a form that is used to enter a comment about
@@ -1165,72 +1045,6 @@ sub cgi_to_obsgroup {
 
   return $grp;
 
-}
-
-=item B<print_obslog_header>
-
-Prints a header for obslog.
-
-  $comp->print_obslog_header();
-
-=cut
-
-sub print_obslog_header {
-  my $self = shift;
-
-  my $q = $self->cgi;
-  my $qv = $q->Vars;
-
-  print "Welcome to obslog.<hr>\n";
-  print start_form_absolute($q);
-
-  my $time = localtime;
-  my $currentut = $time->ymd;
-
-  print "<a name=\"changeut\">Enter</a> new UT date (yyyy-mm-dd format): ";
-  print $q->textfield( -name => 'ut',
-                       -default => ( defined( $qv->{'ut'} ) ?
-                                     $qv->{'ut'} :
-                                     $currentut ),
-                       -size => '16',
-                       -maxlength => '10',
-                     );
-
-  print "<br>\n";
-
-  print $q->submit( -name => 'Submit New UT' );
-  print $q->end_form;
-
-  print '<a href="' . OMP::Config->getData( 'cgidir' ) . '/obslog_text.pl?ut="'
-        . ( defined( $qv->{'ut'} ) ?  $qv->{'ut'} : $currentut );
-
-  if( defined( $qv->{'inst'} ) ) {
-    print "&inst=" . $qv->{'inst'};
-  }
-  if( defined( $qv->{'telescope'} ) ) {
-    print "&telescope=" . $qv->{'telescope'};
-  }
-  if( defined( $qv->{'projid'} ) ) {
-    print "&projid=" . $qv->{'projid'};
-  }
-  print "\">text listing</a><br>\n";
-
-  print "<hr>\n";
-
-};
-
-=item B<print_obslog_footer>
-
-Print a footer.
-
-  $comp->print_obslog_footer();
-
-Currently essentially a no-op.
-
-=cut
-
-sub print_obslog_footer {
-  my $self = shift;
 }
 
 =item B<_cleanse_query_value>
