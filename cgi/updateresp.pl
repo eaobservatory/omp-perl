@@ -19,4 +19,6 @@ OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'update_resp',
     'staff',
     title => 'Update Response',
-    template => 'fault_response_edit.html');
+    template => 'fault_response_edit.html',
+    javascript => ['form_submit_timeout.js'],
+);
