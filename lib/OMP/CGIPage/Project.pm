@@ -571,6 +571,8 @@ sub support {
   return $self->_write_error("Could not get project details.")
       unless $project;
 
+  $self->_sidebar_project($project->projectid);
+
   # Get support contacts
   my @support = $project->support;
 
@@ -666,6 +668,8 @@ sub alter_proj {
 
   # Retrieve the project object
   my $project = $projdb->_get_project_row();
+
+  $self->_sidebar_project($project->projectid);
 
   return $self->process_project_changes( $project, $projdb )
     if $q->param('alter_submit');
