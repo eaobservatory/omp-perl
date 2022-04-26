@@ -364,8 +364,12 @@ sub _write_page_context_extra {
     my $self = shift;
     my $opt = shift;
 
-    my $jscript_url = OMP::Config->getData('www-js');
-    push @$jscript_url, map {'/' . $_} @{$opt->{'javascript'}} if exists $opt->{'javascript'};
+    my $jscript_url = [];
+    if (exists $opt->{'javascript'}) {
+        push @$jscript_url,
+            OMP::Config->getData('www-js'),
+            map {'/' . $_} @{$opt->{'javascript'}};
+    }
 
     return {
         omp_title => $self->html_title,
@@ -628,7 +632,7 @@ Create a page with a login form.
 
 sub _write_login {
   my $self = shift;
-  my %opt = ();
+  my %opt = (javascript => ['log_in.js']);
   my $q = $self->cgi;
 
   $self->_write_http_header(undef, \%opt);
