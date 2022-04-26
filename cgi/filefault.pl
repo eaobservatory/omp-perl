@@ -20,5 +20,5 @@ OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
     'staff',
     title => 'File Fault',
     template => 'fault_file_edit.html',
-    javascript => ['form_submit_timeout.js'],
+    javascript => ['form_submit_timeout.js', 'time_set_now.js'],
 );

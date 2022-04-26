@@ -12,7 +12,7 @@
     </ul>
 [% END %]
 
-<form method="post" action="[% target | url %]" name="file_fault" class="submit_timeout">
+<form method="post" action="[% target | url %]" class="submit_timeout">
     <table border="0" cellspacing="4">
         <tr>
             <td align="right"><b>User:</b></td>
@@ -98,7 +98,7 @@
                         [% END %]
                     </select>
                     &nbsp;
-                    <input type="button" value="Now" onclick="document.forms['file_fault']['time'].value = (new Date()).toISOString().substr(0, 16); document.forms['file_fault']['tz'].value = 'UT';"/>
+                    <input type="button" value="Now" class="time_set_now" />
                     <br />
                     <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>
                 </td>
