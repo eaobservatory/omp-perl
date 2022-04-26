@@ -1869,19 +1869,7 @@ sub locate_timegaps {
       my $query = new OMP::ObsQuery( XML=>$queryxml );
       my @commentresults = $odb->queryComments( $query );
 
-      # This returns InfoComment objects. We want to use the obsid to
-      # match, but it won't be defined for timgaps. Create an obsid
-      # based on the same code used to make it OMP::ObslogDB.pm
-      for my $comm (@commentresults) {
-          my $obsid = $comm->obsid;
-          unless( defined $obsid) {
-              $obsid = lc( $comm->{instrument} ) . "_"
-                  . $comm->{runnr} . "_"
-                  . $comm->{date}->strftime("%Y%m%dT%H%M%S");
-          }
-          $comments{$obsid} = $comm;
-      }
-
+      %comments = map {$_->obsid => $_} @commentresults;
   }
   # For each observation in the sorted array...
   foreach my $obs (@obslist) {
@@ -1915,11 +1903,8 @@ sub locate_timegaps {
 
         # The -1 is taken from obslogDB.pm: and apepars to be how to
         # match obsids from comments to timegaps.
-        my $t = $timegap->endobs -1;
-        my $timegapobsid = lc( $timegap->{instrument} ) . "_"
-             . $timegap->{runnr} . "_"
-             . $t->strftime("%Y%m%dT%H%M%S");
-             ;
+        my $timegapobsid = OMP::ObslogDB::_placeholder_obsid(
+                $timegap->instrument, $timegap->runnr, $timegap->endobs - 1);
 
         if (exists ($comments{$timegapobsid})) {
             $timegap->comments( $comments{$timegapobsid} );
