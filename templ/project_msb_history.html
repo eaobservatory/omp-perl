@@ -21,16 +21,10 @@
 [% END %]
 
 [% IF msb_info.defined %]
-    <script language="javascript">
-        function mysubmit() {
-            document.sortform.submit()
-        }
-    </script>
-
-    <form method="get" action="[% target_base %]" name="sortform">
+    <form method="get" action="[% target_base %]">
         <p>
             <b>Show:</b>
-            <select name="show" onchange="mysubmit()">
+            <select name="show" class="submit_on_change">
                 [% FOREACH value IN ['all', 'observed', 'current'] %]
                     <option [% IF value == values.show %]selected="selected"[% END %] value="[% value %]">[% value %]</option>
                 [% END %]

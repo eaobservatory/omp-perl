@@ -18,4 +18,6 @@ use OMP::CGIPage::Feedback;
 OMP::CGIPage::Feedback->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Feedback::fb_output,
     'project',
-    template => 'project_feedback.html');
+    template => 'project_feedback.html',
+    javascript => ['submit_on_change.js'],
+);

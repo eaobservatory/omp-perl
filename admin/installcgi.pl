@@ -91,7 +91,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    viewfault.pl worf_fits.pl
                    worf_image.pl worf_ndf.pl wwwobserved.pl
                    fault_summary.js form_submit_timeout.js
-                   sched_edit.js time_set_now.js
+                   sched_edit.js submit_on_change.js time_set_now.js
                    user_list.js /;
 
 # Files to be installed in both public and private roots
