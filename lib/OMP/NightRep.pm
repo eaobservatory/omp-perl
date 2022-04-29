@@ -1007,11 +1007,11 @@ sub astext {
   my @shifts = map {$_->{'shift'}} @{$time_summary->{'shift'}};
   my $shiftcount = scalar @shifts;
 
-  $str .= "There were shiftypes of ";
+  $str .= "There were shift types of ";
   for my $shift(@shifts) {
       $str .= "$shift ";
   }
-  $str .= "in this timeperiod\n";
+  $str .= "in this time period\n";
   $str .= "\n\n";
   $str .= "Overall Project Time Summary\n\n";
   my $format = "  %-25s %5.2f hrs   %s\n";
