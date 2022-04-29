@@ -1064,7 +1064,7 @@ sub astext {
           $str .= "\n";
           $str .="$shift summary\n\n";
       }
-      if (defined $info->{'faultloss'}) {
+      if ($info->{'faultloss'}) {
           $str .= sprintf("$format", "Time lost to faults:", $info->{'faultloss'});
       }
 
@@ -1276,7 +1276,7 @@ sub _get_time_summary_shift {
     my $totalobserved = 0.0; # Total time spent observing
     my $totalproj = 0.0;
     my $totalpending = 0.0;
-    my $faultloss = undef;
+    my $faultloss = 0.0;
     my $technicalloss = 0.0;
     my $nontechnicalloss = 0.0;
 
