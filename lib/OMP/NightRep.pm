@@ -900,21 +900,17 @@ sub timelostbyshift {
     unless %faults;
 
   my %results;
-  my $res;
   for my $shift (keys %faults) {
       my $shiftfaults = $faults{$shift};
 
       if ($arg && $arg eq "technical") {
-          $res = $shiftfaults->timelostTechnical ? $shiftfaults->timelostTechnical : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelostTechnical;
 
       } elsif ($arg && $arg eq "non-technical") {
-          $res = $shiftfaults->timelostNonTechnical ? $shiftfaults->timelostNonTechnical : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelostNonTechnical;
 
       } else {
-          $res = $shiftfaults->timelost ? $shiftfaults->timelost : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelost;
       }
   }
   return %results;
