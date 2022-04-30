@@ -6,7 +6,7 @@
                 <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
                 <td class="time_[% bgcolor %]">
                     [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
-                <td class="subject">[% remove_text_pre(comment.text) %]</td>
+                <td class="subject">[% comment.text | remove_pre_tags %]</td>
             </tr>
         [% END %]
     </table>

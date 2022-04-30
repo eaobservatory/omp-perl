@@ -278,12 +278,6 @@ sub projlog_content {
           telescope => $telescope,
           zone => "UT",
       }),
-      remove_text_pre => sub {
-          my $text = shift;
-          $text =~ s/^\s*<PRE>//i;
-          $text =~ s/<\/PRE>\s*$//i;
-          return $text;
-      },
 
       dq_nightly_html => $includecomp->include_file_ut(
           'dq-nightly', $utdate, projectid => $projectid),

@@ -83,12 +83,6 @@ sub shiftlog_page {
       telescopes => [sort map {uc} OMP::Config->telescopes()],
 
       comments => $comp->get_shift_comments($parsed),
-      remove_text_pre => sub {
-          my $text = shift;
-          $text =~ s/^\s*<PRE>//i;
-          $text =~ s/<\/PRE>\s*$//i;
-          return $text;
-      },
   };
 }
 

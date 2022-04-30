@@ -482,6 +482,14 @@ sub render_template {
 
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        FILTERS => {
+            remove_pre_tags => sub {
+                my $text = shift;
+                $text =~ s/^\s*<PRE>//i;
+                $text =~ s/<\/PRE>\s*$//i;
+                return $text;
+            },
+        },
     }) or die "Could not configure template object: $Template::ERROR";
 
     $template->process($name, $context) or die $template->error();
