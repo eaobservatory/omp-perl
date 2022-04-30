@@ -391,6 +391,23 @@ sub faultsbyshift {
   return %resulthash;
 }
 
+=item B<faults_by_date>
+
+Return reference to hash of faults organized by date.
+
+=cut
+
+sub faults_by_date {
+    my $self = shift;
+
+    my %faults;
+    for my $f ($self->faults->faults) {
+        my $time = gmtime($f->date->epoch);
+        push @{$faults{$time->ymd}}, $f;
+    }
+
+    return \%faults;
+}
 
 =item B<hdr_accounts>
 
@@ -804,7 +821,7 @@ sub msbs {
     push(@{$index{$proj}}, $msb);
   }
 
-  return %index;
+  return \%index;
 }
 
 =item B<scienceTime>
@@ -830,10 +847,10 @@ sub scienceTime {
 =item B<shiftComments>
 
 Retrieve all the shift comments associated with this night and
-telescope. Entries are retrieved as an array of C<OMP::Info::Comment>
-objects.
+telescope. Entries are retrieved as an hash by date with arrays
+of C<OMP::Info::Comment> objects.
 
- @comments = $nr->shiftComments;
+ $comments = $nr->shiftComments;
 
 =cut
 
@@ -852,7 +869,14 @@ sub shiftComments {
   # These will have HTML comments
   my @result = $sdb->getShiftLogs( $query );
 
-  return @result;
+  # Organize shift comments by date
+  my %comments;
+  foreach my $c (@result) {
+    my $time = gmtime($c->date->epoch);
+    push @{$comments{$time->ymd}}, $c;
+  }
+
+  return \%comments
 }
 
 =item B<timelost>
@@ -1098,11 +1122,11 @@ sub astext {
   # Add MSB summary here
   $str .= "Observation summary\n\n";
 
-  my %msbs = $self->msbs;
+  my $msbs = $self->msbs;
 
-  for my $proj (keys %msbs) {
+  for my $proj (keys %$msbs) {
       $str .= "  $proj\n";
-      for my $msb (@{$msbs{$proj}}) {
+      for my $msb (@{$msbs->{$proj}}) {
           $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
                           $msb->wavebands, $msb->title). "\n";
       }
@@ -1135,29 +1159,31 @@ sub astext {
   # Shift log summary
   $str .= "Comments\n\n";
 
-  my @comments = $self->shiftComments;
+  my $comments = $self->shiftComments;
   $Text::Wrap::columns = 72;
 
-  for my $c (@comments) {
-    # Use local time
-    my $date = $c->date;
-    my $local = localtime( $date->epoch );
-    my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
+  foreach my $k (sort keys %$comments) {
+    foreach my $c (@{$comments->{$k}}) {
+      # Use local time
+      my $date = $c->date;
+      my $local = localtime( $date->epoch );
+      my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
 
-    # Get the text and format it as plain text from HTML
-    my $text = $c->text;
-    $text =~ s/\t/ /g;
-    # We are going to use 'wrap' to indent by 4 and then wrap
-    # to 72, so have html2plain use a smaller width to try to
-    # avoid wrapping the same text twice.
-    $text = OMP::Display->html2plain( $text, {rightmargin => 64} );
+      # Get the text and format it as plain text from HTML
+      my $text = $c->text;
+      $text =~ s/\t/ /g;
+      # We are going to use 'wrap' to indent by 4 and then wrap
+      # to 72, so have html2plain use a smaller width to try to
+      # avoid wrapping the same text twice.
+      $text = OMP::Display->html2plain( $text, {rightmargin => 64} );
 
-    # Word wrap (but do not "fill")
-    $text = wrap("    ","    ",$text);
+      # Word wrap (but do not "fill")
+      $text = wrap("    ","    ",$text);
 
-    # Now print the timestamped comment
-    $str .= "  ".$local->strftime("%H:%M:%S %Z") . ": $author\n";
-    $str .= $text ."\n\n";
+      # Now print the timestamped comment
+      $str .= "  ".$local->strftime("%H:%M:%S %Z") . ": $author\n";
+      $str .= $text ."\n\n";
+    }
   }
 
   # Observation log
@@ -1209,7 +1235,7 @@ is an arrayref of entries.  Each entry is of the form:
     }
 
 Note: this method contains logic extracted from the astext method
-and ashtml / projectsummary_ashtml methods.
+and previous ashtml / projectsummary_ashtml methods.
 
 =cut
 
@@ -1390,135 +1416,6 @@ sub _get_time_summary_shift {
     };
 }
 
-=item B<projectsummary_ashtml>
-
-Optionally do for a specific shift.
-=cut
-
-sub projectsummary_ashtml {
-    my $self = shift;
-    my $info = shift;
-    my $showcomment = shift;
-
-    my $tel  = $self->telescope;
-    my $date = $self->date->ymd;
-    my $format = "%5.2f hrs\n";
-
-    my $ompurl = OMP::Config->getData('cgidir');
-
-    # T i m e  A c c o u n t i n g
-
-    my $title;
-
-    # If shift is not defined, then just do overall.
-    unless (exists $info->{'shift'}) {
-        $title = 'Overall';
-
-    } else {
-        $title = $info->{'shift'};
-    }
-
-    # Format table
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='sum_table_head'>";
-    print "<td colspan='4'><strong class='small_title'>$title Project Time Summary</strong></td>";
-
-    # Closed time (if any)
-    if ($info->{'shut'}) {
-        print "<tr class='sum_other'>";
-        print "<td>Closed</td>";
-        print "<td colspan='2'>". sprintf($format, $info->{'shut'}) . "</td><td/>";
-        print "</tr>";
-    }
-
-    # Time lost to faults.
-    print "<tr class='sum_other'>";
-    print "<td>Time lost to technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $info->{'technicalloss'}) . "</td><td/>";
-    print "<tr class='sum_other'>";
-    print "<td>Time lost to non-technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $info->{'nontechnicalloss'}) . "</td><td/>";
-    print "<tr class='sum_other'>";
-    print "<td>Total time lost to faults</td>";
-    print "<td>" . sprintf($format, $info->{'faultloss'}) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td><td/>";
-
-    # Time lost to weather, extended accounting.
-      my %text = (
-              WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
-              EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
-              OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
-              CAL => "<tr class='proj_time_sum_weather_row'><td>Calibrations</td>",
-             );
-
-    foreach my $entry (@{$info->{'special'}}) {
-        print $text{$entry->{'name'}} . "<td>" . sprintf($format, $entry->{'time'});
-        if ($entry->{'pending'}) {
-            print " [unconfirmed]";
-        }
-        print "<td>" . $entry->{'comment'} . "</td><td></td>";
-    }
-
-    # Project Accounting
-    my $bgcolor = "a";
-    for my $country_info (@{$info->{'country'}}) {
-        my $country = $country_info->{'country'};
-
-        my $rowcount = 0;
-        for my $entry (@{$country_info->{'project'}}) {
-            my $proj = $entry->{'project'};
-            $rowcount++;
-
-            my $comment;
-            if ($showcomment) {
-                $comment = $entry->{'comment'};
-            }
-            print "<tr class='row_$bgcolor'>";
-            print "<td><a href='$ompurl/projecthome.pl?project=$proj' class='link_light'>$proj</a></td><td>";
-            printf($format, $entry->{'time'});
-            print " [unconfirmed]" if ($entry->{'pending'});
-            print "</td>";
-            if ($self->delta_day != 1) {
-                if ($rowcount == 1) {
-                    print "<td>$comment</td><td class=country_$country>$country ". sprintf($format, $country_info->{'total'}) ."</td>";
-                } else {
-                    print "<td>$comment</td><td class=country_$country></td>";
-                }
-            } else {
-                print "<td>$comment</td><td></td>";
-            }
-
-            # Alternate background color
-            ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
-        }
-    }
-
-    print "<tr class='row_$bgcolor'>";
-    print "<td class='sum_other'>Total</td><td colspan=2 class='sum_other'>". sprintf($format,$info->{'total'}->{'total'});
-
-    # Print total unconfirmed if any
-    print " [". sprintf($format, $info->{'total'}->{'pending'}) . " of which is unconfirmed]"
-        if ($info->{'total'}->{'pending'} > 0);
-
-    print "</td><td></td>";
-
-    # Print total time spent on projects alone
-    print "<tr class='row_$bgcolor'>";
-    print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
-        sprintf($format, $info->{'total'}->{'project'}).
-        "</td><td></td>";
-
-    my $cleartime = $info->{'total'}->{'clear'};
-    if ($cleartime > 0) {
-        print "<tr class='proj_time_sum_weather_row'>";
-        print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $info->{'faultloss'} / $cleartime * 100) ." </td><td></td>";
-        print "<tr class='proj_time_sum_other_row'>";
-        print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $info->{'technicalloss'} / $cleartime * 100) ." </td><td></td>";
-    }
-
-    print "</table>";
-    print "<p>";
-}
-
 =item B<ashtml>
 
 Generate a summary of the night formatted using HTML.
@@ -1586,120 +1483,6 @@ sub ashtml {
   }
 
   if ($self->delta_day < 14) {
-    print "<a href='#faultsum'>Fault Summary</a><br>";
-    print "<a href='#shiftcom'>Shift Log Comments</a> / <a href=\"shiftlog.pl?date=$date&telescope=$tel\">Add shift log comment</a><br>";
-    print "<a href='#obslog'>Observation Log</a><br>";
-    print "<p>";
-  }
-
-  my $showcomment = 1;
-  if ($self->delta_day > 1) {
-      $showcomment = 0;
-  }
-  # T i m e A c c o u n t i n g
-
-  my $time_summary = $self->get_time_summary();
-  my @shifts = map {$_->{'shift'}} @{$time_summary->{'shift'}};
-
-  # First of all do overall per night.
-  print "<p> There were shiftypes of ";
-  for my $shift(@shifts) {
-      print "$shift ";
-  }
-  print "in this timeperiod.</p>";
-
-  $self->projectsummary_ashtml($time_summary->{'overall'});
-
-
-  # Now do it per shift.
-  if (@shifts > 1) {
-      foreach my $info (@{$time_summary->{'shift'}}) {
-         $self->projectsummary_ashtml($info, $showcomment);
-      }
-  }
-  if ($self->delta_day < 14) {
-    # M S B  S u m m a r y
-    # Get observed MSBs
-    my %msbs = $self->msbs;
-
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
-
-    for my $proj (keys %msbs) {
-      print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?project=$proj' class='link_dark'>$proj</a></td>";
-      print "<td>Name</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
-
-      for my $msb (@{$msbs{$proj}}) {
-        print "<tr class='row_a'>";
-        print "<td></td>";
-        print "<td>". $msb->title ."</td>";
-        print "<td>". $msb->wavebands ."</td>";
-        print "<td>". $msb->instruments ."</td>";
-        print "<td>". $msb->nrepeats ."</td>";
-      }
-    }
-
-    print "</table>";
-    print "<p>";
-
-    # F a u l t  S u m m a r y
-    # Get faults
-    my @faults = $self->faults->faults;
-
-    # Sort faults by date
-    my %faults;
-    for my $f (@faults) {
-      my $time = gmtime($f->date->epoch);
-      push(@{$faults{$time->ymd}}, $f);
-    }
-
-    print "<a name=faultsum></a>";
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='fault_sum_table_head'>";
-    print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td><td><strong class='small_title'>Shift</strong></td></tr>";
-
-    for my $date (sort keys %faults) {
-      my $timecellclass = 'time_a';
-      if ($self->delta_day != 1) {
-
-        # Summarizing faults for more than one day
-
-        # Do all this date magic so we can use the appropriate CSS class
-        # (i.e.: time_mon, time_tue, time_wed)
-        my $fdate = $faults{$date}->[0]->date;
-        my $time = gmtime($fdate->epoch);
-        $timecellclass = 'time_' . $time->day . '_a';
-
-        print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td><td></td>";
-    }
-      for my $fault (@{$faults{$date}}) {
-        print "<tr class=sum_other valign=top>";
-        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
-
-        my $time = gmtime($fault->date->epoch);
-        print "<td class='$timecellclass'>". $time->strftime("%H:%M UT") ."</td>";
-        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
-        print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
-        print "<td class='shift' align=right>". $fault->shifttype ."</td>";
-        print "</tr>";
-      }
-    }
-
-    print "</table>";
-    print "<p>";
-
-    # S h i f t  L o g  C o m m e n t s
-    my @comments = $self->shiftComments;
-
-    print "<a name=\"shiftcom\"></a>";
-
-    if ($comments[0]) {
-      OMP::CGIComponent::Shiftlog->new()->display_shift_table( \@comments );
-    } else {
-      print "<strong>No Shift comments available</strong>";
-    }
-    print "<p>";
-
     # O b s e r v a t i o n  L o g
     # Display only if we are summarizing a single night
     if ($self->delta_day == 1) {

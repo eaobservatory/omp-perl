@@ -157,7 +157,11 @@ if ($dump) {
 }
 
 if ($ashtml) {
-    $NR->ashtml();
+    require OMP::CGIPage;
+    my $template = '[% PROCESS "macro_night_report.html" -%]'
+        . '[% PROCESS "macro_shift_log.html" -%]'
+        . '[% render_night_report(night_report) %]';
+    OMP::CGIPage->new()->render_template(\$template, {night_report => $NR});
     exit 0;
 }
 

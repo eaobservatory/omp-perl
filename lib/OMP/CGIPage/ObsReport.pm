@@ -181,6 +181,7 @@ sub night_report {
       ut_date_next => $next,
       ut_date_start => $start,  # starting value for form
 
+      night_report => $nr,
       night_report_html => $night_report_html,
 
       dq_nightly_html => ($tel ne 'JCMT' || $delta ? undef :

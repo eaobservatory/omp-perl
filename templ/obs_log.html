@@ -1,4 +1,5 @@
 [% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_night_report.html" -%]
 [% PROCESS "macro_msb.html" -%]
 [% PROCESS "macro_shift_log.html" -%]
 [% PROCESS "macro_obs_log.html" -%]
@@ -56,6 +57,20 @@
 </p>
 
 [% render_weather_plot_links(weather_plots) %]
+
+[% IF ut_date_delta < 14 %]
+    <p>
+        <a href="#faultsum">Fault summary</a>
+        <br />
+        <a href="#shiftcom">Shift log comments</a>
+        /
+        <a href="shiftlog.pl?date=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">Add shift log comment</a>
+        <br />
+        <a href="#obslog">Observation log</a>
+    <p>
+[% END %]
+
+[% render_night_report(night_report) %]
 
 [% night_report_html %]
 
