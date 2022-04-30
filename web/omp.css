@@ -53,20 +53,6 @@ License:
   background-color: #ffffff;
 }
 
-.sum_table_head {
-  background-image: url(/images/bg_slate.gif);
-  background-position: right;
-  background-repeat: repeat-y;
-  background-color: #ffffff;
-}
-
-.fault_sum_table_head {
-  background-image: url(/images/bg_red.gif);
-  background-position: left;
-  background-repeat: repeat-y;
-  background-color: #ffffff;
-}
-
 .row_a {
   background-color: #ffffff;
   font-family: Arial, sans-serif;
