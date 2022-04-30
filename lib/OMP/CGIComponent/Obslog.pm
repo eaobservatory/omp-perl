@@ -218,9 +218,8 @@ sub obs_table {
   if( $text ) {
 
   } else {
-    print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_table_head"><td>];
-    print qq[<strong class="small_title">Observation Log</strong></td></tr>\n];
-    print qq[<tr class="sum_other"><td>\n];
+    print "<h2>Observation log</h2>\n";
+    print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_other"><td>\n];
     print 'Colour legend: ',
       join ', ',
       map
@@ -295,9 +294,9 @@ sub obs_table {
     print "\nObservations for " . uc( $currentinst ) . " on $ut\n";
     print $nightlog{_STRING_HEADER}, "\n";
   } else {
+    print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
     $ncols = scalar(@{$nightlog{_ORDER}}) + 4;
     print "<table class=\"sum_table\" border=\"0\">\n";
-    print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
     # Print the column headings.
     print "<tr class=\"sum_other\"><td>";
@@ -353,8 +352,8 @@ sub obs_table {
         print $nightlog{_STRING_HEADER}, "\n";
       } else {
         print "</table>\n";
+        print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
         print "<table class=\"sum_table\" border=\"0\">\n";
-        print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
         # Print the column headings.
         print "<tr class=\"sum_other\"><td>";
