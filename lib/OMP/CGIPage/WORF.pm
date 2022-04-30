@@ -285,8 +285,7 @@ sub _thumbnails_page {
                                           telescope => $telescope );
 
   # Print a header table.
-  print "<table class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\">";
-  print "<td><strong class=\"small_title\">WORF Thumbnails for $ut</strong></td></tr></table>\n";
+  print "<h1>WORF Thumbnails for $ut</h1>\n";
 
   # For each instrument, we're going to get the directory listing for
   # the appropriate night. If the instrument name begins with "rx", skip
