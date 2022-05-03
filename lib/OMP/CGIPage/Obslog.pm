@@ -138,10 +138,9 @@ sub list_observations_txt {
   my %options;
   $options{'showcomments'} = 1;
   $options{'ascending'} = 1;
-  $options{'text'} = 1;
   $options{'sort'} = 'chronological';
   try {
-    $comp->obs_table( $obsgroup, %options, projectid => $projectid );
+    $comp->obs_table_text( $obsgroup, %options, projectid => $projectid );
   }
   catch OMP::Error with {
     my $Error = shift;

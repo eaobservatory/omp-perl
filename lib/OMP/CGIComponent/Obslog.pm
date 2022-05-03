@@ -60,23 +60,17 @@ our %status_label = ( OMP__OBS_GOOD() => 'Good',
 
 =over 4
 
-=item B<obs_table>
+=item B<get_obs_summary>
 
-Prints an HTML table containing a summary of information about a
-group of observations.
+Prepare summarized observation information as required for
+printing a table of observations.
 
-  $comp->obs_table( $obsgroup, $options );
+    my $summary = $comp->get_obs_summary($obsgroup, %options);
 
-The first argument is the C<OMP::Info::ObsGroup>
-object, and the third optional argument tells the function how to
-display things. It is a hash reference optionally containing the
+L<%options> is a hash optionally containing the
 following keys:
 
-=over 8
-
-=item *
-
-showcomments - Boolean on whether or not to print comments [true].
+=over 4
 
 =item *
 
@@ -94,10 +88,182 @@ instrument in the C<Info::ObsGroup> object, regardless of the order
 in which observations for those instruments were taken. Defaults
 to 'instrument'.
 
-=item *
+=back
 
-text - Produce a text table rather than an HTML table. Defaults
-to 0 (false).
+=cut
+
+sub get_obs_summary {
+  my $self = shift;
+  my $obsgroup = shift;
+  my %options = @_;
+
+  my $sort;
+  if( exists( $options{sort} ) ) {
+    if( $options{sort} =~ /^chronological/i ) {
+      $sort = 'chronological';
+    } else {
+      $sort = 'instrument';
+    }
+  } else {
+    $sort = 'instrument';
+  }
+
+  my $ascending;
+  if( exists( $options{ascending} ) ) {
+    $ascending = $options{ascending};
+  } else {
+    $ascending = 1;
+  }
+
+  my $instrument;
+  if( exists( $options{instrument} ) ) {
+    $instrument = $options{instrument};
+  } else {
+    $instrument = '';
+  }
+
+  my @allobs;
+
+  # Make the array of Obs objects.
+  if( $sort eq 'instrument' ) {
+
+    my %grouped = $obsgroup->groupby('instrument');
+    foreach my $inst (sort keys %grouped) {
+      my @obs;
+      if( $ascending ) {
+        @obs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
+      } else {
+        @obs = sort { $b->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
+      }
+      push @allobs, @obs;
+    }
+  } else {
+    if( $ascending ) {
+      @allobs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $obsgroup->obs;
+    } else {
+      @allobs = sort { $b->startobs->epoch <=> $a->startobs->epoch } $obsgroup->obs;
+    }
+  }
+
+  unless (@allobs) {
+    return undef;
+  }
+
+  my %result = (
+    block => [],
+  );
+
+  my $currentinst = undef;
+  my $currentblock = undef;
+
+  my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+
+  my %title = (
+    CAL => 'Calibration',
+  );
+  my $old_sum = '';
+  my $old_tid = '';
+
+  foreach my $obs (@allobs) {
+    next if( ( length( $instrument . '' ) > 0 ) &&
+             ( uc( $instrument ) ne uc( $obs->instrument ) ) );
+
+    unless ((defined $currentblock) and ($currentinst eq uc $obs->instrument)) {
+      $currentinst = uc $obs->instrument;
+      push @{$result{'block'}}, $currentblock = {
+        instrument => $currentinst,
+        ut => $obs->startobs->ymd,
+        telescope => $obs->telescope,
+        obs => []};
+    }
+
+    my %nightlog = $obs->nightlog;
+    my $is_time_gap = eval {$obs->isa('OMP::Info::Obs::TimeGap')};
+
+    my $endpoint = $is_time_gap
+      ? $obs->endobs
+      : $obs->startobs;
+
+    my %entry = (
+      is_time_gap => $is_time_gap,
+      obs => $obs,
+      obsut => (join '-', map { $endpoint->$_ } qw/ymd hour minute second/),
+      nightlog => \%nightlog,
+    );
+
+    unless ($is_time_gap) {
+      unless (exists $currentblock->{'heading'}) {
+        $currentblock->{'heading'} = \%nightlog;
+      }
+
+      # In case msbtid column is missing or has no value (calibration), use checksum.
+      my $checksum = $obs->checksum;
+      my $msbtid   = $obs->msbtid;
+
+      my $has_msbtid = defined $msbtid && length $msbtid;
+
+      my ($is_new_msbtid, $is_new_checksum);
+
+      if ($has_msbtid) {
+        $is_new_msbtid =
+              $msbtid ne ''
+          &&  $msbtid ne $old_tid ;
+
+        $old_tid = $msbtid if $is_new_msbtid;
+
+        # Reset to later handle case of 'calibration' since sum 'CAL' never
+        # changes.
+        $old_sum = '';
+      }
+      else {
+        $is_new_checksum = ! ($old_sum eq $checksum);
+
+        $old_sum = $checksum if $is_new_checksum;
+      }
+
+      # If the current MSB differs from the MSB to which this observation belongs,
+      # we need to insert as the start of the MSB. Ignore blank MSBTIDS.
+      if ( $checksum && ( $is_new_msbtid || $is_new_checksum ) ) {
+        # Get any activity associated with this MSB accept.
+        my $history;
+        if ($has_msbtid) {
+          try {
+            $history = $msbdb->historyMSBtid($msbtid);
+          } otherwise {
+            my $E = shift;
+            print STDERR $E;
+          };
+        }
+
+        my %extract;
+        if (defined $history) {
+          %extract = (
+              title => $history->title(),
+              comments => scalar $history->comments(),
+          );
+        }
+        elsif (exists $title{$checksum}) {
+          %extract = (
+            title => $title{$checksum},
+          );
+        }
+
+        $entry{'msb_comments'} = \%extract if %extract;
+      }
+    }
+
+    push @{$currentblock->{'obs'}}, \%entry;
+  }
+
+  return \%result;
+}
+
+=item B<obs_table>
+
+Prints an HTML table containing a summary of information about a
+group of observations.
+
+=over 4
 
 =item *
 
@@ -114,8 +280,6 @@ sub obs_table {
   my $self = shift;
   my $obsgroup = shift;
   my %options = @_;
-
-  my %dir_exists;
 
   # Check the arguments.
   my $commentlink;
@@ -144,198 +308,59 @@ sub obs_table {
     $showcomments = 1;
   }
 
-  my $sort;
-  if( exists( $options{sort} ) ) {
-    if( $options{sort} =~ /^chronological/i ) {
-      $sort = 'chronological';
-    } else {
-      $sort = 'instrument';
-    }
-  } else {
-    $sort = 'instrument';
-  }
-
-  my $ascending;
-  if( exists( $options{ascending} ) ) {
-    $ascending = $options{ascending};
-  } else {
-    $ascending = 1;
-  }
-
-  my $instrument;
-  if( exists( $options{instrument} ) ) {
-    $instrument = $options{instrument};
-  } else {
-    $instrument = '';
-  }
-
-  my $text;
-  if( exists( $options{text} ) ) {
-    $text = $options{text};
-  } else {
-    $text = 0;
-  }
-
-# Verify the ObsGroup object.
+  # Verify the ObsGroup object.
   if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
   }
 
-  my @allobs;
+  my $summary = $self->get_obs_summary($obsgroup, %options);
 
-  # Make the array of Obs objects.
-  if( $sort eq 'instrument' ) {
-
-    my %grouped = $obsgroup->groupby('instrument');
-    foreach my $inst (sort keys %grouped) {
-      my @obs;
-      if( $ascending ) {
-        @obs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
-      } else {
-        @obs = sort { $b->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
-      }
-      push @allobs, @obs;
-    }
-  } else {
-    if( $ascending ) {
-      @allobs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $obsgroup->obs;
-    } else {
-      @allobs = sort { $b->startobs->epoch <=> $a->startobs->epoch } $obsgroup->obs;
-    }
-  }
-
-  unless (@allobs) {
-    if ($text) {
-      print "No observations for this night\n";
-    }
+  unless (defined $summary) {
     return;
   }
 
-  my $currentinst = (length( $instrument . '' ) == 0 ) ? $allobs[0]->instrument : $instrument;
+  print "<h2>Observation log</h2>\n";
+  print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_other"><td>\n];
+  print 'Colour legend: ',
+    join ', ',
+    map
+    { '<span class="' . $css{$_->[0]} . '">' . $_->[1] . '</span>' }
+    (
+      [ OMP__OBS_GOOD(),         'good'         ],
+      [ OMP__OBS_QUESTIONABLE(), 'questionable' ],
+      [ OMP__OBS_BAD(),          'bad'          ],
+      [ OMP__OBS_JUNK(),         'junk'         ],
+      [ OMP__OBS_REJECTED(),     'rejected'     ]
+    ) ;
+  print  "</td></tr>\n";
 
-  my $ut = $allobs[0]->startobs->ymd;
-
-  if( $text ) {
-
-  } else {
-    print "<h2>Observation log</h2>\n";
-    print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_other"><td>\n];
-    print 'Colour legend: ',
-      join ', ',
-      map
-      { '<span class="' . $css{$_->[0]} . '">' . $_->[1] . '</span>' }
-      (
-        [ OMP__OBS_GOOD(),         'good'         ],
-        [ OMP__OBS_QUESTIONABLE(), 'questionable' ],
-        [ OMP__OBS_BAD(),          'bad'          ],
-        [ OMP__OBS_JUNK(),         'junk'         ],
-        [ OMP__OBS_REJECTED(),     'rejected'     ]
-      ) ;
-    print  "</td></tr>\n";
-
-    print "</table>";
-  }
-
-  if(!defined($currentinst)) {
-
-    if( $text ) {
-
-    } else {
-      print qq[<table width="600" class="sum_table" border="0">\n];
-      print qq[<tr class="sum_other"><td>No observations available</td></tr></table>\n];
-    }
-    return;
-  }
+  print "</table>";
 
   # Start off the table.
-
-  # Get the headings from the first observation. Note that we have to test
-  # if it's a timegap or not, because if it is it'll throw an Xbox-sized spanner
-  # into the whole mess.
-  my %nightlog;
-  foreach my $obshdr (@allobs) {
-    if(!UNIVERSAL::isa($obshdr, "OMP::Info::Obs::TimeGap") && uc($obshdr->instrument) eq uc($currentinst)) {
-      %nightlog = $obshdr->nightlog;
-      last;
-    }
-  }
-
 
   my %worfraw;
   my %worfreduced;
 
-  if ($worflink ne 'none') {
-      # Check to see if we should be doing WORF raw or reduced links. We do
-      # this by checking for the raw and reduced data directories to see if
-      # they exist.
-      my $rawdir = OMP::Config->getData( 'rawdatadir',
-                                         telescope => $allobs[0]->telescope,
-                                         instrument => lc( $currentinst ),
-                                         utdate => $allobs[0]->startobs->ymd );
-      my $reduceddir = OMP::Config->getData( 'reduceddatadir',
-                                             telescope => $allobs[0]->telescope,
-                                             instrument => lc( $currentinst ),
-                                             utdate => $allobs[0]->startobs->ymd );
-      if( -d $rawdir ) {
-          $worfraw{$currentinst} = 1;
-      } else {
-          $worfraw{$currentinst} = 0;
-      }
-      if( -d $reduceddir ) {
-          $worfreduced{$currentinst} = 1;
-      } else {
-          $worfreduced{$currentinst} = 0;
-      }
-  }
-
-
-  my $ncols;
-  if( $text ) {
-    print "\nObservations for " . uc( $currentinst ) . " on $ut\n";
-    print $nightlog{_STRING_HEADER}, "\n";
-  } else {
-    print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
-    $ncols = scalar(@{$nightlog{_ORDER}}) + 4;
-    print "<table class=\"sum_table\" border=\"0\">\n";
-
-    # Print the column headings.
-    print "<tr class=\"sum_other\"><td>";
-    print join ( "</td><td>", @{$nightlog{_ORDER}} );
-
-    # Don't include WORF links if they were specifically not requested.
-    if ($worflink eq 'none') {
-        print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
-    } else {
-        print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
-    }
-  }
-
   my $rowclass = "row_b";
 
-  reset_for_msb_comments();
+  my $is_first_block = 1;
+  foreach my $instblock (@{$summary->{'block'}}) {
+    my $ut = $instblock->{'ut'};
+    my $telescope = $instblock->{'telescope'};
+    my $currentinst = $instblock->{'instrument'};
 
-  foreach my $obs (@allobs) {
-
-    next if( ( length( $instrument . '' ) > 0 ) &&
-             ( uc( $instrument ) ne uc( $obs->instrument ) ) );
-
-    my %nightlog = $obs->nightlog;
-
-    # First, check to see if the instrument has changed. If it has, close the old table
-    # and start a new one.
-    if( uc($obs->instrument) ne uc($currentinst) && !UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap") ) {
-      $currentinst = $obs->instrument;
-
-      if( ($worflink ne 'none') && (! defined( $worfraw{$currentinst} ))) {
-
+    if( ($worflink ne 'none') && (! defined( $worfraw{$currentinst} ))) {
+        # Check to see if we should be doing WORF raw or reduced links. We do
+        # this by checking for the raw and reduced data directories to see if
+        # they exist.
         my $rawdir = OMP::Config->getData( 'rawdatadir',
-                                           telescope => $allobs[0]->telescope,
+                                           telescope => $telescope,
                                            instrument => lc( $currentinst ),
-                                           utdate => $allobs[0]->startobs->ymd );
+                                           utdate => $ut );
         my $reduceddir = OMP::Config->getData( 'reduceddatadir',
-                                               telescope => $allobs[0]->telescope,
+                                               telescope => $telescope,
                                                instrument => lc( $currentinst ),
-                                               utdate => $allobs[0]->startobs->ymd );
+                                               utdate => $ut );
         $worfraw{$currentinst} = 0;
         $worfreduced{$currentinst} = 0;
         if( -d $rawdir ) {
@@ -344,63 +369,55 @@ sub obs_table {
         if( -d $reduceddir ) {
           $worfreduced{$currentinst} = 1;
         }
-      }
-
-
-      if( $text ) {
-        print "\nObservations for " . uc( $currentinst ) . "\n";
-        print $nightlog{_STRING_HEADER}, "\n";
-      } else {
-        print "</table>\n";
-        print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
-        print "<table class=\"sum_table\" border=\"0\">\n";
-
-        # Print the column headings.
-        print "<tr class=\"sum_other\"><td>";
-        print join ( "</td><td>", @{$nightlog{_ORDER}} );
-
-        # Don't include WORF columns if they were specifically not requested.
-        if ($worflink eq 'none') {
-            print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
-        } else {
-            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
-        }
-      }
     }
 
-    my $comments = $obs->comments;
-    my $obsid  = $obs->obsid;
-    my $status = $obs->status;
-    my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
-    my $label_status = defined( $status ) ? $status_label{$status} : $status_label{OMP__OBS_GOOD()};
-    my $instrument = $obs->instrument;
-    my $shift = $obs->shifttype;
-    my @msb_comment;
+    my $column_order = $instblock->{'heading'}->{'_ORDER'};
+    my $ncols = 4 + scalar @$column_order;
 
-    if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
-      if( $text ) {
-        print $nightlog{'_STRING'}, "\n";
-      } else {
-        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 4) . "\"><font color=\"BLACK\">";
-        $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
-        print $nightlog{'_STRING'};
-      }
+    if ($is_first_block) {
+      print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
+      print "<table class=\"sum_table\" border=\"0\">\n";
+
+    }
+    else {
+      print "</table>\n";
+      print "<h3>Observations for " . uc($currentinst) . "</h3>\n";
+      print "<table class=\"sum_table\" border=\"0\">\n";
+    }
+
+    # Print the column headings.
+    print "<tr class=\"sum_other\"><td>";
+    print join ( "</td><td>", @$column_order );
+
+    # Don't include WORF columns if they were specifically not requested.
+    if ($worflink eq 'none') {
+        print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
     } else {
+        print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
+    }
 
-      @msb_comment =
-        format_msb_comment( $text, get_msb_comments( $obs, my $get_title = 0 ) );
+    foreach my $entry (@{$instblock->{'obs'}}) {
+      my $obs = $entry->{'obs'};
+      my $nightlog = $entry->{'nightlog'};
 
-      my $any_msb_comment = scalar @msb_comment;
+      my $comments = $obs->comments;
+      my $obsid  = $obs->obsid;
+      my $status = $obs->status;
+      my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
+      my $label_status = defined( $status ) ? $status_label{$status} : $status_label{OMP__OBS_GOOD()};
+      my $instrument = $obs->instrument;
 
-      if( $text ) {
+      if ($entry->{'is_time_gap'}) {
+        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 4) . "\"><font color=\"BLACK\">";
+        $nightlog->{'_STRING'} =~ s/\n/\<br\>/g;
+        print $nightlog->{'_STRING'};
+      }
+      else {
+        my @msb_comment =
+          format_msb_comment( 0, $entry->{'msb_comments'} )
+            if exists $entry->{'msb_comments'};
 
-        my @text;
-        push @text, @msb_comment;
-
-        print @text, "\n", $nightlog{'_STRING'}, "\n";
-      } else {
-
-        $ncols = scalar( @{$nightlog{_ORDER}} ) + 4;
+        my $any_msb_comment = scalar @msb_comment;
 
         if ( scalar @msb_comment ) {
 
@@ -414,25 +431,14 @@ sub obs_table {
         print qq[<tr class="$rowclass"><td class="$css_status">],
           join qq[</td><td class="$css_status">],
             map
-            { ref($nightlog{$_}) eq 'ARRAY'
-              ? join ', ', @{$nightlog{$_}}
-              : $nightlog{$_};
+            { ref($nightlog->{$_}) eq 'ARRAY'
+              ? join ', ', @{$nightlog->{$_}}
+              : $nightlog->{$_};
             }
-            @{$nightlog{_ORDER}} ;
+            @{$nightlog->{_ORDER}} ;
       }
-    }
 
-    my $obsut;
-    if( $text ) {
-
-    } else {
-
-      my $endpoint =
-        UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" )
-        ? $obs->endobs
-        : $obs->startobs;
-
-      $obsut = join '-', map { $endpoint->$_ } qw[ ymd hour minute second ];
+      my $obsut = $entry->{'obsut'};
 
       my %param = ( 'ut'  => $obsut,
                     'runnr' => $obs->runnr,
@@ -441,20 +447,15 @@ sub obs_table {
                   );
 
       $param{'timegap'} = 1
-        if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
+        if $entry->{'is_time_gap'};
 
       print qq[</td><td><a class="link_dark_small" href="$commentlink]
             . join( '&', map { $_ . '=' . $param{ $_ } } grep { defined $param{$_} } keys %param )
             . qq[">comment</a></td>];
-    }
-
-    if( $text ) {
-
-    } else {
 
       if ($worflink ne 'none') {
-      # Display WORF box if we do not have a TimeGap.
-        if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ))   {
+        # Display WORF box if we do not have a TimeGap.
+        unless ($entry->{'is_time_gap'}) {
 
           my $worf;
           try {
@@ -540,26 +541,15 @@ sub obs_table {
       # Print the status of the observation explicitly.
       print qq[<td class="$css_status">] . $label_status . '</td>';
 
-      # Print the shift.
-      #print qq[<td class="$css_status">] . $shift . '</td>';
-      #print "</tr>\n";
-    }
+      # Print the comments underneath, if there are any, and if the
+      # 'showcomments' parameter is not '0', and if we're not looking at a timegap
+      # (since timegap comments show up in the nightlog string)
+      if( defined( $comments ) &&
+          defined( $comments->[0] ) &&
+          ( $showcomments != 0 ) &&
+          ! $entry->{'is_time_gap'} ) {
 
-    # Print the comments underneath, if there are any, and if the
-    # 'showcomments' parameter is not '0', and if we're not looking at a timegap
-    # (since timegap comments show up in the nightlog string)
-    if( defined( $comments ) &&
-        defined( $comments->[0] ) &&
-        ( $showcomments != 0 ) &&
-        ! UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-
-      if( $text ) {
-        foreach my $comment ( @$comments ) {
-          print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-          print $comment->text . "\n";
-        }
-      } else {
-        print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 4) . "\">";
+        print "<tr class=\"$rowclass\"><td colspan=\"" . $ncols . "\">";
         my @printstrings;
         foreach my $comment (@$comments) {
           my $string = qq[ <span class="] . $css{$comment->status} . '">'
@@ -577,153 +567,119 @@ sub obs_table {
         };
         print "</td></tr>\n";
       }
+
+      $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
     }
 
-    $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
-
+    $is_first_block = 0;
   }
 
-  if( $text ) {
-
-  } else {
-
-    # And finish the table.
-    print "</table>\n";
-  }
-
+  # And finish the table.
+  print "</table>\n";
 }
 
+=item B<obs_table_text>
 
-{
-  my ( $msbdb, $old_sum, $old_tid, %title );
+Prints a plain text table containing a summary of information about a
+group of observations.
 
-  # To be called before looping ober $obs list.
-  sub reset_for_msb_comments {
+  $comp->obs_table_text( $obsgroup, %options );
 
-    $title{'CAL'} = 'Calibration';
-    $old_sum = $old_tid = '';
+The first argument is the C<OMP::Info::ObsGroup>
+object, and remaining options tell the function how to
+display things.
 
-    unless ( defined $msbdb ) {
+=over 4
 
-      $msbdb = OMP::MSBDoneDB->new( DB => OMP::DBbackend->new() );
-    }
+=item *
 
+showcomments - Boolean on whether or not to print comments [true].
+
+=back
+
+=cut
+
+sub obs_table_text {
+  my $self = shift;
+  my $obsgroup = shift;
+  my %options = @_;
+
+  # Verify the ObsGroup object.
+  if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
+    throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
+  }
+
+  my $showcomments;
+  if( exists( $options{showcomments} ) ) {
+    $showcomments = $options{showcomments};
+  } else {
+    $showcomments = 1;
+  }
+
+  my $summary = $self->get_obs_summary($obsgroup, %options);
+
+  unless (defined $summary) {
+    print "No observations for this night\n";
     return;
   }
 
-  # $get_title -- if true, do a separate query for the MSB title.
-  # Unsure why this option exists, since the call to "historyMSBtid"
-  # will include the title anyway.  For now include the title it gives
-  # if this option is unset.
-  sub get_msb_comments {
+  my $is_first_block = 1;
+  foreach my $instblock (@{$summary->{'block'}}) {
+    my $ut = $instblock->{'ut'};
+    my $currentinst = $instblock->{'instrument'};
 
-    my ( $obs, $get_title ) = @_;
+    if ($is_first_block) {
+      print "\nObservations for " . $currentinst . " on $ut\n";
+    }
+    else {
+      print "\nObservations for " . $currentinst . "\n";
+    }
 
-    # In case msbtid column is missing or has no value (calibration), use checksum.
-    my $checksum = $obs->checksum;
-    my $msbtid   = $obs->msbtid;
+    print $instblock->{'heading'}->{_STRING_HEADER}, "\n";
 
-    my ( $is_new_checksum, $is_new_msbtid, $has_msbtid ) =
-      _are_new_sum_tid( $obs, $checksum, $msbtid );
+    foreach my $entry (@{$instblock->{'obs'}}) {
+      my $obs = $entry->{'obs'};
+      my $nightlog = $entry->{'nightlog'};
 
-    # If the current MSB differs from the MSB to which this observation belongs,
-    # we need to insert as the start of the MSB. Ignore blank MSBTIDS.
-    return if ! ( $checksum && ( $is_new_msbtid || $is_new_checksum ) );
-
-    my ( %extract );
-
-    if ( $get_title ) {
-
-      unless ( exists( $title{ $checksum } ) ) {
-
-        my $title = $msbdb->titleMSB( $checksum );
-        $title{ $checksum } =
-            defined $title ? $title : 'Unknown MSB' ;
+      if ($entry->{'is_time_gap'}) {
+        print $nightlog->{'_STRING'}, "\n";
       }
+      else {
+        my @msb_comment =
+          format_msb_comment( 1, $entry->{'msb_comments'} )
+            if exists $entry->{'msb_comments'};
 
-      $extract{'title'} = $title{ $checksum };
+        my $any_msb_comment = scalar @msb_comment;
+
+        my @text;
+        push @text, @msb_comment;
+
+        print @text, "\n", $nightlog->{'_STRING'}, "\n";
+
+        if ($showcomments) {
+          # Print the comments underneath, if there are any, and if the
+          # 'showcomments' parameter is not '0', and if we're not looking at a timegap
+          # (since timegap comments show up in the nightlog string)
+          my $comments = $obs->comments;
+          if (defined($comments) && defined($comments->[0])) {
+            foreach my $comment (@$comments) {
+              print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+              print $comment->text . "\n";
+            }
+          }
+        }
+      }
     }
 
-    # Get any activity associated with this MSB accept.
-    my $history;
-    try {
-
-      $history = $msbdb->historyMSBtid( $msbtid ) if $has_msbtid;
-    } otherwise {
-
-      my $E = shift;
-      print $E;
-    };
-
-    return %extract
-      unless defined $history;
-
-    unless ($get_title) {
-      $extract{'title'} = $history->title();
-    }
-
-    for my $c ( $history->comments() ) {
-
-      my $author = $c->author;
-      # we should never get undef author.
-      my $name =
-        defined $author
-        ? $c->author->name()
-        : '<UNKNOWN>'
-        ;
-
-      push @{ $extract{'comments'} },
-        {
-          'name' => $name,
-          'date' => $c->date(),
-          'text' => $c->text(),
-        };
-    }
-
-    return %extract;
-  }
-
-  sub _are_new_sum_tid {
-
-    my ( $obs, $sum, $tid ) = @_;
-
-    my $has_tid = defined $tid && length $tid;
-
-    my ( $is_new_tid, $is_new_sum );
-
-    if ( $has_tid ) {
-
-      $is_new_tid =
-            $tid ne ''
-        &&  $tid ne $old_tid ;
-
-      $old_tid = $tid if $is_new_tid;
-
-      # Reset to later handle case of 'calibration' since sum 'CAL' never
-      # changes.
-      $old_sum = '';
-
-      return ( $is_new_sum, $is_new_tid, $has_tid );
-    }
-
-    $is_new_sum =
-      ! ( $old_sum eq $sum
-          ||
-          # Title is produced for TimeGap object elsewhere.
-          ( defined $obs && $obs->isa( 'OMP::Info::Obs::TimeGap' ) )
-        ) ;
-
-    $old_sum = $sum if $is_new_sum;
-
-    return ( $is_new_sum, $is_new_tid, $has_tid );
+    $is_first_block = 0;
   }
 }
 
 sub format_msb_comment {
 
-  my ( $text, %comment ) = @_;
+  my ( $text, $comment ) = @_;
 
-  return unless scalar keys %comment;
+  return unless scalar keys %$comment;
 
   my @comment;
 
@@ -735,10 +691,10 @@ sub format_msb_comment {
     ;
 
   my $title = '';
-  $title = sprintf $title_form, $comment{'title'}
-    if exists     $comment{'title'}
-    && defined    $comment{'title'}
-    && 2 < length $comment{'title'};
+  $title = sprintf $title_form, $comment->{'title'}
+    if exists     $comment->{'title'}
+    && defined    $comment->{'title'}
+    && 2 < length $comment->{'title'};
 
   my $rest_form =
     $text
@@ -746,9 +702,10 @@ sub format_msb_comment {
     : qq[%s UT by %s\n<br>%s\n]
     ;
 
-  for my $c ( @{ $comment{'comments'} } ) {
-
-    my ( $date, $name, $text ) = map { $c->{ $_ } } (qw[ date name text ]);
+  foreach my $c ( @{ $comment->{'comments'} } ) {
+    my $date = $c->date;
+    my $name = (defined $c->author) ? $c->author->name : 'UNKNOWN PERSON';
+    my $text = $c->text();
 
     next
       unless defined $text
