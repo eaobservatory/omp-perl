@@ -158,9 +158,6 @@ sub get_obs_summary {
 
   my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
 
-  my %title = (
-    CAL => 'Calibration',
-  );
   my $old_sum = '';
   my $old_tid = '';
 
@@ -235,20 +232,17 @@ sub get_obs_summary {
           };
         }
 
-        my %extract;
         if (defined $history) {
-          %extract = (
-              title => $history->title(),
-              comments => scalar $history->comments(),
-          );
+          my $title = $history->title();
+          undef $title unless 2 < length $title;
+          $entry{'msb_comments'} = {
+              title => $title,
+              comments => [grep {
+                  my $text = $_->text();
+                  defined $text && length $text;
+              } $history->comments()],
+          };
         }
-        elsif (exists $title{$checksum}) {
-          %extract = (
-            title => $title{$checksum},
-          );
-        }
-
-        $entry{'msb_comments'} = \%extract if %extract;
       }
     }
 
@@ -413,19 +407,23 @@ sub obs_table {
         print $nightlog->{'_STRING'};
       }
       else {
-        my @msb_comment =
-          format_msb_comment( 0, $entry->{'msb_comments'} )
-            if exists $entry->{'msb_comments'};
+        if (exists $entry->{'msb_comments'}) {
+          my $comment = $entry->{'msb_comments'};
 
-        my $any_msb_comment = scalar @msb_comment;
+          my $title = '';
+          $title = sprintf qq[<b>%s</b><br>\n], $comment->{'title'}
+            if defined $comment->{'title'};
 
-        if ( scalar @msb_comment ) {
+          print qq[<tr class="$rowclass"><td class="msb-comment-nightrep" colspan="$ncols">];
 
-          print qq[<tr class="$rowclass"><td class="msb-comment-nightrep" colspan="$ncols"><p>],
-            join '</p><p>',
-             @msb_comment;
+          foreach my $c (@{$comment->{'comments'}}) {
+            print '<p>' . $title . (sprintf qq[%s UT by %s\n<br>%s\n],
+                $c->date,
+                ((defined $c->author) ? $c->author->name : 'UNKNOWN PERSON'),
+                $c->text()) . '</p>';
+          }
 
-          print qq[</p></td></tr>];
+          print qq[</td></tr>];
         }
 
         print qq[<tr class="$rowclass"><td class="$css_status">],
@@ -645,14 +643,21 @@ sub obs_table_text {
         print $nightlog->{'_STRING'}, "\n";
       }
       else {
-        my @msb_comment =
-          format_msb_comment( 1, $entry->{'msb_comments'} )
-            if exists $entry->{'msb_comments'};
-
-        my $any_msb_comment = scalar @msb_comment;
-
         my @text;
-        push @text, @msb_comment;
+        if (exists $entry->{'msb_comments'}) {
+          my $comment = $entry->{'msb_comments'};
+
+          my $title = '';
+          $title = sprintf "%s\n", $comment->{'title'}
+            if defined $comment->{'title'};
+
+          foreach my $c (@{$comment->{'comments'}}) {
+            push @text, $title . sprintf "%s UT by %s\n%s\n",
+              $c->date,
+              ((defined $c->author) ? $c->author->name : 'UNKNOWN PERSON'),
+              $c->text();
+          }
+        }
 
         print @text, "\n", $nightlog->{'_STRING'}, "\n";
 
@@ -673,56 +678,6 @@ sub obs_table_text {
 
     $is_first_block = 0;
   }
-}
-
-sub format_msb_comment {
-
-  my ( $text, $comment ) = @_;
-
-  return unless scalar keys %$comment;
-
-  my @comment;
-
-  my $title_form =
-    $text
-    ? "%s\n"
-    # 'html' is the default format.
-    : qq[<b>%s</b><br>\n]
-    ;
-
-  my $title = '';
-  $title = sprintf $title_form, $comment->{'title'}
-    if exists     $comment->{'title'}
-    && defined    $comment->{'title'}
-    && 2 < length $comment->{'title'};
-
-  my $rest_form =
-    $text
-    ? "%s UT by %s\n%s\n"
-    : qq[%s UT by %s\n<br>%s\n]
-    ;
-
-  foreach my $c ( @{ $comment->{'comments'} } ) {
-    my $date = $c->date;
-    my $name = (defined $c->author) ? $c->author->name : 'UNKNOWN PERSON';
-    my $text = $c->text();
-
-    next
-      unless defined $text
-      && length $text;
-
-    $date = 'UNKNOWN DATE'
-      unless defined $date
-          && length $date;
-
-    $name = 'UNKNOWN PERSON'
-      unless defined $name
-          && length $name;
-
-    push @comment, $title . sprintf $rest_form, $date, $name, $text;
-  }
-
-  return @comment;
 }
 
 =item B<obs_comment_form>
