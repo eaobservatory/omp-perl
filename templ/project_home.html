@@ -1,7 +1,7 @@
 [% PROCESS "macro_project.html" -%]
 [% WRAPPER "layout.html" %]
 
-<h2>[% project.projectid | html %]: [% project.title | html %]</h2>
+<h1>[% project.projectid | html %]: [% project.title | html %]</h1>
 
 [% IF project.isTOO %]
     <p>

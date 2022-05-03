@@ -1,5 +1,5 @@
 [% WRAPPER "layout.html" %]
-<h3>User Details for [% user.name | html %]</h3>
+<h1>User Details for [% user.name | html %]</h1>
 
 <p>
     [% user.name | html %]
@@ -29,7 +29,7 @@
 [% FOREACH capacity = ["Principal Investigator", "Co-Investigator", "Support"] %]
     [% SET project_capacity = project_capacities.$capacity %]
     [% IF project_capacity %]
-      <h3>[% capacity %]</h3>
+      <h2>[% capacity %]</h2>
 
       <table>
           <tr>
@@ -58,7 +58,7 @@
 [% END %]
 
 [% IF ! faults.empty %]
-    <h4>User associated faults for the past 2 weeks</h4>
+    <h2>User associated faults for the past 2 weeks</h2>
 
     <table>
         <tr>
