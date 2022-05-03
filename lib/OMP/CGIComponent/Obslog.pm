@@ -26,6 +26,7 @@ use OMP::Constants qw/ :obs :timegap /;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::MSBDoneDB;
+use OMP::NightRep;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -59,198 +60,6 @@ our %status_label = ( OMP__OBS_GOOD() => 'Good',
 =head1 Routines
 
 =over 4
-
-=item B<get_obs_summary>
-
-Prepare summarized observation information as required for
-printing a table of observations.
-
-    my $summary = $comp->get_obs_summary($obsgroup, %options);
-
-L<%options> is a hash optionally containing the
-following keys:
-
-=over 4
-
-=item *
-
-ascending - Boolean on if observations should be printed in
-chronologically ascending or descending order [true].
-
-=item *
-
-sort - Determines the order in which observations are displayed.
-If set to 'chronological', then the observations in the given
-C<Info::ObsGroup> object will be displayed in chronological order,
-with table breaks occurring whenever an instrument changes. If
-set to 'instrument', then one table will be displayed for each
-instrument in the C<Info::ObsGroup> object, regardless of the order
-in which observations for those instruments were taken. Defaults
-to 'instrument'.
-
-=back
-
-=cut
-
-sub get_obs_summary {
-  my $self = shift;
-  my $obsgroup = shift;
-  my %options = @_;
-
-  my $sort;
-  if( exists( $options{sort} ) ) {
-    if( $options{sort} =~ /^chronological/i ) {
-      $sort = 'chronological';
-    } else {
-      $sort = 'instrument';
-    }
-  } else {
-    $sort = 'instrument';
-  }
-
-  my $ascending;
-  if( exists( $options{ascending} ) ) {
-    $ascending = $options{ascending};
-  } else {
-    $ascending = 1;
-  }
-
-  my $instrument;
-  if( exists( $options{instrument} ) ) {
-    $instrument = $options{instrument};
-  } else {
-    $instrument = '';
-  }
-
-  my @allobs;
-
-  # Make the array of Obs objects.
-  if( $sort eq 'instrument' ) {
-
-    my %grouped = $obsgroup->groupby('instrument');
-    foreach my $inst (sort keys %grouped) {
-      my @obs;
-      if( $ascending ) {
-        @obs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
-      } else {
-        @obs = sort { $b->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
-      }
-      push @allobs, @obs;
-    }
-  } else {
-    if( $ascending ) {
-      @allobs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $obsgroup->obs;
-    } else {
-      @allobs = sort { $b->startobs->epoch <=> $a->startobs->epoch } $obsgroup->obs;
-    }
-  }
-
-  unless (@allobs) {
-    return undef;
-  }
-
-  my %result = (
-    block => [],
-  );
-
-  my $currentinst = undef;
-  my $currentblock = undef;
-
-  my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
-
-  my $old_sum = '';
-  my $old_tid = '';
-
-  foreach my $obs (@allobs) {
-    next if( ( length( $instrument . '' ) > 0 ) &&
-             ( uc( $instrument ) ne uc( $obs->instrument ) ) );
-
-    unless ((defined $currentblock) and ($currentinst eq uc $obs->instrument)) {
-      $currentinst = uc $obs->instrument;
-      push @{$result{'block'}}, $currentblock = {
-        instrument => $currentinst,
-        ut => $obs->startobs->ymd,
-        telescope => $obs->telescope,
-        obs => []};
-    }
-
-    my %nightlog = $obs->nightlog;
-    my $is_time_gap = eval {$obs->isa('OMP::Info::Obs::TimeGap')};
-
-    my $endpoint = $is_time_gap
-      ? $obs->endobs
-      : $obs->startobs;
-
-    my %entry = (
-      is_time_gap => $is_time_gap,
-      obs => $obs,
-      obsut => (join '-', map { $endpoint->$_ } qw/ymd hour minute second/),
-      nightlog => \%nightlog,
-    );
-
-    unless ($is_time_gap) {
-      unless (exists $currentblock->{'heading'}) {
-        $currentblock->{'heading'} = \%nightlog;
-      }
-
-      # In case msbtid column is missing or has no value (calibration), use checksum.
-      my $checksum = $obs->checksum;
-      my $msbtid   = $obs->msbtid;
-
-      my $has_msbtid = defined $msbtid && length $msbtid;
-
-      my ($is_new_msbtid, $is_new_checksum);
-
-      if ($has_msbtid) {
-        $is_new_msbtid =
-              $msbtid ne ''
-          &&  $msbtid ne $old_tid ;
-
-        $old_tid = $msbtid if $is_new_msbtid;
-
-        # Reset to later handle case of 'calibration' since sum 'CAL' never
-        # changes.
-        $old_sum = '';
-      }
-      else {
-        $is_new_checksum = ! ($old_sum eq $checksum);
-
-        $old_sum = $checksum if $is_new_checksum;
-      }
-
-      # If the current MSB differs from the MSB to which this observation belongs,
-      # we need to insert as the start of the MSB. Ignore blank MSBTIDS.
-      if ( $checksum && ( $is_new_msbtid || $is_new_checksum ) ) {
-        # Get any activity associated with this MSB accept.
-        my $history;
-        if ($has_msbtid) {
-          try {
-            $history = $msbdb->historyMSBtid($msbtid);
-          } otherwise {
-            my $E = shift;
-            print STDERR $E;
-          };
-        }
-
-        if (defined $history) {
-          my $title = $history->title();
-          undef $title unless 2 < length $title;
-          $entry{'msb_comments'} = {
-              title => $title,
-              comments => [grep {
-                  my $text = $_->text();
-                  defined $text && length $text;
-              } $history->comments()],
-          };
-        }
-      }
-    }
-
-    push @{$currentblock->{'obs'}}, \%entry;
-  }
-
-  return \%result;
-}
 
 =item B<obs_table>
 
@@ -307,7 +116,7 @@ sub obs_table {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
   }
 
-  my $summary = $self->get_obs_summary($obsgroup, %options);
+  my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
 
   unless (defined $summary) {
     return;
@@ -614,7 +423,7 @@ sub obs_table_text {
     $showcomments = 1;
   }
 
-  my $summary = $self->get_obs_summary($obsgroup, %options);
+  my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
 
   unless (defined $summary) {
     print "No observations for this night\n";
