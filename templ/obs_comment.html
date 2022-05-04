@@ -3,12 +3,19 @@
 <h1>
     Comment for
     [% IF is_time_gap %]
-        time gap between
-        [% obs.instrument | html %]
-        observations
-        [% obs.runnr - 1 | html %]
-        and
-        [% obs.runnr | html %]
+        time gap
+        [% IF obs.runnr == 1 %]
+            before
+            [% obs.instrument | html %]
+            observation 1
+        [% ELSE %]
+            between
+            [% obs.instrument | html %]
+            observations
+            [% obs.runnr - 1 | html %]
+            and
+            [% obs.runnr | html %]
+        [% END %]
         on
         [% obs.endobs.ymd | html %]
     [% ELSE %]
