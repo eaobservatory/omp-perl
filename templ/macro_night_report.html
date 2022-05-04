@@ -221,7 +221,7 @@
         [% USE comment_url = url('/cgi-bin/staffobscomment.pl') %]
     [% END %]
 
-    [% UNLESS obs_summary.defined %]
+    [% UNLESS obs_summary.defined && obs_summary.block.defined %]
         <p>No observations available.</p>
     [% ELSE %]
         <table width="600" class="sum_table" border="0">
