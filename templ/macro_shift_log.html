@@ -1,6 +1,6 @@
 [% MACRO render_shift_log_entries(comments, multiple_night) BLOCK %]
     <table class="sum_table" cellspacing="0" width="600">
-        [% SET bgcolor = 'a' %]
+        [% SET bgcolor = 'b' %]
         [% FOREACH date IN comments %]
             [% IF multiple_night %]
                 [% SET timecellclass = 'time_' _ date.value.0.date.day %]
