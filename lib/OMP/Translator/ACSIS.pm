@@ -3473,35 +3473,29 @@ sub bandwidth_mode {
       # Subband 1 is referenced to LO channel and subband 2 to HI
       #     [ |     |:]
       #             [:|     | ]
-      my $frontend = $self->ocs_frontend($info{'instrument'});
-      if ($frontend =~ /harp/i) {
-        @refchan = ($nch_lo, $nch_hi);
-      }
-      else {
-        @refchan = ($nch_hi, $nch_lo);
-      }
+      @refchan = ($nch_lo, $nch_hi);
       @sbif = ($s->{'if'}) x 2;
 
     } elsif ($nsubband == 3) {
       # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      #              :  [ |     | ]
       # [ |     | ]  :
+      #              :  [ |     | ]
       @refchan = ($nch_mid,
-                  $nch_mid + $subband_shift,
-                  $nch_mid - $subband_shift);
+                  $nch_mid - $subband_shift,
+                  $nch_mid + $subband_shift);
       @sbif = ($s->{'if'}) x 3;
 
     } elsif ($nsubband == 4) {
       # Subbands all referenced to the centre IF.
       #         [ |     |:]
       #                 [:|     | ]
-      # [ |     | ]      :
       #                  :      [ |     | ]
+      # [ |     | ]      :
       @refchan = ($nch_lo,
                   $nch_hi,
-                  $nch_lo - $subband_shift,
-                  $nch_hi + $subband_shift);
+                  $nch_hi + $subband_shift,
+                  $nch_lo - $subband_shift);
       @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
