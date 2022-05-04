@@ -4,6 +4,8 @@
         [% render_nr_msb_summary(night_report) %]
         [% render_nr_fault_summary(night_report) %]
         [% render_nr_shift_log(night_report) %]
+    [% END %]
+    [% IF night_report.delta_day == 1 %]
         [% render_nr_observation_log(night_report) %]
     [% END %]
 [% END -%]
