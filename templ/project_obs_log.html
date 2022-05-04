@@ -1,7 +1,9 @@
+[% USE scalar -%]
 [% PROCESS "macro_general.html" -%]
 [% PROCESS "macro_msb.html" -%]
 [% PROCESS "macro_shift_log.html" -%]
 [% PROCESS "macro_obs_log.html" -%]
+[% PROCESS "macro_night_report.html" -%]
 [% WRAPPER "layout.html" %]
 
 <h1>Project log for [% project.projectid | html %] on [% utdate | html %]</h1>
@@ -72,10 +74,10 @@
 
 <h2>Observation log</h2>
 
-[% IF ! obs_log_html.defined %]
+[% IF ! obs_summary.defined %]
     <p>No observations available for this night.</p>
 [% ELSE %]
-    [% obs_log_html %]
+    [% render_observation_log(obs_summary, project.projectid) %]
 [% END %]
 
 [% IF shift_log_comments.defined %]

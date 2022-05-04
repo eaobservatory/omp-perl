@@ -19,7 +19,6 @@ use 5.006;
 use strict;
 use warnings;
 
-use Capture::Tiny qw/capture_stdout/;
 use Carp;
 
 use OMP::DateTools;
@@ -147,16 +146,6 @@ sub night_report {
     ($prev, $next) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
   }
 
-  my $night_report_html = capture_stdout {
-      if ($tel eq 'JCMT') {
-          $nr->ashtml( worfstyle => 'none',
-                       commentstyle => 'staff', );
-      } else {
-          $nr->ashtml( worfstyle => 'staff',
-                       commentstyle => 'staff', );
-      }
-  };
-
   # NOTE: disabled as we currently don't have fits in the OMP.
   # taufits: $weathercomp->tau_plot($utdate),
   # NOTE: also currently disabled?
@@ -182,7 +171,6 @@ sub night_report {
       ut_date_start => $start,  # starting value for form
 
       night_report => $nr,
-      night_report_html => $night_report_html,
 
       dq_nightly_html => ($tel ne 'JCMT' || $delta ? undef :
           $includecomp->include_file_ut('dq-nightly', $utdate->ymd())),

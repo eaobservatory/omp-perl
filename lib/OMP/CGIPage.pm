@@ -28,6 +28,7 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use Template;
+use Template::Stash;
 
 use OMP::Auth;
 use OMP::CGIComponent::Helper qw/url_absolute/;
@@ -479,6 +480,10 @@ sub render_template {
     my $self = shift;
     my $name = shift;
     my $context = shift;
+
+    # Allow access to "private" attributes, e.g.
+    # the _ORDER parameter from OMP::Info::Obs::nightlog.
+    local $Template::Stash::PRIVATE = undef;
 
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),

@@ -31,8 +31,6 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-# CGI classes are only loaded on demand for web applications
-# in the ashtml method. Do not use 'use'
 use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
@@ -40,6 +38,7 @@ use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
+use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctGroup;
@@ -1521,6 +1520,9 @@ sub get_obs_summary {
 
   my %result = (
     block => [],
+    status_order => \@OMP::Info::Obs::status_order,
+    status_class => \%OMP::Info::Obs::status_class,
+    status_label => \%OMP::Info::Obs::status_label,
   );
 
   my $currentinst = undef;
@@ -1620,119 +1622,6 @@ sub get_obs_summary {
   }
 
   return \%result;
-}
-
-=item B<ashtml>
-
-Generate a summary of the night formatted using HTML.
-
-  $nr->ashtml();
-
-This method takes an optional hash argument with the following keys:
-
-=over 4
-
-=item *
-
-worfstyle - Write WORF links to the staff WORF page. Can be either
-'staff', 'none', or 'project', and will default to 'project'.
-
-=item *
-
-commentstyle - Write observation comment links to the staff-only page. Can
-be either 'staff' or 'project', and will default to 'project'.
-
-=back
-
-=cut
-
-sub ashtml {
-  my $self = shift;
-  my %options = @_;
-
-  # Check the options.
-  my $worfstyle;
-  my $worflink;
-  if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
-      lc( $options{worfstyle} ) eq 'staff' ) {
-    $worfstyle = 'staff';
-    $worflink = 'staffworfthumb.pl';
-  } elsif ( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
-              lc( $options{worfstyle} ) eq 'none' ) {
-      $worfstyle = 'none';
-      $worflink = '';
-  } else {
-    $worfstyle = 'project';
-    $worflink = 'fbworfthumb.pl';
-  }
-
-  my $commentstyle;
-  if( exists( $options{commentstyle} ) && ( defined( $options{commentstyle} ) ) &&
-      lc( $options{commentstyle} ) eq 'staff' ) {
-    $commentstyle = 'staff';
-  } else {
-    $commentstyle = 'project';
-  }
-
-  # Need to load CGI specified classes
-  require OMP::CGIComponent::Obslog;
-  require OMP::CGIComponent::Shiftlog;
-
-
-  my $tel  = $self->telescope;
-  my $date = $self->date->ymd;
-
-  my $ompurl = OMP::Config->getData('cgidir');
-
-  if ($worfstyle ne 'none') {
-      print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
-  }
-
-  if ($self->delta_day < 14) {
-    # O b s e r v a t i o n  L o g
-    # Display only if we are summarizing a single night
-    if ($self->delta_day == 1) {
-      # Can fall back to files now that JCMT disk is mounted
-      # on mauiola. This line was here for when we could never
-      # get the files of disk and only use the archive
-      #$OMP::ArchiveDB::FallbackToFiles = 0;
-      my $grp;
-      try {
-        $grp = $self->obs;
-        $grp->locate_timegaps( OMP::Config->getData("timegap") );
-      } catch OMP::Error::FatalError with {
-        my $E = shift;
-        print "<pre>An error has been encountered:<p> $E</pre><p>";
-      } otherwise {
-        my $E = shift;
-        print "<pre>An error has been encountered:<p> $E</pre><p>";
-      };
-
-      print "<a name=\"obslog\"></a>";
-
-      if ($grp and $grp->numobs > 0) {
-
-        # Display log as plain text if there are a huge amount of observations
-        my $plaintext = ($grp->numobs > 5000 ? 1 : 0);
-
-        print "<pre>" if ($plaintext);
-
-        OMP::CGIComponent::Obslog->new()->obs_table(
-            $grp,
-            sort => 'chronological',
-            worfstyle => $worfstyle,
-            commentstyle => $commentstyle,
-            text => $plaintext,
-        );
-
-        print "</pre>" if ($plaintext);
-
-      } else {
-        # Don't display the table if no observations are available
-        print "No observations available for this night";
-      }
-    }
-  }
 }
 
 =item B<mail_report>

@@ -19,7 +19,6 @@ comments.
 use strict;
 use warnings;
 
-use Capture::Tiny qw/capture_stdout/;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
@@ -39,6 +38,7 @@ use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
+use OMP::NightRep;
 use OMP::ObslogDB;
 use OMP::ProjServer;
 use OMP::BaseDB;
@@ -97,7 +97,7 @@ sub file_comment {
       target => url_absolute($q),
       obs => $obs,
       is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
-      status_class => \%OMP::CGIComponent::Obslog::css,
+      status_class => \%OMP::Info::Obs::status_class,
       messages => $messages,
       %{$comp->obs_comment_form($obs, $projectid)},
   };
@@ -246,7 +246,7 @@ sub projlog_content {
   my $msb_info = $msbcomp->msb_comments($observed, $sp);
 
   # Display observation log
-  my $obs_log_html = undef;
+  my $obs_summary = undef;
   try {
     # Want to go to files on disk
     $OMP::ArchiveDB::FallbackToFiles = 1;
@@ -256,9 +256,7 @@ sub projlog_content {
                                       inccal => 1,);
 
     if ($grp->numobs > 0) {
-      $obs_log_html = capture_stdout {
-        $comp->obs_table($grp, projectid => $projectid);
-      };
+      $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
     }
   } otherwise {
   };
@@ -270,7 +268,7 @@ sub projlog_content {
       telescope => $telescope,
       retrieve_date => $retrieve_date,
 
-      obs_log_html => $obs_log_html,
+      obs_summary => $obs_summary,
 
       shift_log_comments => $shiftcomp->get_shift_comments({
           date => $utdate,

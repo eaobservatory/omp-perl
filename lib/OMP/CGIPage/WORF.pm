@@ -28,6 +28,7 @@ use OMP::CGIComponent::WORF;
 use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Info::Obs;
+use OMP::NightRep;
 use OMP::WORF;
 
 use base qw/OMP::CGIPage/;
@@ -38,19 +39,11 @@ use base qw/OMP::CGIPage/;
 
 sub display_page {
   my $self = shift;
-  return {content_html => capture_stdout {$self->_display_page(@_);}};
-}
-
-sub _display_page {
-  my $self = shift;
   my $projectid = shift;
-
-  my $comp = OMP::CGIComponent::WORF->new(page => $self);
 
   my $cgi = $self->cgi;
   my $qv = $cgi->Vars;
 
-  # Filter out CGI variables.
   my $inst;
   if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
     $qv->{'inst'} =~ /([\-\w\d]+)/;
@@ -70,6 +63,41 @@ sub _display_page {
     $utdatetime = $1;
   }
 
+  my $adb = new OMP::ArchiveDB();
+  my $obs = $adb->getObs(
+    instrument => $inst,
+    ut => $ut,
+    runnr => $runnr);
+
+  if ((defined $projectid)
+          and (lc $obs->projectid  ne lc $projectid)
+          and $obs->isScience) {
+    die "Observation does not match project $projectid.\n";
+  }
+
+  my $group = new OMP::Info::ObsGroup(obs => [$obs]);
+  $group->commentScan;
+
+  return {
+    projectid => $projectid,
+    obs_summary => OMP::NightRep->get_obs_summary(obsgroup => $group),
+    content_html => capture_stdout {
+      $self->_display_page($inst, $ut, $runnr, $utdatetime);}};
+}
+
+sub _display_page {
+  my $self = shift;
+  my $inst = shift;
+  my $ut = shift;
+  my $runnr = shift;
+  my $utdatetime = shift;
+
+  my $comp = OMP::CGIComponent::WORF->new(page => $self);
+
+  my $cgi = $self->cgi;
+  my $qv = $cgi->Vars;
+
+  # Filter out CGI variables.
   my $xstart;
   if( exists( $qv->{'xstart'} ) && defined( $qv->{'xstart'} ) ) {
     $qv->{'xstart'} =~ /(\d+)/;
@@ -137,33 +165,6 @@ sub _display_page {
     $qv->{'suffix'} =~ /([\d\w_]+)/;
     $suffix = $1;
   }
-
-  unless( defined( $projectid ) ) {
-    $projectid = 'staff';
-  }
-
-  my $project;
-  if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetails( $projectid,
-                                                'object' );
-  }
-
-  my $adb = new OMP::ArchiveDB( );
-  my $obs = $adb->getObs( instrument => $inst,
-                          ut => $ut,
-                          runnr => $runnr, );
-
-  if( $projectid ne 'staff' && lc( $obs->projectid ) ne lc( $projectid ) &&
-      $obs->isScience ) {
-    print "Observation does not match project $projectid.\n";
-    return;
-  }
-
-  my @obs;
-  push @obs, $obs;
-  my $group = new OMP::Info::ObsGroup( obs => \@obs );
-  $group->commentScan;
-  OMP::CGIComponent::Obslog->new(page => $self)->obs_table( $group, projectid => $projectid );
 
 # Display the observation.
   print "<br>\n";

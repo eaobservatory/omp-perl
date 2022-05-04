@@ -1,12 +1,13 @@
 [% MACRO render_night_report(night_report) BLOCK %]
-    [% render_time_summary(night_report) %]
+    [% render_nr_time_summary(night_report) %]
     [% IF night_report.delta_day < 14 %]
-        [% render_msb_summary(night_report) %]
-        [% render_fault_summary(night_report) %]
-        [% render_shift_log(night_report) %]
+        [% render_nr_msb_summary(night_report) %]
+        [% render_nr_fault_summary(night_report) %]
+        [% render_nr_shift_log(night_report) %]
+        [% render_nr_observation_log(night_report) %]
     [% END %]
 [% END -%]
-[% MACRO render_time_summary(night_report) BLOCK %]
+[% MACRO render_nr_time_summary(night_report) BLOCK %]
     [% SET time_summary = night_report.get_time_summary %]
     <p>
         There were shift types of
@@ -148,7 +149,7 @@
         [% END %]
     </table>
 [% END -%]
-[% MACRO render_msb_summary(night_report) BLOCK %]
+[% MACRO render_nr_msb_summary(night_report) BLOCK %]
     <h2>MSB summary</h2>
 
     <table class="sum_table" cellspacing="0" width="600">
@@ -172,7 +173,7 @@
         [% END %]
     </table>
 [% END -%]
-[% MACRO render_fault_summary(night_report) BLOCK %]
+[% MACRO render_nr_fault_summary(night_report) BLOCK %]
     <h2><a name="faultsum">Fault summary</a></h2>
 
     <table class="sum_table" cellspacing="0" width="600">
@@ -198,7 +199,7 @@
         [% END %]
     </table>
 [% END -%]
-[% MACRO render_shift_log(night_report) BLOCK %]
+[% MACRO render_nr_shift_log(night_report) BLOCK %]
     <h2><a name="shiftcom">Shift log comments</a></h2>
 
     [% SET comments = night_report.shiftComments %]
@@ -206,5 +207,128 @@
         <p>No shift comments available.</p>
     [% ELSE %]
         [% render_shift_log_entries(comments, (night_report.delta_day != 1)) %]
+    [% END %]
+[% END -%]
+[% MACRO render_nr_observation_log(night_report) BLOCK %]
+    <h2><a name="obslog">Observation log</a></h2>
+
+    [% render_observation_log(night_report.get_obs_summary, '') %]
+[% END -%]
+[% MACRO render_observation_log(obs_summary, projectid) BLOCK %]
+    [% IF projectid %]
+        [% USE comment_url = url('/cgi-bin/fbobscomment.pl', project=projectid) %]
+    [% ELSE %]
+        [% USE comment_url = url('/cgi-bin/staffobscomment.pl') %]
+    [% END %]
+
+    [% UNLESS obs_summary.defined %]
+        <p>No observations available.</p>
+    [% ELSE %]
+        <table width="600" class="sum_table" border="0">
+            <tr class="sum_other">
+                <td>
+                    Color legend:
+                    [% FOREACH status IN obs_summary.status_order %]
+                        <span class="[% obs_summary.status_class.$status %]">[% obs_summary.status_label.$status %]</span>[% IF ! loop.last %],[% END %]
+                    [% END %]
+                </td>
+            </tr>
+        </table>
+
+        [% SET rowclass = 'row_b' %]
+        [% FOREACH instblock IN obs_summary.block %]
+            <h3>Observations for [% instblock.instrument %]</h3>
+
+            [% SET column_order = instblock.heading._ORDER %]
+            [% SET num_columns = column_order.size + 2 %]
+
+            <table class="sum_table" border="0">
+                <tr class="sum_other">
+                    [% FOREACH column_name IN column_order %]
+                        <td>[% column_name | html %]</td>
+                    [% END %]
+                    <td>Status</td>
+                    <td>Comments</td>
+                </tr>
+                [% FOREACH entry IN instblock.obs %]
+                    [% SET obs = entry.obs %]
+                    [% SET nightlog = entry.nightlog %]
+
+                    [% IF entry.is_time_gap %]
+                        <tr class="[% rowclass %]">
+                            <td colspan="[% num_columns - 1 %]">
+                                <font color="BLACK">
+                                    [% FOREACH line IN nightlog._STRING.split("\n") %]
+                                        [% line | html %]
+                                        [% IF ! loop.last %]<br />[% END %]
+                                    [% END %]
+                                </font>
+                            </td>
+                            <td><a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid, timegap=1) %]">comment</a></td>
+                        </tr>
+                    [% ELSE %]
+                        [% IF entry.exists('msb_comments') %]
+                            [% SET msb_comments = entry.msb_comments %]
+                            <tr class="[% rowclass %]">
+                                <td class="msb-comment-nightrep" colspan="[% num_columns %]">
+                                    [% FOREACH comment IN msb_comments.comments %]
+                                        <p>
+                                            [% IF msb_comments.title.defined %]
+                                                <b>[% msb_comments.title | html %]</b>
+                                                <br />
+                                            [% END %]
+                                            [% comment.date | html %]
+                                            UT by
+                                            [% IF comment.author.defined %]
+                                                [% comment.author.name %]
+                                            [% ELSE %]
+                                                UNKNOWN PERSON
+                                            [% END %]
+                                            <br />
+                                            [% comment.text | html %]
+                                        </p>
+                                    [% END %]
+                                </td>
+                            </tr>
+                        [% END %]
+                        [% SET status = obs.status %]
+                        [% SET css_status = status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0 %]
+                        [% SET label_status = status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0 %]
+                        <tr class="[% rowclass %]">
+                            [% FOREACH column_name IN column_order %]
+                                <td class="[% css_status %]">
+                                    [% nightlog.$column_name.join(', ') | html %]
+                                </td>
+                            [% END %]
+                            <td class="[% css_status %]">
+                                [% label_status | html %]
+                            </td>
+                            <td><a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a></td>
+                        </tr>
+                        [% render_observation_log_comments(obs_summary, obs.scalar.comments, num_columns, rowclass) %]
+                    [% END %]
+                    [% SET rowclass = (rowclass == 'row_a') ? 'row_b' : 'row_a' %]
+                [% END %]
+            </table>
+        [% END %]
+    [% END %]
+[% END -%]
+[% MACRO render_observation_log_comments(obs_summary, obs_comments, num_columns, rowclass) BLOCK %]
+    [% IF ! obs_comments.empty %]
+        <tr class="[% rowclass %]">
+            <td colspan="[% num_columns %]">
+                [% FOREACH comment IN obs_comments %]
+                    <span class="[% obs_summary.status_class.item(comment.status) %]">
+                        [% comment.date.cdate | html %] UT /
+                        [% comment.author.name | html %]:
+                        [% FOREACH line IN comment.text.split("\n") %]
+                            [% line | html %]
+                            [% IF ! loop.last %]<br />[% END %]
+                        [% END %]
+                    </span>
+                    [% IF ! loop.last %]<br />[% END %]
+                [% END %]
+            </td>
+        </tr>
     [% END %]
 [% END -%]

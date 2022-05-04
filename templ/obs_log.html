@@ -1,3 +1,4 @@
+[% USE scalar -%]
 [% PROCESS "macro_general.html" -%]
 [% PROCESS "macro_night_report.html" -%]
 [% PROCESS "macro_msb.html" -%]
@@ -71,8 +72,6 @@
 [% END %]
 
 [% render_night_report(night_report) %]
-
-[% night_report_html %]
 
 [% IF dq_nightly_html.defined %]
     <h2>Data quality analysis</h2>

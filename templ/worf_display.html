@@ -1,3 +1,6 @@
+[% USE scalar -%]
+[% PROCESS "macro_night_report.html" -%]
 [% WRAPPER "layout.html" %]
+[% render_observation_log(obs_summary, projectid) %]
 [% content_html %]
 [% END %]
