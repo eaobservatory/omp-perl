@@ -1825,15 +1825,6 @@ sub correlator {
       if (4 == scalar @hwmap) {
         $slot_mapping = [2, 3, 0, 1];
       }
-      elsif (2 == scalar @hwmap) {
-        if ((grep {$info{'PROJECTID'} eq $_} qw/M17BL004 M21AH07C M22AH07C/)
-                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
-                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
-            $slot_mapping = [1, 0];
-        }
-      }
       throw OMP::Error::FatalError(
         "Slot mapping size does not match the number of slots!")
         if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
