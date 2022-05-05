@@ -67,6 +67,8 @@ sub capture_png_as_data {
         $png .= $buffer;
     }
 
+    close FH;
+
     # If the child process exited with bad status, check whether it looks
     # like it started to output a PNG or not.  If not, assume it gave
     # diagnostic text and try to show it, but be sure to remove any
