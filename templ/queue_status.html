@@ -8,18 +8,41 @@
             <td>
                 <b>Semester</b>
             </td>
-            <td>
+            <td colspan="3">
                 <select name="semester">
                     [% FOREACH semester IN semesters %]
                         <option [% IF semester == values.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
                     [% END %]
                 </select>
             </td>
-            <td rowspan="8">
+            <td>
+                <b>Project</b>
+            </td>
+        </tr>
+        <tr valign="top">
+            <td>
+                <b>Queue</b>
+            </td>
+            <td>
+                <select name="country" size="8" multiple="multiple">
+                    [% FOREACH country IN countries %]
+                        <option [% IF values.country.$country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+            <td>
+                <b>Instrument</b>
+            </td>
+            <td>
+                <select name="instrument" size="8" multiple="multiple">
+                    [% FOREACH instrument IN instruments %]
+                        <option [% IF values.instrument.$instrument %]selected="selected"[% END %] value="[% instrument | html %]">[% instrument | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+            <td rowspan="7" valign="top">
                 [% IF ! projects.empty %]
-                    <b>Project</b>
-                    <br/>
-                    <select name="project" size="10" multiple="multiple">
+                    <select name="project" size="16" multiple="multiple">
                         [% FOREACH project IN projects %]
                             <option value="[% project | html %]" [% IF values.projects.$project %]selected="selected"[% END %]>[% project | html %]</option>
                         [% END %]
@@ -31,22 +54,9 @@
         </tr>
         <tr>
             <td>
-                <b>Queue</b>
-            </td>
-            <td>
-                <select name="country">
-                    <option [% IF ! values.country.defined %]selected="selected"[% END %] value="Any">Any</option>
-                    [% FOREACH country IN countries %]
-                        <option [% IF country == values.country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
-                    [% END %]
-                </select>
-            </td>
-        </tr>
-        <tr>
-            <td>
                 <b>Affiliation</b>
             </td>
-            <td>
+            <td colspan="3">
                 <select name="affiliation">
                     <option [% IF ! values.affiliation.defined %]selected="selected"[% END %] value="Any">Any</option>
                     [% FOREACH affiliation IN affiliations %]
@@ -57,22 +67,9 @@
         </tr>
         <tr>
             <td>
-                <b>Instrument</b>
-            </td>
-            <td>
-                <select name="instrument">
-                    <option [% IF ! values.instrument.defined %]selected="selected"[% END %] value="Any">Any</option>
-                    [% FOREACH instrument IN instruments %]
-                        <option [% IF instrument == values.instrument %]selected="selected"[% END %] value="[% instrument | html %]">[% instrument | html %]</option>
-                    [% END %]
-                </select>
-            </td>
-        </tr>
-        <tr>
-            <td>
                 <b>Band</b>
             </td>
-            <td>
+            <td colspan="3">
                 <select name="band">
                     <option [% IF ! values.band.defined %]selected="selected"[% END %] value="Any">Any</option>
                     [% FOREACH band IN bands %]
@@ -85,16 +82,16 @@
             <td>
                 <b>Date</b>
             </td>
-            <td>
+            <td colspan="3">
                 <input type="text" name="date" [% IF values.date.defined %]value="[% values.date.strftime('%Y-%m-%d') %]" [% END %]/>
                 (default today)
             </td>
         </tr>
-        <tr>
+        <tr valign="top">
             <td>
                 <b>Order</b>
             </td>
-            <td>
+            <td colspan="3">
                 [% FOREACH order IN orders %]
                     <label>
                         <input type="radio" name="order" value="[% order.0 | html %]" [% IF (order.0 == values.order) || (loop.first && ! values.order.defined) %]checked="checked"[% END %] />
@@ -110,7 +107,7 @@
             <td>
                 &nbsp;
             </td>
-            <td>
+            <td colspan="3">
                 <input type="submit" name="submit_plot" value="Plot" />
             </td>
         </tr>

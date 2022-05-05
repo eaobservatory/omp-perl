@@ -11,6 +11,7 @@ use warnings;
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
+use List::MoreUtils qw/uniq/;
 
 use OMP::CGIComponent::CaptureImage;
 use OMP::CGIComponent::Helper qw/url_absolute/;
@@ -55,13 +56,9 @@ sub view_queue_status {
         }
     };
 
-    do {
-        my $country = $q->param('country');
-        if (defined $country and $country ne 'Any') {
-            die 'invalid queue' unless $country =~ /^([-_A-Za-z0-9+]+)$/;
-            $opt{'country'} = $1;
-        }
-    };
+    $opt{'country'} = {
+        map {die 'invalid queue' unless /^([-_A-Za-z0-9+]+)$/; $_ => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('country')};
 
     do {
         my $affiliation = $q->param('affiliation');
@@ -71,13 +68,9 @@ sub view_queue_status {
         }
     };
 
-    do {
-        my $instrument = $q->param('instrument');
-        if (defined $instrument and $instrument ne 'Any') {
-            die 'invalid instrument' unless $instrument =~ /^([-_A-Za-z0-9]+)$/;
-            $opt{'instrument'} = $1;
-        }
-    };
+    $opt{'instrument'} = {
+        map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $_ => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
 
     do {
         my $band = $q->param('band');
@@ -100,8 +93,8 @@ sub view_queue_status {
         my $r = OMP::SiteQuality::get_tauband_range($telescope, delete $query_opt{'band'});
         $query_opt{'tau'} = ($r->min() + $r->max()) / 2.0;
     }
-    if ((exists $query_opt{'country'}) and ($query_opt{'country'} =~ /\+/)) {
-        $query_opt{'country'} = [split /\+/, $query_opt{'country'}];
+    foreach my $param (qw/country instrument/) {
+        $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
     }
 
     # Pass options to query_queue_status.
