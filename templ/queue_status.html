@@ -75,6 +75,7 @@
                     [% FOREACH band IN bands %]
                         <option [% IF band == values.band %]selected="selected"[% END %] value="[% band | html %]">[% band | html %]</option>
                     [% END %]
+                    <option [% IF values.band == 'all' %]selected="selected"[% END %] value="all">All</option>
                 </select>
             </td>
         </tr>
@@ -117,10 +118,16 @@
 [% IF results.defined %]
     <h2>Search results</h2>
 
-    [% IF plot.defined %]
-        <p>
-            <img src="[% plot %]" />
-        </p>
+    [% IF plots.defined && ! plots.empty %]
+        [% FOREACH plot IN plots %]
+            [% IF loop.size > 1 %]
+                <h3>Band [% plot.0 | html %]</h3>
+            [% END %]
+
+            <p>
+                <img src="[% plot.1 %]" />
+            </p>
+        [% END %]
     [% END %]
 
     [% IF results.empty %]
@@ -128,6 +135,10 @@
             <i>No observations found</i>
         </p>
     [% ELSE %]
+        [% IF plots.defined && plots.size > 1 %]
+            <h3>List of MSBs</h3>
+        [% END %]
+
         [% USE format %]
         [% percentage = format("%.1f%%") %]
         [% integer = format("%i") %]

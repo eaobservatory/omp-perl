@@ -27,6 +27,7 @@ use OMP::QStatus::Plot qw/create_queue_status_plot/;
 use base qw/OMP::CGIPage/;
 
 our $telescope = 'JCMT';
+our @weather_bands = qw/1 2 3 4 5/;
 
 =head1 METHODS
 
@@ -42,6 +43,7 @@ sub view_queue_status {
     my $self = shift;
 
     my $q = $self->cgi;
+    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
 
     return $self->_show_input_page({})
         unless $q->param('submit_plot');
@@ -75,7 +77,7 @@ sub view_queue_status {
     do {
         my $band = $q->param('band');
         if (defined $band and $band ne 'Any') {
-            die 'invalid band' unless $band =~ /^([1-5])$/;
+            die 'invalid band' unless $band =~ /^([1-5]|all)$/;
             $opt{'band'} = $1;
         }
     };
@@ -89,63 +91,76 @@ sub view_queue_status {
     };
 
     my %query_opt = %opt;
-    if (exists $query_opt{'band'}) {
-        my $r = OMP::SiteQuality::get_tauband_range($telescope, delete $query_opt{'band'});
-        $query_opt{'tau'} = ($r->min() + $r->max()) / 2.0;
-    }
     foreach my $param (qw/country instrument/) {
         $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
     }
 
-    # Pass options to query_queue_status.
-    my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %query_opt);
-
-    my @proj_order;
-    my $order = $q->param('order');
-    if ($order eq 'priority') {
-        my %priority = ();
-        while (my ($proj, $msbs) = each %$proj_msb) {
-            my (undef, $msb) = each %$msbs; keys %$msbs;
-            $priority{$proj} = int($msb->priority());
-        }
-        @proj_order = sort {$priority{$a} <=> $priority{$b}} keys %$proj_msb;
-    }
-    else {
-        # Default ordering is by project ID.
-        @proj_order = sort keys %$proj_msb;
-    }
-
     my @project = $q->multi_param('project');
-    my $proj_msb_filt = {};
-    if (scalar @project) {
-        # Filter hash by project.
-        foreach (@project) {
-            $proj_msb_filt->{$_} = $proj_msb->{$_} if exists $proj_msb->{$_};
+    my @plots;
+    my %proj_msb_all;
+    foreach my $band (exists $query_opt{'band'}
+            ? (map {$_ eq 'all' ? @weather_bands : $_} delete $query_opt{'band'})
+            : undef) {
+        if (defined $band) {
+            my $r = OMP::SiteQuality::get_tauband_range($telescope, $band);
+            $query_opt{'tau'} = ($r->min() + $r->max()) / 2.0;
         }
-    }
-    else {
-        # No filter to apply.
-        $proj_msb_filt = $proj_msb;
-    }
 
-    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+        # Pass options to query_queue_status.
+        my ($proj_msb, $utmin, $utmax) = query_queue_status(
+            return_proj_msb => 1, %query_opt);
 
-    $opt{'order'} = $order;
-    $opt{'projects'} = {map {$_ => 1} @project};
-    my $context = $self->_show_input_page(\%opt, projects => \@proj_order);
+        # Copy all results to the all-band hash.
+        foreach my $project (keys %$proj_msb) {
+            $proj_msb_all{$project}->{$_} = $proj_msb->{$project}->{$_}
+                foreach keys %{$proj_msb->{$project}};
+        }
 
-    if (%$proj_msb_filt) {
-        $context->{'plot'} = $capture->capture_png_as_data(sub {
+        my $proj_msb_filt = {};
+        if (scalar @project) {
+            # Filter hash by project.
+            foreach (@project) {
+                $proj_msb_filt->{$_} = $proj_msb->{$_} if exists $proj_msb->{$_};
+            }
+        }
+        else {
+            # No filter to apply.
+            $proj_msb_filt = $proj_msb;
+        }
+
+        push @plots, [$band, $capture->capture_png_as_data(sub {
             create_queue_status_plot(
                 $proj_msb_filt, $utmin, $utmax,
                 output => '-',
                 hdevice => '/PNG',
             );
-        });
+        })] if %$proj_msb_filt;
+    }
+
+    my @proj_order;
+    my $order = $q->param('order');
+    if ($order eq 'priority') {
+        my %priority = ();
+        while (my ($proj, $msbs) = each %proj_msb_all) {
+            my (undef, $msb) = each %$msbs; keys %$msbs;
+            $priority{$proj} = int($msb->priority());
+        }
+        @proj_order = sort {$priority{$a} <=> $priority{$b}} keys %proj_msb_all;
+    }
+    else {
+        # Default ordering is by project ID.
+        @proj_order = sort keys %proj_msb_all;
+    }
+
+    $opt{'order'} = $order;
+    $opt{'projects'} = {map {$_ => 1} @project};
+    my $context = $self->_show_input_page(\%opt, projects => \@proj_order);
+
+    if (%proj_msb_all) {
+        $context->{'plots'} = \@plots;
 
         $context->{'results'} = $self->_show_result_table(
-            $proj_msb, \@project, \@proj_order);
+            \%proj_msb_all, \@project, \@proj_order);
     }
     else {
         $context->{'results'} = []
@@ -195,7 +210,7 @@ sub _show_input_page {
             [$_, $AFFILIATION_NAMES{$_}]
             } @affiliation_codes],
         instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI RXA3M/],
-        bands => [qw/1 2 3 4 5/],
+        bands => \@weather_bands,
         orders => [
             [priority => 'Priority'],
             [projectid => 'Project ID'],
