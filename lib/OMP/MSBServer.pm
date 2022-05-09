@@ -258,12 +258,13 @@ Retrieve science program information object.
 sub getSciProgInfo {
   my $class = shift;
   my $project = shift;
+  my %opt = @_;
 
   my $db = new OMP::MSBDB(
     ProjectID => $project,
     DB => $class->dbConnection);
 
-  return $db->getSciProgInfo();
+  return $db->getSciProgInfo(%opt);
 }
 
 =item B<queryMSB>
@@ -1310,7 +1311,7 @@ sub addMSBcomment {
 Return the total number of MSBs, and the total number of active MSBs, for a
 given list of projects.
 
-  %msbcount = OMP::MSBServer->getMsbCount(@projectids);
+  \%msbcount = OMP::MSBServer->getMSBCount(@projectids);
 
 The only argument is a list (or reference to a list) of project IDs.
 Returns a hash of hashes indexed by project ID where the second-level
@@ -1326,14 +1327,14 @@ sub getMSBCount {
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
 
   my $E;
-  my %result;
+  my $result;
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(
                             DB => $class->dbConnection
                            );
 
-    %result = $db->getMSBCount(@projectids);
+    $result = $db->getMSBCount(@projectids);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -1349,7 +1350,7 @@ sub getMSBCount {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  return %result;
+  return $result;
 }
 
 =item B<getResultColumns>

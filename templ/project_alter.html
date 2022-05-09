@@ -1,0 +1,121 @@
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+
+[% IF target_base.defined %]
+    [% render_project_choice(target_base, '') %]
+[% END %]
+
+[% IF project.defined %]
+    <h1>Alter project details for [% project.projectid | html %]</h1>
+
+    <p>
+        <b>([% project.pi | html %])</b>
+        [% project.title | html %]
+    </p>
+
+    [% IF target.defined %]
+        <form method="post" action="[% target | url %]">
+            <table>
+                <tr>
+                    <td align="right">PI</td>
+                    <td><input type="text" name="pi" value="[% values.pi | html%]" size="32" maxlength="32" /></td>
+                </tr>
+                <tr>
+                    <td align="right">Title</td>
+                    <td><input type="text" name="title" value="[% project.title | html %]" size="50" maxlength="255" /></td>
+                </tr>
+                <tr>
+                    <td align="right">Co-I</td>
+                    <td><textarea name="coi" rows="5" cols="32">[% values.coi | html %]</textarea></td>
+                </tr>
+                <tr>
+                    <td align="right">Support</td>
+                    <td><textarea name="support" rows="5" cols="32">[% values.support | html %]</textarea></td>
+                </tr>
+
+                <tr>
+                    <td align="right">Allocation</td>
+                    <td>
+                        <input type="text" name="alloc_h" value="[% values.alloc_h | html %]" size="3" maxlength="5" /> hours
+                        <input type="text" name="alloc_m" value="[% values.alloc_m | html %]" size="2" maxlength="2" /> minutes
+                        <input type="text" name="alloc_s" value="[% values.alloc_s | html %]" size="2" maxlength="2" /> seconds
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">Remaining</td>
+                    <td>[% project.remaining.pretty_print | html %]</td>
+                </tr>
+                <tr>
+                    <td align="right">Semester</td>
+                    <td><select name="semester">
+                        [% FOREACH semester IN semesters %]
+                            <option [% IF semester == project.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
+                        [% END %]
+                    </select></td>
+                </tr>
+                <tr>
+                    <td align="right">Cloud</td>
+                    <td><select name="cloud">
+                        [% FOREACH cloud IN clouds %]
+                            <option [% IF cloud.0 == values.cloud %]selected="selected"[% END %] value="[% cloud.0 | html %]">[% cloud.1 | html %]</option>
+                        [% END %]
+                    </select></td>
+                </tr>
+                <tr>
+                    <td align="right">TAG adj.</td>
+                    <td>Note: a negative number increases the project's priority.</td>
+                </tr>
+                [% FOREACH queue_info IN values.priority %]
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>
+                            <input type="text" name="tag_[% queue_info.queue | html %]" value="[% queue_info.adj | html %]" size="4" maxlength="32"/>
+                            [% queue_info.queue | html %]
+                            (priority [% queue_info.priority | html %])
+                        </td>
+                    </tr>
+                [% END %]
+                <tr>
+                    <td align="right">Tau range</td>
+                    <td>
+                        <input type="text" name="taumin" value="[% project.taurange.min | html %]" size="4" maxlength="4" />
+                        &mdash;
+                        <input type="text" name="taumax" value="[% project.taurange.max | html %]" size="4" maxlength="4" />
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">Seeing range</td>
+                    <td>
+                        <input type="text" name="seeingmin" value="[% project.seeingrange.min | html %]" size="4" maxlength="4" />
+                        &mdash;
+                        <input type="text" name="seeingmax" value="[% project.seeingrange.max | html %]" size="4" maxlength="4" />
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">Expiry date</td>
+                    <td><input type="text" name="expirydate" value="[% project.expirydate %]" />
+                    (for Rapid Turnaround projects only)</td>
+                </tr>
+            </table>
+            <p>
+                <label>
+                    <input type="checkbox" name="send_mail" value="1" />
+                    Send email about project changes
+                </label>
+            </p>
+            <p>
+                <input type="submit" name="alter_submit" value="Submit" />
+            </p>
+        </form>
+    [% END %]
+
+    [% IF messages.defined && ! messages.empty %]
+        <p>
+            [% FOR message IN messages %]
+                [% message | html %]
+                [% IF ! loop.last %]<br />[% END %]
+            [% END %]
+        </p>
+    [% END %]
+[% END %]
+[% END %]

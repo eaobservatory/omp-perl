@@ -1,0 +1,101 @@
+[% USE scalar -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_msb.html" -%]
+[% PROCESS "macro_shift_log.html" -%]
+[% PROCESS "macro_obs_log.html" -%]
+[% PROCESS "macro_night_report.html" -%]
+[% WRAPPER "layout.html" %]
+
+<h1>Project log for [% project.projectid | html %] on [% utdate | html %]</h1>
+
+
+[% IF retrieve_date.defined %]
+    <p>
+        [% IF retrieve_date == 'now' %]
+          <a href="/cgi-bin/retrieve_data.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;inccal=1">Retrieve data with calibrations</a>
+          <br />
+          <a href="/cgi-bin/retrieve_data.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;inccal=0">Retrieve data excluding calibrations</a>
+        [% ELSE %]
+            Retrieve data [this link will become active on
+            [% retrieve_date.strftime('%Y-%m-%d %H:%M') | html %] UT]
+        [% END %]
+    </p>
+[% END %]
+
+[%#
+<p>
+    <a href="/cgi-bin/fbworfthumb.pl?project=(% project.projectid | uri %)&amp;ut=(% utdate | uri %)&amp;telescope=(% telescope | uri %)">View WORF thumbnails</a>
+</p>
+%]
+
+<p>
+    <a href="#shiftcom">View shift comments</a>
+    /
+    <a href="/cgi-bin/fbshiftlog.pl?project=[% project.projectid | uri %]&amp;date=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">Add shift comment</a>
+</p>
+
+<p>
+    <a href="#wvm">View WVM graph</a>
+</p>
+
+<p>
+    <a href="/cgi-bin/obslog_text.pl?ut=[% utdate | uri %]&amp;project=[% project.projectid | uri %]">View text-based observation log</a>
+</p>
+
+[% IF ! comment_msb_messages.empty %]
+    <hr />
+
+    [% FOREACH message IN comment_msb_messages %]
+        <p>[% message | html %]</p>
+    [% END %]
+
+    <hr />
+[% END %]
+
+[% IF comment_msb_id_fields.defined %]
+    <hr />
+
+    <h2>Add a comment to MSB</h2>
+
+    [% render_msb_comment_form(target, comment_msb_id_fields) %]
+
+    <hr />
+[% END %]
+
+[% IF msb_info.defined %]
+    <h2>MSB history</h2>
+
+    [% IF msb_info.msbs.empty %]
+        <p>No MSB history available for this night.</p>
+    [% ELSE %]
+        [% render_msb_comments(msb_info) %]
+    [% END %]
+[% END %]
+
+<h2>Observation log</h2>
+
+[% IF ! obs_summary.defined %]
+    <p>No observations available for this night.</p>
+[% ELSE %]
+    [% render_observation_log(obs_summary, project.projectid) %]
+[% END %]
+
+[% IF shift_log_comments.defined %]
+    <h2><a name="shiftcom">Shift log comments</a></h2>
+
+    [% IF shift_log_comments.empty %]
+        <p>No shift log comments available for this night.</p>
+    [% ELSE %]
+        [% render_shift_log_entries(shift_log_comments, 0) %]
+    [% END %]
+[% END %]
+
+[% render_weather_plots(weather_plots) %]
+
+<h2>Data quality analysis</h2>
+
+<p><a href="https://pipelinesandarchives.blogspot.com/2013/03/new-omp-features-for-projects.html">Explanation of the graphs and tables.</a></p>
+
+[% dq_nightly_html %]
+
+[% END %]

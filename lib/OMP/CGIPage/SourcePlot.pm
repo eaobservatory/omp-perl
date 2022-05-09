@@ -16,7 +16,7 @@ done by OMP::GetCoords::Plot module.
 use strict;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::GetCoords::Plot qw/plot_sources/;
 
 use CGI;
@@ -37,20 +37,21 @@ Creates a page allowing the user to select the source plotting options.
 sub view_source_plot {
     my $self = shift;
 
-    $self->_show_inputpage();
-}
+    my $q = $self->cgi;;
 
-=item B<view_source_plot_output>
+    unless ($q->param('submit_plot')) {
+        return $self->_show_inputpage({
+            proj => (scalar $q->param('project')),
+        });
+    }
 
-Outputs the source plot.
+    my ($messages, $plot, $opt) = $self->_show_plot();
 
-=cut
-
-sub view_source_plot_output {
-    my $self = shift;
-
-    $self->_show_inputpage();
-    $self->_show_plot();
+    return {
+        %{$self->_show_inputpage($opt)},
+        messages => $messages,
+        plot => $plot,
+    }
 }
 
 =back
@@ -67,87 +68,25 @@ Prints the HTML input panel.
 
 sub _show_inputpage {
     my $self = shift;
+    my $opt = shift;
 
     my $q = $self->cgi;;
 
-    print
-        $q->p('Plot sources from an OMP project'),
-        start_form_absolute($q),
-        $q->table(
-            $q->Tr([
-                $q->td([
-                    'UT date (YYYYMMDD)',
-                    $q->textfield(-name => 'utdate', size => 16),
-                    '[today]',
-                ]),
-                $q->td([
-                    'Project(s)',
-                    $q->textfield(-name => 'project', size => 16),
-                    'One or more separated by "@"',
-                ]),
-                $q->td([
-                    'Object(s)',
-                    $q->textfield(-name => 'object', size => 16),
-                    '(Optional) One or more separated by "@".',
-                ]),
-                $q->td({-colspan => 3},
-                    'Any planets in this list will always be plotted ' .
-                    'and not matched against project sources.<br />' .
-                    '"5planets" will plot Mars thru Neptune; '.
-                    '"planets" will plot all 8; '.
-                    '"solar" will add the Sun and Moon',
-                ),
-                $q->td({-colspan => 3}, 'Plot options'),
-                $q->td('Source mode') . $q->td({-colspan => 2},
-                    $q->radio_group(
-                        -name => 'mode',
-                        -values => ['All', 'Active', 'Completed'],
-                        -default => 'Active',
-                    ),
-                ),
-                $q->td('Plot type') . $q->td({-colspan => 2},
-                    $q->popup_menu(
-                        -name => 'ptype',
-                        -values => ['TIMEEL', 'AZEL', 'TIMEAZ',
-                                    'TIMEPA', 'TIMENA'],
-                        -default => 'TIMEEL',
-                        -labels => {
-                            TIMEEL => 'Time_EL',
-                            AZEL   => 'AZ_EL',
-                            TIMEAZ => 'Time_AZ',
-                            TIMEPA => 'Time_PA',
-                            TIMENA => 'Time_NA',
-                        },
-                    ),
-                ),
-                $q->td('Grid') . $q->td({-colspan => 2},
-                    $q->radio_group(
-                        -name => 'agrid',
-                        -values => ['0', '1'],
-                        -default => '0',
-                        -labels => {
-                            0 => 'EL grid',
-                            1 => 'Airmass grid',
-                        },
-                    ),
-                ),
-                $q->td('Label position') . $q->td({-colspan => 2},
-                    $q->radio_group(
-                        -name => 'label',
-                        -values => ['curve', 'list'],
-                        -default => 'curve',
-                        -labels => {
-                            curve => 'Along track',
-                            list  => 'List on side',
-                        },
-                    )
-                ),
-            ]),
-        ),
-        $q->p(
-            $q->hidden(-name => 'show_output', -value => 'true'),
-            $q->submit(-value => 'Plot sources')),
-        $q->end_form();
+    return {
+        target => url_absolute($q),
+        ptypes => [
+            [TIMEEL => 'Time-EL'],
+            [AZEL   => 'AZ-EL'],
+            [TIMEAZ => 'Time-AZ'],
+            [TIMEPA => 'Time-PA'],
+            [TIMENA => 'Time-NA'],
+        ],
+        labels => [
+            [curve => "Along track"],
+            [list => "List on side"],
+        ],
+        'values' => $opt,
+    };
 }
 
 =item _show_plot
@@ -167,21 +106,20 @@ sub _show_plot {
     my $mode   = "";
     my $ptype  = "";
     my $agrid  = "";
-    my $tzone  = "";
     my $labpos = "";
     my @msg    = ();
 
     my $proj = $q->param('project');
     $proj =~ /^([\w\/\$\.\_\@]+)$/ && ($projid = $1) || (do {
            $projid = "";
-           push @msg, "***ERROR*** must specify a project!";
+           push @msg, "Error: must specify a project!";
         } );
 
     my $utd = $q->param('utdate');
     $utd =~ /^(\d{8})$/ && ($utdate = $1) || (do {
            $utdate = "";
            if ($utd ne "") {
-             push @msg, "***ERROR*** date format: '$utd' incorrect (YYYYMMDD)!";
+             push @msg, "Error: date format: '$utd' incorrect (YYYYMMDD)!";
            }
         } );
 
@@ -203,47 +141,40 @@ sub _show_plot {
     $agrid =~ s/\'//g;
     $agrid =~ s/\ /\\\+/g;
 
-    my $tzon = $q->param('tzone');
-    $tzon =~ /^([\w\+\-\.\_]+)$/ && ($tzone = $1) || ($tzone = "");
-    $tzone =~ s/\'//g;
-    $tzone =~ s/\ /\\\+/g;
-
     my $lpos = $q->param('label');
     $lpos =~ /^([\w\+\-\.\_]+)$/ && ($labpos = $1) || ($labpos = "");
     $labpos =~ s/\'//g;
     $labpos =~ s/\ /\\\+/g;
 
+    my %opt = (
+        proj => $projid,
+    );
+
+    # Option to specify source not implemented yet.
+
+    $opt{'ut'} = $utdate    if (defined $utdate && $utdate ne "");
+    $opt{'obj'} = $object   if (defined $object && $object ne "");
+    $opt{'mode'} = $mode    if (defined $mode && $mode ne "");
+    $opt{'ptype'} = $ptype  if (defined $ptype && $ptype ne "");
+    $opt{'agrid'} = $agrid  if (defined $agrid && $agrid ne "");
+    $opt{'label'} = $labpos if (defined $labpos && $labpos ne "");
+
     if (@msg) {
-        print $q->p(\@msg);
+        return (\@msg, undef, \%opt)
     }
-    else {
-        # Open catalog and extract object from project to temporary catalog
 
-        my %opt = (
-            proj => $projid,
-        );
+    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
 
-        # Option to specify source not implemented yet.
-
-        $opt{'ut'} = $utdate    if (defined $utdate && $utdate ne "");
-        $opt{'obj'} = $object   if (defined $object && $object ne "");
-        $opt{'mode'} = $mode    if (defined $mode && $mode ne "");
-        $opt{'ptype'} = $ptype  if (defined $ptype && $ptype ne "");
-        $opt{'agrid'} = $agrid  if (defined $agrid && $agrid ne "");
-        $opt{'label'} = $labpos if (defined $labpos && $labpos ne "");
-
-        my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
-
-        print
-            $q->h2($projid),
-            $q->p($capture->capture_png_as_img(sub {
-                plot_sources(
-                    output => '-',
-                    hdevice => '/PNG',
-                    %opt,
-                );
-            }));
-    }
+    return (
+        [],
+        $capture->capture_png_as_data(sub {
+            plot_sources(
+                output => '-',
+                hdevice => '/PNG',
+                %opt,
+            );
+        }),
+        \%opt);
 }
 
 1;

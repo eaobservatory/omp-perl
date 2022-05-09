@@ -118,7 +118,7 @@ sub new {
                    RootTmpDir => OMP::Config->getData('tmpdir'),
                    TmpDir => undef,
                    FtpRootDir => OMP::Config->getData('ftpdir'),
-                   Verbose => 1,
+                   Verbose => 0,
                    ObsGroup => undef,
                    TarFile => [],
                    UTDir => undef,
@@ -126,6 +126,7 @@ sub new {
                    Key => undef,
                    IncCal => 1,
                    IncJunk => 1,
+                   Messages => [],
                   },
                   $class;
 
@@ -216,8 +217,8 @@ sub obsGrp {
 
 =item B<verbose>
 
-Controls whether messages are sent to standard output during
-the packaging of the data. Default is true.
+Controls whether messages are sent to standard error during
+the packaging of the data. Default is false.
 
   $pkg->verbose(0);
   $v = $pkg->verbose();
@@ -403,6 +404,20 @@ sub utdir {
   return $self->{UTDir};
 }
 
+=item B<flush_messages>
+
+Retrieve and clear stored messages.
+
+    my $messages = $pkg->flush_messages();
+
+=cut
+
+sub flush_messages {
+    my $self = shift;
+    my $messages = $self->{'Messages'};
+    $self->{'Messages'} = [];
+    return $messages;
+}
 
 =back
 
@@ -527,6 +542,7 @@ Recognized keys are:
 
   utdate
   projectid
+  verbose
 
 The corresponding methods are used to initialise the object.
 All keys must be present.
@@ -545,6 +561,7 @@ sub _populate {
   # init the object
   $self->projectid( $args{projectid} );
   $self->utdate( $args{utdate} );
+  $self->verbose($args{'verbose'}) if exists $args{'verbose'};
 
   # indicate whether we are including calibrations and junk
   $self->inccal( $args{inccal}) if exists $args{inccal};
@@ -562,26 +579,26 @@ sub _populate {
   # but for now we vary our query to include the project ID and utdate
   # only if calibrations are not required
 
+  # information for the user
+  $self->_add_message("Querying database for relevant data files...[tel:$tel / ut:".
+    $self->utdate->ymd." / project '".$self->projectid."']");
+
   # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
   # switch and optimize for it.
-  my %query = ( telescope => $tel,
-                date => $self->utdate,
-                inccal => $self->inccal,
-                incjunk => $self->incjunk(),
-                projectid => $self->projectid,
-              );
-
-  # information for the user
-  print STDOUT "Querying database for relevant data files...[tel:$tel / ut:".
-    substr($query{date},0,8)." / project '".$self->projectid."']\n"
-      if $self->verbose;
-
-  # Query the database
-  my $grp = new OMP::Info::ObsGroup( %query, verbose => $self->verbose,
-                                     ignorebad => 1, sort => 1 );
+  my $grp = new OMP::Info::ObsGroup(
+      telescope => $tel,
+      date => $self->utdate,
+      inccal => $self->inccal,
+      incjunk => $self->incjunk(),
+      projectid => $self->projectid,
+      ignorebad => 1,
+      sort => 1,
+      message_sink => sub {
+          $self->_add_message(@_);
+      });
 
   # Inform them of how many we have found
-  print STDOUT "Done [".$grp->numobs." observations match]\n" if $self->verbose;
+  $self->_add_message("Done [".$grp->numobs." observations match]");
 
   # Store the result
   $self->obsGrp($grp);
@@ -705,18 +722,18 @@ sub _copy_data {
 
       my ( $e ) = @_;
       $extract_err++;
-      print "$e";
+      $self->_add_message("$e");
     };
     $extract_err and next;
 
     if (!defined $file) {
-      print "File for this observation was not defined. Must skip.\n";
+      $self->_add_message("File for this observation was not defined. Must skip.");
       next;
     }
 
     # what if we can not find it
     if ( !-e $file ) {
-      print "Unable to locate file $file. Not copying\n";
+      $self->_add_message("Unable to locate file $file. Not copying");
       $obs->filename('');
       next;
     }
@@ -726,14 +743,13 @@ sub _copy_data {
     if ($base =~ $Raw_Base_Re ) {
       $base = $1;
     } else {
-      print "Error untainting base file. Must skip\n";
+      $self->_add_message("Error untainting base file. Must skip");
       next;
     }
 
     my $outfile = File::Spec->catfile( $outdir, $base );
 
-    print STDOUT "Copying file $base to temporary location..."
-      if $self->verbose;
+    $self->_add_message("Copying file $base to temporary location...");
 
 
 
@@ -741,14 +757,14 @@ sub _copy_data {
     my $status = copy( $file, $outfile);
 
     if ($status) {
-      print "Complete\n" if $self->verbose;
+      $self->_add_message("Complete");
       $count++;
 
       # change the filename in the object
       $obs->filename( $outfile );
 
     } else {
-      print "Encountered error ($!). Skipping file\n" if $self->verbose;
+      $self->_add_message("Encountered error ($!). Skipping file");
 
       # effectively disable it
       $obs->filename( '' );
@@ -757,8 +773,7 @@ sub _copy_data {
 
   }
 
-  print "Copied $count files out of ".scalar(@{$grp->obs}) ."\n"
-    if $self->verbose;
+  $self->_add_message("Copied $count files out of ".scalar(@{$grp->obs}));
 
   throw OMP::Error::FatalError("Unable to copy any files. Aborting.\n")
     if $count == 0;
@@ -862,9 +877,8 @@ sub _mktarfile {
   my $counter = 1; # People expect us to start at 1
 
   # loop over all the file groups
-  print STDOUT "Total amount of data to be retrieved: ".
-     _format_bytes( $total )."\n"
-    if $self->verbose;
+  $self->_add_message("Total amount of data to be retrieved: ".
+     _format_bytes( $total ));
   for my $grp (@infiles) {
 
     # Create the output file name for this group. Special case suffix if there is only one
@@ -874,8 +888,7 @@ sub _mktarfile {
                                        "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
                                      );
 
-    print STDOUT "Creating tar file $counter [of $ntar] " . basename($outfile) ."...\n"
-      if $self->verbose;
+    $self->_add_message("Creating tar file $counter [of $ntar] " . basename($outfile) ."...");
 
 
     # If we are using Archive::Tar (slow) we need to read all the files
@@ -914,10 +927,8 @@ sub _mktarfile {
     push(@outfiles, $outfile);
 
     # Print message in verbose mode
-    if ($self->verbose) {
-      my $url = $self->ftpurl($outfile);
-      print STDOUT "Tar File $counter of $ntar ready for retrieval from: <a href=\"$url\">here</a>\n";
-    }
+    my $url = $self->ftpurl($outfile);
+    $self->_add_message("Tar file $counter of $ntar ready for retrieval from: $url");
 
     # increment the counter
     $counter++;
@@ -927,8 +938,7 @@ sub _mktarfile {
   # change back again
   chdir $cwd || croak "Error changing back to directory $cwd: $!";
 
-  print STDOUT "Done\n"
-    if $self->verbose;
+  $self->_add_message("Done");
 
   # Store the tar file name
   $self->tarfile ( @outfiles );
@@ -1122,6 +1132,15 @@ sub _format_bytes {
     $pre = shift(@prefix);
   }
   return sprintf("%.1f%sB",$nbytes,$pre);
+}
+
+sub _add_message {
+    my $self = shift;
+
+    foreach (@_) {
+        print STDERR $_, "\n" if $self->verbose;
+        push @{$self->{'Messages'}}, $_;
+    }
 }
 
 =back

@@ -555,7 +555,7 @@ sub _query_faultdb {
 
   # Create a cache for OMP::User objects since it is likely
   # that a single user will be involved in more than a single response
-  my %users;
+  my $users = $udb->getUserMultiple([keys %{{map {$_->{'author'} => 1} @$ref}}]);
 
   # Now loop through the faults, creating objects and
   # matching responses.
@@ -570,18 +570,13 @@ sub _query_faultdb {
     $faultref->{faultdate} = OMP::DateTools->parse_date( $faultref->{faultdate})
       if defined $faultref->{faultdate};
 
-    # Generate a user object [hope the multiple database accesses
-    # are not too much of an overhead. Else will have to do a join
-    # in the initial fault query.] and cache it
     my $userid = $faultref->{author};
-    if (!exists $users{$userid} ) {
-      $users{$userid} = $udb->getUser( $userid );
-    }
-    $faultref->{author} = $users{$userid};
 
     # Check it
     throw OMP::Error::FatalError("User ID retrieved from fault system [$userid] does not match a valid user id")
-      unless defined $users{$userid};
+      unless defined $users->{$userid};
+
+    $faultref->{author} = $users->{$userid};
 
     # Fault's system attribute is stored in the database in column 'fsystem',
     # so replace key 'fsystem' with 'system'

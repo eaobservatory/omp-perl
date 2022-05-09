@@ -1,0 +1,31 @@
+[% USE scalar -%]
+[% USE wrap -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_project.html" -%]
+[% PROCESS "macro_fault.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Feedback: Project [% project.projectid | html %]: View Faults</h1>
+
+[% render_project_status_table(project) %]
+
+<h2>Faults</h2>
+
+[% IF fault_list.defined %]
+    [% render_fault_table(fault_list) %]
+[% END %]
+
+[% IF fault_info.defined %]
+    <hr />
+
+    <h2>ID: [% fault_info.fault.faultid | html %]</h2>
+
+    <p><b>Subject: [% fault_info.fault.subject | html %]</b></p>
+
+    [% render_fault_thread(fault_info) %]
+
+    <p>
+        You may comment on this fault by clicking
+        <a href="/cgi-bin/fbcomment.pl?project=[% project.projectid | uri %]&subject=Fault%20ID:%20[% fault_info.fault.faultid %]">here</a>
+    </p>
+[% END %]
+[% END %]

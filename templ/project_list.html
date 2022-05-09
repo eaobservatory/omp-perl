@@ -1,0 +1,168 @@
+[% WRAPPER "layout.html" %]
+<h1>List Projects</h1>
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td align=right>Semester:</td>
+            <td><select name="semester" >
+                <option [% UNLESS values.semester.defined %]selected="selected"[% END %] value="">Any</option>
+                [% FOREACH semester IN semesters %]
+                    <option [% IF semester == values.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
+                [% END %]
+            </select></td>
+        </tr>
+        <tr>
+            <td align='right'>Queue:</td>
+            <td><select name="country">
+                <option [% UNLESS values.country.defined %]selected="selected"[% END %] value="">Any</option>
+                [% FOREACH country IN countries %]
+                    <option [% IF country == values.country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
+                [% END %]
+            </select></td>
+        </tr>
+        <tr>
+            <td align='right'>Show:</td>
+            <td>
+                [% FOREACH status IN statuses %]
+                    <label><input type="radio" name="status" value="[% status.0 %]" [% IF (loop.last && ! values.status.defined) || (status.0 == values.status) %]checked="checked"[% END %] />[% status.1 | html %]</label>
+                [% END %]
+                <br />
+                [% FOREACH state IN states %]
+                    <label><input type="radio" name="state" value="[% state.0 %]" [% IF (loop.last && ! values.state.defined) || (state.0 == values.state) %]checked="checked"[% END %] />[% state.1 | html %]</label>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td align='right'>Support:</td>
+            <td><select name="support" >
+                <option [% UNLESS values.support.defined %]selected="selected"[% END %] value="">Any</option>
+                [% FOREACH support IN supports %]
+                    <option [% IF support.0 == values.support %]selected="selected"[% END %] value="[% support.0 | html %]">[% support.1 | html %]</option>
+                [% END %]
+            </select></td>
+        </tr>
+        <tr>
+            <td align='right'>Order by:</td>
+            <td>
+                [% FOREACH order IN orders %]
+                    <label><input type="radio" name="order" value="[% order.0 %]" [% IF (loop.first && ! values.order.defined) || (order.0 == values.order ) %]checked="checked"[% END %]/>[% order.1 | html %]</label>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td>
+                <input type="submit" name="submit_search" value="Submit" />
+            </td>
+        </tr>
+    </table>
+</form>
+
+[% IF results.defined %]
+    [% IF results.empty %]
+        <p>
+            No projects matching your query.
+        </p>
+    [% ELSE %]
+        <table cellspacing="0">
+            <tr align="center">
+                <td>Enabled(v) / Disabled(x)</td>
+                <td>Project ID</td>
+                <td>PI</td>
+                <td>PI affiliation</td>
+                <td>Support</td>
+                <td># MSBs</td>
+                <td>Priority</td>
+                <td>Adjusted priority</td>
+                <td>Allocated</td>
+                <td>Completed</td>
+                <td>Instruments</td>
+                <td>Tau range</td>
+                <td>Title</td>
+            </tr>
+            [% SET prev_semester = '' %]
+            [% SET prev_country = '' %]
+            [% FOREACH project IN results %]
+                [% IF show_headings %]
+                    [% IF (prev_semester != project.semester_ori) || (prev_country != project.country) %]
+                        [% SET prev_semester = project.semester_ori %]
+                        [% SET prev_country = project.country %]
+                        <tr bgcolor="#c2c5ef">
+                            <td colspan="13">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</td>
+                        </tr>
+                    [% END %]
+                [% END %]
+                [% SET projectid = project.projectid %]
+                <tr class="[% project.state ? (loop.odd ? 'row_shaded' : 'row_clear') : 'row_disabled' %]" valign="top">
+                    <td align="center" valign="top">
+                        <img src="/images/[% project.state ? 'tick-green-24.png' : 'cross-red-24.png' %]" width="23" height="24" />
+                    </td>
+                    <td>
+                        <a href="/cgi-bin/projecthome.pl?project=[% projectid | html %]">[% projectid | html %]</a></td>
+                    <td>
+                        <a href="/cgi-bin/userdetails.pl?user=[% project.pi.userid | html %]">[% project.pi.name | html %]</a>
+                        <a href="/cgi-bin/projusers.pl?project=[% projectid | html %]">
+                            [% IF project.contactable(project.pi.userid) %]
+                                <img src="/images/mail.gif" alt="receives email" />
+                            [% ELSE %]
+                                <img src="/images/nomail.gif" alt="ignores email" />
+                            [% END %]
+                        </a>
+                    </td>
+                    <td>
+                        [% IF project.pi.affiliation.defined %]
+                            [% project.pi.affiliation | html %]
+                        [% ELSE %]
+                            &nbsp;
+                        [% END %]
+                    </td>
+                    <td>
+                        [% FOREACH support IN project.support %]
+                            [% support.userid %][% UNLESS loop.last %],[% END %]
+                        [% END %]
+                    </td>
+                    <td align="center">
+                        [% project_msbcount.$projectid.active || '0' %]/[% project_msbcount.$projectid.total || '0' %]
+                    </td>
+                    <td align="center">
+                        [% project.tagpriority | html %]
+                    </td>
+                    <td align="center">
+                        [% IF project.tagadjustment(project.primaryqueue) %]
+                            [% (project.tagpriority + project.tagadjustment(project.primaryqueue)) | html %]
+                        [% ELSE %]
+                            &mdash;
+                        [% END %]
+                    </td>
+                    <td align="center">
+                        [% project.allocated.pretty_print | html %]
+                    </td>
+                    <td align="center">
+                        [% project.percentComplete | format('%.0f%%') %]
+                    </td>
+                    <td align="center">
+                        [% IF project_instruments.$projectid.defined %]
+                            [% FOREACH instrument IN project_instruments.$projectid %]
+                                [% instrument | html %][% UNLESS loop.last %]<br />[% END %]
+                            [% END %]
+                        [% ELSE %]
+                            &mdash;
+                        [% END %]
+                    </td>
+                    <td align="center">
+                        [% UNLESS taurange_is_default(project.taurange) %]
+                            [% project.taurange | html %]
+                        [% ELSE %]
+                            &mdash;
+                        [% END %]
+                    </td>
+                    <td>
+                        [% project.title | html %]
+                    </td>
+                </tr>
+            [% END %]
+        </table>
+    [% END %]
+[% END %]
+[% END %]

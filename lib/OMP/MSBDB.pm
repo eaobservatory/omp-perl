@@ -377,30 +377,36 @@ sub removeSciProg {
 
 =item B<getInstruments>
 
-Returns a list of all the instruments currently associated with this
+Returns a list of all the instruments currently associated with each
 science program.
 
- @instruments = $db->programInstruments( );
-
-Can return an empty list if nothing is in the database.
+ \%instruments = $db->getInstruments(@projectids);
 
 =cut
 
 sub getInstruments {
   my $self = shift;
+  my @projectids = @_;
+
+  return {} unless @projectids;
 
   # This needs to be quick. The old way was to simply get the science program
   # and summarise it. Way to slow with the large science programs used in surveys.
   # Simply go straight to the ompobs table.
 
-  my $projectid = $self->projectid;
-
   # No XML query interface to science programs, so we'll have to do an SQL query
-  my $sql = "SELECT instrument FROM $OBSTABLE WHERE projectid = '$projectid' group by instrument";
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+  my $sql = 'SELECT projectid, '
+    . 'GROUP_CONCAT(DISTINCT instrument ORDER BY instrument SEPARATOR ",") AS instruments '
+    . "FROM $OBSTABLE WHERE projectid IN (" .
+        (join ',', ('?',) x scalar @projectids)
+    . ') GROUP BY projectid';
+  my $ref = $self->_db_retrieve_data_ashash($sql, @projectids);
 
-  my @results = map { $_->{instrument} } @$ref;
-  return sort @results;
+  my %results = map {
+    $_->{'projectid'} => [split /,/, $_->{'instruments'}]
+  } @$ref;
+
+  return \%results;
 }
 
 =item B<getSciProgInfo>
@@ -417,14 +423,18 @@ the C<fetchSciProg> method should be used instead.
 
 sub getSciProgInfo {
   my $self = shift;
+  my %opt = @_;
 
   my $projectid = $self->projectid();
 
-  my @msbs = $self->_fetch_row(projectid => $projectid);
+  my @msbs = $self->_fetch_row(
+    projectid => $projectid,
+    with_observations => $opt{'with_observations'});
 
   return new OMP::Info::SciProg(
     projectid => $projectid,
     msb => \@msbs,
+    timestamp => $self->_get_old_sciprog_timestamp,
   );
 }
 
@@ -1232,7 +1242,7 @@ sub getSubmitted {
 Return the total number of MSBs, and the total number of active MSBs, for a
 given list of projects.
 
-  %projectid = $db->getMSBCount(@projectids);
+  \%projectid = $db->getMSBCount(@projectids);
 
 The only argument is a list (or reference to a list) of project IDs.
 Returns a hash of hashes indexed by project ID where the second-level
@@ -1246,8 +1256,7 @@ is returned for that project.
 sub getMSBCount {
   my $self = shift;
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
-  my %result = $self->_get_msb_count(@projectids);
-  return %result;
+  return $self->_get_msb_count(@projectids);
 }
 
 =item B<getMSBtitle>
@@ -2251,13 +2260,16 @@ returns the first matching MSB object.
 
   @objects = $db->_fetch_row( projectid => $p );
 
-No attempt is made to retrieve the corresponding observation information.
+No attempt is made to retrieve the corresponding observation information
+unless an option C<with_observations> is specified.
 
 =cut
 
 sub _fetch_row {
   my $self = shift;
   my %query = @_;
+
+  my $with_observations = delete $query{'with_observations'};
 
   # Get the project id if it is here and not specified already
   $query{projectid} = $self->projectid
@@ -2284,6 +2296,25 @@ sub _fetch_row {
   # to do or not.
 #  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
 #    unless @$ref;
+
+  if ($with_observations) {
+    $sql = "SELECT * FROM $OBSTABLE WHERE "
+      . join("AND", @substrings)
+      . " ORDER BY obsid ASC";
+    print "STATEMENT: $sql\n" if $DEBUG;
+
+    my $obsref = $self->_db_retrieve_data_ashash(
+      $sql, map {$query{$_}} sort keys %query);
+    my %msb_obs = ();
+    foreach (@$obsref) {
+      $_->{'waveband'} = new Astro::WaveBand(
+        Instrument => $_->{instrument},
+        Wavelength => $_->{wavelength});
+      $_->{'coords'} = _obs_row_to_coord($_, 0);
+      push @{$msb_obs{delete $_->{'msbid'}}}, $_;
+    }
+    $_->{'observations'} = $msb_obs{$_->{'msbid'}} foreach @$ref;
+  }
 
   # if we are returning multiple results create OMP::Info::MSB objects
   if ($multi) {
@@ -2726,94 +2757,14 @@ sub _run_query {
         $obs_count++;
 
         # Create the coordinate object in order to calculate
-        # observability. Special case calibrations since they are
-        # difficult to spot from looking at the standard args
-        if ($obs->{coordstype} eq 'CAL') {
-          $obs->{coords} = new Astro::Coords();
-        } else {
-          my $coordstype = $obs->{coordstype};
-          if ($coordstype eq 'RADEC') {
-            # Prepare to create an Astro::Coords::Interpolated
-            # object which will have the effect of treating
-            # the coordinates as apparent coordiates.
-            $obs->{'coords'} = new Astro::Coords(
-                        name => $obs->{'target'},
-                        ra1 => $obs->{ra2000},
-                        ra2 => $obs->{ra2000},
-                        dec1 => $obs->{dec2000},
-                        dec2 => $obs->{dec2000},
-                        mjd1 => 50000,
-                        mjd2 => 50000,
-                        units => 'radians',
-            );
-          } elsif ($coordstype eq 'PLANET') {
-            if ($obs->{'target'} eq 'pluto') {
-              # Astro::Coords not longer supports Pluto so we cannot calculate
-              # whether or not it is observable.
-              $isObservable = 0;
-              last OBSLOOP;
-            }
-
-            $obs->{'coords'} = new Astro::Coords(planet => $obs->{target});
-          } elsif ($coordstype eq 'ELEMENTS') {
-
-            print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
-
-            # Use the array constructor since the columns were
-            # populated using array() method and we do not want to
-            # repeat the logic
-            $obs->{'coords'} = new Astro::Coords(
-                        name => $obs->{'target'},
-                        elements => [ 'ELEMENTS', undef, undef,
-                                     $obs->{el1},
-                                     $obs->{el2},
-                                     $obs->{el3},
-                                     $obs->{el4},
-                                     $obs->{el5},
-                                     $obs->{el6},
-                                     $obs->{el7},
-                                     $obs->{el8},
-                                   ],
-            );
-          } elsif ($coordstype eq 'FIXED') {
-            $obs->{'coords'} = new Astro::Coords(
-                        name => $obs->{'target'},
-                        az => $obs->{ra2000},
-                        el => $obs->{dec2000},
-                        units => 'radians',
-            );
-
-          } elsif ($coordstype eq 'TLE' or $coordstype eq 'AUTO-TLE') {
-            # Check for NULL TLE elements.  This should only happen for
-            # AUTO-TLE before the elements have been inserted, but we might
-            # as well do this check for regular TLE elements too.
-            if (grep {not defined $obs->{$_}}
-                     qw/el1 el2 el3 el4 el5 el6 el7 el8/) {
-              # If the elements haven't been inserted, assume that we just
-              # don't have them, and so the target is unobservable.
-              $isObservable = 0;
-              last OBSLOOP;
-            }
-
-            $obs->{'coords'} = tle_row_to_coord($obs);
-
-          } else {
-            throw OMP::Error::FatalError('Unknown coordinate type: ' .
-                                         $coordstype);
-          }
-
-          # throw if we have a problem
-          throw OMP::Error::FatalError(
-                  'Major problem generating coordinate object from ' .
-                  Dumper($msb, $obs))
-              unless defined $obs->{'coords'};
+        # observability.
+        my $coords = _obs_row_to_coord($obs, 1);
+        unless (defined $coords) {
+          $isObservable = 0;
+          last OBSLOOP;
         }
 
-        # Get the coordinate object.
-        my $coords = $obs->{coords};
-
-        # throw if we have a problem
-        throw OMP::Error::FatalError("Major problem generating coordinate object") unless defined $coords;
+        $obs->{'coords'} = $coords;
 
         # Set the teelscope
         $coords->telescope( $telescope );
@@ -3181,6 +3132,113 @@ sub _run_query {
 
 }
 
+=item B<_obs_row_to_coord>
+
+Extract an Astro::Coords object based on a row from the ompobs table.
+
+Returns undef if the coordinate cannot be processed (e.g. Pluto),
+and may throw exceptions in the case of other problems.
+
+=cut
+
+sub _obs_row_to_coord {
+    my $obs = shift;
+    my $radec_as_interp = shift;
+
+    my $coords = undef;
+
+    my $coordstype = $obs->{coordstype};
+    if ($coordstype eq 'CAL') {
+      $coords = new Astro::Coords();
+    }
+    elsif ($coordstype eq 'RADEC') {
+      if ($radec_as_interp) {
+        # Prepare to create an Astro::Coords::Interpolated
+        # object which will have the effect of treating
+        # the coordinates as apparent coordiates.
+        $coords = new Astro::Coords(
+                    name => $obs->{'target'},
+                    ra1 => $obs->{ra2000},
+                    ra2 => $obs->{ra2000},
+                    dec1 => $obs->{dec2000},
+                    dec2 => $obs->{dec2000},
+                    mjd1 => 50000,
+                    mjd2 => 50000,
+                    units => 'radians',
+        );
+      }
+      else {
+        $coords = new Astro::Coords(
+                    name => $obs->{'target'},
+                    ra => $obs->{ra2000},
+                    dec => $obs->{dec2000},
+                    type => 'J2000',
+                    units => 'radians',
+        );
+      }
+    } elsif ($coordstype eq 'PLANET') {
+      if ($obs->{'target'} eq 'pluto') {
+        # Astro::Coords not longer supports Pluto so we cannot calculate
+        # whether or not it is observable.
+        return undef;
+      }
+
+      $coords = new Astro::Coords(planet => $obs->{target});
+    } elsif ($coordstype eq 'ELEMENTS') {
+
+      print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
+
+      # Use the array constructor since the columns were
+      # populated using array() method and we do not want to
+      # repeat the logic
+      $coords = new Astro::Coords(
+                  name => $obs->{'target'},
+                  elements => [ 'ELEMENTS', undef, undef,
+                               $obs->{el1},
+                               $obs->{el2},
+                               $obs->{el3},
+                               $obs->{el4},
+                               $obs->{el5},
+                               $obs->{el6},
+                               $obs->{el7},
+                               $obs->{el8},
+                             ],
+      );
+    } elsif ($coordstype eq 'FIXED') {
+      $coords = new Astro::Coords(
+                  name => $obs->{'target'},
+                  az => $obs->{ra2000},
+                  el => $obs->{dec2000},
+                  units => 'radians',
+      );
+
+    } elsif ($coordstype eq 'TLE' or $coordstype eq 'AUTO-TLE') {
+      # Check for NULL TLE elements.  This should only happen for
+      # AUTO-TLE before the elements have been inserted, but we might
+      # as well do this check for regular TLE elements too.
+      if (grep {not defined $obs->{$_}}
+               qw/el1 el2 el3 el4 el5 el6 el7 el8/) {
+        # If the elements haven't been inserted, assume that we just
+        # don't have them, and so the target is unobservable.
+        return undef;
+      }
+
+      $coords = tle_row_to_coord($obs);
+
+    } else {
+      throw OMP::Error::FatalError('Unknown coordinate type: ' .
+                                   $coordstype);
+    }
+
+    # throw if we have a problem
+    throw OMP::Error::FatalError(
+            'Major problem generating coordinate object from ' .
+            Dumper($obs))
+        unless defined $coords;
+
+    return $coords;
+}
+
 =item B<_msb_row_to_msb_object>
 
 Convert a row hash from the C<ompmsb> table into an OMP::Info::MSB
@@ -3429,6 +3487,8 @@ sub _get_msb_count {
   my $self = shift;
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
 
+  return {} unless @projectids;
+
   # SQL query
   my $sql = "SELECT projectid, COUNT(*) AS \"count\" FROM $MSBTABLE\n".
     "WHERE projectid IN (". join(",", map {"\"".uc($_)."\""} @projectids).")\n";
@@ -3446,7 +3506,7 @@ sub _get_msb_count {
     }
   }
 
-  return %projectid;
+  return \%projectid;
 }
 
 =back

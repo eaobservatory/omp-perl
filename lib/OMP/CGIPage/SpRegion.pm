@@ -15,9 +15,10 @@ use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use PGPLOT;
 
-use OMP::CGIDBHelper;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
+use OMP::Error qw/:try/;
 use OMP::General;
+use OMP::MSBDB;
 use Starlink::AST::PGPLOT;
 
 use base qw/OMP::CGIPage/;
@@ -28,7 +29,8 @@ use base qw/OMP::CGIPage/;
 
 =item B<view_region>
 
-Creates a page allowing the user to select the output format for the regions.
+Creates a page allowing the user to select the output format for the regions,
+or outputs the region file.
 
 =cut
 
@@ -38,57 +40,23 @@ sub view_region {
 
   my $q = $self->cgi;
 
-  print $q->h2('Download or Plot Regions for ' . uc($projectid)),
-        start_form_absolute($q),
-        $q->p($q->b('Type of observations')),
-        $q->blockquote(
-          $q->radio_group(-name => 'type', -values => ['all', 'new', 'progress', 'complete'],
-                          -default => 'all', -linebreak => 'true',
-                          -labels => {all => 'All observations',
-                                      new => 'New observations',
-                                      progress => 'Observations in progress',
-                                      complete => 'Completed observations'})),
-        $q->p($q->b('Output format')),
-        $q->blockquote(
-          $q->radio_group(-name => 'format', -values => ['stcs', 'ast', 'png'],
-                          -default => 'stcs', -linebreak => 'true',
-                          -labels => {stcs => 'STC-S file',
-                                      ast => 'AST region file',
-                                      png => 'Plot as PNG image'})),
-        $q->p(
-          $q->hidden(-name => 'show_output', -value => 'true'),
-          $q->submit(-value => 'Download / Plot')),
-        $q->end_form,
-        $q->h3('Notes'),
-        $q->p('The downloaded region files can be plotted using the',
-          $q->tt('kappa'),
-          'package command',
-          $q->tt('ardplot.'),
-          'For example to overlay the region on an existing file:'),
-        $q->p($q->pre('display IMAGE.sdf',
-          "\n" . 'ardplot region=REGION.ast')),
-        $q->p('This should also work for the STC-S files.'),
-        $q->p('In the PNG image plot, observations are colour-coded ',
-          'as follows:'),
-        $q->ul(
-          $q->li($q->b('White:'), 'new observations.'),
-          $q->li($q->b('Red:'), 'observations in progress, ',
-            'when it is possible to determine that an observation has ',
-            'been observed, otherwise it will appear white until complete.'),
-          $q->li($q->b('Blue:'), 'completed observations.'));
-}
-
-=item B<view_region_output>
-
-Outputs the region file.
-
-=cut
-
-sub view_region_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
+  unless ($q->param('submit_output')) {
+    return {
+      title => 'Download or Plot Regions for ' . uc($projectid),
+      target => url_absolute($q),
+      selections => [
+        [all => 'All observations'],
+        [new => 'New observations'],
+        [progress => 'Observations in progress'],
+        [complete => 'Completed observations'],
+      ],
+      formats => [
+        [stcs => 'STC-S file'],
+        [ast => 'AST region file'],
+        [png => 'Plot as PNG image'],
+      ],
+    };
+  }
 
   my %mime = (png => 'image/png',
               stcs => 'text/plain',
@@ -109,32 +77,34 @@ sub view_region_output {
 
 
   # Prepare region object, by fetching the SP and converting it.
-  # Note that safeFetchSciProg will print warnings, so we need to
-  # redirect its output as we have not yet printed the script header.
+  my $sp = undef;
+  my $error = undef;
+  try {
+    my $db = new OMP::MSBDB(
+        ProjectID => $projectid,
+        DB => new OMP::DBbackend);
+    $sp = $db->fetchSciProg(1);
+  } catch OMP::Error::UnknownProject with {
+    $error = "Science program for $projectid not present in the database.";
+  } catch OMP::Error::SpTruncated with {
+    $error = "Science program for $projectid is in the database but has been truncated.";
+  } otherwise {
+    my $E = shift;
+    $error = "Error obtaining science program details for project $projectid: $E";
+  };
 
-  select(STDERR);
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid);
-  select(STDOUT);
+  return $self->_write_error($error)
+    if defined $error;
 
-  unless (defined $sp) {
-    print $q->header(),
-          $q->start_html('Error: no science program'),
-          $q->h2('Error'),
-          $q->p('The science program could not be fetched for this project.'),
-          $q->end_html();
-    return;
-  }
+  return $self->_write_error(
+    'The science program could not be fetched for this project.')
+    unless defined $sp;
 
   my $region = new OMP::SpRegion($sp);
 
-  unless (defined $region) {
-    print $q->header(),
-          $q->start_html('Error: no regions found'),
-          $q->h2('Error'),
-          $q->p('No regions were found for this project.'),
-          $q->end_html();
-    return;
-  }
+  return $self->_write_error(
+    'No regions were found for this project.')
+    unless defined $region;
 
 
   # Print the output.
@@ -160,6 +130,8 @@ sub view_region_output {
   else {
     die 'Unrecognised format, not trapped by first check.';
   }
+
+  return undef;
 }
 
 =back

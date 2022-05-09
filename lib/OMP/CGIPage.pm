@@ -14,12 +14,12 @@ $query = new CGI;
 
 $cgi = new OMP::CGIPage( CGI => $query );
 
-$cgi->write_page(\&form_content, \&form_ouptut);
+$cgi->write_page(\&view_method, $auth_type, %opts);
 
 =head1 DESCRIPTION
 
 This class generates the content of the OMP feedback system CGI scripts by
-piecing together code from different places.  It also handles look and feel.
+piecing together code from different places.
 
 =cut
 
@@ -28,9 +28,10 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use Template;
+use Template::Stash;
 
 use OMP::Auth;
-use OMP::CGIComponent::Helper qw/start_form_absolute url_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::ProjDB;
@@ -42,8 +43,6 @@ use OMP::FaultServer;
 use OMP::NetTools;
 use OMP::Password;
 use OMP::UserServer;
-
-use HTML::WWWTheme;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
@@ -71,10 +70,9 @@ sub new {
 
   my $c = {
            CGI => undef,
-           RSSFeed => {},
-           Theme => undef,
-           Title => 'OMP Feedback System',
+           Title => 'OMP System',
            Auth => undef,
+           SideBar => [],
           };
 
   # create the object (else we cant use accessor methods)
@@ -94,29 +92,6 @@ sub new {
 =head2 Accessor Methods
 
 =over 4
-
-=item B<theme>
-
-The C<HTML::WWWTheme> associated with this class.
-
-  $theme = $cgi->theme;
-  $cgi->theme( $theme);
-
-This is used and generated internally.
-
-=cut
-
-sub theme {
-  my $self = shift;
-  if (@_) {
-    my $theme = shift;
-    confess "Incorrect type. Must be a HTML::WWWTheme object $theme"
-      unless UNIVERSAL::isa( $theme, "HTML::WWWTheme");
-    $self->{Theme} = $theme;
-  }
-
-  return $self->{Theme};
-}
 
 =item B<cgi>
 
@@ -157,30 +132,6 @@ sub html_title {
   return $self->{Title};
 }
 
-=item B<rss_feed>
-
-The RSS feed associated with this object.
-
-  %rss = $c->rss_feed();
-  $c->rss_feed(%rss);
-
-Takes a hash or hash reference with the following keys:
-
-  title - Title of the RSS feed
-  href  - URL of the RSS feed
-
-Returns a hash.
-
-=cut
-
-sub rss_feed {
-  my $self = shift;
-  if (@_) {
-    %{$self->{RSSFeed}} = (ref($_[0]) eq 'HASH' ? %{$_[0]} : @_);
-  }
-  return %{$self->{RSSFeed}};
-}
-
 =item B<auth>
 
 The authentication object, if a user is logged in.
@@ -201,84 +152,53 @@ sub auth {
   return $self->{Auth};
 }
 
+=item B<side_bar>
+
+Add a section to the side bar:
+
+    $cgi->side_bar($title, \@entries, %opts);
+
+Where each value of C<@entries> is a list giving the
+name of the link, the URL, and optionally any extra information
+to show after it:
+
+    @entries[0] = [$name, $url, [$extra_info]];
+
+Or retrieve a reference to the side bar sections array:
+
+    my $side_bar = $cgi->side_bar();
+
+=cut
+
+sub side_bar {
+    my $self = shift;
+    if (@_) {
+        my ($title, $entries, %opts) = @_;
+        push @{$self->{'SideBar'}}, {
+            title => $title,
+            entries => $entries,
+            options => \%opts,
+        };
+    }
+    return $self->{'SideBar'};
+}
+
 =back
 
 =head2 General Methods
 
 =over 4
 
-=item B<_make_theme>
-
-Create the theme object.
-
-  $cgi->_make_theme;
-
-=cut
-
-sub _make_theme {
-  my $self = shift;
-  my $theme = $self->theme;
-  unless (defined $theme) {
-    # Use the OMP theme and make some changes to it.
-    # This is in a different place on hihi than it is on malama
-
-    my @themefile = (OMP::Config->getData('www-theme'),
-                     "/JACpublic/JAC/software/omp/LookAndFeelConfig",
-                     "/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
-    my $themefile;
-
-    foreach (@themefile) {
-      if (-e $_) {
-        $themefile = $_;
-        last;
-      }
-    }
-
-    croak "Unable to locate OMPtheme file\n"
-      unless $themefile;
-
-    $theme = new HTML::WWWTheme($themefile);
-    croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
-
-    $self->theme($theme);
-
-  }
-}
-
-=item B<_write_footer>
-
-Create the footer of the HTML document.
-
-  $cgi->_write_footer;
-
-=cut
-
-sub _write_footer {
-  my $self = shift;
-  my $q = $self->cgi;
-  my $theme = $self->theme;
-
-
-  print $theme->MakeTopBottomBar();
-  print "</td></table></td></tr></table>";
-  print "<div ALIGN='right'><h6><a HREF='#top'>return to top...</a></h6></div></body>";
-  print $theme->EndHTML();
-
-}
-
 =item B<write_page>
 
-Create the page with the login form if login detail are needed.  Once login
-details are acquired, call the code references or methods provided to this
+Create the page with the login form if login details are needed.  Once login
+details are acquired, call the code reference or method provided to this
 method.
 
-  $cgi->write_page( \&form_content, \&form_output, $auth_type, %opts );
+    $cgi->write_page(\&view_method, $auth_type, %opts);
 
-First argument is the name of the C<OMP::CGI> method (or a code reference) to
-be called for displaying a page with content and fields for taking parameters.
-Second argument is the name of a method (or a code reference) to be called
-for displaying the output generated by submitting any forms on the original
-page, or undef if the same method should be used in both cases.
+First argument is the name of the C<OMP::CGIPage> method (or a code reference) to
+be called for displaying the page.
 
 Options for C<auth_type> are:
 
@@ -318,34 +238,31 @@ Additional options are:
 
 =over 4
 
-=item no_header
+=item template
 
-The header and footer are omitted for the
-output page to allow the output of types other than HTML.
+If a template is provided, and if the view method returns something
+other than C<undef>, then it should be a hash reference which will be
+passed to the template as context information.
+
+Otherwise it is assumed that the view method will have written any
+desired output, including the HTTP header.
+
+=item title
+
+Page title.
+
+=item javascript
+
+Array reference of names of additional JavaScript files to include.
 
 =back
 
-The given methods will be called with the validated project ID as the
-first argument (after C<$self>).
+The given method will be called with the validated project ID as the
+first argument (after C<$self>) if project access is required.
 
-The second method will only be called if the parameter 'show_output'
-is defined in the CGI query parameter list.  The easiest way to make sure
-the 'show_output' parameter is defined is to embed it as a hidden field
-in any forms on the original page:
+The subroutine passed to this method should shift off the first argument.
 
-  start_form_absolute($query);
-
-  $query->textfield(name=>'name', value=>'Bob');
-
-  $query->hidden(name=>'show_output', value=>'true');
-
-  $query->submit;
-
-  $query->end_form;
-
-The subroutines passed to this method should shift off the first argument.
-
-  sub form_output {
+  sub view_method {
     my $self = shift;
     ...
   }
@@ -354,29 +271,20 @@ The subroutines passed to this method should shift off the first argument.
 
 sub write_page {
   my $self = shift;
-  my $form_content = shift;
-  my $form_output = shift;
+  my $view_method = shift;
   my $auth_type = shift;
   my %opt = @_;
 
   my $q = $self->cgi;
 
-  my $form_same = 0;
-  unless (defined $form_output) {
-    $form_output = $form_content;
-    $form_same = 1;
-  }
+  # Check to see that it is defined...
+  # Check that it is a code ref
+  throw OMP::Error::BadArgs("Code reference or method name not given")
+    unless defined $view_method;
 
-  # Check to see that they are defined...
-  # Check that they are code refs
-  foreach ($form_content, $form_output) {
-    throw OMP::Error::BadArgs("Code reference or method name not given")
-      unless defined($_);
-
-    my $type = ref($_);
-    croak "Must be a code reference or method name."
-      unless ($type eq 'CODE' or $self->can($_));
-  }
+  my $type = ref $view_method;
+  croak "Must be a code reference or method name."
+    unless ($type eq 'CODE' or $self->can($view_method));
 
   croak 'No auth_type specified' unless defined $auth_type;
 
@@ -385,9 +293,6 @@ sub write_page {
   if (defined $opt{'title'}) {
     $self->html_title($opt{'title'});
   }
-
-  # Retrieve the theme or create a new one
-  $self->_make_theme;
 
   $self->auth(my $auth = OMP::Auth->log_in($q));
 
@@ -444,35 +349,13 @@ sub write_page {
   return if (exists $extra->{'abort'} and $extra->{'abort'});
   push @args, @{$extra->{'args'}} if exists $extra->{'args'};
 
-  my $mode_output = ($q->param('show_output')  or $q->url_param('output'))
-                && !($q->param('show_content') or $q->url_param('content'));
+  my $result = $self->_call_method($view_method, @args);
 
-  # Force output mode if there's no form (the 2 subroutines are the same)
-  # and we want to serve non-HTML.
-  $mode_output ||= ($opt{'no_header'} and $form_same);
-
-  # Print HTML header (including sidebar)
-  $self->_write_header(undef, \%opt)
-    unless (defined $template) || ($opt{'no_header'} && $mode_output);
-
-  # Now everything is ready for our output.
-
-  # See if we should show content (display forms)
-  my $result = $mode_output
-    ? $self->_call_method($form_output, @args)
-    : $self->_call_method($form_content, @args);
-
-  unless ($opt{'no_header'} && $mode_output) {
-    unless (defined $template) {
-      # Write the footer
-      $self->_write_footer()
-    }
-    else {
-      $self->_write_http_header(undef, \%opt);
-      $self->render_template($template, {
-        %{$self->_write_page_context_extra(\%opt)},
-        %$result});
-    }
+  if ((defined $template) and (defined $result)) {
+    $self->_write_http_header(undef, \%opt);
+    $self->render_template($template, {
+      %{$self->_write_page_context_extra(\%opt)},
+      %$result});
   }
 
   return;
@@ -482,15 +365,21 @@ sub _write_page_context_extra {
     my $self = shift;
     my $opt = shift;
 
-    my $jscript_url = OMP::Config->getData('www-js');
-    push @$jscript_url, map {'/' . $_} @{$opt->{'javascript'}} if exists $opt->{'javascript'};
+    my $jscript_url = [];
+    if (exists $opt->{'javascript'}) {
+        push @$jscript_url,
+            OMP::Config->getData('www-js'),
+            map {'/' . $_} @{$opt->{'javascript'}};
+    }
 
     return {
         omp_title => $self->html_title,
         omp_style => $self->_get_style,
         omp_favicon => OMP::Config->getData('www-favicon'),
+        omp_theme_color => OMP::Config->getData('www-theme-color'),
         omp_javascript => $jscript_url,
         omp_user => $self->auth->user,
+        omp_side_bar => $self->side_bar,
     };
 }
 
@@ -544,8 +433,6 @@ sub write_page_finish_log_in {
 
   return if $auth->abort();
 
-  $self->_make_theme;
-
   if (defined $self->auth->message) {
     return $self->_write_error($self->auth->message);
   }
@@ -594,8 +481,20 @@ sub render_template {
     my $name = shift;
     my $context = shift;
 
+    # Allow access to "private" attributes, e.g.
+    # the _ORDER parameter from OMP::Info::Obs::nightlog.
+    local $Template::Stash::PRIVATE = undef;
+
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        FILTERS => {
+            remove_pre_tags => sub {
+                my $text = shift;
+                $text =~ s/^\s*<PRE>//i;
+                $text =~ s/<\/PRE>\s*$//i;
+                return $text;
+            },
+        },
     }) or die "Could not configure template object: $Template::ERROR";
 
     $template->process($name, $context) or die $template->error();
@@ -639,7 +538,7 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $STYLE = OMP::Config->getData('www-css');
+  my $STYLE = [OMP::Config->getData('www-css')];
 
   sub _get_style {
     return $STYLE;
@@ -662,30 +561,55 @@ Set up a project sidebar.
 sub _sidebar_project {
   my $self = shift;
   my $projectid = shift;
-  my $theme = $self->theme;
-  my $q = $self->cgi;
-
-  $theme->SetMoreLinksTitle("<font color=#ffffff>Project $projectid</font>");
-
-  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl?project=$projectid'>Project home</a>",
-                      "<a class='sidemain' href='feedback.pl?project=$projectid'>Feedback entries</a>",
-                      "<a class='sidemain' href='fbmsb.pl?project=$projectid'>Program details</a>",
-                      "<a class='sidemain' href='spregion.pl?project=$projectid'>Program regions</a>",
-                      "<a class='sidemain' href='spsummary.pl?project=$projectid'>Program summary</a>",
-                      "<a class='sidemain' href='fbcomment.pl?project=$projectid'>Add comment</a>",
-                      "<a class='sidemain' href='msbhist.pl?project=$projectid'>MSB History</a>",
-                      "<a class='sidemain' href='projusers.pl?project=$projectid'>Contacts</a>");
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
-  push (@sidebarlinks, "<a class='sidemain' href='fbfault.pl?project=$projectid'>Faults</a>&nbsp;&nbsp;<span class='sidemain'>(" . scalar(@faults) . ")</span>")
-    if ($faults[0]);
 
-  push @sidebarlinks, "&nbsp;<br><a class='sidemain' href='/'>OMP Home</a>";
+  $self->side_bar("Project $projectid", [
+    ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
+    ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
+    ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+    ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
+    ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
+    ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
+    ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
+    [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
+    (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
+  ]);
 
-  $theme->SetInfoLinks(\@sidebarlinks);
+  $self->side_bar("Project administration", [
+    ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
+    ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
+  ]) if $self->auth->is_staff;
+}
+
+=item B<_sidebar_night>
+
+Set up a side bar for staff-access night-based pages.
+
+  $page->_sidebar_night($telescope, $utdate);
+
+=cut
+
+sub _sidebar_night {
+  my $self = shift;
+  my $telescope = shift;
+  my $utdate = shift;
+
+  return unless defined $telescope and defined $utdate;
+
+  $telescope = uc $telescope;
+  $utdate = $utdate->ymd if ref $utdate;
+
+  $self->side_bar($utdate, [
+    ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
+    ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
+    ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+    ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
+        . "&mindate=$utdate&maxdate=$utdate&search=Search&cat=$telescope"],
+  ]);
 }
 
 =item B<_write_http_header>
@@ -711,81 +635,6 @@ sub _write_http_header {
   print $q->header(%header_opt);
 }
 
-=item B<_write_header>
-
-Create the document header (and provide the cookie).
-
-  $cgi->_write_header(undef, \%opt);
-
-  $cgi->_write_header($status);
-
-The header will also link the created document to the style sheet and
-RSS feed.
-
-=cut
-
-sub _write_header {
-  my $self = shift;
-  my $status = shift;
-  my $opt = shift // {};
-
-  my $style = $self->_get_style;
-  my %rssinfo = $self->rss_feed;
-
-  my $theme = $self->theme;
-
-  # Print the header info
-  # Make sure there is a cookie if we're going to provide
-  # it in the header
-  $self->_write_http_header($status, $opt);
-
-  my $title = $self->html_title;
-
-  # HTML start string
-  my $start_string = "<html><head><title>$title</title>";
-
-  # Link to style sheet
-  $start_string .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$style\" title=\"ompstyle\">"
-    unless (! $style);
-
-  $start_string .= '<meta name="theme-color" content="#55559b" />';
-
-  # Link to RSS feed
-  $start_string .= "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"$rssinfo{title}\" href=\"$rssinfo{href}\" />"
-    unless (! exists $rssinfo{title});
-
-  # Add omp icon and javascript
-  my $jscript_url = OMP::Config->getData('www-js');
-  push @$jscript_url, map {'/' . $_} @{$opt->{'javascript'}} if exists $opt->{'javascript'};
-  my $favicon_url = OMP::Config->getData('www-favicon');
-  $start_string .= "<link rel='icon' href='${favicon_url}'/>";
-  $start_string .= "<script type='text/javascript' src='${_}'></script>" foreach @$jscript_url;
-
-  # Close start string
-  $start_string .= "</head>";
-
-  $theme->SetHTMLStartString($start_string);
-
-  $theme->SetSideBarTop("<a class='sidemain' href='https://www.eao.hawaii.edu/'>EAO local home</a>");
-
-  # Get the location of blank.gif
-  my $blankgif = OMP::Config->getData('blankgif');
-  $theme->SetBlankGif($blankgif);
-
-  my $user = $self->auth->user;
-  if (defined $user) {
-      my $sym = '';
-      $sym .= ' &#x2605;' if $user->is_staff();
-      push @{$theme->SetInfoLinks()},
-        '&nbsp;<hr>&nbsp;<br><span class="sidemain">' . $user->name . $sym . '<span><br><a class="sidemain" href="fblogout.pl">Log out</a>';
-  }
-
-  print $theme->StartHTML(),
-        $theme->MakeHeader(),
-        $theme->MakeTopBottomBar();
-
-}
-
 =item B<_write_login>
 
 Create a page with a login form.
@@ -796,7 +645,7 @@ Create a page with a login form.
 
 sub _write_login {
   my $self = shift;
-  my %opt = ();
+  my %opt = (javascript => ['log_in.js']);
   my $q = $self->cgi;
 
   $self->_write_http_header(undef, \%opt);
@@ -835,8 +684,7 @@ Create a page with an error message.
 
   $page->_write_error('Message', ...);
 
-This method includes a header and footer, so that it can
-be used from C<"no_header"> handler methods.
+This method includes a header and footer.
 
 =cut
 
@@ -850,6 +698,27 @@ sub _write_error {
     error_title => 'Error',
     error_messages => \@_,
   });
+
+  return undef;
+}
+
+=item B<_write_redirect>
+
+Create a redirect response.
+
+    $page->_write_redirect($url);
+
+=cut
+
+sub _write_redirect {
+    my $self = shift;
+    my $url = shift;
+
+    my $q = $self->cgi;
+
+    print $q->redirect($url);
+
+    return undef;
 }
 
 =item B<_write_project_choice>

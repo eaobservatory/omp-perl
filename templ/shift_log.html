@@ -1,0 +1,69 @@
+[% PROCESS "macro_shift_log.html" -%]
+[% WRAPPER "layout.html" %]
+
+<form method="get" action="[% target_base | url %]">
+    <table>
+        <tr>
+            <td>Date:</td>
+            <td>
+                <input type="text" name="date" value="[% values.date | html %]" size="16" maxlength="10"/>&nbsp;UT
+                (yyyy-mm-dd format)
+            </td>
+        </tr>
+        <tr>
+            <td>Telescope:</td>
+            <td>
+                [% FOREACH value IN telescopes %]
+                    <label>
+                        <input type="radio" name="telescope" value="[% value | html%]" [% IF value == values.telescope %]checked="checked"[% END %] />
+                        [% value | html %]
+                    </label>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td>
+                <input type="submit" name="" value="Change date / telescope" />
+                [% IF project_id.defined %]
+                    <input type="hidden" name="project" value="[% project_id | html %]" />
+                [% END %]
+            </td>
+        </tr>
+    </table>
+</form>
+
+<hr />
+
+<h1>Shift comments for [% values.telescope | html %] on [% values.date %]</h1>
+
+[% render_shift_log_entries(comments, 0) %]
+
+<hr />
+
+<form method="post" action="[% target | url %]">
+    <table border="0">
+        <tr>
+            <td>Author:</td>
+            <td>[% omp_user.name | html %]</td>
+        </tr>
+        <tr valign="top">
+            <td>Time:</td>
+            <td>
+                <input type="text" name="time" size="16" maxlength="8" />&nbsp;[% values.entryzone | html %]
+                (HHMMSS or HH:MM:SS, 24hr format)
+                <br />
+                (will default to current time if blank)
+            </td>
+        </tr>
+        <tr valign="top">
+            <td>Comment:</td>
+            <td><textarea name="text" rows="15" cols="50"></textarea></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><input type="submit" name="submit_comment" value="Submit Comment" /></td>
+        </tr>
+    </table>
+</form>
+[% END %]

@@ -23,7 +23,7 @@ use OMP::Error qw/ :try /;
 use File::Basename;
 our $VERSION = '0.03';
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::ProjServer;
 use OMP::PackageData;
 
@@ -51,26 +51,24 @@ sub request_data {
 
   my $q = $self->cgi;
 
-  # First try and get the fault ID from the URL param list,
-  # then try the normal param list.
-  my $utdate = $q->url_param('utdate');
-  $utdate = $q->param('utdate') unless $utdate;
+  my $utdate = $q->param('utdate');
+  my $inccal = $q->param('inccal') // 1;
+
+  my %ctx = (
+      projectid => $projectid,
+      utdate => $utdate,
+      inccal => $inccal,
+  );
 
   # if we have a date, package up the data
   if ($utdate) {
-
-    my $inccal = $q->url_param('inccal');
-    $inccal = $q->param('inccal') unless $inccal;
-    $inccal = 1 unless defined $inccal;
-
     # Need to decide whether we are using CADC or OMP for data retrieval
     # To do that we need to know the telescope name
     my $tel = OMP::ProjServer->getTelescope( $projectid );
 
-    if (!defined $tel) {
-      print "Error obtaining telescope name from project $projectid\n";
-      return;
-    }
+    return $self->_write_error(
+        "Error obtaining telescope name from project code.")
+        unless defined $tel;
 
     # Now determine which retrieval scheme is in play (cadc vs omp)
     my $retrieve_scheme;
@@ -80,16 +78,40 @@ sub request_data {
       $retrieve_scheme = 'omp';
     };
 
+    # Go through the package data object so that we do not need to worry about
+    # inconsistencies with local retrieval
+    my $pkg;
+    my $error;
+    try {
+      $pkg = new OMP::PackageData( utdate => $utdate,
+                                   projectid => $projectid,
+                                   inccal => $inccal,
+                                   incjunk => 0,
+                                 );
+    } catch OMP::Error::UnknownProject with {
+      my $E = shift;
+      $error = "This project ID is not recognized by the OMP.";
+    } otherwise {
+      my $E = shift;
+      $error = "Odd data retrieval error: $E";
+    };
+
+    return $self->_write_error($error)
+        if defined $error;
+
+    $ctx{'messages'} = $pkg->flush_messages();
+
     if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i ) {
-      $self->_package_data_cadc($projectid, $utdate, $inccal);
+      $ctx{'result'} = $self->_package_data_cadc($pkg);
     } else {
-      $self->_package_data($projectid, $utdate, $inccal);
+      $ctx{'result'} = $self->_package_data($pkg);
     }
 
   } else {
-    $self->_write_form($projectid);
+      $ctx{'target'} = url_absolute($q);
   }
 
+  return \%ctx;
 }
 
 
@@ -99,156 +121,50 @@ sub request_data {
 
 =over 4
 
-=item B<_write_form>
-
-Write the form requesting a UT date.
-
-  $page->_write_form($projectid);
-
-=cut
-
-sub _write_form {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  print $q->h2("Retrieve data for project ". $projectid );
-  print "<table border=0><tr><td>";
-  print start_form_absolute($q);
-  print "<b>Enter a UT date: (YYYY-MM-DD)</b></td><td>";
-  print $q->textfield(-name=>'utdate',
-                      -size=>15,
-                      -maxlength=>32);
-  print "</td><tr><td>";
-  print "Include calibrations:</td><td>";
-  print $q->radio_group(-name=>'inccal',
-                        -labels => { 1 => 'Yes', 0 => 'No' },
-                        -values=>[1,0],
-                        -default=>1);
-  print "</td><tr><td colspan=2 align=right>";
-
-  print $q->submit(-name=>'Submit');
-  print $q->end_form;
-  print "</td></table>";
-
-}
-
 =item B<_package_data>
 
 Write output HTML and package up the data.
 
-  $page->_package_data( $projectid, $utdate_string, $inccal );
+    $page->_package_data($pkg);
 
 =cut
 
 sub _package_data {
   my $self = shift;
-  my $projectid = shift;
-  my $utdate = shift;
-  my $inccal = shift;
+  my $pkg = shift;
 
-  my $q = $self->cgi;
+  try {
+    $pkg->pkgdata(user => $self->auth->user);
+  } otherwise {
+    my $E = shift;
+    $pkg->_add_message("Could not create data package(s): $E");
+  };
 
-  print $q->h2("Retrieving data for project ". $projectid .
-    " and UT date $utdate");
-
-  print "<p><b>Copying files and creating tar archive(s).  This normally takes several minutes per Gbyte.  Please do not point your browser to another page until the process is complete.</b></p>";
-
-  if ($inccal) {
-    print "[including calibrations]";
-  } else {
-    print "[without calibrations]";
-  }
-
-  # we use verbose messages
-  print "<PRE>\n";
-  my $pkg = new OMP::PackageData( utdate => $utdate,
-                                  projectid => $projectid,
-                                  inccal => $inccal,
-                                  incjunk => 0,
-                                );
-
-  $pkg->pkgdata(user => $self->auth->user);
-  print "</PRE>\n";
-
-  my @urls = $pkg->ftpurl;
-  if (@urls) {
-    my $plural = (scalar(@urls) > 1 ? "s" : "");
-    print "Retrieve your data from the following url$plural :<br>\n";
-    print join("\n", map { "<A href=\"$_\">$_</a><br>" } @urls);
-  } else {
-    print "There must have been an untrapped error. Could not obtain a url";
-  }
-
-
+  return {
+      method => 'omp',
+      messages => $pkg->flush_messages,
+      ftp_urls => [$pkg->ftpurl],
+  };
 }
 
 =item B<_package_data_cadc>
 
 Write output HTML and special form required for CADC retrieval
 
-  $page->_package_data_cadc( $projectid, $utdate_string, $inccal );
+    $page->_package_data_cadc($pkg);
 
 =cut
 
 sub _package_data_cadc {
   my $self = shift;
-  my $projectid = shift;
-  my $utdate = shift;
-  my $inccal = shift;
+  my $pkg = shift;
 
-  my $q = $self->cgi;
-
-  print $q->h2("Determining data files associated with project ". $projectid .
-    " and UT date $utdate");
-
-  if ($inccal) {
-    print "[including calibrations]";
-  } else {
-    print "[without calibrations]";
-  }
-
-  # Go through the package data object so that we do not need to worry about
-  # inconsistencies with local retrieval
-  print "<PRE>\n";
-  my $pkg;
-  my $E;
-  try {
-    $pkg = new OMP::PackageData( utdate => $utdate,
-                                 projectid => $projectid,
-                                 inccal => $inccal,
-                                 incjunk => 0,
-                               );
-  } catch OMP::Error::UnknownProject with {
-    $E = shift;
-    print "This project ID is not recognized by the OMP<br>\n";
-  } otherwise {
-    $E = shift;
-    print "Odd data retrieval error: $E\n";
-  };
-  print "</PRE>\n";
-  return if defined $E;
-
-  print "<P>Data retrieval is now handled by the Canadian Astronomical Data Centre (CADC). ".
-        "Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. ".
-        "You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
-
-  print "<p>To have access to any proprietary data, <B>you must have
-   registered your CADC userid with the EAO.</B> Access permissions
-   at the CADC are assigned to each file based on the CADC userid
-   supplied with the data by the EAO.  It is not sufficient to have a
-   userid at both institutions, even if they are the same!</p>\n";
-
-  # Write a feedback message even though we can not be sure the person will click on the link
+  # Write a feedback message even though we can not be sure the person
+  # will click on the link
   $pkg->add_fb_comment( "(via CADC)", $self->auth->user );
 
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
-
-  # Now form the CADC form
-  print $q->start_form( -action => 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/downloadManager/download',
-                        -enctype => 'application/x-www-form-urlencoded' );
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
@@ -256,22 +172,19 @@ sub _package_data_cadc {
     map { OMP::PackageData::cadc_file_uri($_) }
     map { $_->simple_filename } @obs;
 
-  print "$_\n"
-    for $q->hidden( -name => 'uri',
-                    -default => \@files );
-
   # The "runid" is to allow CADC to recognise which download requests came
   # from the OMP rather than their own systems.  CADC have indicated that
   # any common string will do -- and "omp" has been chosen.  We can add
   # additional parts to the end of the string (up to 16 characters total)
   # if we would like to add extra tracking for diagnostic purposes.  They
   # log the value in their transfer database.
-  print $q->hidden( -name => 'runid',
-                    -default => 'omp' ), "\n";
+  my $run_id = 'omp';
 
-  print $q->submit(-name => "Retrieve from CADC" );
-  print $q->end_form;
-
+  return {
+      method => 'cadc',
+      file_urls => \@files,
+      run_id => $run_id,
+  };
 }
 
 =back

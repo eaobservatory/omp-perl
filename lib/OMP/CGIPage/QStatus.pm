@@ -11,10 +11,10 @@ use warnings;
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
+use List::MoreUtils qw/uniq/;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
-use OMP::CGIDBHelper;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DBbackend;
 use OMP::DateTools;
 use OMP::General;
@@ -27,6 +27,7 @@ use OMP::QStatus::Plot qw/create_queue_status_plot/;
 use base qw/OMP::CGIPage/;
 
 our $telescope = 'JCMT';
+our @weather_bands = qw/1 2 3 4 5/;
 
 =head1 METHODS
 
@@ -41,19 +42,11 @@ Creates a page allowing the user to select the queue status viewing options.
 sub view_queue_status {
     my $self = shift;
 
-    $self->_show_input_page();
-}
-
-=item B<view_queue_status_output>
-
-Outputs the queue status plot.
-
-=cut
-
-sub view_queue_status_output {
-    my $self = shift;
-
     my $q = $self->cgi;
+    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+
+    return $self->_show_input_page({})
+        unless $q->param('submit_plot');
 
     my %opt = (telescope => $telescope);
 
@@ -65,13 +58,9 @@ sub view_queue_status_output {
         }
     };
 
-    do {
-        my $country = $q->param('country');
-        if (defined $country and $country ne 'Any') {
-            die 'invalid queue' unless $country =~ /^([-_A-Za-z0-9]+)$/;
-            $opt{'country'} = $1;
-        }
-    };
+    $opt{'country'} = {
+        map {die 'invalid queue' unless /^([-_A-Za-z0-9+]+)$/; $_ => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('country')};
 
     do {
         my $affiliation = $q->param('affiliation');
@@ -81,20 +70,15 @@ sub view_queue_status_output {
         }
     };
 
-    do {
-        my $instrument = $q->param('instrument');
-        if (defined $instrument and $instrument ne 'Any') {
-            die 'invalid instrument' unless $instrument =~ /^([-_A-Za-z0-9]+)$/;
-            $opt{'instrument'} = $1;
-        }
-    };
+    $opt{'instrument'} = {
+        map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $_ => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
 
     do {
         my $band = $q->param('band');
         if (defined $band and $band ne 'Any') {
-            die 'invalid band' unless $band =~ /^([1-5])$/;
-            my $r = OMP::SiteQuality::get_tauband_range($telescope, $1);
-            $opt{'tau'} = ($r->min() + $r->max()) / 2.0;
+            die 'invalid band' unless $band =~ /^([1-5]|all)$/;
+            $opt{'band'} = $1;
         }
     };
 
@@ -106,58 +90,83 @@ sub view_queue_status_output {
         }
     };
 
-    # Pass options to query_queue_status.
-    my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %opt);
+    my %query_opt = %opt;
+    foreach my $param (qw/country instrument/) {
+        $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
+    }
+
+    my @project = $q->multi_param('project');
+    my @plots;
+    my %proj_msb_all;
+    foreach my $band (exists $query_opt{'band'}
+            ? (map {$_ eq 'all' ? @weather_bands : $_} delete $query_opt{'band'})
+            : undef) {
+        if (defined $band) {
+            my $r = OMP::SiteQuality::get_tauband_range($telescope, $band);
+            $query_opt{'tau'} = ($r->min() + $r->max()) / 2.0;
+        }
+
+        # Pass options to query_queue_status.
+        my ($proj_msb, $utmin, $utmax) = query_queue_status(
+            return_proj_msb => 1, %query_opt);
+
+        # Copy all results to the all-band hash.
+        foreach my $project (keys %$proj_msb) {
+            $proj_msb_all{$project}->{$_} = $proj_msb->{$project}->{$_}
+                foreach keys %{$proj_msb->{$project}};
+        }
+
+        my $proj_msb_filt = {};
+        if (scalar @project) {
+            # Filter hash by project.
+            foreach (@project) {
+                $proj_msb_filt->{$_} = $proj_msb->{$_} if exists $proj_msb->{$_};
+            }
+        }
+        else {
+            # No filter to apply.
+            $proj_msb_filt = $proj_msb;
+        }
+
+        push @plots, [$band, $capture->capture_png_as_data(sub {
+            create_queue_status_plot(
+                $proj_msb_filt, $utmin, $utmax,
+                output => '-',
+                hdevice => '/PNG',
+            );
+        })] if %$proj_msb_filt;
+    }
 
     my @proj_order;
     my $order = $q->param('order');
     if ($order eq 'priority') {
         my %priority = ();
-        while (my ($proj, $msbs) = each %$proj_msb) {
+        while (my ($proj, $msbs) = each %proj_msb_all) {
             my (undef, $msb) = each %$msbs; keys %$msbs;
             $priority{$proj} = int($msb->priority());
         }
-        @proj_order = sort {$priority{$a} <=> $priority{$b}} keys %$proj_msb;
+        @proj_order = sort {$priority{$a} <=> $priority{$b}} keys %proj_msb_all;
     }
     else {
         # Default ordering is by project ID.
-        @proj_order = sort keys %$proj_msb;
+        @proj_order = sort keys %proj_msb_all;
     }
 
-    $self->_show_input_page(project => \@proj_order);
+    $opt{'order'} = $order;
+    $opt{'projects'} = {map {$_ => 1} @project};
+    my $context = $self->_show_input_page(\%opt, projects => \@proj_order);
 
-    my @project = $q->multi_param('project');
-    my $proj_msb_filt = {};
-    if (scalar @project) {
-        # Filter hash by project.
-        foreach (@project) {
-            $proj_msb_filt->{$_} = $proj_msb->{$_} if exists $proj_msb->{$_};
-        }
-    }
-    else {
-        # No filter to apply.
-        $proj_msb_filt = $proj_msb;
-    }
+    if (%proj_msb_all) {
+        $context->{'plots'} = \@plots;
 
-    print $q->h2('Search results');
-
-    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
-
-    if (%$proj_msb_filt) {
-        print $q->p($capture->capture_png_as_img(sub {
-                create_queue_status_plot(
-                    $proj_msb_filt, $utmin, $utmax,
-                    output => '-',
-                    hdevice => '/PNG',
-                );
-            }));
-
-        $self->_show_result_table($proj_msb, \@project, \@proj_order);
+        $context->{'results'} = $self->_show_result_table(
+            \%proj_msb_all, \@project, \@proj_order);
     }
     else {
-        print $q->p($q->i('No observations found'));
+        $context->{'results'} = []
     }
+
+    return $context;
 }
 
 =back
@@ -174,91 +183,41 @@ Shows the input parameters form.
 
 sub _show_input_page {
     my $self = shift;
+    my $values = shift;
     my %opt = @_;
 
     my $q = $self->cgi;
 
     my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
     my $semester = OMP::DateTools->determine_semester();
-    my @semesters = $db->listSemesters();
-    unshift @semesters, $semester unless grep {$_ eq $semester} @semesters;
+    my @semesters = $db->listSemesters(telescope => $telescope);
+    push @semesters, $semester unless grep {$_ eq $semester} @semesters;
+    $values->{'semester'} //= $semester;
 
-    my @countries = ('Any', grep {! /^ *$/ || /^serv$/i} $db->listCountries());
+    my @countries = grep {! /^ *$/ || /^serv$/i} $db->listCountries(telescope => $telescope);
+    # Add special combinations (see fault 20210831.001).
+    push @countries, 'PI+IF';
 
-    my @affiliation_codes = ('Any',
-      sort {$AFFILIATION_NAMES{$a} cmp $AFFILIATION_NAMES{$b}}
-      keys %AFFILIATION_NAMES);
-    my %affiliation_names = (Any => 'Any', %AFFILIATION_NAMES);
+    my @affiliation_codes = sort {
+        $AFFILIATION_NAMES{$a} cmp $AFFILIATION_NAMES{$b}
+    } keys %AFFILIATION_NAMES;
 
-    my @instruments = qw/Any SCUBA-2 HARP AWEOWEO UU ALAIHI RXA3M/;
-
-    my @project = (exists $opt{'project'}) ? @{$opt{'project'}} : ();
-
-    print
-        $q->h2('View Queue Status'),
-        start_form_absolute($q),
-        $q->table(
-            $q->Tr([
-                $q->td($q->b('Semester')) .
-                    $q->td($q->popup_menu(-name => 'semester',
-                                          -values => \@semesters,
-                                          -default => $semester)) .
-                    $q->td({-rowspan => 7}, (scalar @project)
-                        ? $q->b('Project') .
-                            $q->br() .
-                            $q->scrolling_list(-name => 'project',
-                                               -values => \@project,
-                                               -multiple => 1,
-                                               -size => 10)
-                        : $q->i('No projects from previous search')
-                    ),
-                $q->td([
-                    $q->b('Queue'),
-                    $q->popup_menu(-name => 'country',
-                                   -values => \@countries,
-                                   -default => 'Any')
-                ]),
-                $q->td([
-                    $q->b('Affiliation'),
-                    $q->popup_menu(-name => 'affiliation',
-                                   -values => \@affiliation_codes,
-                                   -default => 'Any',
-                                   -labels => \%affiliation_names)
-                ]),
-                $q->td([
-                    $q->b('Instrument'),
-                    $q->popup_menu(-name => 'instrument',
-                                   -values => \@instruments,
-                                   -default => 'Any')
-                ]),
-                $q->td([
-                    $q->b('Band'),
-                    $q->popup_menu(-name => 'band',
-                                   -values => [qw/Any 1 2 3 4 5/],
-                                   -default => 'Any')
-                ]),
-                $q->td([
-                    $q->b('Date'),
-                    $q->textfield(-name => 'date', -default => '') .
-                        ' (default today)'
-                ]),
-                $q->td([
-                    $q->b('Order'),
-                    join '', $q->radio_group(
-                        -name => 'order',
-                        -values => ['projectid', 'priority'],
-                        -default => 'projectid',
-                        -linebreak => 'true',
-                        -labels => {projectid => 'Project ID', priority => 'Priority'},
-                    ),
-                ]),
-                $q->td([
-                  $q->hidden(-name => 'show_output', -value => 'true'),
-                  $q->submit(-value => 'Plot')
-                ]),
-            ]),
-        ),
-        $q->end_form();
+    return {
+        target => url_absolute($q),
+        semesters => [sort @semesters],
+        countries => [sort @countries],
+        affiliations => [map {
+            [$_, $AFFILIATION_NAMES{$_}]
+            } @affiliation_codes],
+        instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI RXA3M/],
+        bands => \@weather_bands,
+        orders => [
+            [priority => 'Priority'],
+            [projectid => 'Project ID'],
+        ],
+        values => $values,
+        projects => ((exists $opt{'projects'}) ? $opt{'projects'} : []),
+    };
 }
 
 =item _show_result_table
@@ -272,8 +231,6 @@ sub _show_result_table {
     my $proj_msb = shift;
     my $proj_search = shift;
     my $proj_order = shift;
-
-    my $q = $self->cgi;
 
     my @proj_shown = ();
     my @proj_hidden = ();
@@ -289,87 +246,10 @@ sub _show_result_table {
         }
     }
 
-    print $q->table(
-        $q->Tr($q->th({-align => 'left'},
-            [qw/Project MSB Target RA Dec Type Instrument Tau Remaining Time Completion Priority/])),
-        (map {_show_result_table_project($q, $_, 1)} @proj_shown),
-        (map {_show_result_table_project($q, $_, 0)} @proj_hidden),
-    );
-}
-
-=item _show_result_table_project
-
-Returns a section of results table for one project.
-
-=cut
-
-sub _show_result_table_project {
-    my $q = shift;
-    my $proj = shift;
-    my $shown = shift;
-
-    my %attrib = ();
-    $attrib{'-style'} ='opacity: 0.5' unless $shown;
-
-    my @row = ();
-    my $proj_first = 1;
-
-    foreach my $msb (values %$proj) {
-        my $msb_first = 1;
-        my $time = $msb->timeest();
-        $time = sprintf('%02i min %02i sec', int($time / 60), $time % 60);
-        my $completion = sprintf('%.1f %%', $msb->completion());
-
-        foreach my $obs ($msb->observations()) {
-            my $obs_first = 1;
-
-            foreach my $coord ($obs->coords()) {
-                my $type = $coord->type();
-                $type = 'RADEC' if $type eq 'INTERP';
-                my $ra = $type;
-                my $dec = $type;
-                unless ($type eq 'CAL' or $type eq 'AUTO-TLE') {
-                    $ra = $coord->ra();
-                    $dec = $coord->dec();
-                }
-
-                push @row, [
-                    ($proj_first ? _project_link($q, $msb->projectid())
-                                                      : '&nbsp'),
-                    ($msb_first  ? $msb->title()      : '&nbsp'),
-                    ($coord->name()                   // 'Unnamed target'),
-                    $ra, $dec, $type,
-                    ($obs_first  ? $obs->instrument() : '&nbsp;'),
-                    ($msb_first  ? $msb->tau()        : '&nbsp;'),
-                    ($msb_first  ? $msb->remaining()  : '&nbsp;'),
-                    ($msb_first  ? $time              : '&nbsp;'),
-                    ($proj_first ? $completion        : '&nbsp;'),
-                    ($proj_first ? int($msb->priority()) : '&nbsp;'),
-                ];
-
-                $proj_first = $msb_first = $obs_first = 0;
-            }
-        }
-    }
-
-    return $q->Tr(\%attrib, [map {$q->td($_)} @row]);
-}
-
-=item _project_link
-
-Returns HTML linking to a project.
-
-=cut
-
-sub _project_link {
-    my $q = shift;
-    my $project = shift;
-
-    return
-        $q->a({-href => 'projecthome.pl?project=' . $project}, $project) .
-        ' (' .
-        $q->a({-href => 'sourceplot.pl?project=' . $project}, 'plot') .
-        ')';
+    return [
+        (map {[$_, 1]} @proj_shown),
+        (map {[$_, 0]} @proj_hidden),
+    ];
 }
 
 1;

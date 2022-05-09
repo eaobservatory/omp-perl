@@ -391,30 +391,27 @@ sub programDetails {
 =item B<programInstruments>
 
 Return a reference to an array of all the instruments associated with
-the specified science program.
+each of the specified science programs.
 
-  $array = OMP::SpServer->programInstruments( $project );
-
-No password required.
+  \%instruments = OMP::SpServer->programInstruments(@projectids);
 
 =cut
 
 sub programInstruments {
   my $class = shift;
-  my $projectid = shift;
+  my @projectids = @_;
 
-  OMP::General->log_message( "programInstruments: $projectid\n");
+  OMP::General->log_message( "programInstruments: " . (join ', ', @projectids) . "\n");
 
   my $E;
-  my @inst;
+  my $inst;
   try {
 
     # Create new DB object
     my $db = new OMP::MSBDB(
-                            ProjectID => $projectid,
                             DB => $class->dbConnection, );
 
-    @inst = $db->getInstruments();
+    $inst = $db->getInstruments(@projectids);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -431,7 +428,7 @@ sub programInstruments {
   $class->throwException( $E ) if defined $E;
 
   # Return the stringified form
-  return \@inst;
+  return $inst;
 }
 
 =item B<SpInsertCat>

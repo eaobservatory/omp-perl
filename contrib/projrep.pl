@@ -63,7 +63,7 @@ my $nr = OMP::NightRep->new(date => $startut,
                             telescope => $telescope,
                             delta_day => $delta,);
 
-my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP";
+my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI";
 
 
 #print scalar $nr->astext();

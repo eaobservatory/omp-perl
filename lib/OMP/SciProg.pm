@@ -381,7 +381,6 @@ different forms of summaries. Allowed values are:
 
   'xml'         XML summary (equivalent to default scalar context)
   'html'        HTML summary of program
-  'htmlcgi'     HTML summary of program with an 'Add Comment' button
   'asciiarray'  Array of MSB summaries in plain text (default in list context)
   'data'        Perl data structure containing an array of hashes.
                 One for each MSB. Additionally, observation information
@@ -494,7 +493,7 @@ sub summary {
     }
 
 
-  } elsif ($mode eq 'html' or $mode eq 'htmlcgi') {
+  } elsif ($mode eq 'html') {
     my @lines;
 
     push(@lines,"<TABLE border='0'>");

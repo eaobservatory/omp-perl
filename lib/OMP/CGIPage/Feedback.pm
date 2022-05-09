@@ -20,6 +20,9 @@ use strict;
 use warnings;
 use Carp;
 
+use OMP::DateTools;
+use OMP::ProjServer;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
@@ -32,48 +35,43 @@ $| = 1;
 
 =over 4
 
-=item B<add_comment_content>
+=item B<add_comment>
 
-Creates a page with a comment form.
+Creates a page with a comment form, or submits comment and creates
+a page saying it has done so.
 
-  $page->add_comment_content($projectid);
+  $page->add_comment($projectid);
 
 =cut
 
-sub add_comment_content {
+sub add_comment {
   my $self = shift;
   my $projectid = shift;
 
   my $q = $self->cgi;
 
-  print $q->h2("Add feedback comment to project ${projectid}");
-
-  my $projcomp = new OMP::CGIComponent::Project(page => $self);
   my $comp = new OMP::CGIComponent::Feedback(page => $self);
 
-  $projcomp->proj_status_table($projectid);
-  $comp->fb_entries_hidden($projectid);
-  $comp->comment_form($projectid);
-}
+  if ($q->param('submit_add')) {
+    return {
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      target => undef,
+      %{$comp->submit_fb_comment($projectid)},
+      num_comments => $comp->fb_entries_count($projectid),
+    };
+  }
 
-=item B<add_comment_output>
-
-Submits comment and creates a page saying it has done so.
-
-  $page->add_comment_output($projectid);
-
-=cut
-
-sub add_comment_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $projcomp = new OMP::CGIComponent::Project(page => $self);
-  my $comp = new OMP::CGIComponent::Feedback(page => $self);
-
-  $projcomp->proj_status_table($projectid);
-  $comp->submit_fb_comment($projectid);
-  $comp->fb_entries_hidden($projectid);
+  return {
+    project => OMP::ProjServer->projectDetails($projectid, 'object'),
+    target => url_absolute($q),
+    values => {
+        # We don't re-display the form, but some pages link here with
+        # a pre-prepared subject in a query parameter.
+        subject => (scalar $q->param('subject')),
+    },
+    messages => [],
+    num_comments => $comp->fb_entries_count($projectid),
+  };
 }
 
 =item B<fb_logout>
@@ -106,11 +104,15 @@ sub fb_output {
 
   my $q = $self->cgi;
 
-  print $q->h1("Feedback for project ${projectid}");
-
-  OMP::CGIComponent::Project->new(page => $self)->proj_status_table($projectid);
-  OMP::CGIComponent::MSB->new(page => $self)->msb_sum_hidden($projectid);
-  OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid);
+  return {
+    target => url_absolute($q),
+    project => OMP::ProjServer->projectDetails($projectid, 'object'),
+    num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
+    feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
+    display_date => sub {
+        return OMP::DateTools->display_date($_[0]);
+    },
+  };
 }
 
 =back

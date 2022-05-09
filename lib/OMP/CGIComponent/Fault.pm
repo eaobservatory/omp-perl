@@ -23,9 +23,7 @@ use strict;
 use warnings;
 use Carp;
 
-use Text::Wrap;
-
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Display;
 use OMP::DateTools;
@@ -43,9 +41,6 @@ use base qw(OMP::CGIComponent);
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-# Text wrap column size
-$Text::Wrap::columns = 80;
-
 =head1 METHODS
 
 =head2 Content Creation and Display Methods
@@ -59,10 +54,9 @@ Put a fault into a an HTML table
   $comp->fault_table($fault, no_edit => 1)
 
 Takes an C<OMP::Fault> object as the first argument and optional
-arguments which may contain either "no_edit" or "no_status".  "no_edit"
+arguments which may contain "no_edit".  "no_edit"
 displays the fault without links for updating the text and details,
-and without the status update form.  "no_status" displays the fault
-just without the status update form.
+and without the status update form.
 
 =cut
 
@@ -73,141 +67,33 @@ sub fault_table {
 
   my $q = $self->cgi;
 
-  my $nostatus;
   my $noedit;
-
   if (defined $opt{'no_edit'}) {
-    $noedit = $opt{'no_edit'};;
-  } elsif (defined $opt{no_status}) {
-    $nostatus = $opt{'no_status'};
+    $noedit = $opt{'no_edit'};
   }
-
-  my $subject;
-  ($fault->subject) and $subject = $fault->subject
-    or $subject = "none";
-
-  # Get file date as local time
-  my $filedate = localtime($fault->filedate->epoch);
-  $filedate = OMP::DateTools->display_date($filedate);
-
-  my $faultdate = $fault->faultdate;
-  if ($faultdate) {
-    # Convert fault date to local time
-    my $epoch = $faultdate->epoch;
-    $faultdate = localtime($epoch);
-    $faultdate = OMP::DateTools->display_date($faultdate);
-  } else {
-    $faultdate = "unknown";
-  }
-
-  my $urgencyhtml;
-  ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
   # Get available statuses
-  my ( $labels, $values ) = $self->get_status_labels( $fault );
-
-  my $width = $self->_get_table_width;
-  # First show the fault info
-  my $sys_text = _get_system_label( $fault->category );
-
-  print "<div class='black'>";
-  print "<table width=$width bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
-  print "<tr><td>";
-  print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
-  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate</td><td><b>"
-    . qq[${sys_text}:]
-    . '</b> ' . $fault->systemText . '</td>'
-    ;
-
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost * 60.0 . " minutes (" . $fault->timelost . " hrs)</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
+  my @statuses;
+  unless ($noedit) {
+      my ($labels, $values) = $self->get_status_labels($fault);
+      @statuses = map {[$_, $labels->{$_}]} @$values;
+  }
 
   my %shifts = OMP::Fault->shiftTypes($fault->category);
-  if (%shifts) {
-      print "<tr bgcolor=#ffffff><td><b>Shift type: </b>" . $fault->shifttype;
-      print "</td><td><b>Remote Status: </b>" . $fault->remote . "</td>";
+
+  return {
+      fault => $fault,
+      display_date_local => sub {
+          my $epoch = $_[0]->epoch;
+          my $date = localtime($epoch);
+          return OMP::DateTools->display_date($date);
+      },
+      system_label => _get_system_label($fault->category),
+      allow_edit => ! $noedit,
+      target => url_absolute($q),
+      statuses => \@statuses,
+      has_shift_type => !! %shifts,
   }
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status:</b>";
-  unless ($noedit or $nostatus) {
-
-    # Make a form element for changing the status
-    print start_form_absolute($q);
-    print $q->hidden(-name=>'show_output', -default=>'true');
-    print $q->popup_menu(-name=>'status',
-                         -default=>$fault->status,
-                         -values=> $values,
-                         -labels=> $labels,);
-    print " ";
-    print $q->submit(-name=>'change_status',
-                     -label=>'Change',);
-    print $q->end_form;
-  } else {
-    # Display only
-    print $fault->statusText;
-  }
-  print "</td>";
-
-  # Display location if specified
-  print "<tr bgcolor=#ffffff><td><b>Location: </b>" . $fault->locationText()
-     . " </td><td>&nbsp;</td>" if $fault->location();
-
-  # Display links to projects associated with this fault if any
-  my @projects = $fault->projects;
-
-  if ($projects[0]) {
-    my @html = map {"<a href='projecthome.pl?project=$_'>$_</a>"} @projects;
-    print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
-    print join(', ',@html);
-    print "</td>";
-  }
-
-  # Display if urgent
-  print "<tr bgcolor=#ffffff><td>$urgencyhtml</td><td></td>";
-
-  # Link to fault editing page
-  if (! $noedit) {
-    print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?fault=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
-  }
-
-  # Then loop through and display each response
-  my @responses = $fault->responses;
-  for my $resp (@responses) {
-    # Convert response date to local time
-    my $respdate = $resp->date;
-    my $epoch = $respdate->epoch;
-    $respdate = localtime($epoch);
-    $respdate = OMP::DateTools->display_date($respdate);
-
-    # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
-    # response is the original fault
-    my $bgcolor;
-    if ($resp->isfault) {
-      $bgcolor = '#bcbce2';
-    } else {
-      $bgcolor = '#dcdcf2';
-      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . OMP::Display->userhtml($resp->author, $q) . "</td><td><b>Date: </b>" . $respdate;
-
-      # Link to respons editing page
-      if (! $noedit) {
-        print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?fault=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
-      }
-    }
-
-    # Show the response
-
-    # Word wrap the text if it is in a pre block
-    my $text = $resp->text;
-    if ($text =~ m!^<pre>.*?</pre>$!is) {
-      $text = wrap('', '', $text);
-    }
-
-    # Now turn fault IDs into links
-    $text =~ s!((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?fault=$1'>$1</a>!g;
-
-    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>$text</td></table><br></td>";
-  }
-  print "</table>";
-  print "</td></table>";
-  print "</div>";
 }
 
 =item B<query_fault_form>
@@ -230,222 +116,63 @@ sub query_fault_form {
 
   my $sys_label = _get_system_label( $category );
 
-  my $systems;
-  my $types;
   my @systems;
   my @types;
-  my %syslabels;
-  my %typelabels;
 
   if (! $hidefields) {
-    $systems = OMP::Fault->faultSystems($category);
-    @systems = map {$systems->{$_}} sort keys %$systems;
-    unshift( @systems, "any" );
-    %syslabels = map {$systems->{$_}, $_} %$systems;
-    $syslabels{any} = 'Any';
+    my $systems = OMP::Fault->faultSystems($category);
+    @systems = map {[$systems->{$_}, $_]} sort keys %$systems;
 
-    $types = OMP::Fault->faultTypes($category);
-    @types = map {$types->{$_}} sort keys %$types;
-    unshift( @types, "any");
-    %typelabels = map {$types->{$_}, $_} %$types;
-    $typelabels{any} = 'Any';
+    my $types = OMP::Fault->faultTypes($category);
+    @types = map {[$types->{$_}, $_]} sort keys %$types;
   }
 
-  my ( %status, %statuslabels );
-  {
-    my ( $labels, $status ) = _get_status_labels_by_name( $category );
-    %status = %{ $status };
-    %statuslabels = %{ $labels };
-  }
+  (undef, my $status) = _get_status_labels_by_name($category);
 
-  my @status = map {$status{$_}} sort keys %status;
-  unshift( @status, "any", "all_open", "all_closed");
-
-  $statuslabels{any} = 'Any';
-  $statuslabels{all_open} = 'All open';
-  $statuslabels{all_closed} = 'All closed';
+  my @status = (
+      [all_open => 'All open'],
+      [all_closed => 'All closed'],
+      map {[$status->{$_}, $_]} sort keys %$status);
 
   # Get the date so we can figure out our local timezone
   my $today = localtime;
 
-  print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td colspan=2>";
-  print start_form_absolute($q, -method=>'GET');
-  print $q->hidden(-name=>'faultsearch', -default=>['true']);
-
-  print "<b>Find faults: ";
-  print $q->radio_group(-name=>'action',
-                        -values=>['response','file','activity'],
-                        -default=>'activity',
-                        -labels=>{response=>"responded to",
-                                  file=>"filed",
-                                  activity=>"with any activity"});
-  print "</td><tr><td colspan=2><b>by user <small>(ID)</small> </b>";
-  print $q->textfield(-name=>'author',
-                      -size=>17,
-                      -maxlength=>32,);
-  print "</b></td><tr><td valign=top align=right><b>";
-  print $q->radio_group(-name=>'period',
-                        -values=>['arbitrary','days','last_month'],
-                        -default=>'arbitrary',
-                        -labels=>{arbitrary=>'between dates',days=>'in the last',last_month=>'in the last calendar month'},
-                        -linebreak=>'true',);
-  print "</b></td><td valign=top><b>";
-  print "<small>(YYYYMMDD)</small> ";
-  print $q->textfield(-name=>'mindate',
-                      -size=>18,
-                      -maxlength=>32);
-  print " and ";
-  print $q->textfield(-name=>'maxdate',
-                      -size=>18,
-                      -maxlength=>32);
-  # Display the local timezone since date searches are localtime
-  print " ". $today->strftime("%Z");
-  print "<br>";
-  print $q->textfield(-name=>'days',
-                      -size=>3,
-                      -maxlength=>4,);
-  print " days";
-  print "<br>";
-  print "</b></td><tr><td colspan=2>";
-
-  if (! $hidefields) {
-    print '<b>' . $sys_label . '</b> ';
-    print $q->popup_menu(-name=>'system',
-                         -values=> \@systems,
-                         -labels=>\%syslabels,
-                         -default=>'any',);
-    print " <b>Type</b> ";
-    print $q->popup_menu(-name=>'type',
-                         -values=>\@types,
-                         -labels=>\%typelabels,
-                         -default=>'any',);
-  }
-
-  print " <b>Status</b> ";
-  print $q->popup_menu(-name=>'status',
-                       -values=>\@status,
-                       -labels=>\%statuslabels,
-                       -default=>'any',);
-
-  print "</td><tr><td colspan=2>";
-  print "<b>";
-
-  # Only display option to return time-losing faults if the category allows it
-  if (OMP::Fault->faultCanLoseTime($category)) {
-    print $q->checkbox(-name=>'timelost',
-                       -value=>'true',
-                       -label=>'Return time-losing faults only',
-                       -checked=>0,);
-    print "&nbsp;&nbsp;";
-  }
-
-  # Only display option to return affected projects if the category allows it
-  if (OMP::Fault->faultCanAssocProjects($category)) {
-    print $q->checkbox(-name=>'show_affected',
-                       -value=>'true',
-                       -label=>'Show affected projects',
-                       -checked=>0,);
-  }
-
-  # Return chronic faults checkbox
-  print "<br>";
-  print $q->checkbox(-name=>'chronic',
-                     -value=>'true',
-                     -label=>'Return chronic faults only',
-                     -checked=>0,);
-
-  print "<br>";
-  print $q->checkbox(-name=>'summary',
-                     -value=>'true',
-                     -label=>'Organize by system/type',
-                     -checked=>0,);
-  print "</b></td><tr><td colspan=2>";
-  print "<b>Search in: ";
-  print $q->radio_group(-name=>'text_search',
-                        -values=>['text','subject','both'],
-                        -default=>'both',
-                        -labels=>{text=>"text",
-                                  subject=>"subject",
-                                  both=>"both"});
-  print "</b>";
-  print ' (' . $q->checkbox(-name => 'text_boolean', -value => 1, -label => 'boolean mode')
-    . ' ' . $q->a({-href => "https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode",
-                   -target => "_blank"}, '?')
-    . ')';
-  print "</td><tr><td colspan=2>";
-  print $q->textfield(-name=>'text',
-                      -size=>44,
-                      -maxlength=>256,);
-  print "&nbsp;&nbsp;";
-  print $q->submit(-name=>"search", -label=>"Search",);
-  print "</b></td>";
-
-  # Need the show_output hidden field in order for the form to be processed
-  print $q->hidden(-name=>'show_output', -default=>['true']);
-  print $q->hidden(-name=>'cat', -default=>$category);
-  print "<tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
-  print $q->submit(-name=>"major", -label=>"Major faults");
-  print $q->submit(-name=>"recent", -label=>"Recent faults (2 days)");
-  print $q->submit(-name=>"current", -label=>"Current faults (14 days)");
-  print $q->end_form;
-  print "</td></table>";
-}
-
-=item B<query_faults>
-
-Do a fault query and return a reference to an array of fault objects
-
-  $comp->query_faults([$days]);
-
-Optional argument is the number of days delta to return faults for.
-
-=cut
-
-sub query_faults {
-  my $self = shift;
-  my $days = shift;
-  my $xml;
-
-  if ($days) {
-    my $t = gmtime;
-    $xml = "<FaultQuery><date delta='$days'>" . $t->ymd . "</date></FaultQuery>";
-  } else {
-    $xml = "<FaultQuery></FaultQuery>";
-  }
-
-  my $faults;
-  try {
-    $faults = OMP::FaultServer->queryFaults($xml, "object");
-    return $faults;
-  } otherwise {
-    my $E = shift;
-    throw OMP::Error "$E";
+  return {
+    category => $category,
+    target => $q->url(-absolute => 1, -query => 0),
+    timezone => $today->strftime('%Z'),
+    show_id_fields => ! $hidefields,
+    show_timelost => OMP::Fault->faultCanLoseTime($category),
+    show_show_affected => OMP::Fault->faultCanAssocProjects($category),
+    actions => [
+        [response => 'responded to'],
+        [file => 'filed'],
+        [activity => 'with any activity'],
+    ],
+    periods => [
+        [arbitrary => 'between dates'],
+        [days => 'in the last'],
+        [last_month => 'in the last calendar month'],
+    ],
+    text_searches => [
+        'text',
+        'subject',
+        'both',
+    ],
+    system_label => $sys_label,
+    systems => \@systems,
+    types => \@types,
+    statuses => \@status,
+    values => {
+        action => (scalar $q->param('action') // 'activity'),
+        period => (scalar $q->param('period') // 'arbitrary'),
+        text_search => (scalar $q->param('text_search') // 'both'),
+        map {$_ => scalar $q->param($_)}
+            qw/author mindate maxdate days system type status
+            timelost show_affected chronic summary
+            text text_boolean/,
+    },
   };
-}
-
-=item B<view_fault_form>
-
-Create a form for submitting a fault ID for a fault to be viewed.
-
-  $comp->view_fault_form();
-
-=cut
-
-sub view_fault_form {
-  my $self = shift;
-  my $q = $self->cgi;
-
-  print $q->h2("View a fault");
-  print "<table border=0><tr><td>";
-  print start_form_absolute($q, -method => 'GET');
-  print "<b>Enter a fault ID: </b></td><td>";
-  print $q->textfield(-name=>'fault',
-                      -size=>15,
-                      -maxlength=>32);
-  print "</td><tr><td colspan=2 align=right>";
-  print $q->submit(-name=>'Submit');
-  print $q->end_form;
-  print "</td></table>";
 }
 
 =item B<file_fault_form>
@@ -473,88 +200,97 @@ sub file_fault_form {
   my $is_safety = _is_safety( $category );
 
   # Create values and labels for the popup_menus
-  my $systems = OMP::Fault->faultSystems( $category );
-  my @sys_key = keys %$systems;
-  my @system_values = _sort_values( \@sys_key, $systems, $category );
-
-  my %system_labels = map {$systems->{$_}, $_} @sys_key;
+  my @systems; {
+    my $systems = OMP::Fault->faultSystems( $category );
+    my @sys_key = keys %$systems;
+    my @system_values = _sort_values( \@sys_key, $systems, $category );
+    my %system_labels = map {$systems->{$_}, $_} @sys_key;
+    @systems = map {[$_, $system_labels{$_}]}  _sort_values( \@sys_key, $systems, $category );
+  }
 
   my $types = OMP::Fault->faultTypes($category);
-  my @type_values = map {$types->{$_}} sort keys %$types;
-  my %type_labels = map {$types->{$_}, $_} keys %$types;
+  my @types = map {[$types->{$_}, $_]} sort keys %$types;
 
-  my ( %status, %status_labels );
-  {
-    my ( $labels, $status ) = _get_status_labels_by_name( $category );
-    %status = %{ $status };
-    %status_labels = %{ $labels };
+  my @statuses; {
+    (undef, my $status) = _get_status_labels_by_name($category);
+    @statuses = map {[$status->{$_}, $_]} sort keys %$status;
   }
-
-  my @status_values = map {$status{$_}} sort keys %status;
 
   # Location (for "Safety" category).
-  my ( @place_values, %place_labels );
-  if ( $is_safety ) {
-
+  my @locations;
+  if ($is_safety) {
     my %places = OMP::Fault->faultLocation_Safety;
-
-    for ( sort keys %places ) {
-
-      push @place_values, $places{ $_ };
-      $place_labels{ $places{ $_ } } = $_ ;
-    }
+    @locations = map {[$places{$_}, $_]} sort keys %places;
   }
 
-  # Add some empty values to our menus (this is part of making sure that a
-  # meaningful value is selected by the user) if a new fault is being filed
-  unless ($fault) {
-    push @system_values, undef;
-    push @type_values, undef;
-    $type_labels{''} = "Select a type";
-
-    my $text =
-      _is_vehicle_incident( $category )
-      ? 'vehicle'
-      : $is_safety
-        ? 'severity level'
-          : 'system'
-          ;
-
-    $system_labels{''} = qq[Select a $text];
-
-    if ( $is_safety ) {
-
-      push @place_values, undef;
-      $place_labels{''} = 'Select a location';
-    }
-  }
+  my $sys_text =
+    _is_vehicle_incident( $category )
+    ? 'vehicle'
+    : $is_safety
+      ? 'severity level'
+        : 'system';
 
   # Set defaults.  There's probably a better way of doing what I'm about
   # to do...
-  my $user;
   my %defaults;
-  my $submittext;
+  my @projects = ();
+  my @warnings = ();
 
   if (!$fault) {
-    $user = $self->auth->user->userid;
-    %defaults = (system => '',
-                 type => '',
-                 location => '',
-                 status => ! $is_safety ? $status{Open} : $status{'Follow up required'},
+    %defaults = (system => undef,
+                 type => undef,
+                 location => undef,
+                 status => ($is_safety ? OMP::Fault::FOLLOW_UP : OMP::Fault::OPEN),
                  loss => undef,
                  time => undef,
                  tz => 'HST',
                  subject => undef,
                  message => undef,
-                 assoc => undef,
                  assoc2 => undef,
                  urgency => undef,
                  condition => undef,
                  shifttype => undef,
                  remote => undef,);
 
-    # Set the text for our submit button
-    $submittext = "Submit fault";
+    # If we're in a category that allows project association create a
+    # checkbox group for specifying an association with projects.
+    # We don't want this checkbox group if this form is being used for editing a fault.
+    if (OMP::Fault->faultCanAssocProjects($category)) {
+      # Values for checkbox group will be tonights projects
+      my $aref = OMP::MSBServer->observedMSBs({usenow => 1,
+                                               format => 'data',
+                                               returnall => 0,});
+
+      if (@$aref[0]) {
+        my %projects;
+        my %badproj; # used to limit error message noise
+        for (@$aref) {
+          # Make sure to only include projects associated with the current
+          # telescope category
+          my @instruments = split(/\W/, $_->instrument);
+          # this may fail if an unexpected instrument turns up
+          my $tel;
+          try {
+            $tel = OMP::Config->inferTelescope('instruments', @instruments);
+          } catch OMP::Error::BadCfgKey with {
+            my $key = $_->{projectid} . join("",@instruments);
+            if (!exists $badproj{$key}) {
+              push @warnings, "Project $_->{projectid} used an instrument "
+                  . join(",",@instruments)
+                  . " that has no associated telescope.";
+              $badproj{$key}++;
+            }
+          };
+          next unless defined $tel;
+
+          $projects{$_->projectid} = $_->projectid
+            unless ($tel !~ /$category/i);
+        }
+
+        my %assoc = map {$_ => 1} $q->multi_param('assoc');
+        @projects = map {[$_, exists $assoc{$_} ? 1 : 0]} sort keys %projects;
+      }
+    }
   } else {
     # We have a fault object so use it's details as our defaults
 
@@ -587,7 +323,6 @@ sub file_fault_form {
       $message = "<html>" . $message;
     }
 
-    $user = $fault->responses->[0]->author->userid;
     %defaults = (system => $fault->system,
                  status => $fault->status,
                  location => $fault->location,
@@ -603,234 +338,54 @@ sub file_fault_form {
                  shifttype => $fault->shifttype,
                  remote => $fault->remote,
                 );
-
-    # Set the text for our submit button
-    $submittext = "Submit changes";
   }
 
   # Fields in the query param stack will override normal defaults
+  my %condition_checked = map {$_ => 1} $q->multi_param('condition');
   for (keys %defaults) {
-    if ($q->param($_)) {
+    if ($_ eq 'urgency') {
+      $defaults{$_} = 1 if exists $condition_checked{'urgent'};
+    }
+    elsif ($_ eq 'condition') {
+      $defaults{$_} = 1 if exists $condition_checked{'chronic'};
+    }
+    elsif ($q->param($_)) {
       $defaults{$_} = $q->param($_);
     }
   }
 
-  print "<table border=0 cellspacing=4><tr>";
-  print start_form_absolute($q, -name => 'file_fault');
-
-  # Embed fault category in case the user's cookie changes to
-  # another category while fault is being filed
-  print $q->hidden(-name=>'category',
-                   -default=>$category,);
-
-  # Need the show_output param in order for the output code ref to be called next
-  print $q->hidden(-name=>'show_output',
-                   -default=>'true');
-
-  # Embed the status if we are editing a fault
-  if ($fault) {
-    print $q->hidden(-name=>'status', -default=>$defaults{status});
-  }
-
-  print "<td align=right><b>User:</b></td><td>";
-
-  print " <strong>${user}</strong>";
-
   my $sys_label = _get_system_label( $category );
 
-  print '</td><tr><td align=right><b>', $sys_label, '</b></td><td>';
-
-  print $q->popup_menu(-name=> lc $sys_label,
-                       -values=>\@system_values,
-                       -default=>$defaults{system},
-                       -labels=>\%system_labels,);
-  print "</td><tr><td align=right><b>Type:</b></td><td>";
-  print $q->popup_menu(-name=>'type',
-                       -values=>\@type_values,
-                       -default=>$defaults{type},
-                       -labels=>\%type_labels,);
-
-  unless ($fault) {
-
-    if ( $is_safety ) {
-
-        print '</td><tr><td align="right"><b>Location:</b></td><td>',
-          $q->popup_menu( '-name'    => 'location',
-                          '-values'  => \@place_values,
-                          '-default' => $defaults{'location'},
-                          '-labels'  => \%place_labels,
-                        );
-    }
-
-    print "</td><tr><td align=right><b>Status:</b></td><td>";
-    print $q->popup_menu(-name=>'status',
-                         -values=>\@status_values,
-                         -default=>$defaults{status},
-                         -labels=>\%status_labels,);
-  }
-
-  # Only provide fields for taking "time lost" and "time of fault"
-  # if the category allows it
-  if (OMP::Fault->faultCanLoseTime($category)) {
-    print "</td><tr><td align=right><b>Time lost <small>(minutes)</small>:</b></td><td>";
-    print $q->textfield(-name=>'loss',
-                        -default=>$defaults{loss},
-                        -size=>'4',
-                        -maxlength=>'10',);
-  }
-
-  if ( OMP::Fault->faultCanLoseTime($category)
-      || $category =~ /events\b/i
-      ) {
-
-    print q[</td><tr valign="top"><td align="right">]
-      . q[<b>Time of fault:</b>]
-      . q[</td><td>]
-      . $q->textfield(-name=>'time',
-                      -default=>$defaults{time},
-                      -size=>20,
-                      -maxlength=>128,)
-      . q[&nbsp;]
-      . $q->popup_menu(-name=>'tz',
-                        -values=>['UT','HST'],
-                        -default=>$defaults{tz},)
-      . q[&nbsp;]
-      . $q->button(-value => 'Now', -onclick =>
-          'document.forms["file_fault"]["time"].value = (new Date()).toISOString().substr(0, 16); document.forms["file_fault"]["tz"].value = "UT";')
-      . q[<br /><small>(YYYY-MM-DDTHH:MM or HH:MM)</small>] ;
-  }
-
-
   my %shifts = OMP::Fault->shiftTypes($category);
-  my @shiftstatus = keys %shifts;
-  if (%shifts == 1 ) {
-      print $q->hidden(-name=>'shifttype', -default=>$shiftstatus[0]);
-  } elsif ( %shifts > 1) {
-      print "</td><tr><td align=right><b>Shift Type </b></td><td>";
-      print $q->popup_menu(-name=>'shifttype',
-                           -values=>\@shiftstatus,
-                           -default=>$defaults{shifttype},
-                           )
-          . q[&nbsp;];
-  }
+  my @shifts = map {[$_ => $shifts{$_}]} sort keys %shifts;
+
   my %remotes = OMP::Fault->remoteTypes($category);
-  my @remotestatus = keys %remotes;
-  if (%remotes eq 1 ) {
-      print $q->hidden(-name=>'remote', -default=>$remotestatus[0]);
-  } elsif ( %remotes > 1) {
-      print "</td><tr><td align=right><b>Remote Status </b></td><td>";
-      print $q->popup_menu(-name=>'remote',
-                           -values=>\@remotestatus,
-                           -default=>$defaults{remote}
-                           )
-          . q[&nbsp;];
-  }
-  print "</td><tr><td align=right><b>Subject:</b></td><td>";
-  print $q->textfield(-name=>'subject',
-                      -size=>'60',
-                      -maxlength=>'128',
-                      -default=>$defaults{subject},);
+  my @remotes = map {[$_ => $remotes{$_}]} sort keys %remotes;
 
-  # Put up this reminder for telescope related filings
-  if (OMP::Fault->faultIsTelescope($category)) {
-    print "</td><tr><td colspan=2>";
-    print "<small>Please remember to identify the instrument being used and "
-      ."the data frame number if either are relevant</small>";
-  }
+  my @conditions = (['urgent', 'Urgent', 'urgency']);
+  push @conditions, (['chronic', 'Chronic', 'condition'])
+      if defined $fault;
 
-  print "</td><tr><td colspan=2 align=right>";
-
-  print $q->textarea(-name=>'message',
-                     -rows=>20,
-                     -columns=>78,
-                     -default=>$defaults{message},);
-
-  # If were in a category that allows project association create a
-  # checkbox group for specifying an association with projects.
-
-  if (OMP::Fault->faultCanAssocProjects($category)) {
-    # Values for checkbox group will be tonights projects
-    my $aref = OMP::MSBServer->observedMSBs({usenow => 1,
-                                             format => 'data',
-                                             returnall => 0,});
-
-    if (@$aref[0] and ! $fault) {
-      # We don't want this checkbox group if this form is being used for editing a fault
-      my %projects;
-      my %badproj; # used to limit error message noise
-      for (@$aref) {
-        # Make sure to only include projects associated with the current
-        # telescope category
-        my @instruments = split(/\W/, $_->instrument);
-        # this may fail if an unexpected instrument turns up
-        my $tel;
-        try {
-          $tel = OMP::Config->inferTelescope('instruments', @instruments);
-        } catch OMP::Error::BadCfgKey with {
-          my $key = $_->{projectid} . join("",@instruments);
-          if (!exists $badproj{$key}) {
-            print "<BR>Warning: Project $_->{projectid} used an instrument ".
-              join(",",@instruments) .
-                " that has no associated telescope. Please file an OMP fault<br>\n";
-            $badproj{$key}++;
-          }
-        };
-        next unless defined $tel;
-
-        $projects{$_->projectid} = $_->projectid
-          unless ($tel !~ /$category/i);
-
-      }
-      if (%projects) {
-        print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
-        print $q->checkbox_group(-name=>'assoc',
-                                 -values=>[keys %projects],
-                                 -default=>$defaults{assoc},
-                                 -linebreak=>'true',);
-        print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
-      } else {
-        print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
-      }
-    } else {
-      print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
-    }
-    print "<font size=-1>(separated by spaces)</font><b>:</b>";
-    print "</td><tr><td colspan=2>";
-    print $q->textfield(-name=>'assoc2',
-                        -size=>50,
-                        -maxlength=>300,
-                        -default=>$defaults{assoc2},);
-  }
-
-  print "</td><tr><td colspan='2'><b>";
-
-  # Setup condition checkbox group.  If the fault already exists,
-  # allow user to indicate whether or not the fault is chronic
-  my @convalues = ('urgent');
-  my %conlabels = (urgent => "Urgent");
-  my @condefaults = ($defaults{urgency});
-  if ($fault) {
-    if ($fault->id) {
-      push @convalues, "chronic";
-      $conlabels{chronic} = "Chronic";
-      push @condefaults, $defaults{condition};
-    }
-  }
-
-  # Even though there is only a single option for urgency I'm using a checkbox group
-  # since it's easier to set a default this way
-  print "This fault is ";
-  print $q->checkbox_group(-name=>'condition',
-                           -values=>\@convalues,
-                           -labels=>\%conlabels,
-                           -defaults=>\@condefaults,);
-
-  print "</b></td><tr><td colspan='2' align=right>";
-  print $q->submit(-name=>'submit',
-                   -label=>$submittext,);
-  print $q->end_form;
-  print "</td></table>";
-
+  return {
+      target => url_absolute($q),
+      fault => $fault,
+      has_location => $is_safety,
+      has_time_loss => OMP::Fault->faultCanLoseTime($category),
+      has_time_occurred => !! (OMP::Fault->faultCanLoseTime($category) or $category =~ /events\b/i),
+      has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
+      system_label => $sys_label,
+      system_description => $sys_text,
+      systems => \@systems,
+      types => \@types,
+      locations => \@locations,
+      statuses => \@statuses,
+      shifts => \@shifts,
+      remotes => \@remotes,
+      conditions => \@conditions,
+      projects => \@projects,
+      values => \%defaults,
+      warnings => \@warnings,
+  };
 }
 
 =item B<response_form>
@@ -863,13 +418,14 @@ sub response_form {
     unless UNIVERSAL::isa($fault, "OMP::Fault");
 
   my ( $labels, $values ) = $self->get_status_labels( $fault );
+  my @statuses = map {[$_, $labels->{$_}]} @$values;
 
   # Set defaults.
   my %defaults;
-  my $user;
+  my $resp = undef;
   if ($respid) {
     # Setup defaults for response editing
-    my $resp = OMP::FaultUtil->getResponse($respid, $fault);
+    $resp = OMP::FaultUtil->getResponse($respid, $fault);
 
     my $text = $resp->text;
 
@@ -882,52 +438,26 @@ sub response_form {
 
     %defaults = (text => $text,
                  submitlabel => "Submit changes",);
-    $user = $resp->author->userid;
   } else {
 
-    %defaults = (text => undef,
+    %defaults = (text => '',
                  status => $fault->status,
                  submitlabel => "Submit response",);
-    $user = $self->page->auth->user->userid;
   }
 
   # Param list values take precedence
-  for (keys %defaults) {
+  for (qw/text status/) {
     if ($q->param($_)) {
       $defaults{$_} = $q->param($_);
     }
   }
 
-  print start_form_absolute($q);
-  print "<table border=0><tr><td align=right><b>User: </b></td><td>";
-
-  print $q->hidden(-name=>'show_output', -default=>['true']);
-
-  # Embed the response ID if we are editing a response
-  print $q->hidden(-name=>'respid', -default=>$respid)
-    if ($respid);
-
-  print " <strong>${user}</strong>";
-
-  # Only show the status if we are filing a new response
-  if (! $respid) {
-    print "</td><tr><td><b>Status: </b></td><td>";
-    print $q->popup_menu(-name=>'status',
-                         -default=>$defaults{status},
-                         -values=> $values,
-                         -labels=> $labels,);
-  }
-
-  print "</td><tr><td></td><td>";
-  print $q->textarea(-name=>'text',
-                     -rows=>20,
-                     -columns=>72,
-                     -default=>$defaults{text},);
-  print "</td></tr><td colspan=2 align=right>";
-  print $q->submit(-name=>'respond',
-                   -label=>$defaults{submitlabel});
-  print "</td></table>";
-  print $q->end_form;
+  return {
+      target => url_absolute($q),
+      statuses => \@statuses,
+      response => $resp,
+      values => \%defaults,
+  };
 }
 
 =item B<show_faults>
@@ -963,30 +493,12 @@ sub show_faults {
   my @faults = @{ $args{faults} };
   my $descending = $args{descending};
   my $url = $args{url} || 'viewfault.pl';
-  my $showcat = $args{showcat};
 
   my $q = $self->cgi;
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
   my $stats = OMP::FaultGroup->new( faults => \@faults );
-
-  my $width = $self->_get_table_width;
-  print "<table width=$width cellspacing=0>";
-  print "<tr>";
-
-  # Show category column?
-  print "<td><b>Category</b></td>"
-    unless (! $showcat);
-
-  print "<td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
-
-  # Show time lost field?
-  if ($stats->timelost > 0) {
-    print "<td align=center><b>Loss</b></td>";
-  }
-
-  print "<td><b>Replies</b></td><td> </td>";
 
   my $order = $args{'orderby'};
 
@@ -1021,159 +533,42 @@ sub show_faults {
       if $descending;
   }
 
-  my $alt_class;               # Keep track of alternating class style
-  for my $fault (@faults) {
-    my $classid;
-
-    # Alternate row class style
-    $alt_class++;
-    if ($alt_class == 1) {
-      $classid = 'row_shaded';
-    } else {
-      $classid = 'row_clear';
-      $alt_class = 0;
-    }
-
-    my $faultid = $fault->id;
-    my $user = $fault->author;
-    my $system = $fault->systemText;
-    my $type = $fault->typeText;
-
-    my $subject = $fault->subject;
-    (!$subject) and $subject = "[no subject]";
-
-    my $status = $fault->statusText;
-    ($fault->isNew and $fault->isOpen) and $status = "New";
-
-    my $replies = $#{$fault->responses}; # The number of actual replies
-
-    print "<tr class=\"${classid}\">";
-
-    # Show category column?
-    print "<td>". $fault->category ."</td>"
-      unless (! $showcat);
-
-    # Make the fault ID cell stand out if the fault is urgent
-    print ($fault->isUrgent ? "<td class=\"cell_standout\">" : "<td>");
-    print "$faultid</td>";
-    # Does $url already have a query parameter?
-    my $query = (($url =~ /\?/) ? '&' : '?') . "fault=$faultid";
-    print qq[<td><b><a href="$url$query">$subject</a></b> &nbsp;];
-
-    # Show affected projects?
-    if ($q->param('show_affected') and $fault->projects) {
-      print "<br>";
-      my @projlinks = map {"<a href='projecthome.pl?project=$_'>$_</a>"} $fault->projects;
-      print join (" | ", @projlinks);
-    }
-
-    print "</td>";
-    print "<td>" . OMP::Display->userhtml($user, $q) . "</td>";
-    print "<td>$system</td>";
-    print "<td>$type</td>";
-    print "<td>$status</td>";
-
-    # Show time lost field?
-    if ($stats->timelost > 0) {
-      my $timelost = $fault->timelost;
-      ($timelost == 0) and $timelost = "--" or $timelost = $timelost . " hrs";
-      print "<td align=center>$timelost</td>";
-    }
-
-
-    print "<td align='center'>$replies</td>";
-    print "<td><b><a href='$url$query'>[View/Respond]</a></b></td>";
-  }
-
-  print "</table>";
+  return {
+      show_cat => $args{'showcat'},
+      show_time_lost => ($stats->timelost > 0),
+      show_projects => $args{'show_affected'},
+      faults => \@faults,
+      view_url => ($url . (($url =~ /\?/) ? '&' : '?') . 'fault='),
+  };
 }
 
-=item B<print_form>
+=item B<category_title>
 
-Create a simple form for sending faults to a printer.
-
-  $comp->print_form($advanced, @faultids);
-
-If the first argument is true then advanced options will be displayed.
-Last argument is an array containing the fault IDs of the faults to be
-printed.
+Return the name of a category, suitable for including in a page title.
 
 =cut
 
-sub print_form {
-  my $self = shift;
-  my $advanced = shift;
-  my @faultids = @_;
-  my $q = $self->cgi;
-
-  # Get printers
-  my @printers = OMP::Config->getData('printers');
-
-  print start_form_absolute($q);
-
-  print $q->hidden(-name=>'show_output', -default=>'true');
-
-  print $q->hidden(-name=>'faults',
-                   -default=>join(',',@faultids));
-  print $q->submit(-name=>'print',
-                   -label=>'Send to printer');
-  print "&nbsp;";
-  print $q->popup_menu(-name=>'printer',
-                       -values=>\@printers,);
-  if ($advanced) {
-    print "<br>Using method ";
-    print $q->popup_menu(-name=>'print_method',
-                         -values=>["separate","combined"],
-                         -labels=>{separate => "One fault per page",
-                                   combined => "Combined",},);
-  }
-
-  print $q->end_form;
-}
-
-=item B<titlebar>
-
-Create a title heading that identifies the current page
-
-  $comp->titlebar($category, \@title);
-
-Arguments should be category and an array reference containing the titlebar elements.
-First element in the array will be placed in a shaded top-bar.  Second
-element will appear in a smaller font below the top-bar.
-
-=cut
-
-  sub titlebar {
+sub category_title {
     my $self = shift;
     my $cat = shift;
-    my $title = shift;
-    my $q = $self->cgi;
 
-    my $toptitle =
-      _is_safety( $cat )
-      ? "$cat Reporting"
-      : _is_jcmt_events( $cat )
-        ? 'JCMT Events'
-        : _is_vehicle_incident( $cat )
-          ? 'Vehicle Incident Reporting'
-          : lc $cat ne 'anycat'
-            ? "$cat Faults"
-            : 'All Faults'
-            ;
-
-    my $width = $self->_get_table_width;
-    print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
-    print "<tr><td><font size=+2><b>$title->[1]</b></font></td>"
-      if ($title->[1]);
-    print "</table><br>";
-  }
+    return _is_safety($cat)
+        ? "$cat Reporting"
+        : _is_jcmt_events($cat)
+            ? 'JCMT Events'
+            : _is_vehicle_incident($cat)
+                ? 'Vehicle Incident Reporting'
+                : lc $cat ne 'anycat'
+                    ? "$cat Faults"
+                    : 'All Faults';
+}
 
 =item B<parse_file_fault_form>
 
 Take the arguments from the fault filing form and parse them so they
 can be used to create the fault and fault response objects.
 
-  $comp->parse_file_fault_form();
+  $comp->parse_file_fault_form($category);
 
 Returns the following keys:
 
@@ -1184,9 +579,9 @@ Returns the following keys:
 
 sub parse_file_fault_form {
   my $self = shift;
-  my $q = $self->cgi;
+  my $category = shift;
 
-  my $category = $q->param( 'category' );
+  my $q = $self->cgi;
 
   my %parsed = (subject => scalar $q->param('subject'),
                 type => scalar $q->param('type'),
@@ -1356,29 +751,6 @@ sub get_status_labels {
 =head2 Internal Methods
 
 =over 4
-
-=item B<_get_table_width>
-
-Return the table width parameter value
-
-=item B<_set_table_width>
-
-Set the table width parameter value
-
-=cut
-
-{
-  my $TABLEWIDTH = '100%';
-
-  sub _get_table_width {
-    return $TABLEWIDTH;
-  }
-
-  sub _set_table_width {
-    my $self = shift;
-    $TABLEWIDTH = shift;
-  }
-}
 
 =item B<_get_status_labels_by_name>
 

@@ -1,6 +1,8 @@
 [% WRAPPER "layout.html" %]
+<h1>Logged out</h1>
+
 [% IF message.defined %]
-<h2>[% message | html %]</h2>
+    <p>[% message | html %]</p>
 [% END %]
 
 <p>

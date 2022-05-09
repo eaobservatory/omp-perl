@@ -1,0 +1,82 @@
+[% WRAPPER "layout.html" %]
+
+<p>Plot sources from an OMP project</p>
+
+<form method="post" action="[% target %]">
+    <table>
+        <tr>
+            <td>UT date (YYYYMMDD)</td>
+            <td><input type="text" name="utdate" value="[% values.ut %]" size="16" /></td>
+            <td>[today]</td>
+        </tr>
+        <tr>
+            <td>Project(s)</td>
+            <td><input type="text" name="project" value="[% values.proj %]" size="16" /></td>
+            <td>One or more separated by "@"</td>
+        </tr>
+        <tr>
+            <td>Object(s)</td>
+            <td><input type="text" name="object" value="[% values.obj %]" size="16" /></td>
+            <td>(Optional) One or more separated by "@".</td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                Any planets in this list will always be plotted and not matched against project sources.
+                <br />
+                "5planets" will plot Mars thru Neptune;
+                "planets" will plot all 8;
+                "solar" will add the Sun and Moon
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">Plot options</td>
+        </tr>
+        <tr>
+            <td>Source mode</td>
+            <td colspan="2">
+                [% FOREACH mode = ["All", "Active", "Completed"] %]
+                    <label><input type="radio" name="mode" value="[% mode %]" [% IF mode == values.mode %]checked="checked"[% END %] />[% mode %]</label>
+                [% END %]
+            </td>
+        </tr>
+        <tr>
+            <td>Plot type</td>
+            <td colspan="2">
+                <select name="ptype" >
+                    [% FOREACH ptype = ptypes %]
+                        <option [% IF ptype.0 == values.ptype %]selected="selected"[% END %] value="[% ptype.0 | html %]">[% ptype.1 | html %]</option>
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Grid</td>
+            <td colspan="2">
+                <label><input type="radio" name="agrid" value="0" [% IF ! values.agrid %]checked="checked"[% END %] />EL grid</label>
+                <label><input type="radio" name="agrid" value="1" [% IF values.agrid %]checked="checked"[% END %] />Airmass grid</label>
+            </td>
+        </tr>
+        <tr>
+            <td>Label position</td>
+            <td colspan="2">
+                [% FOREACH label = labels %]
+                    <label><input type="radio" name="label" value="[% label.0 | html %]" [% IF label.0 == values.label %]checked="checked"[% END %] />[% label.1 | html %]</label>
+                [% END %]
+            </td>
+        </tr>
+    </table>
+    <p>
+        <input type="submit" name="submit_plot" value="Plot sources" />
+    </p>
+</form>
+
+[% FOR message = messages %]
+    <p>[% message | html %]</p>
+[% END %]
+
+[% IF plot.defined %]
+    <p>
+        <img src="[% plot %]" />
+    </p>
+[% END %]
+[% END %]

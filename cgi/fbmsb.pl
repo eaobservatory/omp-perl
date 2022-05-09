@@ -17,6 +17,6 @@ use OMP::CGIPage::MSB;
 
 OMP::CGIPage::MSB->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::MSB::fb_msb_output,
-    undef,
     'project',
-    title => 'View MSBs');
+    title => 'View MSBs',
+    template => 'project_msbs.html');

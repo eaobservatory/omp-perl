@@ -26,7 +26,7 @@ graphs) which may be included by the included HTML.
 use strict;
 use warnings;
 
-use CGI qw/header/;
+use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use IO::File;
 
@@ -49,7 +49,7 @@ our %mime = (
 
 Includes a file based on the UT date.
 
- $comp->include_file_ut('dq-nightly', $utdate[, filename => 'index.html'][, projectid => $projectid]);
+    my $html = $comp->include_file_ut('dq-nightly', $utdate[, filename => 'index.html'][, projectid => $projectid]);
 
 The first parameter specifies the type of file,
 which allows the directory containing it to be
@@ -60,9 +60,6 @@ in the normal ORAC style format, eg 19990401.
 
 It is assumed that the caller has already verified
 that the user has permission to see the specified file.
-
-Return value: 1 if a file was successfully included,
-or 0 if it could not be found.
 
 =cut
 
@@ -94,22 +91,22 @@ sub include_file_ut {
   # Display a text warning if we can't find the file.  This may
   # be perfectly reasonable, so don't raise an actual error.
   unless (-e $pathname) {
-    print '<p>No <tt>' . $type . '</tt> file is available for this date.</p>';
-    return 0;
+    return '<p>No <tt>' . $type . '</tt> file is available for this date.</p>';
   }
 
-  print "\n<!-- Begin included file " . $pathname . " -->\n";
+  my @result = ();
+  push @result, "<!-- Begin included file " . $pathname . " -->";
   my $fh = new IO::File($pathname);
 
   foreach (<$fh>) {
     s/src="([^"]+)"/'src="' . _resource_url($type, $utdate, $1, $projectid) . '"'/eg;
-    print;
+    push @result, $_;
   }
 
   $fh->close();
-  print "\n<!-- End included file " . $pathname . " -->\n";
+  push @result, "<!-- End included file " . $pathname . " -->";
 
-  return 1;
+  return join "\n", @result;
 }
 
 =head1 INTERNAL SUBROUTINES
@@ -157,14 +154,17 @@ sub _get_resource_ut {
   my $pathname = join('/', $directory, $utdate, $filename);
 
   unless (-e $pathname) {
-    print header(-status => '404 Not Found');
+    print $self->cgi->header(-status => '404 Not Found');
     print '<h1>404 Not Found</h1>';
     return;
   }
 
-  print header(-type => (exists $mime{$extension})
-                                  ? $mime{$extension}
-                                  : 'application/octet-stream');
+  print $self->cgi->header(
+      -type => exists $mime{$extension}
+          ? $mime{$extension}
+          : 'application/octet-stream',
+      -expires => '+10m',
+  );
 
   my $fh = new IO::File($pathname);
 

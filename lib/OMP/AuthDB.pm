@@ -22,7 +22,10 @@ use OMP::UserDB;
 use base qw/OMP::BaseDB/;
 
 our $AUTHTABLE = 'ompauth';
-our $DURATION = new Time::Seconds(ONE_DAY);
+our %DURATION = (
+    default => new Time::Seconds(8 * ONE_HOUR),
+    remember => new Time::Seconds(ONE_WEEK),
+);
 our $REFRESH_SECONDS = 600;
 
 =head1 METHODS
@@ -35,7 +38,13 @@ our $REFRESH_SECONDS = 600;
 
 Create a token for the given user, store it in the database, and return it.
 
-    my $token = $db->issue_token($user, $addr, $agent);
+    my $token = $db->issue_token($user, $addr, $agent, $duration_type);
+
+The C<$duration_type> should be one of the types named in the C<%DURATION>
+hash, i.e. "default" or "remember".
+
+In array context, also returns the duration used for the given type
+in a form suitable for generating HTTP cookies.
 
 =cut
 
@@ -44,6 +53,7 @@ sub issue_token {
     my $user = shift;
     my $addr = shift;
     my $agent = shift;
+    my $duration_type = shift;
 
     my $is_staff = !! $user->is_staff();
     my $userid = $user->userid();
@@ -53,21 +63,26 @@ sub issue_token {
     $addr = substr $addr, 0, 64 if defined $addr;
     $agent = substr $agent, 0, 255 if defined $agent;
 
-    my $token = $self->_make_token();
+    throw OMP::Error::BadArgs('Duration type not specified')
+        unless defined $duration_type;
+    throw OMP::Error::BadArgs('Unknown duration type')
+        unless exists $DURATION{$duration_type};
+    my $expiry = Time::Piece::gmtime() + $DURATION{$duration_type};
 
-    my $expiry = Time::Piece::gmtime() + $DURATION;
+    my $token = $self->_make_token();
 
     $self->_db_begin_trans();
     $self->_dblock();
 
     $self->_db_insert_data($AUTHTABLE,
         $userid, $token, $expiry->strftime('%Y-%m-%d %T'),
-        $addr, $agent, $is_staff);
+        $addr, $agent, $is_staff, $duration_type);
 
     $self->_dbunlock();
     $self->_db_commit_trans();
 
-    return $token;
+    return $token unless wantarray;
+    return $token, _duration_description($duration_type);
 }
 
 =item B<verify_token>
@@ -76,6 +91,9 @@ If the given token is valid, return a partial OMP::User object.
 The database record is refreshed if necessary to extend its expiry.
 
     my $user = $db->verify_token($token);
+
+In array context, also returns the token duration
+in a form suitable for generating HTTP cookies.
 
 =cut
 
@@ -89,7 +107,8 @@ sub verify_token {
     $self->_expire_tokens();
 
     my $result = $self->_db_retrieve_data_ashash(
-        'select A.userid, A.expiry, A.is_staff, U.uname, U.email from ' . $AUTHTABLE .
+        'select A.userid, A.expiry, A.is_staff, A.duration, U.uname, U.email' .
+        ' from ' . $AUTHTABLE .
         ' as A join ' . $OMP::UserDB::USERTABLE .
         ' as U on A.userid = U.userid where token = ?',
         $token);
@@ -99,9 +118,14 @@ sub verify_token {
     throw OMP::Error::DBError('Multiple key matches found')
         if 1 < scalar @$result;
 
-    my $expiry = OMP::DateTools->parse_date($result->[0]->{'expiry'}) - Time::Piece::gmtime();
-    if (($DURATION->seconds() - $expiry->seconds()) > $REFRESH_SECONDS) {
-        my $new_expiry = Time::Piece::gmtime() + $DURATION;
+    $result = $result->[0];
+
+    my $duration_type = $result->{'duration'};
+    my $duration = $DURATION{$duration_type};
+
+    my $expiry = OMP::DateTools->parse_date($result->{'expiry'}) - Time::Piece::gmtime();
+    if (($duration->seconds() - $expiry->seconds()) > $REFRESH_SECONDS) {
+        my $new_expiry = Time::Piece::gmtime() + $duration;
 
         $self->_db_begin_trans();
         $self->_dblock();
@@ -114,12 +138,14 @@ sub verify_token {
         $self->_db_commit_trans();
     }
 
-    $result = $result->[0];
-    return new OMP::User(
+    my $user = new OMP::User(
         userid => $result->{'userid'},
         name => $result->{'uname'},
         email => $result->{'email'},
         is_staff => $result->{'is_staff'});
+
+    return $user unless wantarray;
+    return $user, _duration_description($duration_type);
 }
 
 =item B<remove_token>
@@ -190,7 +216,8 @@ sub get_token_info {
     $self->_expire_tokens();
 
     return $self->_db_retrieve_data_ashash(
-        'select expiry, addr, agent from ' . $AUTHTABLE . ' where userid = ?',
+        'select expiry, addr, agent, duration from ' . $AUTHTABLE .
+        ' where userid = ?',
         $userid);
 }
 
@@ -240,6 +267,31 @@ sub _make_token {
         unless defined $bytes;
 
     return encode_base64($bytes, '');
+}
+
+=item B<_duration_description>
+
+Create a description of a token duration of a form
+suitable for use with CGI->cookie.
+
+=cut
+
+sub _duration_description {
+    my $duration_type = shift;
+
+    die 'Unknown duration type'
+        unless exists $DURATION{$duration_type};
+
+    my $duration = $DURATION{$duration_type};
+
+    my $days = int($duration->days);
+    return sprintf '+%id', $days if $days > 0;
+
+    my $hours = int($duration->hours);
+    return sprintf '+%ih', $hours if $hours > 0;
+
+    my $seconds = int($duration->seconds);
+    return sprintf '+%is', $seconds;
 }
 
 =back

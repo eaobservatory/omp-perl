@@ -16,7 +16,6 @@ WriteMakefile(
                     Astro::Catalog => 0,
                     Mail::Internet => 0,
                     MIME::Entity => 0,
-                    HTML::WWWTheme => 0,
                     Date::Manip => 0,
                     SCUBA::ODF => 0,       # for translator
                     SCUBA::FlatField => 0, # for translator

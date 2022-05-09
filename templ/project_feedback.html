@@ -1,0 +1,55 @@
+[% USE wrap -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_project.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Feedback for project [% project.projectid | html %]</h1>
+
+[% render_project_status_table(project) %]
+
+[% render_msb_count(project, num_msbs) %]
+
+<hr />
+
+<h2>Feedback entries</h2>
+
+<form method="post" action="[% target %]">
+    <p>
+        <a href="/cgi-bin/fbcomment.pl?project=[% project.projectid %]">Add a comment</a>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Order:
+        <select name="order" class="submit_on_change">
+            [% FOREACH order IN feedback.orders %]
+                <option [% IF order == feedback.selected_order %]selected="selected"[% END %] value="[% order %]">[% order %]</option>
+            [% END %]
+        </select>
+        &nbsp;&nbsp;&nbsp;
+        Show:
+        <select name="status" class="submit_on_change">
+            [% FOREACH status IN feedback.statuses %]
+                <option [% IF feedback.selected_status.defined ? (status.0 == feedback.selected_status) : loop.first %] selected="selected"[% END %] value="[% status.0 %]">[% status.1 %]</option>
+            [% END %]
+        </select>
+        &nbsp;&nbsp;
+        <input type="submit" name="Refresh" value="Refresh" />
+    </p>
+</form>
+
+[% FOREACH comment IN feedback.comments %]
+    <p>
+        <font size="+1">
+            Entry [% comment.entrynum %]
+            (on [% display_date(comment.date) %] by
+            [% IF comment.author.defined %][% render_user_name(comment.author) %][% ELSE %][% comment.sourceinfo | html %][% END %])
+        </font>
+        <br />
+        <b>Subject: [% comment.subject | html %]</b>
+    </p>
+    [% comment.text | wrap(80) %]
+    </pre> <!-- extra close for unterminated comments -->
+[% END %]
+
+<p>
+    <a href="/cgi-bin/fbcomment.pl?project=[% project.projectid %]">Add a comment</a>
+</p>
+
+[% END %]

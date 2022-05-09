@@ -16,7 +16,9 @@ BEGIN {
 use OMP::CGIPage::MSB;
 
 OMP::CGIPage::MSB->new(cgi => new CGI())->write_page(
-    \&OMP::CGIPage::MSB::msb_hist_content,
-    \&OMP::CGIPage::MSB::msb_hist_output,
+    \&OMP::CGIPage::MSB::msb_hist,
     'project',
-    title => 'MSB History');
+    title => 'MSB History',
+    template => 'project_msb_history.html',
+    javascript => ['submit_on_change.js'],
+);

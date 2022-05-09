@@ -1,0 +1,12 @@
+div#layout_top_bar {
+    background: #ff0000 !important;
+    outline: 20px solid #880000 !important;
+}
+
+div#layout_side_bar {
+    background: #ff0000 !important;
+}
+
+div#layout_side_bar ul {
+    border-bottom: 2px solid #880000 !important;
+}

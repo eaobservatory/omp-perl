@@ -23,7 +23,9 @@ use warnings;
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::Shiftlog;
+use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIPage/;
 
@@ -48,21 +50,40 @@ sub shiftlog_page {
   my $self = shift;
   my $projectid = shift;
 
+  my $q = $self->cgi;
   my $comp = new OMP::CGIComponent::Shiftlog(page => $self);
 
   my $parsed = $comp->parse_query();
 
-  $comp->print_header();
+  if ($q->param('submit_comment')) {
+      my $E;
+      try {
+          $comp->submit_comment($parsed);
+      }
+      otherwise {
+          $E = shift;
+      };
 
-  $comp->submit_comment( $parsed );
+      return $self->_write_error(
+        'Error storing shift comment.',
+        "$E")
+        if defined $E;
 
-  $comp->display_shift_comments( $parsed );
+      return $self->_write_redirect(url_absolute($q));
+  }
 
-  $comp->display_comment_form( $parsed );
+  $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'})
+    unless defined $projectid;
 
-  $comp->display_date_form( $parsed );
+  return {
+      target => url_absolute($q),
+      target_base => $q->url(-absolute => 1),
+      project_id => $projectid,
+      values => $parsed,
+      telescopes => [sort map {uc} OMP::Config->telescopes()],
 
-  $comp->display_telescope_form( $parsed );
+      comments => $comp->get_shift_comments($parsed),
+  };
 }
 
 =back

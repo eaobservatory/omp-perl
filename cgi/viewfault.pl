@@ -16,8 +16,9 @@ BEGIN {
 use OMP::CGIPage::Fault;
 
 OMP::CGIPage::Fault->new(cgi => new CGI())->write_page(
-    'view_fault_content',
-    'view_fault_output',
+    'view_fault',
     'staff',
     title => 'View Fault',
-    no_header => 1);
+    template => 'fault_view.html',
+    javascript => ['form_submit_timeout.js'],
+);

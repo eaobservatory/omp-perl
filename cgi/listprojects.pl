@@ -17,6 +17,6 @@ use OMP::CGIPage::Project;
 
 OMP::CGIPage::Project->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Project::list_projects,
-    \&OMP::CGIPage::Project::list_projects_output,
     'staff',
-    title => 'List Projects');
+    title => 'List Projects',
+    template => 'project_list.html');

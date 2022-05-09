@@ -31,8 +31,6 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-# CGI classes are only loaded on demand for web applications
-# in the ashtml method. Do not use 'use'
 use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
@@ -40,6 +38,7 @@ use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
+use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctGroup;
@@ -391,6 +390,23 @@ sub faultsbyshift {
   return %resulthash;
 }
 
+=item B<faults_by_date>
+
+Return reference to hash of faults organized by date.
+
+=cut
+
+sub faults_by_date {
+    my $self = shift;
+
+    my %faults;
+    for my $f ($self->faults->faults) {
+        my $time = gmtime($f->date->epoch);
+        push @{$faults{$time->ymd}}, $f;
+    }
+
+    return \%faults;
+}
 
 =item B<hdr_accounts>
 
@@ -804,7 +820,7 @@ sub msbs {
     push(@{$index{$proj}}, $msb);
   }
 
-  return %index;
+  return \%index;
 }
 
 =item B<scienceTime>
@@ -830,10 +846,10 @@ sub scienceTime {
 =item B<shiftComments>
 
 Retrieve all the shift comments associated with this night and
-telescope. Entries are retrieved as an array of C<OMP::Info::Comment>
-objects.
+telescope. Entries are retrieved as an hash by date with arrays
+of C<OMP::Info::Comment> objects.
 
- @comments = $nr->shiftComments;
+ $comments = $nr->shiftComments;
 
 =cut
 
@@ -852,7 +868,14 @@ sub shiftComments {
   # These will have HTML comments
   my @result = $sdb->getShiftLogs( $query );
 
-  return @result;
+  # Organize shift comments by date
+  my %comments;
+  foreach my $c (@result) {
+    my $time = gmtime($c->date->epoch);
+    push @{$comments{$time->ymd}}, $c;
+  }
+
+  return \%comments
 }
 
 =item B<timelost>
@@ -900,21 +923,17 @@ sub timelostbyshift {
     unless %faults;
 
   my %results;
-  my $res;
   for my $shift (keys %faults) {
       my $shiftfaults = $faults{$shift};
 
       if ($arg && $arg eq "technical") {
-          $res = $shiftfaults->timelostTechnical ? $shiftfaults->timelostTechnical : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelostTechnical;
 
       } elsif ($arg && $arg eq "non-technical") {
-          $res = $shiftfaults->timelostNonTechnical ? $shiftfaults->timelostNonTechnical : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelostNonTechnical;
 
       } else {
-          $res = $shiftfaults->timelost ? $shiftfaults->timelost : new Time::Seconds(0);
-          $results{$shift} = $res;
+          $results{$shift} = $shiftfaults->timelost;
       }
   }
   return %results;
@@ -997,8 +1016,6 @@ sub astext {
   my $tel  = $self->telescope;
   my $date = $self->date->ymd;
 
-  my @lines;
-
   # The start
   my $str = qq{
 
@@ -1008,46 +1025,19 @@ sub astext {
 
   #   T I M E   A C C O U N T I N G
 
-  # Get shifts from time accounting and from timelostbyshift.
-  my %times = $self->accounting;
+  my $time_summary = $self->get_time_summary();
 
-  my %timelostbyshift = $self->timelostbyshift;
-
-  my @shifts;
-  for my $key (keys %times){
-      unless(!defined $key  || $key eq '' || $key eq $WARNKEY) {
-          push @shifts, $key;
-      }
-  }
-
-  # Only include faultshifts if time was charged.
-  my @faultshifts = (keys %timelostbyshift);
-  for my $shift (@faultshifts) {
-      my $losttime = $timelostbyshift{$shift};
-      if((! exists($times{$shift}) ) && ($shift ne '') && ($losttime > 0)) {
-          push @shifts, $shift;
-      }
-  }
-
+  my @shifts = map {$_->{'shift'}} @{$time_summary->{'shift'}};
   my $shiftcount = scalar @shifts;
 
-  $str .= "There were shiftypes of ";
+  $str .= "There were shift types of ";
   for my $shift(@shifts) {
       $str .= "$shift ";
   }
-  $str .= "in this timeperiod\n";
+  $str .= "in this time period\n";
   $str .= "\n\n";
   $str .= "Overall Project Time Summary\n\n";
   my $format = "  %-25s %5.2f hrs   %s\n";
-
-  # Just do project accounting
-  my %acct = $self->accounting_db();
-
-  # Get closed time
-  my $shuttime = $self->shutdownTime;
-
-  # Convert shutdown time to hours, we won't ever want to see seconds.
-  $shuttime = $shuttime->hours;
 
   # Weather and Extended and UNKNOWN and OTHER
   my %text = ( WEATHER => "Time lost to weather:",
@@ -1058,51 +1048,31 @@ sub astext {
 
   # 1. Get total time overall for all shifts.
   if ($shiftcount > 1) {
+      my $info = $time_summary->{'overall'};
 
-      my %overallresults = $self->accounting_db("byproject");
+      $str .= sprintf("$format", "Time lost to faults:", $info->{'faultloss'}, "");
 
-      # Total time
-      my $total = 0.0;
-      my $totalobserved = 0.0; # Total time spent observing
-      my $totalproj = 0.0;
+      foreach my $entry (@{$info->{'special'}}) {
+          $str .= sprintf("$format", $text{$entry->{'name'}}, $entry->{'time'});
+      }
 
 
-      # Add shutdown time to total
-      $total += $shuttime;
-
-      # Time lost to faults
-      my $faultloss = $self->timelost->hours;
-      $str .= sprintf("$format", "Time lost to faults:", $faultloss, "");
-      $total += $faultloss;
-
-      for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
-          my $time = 0.0;
-          if (exists $overallresults{$tel.$proj}) {
-              $time = $overallresults{$tel.$proj}{'total'}->hours;
-              $total += $time unless $proj eq 'EXTENDED';
-              $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
+      for my $country_info (@{$info->{'country'}}) {
+          for my $entry (@{$country_info->{'project'}}) {
+              $str .= sprintf("$format", $entry->{'project'}.':', $entry->{'time'});
           }
-          $str .= sprintf("$format", $text{$proj}, $time);
       }
 
-      for my $proj (keys %overallresults) {
-          next if $proj =~ /^$tel/;
-          $str .= sprintf("$format", $proj.':', $overallresults{$proj}{'total'}->hours,);
-          $total += $overallresults{$proj}{'total'}->hours;
-          $totalobserved += $overallresults{$proj}{'total'}->hours;
-          $totalproj += $overallresults{$proj}{'total'}->hours;
-      }
-
-      if ($shuttime) {
+      if ($info->{'shut'}) {
           $str .= "\n";
-          $str .= sprintf($format, "Closed time:", $shuttime, '');
+          $str .= sprintf($format, "Closed time:", $info->{'shut'}, '');
       }
       $str .= "\n";
-      $str .= sprintf($format, "Project time", $totalproj, "");
+      $str .= sprintf($format, "Project time", $info->{'total'}->{'project'}, "");
       $str .= "\n";
-      $str .= sprintf($format, "Total time observed:", $totalobserved, "");
+      $str .= sprintf($format, "Total time observed:", $info->{'total'}->{'observed'}, "");
       $str .= "\n";
-      $str .= sprintf($format, "Total time:", $total, "");
+      $str .= sprintf($format, "Total time:", $info->{'total'}->{'total'}, "");
       $str .= "\n";
   }
 
@@ -1110,64 +1080,38 @@ sub astext {
   # Now get time by shift if there was more than one type of shift.
 
 
-  for my $shift (@shifts) {
+  foreach my $info (@{$time_summary->{'shift'}}) {
+      my $shift = $info->{'shift'};
 
       if ($shiftcount > 1) {
           $str .= "\n";
           $str .="$shift summary\n\n";
       }
-      # Total time
-      my $total = 0.0;
-      my $totalobserved = 0.0; # Total time spent observing
-      my $totalproj = 0.0;
-      my $comment;
-      if (exists $timelostbyshift{$shift}) {
-          my $faultloss = $timelostbyshift{$shift}->hours;
-          $str .= sprintf("$format", "Time lost to faults:", $faultloss);
-          $total += $faultloss;
+      if ($info->{'faultloss'}) {
+          $str .= sprintf("$format", "Time lost to faults:", $info->{'faultloss'});
       }
 
-      for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
+      foreach my $entry (@{$info->{'special'}}) {
+          $str .= sprintf("$format", $text{$entry->{'name'}}, $entry->{'time'}, $entry->{'comment'})
+              if $entry->{'time'} > 0 || defined $entry->{'comment'};
+      }
 
-          my $time = 0.0;
-          if (exists $acct{$shift}{$tel.$proj}) {
-
-              $time = $acct{$shift}{$tel.$proj}->timespent->hours;
-              $comment = $acct{$shift}{$tel.$proj}->comment;
-              $total += $time unless $proj eq 'EXTENDED';
-              $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
-          }
-          if ($time > 0 || (defined $comment)) {
-              $str .= sprintf("$format", $text{$proj}, $time, $comment);
+      for my $country_info (@{$info->{'country'}}) {
+          for my $entry (@{$country_info->{'project'}}) {
+              $str .= sprintf("$format", $entry->{'project'}.':', $entry->{'time'}, $entry->{'comment'});
           }
       }
 
-      for my $proj (keys %{$acct{$shift}}) {
-          next if $proj =~ /^$tel/;
-          $comment = $acct{$shift}{$proj}->comment;
-          $str .= sprintf("$format", $proj.':', $acct{$shift}{$proj}->timespent->hours, $comment);
-          $total += $acct{$shift}{$proj}->timespent->hours;
-          $totalobserved += $acct{$shift}{$proj}->timespent->hours;
-          $totalproj += $acct{$shift}{$proj}->timespent->hours;
+      if ($info->{'shut'}) {
+          $str .= sprintf($format, "Closed time:", $info->{'shut'});
       }
 
-      if ($shuttime) {
-
-          if (exists $acct{$shift}{$tel.'_SHUTDOWN'}) {
-              my $shiftshuttime = $acct{$shift}{$tel.'_SHUTDOWN'}->timespent->hours;
-              if ($shiftshuttime > 0) {
-                  $str .= sprintf($format, "Closed time:", $shiftshuttime);
-              }
-              # Add shutdown time to total
-              $total += $shiftshuttime;
-              }
-      }
       $str .= "\n";
-      $str .= sprintf($format, "Project time", $totalproj);
+      $str .= sprintf($format, "Project time", $info->{'total'}->{'project'});
       $str .= "\n";
-      $str .= sprintf($format, "Total time observed:", $totalobserved);
+      $str .= sprintf($format, "Total time observed:", $info->{'total'}->{'observed'});
       $str .= "\n";
-      $str .= sprintf($format, "Total time:", $total);
+      $str .= sprintf($format, "Total time:", $info->{'total'}->{'total'});
       $str .= "\n";
 
   }
@@ -1177,11 +1121,11 @@ sub astext {
   # Add MSB summary here
   $str .= "Observation summary\n\n";
 
-  my %msbs = $self->msbs;
+  my $msbs = $self->msbs;
 
-  for my $proj (keys %msbs) {
+  for my $proj (keys %$msbs) {
       $str .= "  $proj\n";
-      for my $msb (@{$msbs{$proj}}) {
+      for my $msb (@{$msbs->{$proj}}) {
           $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
                           $msb->wavebands, $msb->title). "\n";
       }
@@ -1214,29 +1158,31 @@ sub astext {
   # Shift log summary
   $str .= "Comments\n\n";
 
-  my @comments = $self->shiftComments;
+  my $comments = $self->shiftComments;
   $Text::Wrap::columns = 72;
 
-  for my $c (@comments) {
-    # Use local time
-    my $date = $c->date;
-    my $local = localtime( $date->epoch );
-    my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
+  foreach my $k (sort keys %$comments) {
+    foreach my $c (@{$comments->{$k}}) {
+      # Use local time
+      my $date = $c->date;
+      my $local = localtime( $date->epoch );
+      my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
 
-    # Get the text and format it as plain text from HTML
-    my $text = $c->text;
-    $text =~ s/\t/ /g;
-    # We are going to use 'wrap' to indent by 4 and then wrap
-    # to 72, so have html2plain use a smaller width to try to
-    # avoid wrapping the same text twice.
-    $text = OMP::Display->html2plain( $text, {rightmargin => 64} );
+      # Get the text and format it as plain text from HTML
+      my $text = $c->text;
+      $text =~ s/\t/ /g;
+      # We are going to use 'wrap' to indent by 4 and then wrap
+      # to 72, so have html2plain use a smaller width to try to
+      # avoid wrapping the same text twice.
+      $text = OMP::Display->html2plain( $text, {rightmargin => 64} );
 
-    # Word wrap (but do not "fill")
-    $text = wrap("    ","    ",$text);
+      # Word wrap (but do not "fill")
+      $text = wrap("    ","    ",$text);
 
-    # Now print the timestamped comment
-    $str .= "  ".$local->strftime("%H:%M:%S %Z") . ": $author\n";
-    $str .= $text ."\n\n";
+      # Now print the timestamped comment
+      $str .= "  ".$local->strftime("%H:%M:%S %Z") . ": $author\n";
+      $str .= $text ."\n\n";
+    }
   }
 
   # Observation log
@@ -1253,504 +1199,429 @@ sub astext {
   return $str;
 }
 
+=item B<get_time_summary>
 
-=item B<projectsummary_ashtml>
+Prepare summarized time accounting information as required for
+printing reports.
 
-Optionally do for a specific shift.
+Returns a hashref with "overall" and "shift" keys, where "shift"
+is an arrayref of entries.  Each entry is of the form:
+
+    {
+        shift => $name,  # not present in "overall" entry
+        shut => $time,
+        faultloss => $time,
+        technicalloss => $technicalloss,
+        nontechnicalloss => $nontechnicalloss,
+        special => [
+            # comment undefined in "overall"
+            {name => $name, time => $time, pending => $time, comment => $comment},
+        ],
+        country => [
+            country => $country,
+            total => $time,
+            project => [
+                # comment undefined in "overall"
+                {project => $project, time => $time, pending => $time, comment => $comment},
+            ],
+        ],
+        total => {
+            observed => $time,
+            project => $time,
+            total => $time,
+            clear => $time,
+        }
+    }
+
+Note: this method contains logic extracted from the astext method
+and previous ashtml / projectsummary_ashtml methods.
+
 =cut
 
-sub projectsummary_ashtml {
+sub get_time_summary {
     my $self = shift;
-    my $showcomment = shift;
-    my $shift = shift;
 
+    my %acct = $self->accounting_db();
+    my %timelostbyshift = $self->timelostbyshift;
+    my %timelost_technical = $self->timelostbyshift('technical');
+    my %timelost_nontechnical = $self->timelostbyshift('non-technical');
+
+    my @shifts;
+    for my $key (keys %acct){
+        unless (!defined $key  || $key eq '' || $key eq $WARNKEY) {
+            push @shifts, $key;
+        }
+    }
+    # Only include faultshifts if time was charged.
+    for my $shift (keys %timelostbyshift) {
+        my $losttime = $timelostbyshift{$shift};
+        if ((! exists($acct{$shift}) ) && ($shift ne '') && ($losttime > 0)) {
+            push @shifts, $shift;
+        }
+    }
+
+    my $overall_info;
+    do {
+        my %overallresults = $self->accounting_db("byproject");
+        $overall_info = $self->_get_time_summary_shift(
+            \%overallresults,
+            undef,
+            $self->timelost,
+            $self->timelost('technical'),
+            $self->timelost('non-technical'));
+    };
+
+    my %shiftresults = $self->accounting_db('byshftprj');
+    my @shift_info;
+    foreach my $shift (@shifts) {
+        my $result = $self->_get_time_summary_shift(
+            ($shiftresults{$shift} // {}),
+            ($acct{$shift} // {}),
+            $timelostbyshift{$shift},
+            $timelost_technical{$shift},
+            $timelost_nontechnical{$shift});
+        $result->{'shift'} = $shift;
+        push @shift_info, $result;
+    }
+
+    return {
+        overall => $overall_info,
+        shift => \@shift_info,
+    };
+}
+
+sub _get_time_summary_shift {
+    my ($self, $shiftresults, $shiftacct,
+        $timelost, $timelost_technical, $timelost_nontechnical) = @_;
 
     my $tel  = $self->telescope;
-    my $date = $self->date->ymd;
-    my $format = "%5.2f hrs\n";
 
-    my $ompurl = OMP::Config->getData('cgidir');
-
-    # T i m e  A c c o u n t i n g
-    # Get shifts from time accounting and from timelostbyshift.
-
-
-
+    # Total time
     my $total = 0.0;
-    my $total_pending = 0.0;
-    my $total_proj = 0.0; # Time spent on projects only
-
-
-    my $shuttime = 0.0;
-    my $title;
+    my $totalobserved = 0.0; # Total time spent observing
+    my $totalproj = 0.0;
+    my $totalpending = 0.0;
     my $faultloss = 0.0;
     my $technicalloss = 0.0;
     my $nontechnicalloss = 0.0;
-    my %acct;
-    my %fullact;
-    if ($showcomment) {
-        %fullact = $self->accounting_db();
-    }
-    my %shiftacct;
 
-    # If $shift is not defined, then just do overall.
-    if (! defined $shift) {
-
-        %acct = $self->accounting_db('byproject');
-        $shuttime = $self->shutdownTime->hours;
-        $title = 'Overall';
-        $faultloss = $self->timelost->hours;
-        $technicalloss = $self->timelost('technical')->hours;
-        $nontechnicalloss = $self->timelost('non-technical')->hours;
-    } else {
-
-        # Get full information
-
-
-        # Go through only for that shift.
-        my %times = $self->accounting_db('byshftprj');
-        if (exists($times{$shift})) {
-            %acct = %{$times{$shift}};
-        } else {
-            %acct = ();
-        }
-
-
-        if (exists ($fullact{$shift})) {
-            %shiftacct = %{$fullact{$shift}};
-        } else {
-            %shiftacct = ();
-        }
-
-
-        if (exists($acct{$tel.'_SHUTDOWN'})) {
-            my $shutdown = $acct{$tel.'_SHUTDOWN'};
-            $shuttime = $shutdown->{'total'}->hours
-                if exists $shutdown->{'total'};
-        }
-        my %timelost = $self->timelostbyshift;
-        if (exists($timelost{$shift})) {
-            $faultloss = $timelost{$shift}->hours;
-        }
-        %timelost = $self->timelostbyshift('technical');
-        if (exists($timelost{$shift})) {
-            $technicalloss = $timelost{$shift}->hours;
-        }
-        %timelost = $self->timelostbyshift('non-technical');
-        if (exists($timelost{$shift})) {
-            $nontechnicalloss = $timelost{$shift}->hours;
-        }
-        $title = $shift;
+    if (defined $timelost) {
+        $faultloss = $timelost->hours;
+        $total += $faultloss;
     }
 
-    # Format table
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='sum_table_head'>";
-    print "<td colspan='4'><strong class='small_title'>$title Project Time Summary</strong></td>";
-
-    # Closed time (if any)
-    if ($shuttime) {
-        print "<tr class='sum_other'>";
-        print "<td>Closed</td>";
-        print "<td colspan='2'>". sprintf($format, $shuttime) . "</td><td/>";
-        print "</tr>";
-
-        $total += $shuttime;
+    if (defined $timelost_technical) {
+        $technicalloss = $timelost_technical->hours;
     }
 
-    # Time lost to faults.
-    print "<tr class='sum_other'>";
-    print "<td>Time lost to technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td><td/>";
-    print "<tr class='sum_other'>";
-    print "<td>Time lost to non-technical faults</td>";
-    print "<td colspan=2>" . sprintf($format, $nontechnicalloss) . "</td><td/>";
-    print "<tr class='sum_other'>";
-    print "<td>Total time lost to faults</td>";
-    print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td><td/>";
+    if (defined $timelost_nontechnical) {
+        $nontechnicalloss = $timelost_nontechnical->hours;
+    }
 
-     $total += $faultloss;
-
-    # Time lost to weather, extended accounting.
-      my %text = (
-              WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
-              EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
-              OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
-              CAL => "<tr class='proj_time_sum_weather_row'><td>Calibrations</td>",
-             );
-
-    for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
+    my @special;
+    foreach my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
         my $time = 0.0;
         my $pending;
         my $comment;
-        if (exists $acct{$tel.$proj}) {
-            $time = $acct{$tel.$proj}->{total}->hours;
-            if ($acct{$tel.$proj}->{pending}) {
-                $pending += $acct{$tel.$proj}->{pending}->hours;
+        if (exists $shiftresults->{$tel.$proj}) {
+            $time = $shiftresults->{$tel.$proj}->{'total'}->hours;
+            if ($shiftresults->{$tel.$proj}->{'pending'}) {
+                $pending = $shiftresults->{$tel.$proj}->{'pending'}->hours;
+                $totalpending += $pending;
             }
+
+            $comment = $shiftacct->{$tel.$proj}->comment if defined $shiftacct;
+
             $total += $time unless $proj eq 'EXTENDED';
-            if ($showcomment) {
-                if (exists $shiftacct{$tel.$proj}) {
-                    $comment = $shiftacct{$tel.$proj}->{Comment};
-                }
-            }
+            $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
         }
-        print "$text{$proj}<td>" . sprintf($format, $time);
-        if ($pending) {
-            print " [unconfirmed]";
-        }
-        print "<td>$comment</td><td></td>";
+        push @special, {
+            name => $proj, time => $time,
+            pending => $pending, comment => $comment};
     }
 
     # Sort project accounting by country
-    my %acct_by_country;
-    for my $proj (keys %acct) {
-
+    my %proj_by_country;
+    for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        # No determine_country method exists, so we'll get project
-        # details instead
         my $details = OMP::ProjServer->projectDetails($proj, "object");
 
-        $acct_by_country{$details->country}{$proj} = $acct{$proj};
+        push @{$proj_by_country{$details->country}}, $proj;
     }
 
-    # Project Accounting
-    my $bgcolor = "a";
-    for my $country (sort keys %acct_by_country) {
-
-        # Get country total timespent
-        my $country_total;
-        for (keys %{$acct_by_country{$country}}) {
-            $country_total += $acct_by_country{$country}{$_}->{total}->hours
-        }
-
-        my $rowcount = 0;
-
-        for my $proj (sort keys %{$acct_by_country{$country}}) {
-            $rowcount++;
-
-            my $account = $acct_by_country{$country}{$proj};
-            $total += $account->{total}->hours;
-            $total_proj += $account->{total}->hours;
+    my @country;
+    for my $country (sort keys %proj_by_country) {
+        my $country_total = 0.0;
+        my @project;
+        for my $proj (sort @{$proj_by_country{$country}}) {
+            next if $proj =~ /^$tel/;
+            my $time = $shiftresults->{$proj}->{'total'}->hours;
 
             my $pending;
-            if  ($account->{pending}) {
-                $total_pending += $account->{pending}->hours;
-                $pending = $account->{pending}->hours;
-            }
-            my $comment;
-            if ($showcomment) {
-                if (exists $shiftacct{$proj}) {
-                    $comment = $shiftacct{$proj}->{Comment};
-                }
-            }
-            print "<tr class='row_$bgcolor'>";
-            print "<td><a href='$ompurl/projecthome.pl?project=$proj' class='link_light'>$proj</a></td><td>";
-            printf($format, $account->{total}->hours);
-            print " [unconfirmed]" if ($pending);
-            print "</td>";
-            if ($self->delta_day != 1) {
-                if ($rowcount == 1) {
-                    print "<td>$comment</td><td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
-                } else {
-                    print "<td>$comment</td><td class=country_$country></td>";
-                }
-            } else {
-                print "<td>$comment</td><td></td>";
+            if ($shiftresults->{$proj}->{'pending'}) {
+                $pending = $shiftresults->{$proj}->{'pending'}->hours;
+                $totalpending += $pending;
             }
 
-            # Alternate background color
-            ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+            my $comment;
+            $comment = $shiftacct->{$proj}->comment if defined $shiftacct;
+
+            push @project, {
+                project => $proj, time => $time,
+                pending => $pending, comment => $comment};
+
+            $country_total += $time;
+            $total += $time;
+            $totalobserved += $time;
+            $totalproj += $time;
         }
+        push @country, {
+            country => $country,
+            project => \@project,
+            total => $country_total,
+        };
     }
 
-    print "<tr class='row_$bgcolor'>";
-    print "<td class='sum_other'>Total</td><td colspan=2 class='sum_other'>". sprintf($format,$total);
-
-    # Print total unconfirmed if any
-    print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
-        if ($total_pending > 0);
-
-    print "</td><td></td>";
-
-    # Print total time spent on projects alone
-    print "<tr class='row_$bgcolor'>";
-    print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
-        sprintf($format, $total_proj).
-        "</td><td></td>";
+    my $shuttime = 0.0;
+    if (exists $shiftresults->{$tel.'_SHUTDOWN'}) {
+        my $time = $shiftresults->{$tel.'_SHUTDOWN'}->{'total'}->hours;
+        if ($time > 0) {
+            $shuttime = $time;
+        }
+        # Add shutdown time to total
+        $total += $time;
+    }
 
     # Get clear time
     my $cleartime = $total - $shuttime;
-    $cleartime -= $acct{$tel.'WEATHER'}->{total}->hours
-        if exists $acct{$tel.'WEATHER'};
+    $cleartime -= $shiftresults->{$tel.'WEATHER'}->{'total'}->hours
+        if exists $shiftresults->{$tel.'WEATHER'};
 
-    if ($cleartime > 0) {
-        print "<tr class='proj_time_sum_weather_row'>";
-        print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td><td></td>";
-        print "<tr class='proj_time_sum_other_row'>";
-        print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td><td></td>";
-    }
-
-    print "</table>";
-    print "<p>";
+    return {
+        shut => $shuttime,
+        faultloss => $faultloss,
+        technicalloss => $technicalloss,
+        nontechnicalloss => $nontechnicalloss,
+        special => \@special,
+        country => \@country,
+        total => {
+            project => $totalproj,
+            observed => $totalobserved,
+            total => $total,
+            pending => $totalpending,
+            clear => $cleartime,
+        },
+    };
 }
 
-=item B<ashtml>
+=item B<get_obs_summary>
 
-Generate a summary of the night formatted using HTML.
+Prepare summarized observation information as required for
+printing a table of observations.
 
-  $nr->ashtml();
+    my $summary = $nr->get_obs_summary(%options);
 
-This method takes an optional hash argument with the following keys:
+L<%options> is a hash optionally containing the
+following keys:
 
 =over 4
 
 =item *
 
-worfstyle - Write WORF links to the staff WORF page. Can be either
-'staff', 'none', or 'project', and will default to 'project'.
+obsgroup - An OMP::Info::ObsGroup to use, otherwise will be obtained
+from C<$self-E<gt>obs>.  This must be provided if this routine is
+called as a class method.
 
 =item *
 
-commentstyle - Write observation comment links to the staff-only page. Can
-be either 'staff' or 'project', and will default to 'project'.
+ascending - Boolean on if observations should be printed in
+chronologically ascending or descending order [true].
+
+=item *
+
+sort - Determines the order in which observations are displayed.
+If set to 'chronological', then the observations in the given
+C<Info::ObsGroup> object will be displayed in chronological order,
+with table breaks occurring whenever an instrument changes. If
+set to 'instrument', then one table will be displayed for each
+instrument in the C<Info::ObsGroup> object, regardless of the order
+in which observations for those instruments were taken. Defaults
+to 'instrument'.
 
 =back
 
 =cut
 
-sub ashtml {
+sub get_obs_summary {
   my $self = shift;
   my %options = @_;
 
-  # Check the options.
-  my $worfstyle;
-  my $worflink;
-  if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
-      lc( $options{worfstyle} ) eq 'staff' ) {
-    $worfstyle = 'staff';
-    $worflink = 'staffworfthumb.pl';
-  } elsif ( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
-              lc( $options{worfstyle} ) eq 'none' ) {
-      $worfstyle = 'none';
-      $worflink = '';
-  } else {
-    $worfstyle = 'project';
-    $worflink = 'fbworfthumb.pl';
+  my $obsgroup;
+  if (exists $options{'obsgroup'}) {
+    $obsgroup = $options{'obsgroup'};
+  }
+  else {
+    $obsgroup = $self->obs();
+    $obsgroup->locate_timegaps(OMP::Config->getData('timegap'));
   }
 
-  my $commentstyle;
-  if( exists( $options{commentstyle} ) && ( defined( $options{commentstyle} ) ) &&
-      lc( $options{commentstyle} ) eq 'staff' ) {
-    $commentstyle = 'staff';
-  } else {
-    $commentstyle = 'project';
-  }
-
-  # Need to load CGI specified classes
-  require OMP::CGIComponent::Obslog;
-  require OMP::CGIComponent::Shiftlog;
-
-
-  my $tel  = $self->telescope;
-  my $date = $self->date->ymd;
-
-  my $total = 0.0;
-  my $total_pending = 0.0;
-  my $total_proj = 0.0; # Time spent on projects only
-
-  my $ompurl = OMP::Config->getData('cgidir');
-
-  if ($worfstyle ne 'none') {
-      print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
-  }
-
-  if ($self->delta_day < 14) {
-    print "<a href='#faultsum'>Fault Summary</a><br>";
-    print "<a href='#shiftcom'>Shift Log Comments</a> / <a href=\"shiftlog.pl?date=$date&telescope=$tel\">Add shift log comment</a><br>";
-    print "<a href='#obslog'>Observation Log</a><br>";
-    print "<p>";
-  }
-
-  my $showcomment = 1;
-  if ($self->delta_day > 1) {
-      $showcomment = 0;
-  }
-  # T i m e A c c o u n t i n g
-
-
-  #Get shifts from time accounting database. and from timelostbyshift.
-
-  # HTML version does not show any times from the headers, so no need
-  # to ever get them. Just get the accounting_db stuff.
-  my %times = $self->accounting_db;
-
-  my %timelostbyshift = $self->timelostbyshift;
-
-  my @shifts;
-  for my $key (keys %times){
-      unless(!defined $key  || $key eq '' || $key eq $WARNKEY) {
-          push @shifts, $key;
-      }
-  }
-  # Only include faultshifts if time was charged.
-  my @faultshifts = (keys %timelostbyshift);
-  for my $shift (@faultshifts) {
-      my $losttime = $timelostbyshift{$shift};
-      if((! exists($times{$shift}) ) && ($shift ne '') && ($losttime > 0)) {
-          push @shifts, $shift;
-      }
-  }
-
-  # First of all do overall per night.
-  print "<p> There were shiftypes of ";
-  for my $shift(@shifts) {
-      print "$shift ";
-  }
-  print "in this timeperiod.</p>";
-
-  $self->projectsummary_ashtml;
-
-
-  # Now do it per shift.
-  if (@shifts > 1) {
-      for my $shift (@shifts) {
-         $self->projectsummary_ashtml($showcomment, $shift);
-      }
-  }
-  if ($self->delta_day < 14) {
-    # M S B  S u m m a r y
-    # Get observed MSBs
-    my %msbs = $self->msbs;
-
-    # Decide whether to show MSB targets or MSB name
-    my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-                                                 telescope => $self->telescope,);
-    my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
-
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
-
-    for my $proj (keys %msbs) {
-      print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?project=$proj' class='link_dark'>$proj</a></td>";
-      print "<td>$alt_msb_column</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
-
-      for my $msb (@{$msbs{$proj}}) {
-        print "<tr class='row_a'>";
-        print "<td></td>";
-        print "<td>". ($display_msb_name ? $msb->title : substr($msb->targets,0,30)) ."</td>";
-        print "<td>". $msb->wavebands ."</td>";
-        print "<td>". $msb->instruments ."</td>";
-        print "<td>". $msb->nrepeats ."</td>";
-      }
-    }
-
-    print "</table>";
-    print "<p>";
-
-    # F a u l t  S u m m a r y
-    # Get faults
-    my @faults = $self->faults->faults;
-
-    # Sort faults by date
-    my %faults;
-    for my $f (@faults) {
-      my $time = gmtime($f->date->epoch);
-      push(@{$faults{$time->ymd}}, $f);
-    }
-
-    print "<a name=faultsum></a>";
-    print "<table class='sum_table' cellspacing='0' width='600'>";
-    print "<tr class='fault_sum_table_head'>";
-    print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td><td><strong class='small_title'>Shift</strong></td></tr>";
-
-    for my $date (sort keys %faults) {
-      my $timecellclass = 'time_a';
-      if ($self->delta_day != 1) {
-
-        # Summarizing faults for more than one day
-
-        # Do all this date magic so we can use the appropriate CSS class
-        # (i.e.: time_mon, time_tue, time_wed)
-        my $fdate = $faults{$date}->[0]->date;
-        my $time = gmtime($fdate->epoch);
-        $timecellclass = 'time_' . $time->day . '_a';
-
-        print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td><td></td>";
-    }
-      for my $fault (@{$faults{$date}}) {
-        print "<tr class=sum_other valign=top>";
-        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
-
-        my $time = gmtime($fault->date->epoch);
-        print "<td class='$timecellclass'>". $time->strftime("%H:%M UT") ."</td>";
-        print "<td><a href='$ompurl/viewfault.pl?fault=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
-        print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
-        print "<td class='shift' align=right>". $fault->shifttype ."</td>";
-        print "</tr>";
-      }
-    }
-
-    print "</table>";
-    print "<p>";
-
-    # S h i f t  L o g  C o m m e n t s
-    my @comments = $self->shiftComments;
-
-    print "<a name=\"shiftcom\"></a>";
-
-    if ($comments[0]) {
-      OMP::CGIComponent::Shiftlog->new()->display_shift_table( \@comments );
+  my $sort;
+  if( exists( $options{sort} ) ) {
+    if( $options{sort} =~ /^chronological/i ) {
+      $sort = 'chronological';
     } else {
-      print "<strong>No Shift comments available</strong>";
+      $sort = 'instrument';
     }
-    print "<p>";
+  } else {
+    $sort = 'instrument';
+  }
 
-    # O b s e r v a t i o n  L o g
-    # Display only if we are summarizing a single night
-    if ($self->delta_day == 1) {
-      # Can fall back to files now that JCMT disk is mounted
-      # on mauiola. This line was here for when we could never
-      # get the files of disk and only use the archive
-      #$OMP::ArchiveDB::FallbackToFiles = 0;
-      my $grp;
-      try {
-        $grp = $self->obs;
-        $grp->locate_timegaps( OMP::Config->getData("timegap") );
-      } catch OMP::Error::FatalError with {
-        my $E = shift;
-        print "<pre>An error has been encountered:<p> $E</pre><p>";
-      } otherwise {
-        my $E = shift;
-        print "<pre>An error has been encountered:<p> $E</pre><p>";
-      };
+  my $ascending;
+  if( exists( $options{ascending} ) ) {
+    $ascending = $options{ascending};
+  } else {
+    $ascending = 1;
+  }
 
-      print "<a name=\"obslog\"></a>";
+  my $instrument;
+  if( exists( $options{instrument} ) ) {
+    $instrument = $options{instrument};
+  } else {
+    $instrument = '';
+  }
 
-      if ($grp and $grp->numobs > 0) {
+  my @allobs;
 
-        # Display log as plain text if there are a huge amount of observations
-        my $plaintext = ($grp->numobs > 5000 ? 1 : 0);
+  # Make the array of Obs objects.
+  if( $sort eq 'instrument' ) {
 
-        print "<pre>" if ($plaintext);
-
-        OMP::CGIComponent::Obslog->new()->obs_table(
-            $grp,
-            sort => 'chronological',
-            worfstyle => $worfstyle,
-            commentstyle => $commentstyle,
-            text => $plaintext,
-        );
-
-        print "</pre>" if ($plaintext);
-
+    my %grouped = $obsgroup->groupby('instrument');
+    foreach my $inst (sort keys %grouped) {
+      my @obs;
+      if( $ascending ) {
+        @obs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
       } else {
-        # Don't display the table if no observations are available
-        print "No observations available for this night";
+        @obs = sort { $b->startobs->epoch <=> $b->startobs->epoch } $grouped{$inst}->obs;
       }
+      push @allobs, @obs;
+    }
+  } else {
+    if( $ascending ) {
+      @allobs = sort { $a->startobs->epoch <=> $b->startobs->epoch } $obsgroup->obs;
+    } else {
+      @allobs = sort { $b->startobs->epoch <=> $a->startobs->epoch } $obsgroup->obs;
     }
   }
+
+  unless (@allobs) {
+    return undef;
+  }
+
+  my %result = (
+    block => [],
+    status_order => \@OMP::Info::Obs::status_order,
+    status_class => \%OMP::Info::Obs::status_class,
+    status_label => \%OMP::Info::Obs::status_label,
+  );
+
+  my $currentinst = undef;
+  my $currentblock = undef;
+
+  my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+
+  my $old_sum = '';
+  my $old_tid = '';
+
+  foreach my $obs (@allobs) {
+    next if( ( length( $instrument . '' ) > 0 ) &&
+             ( uc( $instrument ) ne uc( $obs->instrument ) ) );
+
+    unless ((defined $currentblock) and ($currentinst eq uc $obs->instrument)) {
+      $currentinst = uc $obs->instrument;
+      push @{$result{'block'}}, $currentblock = {
+        instrument => $currentinst,
+        ut => $obs->startobs->ymd,
+        telescope => $obs->telescope,
+        obs => []};
+    }
+
+    my %nightlog = $obs->nightlog;
+    my $is_time_gap = eval {$obs->isa('OMP::Info::Obs::TimeGap')};
+
+    my $endpoint = $is_time_gap
+      ? $obs->endobs
+      : $obs->startobs;
+
+    my %entry = (
+      is_time_gap => $is_time_gap,
+      obs => $obs,
+      obsut => (join '-', map { $endpoint->$_ } qw/ymd hour minute second/),
+      nightlog => \%nightlog,
+    );
+
+    unless ($is_time_gap) {
+      unless (exists $currentblock->{'heading'}) {
+        $currentblock->{'heading'} = \%nightlog;
+      }
+
+      # In case msbtid column is missing or has no value (calibration), use checksum.
+      my $checksum = $obs->checksum;
+      my $msbtid   = $obs->msbtid;
+
+      my $has_msbtid = defined $msbtid && length $msbtid;
+
+      my ($is_new_msbtid, $is_new_checksum);
+
+      if ($has_msbtid) {
+        $is_new_msbtid =
+              $msbtid ne ''
+          &&  $msbtid ne $old_tid ;
+
+        $old_tid = $msbtid if $is_new_msbtid;
+
+        # Reset to later handle case of 'calibration' since sum 'CAL' never
+        # changes.
+        $old_sum = '';
+      }
+      else {
+        $is_new_checksum = ! ($old_sum eq $checksum);
+
+        $old_sum = $checksum if $is_new_checksum;
+      }
+
+      # If the current MSB differs from the MSB to which this observation belongs,
+      # we need to insert as the start of the MSB. Ignore blank MSBTIDS.
+      if ( $checksum && ( $is_new_msbtid || $is_new_checksum ) ) {
+        # Get any activity associated with this MSB accept.
+        my $history;
+        if ($has_msbtid) {
+          try {
+            $history = $msbdb->historyMSBtid($msbtid);
+          } otherwise {
+            my $E = shift;
+            print STDERR $E;
+          };
+        }
+
+        if (defined $history) {
+          my $title = $history->title();
+          undef $title unless 2 < length $title;
+          $entry{'msb_comments'} = {
+              title => $title,
+              comments => [grep {
+                  my $text = $_->text();
+                  defined $text && length $text;
+              } $history->comments()],
+          };
+        }
+      }
+    }
+
+    push @{$currentblock->{'obs'}}, \%entry;
+  }
+
+  return \%result;
 }
 
 =item B<mail_report>

@@ -31,6 +31,11 @@ associated.
 Use this argument if you will be providing dates in UTC time, otherwise
 dates are assumed to be in local time.
 
+=item B<-no-shiftlog>
+
+Do not create shift log comments, for example if these have already
+been made.
+
 =item B<-version>
 
 Report the version number.
@@ -85,13 +90,14 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $semester, $ut);
+my ($help, $man, $version, $tel, $semester, $ut, $no_shiftlog);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "tel=s" => \$tel,
                         "ut" => \$ut,
                         "debug" => \$DEBUG,
+                        "no-shiftlog" => \$no_shiftlog,
                        );
 
 pod2usage(1) if $help;
@@ -163,10 +169,13 @@ if ($shutlen_arg) {
 }
 
 # Get shutdown reason
-$prompt = "Reason for shutdown: ";
-my $shutreason = $term->readline($prompt);
-die "Must provide a comment"
-  unless (defined $shutreason);
+my $shutreason;
+unless ($no_shiftlog) {
+  $prompt = "Reason for shutdown: ";
+  $shutreason = $term->readline($prompt);
+  die "Must provide a comment"
+    unless (defined $shutreason);
+}
 
 # Loop over each night...
 my $oneday = DateTime::Duration->new(days=>1,);
@@ -221,11 +230,13 @@ while ($currentdt <= $enddt) {
   push (@taccts, $t);
 
   # Create shiftlog comments
-  my $comment = new OMP::Info::Comment(author => $auth->user,
-                                       text   => $shutreason,
-                                       date   => $starttimetp);
+  unless ($no_shiftlog) {
+    my $comment = new OMP::Info::Comment(author => $auth->user,
+                                         text   => $shutreason,
+                                         date   => $starttimetp);
 
-  push (@shiftcomms, $comment);
+    push (@shiftcomms, $comment);
+  }
 
   # Go to the next day
   $currentdt += $oneday;
@@ -238,8 +249,10 @@ my $tacctgrp = new OMP::TimeAcctGroup( accounts => \@taccts );
 print "Time accounts created (". scalar(@taccts) .")\n";
 printf "Total time: %.2f hours\n", $tacctgrp->totaltime->hours;
 print "\nShiftlog comments created (". scalar(@shiftcomms) .")\n";
-print "Author: ". $shiftcomms[0]->author . "\n";
-print "Comment: ". $shiftcomms[0]->text . "\n";
+if (scalar @shiftcomms) {
+  print "Author: ". $shiftcomms[0]->author . "\n";
+  print "Comment: ". $shiftcomms[0]->text . "\n";
+}
 
 if ($DEBUG) {
   print "Comment created for the following dates:\n";

@@ -423,7 +423,7 @@ sub updateObsComment {
 
   my @obsarray = map { $_->[0] }
                  sort { $a->[1] <=> $b->[1] }
-                 map { [ $_, $_->startobs->epoch ] } @$obs_arrayref;
+                 map { [ $_, ($_->startobs // $_->endobs)->epoch ] } @$obs_arrayref;
 
   my $start;
   my $end;
@@ -461,8 +461,15 @@ sub updateObsComment {
   }
 
   foreach my $obs ( @$obs_arrayref ) {
-    if( exists( $commhash{$obs->obsid} ) ) {
-      $obs->comments( $commhash{$obs->obsid} );
+    my $obsid = $obs->obsid;
+    unless (defined $obsid or not eval {$obs->isa('OMP::Info::Obs::TimeGap')}) {
+      # Subtract another second to match how timegaps seem to be stored,
+      # and generate placeholder OBSID for matching, using the function
+      # used by _reorganize_comments.
+      $obsid = _placeholder_obsid($obs->instrument, $obs->runnr, $obs->endobs - 1);
+    }
+    if( exists( $commhash{$obsid} ) ) {
+      $obs->comments( $commhash{$obsid} );
     }
   }
 
@@ -527,6 +534,7 @@ sub _reorganize_comments {
 
   # Connect to the user database
   my $db = new OMP::UserDB( DB => $self->db );
+  my $users = $db->getUserMultiple([keys %{{map {$_->{'commentauthor'} => 1} @$rows}}]);
 
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
@@ -541,10 +549,7 @@ sub _reorganize_comments {
 
     my $obsid;
     if( ! defined( $row->{obsid} ) ) {
-      $obsid = lc( $row->{instrument} ) . "_"
-             . $row->{runnr} . "_"
-             . $startobs->strftime("%Y%m%dT%H%M%S");
-             ;
+      $obsid = _placeholder_obsid($row->{instrument}, $row->{runnr}, $startobs);
     } else {
       $obsid = $row->{obsid};
       $obsid =~ /^(\w+)_(\w+)_(\w+)$/;
@@ -555,7 +560,7 @@ sub _reorganize_comments {
       }
     }
 
-    my $comment = new OMP::Info::Comment(
+    push @return, new OMP::Info::Comment(
                 text => $row->{commenttext},
                 date => $date,
                 status => $row->{commentstatus},
@@ -564,17 +569,33 @@ sub _reorganize_comments {
                 telescope => $row->{telescope},
                 startobs => $startobs,
                 obsid => $obsid,
+                author => $users->{$row->{'commentauthor'}},
               );
-
-    # Retrieve the user information so we can create the author
-    # property.
-    my $author = $db->getUser( $row->{commentauthor} );
-    $comment->author($author);
-    push @return, $comment;
   }
 
   return @return;
 
+}
+
+=item B<_placeholder_obsid>
+
+Create placeholder OBSID for entries which don't have one, such as
+time gaps.  This is the function used by _reorganize_comments
+to generate these placeholders, so can also be used to generate
+values to match with the results of comment queries.
+
+Note: for time gaps, values in the database seem to be stored with
+-1 extra second, so it may be necessary to call this function with
+the third argument being C<$time_gap-E<gt>endobs - 1>.
+
+=cut
+
+sub _placeholder_obsid {
+    my $instrument = shift;
+    my $runnr = shift;
+    my $ut = shift;
+
+    return join '_', lc($instrument), $runnr, $ut->strftime("%Y%m%dT%H%M%S");
 }
 
 =item B<_store_comment>

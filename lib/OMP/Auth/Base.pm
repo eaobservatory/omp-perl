@@ -34,8 +34,15 @@ sub log_in {
     my $cls = shift;
     my $q = shift;
 
-    return $cls->log_in_userpass(
+    my $user_info = $cls->log_in_userpass(
         (scalar $q->param('username')), (scalar $q->param('password')));
+
+    if (exists $user_info->{'user'}) {
+        $user_info->{'duration'} = (scalar $q->param('remember_me')
+            ? 'remember' : 'default');
+    }
+
+    return $user_info;
 }
 
 =item B<log_in_userpass>

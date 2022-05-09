@@ -65,6 +65,7 @@ sub log_in {
 
     my $user = undef;
     my $token = undef;
+    my $duration = undef;
     my $message = undef;
     my $abort = undef;
     my $redirect = undef;
@@ -83,7 +84,8 @@ sub log_in {
 
             if (exists $user_info->{'user'}) {
                 $user = $user_info->{'user'};
-                $token = $db->issue_token($user, $q->remote_addr(), $q->user_agent());
+                ($token, $duration) = $db->issue_token(
+                    $user, $q->remote_addr(), $q->user_agent(), $user_info->{'duration'});
             }
 
             $abort = 1 if exists $user_info->{'abort'};
@@ -94,7 +96,8 @@ sub log_in {
 
             if (exists $cookie{'token'}) {
                 $token = $cookie{'token'};
-                $user = $db->verify_token($token);
+                ($user, $duration) = $db->verify_token($token);
+                undef $token unless defined $user;
             }
         }
     }
@@ -109,7 +112,7 @@ sub log_in {
 
     my $auth = $cls->new(message => $message);
     $auth->user($user) if defined $user;
-    $auth->cookie($cls->_make_cookie($q, '+1d', token => $token)) if defined $token;
+    $auth->cookie($cls->_make_cookie($q, $duration, token => $token)) if defined $token;
 
     if (defined $redirect) {
         my %args = (-uri => $redirect);
@@ -430,6 +433,7 @@ sub _make_cookie {
         -name => OMP::Config->getData('cookie-name'),
         -value => \%values,
         -domain => OMP::Config->getData('cookie-domain'),
+        -secure => OMP::Config->getData('cookie-secure'),
         -expires => $expiry);
 }
 

@@ -555,7 +555,6 @@ Allowed formats are:
  'xml' - XML summary where Observations are explicitly separate
  'htmlshort' - short HTML summary
  'html' - longer HTML summary
- 'htmlcgi' - longer HTML summary with 'add comment' button
  'hashshort' - returns hash representation of MSB where Observations
                are retained as objects
  'hashlong'  - hash rep. of MSB where Observations are array of hashes
@@ -817,12 +816,6 @@ sub summary {
     }
 
     push(@text, "</TABLE>");
-
-    # Add the 'add comment' button
-    if ($format eq 'htmlcgi') {
-      push(@text, "<br><form method='post' action='/cgi-bin/fbmsb.pl?project=$summary{projectid}' enctype='application/x-www-form-urlencoded'>");
-      push(@text, "<input type='hidden' name='checksum' value=\'$summary{checksum}\' /><input type='hidden' name='show_output' value='1' /><input type='submit' name='Add Comment' value='Add Comment' /></form>");
-    }
 
     # Return a list or a string
     if (wantarray) {

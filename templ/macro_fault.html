@@ -1,0 +1,204 @@
+[% MACRO render_fault_table(fault_info) BLOCK %]
+    <table width="100%" cellspacing="0">
+        <tr>
+            [% IF fault_info.show_cat %]
+                <td><b>Category</b></td>
+            [% END %]
+            <td><b>ID</b></td>
+            <td><b>Subject</b></td>
+            <td><b>Filed by</b></td>
+            <td><b>System</b></td>
+            <td><b>Type</b></td>
+            <td><b>Status</b></td>
+            [% IF fault_info.show_time_lost %]
+                <td align="center"><b>Loss</b></td>
+            [% END %]
+            <td align="center"><b>Replies</b></td>
+        </tr>
+
+        [% FOREACH fault IN fault_info.faults %]
+            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]">
+                [% IF fault_info.show_cat %]
+                    <td>[% fault.category | html %]</td>
+                [% END %]
+                <td [% IF fault.isUrgent %]class="cell_standout"[% END %]>[% fault.id | html %]</td>
+                <td>
+                    <b><a href="[% fault_info.view_url %][% fault.id | html %]">[% IF fault.subject %][% fault.subject | html %][% ELSE %][no subject][% END %]</a></b>
+                    [% IF fault_info.show_projects%]
+                        [% SET projects = fault.projects %]
+                        [% IF ! projects.empty %]
+                            <br />
+                            [% FOREACH project IN projects %]
+                                [% IF ! loop.first %]|[% END %]
+                                    <a href="/cgi-bin/projecthome.pl?project=[% project.upper | html %]">[% project.upper | html %]</a>
+                            [% END %]
+                        [% END %]
+                    [% END %]
+                </td>
+                <td>[% render_user_name(fault.author) %]</td>
+                <td>[% fault.systemText | html %]</td>
+                <td>[% fault.typeText | html %]</td>
+                <td>[% IF fault.isNew && fault.isOpen %]New[% ELSE %][% fault.statusText | html %][% END %]</td>
+                [% IF fault_info.show_time_lost %]
+                    [% SET time_lost = fault.timelost %]
+                    <td align="center">
+                        [% IF time_lost == '0.00' %]
+                            &mdash;
+                        [% ELSE %]
+                            [% time_lost | html %] hrs
+                        [% END %]
+                    </td>
+                [% END %]
+                <td align="center">[% fault.scalar.responses.size - 1 | html %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% END -%]
+[% MACRO render_fault_thread(fault_info) BLOCK %]
+    [% SET fault = fault_info.fault %]
+    <div class="black">
+    <table width="900" bgcolor="#6161aa" cellspacing="1" cellpadding="0" border="0">
+        <tr>
+            <td>
+                <b class="white">Report by: [% render_user_name(fault.author) %]</b>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table cellpadding="3" cellspacing="0" border="0" width="100%">
+                    <tr bgcolor="#ffffff">
+                        <td><b>Date filed:</b> [% fault_info.display_date_local(fault.filedate) | html %]</td>
+                        <td><b>[% fault_info.system_label | html %]:</b> [% fault.systemText | html %]</td>
+                    </tr>
+                    <tr bgcolor="#ffffff">
+                        <td><b>Loss:</b> [% fault.timelost * 60.0 %] minutes ([% fault.timelost %] hrs)</td>
+                        <td><b>Fault type:</b> [% fault.typeText | html %]</td>
+                    </tr>
+                    [% IF fault_info.has_shift_type %]
+                        <tr bgcolor="#ffffff">
+                            <td><b>Shift type:</b> [% fault.shifttype | html %]</td>
+                            <td><b>Remote Status:</b> [% fault.remote | html %]</td>
+                        </tr>
+                    [% END %]
+                    <tr bgcolor="#ffffff">
+                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %][% fault_info.display_date_local(fault.faultdate) | html %][% ELSE %]unknown[% END %]</td>
+                        <td>
+                            <b>Status:</b>
+                            [% IF fault_info.allow_edit %]
+                                <form method="post" action="[% target | url %]">
+                                    <select name="status">
+                                        [% FOREACH status IN fault_info.statuses %]
+                                            <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                                        [% END %]
+                                    </select>
+                                    <input type="submit" name="change_status" value="Change"/>
+                                </form>
+                            [% ELSE %]
+                                [% fault.statusText | html %]
+                            [% END %]
+                        </td>
+                    </tr>
+                    [% IF fault.location %]
+                        <tr bgcolor="#ffffff">
+                            <td><b>Location:</b> [% fault.locationText | html %]</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                    [% END %]
+                    [% IF fault.projects %]
+                        <tr bgcolor="#ffffff">
+                            <td colspan="2">
+                                <b>Projects associated with this fault:</b>
+                                [% FOREACH project IN fault.projects %]
+                                    <a href="/cgi-bin/projecthome.pl?project=[% project.upper | uri %]">[% project.upper | html %]</a>[% IF ! loop.last %],[% END %]
+                                [% END %]
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF fault.isUrgent %]
+                        <tr bgcolor="#ffffff">
+                            <td colspan="2">
+                                <b><font color="#d10000">THIS FAULT IS URGENT</font></b>
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF fault_info.allow_edit %]
+                        <tr bgcolor="#ffffff">
+                            <td>&nbsp;</td>
+                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% fault.id | uri %]">Click here to update or edit this fault</a></span></td>
+                        </tr>
+                    [% END %]
+                    [% FOREACH response IN fault.responses %]
+                        [% SET bgcolor = response.isfault ? '#bcbce2' : '#dcdcf2' %]
+                            [% IF ! response.isfault %]
+                                <tr bgcolor="[% bgcolor %]">
+                                    <td>
+                                        <b>Response by:</b>
+                                        [% render_user_name(response.author) %]
+                                    </td>
+                                    <td>
+                                        <b>Date:</b>
+                                        [% fault_info.display_date_local(response.date) | html %]
+                                        [% IF fault_info.allow_edit %]
+                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                            <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% fault.id | uri %]&respid=[% response.id | uri %]">Edit this response</a></span>
+                                        [% END %]
+                                    </td>
+                                </tr>
+                            [% END %]
+                            <tr bgcolor="[% bgcolor %]">
+                                <td colspan="2">
+                                    <table border="0">
+                                        <tr>
+                                            <td><font color="[% bgcolor %]">___</font></td>
+                                            <td>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>') %]</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        [% END %]
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+[% END -%]
+[% MACRO render_response_form(info) BLOCK %]
+    <form method="post" action="[% info.target %]" class="submit_timeout">
+        <table border="0">
+            <tr>
+                <td><b>User:</b></td>
+                <td>
+                    [% IF info.response.defined %]
+                        [% info.response.author.name | html %]
+                    [% ELSE %]
+                        [% omp_user.name | html %]
+                    [% END %]
+                </td>
+            </tr>
+            [% IF ! info.response.defined %]
+                <tr>
+                    <td><b>Status:</b></td>
+                    <td>
+                        <select name="status">
+                            [% FOREACH status IN info.statuses %]
+                                <option [% IF status.0 == info.values.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                            [% END %]
+                         </select>
+                    </td>
+                </tr>
+            [% END %]
+            <tr>
+                <td>&nbsp;</td>
+                <td><textarea name="text" rows="20" cols="72">[% info.values.text | html %]</textarea></td>
+            </tr>
+            <tr>
+                <td colspan="2" align="right">
+                    <input type="submit" name="respond" value="[% info.values.submitlabel | html %]" />
+                    [% IF info.response.defined %]
+                        <input type="hidden" name="respid" value="[% info.response.id | html %]" />
+                    [% END %]
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END -%]

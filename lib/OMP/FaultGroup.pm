@@ -250,11 +250,11 @@ sub timelostTechnical {
       $self->{TimeLostTechnical} = $time;
     }
   }
-  if (! defined $self->{TimeLostTechnical}) {
-    return Time::Seconds->new(0);
-  } else {
-    return $self->{TimeLostTechnical};
+  elsif (! defined $self->{TimeLostTechnical}) {
+    # Before returning information cached by timelost, make sure this happened.
+    $self->timelost();
   }
+  return $self->{TimeLostTechnical} // Time::Seconds->new(0);
 }
 
 =item B<timelostNonTechnical>
@@ -284,11 +284,11 @@ sub timelostNonTechnical {
       $self->{TimeLostNonTechnical} = $time;
     }
   }
-  if (! defined $self->{TimeLostNonTechnical}) {
-    return Time::Seconds->new(0);
-  } else {
-    return $self->{TimeLostNonTechnical};
+  elsif (! defined $self->{TimeLostNonTechnical}) {
+    # Before returning information cached by timelost, make sure this happened.
+    $self->timelost();
   }
+  return $self->{TimeLostNonTechnical} // Time::Seconds->new(0);
 }
 
 =item B<categories>

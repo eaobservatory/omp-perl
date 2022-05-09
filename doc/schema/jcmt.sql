@@ -48,6 +48,7 @@ CREATE TABLE `ACSIS` (
   `medtrx` double DEFAULT NULL,
   `specid` tinyint(4) DEFAULT NULL,
   `asn_id` varchar(32) DEFAULT NULL,
+  `track_sb` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`obsid_subsysnr`),
   KEY `idx_ACSIS_3` (`obsid`,`subsysnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -184,6 +185,10 @@ CREATE TABLE `COMMON` (
   `msbtitle` varchar(70) DEFAULT NULL,
   `oper_loc` varchar(70) DEFAULT NULL,
   `oper_sft` varchar(70) DEFAULT NULL,
+  `doorstst` varchar(70) DEFAULT NULL,
+  `doorsten` varchar(70) DEFAULT NULL,
+  `roofstst` varchar(70) DEFAULT NULL,
+  `roofsten` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`obsid`),
   KEY `idx_jcmt_COMMON_proj` (`project`),
   KEY `idx_jcmt_COMMON_inst` (`instrume`),

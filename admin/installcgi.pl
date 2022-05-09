@@ -47,6 +47,7 @@ use File::Path qw/make_path/;
 use File::Spec;
 use Getopt::Long;
 use IO::File;
+use Pod::Usage;
 
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
@@ -56,10 +57,10 @@ use OMP::Error qw[ :try ];
 
 my $dry_run = undef;
 my $install_images = undef;
-my $status = GetOptions(
+GetOptions(
     "dry-run" => \$dry_run,
     'images' => \$install_images,
-);
+) or pod2usage(2);
 
 my $config = OMP::Config->new;
 
@@ -72,27 +73,30 @@ my @srcdirs = qw/ cgi server web /;
 push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
 my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
-                   faultrss.pl fbcomment.pl fbfault.pl fblogout.pl
-                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
+                   fbcomment.pl fbfault.pl fblogout.pl
+                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
                    findtarget.pl
                    get_resource.pl
                    index.pl
                    listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
-                   projecthome.pl projusers.pl projsum.pl props.pl pubsched.pl
+                   projecthome.pl projusers.pl props.pl pubsched.pl
                    qstatus.pl queryfault.pl retrieve_data.pl
                    sched.pl schedcal.pl schedcallist.pl schedstat.pl shiftlog.pl
                    sourceplot.pl spregion.pl spsummary.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
-                   viewfault.pl worf_fits.pl worf_graphic.pl
-                   worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl
-                   sched_edit.js /;
+                   viewfault.pl worf_fits.pl
+                   worf_image.pl worf_ndf.pl wwwobserved.pl
+                   fault_summary.js form_submit_timeout.js log_in.js
+                   sched_edit.js submit_on_change.js time_set_now.js
+                   user_list.js /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js jquery.js LookAndFeelConfig robots.txt /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp-dev.css
+    jquery.js robots.txt /;
 
 # Files which are renamed.
 my %renamed_files = (

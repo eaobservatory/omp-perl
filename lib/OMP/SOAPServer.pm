@@ -89,7 +89,7 @@ sub get_verified_projectid {
   if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
     my (undef, $addr, undef) = OMP::NetTools->determine_host;
     my $adb = new OMP::AuthDB(DB => $class->dbConnection);
-    my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer');
+    my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer', 'default');
     push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
     push @headers, SOAP::Header->new(name => 'token', value => $token);
   }

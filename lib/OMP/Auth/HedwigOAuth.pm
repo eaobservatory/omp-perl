@@ -12,6 +12,8 @@ use warnings;
 use IO::File;
 use OIDC::Lite::Client::WebServer;
 use OIDC::Lite::Model::IDToken;
+use URI;
+use URI::QueryParam;
 
 use OMP::Config;
 use OMP::CGIComponent::Helper qw/url_absolute/;
@@ -54,7 +56,8 @@ sub log_in {
     my $redirect = $cls->_get_client()->uri_to_redirect(
         redirect_uri => OMP::Config->getData('auth_hedwig.url_redir'),
         scope => 'openid',
-        state => url_absolute($q),
+        state => url_absolute($q,
+            remember_me => ($q->param('remember_me') ? '1' : '0')),
     );
 
     return {redirect => $redirect};
@@ -88,9 +91,21 @@ sub log_in_oauth {
     my $user = $cls->_finish_oauth(
         $code, OMP::Config->getData('auth_hedwig.url_redir'));
 
+    my $redirect_uri = scalar $q->param('state');
+    my $duration = 'default';
+    unless (defined $redirect_uri) {
+        $redirect_uri = 'cgi-bin/projecthome.pl';
+    }
+    else {
+        my $uri = new URI($redirect_uri);
+        $duration = 'remember' if scalar $uri->query_param_delete('remember_me');
+        $redirect_uri = $uri->as_string;
+    }
+
     return {
         user => $user,
-        redirect => (scalar $q->param('state')) // 'cgi-bin/projecthome.pl',
+        redirect => $redirect_uri,
+        duration => $duration,
     }
 }
 

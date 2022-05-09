@@ -68,6 +68,25 @@ our %status_label = ( OMP__OBS_GOOD() => 'Good',
                       OMP__OBS_JUNK() => 'Junk',
                       OMP__OBS_REJECTED() => "Rejected",
     ) ;
+
+# Styles for displaying observation status.
+
+our %status_class = (
+               OMP__OBS_GOOD() => 'obslog-good',
+               OMP__OBS_QUESTIONABLE() => 'obslog-questionable',
+               OMP__OBS_BAD() => 'obslog-bad',
+               OMP__OBS_JUNK() => 'obslog-junk',
+               OMP__OBS_REJECTED() => 'obslog-rejected'
+    );
+
+our @status_order = (
+            OMP__OBS_GOOD(),
+            OMP__OBS_QUESTIONABLE(),
+            OMP__OBS_BAD(),
+            OMP__OBS_JUNK(),
+            OMP__OBS_REJECTED(),
+);
+
 =head1 METHODS
 
 =head2 Constructor

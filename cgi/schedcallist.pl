@@ -17,7 +17,6 @@ use OMP::CGIPage::Sched;
 
 OMP::CGIPage::Sched->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Sched::sched_cal_list,
-    undef,
     'staff',
     title => 'Schedule Calendar List',
     template => 'sched_calendars.html');

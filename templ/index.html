@@ -22,7 +22,7 @@
 <ul>
 [% WRAPPER link_group title = "Project feedback system" %]
     <li><a href="/cgi-bin/projecthome.pl">Access a project</a></li>
-    <li><a href="/cgi-bin/projsum.pl">Comment on a project</a></li>
+    <li><a href="/cgi-bin/fbcomment.pl">Comment on a project</a></li>
 [% END %]
 
 [% WRAPPER link_group title = "Instructional documentation" %]
@@ -50,7 +50,7 @@
     <li><a href="/cgi-bin/nightrep.pl?tel=JCMT">View an observing report</a></li>
     <li><a href="/cgi-bin/shiftlog.pl?telescope=JCMT">View shift log comments</a></li>
     <li><a href="/cgi-bin/wwwobserved.pl?telescope=JCMT">View an MSB summary</a></li>
-    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT&delta=7">View a weekly synopsis</a></li>
+    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT&amp;delta=7">View a weekly synopsis</a></li>
 [% END %]
 
 [% WRAPPER link_group title = "Project administration" %]

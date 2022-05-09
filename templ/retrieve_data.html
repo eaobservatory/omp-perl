@@ -1,0 +1,126 @@
+[% WRAPPER "layout.html" %]
+<h1>Retrieve data for project [% projectid | html %]</h1>
+
+[% IF target.defined %]
+    <form method="post" action="[% target | url %]">
+        <table>
+            <tr>
+                <td><b>Enter a UT date: (YYYY-MM-DD)</b></td>
+                <td><input type="text" name="utdate" size="15" maxlength="32" /></td>
+            </tr>
+            <tr>
+                <td>Include calibrations:</td>
+                <td>
+                    <label><input type="radio" name="inccal" value="1" [% IF inccal %]checked="checked"[% END %] />Yes</label>
+                    <label><input type="radio" name="inccal" value="0" [% UNLESS inccal %]checked="checked"[% END %] />No</label>
+                    </td>
+            </tr>
+            <tr>
+                <td colspan="2" align="right">
+                    <input type="submit" name="submit_retrieve" value="Submit" />
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END %]
+
+[% IF utdate.defined %]
+    <p>
+        Determining data files associated with project [% projectid | html %]
+        and UT date [% utdate | html %].
+    </p>
+
+    <p>
+        [% IF inccal %]
+          (Including calibrations.)
+        [% ELSE %]
+          (Without calibrations.)
+        [% END %]
+    </p>
+[% END %]
+
+[% IF messages.defined && ! messages.empty %]
+    <p>
+        [% FOREACH message IN messages %]
+            [% message | html %]
+            [% UNLESS loop.last %]
+                <br />
+            [% END %]
+        [% END %]
+    </p>
+[% END %]
+
+[% IF result.defined %]
+    [% SWITCH result.method %]
+        [% CASE 'cadc' %]
+            <p>
+                Data retrieval is now handled by the Canadian Astronomical
+                Data Centre (CADC).
+                Pressing the button below will take you to the CADC data
+                retrieval page with all your project files pre-selected.
+                You will be required to authenticate yourself to CADC.
+                Note that calibration observations are not password
+                protected so you may be asked for your password midway
+                through the transfer.
+            </p>
+
+            <p>
+                To have access to any proprietary data,
+                <b>you must have registered your CADC userid with the EAO.</b>
+                Access permissions at the CADC are assigned to each file
+                based on the CADC userid supplied with the data by the EAO.
+                It is not sufficient to have a userid at both
+                institutions, even if they are the same!
+            </p>
+
+            <form method="post" action="https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/downloadManager/download" enctype="application/x-www-form-urlencoded">
+                <p>
+                    [% FOREACH file_url IN result.file_urls -%]
+                        <input type="hidden" name="uri" value="[% file_url | html %]" />
+                    [% END %]
+
+                    <input type="hidden" name="runid" value="[% result.run_id | html%]" />
+                    <input type="submit" name="submit_retrieve" value="Retrieve from CADC" />
+                </p>
+            </form>
+        [% CASE 'omp' %]
+            <p>
+                <b>Copying files and creating tar archive(s).
+                This normally takes several minutes per Gbyte.
+                Please do not point your browser to another page
+                until the process is complete.</b>
+            </p>
+
+            [% IF ! result.messages.empty %]
+                <p>
+                    [% FOREACH message IN result.messages %]
+                        [% message | html %]
+                        [% UNLESS loop.last %]
+                            <br />
+                        [% END %]
+                    [% END %]
+                </p>
+            [% END %]
+
+            [% IF result.ftp_urls.empty %]
+                <p>
+                    Could not obtain download URL(s).
+                </p>
+            [% ELSE %]
+                <p>
+                    Retrieve your data from the following URL(s):
+                </p>
+
+                <ul>
+                    [% FOREACH ftp_url IN result.ftp_urls %]
+                        <li><a href="[% ftp_url | url %]">[% ftp_url |html %]</a></li>
+                    [% END %]
+                </ul>
+            [% END %]
+        [% CASE %]
+            <p>
+                Retrieval scheme not recognized.
+            </p>
+    [% END %]
+[% END %]
+[% END %]

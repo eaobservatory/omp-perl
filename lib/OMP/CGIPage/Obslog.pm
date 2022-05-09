@@ -25,11 +25,11 @@ use Net::Domain qw/ hostfqdn /;
 use Time::Seconds qw/ ONE_DAY /;
 
 use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Shiftlog;
 use OMP::CGIComponent::Weather;
-use OMP::CGIDBHelper;
 use OMP::Config;
 use OMP::Constants;
 use OMP::DateTools;
@@ -38,6 +38,7 @@ use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
+use OMP::NightRep;
 use OMP::ObslogDB;
 use OMP::ProjServer;
 use OMP::BaseDB;
@@ -72,140 +73,34 @@ sub file_comment {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
-#print "calling file_comment<br>\n";
+  my $messages;
+  if ($q->param('submit_comment')) {
+    # Insert the comment into the database.
+    my $response = $comp->obs_add_comment();
+    $messages = $response->{'messages'};
+  }
+
   # Get the Info::Obs object
   my $obs = $comp->cgi_to_obs();
 
-  # Print a summary about the observation.
-  $comp->obs_summary( $obs, $projectid );
-
-  # Display a form for adding a comment.
-  $comp->obs_comment_form( $obs, $projectid );
-
-  # Print a footer
-  $comp->print_obscomment_footer();
-
-}
-
-=item B<file_comment_output>
-
-Submit a comment and create a page with a form for filing a comment.
-
-  $page->file_comment_output( [$projectid] );
-
-The parameter C<$projectid> is given from C<fbobscomment.pl>
-but not C<staffobscomment.pl>.
-
-=cut
-
-sub file_comment_output {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
-
-  # Insert the comment into the database.
-  $comp->obs_add_comment();
-
-  # Get the updated Info::Obs object.
-  my $obs = $comp->cgi_to_obs();
-
-  # Print a summary about the observation.
-  $comp->obs_summary( $obs, $projectid );
-
-  # Display a form for adding a comment.
-  $comp->obs_comment_form( $obs, $projectid );
-
-  # Print a footer
-  $comp->print_obscomment_footer();
-
-}
-
-=item B<list_observations>
-
-Create a page containing a list of observations.
-
-  $page->list_observations($projectid);
-
-Only argument should be the C<CGI> object.
-
-=cut
-
-sub list_observations {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
-
-  $comp->print_obslog_header();
-
-  my ($inst, $ut);
-
-  ( $inst, $ut ) = $comp->obs_inst_summary( $projectid );
-
-  my $tempinst;
-  if( $inst =~ /rxa/i ) { $tempinst = "rxa3"; }
-  elsif( $inst =~ /rxb/i ) { $tempinst = "rxb3"; }
-  else { $tempinst = $inst; }
-
-  my $telescope = OMP::Config->inferTelescope( 'instruments', $tempinst );
-
-  if( defined( $inst ) &&
-      defined( $ut ) ) {
-    # We need to get an Info::ObsGroup object for this query object.
-    my $obsgroup;
-    try {
-      $obsgroup = $comp->cgi_to_obsgroup( projid => $projectid, ut => $ut, telescope => $telescope, inccal => 1 );
-#      print "<h2>Observations for $inst on $ut</h2><br>\n";
-    }
-    catch OMP::Error with {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print "Error in CGIObslog::list_observations: $errortext<br>\n";
-    }
-    otherwise {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print "Error in CGIObslog::list_observations: $errortext<br>\n";
-    };
-
-    my %options;
-    # Check if we're staff login or not (so we can tell obs_table
-    # how to draw the WORF links).
-    if( 1 ) {
-      $options{'worfstyle'} = 'project';
-    } else {
-      $options{'worfstyle'} = 'staff';
-    }
-
-    # And display the table.
-    $options{'showcomments'} = 1;
-    $options{'ascending'} = 0;
-    $options{'instrument'} = $inst;
-    try {
-      $comp->obs_table( $obsgroup, %options, projectid => $projectid );
-    }
-    catch OMP::Error with {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print "Error: $errortext<br>\n";
-    }
-    otherwise {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print "Error: $errortext<br>\n";
-    };
-  } else {
-      print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_table_head"><td>],
-        qq[<strong class="small_title">Observation Log</strong></td></tr>\n],
-        qq[<tr class="sum_other"><td>No observations available</td></tr></table>\n];
+  # Verify that we do have an Info::Obs object.
+  if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
+    throw OMP::Error::BadArgs("Must supply an Info::Obs object");
   }
 
-  $comp->print_obslog_footer();
+  if( defined( $projectid ) &&
+      $obs->isScience && (lc( $obs->projectid ) ne lc( $projectid ) ) ) {
+    throw OMP::Error( "Observation does not match project " . $projectid );
+  }
 
+  return {
+      target => url_absolute($q),
+      obs => $obs,
+      is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
+      status_class => \%OMP::Info::Obs::status_class,
+      messages => $messages,
+      %{$comp->obs_comment_form($obs, $projectid)},
+  };
 }
 
 =item B<list_observations_txt>
@@ -243,10 +138,9 @@ sub list_observations_txt {
   my %options;
   $options{'showcomments'} = 1;
   $options{'ascending'} = 1;
-  $options{'text'} = 1;
   $options{'sort'} = 'chronological';
   try {
-    $comp->obs_table( $obsgroup, %options, projectid => $projectid );
+    $comp->obs_table_text( $obsgroup, %options, projectid => $projectid );
   }
   catch OMP::Error with {
     my $Error = shift;
@@ -278,7 +172,9 @@ sub projlog_content {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
   my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
+  my $shiftcomp = new OMP::CGIComponent::Shiftlog(page => $self);
   my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
+  my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
   my $utdatestr = $q->url_param('utdate');
   my $no_retrieve = $q->url_param('noretrv');
@@ -292,8 +188,6 @@ sub projlog_content {
     croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
   }
 
-  print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
-
   # Get a project object for this project
   my $proj;
   try {
@@ -305,66 +199,54 @@ sub projlog_content {
 
   my $telescope = $proj->telescope;
 
+  # Perform any actions on the MSB.
+  my $response = $msbcomp->msb_action(projectid => $projectid);
+  my $errors = $response->{'errors'};
+  my $messages = $response->{'messages'};
+  return $self->_write_error(@$errors) if scalar @$errors;
+
+  my $comment_msb_id_fields = undef;
+
+  # Make a form for submitting MSB comments if an 'Add Comment'
+  # button was clicked
+  if ($q->param("submit_add_comment")) {
+    $comment_msb_id_fields = {
+        checksum => scalar $q->param('checksum'),
+        transaction => scalar $q->param('transaction'),
+    };
+  }
+
+  # Get code for tau plot display
+  # NOTE: disabled as we currently don't have fits in the OMP.
+  # my $plot_html = $weathercomp->tau_plot($utdate);
+
   # Make links for retrieving data
   # To keep people from following the links before the data are available
   # for download gray out the links if the current UT date is the same as the
   # UT date of the observations
   my $today = OMP::DateTools->today(1);
-  if ($today->ymd =~ $utdate) {
-    $today += ONE_DAY;
-    print "Retrieve data [This link will become active on " . $today->strftime("%Y-%m-%d %H:%M") . " GMT]";
-  } else {
-    my $pkgdataurl = OMP::Config->getData('pkgdata-url');
-
-    unless ($no_retrieve) {
-      print "<a href='$pkgdataurl?project=$projectid&utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
-      print "<a href='$pkgdataurl?project=$projectid&utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+  my $retrieve_date = undef;
+  unless ($no_retrieve) {
+    if ($today->ymd =~ $utdate) {
+      $retrieve_date = $today + ONE_DAY;
+    }
+    else {
+      $retrieve_date = 'now';
     }
   }
 
-  # Link to WORF thumbnails
-#  print "<p><a href=\"fbworfthumb.pl?ut=$utdate&telescope=$telescope\">View WORF thumbnails</a>\n";
-
-  # Link to shift comments
-  print "<p><a href='#shiftcom'>View shift comments</a> / <a href=\"fbshiftlog.pl?project=$projectid&date=$utdate&telescope=$telescope\">Add shift comment</a><p>";
-
-
-  # Get code for tau plot display
-  my $plot_html = $weathercomp->tau_plot_code($utdate);
-
-  # Link to the tau fits and wvm graph images on this page
-  if ($plot_html) {
-    print"<p><a href='#taufits'>View polynomial fit</a>";
-  }
-
-  print "<p><a href='#wvm'>View WVM graph</a>";
-
-  print '<p><a href="' . OMP::Config->getData( 'cgidir' ) . qq[/obslog_text.pl?ut=$utdate&project=$projectid">]
-        . "View text-based observation log</a>\n";
-
-  # Make a form for submitting MSB comments if an 'Add Comment'
-  # button was clicked
-  if ($q->param("Add Comment")) {
-    print $q->h2("Add a comment to MSB");
-    $msbcomp->msb_comment_form();
-  }
-
-  # Find out if (and execute) any actions are to be taken on an MSB
-  $msbcomp->msb_action();
-
   # Display MSBs observed on this date
-
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
                                                date => $utdate,
                                                comments => 0,
                                                transactions => 1,
                                                format => 'data',});
-  print $q->h2("MSB history for $utdate");
 
-  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid );
-  $msbcomp->msb_comments($observed, $sp);
+  my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+  my $msb_info = $msbcomp->msb_comments($observed, $sp);
 
   # Display observation log
+  my $obs_summary = undef;
   try {
     # Want to go to files on disk
     $OMP::ArchiveDB::FallbackToFiles = 1;
@@ -374,43 +256,38 @@ sub projlog_content {
                                       inccal => 1,);
 
     if ($grp->numobs > 0) {
-      print "<h2>Observation log</h2>";
-
-      $comp->obs_table($grp, projectid => $projectid);
-    } else {
-      # Don't display the table if no observations are available
-      print "<h2>No observations available for this night</h2>";
+      $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
     }
   } otherwise {
-    print "<h2>No observations available for this night</h2>";
   };
 
-  # Display shift log
-  my %shift_args = (date => $utdate,
-                    telescope => $telescope,
-                    zone => "UT");
+  return {
+      target => url_absolute($q),
+      project => $proj,
+      utdate => $utdate,
+      telescope => $telescope,
+      retrieve_date => $retrieve_date,
 
-  print "<a name='shiftcom'></a>";
-  OMP::CGIComponent::Shiftlog->new(page => $self)->display_shift_comments(\%shift_args);
+      obs_summary => $obs_summary,
 
-  # Display polynomial fit image
-  if ($plot_html) {
-    print "<p>$plot_html";
+      shift_log_comments => $shiftcomp->get_shift_comments({
+          date => $utdate,
+          telescope => $telescope,
+          zone => "UT",
+      }),
+
+      dq_nightly_html => $includecomp->include_file_ut(
+          'dq-nightly', $utdate, projectid => $projectid),
+
+      msb_info => $msb_info,
+      comment_msb_id_fields => $comment_msb_id_fields,
+      comment_msb_messages => $messages,
+
+      weather_plots => [
+          grep {$_->[2]}
+          ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
+      ],
   }
-
-  print "<p>";
-  # Display WVM graph
-  my $wvm_html = $weathercomp->wvm_graph_code($utdate);
-  print $wvm_html;
-
-  # Include nightly data quality analysis.
-  print "\n<h2>Data Quality Analysis</h2>\n\n",
-        '<p><a href="https://pipelinesandarchives.blogspot.com/',
-        '2013/03/new-omp-features-for-projects.html">',
-        'Explanation of the graphs and tables.',
-        "</a></p>\n\n";
-  OMP::CGIComponent::IncludeFile->new(page => $self)->include_file_ut(
-      'dq-nightly', $utdate, projectid => $projectid);
 }
 
 =back

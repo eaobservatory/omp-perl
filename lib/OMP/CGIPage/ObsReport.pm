@@ -18,13 +18,13 @@ reports.
 use 5.006;
 use strict;
 use warnings;
+
 use Carp;
 
 use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
-use OMP::CGIComponent::Helper qw/start_form_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::Weather;
 use OMP::Constants qw(:done);
@@ -54,15 +54,17 @@ sub night_report {
   my $self = shift;
   my $q = $self->cgi();
 
-  my $date_format = "%Y-%m-%d";
+  my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
+  my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
   my $delta;
   my $utdate;
   my $utdate_end;
+  my $start;
 
-  # Get delta and start UT date from multi night form
   if ($q->param('utdate_end')) {
-    $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate_form'));
+    # Get delta and start UT date from multi night form
+    $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate'));
     $utdate_end = OMP::DateTools->parse_date(scalar $q->param('utdate_end'));
 
     # Croak if date format is wrong
@@ -73,57 +75,44 @@ sub night_report {
     $delta = $utdate_end - $utdate;
     $delta = $delta->days + 1;  # Need to add 1 to our delta
                                 # to include last day
-  } elsif ($q->param('utdate_form')) {
-    # Get UT date from single night form
-    $utdate = OMP::DateTools->parse_date($q->param('utdate_form'));
+  }
+  else {
+    if ($q->param('utdate')) {
+      # Get UT date from single night form
+      $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate'));
 
-    # Croak if date format is wrong
-    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if (! $utdate);
+      # Croak if date format is wrong
+      croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+        if (! $utdate);
+    }
+    else {
+      # No UT date in URL.  Use current date.
+      $utdate = OMP::DateTools->today(1);
 
-  } else {
-    # No form params.  Get params from URL
+      $start = substr($utdate->ymd(), 0, 8);
+    }
 
     # Get delta from URL
-    if ($q->url_param('delta')) {
+    if ($q->param('delta')) {
       my $deltastr = $q->param('delta');
       if ($deltastr =~ /^(\d+)$/) {
         $delta = $1;
       } else {
         croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
       }
-    }
 
-    # Get start date from URL
-    if ($q->url_param('utdate')) {
-      $utdate = OMP::DateTools->parse_date($q->url_param('utdate'));
-
-    # Croak if date format is wrong
-    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if (! $utdate);
-
-    } else {
-      # No UT date in URL.  Use current date.
-      $utdate = OMP::DateTools->today(1);
+      # We need an end date for display purposes
+      $utdate_end = $utdate;
 
       # Subtract delta (days) from date if we have a delta
-      if ($delta) {
-        $utdate -= $delta * ONE_DAY;
-      }
-    }
+      $utdate = $utdate_end - ($delta - 1) * ONE_DAY;
 
-    # We need an end date for display purposes
-    if ($delta) {
-      $utdate_end = $utdate + $delta * ONE_DAY;
-      $utdate_end -= ONE_DAY;  # Our delta does not include
-                               # the last day
+      undef $start;
     }
   }
 
   # Get the telescope from the URL
-  my $telstr = $q->url_param('tel');
-
-  my $nr_url = $q->url(-absolute => 1);
+  my $telstr = $q->param('tel');
 
   # Untaint the telescope string
   my $tel;
@@ -134,9 +123,7 @@ sub night_report {
       croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
     }
   } else {
-    print "Please select a telescope to view observing reports for<br>";
-    print "<a href='${nr_url}?tel=jcmt'>JCMT</a> | <a href='${nr_url}?tel=ukirt'>UKIRT</a>";
-    return;
+    return $self->_write_error('No telescope selected.');
   }
 
   # Setup our arguments for retrieving night report
@@ -144,204 +131,58 @@ sub night_report {
               telescope => $tel,);
   ($delta) and $args{delta_day} = $delta;
 
-  my $other_nr_link = $tel =~ m/^jcmt$/i ? 'ukirt' : 'jcmt' ;
-  $other_nr_link = sprintf '<i>(view <a href="%s?tel=%s&utdate_form=%s&utdate_end=%s">%s</a> report)</i>' ,
-                      $nr_url ,
-                      $other_nr_link ,
-                      $utdate->ymd() ,
-                      ( $utdate_end ? $utdate_end->ymd() : '' ) ,
-                      uc( $other_nr_link )
-                      ;
+  my $other_nr_link = $tel =~ m/^jcmt$/i ? 'UKIRT' : 'JCMT' ;
 
   # Get the night report
   my $nr = new OMP::NightRep(%args);
 
-  if (! $nr) {
-    print "<h2>No observing report available for". $utdate->ymd ."at $tel</h2>";
+  return $self->_write_error(
+      'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
+      unless $nr;
 
-    print '<p>' , $other_nr_link , '<p>';
-    return;
-  }
-
-  # Get our current URL
-#    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
-  my $url = $q->url(-absolute => 1);
-
-  my $start = $utdate->ymd();
-  my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x3;
-  if ( $delta ) {
-
-    $other_date_link =
-      qq[<a href='$url?tel=$tel'>Click here to view a single night report</a>];
-
-    $end_field = " and ending on "
-                .  $q->textfield( -name=>"utdate_end", -size=>10 )
-                ;
-  }
-  else {
-
-    $other_date_link =
-      qq[<a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>];
-
-    $start = substr( $start, 0, 8);
-
+  my ($prev, $next);
+  unless ($delta) {
     my $epoch = $utdate->epoch();
-    my ( $prev , $next ) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
-
-    my $day_format = qq[<a href='%s?utdate=%s&tel=%s'>Go to %s</a>];
-    $prev = sprintf $day_format , $url , $prev->ymd() , $tel , 'previous'; #'
-    $next = sprintf $day_format , $url , $next->ymd() , $tel , 'next'; #'
-
-    $prev_next_link = join ' | ' , $prev , $next;
+    ($prev, $next) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
   }
 
-  print "<table border=0>";
+  # NOTE: disabled as we currently don't have fits in the OMP.
+  # taufits: $weathercomp->tau_plot($utdate),
+  # NOTE: also currently disabled?
+  # wvm: $weathercomp->wvm_graph($utdate->ymd),
+  # zeropoint: $weathercomp->zeropoint_plot($utdate),
+  # NOTE: currently not working:
+  # ['seeing', 'UKIRT K-band seeing', $weathercomp->seeing_plot($utdate)],
+  # ['extinction', 'UKIRT extinction', $weathercomp->extinction_plot($utdate)],
 
-  _print_tr( _make_td( 1 ,
-                        "<h2 class='title'>Observing Report for " ,
-                        $utdate->ymd , $delta ? ( ' to ' . $utdate_end->ymd ) : () ,
-                        " at $tel</h2> "
-                      )
-            );
+  $self->_sidebar_night($tel, $utdate) unless $delta;
 
-  $delta or _print_tr( _make_td( 1 , $prev_next_link ) );
+  return {
+      target_base => $q->url(-absolute => 1),
 
-  _print_tr( _make_td( 1 ,
-                        start_form_absolute($q) ,
-                        "\nView report " ,
-                        ( $delta ? ' starting on ' : ' for ' ) ,
-                        $q->textfield(  -name => "utdate_form",
-                                        -size => 10,
-                                        -default => $start,
-                                      ) ,
-                        $end_field ,
-                        ' UT ' .
-                        $q->submit( -name  => "view_report",
-                                    -label => "Submit"
-                                  ) ,
-                        $q->end_form()
-                      )
-            );
+      telescope => $tel,
+      other_telescope => $other_nr_link,
 
-  _print_tr( _make_td( 1 , $other_date_link ) );
+      ut_date => $utdate,
+      ut_date_end => $utdate_end,
+      ut_date_delta => $delta,
+      ut_date_prev => $prev,
+      ut_date_next => $next,
+      ut_date_start => $start,  # starting value for form
 
-  _print_tr( _make_td( 1 , $other_nr_link ) );
+      night_report => $nr,
 
-  print "\n</table>";
+      dq_nightly_html => ($tel ne 'JCMT' || $delta ? undef :
+          $includecomp->include_file_ut('dq-nightly', $utdate->ymd())),
 
-  print "<p>";
-
-  my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
-
-  # Link to CSO fits tau plot
-  my $plot_html = $weathercomp->tau_plot_code($utdate);
-  ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
-
-  # Link to WVM graph
-  if (! $utdate_end) {
-#      print "<a href='#wvm'>View WVM graph</a><br>";
-  }
-
-  # Retrieve HTML for the various plots.
-  my $extinction_html = $weathercomp->extinction_plot_code( $utdate );
-  my $forecast_html = $weathercomp->forecast_plot_code( $utdate );
-  my $meteogram_html = $weathercomp->meteogram_plot_code( $utdate );
-  my $opacity_html = $weathercomp->opacity_plot_code( $utdate );
-  my $seeing_html = $weathercomp->seeing_plot_code( $utdate );
-  my $transp_html = $weathercomp->transparency_plot_code( $utdate );
-  my $zeropoint_html = $weathercomp->zeropoint_plot_code( $utdate );
-
-  print "Weather information: ";
-
-  # Link to meteogram plot.
-  ( $meteogram_html ) and print "<a href='#meteogram'>JAC meteogram</a> ";
-
-  # Link to opacity plot.
-  ( $opacity_html ) and print "<a href='#opacity'>Mauna Kea opacity</a> ";
-
-  # Link to seeing plot.
-  ( $seeing_html ) and print "<a href='#seeing'>UKIRT K-band seeing</a> ";
-
-  # Make it pretty.
-  print "<br>\n";
-
-  # Link to UKIRT extinction plot.
-  ( $extinction_html ) and print "<a href='#extinction'>UKIRT extinction</a> ";
-
-  # Link to CFHT transparency plot.
-  ( $transp_html ) and print "<a href='#transparency'>CFHT transparency</a> ";
-
-  # Link to forecast plot.
-  ( $forecast_html ) and print "<a href='#forecast'>MKWC forecast</a>";
-
-  print "<p/>\n";
-
-  if ($tel eq 'JCMT') {
-      $nr->ashtml( worfstyle => 'none',
-                   commentstyle => 'staff', );
-  } else {
-      $nr->ashtml( worfstyle => 'staff',
-                   commentstyle => 'staff', );
-  }
-
-  if ($tel eq 'JCMT') {
-    print "\n<h2>Data Quality Analysis</h2>\n\n";
-    OMP::CGIComponent::IncludeFile->new(page => $self)->include_file_ut(
-        'dq-nightly', $utdate->ymd());
-  }
-
-  # Display tau plot
-  ($plot_html) and print "<p>$plot_html</p>";
-
-  # Display WVM graph
-  my $wvm_html;
-
-  if (! $utdate_end) {
-#      $wvm_html = $weathercomp->wvm_graph_code($utdate->ymd);
-#      print $wvm_html;
-  }
-
-  # Display JAC meteogram.
-  ( $meteogram_html ) and print "<p>$meteogram_html</p>\n";
-
-  # Display opacity plot.
-  ( $opacity_html ) and print "<p>$opacity_html</p>\n";
-
-  # Display seeing plot.
-  ( $seeing_html ) and print "<p>$seeing_html</p>\n";
-
-  # Display extinction plot.
-  ( $extinction_html ) and print "<p>$extinction_html</p>\n";
-
-  # Display transparency plot.
-  ( $transp_html ) and print "<p>$transp_html</p>\n";
-
-  # Display forecast plot.
-  ( $forecast_html ) and print "<p>$forecast_html</p>\n";
-
-  return;
-}
-
-sub _print_tr {
-
-  my ( @text ) = @_;
-
-  print qq[\n<tr>] , @_ , qq[\n</tr>];
-  return;
-
-}
-
-sub _make_td {
-
-  scalar @_ or return;
-
-  my ( $span , @text ) = @_;
-
-  $span ||= 1;
-  return
-    qq[<td colspan='$span'>]
-    . join '' , @text , q[</td>]
-    ;
+      weather_plots => ($delta ? undef : [
+          grep {$_->[2]}
+          ['meteogram', 'EAO meteogram', $weathercomp->meteogram_plot($utdate)],
+          ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
+          ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
+          ['transparency', 'CFHT transparency', $weathercomp->transparency_plot($utdate)],
+      ]),
+  };
 }
 
 =back

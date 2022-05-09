@@ -222,21 +222,17 @@ sub _reorganize_shiftlog {
 
   # Connect to the user database
   my $udb = new OMP::UserDB( DB => $self->db );
+  # Get the User information as an OMP::User object from the author ids
+  my $users = $udb->getUserMultiple([keys %{{map {$_->{'author'} => 1} @$rows}}]);
 
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
-
-    # Get the User information as an OMP::User object from the author id
-    my $user = $udb->getUser( $row->{author} );
-
-    my $obs = new OMP::Info::Comment(
+    push @return, new OMP::Info::Comment(
                      text => $row->{text},
                      date => OMP::DateTools->parse_date( $row->{date} ),
-                     author => $user
+                     author => $users->{$row->{'author'}},
       );
-
-    push @return, $obs;
   }
 
   # Sort them by date.

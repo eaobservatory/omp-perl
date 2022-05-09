@@ -17,6 +17,6 @@ use OMP::CGIPage::Obslog;
 
 OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::Obslog::projlog_content,
-    undef,
     'project',
-    title => 'Project Log');
+    title => 'Project Log',
+    template => 'project_obs_log.html');

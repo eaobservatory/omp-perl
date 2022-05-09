@@ -1820,24 +1820,6 @@ sub correlator {
       my @hwmap = $hw_map->receptor( $r );
       throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map!") unless @hwmap;
 
-      # Temporary slot mapping to use LO2 #3 and #4 first for Namakanui.
-      my $slot_mapping = undef;
-      if (4 == scalar @hwmap) {
-        $slot_mapping = [2, 3, 0, 1];
-      }
-      elsif (2 == scalar @hwmap) {
-        if ((grep {$info{'PROJECTID'} eq $_} qw/M17BL004 M21AH07C M22AH07C/)
-                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
-                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
-            $slot_mapping = [1, 0];
-        }
-      }
-      throw OMP::Error::FatalError(
-        "Slot mapping size does not match the number of slots!")
-        if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
-
       # Some configurations actually use multiple correlator modules in
       # a single subband so we need to take this into account when
       # calculating the mapping.
@@ -1852,7 +1834,7 @@ sub correlator {
         throw OMP::Error::TranslateFail("The observation specified " . ($slot_i + 1) . " (or more) subbands but there are only ". @hwmap . " slots available for receptor '$r'")
           if $slot_i > $#hwmap;
 
-        my $hw = $hwmap[(defined $slot_mapping) ? $slot_mapping->[$slot_i] : $slot_i];
+        my $hw = $hwmap[$slot_i];
 
         my $cmid = $hw->{CM_ID};
         my $dcmid = $hw->{DCM_ID};
@@ -1936,9 +1918,7 @@ sub correlator {
   throw OMP::Error::FatalError("Somehow the LO2 settings were never calculated")
     unless exists $info{freqconfig}->{LO2};
 
-  # Temporary default LO2 frequency to avoid tuning issues with high
-  # frequency synthesizer of LO2 #1.
-  my @lo2 = (7.5e9) x 4;
+  my @lo2;
   for my $i (0..$#lo2spw) {
     my $spwid = $lo2spw[$i];
     next unless defined $spwid;
@@ -1950,16 +1930,6 @@ sub correlator {
     # store it
     $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
   }
-
-  # Temporary check: LO2 #1 (array index 0)'s high synthesizer is
-  # inoperative.  [6-8GHz OK, 8-10GHz not OK]
-  # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
-  if (defined $lo2[0] and ($lo2[0] > 7.9999e9)) {
-    throw OMP::Error::FatalError(sprintf(
-      "LO2 #1 can currently not tune above 8 GHz (%.3f GHz requested)",
-      $lo2[0] / 1.0e9));
-  }
-
   $if->lo2freqs( @lo2 );
 
   # Set the LO3 to a fixed value (all the test files do this)
@@ -3492,35 +3462,29 @@ sub bandwidth_mode {
       # Subband 1 is referenced to LO channel and subband 2 to HI
       #     [ |     |:]
       #             [:|     | ]
-      my $frontend = $self->ocs_frontend($info{'instrument'});
-      if ($frontend =~ /harp/i) {
-        @refchan = ($nch_lo, $nch_hi);
-      }
-      else {
-        @refchan = ($nch_hi, $nch_lo);
-      }
+      @refchan = ($nch_lo, $nch_hi);
       @sbif = ($s->{'if'}) x 2;
 
     } elsif ($nsubband == 3) {
       # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      #              :  [ |     | ]
       # [ |     | ]  :
+      #              :  [ |     | ]
       @refchan = ($nch_mid,
-                  $nch_mid + $subband_shift,
-                  $nch_mid - $subband_shift);
+                  $nch_mid - $subband_shift,
+                  $nch_mid + $subband_shift);
       @sbif = ($s->{'if'}) x 3;
 
     } elsif ($nsubband == 4) {
       # Subbands all referenced to the centre IF.
       #         [ |     |:]
       #                 [:|     | ]
-      # [ |     | ]      :
       #                  :      [ |     | ]
+      # [ |     | ]      :
       @refchan = ($nch_lo,
                   $nch_hi,
-                  $nch_lo - $subband_shift,
-                  $nch_hi + $subband_shift);
+                  $nch_hi + $subband_shift,
+                  $nch_lo - $subband_shift);
       @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS

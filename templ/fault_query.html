@@ -1,0 +1,168 @@
+[% USE scalar -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_fault.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>[% title | html %]</h1>
+
+[% IF message.defined %]
+<p>
+    [% message | html %]
+</p>
+[% END %]
+
+[% PROCESS "query_form" %]
+
+[% IF total_loss %]
+    <p><strong>Total time lost: [% total_loss %] hours</strong></p>
+[% END %]
+
+[% IF fault_list.defined %]
+    <p>
+        [% FOREACH sort_order IN sort_orders %]
+            [% IF sort_order.0 == selected_sort_order %]
+                Showing [% sort_order.1 | html %]
+            [% ELSE %]
+                <a href="[% sort_order.2 | url %]">Show [% sort_order.1 | html %]</a>
+            [% END %]
+            [% IF ! loop.last %]|[%END %]
+        [% END %]
+        <br />
+        [% FOREACH order_by IN order_bys %]
+            [% IF order_by.0 == selected_order_by %]
+                Sorted by [% order_by.1 | html %]
+            [% ELSE %]
+                <a href="[% order_by.2 | url %]">Sort by [% order_by.1 | html %]</a>
+            [% END %]
+            [% IF ! loop.last %]|[%END %]
+        [% END %]
+    </p>
+
+    [% render_fault_table(fault_list) %]
+[% ELSIF fault_summary.defined %]
+    [% INCLUDE "fault_summary.html" summary=fault_summary %]
+[% END %]
+[% END %]
+
+[% BLOCK query_form %]
+    <form method="get" action="[% form_info.target %]">
+        <input type="hidden" name="faultsearch" value="true"/> <!-- TODO: remove need for this? -->
+        <table cellspacing="0" cellpadding="3" border="0" bgcolor="#dcdcf2">
+            <tr>
+                <td colspan="2">
+                    <b>Find faults:</b>
+                    [% FOREACH action IN form_info.actions %]
+                        <label>
+                            <input type="radio" name="action" value="[% action.0 | html %]" [% IF form_info.values.action == action.0 %]checked="checked"[% END %] />
+                            [% action.1 | html %]
+                        </label>
+                    [% END %]
+                </td>
+            <tr>
+                <td colspan="2">
+                    <b>By user <small>(ID)</small></b>
+                    <input type="text" name="author" size="17" maxlength="32" value="[% form_info.values.author | html %]" />
+                </td>
+            <tr>
+                <td valign="top" align="right">
+                    [% FOREACH period IN form_info.periods %]
+                        <label>
+                            <input type="radio" name="period" value="[% period.0 | html %]" [% IF form_info.values.period == period.0 %]checked="checked"[% END %] />
+                            [% period.1 | html %]
+                        </label>
+                        [% IF ! loop.last %]
+                            <br />
+                        [% END %]
+                    [% END %]
+                </td>
+                <td valign="top">
+                    <small>(YYYYMMDD)</small>
+                    <input type="text" name="mindate" size="18" maxlength="32" value="[% form_info.values.mindate %]" />
+                    and
+                    <input type="text" name="maxdate" size="18" maxlength="32" value="[% form_info.values.maxdate %]" />
+                    [% form_info.timezone %]
+                    <br />
+                    <input type="text" name="days" size="3" maxlength="4" value="[% form_info.values.days %]" />
+                    days
+                </td>
+            <tr>
+                <td colspan="2">
+                    [% IF form_info.show_id_fields %]
+                    <b>[% form_info.system_label %]</b>
+                        <select name="system">
+                            <option [% IF ! form_info.values.system.defined %]selected="selected"[% END %] value="any">Any</option>
+                            [% FOREACH system IN form_info.systems %]
+                                <option [% IF form_info.values.system == system.0 %]selected="selected"[% END %] value="[% system.0 %]">[% system.1 | html %]</option>
+                            [% END %]
+                        </select>
+                        <b>Type</b>
+                        <select name="type">
+                            <option [% IF ! form_info.values.type.defined %]selected="selected"[% END %] value="any">Any</option>
+                            [% FOREACH type IN form_info.types %]
+                                <option [% IF form_info.values.type == type.0 %]selected="selected"[% END %] value="[% type.0 %]">[% type.1 | html %]</option>
+                            [% END %]
+                        </select>
+                    [% END %]
+                    <b>Status</b>
+                    <select name="status">
+                        <option [% IF ! form_info.values.status.defined %]selected="selected"[% END %] value="any">Any</option>
+                        [% FOREACH status IN form_info.statuses %]
+                            <option [% IF form_info.values.status == status.0 %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            <tr>
+                <td colspan="2">
+                    [% IF form_info.show_timelost %]
+                        <label>
+                            <input type="checkbox" name="timelost" value="true" [% IF form_info.values.timelost %]checked="checked"[% END %] />
+                            Return time-losing faults only
+                        </label>
+                        <br />
+                    [% END %]
+                    [% IF form_info.show_show_affected %]
+                        <label>
+                            <input type="checkbox" name="show_affected" value="true" [% IF form_info.values.show_affected %]checked="checked"[% END %] />
+                            Show affected projects
+                        </label>
+                        <br />
+                    [% END %]
+                    <label>
+                        <input type="checkbox" name="chronic" value="true" [% IF form_info.values.chronic %]checked="checked"[% END %] />
+                        Return chronic faults only
+                    </label>
+                    <br />
+                    <label>
+                        <input type="checkbox" name="summary" value="true" [% IF form_info.values.summary %]checked="checked"[% END %] />
+                        Organize by system/type
+                    </label>
+                </td>
+            <tr>
+                <td colspan=2>
+                    <b>Search in:</b>
+                        [% FOREACH text_search IN form_info.text_searches %]
+                        <label>
+                            <input type="radio" name="text_search" value="[% text_search | html %]" [% IF form_info.values.text_search == text_search %]checked="checked"[% END %] />
+                            [% text_search %]
+                        </label>
+                        [% END %]
+                        (<label><input type="checkbox" name="text_boolean" value="1" [% IF form_info.values.text_boolean %]checked="checked"[% END %] />boolean mode </label>
+                        <a href="https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode" target="_blank">?</a>)
+                </td>
+            <tr>
+                <td colspan=2>
+                    <input type="text" name="text" size="44" maxlength="256" value="[% form_info.values.text | html %]"/>
+                    &nbsp;&nbsp;
+                    <input type="submit" name="search" value="Search"/>
+                </td>
+                <input type="hidden" name="cat" value="[% form_info.category | html %]"/>
+            <tr>
+                <td colspan="2" bgcolor="#babadd">
+                    <b>Or display</b>
+                    <input type="submit" name="major" value="Major faults"/>
+                    <input type="submit" name="recent" value="Recent faults (2 days)"/>
+                    <input type="submit" name="current" value="Current faults (14 days)"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END %]

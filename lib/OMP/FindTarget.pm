@@ -18,7 +18,7 @@ use OMP::ProjDB;
 use OMP::MSBDB;
 
 use base qw/Exporter/;
-our @EXPORT_OK = qw/find_and_display_targets/;
+our @EXPORT_OK = qw/find_and_display_targets find_targets display_targets/;
 
 our $debug = 0;
 
@@ -33,6 +33,10 @@ Finds and displays targets.
 =cut
 
 sub find_and_display_targets {
+    display_targets(find_targets(@_));
+}
+
+sub find_targets {
     my %opt = @_;
 
     my $dsep = undef;
@@ -83,7 +87,6 @@ sub find_and_display_targets {
                 AND M2.projectid = P2.projectid
                 AND Q2.msbid = M2.msbid
                 AND P2.telescope LIKE \"$tel\"
-                AND P2.semester LIKE \"$sem\"
                 AND Q2.coordstype = \"RADEC\"
                 AND P.projectid NOT LIKE P2.projectid
                 AND P.projectid NOT LIKE '%EC%'
@@ -158,6 +161,14 @@ sub find_and_display_targets {
     # Disconnect from DB server
     $db->disconnect();
 
+    return $row_ref unless wantarray;
+    return ($row_ref, $dsep);
+}
+
+sub display_targets {
+    my $row_ref = shift;
+    my $dsep = shift;
+
     # Print output
     my ($hh, $mm, $ss, $sss, $sign, $dd, $am, $as, $ass );
     my $pi = 4.0*atan(1.0);
@@ -175,14 +186,6 @@ sub find_and_display_targets {
         my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
 
         if ($n == 1 || $ref ne $pref ) {
-          if ($ref =~ /^\d/) {
-            my ($ra_r, $dec_r) = split /\s+/, $ref;
-            my ($sign_ra, @hh) = palDr2tf(2, $ra_r);
-            my ($sign,    @dd) = palDr2af(2, $dec_r);
-            $ref = sprintf "%2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d",
-                         $hh[0], $hh[1], $hh[2], $hh[3],
-                         $sign, $dd[0], $dd[1], $dd[2], $dd[3];
-          }
           print "Targets within $dsep arcsecs from  ${ref}:\n";
           $pref = $ref;
         }

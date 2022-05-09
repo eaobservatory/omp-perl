@@ -1,0 +1,126 @@
+[% MACRO render_msb_comment_form(target, comment_msb_id_fields) BLOCK %]
+    <form method="post" action="[% target | url %]">
+        <table border="0">
+            <tr>
+                <td>User:</td>
+                <td>[% omp_user.name | html %]</td>
+            </tr>
+            <tr>
+                <td valign="top">Comment:</td>
+                <td><textarea name="comment" rows="5" cols="80"></textarea></td>
+            </tr>
+            <tr>
+                <td colspan="2" align="right">
+                    <input type="submit" name="submit_msb_comment" value="Submit" />
+                    [% render_hidden_fields(comment_msb_id_fields) %]
+                </td>
+            </tr>
+        </table>
+    </form>
+[% END -%]
+[% MACRO render_msb_comments(msb_info) BLOCK %]
+    <table class="infobox" width="100%" cellspacing="0" border="0" cellpadding="3">
+    [% FOREACH entry IN msb_info.msbs %]
+        <tr>
+            <th align="right">
+                [% loop.count %].
+            </th>
+            <th align="left" colspan="2">
+                [% IF entry.info.title %]
+                    [% entry.info.title | html %]
+                [% ELSE %]
+                    [NONE]
+                [% END %]
+            </th>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td>
+                [% IF entry.msb.defined %]
+                    [% IF entry.msb.isRemoved %]
+                        Removed
+                    [% ELSIF entry.msb.remaining == 0 %]
+                        Complete
+                    [% ELSE %]
+                        Remaining: [% entry.msb.remaining | html %]
+                    [% END %]
+                [% ELSE %]
+                    &nbsp;
+                [% END %]
+            </td>
+            <td>
+                <b>Target:</b>
+                [% entry.info.target | html %]
+                &nbsp; &nbsp;
+                <b>Waveband:</b>
+                [% entry.waveband_xhz | html %]
+                &nbsp; &nbsp;
+                <b>Instrument:</b>
+                [% entry.info.instrument | html %]
+            </td>
+        </tr>
+        [% FOREACH comment_group IN entry.comments %]
+            [% FOREACH comment IN comment_group.comments %]
+                [% SET status = comment.status %]
+                <tr bgcolor="[% msb_info.status_colors.$status %]">
+                    <td>&nbsp;</td>
+                    <td>
+                        [% IF loop.first && comment.tid.defined %]
+                            <form method="post" action="[% msb_info.target | url %]">
+                                <input type="submit" name="submit_add_comment" value="Add comment" /> 
+                                [% IF (comment_group.n_done > 0) && (entry.msb.defined) %]
+                                    <input type="submit" name="submit_undo" value="Undo" />
+                                [% END %]
+                                <input type="hidden" name="checksum" value="[% entry.info.checksum | html %]"  />
+                                <input type="hidden" name="projectid" value="[% entry.info.projectid | html %]"  />
+                                <input type="hidden" name="transaction" value="[% comment.tid | html %]"  />
+                            </form>
+                        [% ELSE %]
+                            &nbsp;
+                        [% END %]
+                    </td>
+                    <td>
+                        <i>[% comment.date | html %] UT</i>[% IF comment.author.defined %],
+                            [% render_user_name(comment.author) %]
+                        [% END %]
+                        <br />
+                        [% comment.text | html %]
+                    </td>
+                </tr>
+            [% END %]
+
+            [% IF ! loop.last %]
+                <tr>
+                    <td colspan="2">&nbsp;</td>
+                    <td><hr /></td>
+                </tr>
+            [% END %]
+        [% END %]
+
+        [% IF entry.msb.defined %]
+            <tr>
+                <td>&nbsp;</td>
+                <td colspan="2">
+                    <form method="post" action="[% msb_info.target | url %]">
+                        [% IF entry.msb.isRemoved %]
+                            <input type="submit" name="submit_unremove" value="Un-remove"/>
+                            (re-enable this MSB in the science program)
+                        [% ELSE %]
+                            <input type="submit" name="submit_remove" value="Remove"/>
+                            (disable this MSB in the science program)
+                        [% END %]
+                        <input type="hidden" name="checksum" value="[% entry.info.checksum | html %]"  />
+                        <input type="hidden" name="projectid" value="[% entry.info.projectid | html %]"  />
+                    </form>
+                </td>
+            </tr>
+        [% END %]
+
+        [% IF ! loop.last %]
+            <tr bgcolor="#d3d3dd">
+                <td colspan="3">&nbsp;</td>
+            </tr>
+        [% END %]
+    [% END %]
+    </table>
+[% END -%]

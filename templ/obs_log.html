@@ -1,0 +1,83 @@
+[% USE scalar -%]
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_night_report.html" -%]
+[% PROCESS "macro_msb.html" -%]
+[% PROCESS "macro_shift_log.html" -%]
+[% PROCESS "macro_obs_log.html" -%]
+[% WRAPPER "layout.html" %]
+
+<h1>
+    Observing Report
+    for [% ut_date.ymd | html %]
+    [% IF ut_date_delta %]
+        to [% ut_date_end.ymd | html %]
+    [% END %]
+    at [% telescope | html %]
+</h1>
+
+
+<p>
+    [% UNLESS ut_date_delta %]
+        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">Go to previous</a>
+        |
+        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Go to next</a>
+    [% END %]
+</p>
+
+<form method="get" action="[% target_base | html %]">
+    <p>
+        View report
+        [% IF ut_date_delta %]
+            starting on
+        [% ELSE %]
+            for
+        [% END %]
+        <input type="text" name="utdate" value="[% (ut_date_start.defined ? ut_date_start : ut_date.ymd) | html %]" size="10" />
+        [% IF ut_date_delta %]
+            and ending on
+            <input type="text" name="utdate_end" value="[% ut_date_end.ymd | html %]" size="10" />
+        [% END %]
+        UT
+        <input type="submit" name="" value="Submit" />
+        <input type="hidden" name="tel" value="[% telescope | html %]" />
+    </p>
+</form>
+
+<p>
+    [% IF ut_date_delta %]
+        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">View a single night report</a>
+    [% ELSE %]
+        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">View a report for multiple nights</a>
+    [% END %]
+</p>
+
+<p>
+    <i>(View
+    <a href="[% target_base | html %]?tel=[% other_telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %][% IF ut_date_delta %]&amp;utdate_end=[% ut_date_end.ymd | uri %][% END %]">[% other_telescope | html %]</a>
+    report)</i>
+</p>
+
+[% render_weather_plot_links(weather_plots) %]
+
+[% IF ut_date_delta < 14 %]
+    <p>
+        <a href="#faultsum">Fault summary</a>
+        <br />
+        <a href="#shiftcom">Shift log comments</a>
+        /
+        <a href="shiftlog.pl?date=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">Add shift log comment</a>
+        <br />
+        <a href="#obslog">Observation log</a>
+    <p>
+[% END %]
+
+[% render_night_report(night_report) %]
+
+[% IF dq_nightly_html.defined %]
+    <h2>Data quality analysis</h2>
+
+    [% dq_nightly_html %]
+[% END %]
+
+[% render_weather_plots(weather_plots) %]
+[% END %]

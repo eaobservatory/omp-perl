@@ -13,6 +13,7 @@ CREATE TABLE `ompauth` (
   `addr` varchar(64) DEFAULT NULL,
   `agent` varchar(255) DEFAULT NULL,
   `is_staff` tinyint(1) NOT NULL DEFAULT 0,
+  `duration` varchar(32) NOT NULL DEFAULT 'default',
   PRIMARY KEY (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfault` (
@@ -274,7 +275,8 @@ CREATE TABLE `ompschedslot` (
 CREATE TABLE `ompsciprog` (
   `projectid` varchar(32) NOT NULL,
   `timestamp` int(11) NOT NULL,
-  `sciprog` longtext NOT NULL
+  `sciprog` longtext NOT NULL,
+  PRIMARY KEY (`projectid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompshiftlog` (
   `shiftid` bigint(20) NOT NULL AUTO_INCREMENT,

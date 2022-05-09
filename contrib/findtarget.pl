@@ -30,6 +30,7 @@ use Getopt::Long;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
+use OMP::Password;
 
 # not 0: debug output
 my $debug = 0;

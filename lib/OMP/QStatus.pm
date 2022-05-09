@@ -148,26 +148,33 @@ sub query_queue_status {
 
     # Run a simulated set of queries to determine which projects
     # have MSBs available
+
+    my $query_format = '<MSBQuery>' .
+        '<telescope>' . $telescope . '</telescope>' .
+        (exists $opt{'country'}
+            ? (join '', map {'<country>' . $_ . '</country>'}
+                    ((ref $opt{'country'}) ? @{$opt{'country'}} : $opt{'country'}))
+            : '') .
+        (exists $opt{'semester'}
+            ? (join '', map {'<semester>' . $_ . '</semester>'}
+                    ((ref $opt{'semester'}) ? @{$opt{'semester'}} : $opt{'semester'}))
+            : '') .
+        (exists $opt{'instrument'}
+            ? (join '', map {'<instrument>' . $_ . '</instrument>'}
+                    ((ref $opt{'instrument'}) ? @{$opt{'instrument'}} : $opt{'instrument'}))
+            : '') .
+        (exists $opt{'tau'}
+            ? '<tau>' . $opt{'tau'} . ' </tau>'
+            : '') .
+        '<date>%s</date>' .
+    '</MSBQuery>';
+
     for (my $refdate = $utmin; $refdate <= $utmax; $refdate += ONE_HOUR) {
         my $hr = $refdate->hour();
 
         # Form query object via XML
-        my $query = new OMP::MSBQuery(XML => '<MSBQuery>' .
-            '<telescope>' . $telescope . '</telescope>' .
-            (exists $opt{'country'}
-                ? '<country>' . $opt{'country'} . '</country>'
-                : '') .
-            (exists $opt{'semester'}
-                ? '<semester>' . $opt{'semester'} . '</semester>'
-                : '') .
-            (exists $opt{'instrument'}
-                ? '<instrument>'. $opt{'instrument'} . '</instrument>'
-                : '') .
-            (exists $opt{'tau'}
-                ? '<tau>' . $opt{'tau'} . ' </tau>'
-                : '') .
-            '<date>' . $refdate->datetime() . '</date>' .
-            '</MSBQuery>');
+        my $query = new OMP::MSBQuery(
+            XML => (sprintf $query_format, $refdate->datetime()));
 
         my @results = $db->queryMSB($query, 'object');
 

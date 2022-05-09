@@ -22,18 +22,20 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Time::Seconds;
 
 use OMP::CGIComponent::Fault;
-use OMP::CGIComponent::Feedback;
+use OMP::CGIComponent::Feedback qw/url_absolute/;
 use OMP::CGIComponent::Helper;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb);
 use OMP::Config;
+use OMP::DBbackend;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FBServer;
 use OMP::UserServer;
 use OMP::DateTools;
 use OMP::General;
+use OMP::MSBDB;
 use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
@@ -42,6 +44,8 @@ use OMP::TimeAcctDB;
 use OMP::SiteQuality;
 
 use base qw/OMP::CGIPage/;
+
+our $telescope = 'JCMT';
 
 $| = 1;
 
@@ -64,7 +68,6 @@ sub fb_fault_content {
   my $projectid = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
 
   # Get a fault component object
   my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
@@ -72,11 +75,6 @@ sub fb_fault_content {
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid),0);
 
-  print $q->h2("Feedback: Project ${projectid}: View Faults");
-
-  $comp->proj_status_table($projectid);
-
-  print "<font size=+1><b>Faults</b></font><br>";
   # Display the first fault if a fault isnt specified in the URL
   my $showfault;
   if ($q->url_param('fault')) {
@@ -87,50 +85,16 @@ sub fb_fault_content {
     $showfault = $faults[0];
   }
 
-  $faultcomp->show_faults(faults => \@faults,
-                          descending => 0,
-                          url => "fbfault.pl?project=$projectid",);
-
-  print "<hr>";
-  print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
-  print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-  $faultcomp->fault_table($showfault, no_edit => 1);
-  print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?project=$projectid&subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
-}
-
-=item B<fb_proj_summary>
-
-Show project status, MSB done summary (no comments), and active MSB summary
-
-  $page->fb_proj_summary($projectid);
-
-=cut
-
-sub fb_proj_summary {
-  my $self = shift;
-  my $projectid = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
-
-  print $q->h2("Project ${projectid}");
-
-  # Project status table
-  $comp->proj_status_table($projectid);
-  print $q->hr;
-  print $q->h2("MSBs observed");
-
-  # Observed MSB table
-  $msbcomp->fb_msb_observed($projectid);
-
-  print $q->hr;
-  print $q->h2("MSBs to be observed");
-
-  # MSBs to be observed table
-  $msbcomp->fb_msb_active($projectid);
-
-  print $q->hr;
+  return {
+      project => OMP::ProjServer->projectDetails($projectid, 'object'),
+      fault_list => $faultcomp->show_faults(
+          faults => \@faults,
+          descending => 0,
+          url => "fbfault.pl?project=$projectid"),
+      fault_info => (defined $showfault
+          ? $faultcomp->fault_table($showfault, no_edit => 1)
+          : undef),
+  };
 }
 
 =item B<list_projects>
@@ -146,48 +110,35 @@ sub list_projects {
 
   my $q = $self->cgi;
 
-  print $q->h2("List projects");
-
   my $comp = OMP::CGIComponent::Project->new(page => $self);
-  $comp->list_projects_form();
 
-  print $q->hr;
-}
-
-=item B<list_projects_output>
-
-Create a page with a project listing for given semester and a form.
-
-  $page->list_projects_output();
-
-=cut
-
-sub list_projects_output {
-  my $self = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
+  return $comp->list_projects_form(telescope => $telescope)
+      unless $q->param('submit_search');
 
   my $semester = $q->param('semester');
   my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
   my $status = ($q->param('status') eq 'all' ? undef : $q->param('status'));
   my $support = $q->param('support');
   my $country = $q->param('country');
-  my $telescope = $q->param('telescope');
   my $order = $q->param('order');
 
   undef $semester if $semester =~ /any/i;
-  ($support eq 'dontcare') and $support = undef;
-  ($country =~ /any/i) and $country = undef;
-  ($telescope =~ /any/i) and $telescope = undef;
+  undef $support if $support eq '';
+  undef $country if $country eq '';
 
-  my $xmlquery = "<ProjQuery><state>$state</state><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
+  my $xmlquery = '<ProjQuery>' .
+    "<state>$state</state><status>$status</status>" .
+    "<semester>$semester</semester><support>$support</support>" .
+    ((defined $country)
+        ? (join '', map {"<country>$_</country>"} split /\+/, $country)
+        : '') .
+    "<telescope>$telescope</telescope></ProjQuery>";
 
   OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
+  my @sorted = ();
   if (@$projects) {
     # Group by either project ID or TAG priority
     # If grouping by project ID, group by telescope, semester, and
@@ -199,7 +150,6 @@ sub list_projects_output {
     # database do the sorting and grouping for us in the future,
     # although that will require OMP::ProjQuery to support
     # <orderby> and <groupby> tags
-    my @sorted;
 
     if ($order eq 'projectid') {
 
@@ -262,55 +212,20 @@ sub list_projects_output {
         }
       }
     }
-
-    # Display a list of projects if any were returned
-    print $q->h2("Projects for semester $semester");
-
-    $comp->list_projects_form();
-
-    print $q->hr;
-
-    if ($q->param('table_format')) {
-
-      if ($order eq 'priority') {
-        $comp->proj_sum_table(\@sorted);
-      } else {
-        # Display table with semester and country headings
-        # since we sorted by project ID
-        $comp->proj_sum_table(\@sorted, 1);
-      }
-
-    } else {
-
-      my $url = OMP::Config->getData('cgidir');
-
-      foreach my $project (@sorted) {
-        print "<a href='$url/projecthome.pl?project=" . $project->projectid . "'>";
-        print $q->h2('Project ' . $project->projectid);
-        print "</a>";
-        $comp->proj_status_table($project->projectid);
-
-        print $q->h3('MSBs observed');
-        $msbcomp->fb_msb_observed($project->projectid);
-
-        print $q->h3('MSBs to be observed');
-        $msbcomp->fb_msb_active($project->projectid);
-      }
-
-    }
-
-    print $q->hr;
-
-    $comp->list_projects_form();
-
-  } else {
-    # Otherwise just put the form back up
-    print $q->h2("No projects for semester $semester matching your query");
-
-    $comp->list_projects_form();
-
-    print $q->hr;
   }
+
+  return {
+    %{$comp->list_projects_form(telescope => $telescope)},
+    %{$comp->proj_sum_table(\@sorted, ($order ne 'priority'))},
+    values => {
+      semester => $semester,
+      state => $state,
+      status => $status,
+      support =>$support,
+      country => $country,
+      order => $order,
+    },
+  };
 }
 
 =item B<project_home>
@@ -325,109 +240,10 @@ sub project_home {
   my $self = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
   my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
 
   # Get the project details
   my $project = OMP::ProjServer->projectDetails($projectid, 'object');
-
-  # Store the details we want to display later
-  my $country = $project->country;
-  my $title = $project->title;
-  my $semester = $project->semester;
-  my $allocated = $project->allocated->pretty_print;
-  ($project->allRemaining->seconds > 0) and
-    my $remaining = $project->allRemaining->pretty_print;
-  my $pi = OMP::Display->userhtml(
-    $project->pi, $q, $project->contactable($project->pi->userid), $project->projectid,
-    affiliation => $project->pi()->affiliation(),
-    access => $project->omp_access($project->pi->userid));
-  my $taurange = $project->taurange;
-  my $seerange = $project->seeingrange;
-  my $skyrange = $project->skyrange;
-  my $cloud = $project->cloudrange;
-  my $expirydate = $project->expirydate() // 'not specified';
-
-  # Store coi and support html emails
-  my $coi = join(", ",map{
-    OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
-    affiliation => $_->affiliation(),
-    access => $project->omp_access($_->userid))
-  } $project->coi);
-
-  my $support = join(", ",map{OMP::Display->userhtml($_, $q, undef, undef, access => $project->omp_access($_->userid))} $project->support);
-
-  # Make a big header for the page with the project ID and title
-  print "<table width=100%><tr><td>";
-  print "<h2>$projectid: $title</h2>";
-
-  # Is this project a TOO?
-  ($project->isTOO) and print "<i>This project is a target of opportunity</i><br>";
-
-  # Make it obvious if this project is disabled
-  (! $project->state) and print "<h2>This project is disabled</h2>";
-
-  print "</td><td align=right valign=top>";
-
-  # We'll display a flag icon representing the country if we have
-  # one for it
-  if ($country =~ /\b(UK|INT|CA|NL|UH|JAC|JP|KR)\b/) {
-    my $country = lc($country);
-    print "<img src='/images/flag_$country.gif'>";
-  }
-  print "</td></table>";
-
-  my $url = OMP::Config->getData('cgidir');
-
-  my $proposal_url = 'https://proposals.eaobservatory.org/'
-    . (lc $project->telescope)
-    . '/proposal_by_code?code=' . $projectid;
-
-  # The project info (but in a different format than what is
-  # generated by proj_status_table)
-  print <<"_HEADER_";
-    <table>
-    <tr><td><b>Principal Investigator:</b></td><td>$pi</td>
-    <tr><td><b>Co-investigators:</b></td><td>$coi</td>
-    <tr><td><b>Support:</b></td><td>$support</td>
-    <tr><td><b>Queue:</b></td><td>$country</td>
-    <tr><td><b>Semester:</b></td><td>$semester</td>
-    <tr><td><b>Expiry date:</b></td><td>$expirydate</td>
-    <tr><td colspan=2><a href="$url/props.pl?project=${projectid}">Click here to view the science case for this project</a></td>
-    <tr><td colspan=2><a href="$proposal_url">Click here to view this project in the proposal system</a></td>
-    </table>
-_HEADER_
-
-  # Time allocated/remaining along with tau range
-  print "<br>";
-  print "<table>";
-  print "<tr><td><b>Time allocated to project:</b></td><td>$allocated ";
-
-  # If range is from 0 to infinity dont bother displaying it
-  print "in tau range $taurange"
-    if !OMP::SiteQuality::is_default( 'TAU',$taurange );
-
-  print " in seeing range $seerange"
-    if !OMP::SiteQuality::is_default( 'SEEING',$seerange );
-
-  print " with sky brightness $skyrange"
-    if !OMP::SiteQuality::is_default( 'SKY',$skyrange );
-
-  print " with sky " . $project->cloudtxt
-    if !OMP::SiteQuality::is_default( 'CLOUD',$cloud );
-
-  print "</td>";
-
-  if ($remaining) {
-    print "<tr><td><b>Time remaining on project:</b></td><td>$remaining</td>";
-  } else {
-    print "<tr><td colspan=2><b>There is no time remaining on this project</b></td>";
-  }
-  print "<tr><td><b>Completion rate:</b></td><td>".
-    int($project->percentComplete) ."%</td>\n";
-
-  print "</table>";
 
   # Get nights for which data was taken
   my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
@@ -439,204 +255,73 @@ _HEADER_
   # Because of shifttypes, there may be more than one shift per night.
   my @accounts = $adb->getTimeSpent( projectid => $project->projectid );
 
-  # Merge our results
-  #my %nights = map {$_->date->ymd, undef} @accounts;
-
-  #for (@$nights) {
-  #  $nights{$_->ymd} = undef;
-  #}
-
-  # Link to obslog for current day
-  my $today = OMP::DateTools->today();
-  print "<br><a href=\"utprojlog.pl?project=${projectid}&utdate=$today\">".
-    "Click here to remote eavesdrop</a><br>";
-
   # Display nights where data was taken
+  my %accounts = ();
   if (@$nights) {
-
-      my %accounts;
-      # Sort account objects by night
-      for my $acc (@accounts) {
-	  unless (exists $accounts{$acc->date->ymd}) {
-	      $accounts{$acc->date->ymd} = [];
-	  }
-	  push (@{$accounts{$acc->date->ymd}}, $acc);
-
+    # Sort account objects by night
+    for my $acc (@accounts) {
+      my $ymd = $acc->date->ymd;
+      unless (exists $accounts{$ymd}) {
+          $accounts{$ymd} = {
+            confirmed => 0.0,
+            unconfirmed => 0.0,
+          };
       }
-
-      # Some instruments do not allow data retrieval. For now, assume that
-      # we can not retrieve if any of the instruments in the project are marked as such.
-      # For surveys this will usually be the case
-      my $cannot_retrieve;
-      try {
-	  my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
-	  my $projinst = OMP::SpServer->programInstruments(${projectid});
-
-	  # See if the instrument in the project are listed in noretrieve
-	  my %inproj = map { (uc($_), undef ) } @$projinst;
-
-	  for my $nr (@noretrieve) {
-	      if (exists $inproj{uc($nr)}) {
-		  $cannot_retrieve = 1;
-		  last;
-	      }
-	  }
-      } otherwise {
-      };
-
-      print "<h3>Observations were acquired on the following dates:</h3>";
-
-      for my $ymd (sort keys %accounts) {
-
-	  # Make a link to the obslog page
-	  my $obslog_url = "utprojlog.pl?project=${projectid}&utdate=$ymd";
-
-	  # If project is an unretrievable project, link to project log with
-	  # 'noretrv' paramater so that no data retrieval links will appear
-	  $obslog_url .= "&noretrv=1" if ($cannot_retrieve);
-
-	  print "<a href='$obslog_url'>$ymd</a> ";
-
-	  if (exists $accounts{$ymd}) {
-
-	      # Need to sum up over shift:
-	      my $confirmedtime = 0.0;
-	      my $unconfirmedtime = 0.0;
-
-	      my $confirmed_string = "";
-	      my $unconfirmed_string = "";
-	      for my $timeacctobject (@{$accounts{$ymd}}) {
-		  my $timespent = $timeacctobject->timespent;
-		  if ($timespent->hours) {
-		      if ($timeacctobject->confirmed) {
-			  $confirmedtime += $timespent->hours;
-		      } else {
-			  $unconfirmedtime += $timespent->hours;
-		      }
-		  }
-	      }
-
-	      $confirmed_string = sprintf("%.2f hrs ", $confirmedtime) . "";
-	      if ($unconfirmedtime > 0 ) {
-		  # If the time spent is unconfirmed, say so
-		  $unconfirmed_string = sprintf(" +  UNCONFIRMED: %.2f hrs ", $unconfirmedtime);
-	      }
-	      if (($confirmedtime >0) || ($unconfirmedtime > 0)) {
-		  print $confirmed_string;
-		  print $unconfirmed_string;
-
-
-		  if ($cannot_retrieve) {
-		      print "click on date to view project log";
-		  } else {
-		      print "click on date to retrieve data";
-		  }
-
-	      } else {
-		  print "(no science data charged) ";
-	      }
-	  } else {
-	      print "[internal error - do not know accounting information] ";
-	  }
-
-	  print "<br>";
-
-      }
-  } else {
-    print "<h3>No data have been acquired for this project</h3>";
+      $accounts{$ymd}->{$acc->confirmed ? 'confirmed' : 'unconfirmed'}
+        += $acc->timespent->hours;
+    }
   }
 
-  # Display observed MSBs if any data have been taken for this project
-  if (@$nights) {
-    print "<h3>The following MSBs have been observed:</h3>";
-    $msbcomp->fb_msb_observed($projectid);
-    print "<br>";
-  } else {
-    print "<h3>No MSBs have been observed</h3>";
-  }
+  # Some instruments do not allow data retrieval. For now, assume that
+  # we can not retrieve if any of the instruments in the project are marked as such.
+  # For surveys this will usually be the case
+  my $cannot_retrieve;
+  try {
+    my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
+    my $projinst = OMP::SpServer->programInstruments(${projectid});
 
-  # Link to the MSB history page
-  print "Click <a href='msbhist.pl?project=$projectid'>here</a> for more details on the observing history of each MSB.";
+    # See if the instrument in the project are listed in noretrieve
+    my %inproj = map { (uc($_), undef ) } (exists $projinst->{$projectid} ? @{$projinst->{$projectid}} : ());
 
-  # Display remaining MSBs
-  print "<h3>MSBs remaining to be observed:</h3>";
-  $msbcomp->fb_msb_active($projectid);
-
-  # Link to the program details page
-  print "<br>Click <a href='fbmsb.pl?project=$projectid'>here</a> for more details on the science program.";
-
-  # Link to the region plot / download
-  print '<br>Click <a href="spregion.pl?project=' . $projectid . '">here</a> to download or plot the regions observed in this program.';
+    for my $nr (@noretrieve) {
+      if (exists $inproj{uc($nr)}) {
+        $cannot_retrieve = 1;
+      last;
+      }
+    }
+  } otherwise {
+  };
 
   # Get the "important" feedback comments
   my $comments = OMP::FBServer->getComments($projectid,
                                             [OMP__FB_IMPORTANT],);
 
-  # Link to feedback comments page (if there are any important
-  # comments)
-  if (@$comments) {
-    if (scalar(@$comments) == 1) {
-      print "<h3>There is 1 important comment";
-    } else {
-      print "<h3>There are " . scalar(@$comments) . " important comments";
-    }
-    print " for this project.</h3>";
-    print "Click <a href='feedback.pl?project=$projectid'>here</a> to see them.";
-  } else {
-    print "<h3>There are no important comments for this project</h3>";
-  }
-
-  # The "end of run" report goes somewhere in here
-}
-
-=item B<proj_sum_page>
-
-Generate a page showing details for a project and allowing for the
-submission of feedback comments
-
-  $page->proj_sum_page();
-
-=cut
-
-sub proj_sum_page {
-  my $self = shift;
-
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
-  my $fbcomp = new OMP::CGIComponent::Feedback(page => $self);
-
-  # Get project ID from form or display form
-  if ($q->param('project')) {
-    my $projectid = $q->param('project');
-
-    # Display project details
-    $comp->proj_status_table($projectid);
-
-    # Submit feedback comment or display form
-    if ($q->param('Submit')) {
-      $fbcomp->submit_fb_comment($projectid);
-      print "<P>";
-
-      # Link back to start page
-      print "<a href='". $q ->url(-relative=>1) ."'>View details for another project</a>";
-
-    } else {
-      # Form for adding feedback comment
-      print "<strong>Add a feedback comment</strong><br>";
-      $fbcomp->comment_form($projectid);
-    }
-
-  } else {
-    print start_form_absolute($q);
-    print "Project ID: ";
-    print $q->textfield(-name=>"project",
-                        1-size=>12,
-                        -maxlength=>32,);
-    print "&nbsp;";
-    print $q->submit(-name=>"project_submit",
-                     -label=>"Submit",);
-  }
-
+  return {
+    project => $project,
+    proposal_url => 'https://proposals.eaobservatory.org/'
+        . (lc $project->telescope)
+        . '/proposal_by_code?code=' . $projectid,
+    today => OMP::DateTools->today(),
+    accounts => \%accounts,
+    cannot_retrieve => $cannot_retrieve,
+    msbs_observed => ((scalar @$nights)
+        ? $msbcomp->fb_msb_observed($projectid) : undef),
+    msbs_active =>
+        $msbcomp->fb_msb_active($projectid),
+    comments => $comments,
+    taurange_is_default => sub {
+        return OMP::SiteQuality::is_default('TAU', $_[0]);
+    },
+    seeingrange_is_default => sub {
+        return OMP::SiteQuality::is_default('SEEING', $_[0]);
+    },
+    skyrange_is_default => sub {
+        return OMP::SiteQuality::is_default('SKY', $_[0]);
+    },
+    cloudrange_is_default => sub {
+        return OMP::SiteQuality::is_default('CLOUD', $_[0]);
+    },
+  };
 }
 
 =item B<program_summary>
@@ -651,19 +336,27 @@ sub program_summary {
 
     my $q = $self->cgi;
 
-    select(STDERR);
-    my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid);
-    select(STDOUT);
+    my $sp = undef;
+    my $error = undef;
+    try {
+        my $db = new OMP::MSBDB(
+            ProjectID => $projectid,
+            DB => new OMP::DBbackend);
+        $sp = $db->fetchSciProg(1);
+    } catch OMP::Error::UnknownProject with {
+        $error = "Science program for $projectid not present in the database.";
+    } catch OMP::Error::SpTruncated with {
+        $error = "Science program for $projectid is in the database but has been truncated.";
+    } otherwise {
+        my $E = shift;
+        $error = "Error obtaining science program details for project $projectid: $E";
+    };
 
-    unless (defined $sp) {
-        print
-            $q->header(),
-            $q->start_html('Error: no science program'),
-            $q->h2('Error'),
-            $q->p('The science program could not be fetched for this project.'),
-            $q->end_html();
-        return;
-    }
+    return $self->_write_error($error)
+        if defined $error;
+
+    return $self->_write_error('The science program could not be fetched for this project.')
+        unless defined $sp;
 
     # Program retrieved successfully: apply summary XSLT.
     print $q->header(-type => 'text/plain');
@@ -742,10 +435,93 @@ dirloop:
   } else {
     # Proposal file not found
 
-    print $q->header;
-
-    print "<h2>Proposal file not available</h2>";
+    return $self->_write_error("Proposal file not available.");
   }
+}
+
+=item B<project_users>
+
+Create a page displaying users associated with a project.
+
+  $page->project_users($projectid);
+
+First argument should be the project ID.
+
+=cut
+
+sub project_users {
+  my $self = shift;
+  my $projectid = shift;
+
+  my $q = $self->cgi;
+
+  # Get the project info
+  my $project = OMP::ProjServer->projectDetails($projectid, "object");
+
+  # Get contacts
+  my @contacts = $project->investigators;
+
+  if ($q->param('update_contacts')) {
+    my %new_contactable;
+    my %new_access;
+
+    # Go through each of the contacts and store their new contactable values
+    my $count_email;
+    my $count_access;
+    for (@contacts) {
+      my $userid = $_->userid;
+
+      $new_contactable{$userid} = ($q->param('email_' . $userid) ? 1 : 0);
+      $count_email += $new_contactable{$userid};
+
+      $new_access{$userid} = ($q->param('access_' . $userid) ? 1 : 0);
+      $count_access += $new_access{$userid};
+    }
+
+    # Make sure at least 1 person is getting emails
+    if ($count_email == 0) {
+      return $self->_write_error('The system requires at least 1 person to receive project emails.  Update aborted.');
+    }
+    # Same for OMP access.
+    if ($count_access == 0) {
+      return $self->_write_error('The system requires at least 1 person to have OMP access.  Update aborted.');
+    }
+
+    # Store user contactable info to database (have to actually store
+    # entire project back to database)
+    my $db = new OMP::ProjDB( ProjectID => $projectid,
+                              DB => new OMP::DBbackend, );
+
+    my $error = undef;
+    try {
+      $db->updateContactability( \%new_contactable );
+      $db->updateOMPAccess( \%new_access );
+      $project->contactable(%new_contactable);
+      $project->omp_access(%new_access);
+
+    } otherwise {
+      my $E = shift;
+      $error = "An error prevented the contactable information from being updated: $E";
+    };
+
+    return $self->_write_error($error) if defined $error;
+
+    return $self->_write_redirect('/cgi-bin/projecthome.pl?project=' . $projectid);
+  }
+
+  # Get contactables and those with OMP access.
+  my %contactable = $project->contactable;
+  my %access = $project->omp_access;
+
+  return {
+    target => url_absolute($q),
+    project => $project,
+    contacts => [map {my $userid = $_->userid; {
+          user => $_,
+          contactable => $contactable{$userid},
+          access => $access{$userid}};
+      } sort {$a->name cmp $b->name} @contacts],
+  };
 }
 
 =item B<support>
@@ -764,46 +540,44 @@ sub support {
   # Try and get a project ID
   my $projectid = OMP::General->extract_projectid($q->url_param('project'));
 
-  # A form for providing a project ID
-  print start_form_absolute($q, -method => 'GET');
-  print "<strong>Project ID: </strong>";
-  print $q->textfield(-name=>'project',
-                      -size=>12,
-                      -maxlength=>32,);
-  print " " . $q->submit(-name=>'get_project', -value=>'Submit');
-  print $q->end_form;
-  print "<hr>";
-
-  return unless defined $projectid;
+  return {
+    target_base => $q->url(-absolute => 1),
+    project_id => $projectid,
+    contacts => undef,
+  } unless defined $projectid;
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
                                 DB => new OMP::DBbackend, );
 
   # Verify that project exists
   my $verify = $projdb->verifyProject;
-  if (! $verify) {
-    print "<h3>No project with ID of [$projectid] exists</h3>";
-    return;
-  }
+  return $self->_write_error("No project with ID of [$projectid] exists.")
+      unless $verify;
 
   # Get project details (as object)
   my $project;
+  my $E;
   try {
     $project = $projdb->projectDetails("object");
   }
   catch OMP::Error with {
-
-    my ( $E ) = @_;
-    print "<h3>An error occurred while getting project details.</h3>",
-      "<p>$E</p>";
+    $E = shift;
   };
-  return unless $project;
+
+  return $self->_write_error(
+      "An error occurred while getting project details.",
+      "$E") if defined $E;
+
+  return $self->_write_error("Could not get project details.")
+      unless $project;
+
+  $self->_sidebar_project($project->projectid);
 
   # Get support contacts
   my @support = $project->support;
 
   # Make contact changes, if any
-  if ($q->param('change_primary')) {
+  if ($q->param('update_contacts')) {
     my %new_contactable;
     my %new_access;
 
@@ -826,14 +600,16 @@ sub support {
         $project->omp_access(%new_access);
       } otherwise {
         $E = shift;
-        print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
       };
-      return if ($E);
 
-      print "<h3>Primary support contacts have been changed</h3>";
+      return $self->_write_error(
+          "An error occurred.  Your changes have not been stored.",
+          "$E") if defined $E;
+
     } else {
       # No new primary contacts defined
-      print "<h3>At least one primary support contact must be defined.  Your changes have not been stored.</h3>";
+      return $self->_write_error(
+          "At least one primary support contact must be defined.  Your changes have not been stored.");
     }
   }
 
@@ -843,40 +619,22 @@ sub support {
   # Store secondary
   my @secondary = grep {! $project->contactable($_->userid)} @support;
 
-  print "<h3>Editing support contacts for $projectid</h3>";
-
-  # List primary
-  print "<strong>Support contacts</strong>: ";
-  print join(", ", map {OMP::Display->userhtml($_, $q)} @primary);
-
-  # List secondary
-  if (@secondary) {
-    print "<br>";
-    print "<strong>Secondary support contacts</strong>: ";
-    print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
-  }
-
-  # Form for defining primary support
   my %contactable = $project->contactable;
   my %access = $project->omp_access;
 
-  print "<h3>Define primary support contacts</h3>";
-  print start_form_absolute($q, -name=>'define_primary'),
-    $q->start_table,
-    $q->Tr($q->th(['Contact', 'Primary', 'OMP access'])),
-    $q->Tr([map {$q->td([
-        $_->name,
-        $q->checkbox(-name => 'email_' . $_->userid,
-                     -checked => $contactable{$_->userid},
-                     -label => ""),
-        $q->checkbox(-name => 'access_' . $_->userid,
-                     -checked => $access{$_->userid},
-                     -label => ""),
-    ])} @support]),
-    $q->end_table,
-    $q->p($q->submit(-name=>'change_primary', -value=>'Submit')),
-    $q->end_form,
-    $q->p("<small>Note: Only primary support contacts will receive project email.</small>");
+  return {
+    target_base => $q->url(-absolute => 1),
+    project_id => $projectid,
+
+    target => url_absolute($q),
+    contacts => [map {my $userid = $_->userid; {
+          user => $_,
+          contactable => $contactable{$userid},
+          access => $access{$userid}};
+      } sort {$a->name cmp $b->name} @support],
+    primary => \@primary,
+    secondary => \@secondary,
+  };
 }
 
 =item B<alter_proj>
@@ -891,47 +649,34 @@ sub alter_proj {
   my $self = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Project(page => $self);
 
-  # Obtain project ID
-  my $projectid = $comp->obtain_projectid( );
+  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
 
-  return unless $projectid;
-
-  print "<h3>Alter project details for ". uc($projectid) ."</h3>";
+  return {
+    target_base => $q->url(-absolute => 1),
+    project => undef,
+  } unless defined $projectid;
 
   # Connect to the database
-  my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+                                DB => new OMP::DBbackend );
 
-  # Set the project ID in the DB object
-  $projdb->projectid( $projectid );
+  # Verify that project exists
+  my $verify = $projdb->verifyProject;
+  return $self->_write_error("No project with ID of [$projectid] exists.")
+      unless $verify;
 
   # Retrieve the project object
   my $project = $projdb->_get_project_row();
 
-  print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
+  $self->_sidebar_project($project->projectid);
 
   return $self->process_project_changes( $project, $projdb )
     if $q->param('alter_submit');
 
-  # Display form for updating project details
-  print start_form_absolute($q, -name=>'alter_project');
-
-  print $q->hidden(-name=>'project',
-                    -default=>$project->projectid,);
-
-  print "<table>";
-
   my $pi = $project->pi->userid();
   my $pi_affiliation = $project->pi->affiliation();
   $pi .= ':' . $pi_affiliation if defined $pi_affiliation;
-  print qq[<tr><td align="right">PI</td> <td>],
-    $q->textfield( 'pi', $pi, 32, 32 ),
-    qq[</td></tr>];
-
-  print qq[<tr><td align="right">Title</td> <td>],
-    $q->textfield( 'title', $project->title, 50, 255 ),
-    qq[</td></tr>];
 
   my $coi = join "\n", map {
     my $userid = $_->userid();
@@ -939,138 +684,65 @@ sub alter_proj {
     $userid .= ':' . $coi_affiliation if defined $coi_affiliation;
     $userid;
   } $project->coi;
-  print qq[<tr><td align="right">Co-I</td> <td>],
-    $q->textarea( -name => 'coi',
-                  -default => $coi,
-                  -rows => 5,
-                  -columns => 32,
-                ),
-    qq[</td></tr>];
 
-  my $supp = join "\n", map { $_->userid } $project->support;
-  print qq[<tr><td align="right">Support</td> <td>],
-    $q->textarea( -name => 'support',
-                  -default => $supp,
-                  -rows => 5,
-                  -columns => 32,
-                ),
-    qq[</td></tr>];
+  my $supp = join "\n", map {
+    my $userid = $_->userid;
+    my $supp_affiliation = $_->affiliation();
+    $userid .= ':' . $supp_affiliation if defined $supp_affiliation;
+    $userid;
+  } $project->support;
 
   # Allocation
-  print "<tr><td align='right'>Allocation</td>";
   my $allocated = $project->allocated;
   my $remaining = $project->remaining;
 #    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
   my $alloc_h = int( $allocated / 3600 );
   my $alloc_m = int( ( $allocated - $alloc_h * 3600 ) / 60 );
   my $alloc_s = $allocated - $alloc_h * 3600 - $alloc_m * 60;
-  print "<td>";
-  print $q->textfield('alloc_h',$alloc_h,3,5);
-  print " hours ";
-  print $q->textfield('alloc_m',$alloc_m,2,2);
-  print " minutes ";
-  print $q->textfield('alloc_s',$alloc_s,2,2);
-  print " seconds";
-  print "</td></tr><tr><td align='right'>Remaining</td><td>". $remaining->pretty_print;
-  print "</td></tr>";
-
-  # Semester
-  print "<tr><td align='right'>Semester</td>";
-  my $semester = $project->semester;
 
   # Get semester options
-  my @semesters = $projdb->listSemesters();
-
-  print "<td>";
-  print $q->popup_menu(-name=>'semester',
-                        -default=>$semester,
-                        -values=>[@semesters]);
-  print "</td></tr>";
-
-  # Cloud
-  print "<tr><td align='right'>Cloud</td>";
-  my $cloud = $project->cloudrange;
+  my @semesters = $projdb->listSemesters(telescope => $project->telescope);
 
   # Get cloud options
   my %cloud_lut = OMP::SiteQuality::get_cloud_text();
   my %cloud_labels = map {$cloud_lut{$_}->max(), $_} keys %cloud_lut;
-
-  print "<td>";
-  print $q->popup_menu(-name=>'cloud',
-                        -default=>int($cloud->max()),
-                        -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
-                        -labels=>\%cloud_labels,);
-  print "</td></tr>";
+  my @clouds = sort {$b->[0] <=> $a->[0]} map {
+      [$cloud_lut{$_}->max(), $_]
+  } keys %cloud_lut;
 
   # Tag adjustment
-  print "<tr><td align='right' valign='top'>TAG adj.</td>";
   my %tagpriority = $project->queue;
   my %tagadj = $project->tagadjustment;
+  my @priority = ();
 
-  my $keycount;
-  for my $queue (keys %tagpriority) {
-    $keycount++;
-    print "<tr><td></td>"
-      if ($keycount > 1);
-
-    print "<td valign='top'>";
-    print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
-      unless ($keycount > 1);
-
-    print $q->textfield("tag_${queue}",
-                        ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
-                        4,32);
-    print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
-
-    print "</td></tr>";
+  for my $queue (sort keys %tagpriority) {
+    push @priority, {
+        queue => $queue,
+        adj => ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+        priority => $tagpriority{$queue},
+    };
   }
 
-  # TAU Range
-  print "<tr><td align='right' valign='top'>TAU range</td>";
-  my $taurange = $project->taurange;
-  my $taumin = $taurange->min();
-  my $taumax = $taurange->max();
-  print "<td>";
-  print $q->textfield("taumin", $taumin, 3, 4);
-  print " - ";
-  print $q->textfield("taumax", $taumax, 3, 4);
-  print "</td></tr>";
+  return {
+    target_base => undef,
 
-  # Seeing Range
-  print "<tr><td align='right' valign='top'>Seeing range</td>";
-  my $seeingrange = $project->seeingrange;
-  my $seeingmin = $seeingrange->min();
-  my $seeingmax = $seeingrange->max();
-  print "<td>";
-  print $q->textfield("seeingmin", $seeingmin, 3, 4);
-  print " - ";
-  print $q->textfield("seeingmax", $seeingmax, 3, 4);
-  print "</td></tr>";
+    project => $project,
+    target => url_absolute($q),
+    values => {
+        pi => $pi,
+        coi => $coi,
+        support => $supp,
+        alloc_h => $alloc_h,
+        alloc_m => $alloc_m,
+        alloc_s => $alloc_s,
+        cloud => int($project->cloudrange->max()),
+        priority => \@priority,
+    },
+    semesters => \@semesters,
+    clouds => \@clouds,
 
-  print $q->Tr(
-    $q->td([
-        'Expiry date',
-        $q->textfield(-name => 'expirydate', -default => ($project->expirydate() // '')) .
-        ' (for Rapid Turnaround projects only)',
-    ]),
-  );
-
-  print "</table>";
-
-  print q[<p>],
-    $q->checkbox( -name => 'send-mail',
-                  -checked => 0,
-                  -value => 1,
-                  -label => 'Send email about project changes'
-                ),
-    q[</p><p>],
-    $q->submit( -name=>"alter_submit",
-                -label=>"Submit",
-              ),
-    ( '&nbsp;' ) x 4,
-    $q->reset,
-    q[</p>],
-    $q->end_form();
+    messages => undef,
+  };
 }
 
 sub process_project_changes {
@@ -1081,9 +753,9 @@ sub process_project_changes {
 
   my @msg; # Build up output message
 
-  my $err;
   for my $type ( qw[ pi coi support ] ) {
 
+    my $err;
     my $users = $q->param( $type );
     try {
 
@@ -1092,11 +764,11 @@ sub process_project_changes {
     catch OMP::Error with {
 
       my ( $e ) = @_;
-      $err = _print_user_err( $e->text );
+      $err = $e->text;
     };
-  }
 
-  return if $err;
+    return $self->_write_error($err) if defined $err;
+  }
 
   push @msg,
     _update_project_make_message( $project,
@@ -1226,7 +898,7 @@ sub process_project_changes {
   # Generate feedback message
 
   # Get OMP user object
-  if ( $q->param( 'send-mail' ) ) {
+  if ( $q->param( 'send_mail' ) ) {
 
     OMP::FBServer->addComment($project->projectid,
                               {author => $self->auth->user,
@@ -1239,18 +911,23 @@ sub process_project_changes {
   # Now store the changes
   $projdb->_update_project_row( $project );
 
-  if ($msg[0]) {
-    print join("<br>", @msg);
-
-    print '<br><br>',
-      ( scalar @msg == 1 ? 'This change has' : 'These changes have' ),
-      ' been committed.<br>';
+  if (scalar @msg) {
+    push @msg,
+      ( scalar @msg == 1 ? 'This change has' : 'These changes have' ) .
+      ' been committed.';
 
   } else {
-    print "<br>No changes were submitted.</br>";
+    push @msg, "No changes were submitted.";
   }
 
-  return;
+  return {
+    target_base => undef,
+
+    project => $project,
+    target => undef,
+
+    messages => \@msg,
+  };
 }
 
 sub update_users {
@@ -1300,7 +977,7 @@ sub _make_user {
   ($userid, $affiliation) = split ':', $userid, 2;
 
   my $user = OMP::UserServer->getUser( $userid )
-    or throw OMP::Error "Unknown user id given: $userid";
+    or throw OMP::Error "Unknown user ID given: $userid";
 
   if (defined $affiliation) {
     throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
@@ -1310,18 +987,6 @@ sub _make_user {
   }
 
   return $user;
-}
-
-sub _print_user_err {
-
-  my ( $text ) = @_;
-
-  return unless $text && (
-    $text =~ m/^Unknown user id given/
-    || $text =~ m/not recognized by the OMP$/);
-
-  printf "<p>%s</p>\n", $text;
-  return 1;
 }
 
 sub _match_string {

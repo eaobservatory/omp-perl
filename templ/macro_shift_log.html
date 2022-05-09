@@ -1,0 +1,25 @@
+[% MACRO render_shift_log_entries(comments, multiple_night) BLOCK %]
+    <table class="sum_table" cellspacing="0" width="600">
+        [% SET bgcolor = 'b' %]
+        [% FOREACH date IN comments %]
+            [% IF multiple_night %]
+                [% SET timecellclass = 'time_' _ date.value.0.date.day %]
+                    <tr class="sum_other" valign="top">
+                        <td class="[% timecellclass _ '_' _ bgcolor %]" colspan="2">[% date.key | html %]</td>
+                        <td>&nbsp;</td>
+                    </tr>
+            [% ELSE %]
+                [% SET timecellclass = 'time' %]
+            [% END %]
+            [% FOREACH comment IN date.value %]
+                <tr class="row_[% bgcolor %]" valign="top">
+                    <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
+                    <td class="[% timecellclass _ '_' _ bgcolor %]">
+                        [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
+                    <td class="subject">[% comment.text | remove_pre_tags %]</td>
+                </tr>
+                [% SET bgcolor = ((bgcolor == 'a') ? 'b' : 'a') %]
+            [% END %]
+        [% END %]
+    </table>
+[% END -%]

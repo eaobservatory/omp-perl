@@ -1,0 +1,39 @@
+[% PROCESS "macro_general.html" -%]
+[% PROCESS "macro_project.html" -%]
+[% PROCESS "macro_msb.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>MSB history for project [% project.projectid | html %]</h1>
+
+[% render_project_status_table(project) %]
+
+[% IF ! messages.empty %]
+    [% FOREACH message IN messages %]
+        <p>[% message | html %]</p>
+    [% END %]
+
+    <hr />
+[% END %]
+
+[% IF comment_msb_id_fields.defined %]
+    <h2>Add a comment to MSB</h2>
+
+    [% render_msb_comment_form(target, comment_msb_id_fields) %]
+[% END %]
+
+[% IF msb_info.defined %]
+    <form method="get" action="[% target_base %]">
+        <p>
+            <b>Show:</b>
+            <select name="show" class="submit_on_change">
+                [% FOREACH value IN ['all', 'observed', 'current'] %]
+                    <option [% IF value == values.show %]selected="selected"[% END %] value="[% value %]">[% value %]</option>
+                [% END %]
+            </select>
+            <input type="hidden" name="project" value="[% project.projectid | html %]"/>
+            <input type="submit" name="" value="Refresh"/>
+        </p>
+    </form>
+
+    [% render_msb_comments(msb_info) %]
+[% END %]
+[% END %]

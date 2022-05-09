@@ -19,6 +19,7 @@
                 <input type="hidden" name="provider" value="hedwig"  />
                 <input type="submit" name="submit_log_in" value="Log in with Hedwig" />
             </p>
+            <p>[% INCLUDE remember_me %]</p>
         </form>
     </div>
 </div>
@@ -40,12 +41,19 @@
                     <td><input type="password" name="password"  size="17" maxlength="30" /></td>
                     <td>
                         <input type="hidden" name="provider" value="staff" />
-                        <input type="hidden" name="show_content" value="1" />
                         <input type="submit" name="submit_log_in" value="Submit" />
                     </td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                    <td colspan="2">[% INCLUDE remember_me %]</td>
                 </tr>
             </table>
         </form>
     </div>
 </div>
+[% END %]
+
+[% BLOCK remember_me %]
+    <label title="Select &quot;remember me&quot; to increase the duration of your log in session to one week.  Please do not use this option on shared computers.">Remember me <input type="checkbox" name="remember_me" value="1" /></label>
 [% END %]

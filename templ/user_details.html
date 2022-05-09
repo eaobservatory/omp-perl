@@ -1,0 +1,79 @@
+[% WRAPPER "layout.html" %]
+<h1>User Details for [% user.name | html %]</h1>
+
+<p>
+    [% user.name | html %]
+    [% IF user.email %]
+        ([% user.email | html %])
+    [% END %]
+    [% IF user.cadcuser %]
+        (CADC ID: [% user.cadcuser | html %])
+    [% END %]
+    [% IF ! hedwig_ids.empty %]
+        (Hedwig ID: [% FOREACH hedwig_id = hedwig_ids %][% IF ! loop.first %], [% END %]<a href="[% hedwig_profile _ hedwig_id %]">[% hedwig_id %]</a>[% END %])
+    [% END %]
+</p>
+
+[% IF user.staff_access %]
+    <p>User has access to staff log in.</p>
+[% END %]
+
+[% IF user.is_obfuscated %]
+    <p>User account is obfuscated.</p>
+[% END %]
+
+[% IF user.no_fault_cc %]
+  <p>Fault CC messages suppressed.</p>
+[% END %]
+
+[% FOREACH capacity = ["Principal Investigator", "Co-Investigator", "Support"] %]
+    [% SET project_capacity = project_capacities.$capacity %]
+    [% IF project_capacity %]
+      <h2>[% capacity %]</h2>
+
+      <table>
+          <tr>
+              <td>&nbsp;</td>
+              <td>Receives email</td>
+              <td>OMP access</td>
+          </tr>
+          [% FOREACH project = project_capacity %]
+            <tr>
+                <td><a href="/cgi-bin/projecthome.pl?project=[% project.projectid | uri %]">[% project.projectid | html %]</a></td>
+                <td align="center"><a href="/cgi-bin/projusers.pl?project=[% project.projectid | uri %]">
+                    [% IF project.contactable(user.userid) %]
+                        <img src="[% icon_url %]/mail.gif" alt="Receives project emails" border="0" />
+                    [% ELSE %]
+                        <img src="[% icon_url %]/nomail.gif" alt="Ignores project emails" border="0" />
+                    [% END %]
+                </a></td>
+                <td align="center">
+                    [% IF project.omp_access(user.userid) %]&#x2605;[% ELSE %]&nbsp;[% END %]
+                </td>
+            </tr>
+          [% END %]
+
+      </table>
+    [% END %]
+[% END %]
+
+[% IF ! faults.empty %]
+    <h2>User associated faults for the past 2 weeks</h2>
+
+    <table>
+        <tr>
+            <td>Category</td>
+            <td align="center">Subject</td>
+        </tr>
+        [% FOREACH category = faults.keys.sort %]
+            [% SET category_faults = faults.$category %]
+            [% FOREACH fault = category_faults %]
+                <tr>
+                    <td>[% category %]</td>
+                    <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.faultid | uri %]">[% fault.subject | html %]</a></td>
+                </tr>
+            [% END %]
+        [% END %]
+    </table>
+[% END %]
+[% END %]
