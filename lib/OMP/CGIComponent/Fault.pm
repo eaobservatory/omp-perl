@@ -605,12 +605,12 @@ sub parse_file_fault_form {
 
   if ( _is_safety( $category ) ) {
 
-    $parsed{'system'} = $parsed{'severity'} =  $q->param('severity');
+    $parsed{'system'} = $parsed{'severity'} =  $q->param('system');
     $parsed{'location'} =  $q->param('location');
   }
   elsif ( _is_vehicle_incident( $category ) ) {
 
-    $parsed{'system'} = $parsed{'vehicle'} =  $q->param('vehicle');
+    $parsed{'system'} = $parsed{'vehicle'} =  $q->param('system');
   }
   else {
 
