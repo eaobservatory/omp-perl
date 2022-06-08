@@ -32,7 +32,10 @@
                     <td align="right">Support</td>
                     <td><textarea name="support" rows="5" cols="32">[% values.support | html %]</textarea></td>
                 </tr>
-
+                <tr>
+                    <td align="right">Enabled</td>
+                    <td><input type="checkbox" name="state" value="1" [% IF project.state %]checked="checked"[% END %] /></td>
+                </tr>
                 <tr>
                     <td align="right">Allocation</td>
                     <td>
