@@ -84,30 +84,45 @@ my %band = (
 # fact that we need to set the semester also for LAP.
 my %query = (
     lap => '<country>LAP</country><semester>LAP</semester>',
-    pi => '<country>PI</country><country>INT</country><semester/>',
+    pi => '<country>PI</country><country>IF</country><semester/>',
     nl => '<country>NL</country><semester/>',
 );
 
 # Calibration patterns.  Only include calibrations observations if
 # they match one of these patterns.
 my %cal_patterns = (
-    'SCUBA-2' => [
-        qr/Setup/,
-        qr/Pointing/,
-        qr/Focus.*7-steps/,
-        qr/^Standard/,
-        qr/^Planet/,
-        qr/Noise Sky/,
-        qr/Noise Dark/,
-    ],
-    'HARP' => [
-        qr/Point/,
-        qr/Focus/,
-    ],
-    'RxA3m' => [
-        qr/Point/,
-        qr/Focus/,
-    ],
+    'SCUBA-2' => {
+        patterns => [
+            qr/Setup/,
+            qr/Pointing/,
+            qr/Focus.*7-steps/,
+            qr/^Standard/,
+            qr/^Planet/,
+            qr/Noise Sky/,
+            qr/Noise Dark/,
+        ],
+    },
+    'HARP' => {
+        patterns => [
+            qr/Point$/,
+            qr/Focus.*7-sample/,
+        ],
+        if => '5.0E9',
+    },
+    'Uu' => {
+        patterns => [
+            qr/Uu Point$/,
+            qr/Uu Focus.*7-sample/,
+            qr/Uu Align.*7-sample/,
+        ],
+    },
+    'Aweoweo' => {
+        patterns => [
+            qr/Point$/,
+            qr/Focus.*7-sample/,
+            qr/Align.*7-sample/,
+        ],
+    },
 );
 
 # Determine range of times to query for.
@@ -127,11 +142,10 @@ my $backend = new OMP::DBbackend;
 my $utdate = $date_start->ymd('-');
 my %msb_filename = ();
 
-
 # In calibration mode we simply loop over instruments and fetch suitable
 # calibrations.
 do {
-    foreach my $instrument (qw/SCUBA-2 HARP RxA3m/) {
+    while (my ($instrument, $instrument_info) = each %cal_patterns) {
         print "CAL $instrument\n\n";
 
         my $qxml = "<MSBQuery>\n" .
@@ -146,7 +160,7 @@ do {
             "</MSBQuery>\n";
 
         my $db = new OMP::MSBDB(DB => $backend);
-        my @results = $db->queryMSB(new OMP::MSBQuery(XML => $qxml), 'object');
+        my @results = $db->queryMSB(new OMP::MSBQuery(XML => $qxml, MaxCount => 10000), 'object');
 
         next unless scalar @results;
 
@@ -156,7 +170,7 @@ do {
         foreach my $result (@results) {
             my $msbid = $result->msbid();
             my $title = $result->title();
-            next unless grep {$title =~ $_} @{$cal_patterns{$instrument}};
+            next unless grep {$title =~ $_} @{$instrument_info->{'patterns'}};
 
             # Make safe version of MSB title for inclusion in the file name.
             my $filename = substr($result->title(), 0, 30);
@@ -165,20 +179,26 @@ do {
             my $pathname = "$directory/$filename.xml";
             my $pathnameinfo = "$directory/$filename.info";
 
+            # Write the XML to a file.
+
+            my $msb = fetch_msb_object($result->projectid, $msbid);
+            next unless defined $msb;
+            if (exists $instrument_info->{'if'}) {
+                my $if = [$msb->obssum]->[0]->{'freqconfig'}->{'subsystems'}->[0]->{'if'};
+                next unless $instrument_info->{'if'} eq $if;
+            }
+
             # Abort if the file already exists.
+
             if (-e $pathname) {
                 print STDERR "File already exists: $pathname\n";
                 next;
             }
 
-            # Write the XML to a file.
-
-            my $xml = fetch_msb($result->projectid, $msbid);
-
             print "Writing: $pathname\n";
             make_path($directory);
             my $fh = new IO::File($pathname, 'w');
-            print $fh $xml;
+            print $fh msb_to_xml($result->projectid, $msb);
             $fh->close();
 
             # Write the MSB information to another file.
@@ -198,7 +218,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
     $hst = $hst->hms('-');
 
     while (my ($band, $tau) = each %band) {
-        foreach my $instrument (qw/SCUBA-2 HARP RxA3m/) {
+        foreach my $instrument (keys %cal_patterns) {
             while (my ($query, $countrysemester) = each %query) {
                 print "$utdate $hst band $band $instrument $query\n\n";
 
@@ -265,7 +285,8 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     }
                     else {
                         # This is a new MSB, so fetch from the database.
-                        my $xml = fetch_msb($result->projectid, $msbid);
+                        my $msb = fetch_msb_object($result->projectid, $msbid);
+                        next unless defined $msb;
 
                         # Write the XML to a file.
 
@@ -273,7 +294,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
                         make_path($directory);
                         my $fh = new IO::File($pathname, 'w');
-                        print $fh $xml;
+                        print $fh msb_to_xml($result->projectid, $msb);
                         $fh->close();
 
                         # Record this MSB's filenames in case we see it again.
@@ -299,7 +320,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
     }
 }
 
-sub fetch_msb {
+sub fetch_msb_object {
     my $projectid = shift;
     my $msbid = shift;
 
@@ -310,8 +331,14 @@ sub fetch_msb {
     my $msb = eval {$db->fetchMSB(msbid => $msbid)};
     unless (defined $msb) {
         print STDERR "Failed to fetch $msbid $@\n";
-        next;
     }
+
+    return $msb;
+}
+
+sub msb_to_xml {
+    my $projectid = shift;
+    my $msb = shift;
 
     # SP writing code based on OMP::MSBServer::fetchMSB as
     # unfortunately that code isn't in a subroutine we can

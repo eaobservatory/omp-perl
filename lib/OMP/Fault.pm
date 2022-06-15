@@ -235,7 +235,7 @@ use constant {
   COMPLETE      => JCMT_EVENTS + 12,
 };
 
-# Vehichle Incident Reporting (VIR) - System aka Vehcile.
+# Vehicle Incident Reporting (VIR) - System aka Vehicle.
 use constant VEHICLE_I_R => 6500;
 use constant {
 
@@ -1102,7 +1102,7 @@ sub new {
                      TimeLost => 0,
                      Severity => undef,
                      Location => undef,
-                     Vehcile => undef,
+                     Vehicle => undef,
                      FaultDate => undef,
                      Urgency => $URGENCY{Normal},
                      Condition => $CONDITION{Normal},

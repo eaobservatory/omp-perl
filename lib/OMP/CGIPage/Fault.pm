@@ -109,7 +109,7 @@ sub file_fault {
 
     delete $params{'System'};
     $params{'Location'} = 'location';
-    $params{'Severity'} = 'severity';
+    $params{'Severity'} = 'system';
   }
   elsif ( 'vehicle_incident' eq lc $category ) {
 

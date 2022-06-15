@@ -779,6 +779,13 @@ sub process_project_changes {
                                   'new' => scalar $q->param( 'title' )
                                 );
 
+  # Check whether state changed.
+  my $new_state = $q->param('state');
+  if ($new_state xor $project->state) {
+    $project->state($new_state ? 1 : 0);
+    push @msg, sprintf 'Project %s.', ($new_state ? 'enabled' : 'disabled');
+  }
+
   # Check whether allocation has changed
   my $new_alloc_h = $q->param('alloc_h') * 3600;
   my $new_alloc_m = $q->param('alloc_m') * 60;

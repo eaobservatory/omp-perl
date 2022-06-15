@@ -63,7 +63,7 @@ my $nr = OMP::NightRep->new(date => $startut,
                             telescope => $telescope,
                             delta_day => $delta,);
 
-my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI";
+my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF/;
 
 
 #print scalar $nr->astext();
@@ -121,7 +121,7 @@ sub print_reporting_breakdown {
     }
 
     my @country_totals;
-    foreach my $country ( split(/\s+/,$countrylist) ) {
+    foreach my $country (@countrylist) {
         my $ctotal = 0.0;
         foreach my $proj (keys %acct) {
             my ($ptime, $pcountry) = split(/\@/,$items{$proj});
@@ -203,7 +203,7 @@ sub print_reporting_breakdown {
 
 
         my $cnr = 0;
-        foreach my $country ( split(/\s/,$countrylist) ) {
+        foreach my $country (@countrylist) {
             my $done_first = 0;
             foreach my $proj (keys %acct) {
                 my ($ptime, $pcountry) = split(/\@/,$items{$proj});
