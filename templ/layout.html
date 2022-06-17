@@ -61,9 +61,10 @@
             <p>
                 [% omp_user.name %]
                 [% IF omp_user.is_staff %]&#x2605;[% END %]
-                <br />
-                <a href="/cgi-bin/fblogout.pl">Log out</a>
             </p>
+            <ul>
+                <li><a href="/cgi-bin/fblogout.pl">Log out</a></li>
+            </ul>
         [% END %]
     </div>
     <div id="layout_content">

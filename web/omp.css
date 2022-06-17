@@ -582,11 +582,16 @@ div#layout_top_bar + div#layout_side_bar {
 
 div#layout_side_bar li {
     list-style: none;
+    padding-top: 0.5ex;
+    padding-bottom: 0.5ex;
 }
 
 div#layout_side_bar ul {
     padding-left: 0px;
     padding-bottom: 10px;
+}
+
+div#layout_side_bar ul:not(:last-child) {
     border-bottom: 2px solid #55559b;
 }
 
