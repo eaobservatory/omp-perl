@@ -582,6 +582,8 @@ div#layout_top_bar + div#layout_side_bar {
 
 div#layout_side_bar li {
     list-style: none;
+    padding-top: 0.5ex;
+    padding-bottom: 0.5ex;
 }
 
 div#layout_side_bar ul {
