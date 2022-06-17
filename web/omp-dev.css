@@ -7,6 +7,6 @@ div#layout_side_bar {
     background: #ff0000 !important;
 }
 
-div#layout_side_bar ul {
+div#layout_side_bar ul:not(:last-child) {
     border-bottom: 2px solid #880000 !important;
 }
