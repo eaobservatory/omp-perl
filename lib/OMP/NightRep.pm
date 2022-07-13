@@ -1447,7 +1447,7 @@ with table breaks occurring whenever an instrument changes. If
 set to 'instrument', then one table will be displayed for each
 instrument in the C<Info::ObsGroup> object, regardless of the order
 in which observations for those instruments were taken. Defaults
-to 'instrument'.
+to 'chronological'.
 
 =back
 
@@ -1474,7 +1474,7 @@ sub get_obs_summary {
       $sort = 'instrument';
     }
   } else {
-    $sort = 'instrument';
+    $sort = 'chronological';
   }
 
   my $ascending;
