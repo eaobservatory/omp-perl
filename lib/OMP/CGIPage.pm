@@ -582,6 +582,7 @@ sub _sidebar_project {
   $self->side_bar("Project administration", [
     ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
     ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
+    ['Target observability' => "/cgi-bin/sourceplot.pl?project=$projectid"],
   ]) if $self->auth->is_staff;
 }
 
