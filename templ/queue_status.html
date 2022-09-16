@@ -168,7 +168,7 @@
                         [% SET obs_first = loop.first %]
                         [% FOREACH coord IN obs.coords %]
                             <tr [% IF ! shown %]style="opacity: 0.5;"[% END %]>
-                                [% IF msb_first %]
+                                [% IF msb_first && obs_first && loop.first %]
                                     <td>
                                         <a href="/cgi-bin/projecthome.pl?project=[% msb.projectid %]">[% msb.projectid %]</a>
                                         (<a href="/cgi-bin/sourceplot.pl?project=[% msb.projectid %]">plot</a>)
@@ -195,12 +195,12 @@
                                     <td>&mdash;</td>
                                 [% END %]
                                 <td>[% type | html %]</td>
-                                [% IF obs_first && loop.first %]
+                                [% IF loop.first %]
                                     <td>[% obs.instrument | html %]</td>
                                 [% ELSE %]
                                     <td>&nbsp;</td>
                                 [% END %]
-                                [% IF msb_first && obs_first && loop.first %]
+                                [% IF obs_first && loop.first %]
                                     <td>[% msb.tau | html %]</td>
                                     <td>[% msb.remaining | html %]</td>
                                     <td>
