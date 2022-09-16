@@ -50,13 +50,9 @@ sub view_queue_status {
 
     my %opt = (telescope => $telescope);
 
-    do {
-        my $semester = $q->param('semester');
-        if (defined $semester) {
-            die 'invalid semester' unless $semester =~ /^([-_A-Za-z0-9]+)$/;
-            $opt{'semester'} = $1;
-        }
-    };
+    $opt{'semester'} = {
+        map {die 'invalid semester' unless /^([-_A-Za-z0-9]+)$/; $_ => 1}
+        grep {defined $_} $q->multi_param('semester') };
 
     $opt{'country'} = {
         map {die 'invalid queue' unless /^([-_A-Za-z0-9+]+)$/; $_ => 1}
@@ -91,7 +87,7 @@ sub view_queue_status {
     };
 
     my %query_opt = %opt;
-    foreach my $param (qw/country instrument/) {
+    foreach my $param (qw/country instrument semester/) {
         $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
     }
 
@@ -192,7 +188,7 @@ sub _show_input_page {
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
     push @semesters, $semester unless grep {$_ eq $semester} @semesters;
-    $values->{'semester'} //= $semester;
+    $values->{'semester'} //= {$semester => 1};
 
     my @countries = grep {! /^ *$/ || /^serv$/i} $db->listCountries(telescope => $telescope);
     # Add special combinations (see fault 20210831.001).

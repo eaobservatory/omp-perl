@@ -5,23 +5,28 @@
 <form method="post" action="[% target %]">
     <table>
         <tr>
+            <td>&nbsp;</td>
             <td>
                 <b>Semester</b>
             </td>
-            <td colspan="3">
-                <select name="semester">
-                    [% FOREACH semester IN semesters %]
-                        <option [% IF semester == values.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
-                    [% END %]
-                </select>
+            <td>
+                <b>Queue</b>
+            </td>
+            <td>
+                <b>Instrument</b>
             </td>
             <td>
                 <b>Project</b>
             </td>
         </tr>
         <tr valign="top">
+            <td>&nbsp;</td>
             <td>
-                <b>Queue</b>
+                <select name="semester" size="8" multiple="multiple">
+                    [% FOREACH semester IN semesters %]
+                        <option [% IF values.semester.$semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
+                    [% END %]
+                </select>
             </td>
             <td>
                 <select name="country" size="8" multiple="multiple">
@@ -29,9 +34,6 @@
                         <option [% IF values.country.$country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
                     [% END %]
                 </select>
-            </td>
-            <td>
-                <b>Instrument</b>
             </td>
             <td>
                 <select name="instrument" size="8" multiple="multiple">
