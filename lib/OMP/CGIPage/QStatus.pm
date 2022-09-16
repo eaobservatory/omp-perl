@@ -205,7 +205,7 @@ sub _show_input_page {
         affiliations => [map {
             [$_, $AFFILIATION_NAMES{$_}]
             } @affiliation_codes],
-        instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI RXA3M/],
+        instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI/],
         bands => \@weather_bands,
         orders => [
             [priority => 'Priority'],
