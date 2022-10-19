@@ -328,9 +328,12 @@ sub query_fault_output {
         }
       }
 
+      my $timezone = $q->param('timezone');
+      my $islocal = ((defined $timezone) and ($timezone ne 'UT'));
+
       # Convert dates to UT
-      $mindate = OMP::DateTools->parse_date($mindatestr, 1);
-      $maxdate = OMP::DateTools->parse_date($maxdatestr, 1);
+      $mindate = OMP::DateTools->parse_date($mindatestr, $islocal);
+      $maxdate = OMP::DateTools->parse_date($maxdatestr, $islocal);
 
       # Imply end of day (23:59) for max date if no time was specified
       ($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;

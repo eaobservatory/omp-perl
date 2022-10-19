@@ -79,7 +79,12 @@
                     <input type="text" name="mindate" size="18" maxlength="32" value="[% form_info.values.mindate %]" />
                     and
                     <input type="text" name="maxdate" size="18" maxlength="32" value="[% form_info.values.maxdate %]" />
-                    [% form_info.timezone %]
+                    &nbsp;
+                    <select name="timezone">
+                        [% FOREACH tz IN ['UT', 'HST'] %]
+                            <option [% IF tz == form_info.values.timezone %]selected="selected"[% END %] value="[% tz %]">[% tz %]</option>
+                        [% END %]
+                    </select>
                     <br />
                     <input type="text" name="days" size="3" maxlength="4" value="[% form_info.values.days %]" />
                     days

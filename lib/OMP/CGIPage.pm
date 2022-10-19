@@ -609,7 +609,7 @@ sub _sidebar_night {
     ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
     ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
     ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
-        . "&mindate=$utdate&maxdate=$utdate&search=Search&cat=$telescope"],
+        . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
   ]);
 }
 

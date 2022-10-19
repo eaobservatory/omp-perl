@@ -134,13 +134,9 @@ sub query_fault_form {
       [all_closed => 'All closed'],
       map {[$status->{$_}, $_]} sort keys %$status);
 
-  # Get the date so we can figure out our local timezone
-  my $today = localtime;
-
   return {
     category => $category,
     target => $q->url(-absolute => 1, -query => 0),
-    timezone => $today->strftime('%Z'),
     show_id_fields => ! $hidefields,
     show_timelost => OMP::Fault->faultCanLoseTime($category),
     show_show_affected => OMP::Fault->faultCanAssocProjects($category),
@@ -166,6 +162,7 @@ sub query_fault_form {
     values => {
         action => (scalar $q->param('action') // 'activity'),
         period => (scalar $q->param('period') // 'arbitrary'),
+        timezone => (scalar $q->param('timezone') // 'HST'),
         text_search => (scalar $q->param('text_search') // 'both'),
         map {$_ => scalar $q->param($_)}
             qw/author mindate maxdate days system type status
