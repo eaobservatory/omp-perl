@@ -16,34 +16,22 @@ status of a project.
 
 =cut
 
-use 5.006;
 use strict;
 use warnings;
-use Carp;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::Config;
-use OMP::General;
-
-use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
-
-require Exporter;
-
 $| = 1;
 
-@ISA = qw/Exporter/;
+use parent qw/Exporter/;
 
-@EXPORT_OK = (qw/start_form_absolute url_absolute/);
+our @EXPORT_OK = qw/start_form_absolute url_absolute/;
 
-%EXPORT_TAGS = (
-                'all' =>[ @EXPORT_OK ],
-               );
+our %EXPORT_TAGS = (
+    'all' =>[ @EXPORT_OK ],
+);
 
 Exporter::export_tags(qw/ all /);
-
-# A default width for HTML tables
-our $TABLEWIDTH = 720;
 
 =head1 Routines
 
