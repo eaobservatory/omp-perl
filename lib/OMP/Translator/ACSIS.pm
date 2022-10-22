@@ -739,7 +739,6 @@ sub frontend_config {
 
   # Sideband mode
   my $sb_mode = uc $fc{sideBandMode};
-  $fe->sb_mode($sb_mode);
 
   # Get sky and rest frequency in GHz
   my $skyFreq = $fc{skyFrequency} / 1.0E9;
@@ -748,6 +747,17 @@ sub frontend_config {
   # How to handle 'best'?
   my $sb = uc $fc{sideBand};
   my $sideband_flip = undef;
+
+  # Check side-band restricted observations.
+  if (($sb_mode eq 'USB') or ($sb_mode eq 'LSB')) {
+    throw OMP::Error::TranslateFail("Specified sideband is '$sb' but the sideband mode is '$sb_mode'")
+      unless $sb eq $sb_mode;
+
+    # Treat as 'SSB' hereafter for now.
+    $sb_mode = 'SSB';
+  }
+
+  $fe->sb_mode($sb_mode);
 
   if ($sb eq 'BEST') {
     # determine from lookup table
