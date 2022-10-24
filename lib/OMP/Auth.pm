@@ -10,6 +10,7 @@ use strict;
 use warnings;
 
 use OMP::AuthDB;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Constants qw/:logging/;
 use OMP::DBbackend;
@@ -82,14 +83,17 @@ sub log_in {
             my $method = $opt{'method'} // 'log_in';
             my $user_info = $provider_class->$method($q);
 
+            $abort = 1 if exists $user_info->{'abort'};
+            $redirect = $user_info->{'redirect'} if exists $user_info->{'redirect'};
+
             if (exists $user_info->{'user'}) {
                 $user = $user_info->{'user'};
                 ($token, $duration) = $db->issue_token(
                     $user, $q->remote_addr(), $q->user_agent(), $user_info->{'duration'});
-            }
 
-            $abort = 1 if exists $user_info->{'abort'};
-            $redirect = $user_info->{'redirect'} if exists $user_info->{'redirect'};
+                # Redirect back to the current page so it is loaded normally.
+                $redirect = url_absolute($q) unless defined $redirect;
+            }
         }
         else {
             my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
