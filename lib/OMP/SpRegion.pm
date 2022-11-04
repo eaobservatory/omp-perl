@@ -336,13 +336,13 @@ sub get_moc {
     my $max_order = $opt{'order'} // 16;
     my $json = !! $opt{'json'};
 
-    DEFER_CMPREGION && $self->_build_cmpregion($type);
-
-    my $cmp = $self->{'cmp'}->{$type};
-    return unless $cmp;
+    return unless scalar @{$self->{'separate'}->{$type}};
 
     my $moc = new Starlink::AST::Moc(sprintf 'MaxOrder=%i', $max_order);
-    $moc->AddRegion(Starlink::AST::Region::AST__OR(), $cmp);
+
+    foreach my $region (@{$self->{'separate'}->{$type}}) {
+        $moc->AddRegion(Starlink::AST::Region::AST__OR(), $region);
+    }
 
     return $moc->GetMocString($json);
 }
