@@ -26,6 +26,7 @@ observations in a Science Programme.
 use strict;
 use warnings;
 
+use IO::File;
 use Starlink::AST;
 use Starlink::ATL::Region qw/merge_regions/;
 use Astro::Coords;
@@ -286,7 +287,19 @@ sub write_ast {
 
   my $cmp = $self->{'cmp'}->{$type};
   return unless $cmp;
-  $cmp->Show();
+
+  if (defined $opt{'filename'}) {
+    my $fh = IO::File->new($opt{'filename'}, 'w');
+    die 'Could not open output file' unless defined $fh;
+    my $ch = new Starlink::AST::Channel(sink => sub {print $fh "$_[0]\n"});
+
+    $ch->Write($cmp);
+
+    $fh->close();
+  }
+  else {
+    $cmp->Show();
+  }
 }
 
 =item B<write_stcs>
@@ -307,8 +320,22 @@ sub write_stcs {
 
   my $cmp = $self->{'cmp'}->{$type};
   return unless $cmp;
-  my $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
+
+  my ($fh, $ch);
+  if (defined $opt{'filename'}) {
+    $fh = IO::File->new($opt{'filename'}, 'w');
+    die 'Could not open output file' unless defined $fh;
+    $ch = new Starlink::AST::StcsChan(sink => sub {print $fh "$_[0]\n"});
+  }
+  else {
+    $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
+  }
+
   $ch->Write($cmp);
+
+  if (defined $fh) {
+    $fh->close();
+  }
 }
 
 =item B<get_moc>
@@ -321,8 +348,6 @@ Options:
 
 =item max_order
 
-=item json
-
 =back
 
 =cut
@@ -334,17 +359,16 @@ sub get_moc {
     die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
         unless exists $self->{'separate'}{$type};
     my $max_order = $opt{'order'} // 16;
-    my $json = !! $opt{'json'};
 
-    DEFER_CMPREGION && $self->_build_cmpregion($type);
-
-    my $cmp = $self->{'cmp'}->{$type};
-    return unless $cmp;
+    return unless scalar @{$self->{'separate'}->{$type}};
 
     my $moc = new Starlink::AST::Moc(sprintf 'MaxOrder=%i', $max_order);
-    $moc->AddRegion(Starlink::AST::Region::AST__OR(), $cmp);
 
-    return $moc->GetMocString($json);
+    foreach my $region (@{$self->{'separate'}->{$type}}) {
+        $moc->AddRegion(Starlink::AST::Region::AST__OR(), $region);
+    }
+
+    return $moc;
 }
 
 =item B<plot_pgplot>

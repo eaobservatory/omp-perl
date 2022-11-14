@@ -20,6 +20,7 @@ use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::MSBDB;
 use Starlink::AST::PGPLOT;
+use Starlink::ATL::MOC qw/write_moc_fits/;
 
 use base qw/OMP::CGIPage/;
 
@@ -53,6 +54,7 @@ sub view_region {
       formats => [
         [stcs => 'STC-S file'],
         [ast => 'AST region file'],
+        [fits => 'MOC FITS file'],
         [png => 'Plot as PNG image'],
       ],
     };
@@ -60,6 +62,7 @@ sub view_region {
 
   my %mime = (png => 'image/png',
               stcs => 'text/plain',
+              fits => 'application/fits',
               ast => 'application/octet-stream');
 
   my %types = map {$_ => 1} qw/all new progress complete/;
@@ -126,6 +129,10 @@ sub view_region {
   }
   elsif ($format eq 'stcs') {
     $region->write_stcs(type => $type);
+  }
+  elsif ($format eq 'fits') {
+    my $moc = $region->get_moc(type => $type, order => undef);
+    write_moc_fits($moc, '-');
   }
   else {
     die 'Unrecognised format, not trapped by first check.';

@@ -48,9 +48,15 @@ Display the full manual page.
 
 Produce a list of regions to be observed.
 
-=item B<-format> stcs | ast | moc-json | moc-text
+=item B<-format> stcs | ast | moc-json | moc-text | moc-fits
 
-Selects the format in which to report the regions.
+Selects the format in which to report the regions.  Only required if
+the format cannot be inferred from the output name.
+
+=item B<-output> filename
+
+Output filename for region files.  Write to standard output if not
+specified, defaulting to STCS format.
 
 =item B<-mocorder>
 
@@ -89,6 +95,7 @@ eg: -6,6,-4,4.
 # List all targets in a science program
 use strict;
 use warnings;
+use IO::File;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -99,6 +106,7 @@ use lib "$FindBin::RealBin/../lib";
 # Must load AST early to avoid problems with PGPLOT.
 # Therefore load OMP::SpRegion now.
 use OMP::SpRegion;
+use Starlink::ATL::MOC qw/write_moc_fits/;
 
 # External modules
 use DateTime;
@@ -114,14 +122,15 @@ our $VERSION = '2.000';
 # Options
 my ($format, $mode_type, $plotting_method, $plotting_system,
     $help, $man, $version, $mode_region, $mode_plot, $plotting_bounds,
-    $moc_order)
-  = ('stcs', undef, 'cmpregion', 'fk5');
+    $moc_order, $region_output)
+  = (undef, undef, 'cmpregion', 'fk5');
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "region" => \$mode_region,
                         "plot" => \$mode_plot,
                         'format=s' => \$format,
+                        'output=s' => \$region_output,
                         'mocorder=i' => \$moc_order,
                         'type=s' => \$mode_type,
                         'plottingmethod=s' => \$plotting_method,
@@ -214,23 +223,57 @@ sub region_report {
   }
 
   if ($mode_region) {
-    if (lc($format) eq 'stcs') {
-      $region->write_stcs(type => $mode_type);
+    if (defined $format) {
+        $format = lc $format;
     }
-    elsif (lc($format) eq 'ast') {
-      $region->write_ast(type => $mode_type);
+    else {
+        if ((not defined $region_output) or ($region_output =~ /\.stcs/)) {
+            $format = 'stcs';
+        }
+        elsif ($region_output =~ /\.ast/) {
+            $format = 'ast';
+        }
+        elsif ($region_output =~ /\.json/) {
+            $format = 'moc-json';
+        }
+        elsif ($region_output =~ /\.txt/) {
+            $format = 'moc-text';
+        }
+        elsif ($region_output =~ /\.fits/) {
+            $format = 'moc-fits';
+        }
+        else {
+            die 'Region output format not specified';
+        }
+    }
+
+    if ($format eq 'stcs') {
+      $region->write_stcs(type => $mode_type, filename => $region_output);
+    }
+    elsif ($format eq 'ast') {
+      $region->write_ast(type => $mode_type, filename => $region_output);
     }
     elsif ($format =~ /^moc-/i) {
       my %moc_opts = (type => $mode_type, order => $moc_order);
-      if (lc($format) eq 'moc-json') {
-        $moc_opts{'json'} = 1;
+      my $moc = $region->get_moc(%moc_opts);
+
+      if (($format eq 'moc-json') or ($format eq 'moc-text')) {
+        unless (defined $region_output) {
+            print $moc->GetMocString(($format eq 'moc-json') ? 1 : 0);
+        }
+        else {
+            my $fh = IO::File->new($region_output, 'w');
+            die 'Could not open output file' unless defined $fh;
+            print $fh $moc->GetMocString(($format eq 'moc-json') ? 1 : 0);
+            $fh->close();
+        }
       }
-      elsif (lc($format) eq 'moc-text') {
+      elsif ($format eq 'moc-fits') {
+        write_moc_fits($moc, ($region_output // '-'));
       }
       else {
         die 'Unknown MOC format ' . $format;
       }
-      print $region->get_moc(%moc_opts);
     }
     else {
       die 'Unknown region output format ' . $format;

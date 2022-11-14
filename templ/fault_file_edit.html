@@ -122,7 +122,7 @@
                 <td>
                     <select name="remote">
                         [% FOREACH remote IN remotes %]
-                            <option value="[% remote.0 | html %]">[% remote.1 | html %]</option>
+                            <option value="[% remote.0 | html %]" [% IF remote.0 == values.remote %]selected="selected"[% END %]>[% remote.1 | html %]</option>
                         [% END %]
                     </select>
                 </td>
