@@ -448,7 +448,7 @@ sub extract_projectid {
       or $string =~ m{\b(u/cmp/\d+)\b}i             # UKIRT Campaigns
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
-      or $string =~ /\b([A-Za-z]+CAL)\b/i           # Things like JCMTCAL
+      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/i   # Things like JCMTCAL
       or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
             && $string !~ /\bs[uinc]\d+\b/          # but not JCMT service abbrev
             && $string !~ $any_ukirt                # and not UKIRTS ones u/*/*.
