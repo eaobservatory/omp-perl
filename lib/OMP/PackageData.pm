@@ -1160,7 +1160,7 @@ sub cadc_file_uri {
 
     $filename .= '.gz' if _cadc_file_uri_is_gz($filename);
 
-    return 'ad:JCMT/' . $filename;
+    return 'cadc:JCMT/' . $filename;
 }
 
 =item B<_cadc_file_uri_is_gz>
