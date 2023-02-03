@@ -131,8 +131,6 @@ sub night_report {
               telescope => $tel,);
   ($delta) and $args{delta_day} = $delta;
 
-  my $other_nr_link = $tel =~ m/^jcmt$/i ? 'UKIRT' : 'JCMT' ;
-
   # Get the night report
   my $nr = new OMP::NightRep(%args);
 
@@ -161,7 +159,6 @@ sub night_report {
       target_base => $q->url(-absolute => 1),
 
       telescope => $tel,
-      other_telescope => $other_nr_link,
 
       ut_date => $utdate,
       ut_date_end => $utdate_end,
