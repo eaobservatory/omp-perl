@@ -51,12 +51,6 @@
     [% END %]
 </p>
 
-<p>
-    <i>(View
-    <a href="[% target_base | html %]?tel=[% other_telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %][% IF ut_date_delta %]&amp;utdate_end=[% ut_date_end.ymd | uri %][% END %]">[% other_telescope | html %]</a>
-    report)</i>
-</p>
-
 [% render_weather_plot_links(weather_plots) %]
 
 [% IF ut_date_delta < 14 %]

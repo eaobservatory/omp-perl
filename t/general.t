@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 189;
+use Test::More tests => 190;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -296,6 +296,7 @@ my %extract = (
                'SX_44EW_MD' => '[SX_44EW_MD] blah',
                'MEGACAL'    => '[MEGACAL]',
                'JCMTCAL'    => '[JCMTCAL]',
+               'JCMTCALOLD' => '[JCMTCALOLD]',
                'ukirtcal'   => '[ukirtcal] blah di blah',
                'tj03'       => 'hello tj03',
                'thk125'     => 'this is [thk125]',
