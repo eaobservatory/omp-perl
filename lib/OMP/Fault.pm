@@ -136,6 +136,7 @@ use constant {
   ROVER    => FRONT_END_HARP +  5,
   SMU_TMU  => FRONT_END_HARP +  6,
   NAMAKANUI=> FRONT_END_HARP +  7,
+  WX_STATN => FRONT_END_HARP +  8,
 };
 
 # Safety - severity.
@@ -322,6 +323,7 @@ my %DATA = (
                                    'SCUBA-2' => SCUBA2,
                                    IFS => IFS,
                                    "Water Vapor Rad." => WATER_VAPOR_RAD,
+                                   "Weather Station" => WX_STATN,
                                    "Visitor Instruments" => INSTRUMENT_VISITOR,
                                    Instrument => INSTRUMENT_OTHER_UNKNOWN,
                                    Computer => COMPUTER,
@@ -489,6 +491,7 @@ my %DATA = (
                                     'Software-DR'   =>  SOFTWARE_DR    ,
                                     'Telescope'     =>  TELESCOPE      ,
                                     'Water Vapor Monitor' => WATER_VAPOR_RAD ,
+                                    'Weather Station' => WX_STATN,
                                     'Other'         =>  SYSTEMOTHER,
                                   },
                       'TYPE' => {
