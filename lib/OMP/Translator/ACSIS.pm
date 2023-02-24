@@ -247,7 +247,7 @@ to ACSIS equivalents.
   $cfg->fixup_historical_problems( \%obs );
 
 Also set mode to 2SB for dual-sideband receivers in case of using XML
-from pre-2SB OT.
+from pre-2SB OT and USB for USB-only receivers.
 
 =cut
 
@@ -260,6 +260,14 @@ sub fixup_historical_problems {
 
       $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
           if exists $twosbrx{uc($info->{'instrument'})};
+  }
+
+  # TODO: apply ot_version test once OT supports USB sideband mode.
+  if (1) {
+      my %usbrx = map {$_ => 1} qw/ALAIHI/;
+
+      $info->{'freqconfig'}->{'sideBandMode'} = 'usb'
+          if exists $usbrx{uc $info->{'instrument'}};
   }
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
