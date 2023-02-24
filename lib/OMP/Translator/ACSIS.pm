@@ -1964,16 +1964,6 @@ sub correlator {
     # store it
     $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
   }
-
-  # Temporary check: LO2 #3 (array index 2)'s high synthesizer is
-  # inoperative.  [6-8GHz OK, 8-10GHz not OK]
-  # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
-  if (defined $lo2[2] and ($lo2[2] > 7.9999e9)) {
-    throw OMP::Error::FatalError(sprintf(
-      "LO2 #3 can currently not tune above 8 GHz (%.3f GHz requested)",
-      $lo2[2] / 1.0e9));
-  }
-
   $if->lo2freqs( @lo2 );
 
   # Set the LO3 to a fixed value (all the test files do this)
