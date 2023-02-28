@@ -174,6 +174,12 @@ sub translate {
           $hdr->source(undef);
         }
       }
+      if (1) {
+        my $wiring_inst = $self->_read_instrument_config(%$obs);
+        my $inst = $cfg->instrument_setup();
+        $inst->pointing($wiring_inst->pointing());
+        $inst->smu_offset($wiring_inst->smu_offset());
+      }
       push @configs, $cfg;
       next;
     }
@@ -1165,6 +1171,20 @@ sub instrument_config {
   my $cfg = shift;
   my %info = @_;
 
+  my $inst_cfg = $self->_read_instrument_config(%info);
+
+  # tweak the wavelength
+  $inst_cfg->wavelength( $info{wavelength} )
+    if defined $info{wavelength};
+
+  $cfg->instrument_setup( $inst_cfg );
+
+}
+
+sub _read_instrument_config {
+  my $self = shift;
+  my %info = @_;
+
   # The instrument config is fixed for a specific instrument
   # and is therefore a "wiring file"
   my $inst = lc($self->ocs_frontend($info{instrument}));
@@ -1182,12 +1202,7 @@ sub instrument_config {
                                                    validation => 0,
                                                  );
 
-  # tweak the wavelength
-  $inst_cfg->wavelength( $info{wavelength} )
-    if defined $info{wavelength};
-
-  $cfg->instrument_setup( $inst_cfg );
-
+  return $inst_cfg;
 }
 
 =item B<slew_config>

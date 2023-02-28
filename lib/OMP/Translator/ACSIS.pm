@@ -247,7 +247,7 @@ to ACSIS equivalents.
   $cfg->fixup_historical_problems( \%obs );
 
 Also set mode to 2SB for dual-sideband receivers in case of using XML
-from pre-2SB OT.
+from pre-2SB OT and USB for USB-only receivers.
 
 =cut
 
@@ -260,6 +260,14 @@ sub fixup_historical_problems {
 
       $info->{'freqconfig'}->{'sideBandMode'} = '2sb'
           if exists $twosbrx{uc($info->{'instrument'})};
+  }
+
+  # TODO: apply ot_version test once OT supports USB sideband mode.
+  if (1) {
+      my %usbrx = map {$_ => 1} qw/ALAIHI/;
+
+      $info->{'freqconfig'}->{'sideBandMode'} = 'usb'
+          if exists $usbrx{uc $info->{'instrument'}};
   }
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
@@ -739,7 +747,6 @@ sub frontend_config {
 
   # Sideband mode
   my $sb_mode = uc $fc{sideBandMode};
-  $fe->sb_mode($sb_mode);
 
   # Get sky and rest frequency in GHz
   my $skyFreq = $fc{skyFrequency} / 1.0E9;
@@ -748,6 +755,17 @@ sub frontend_config {
   # How to handle 'best'?
   my $sb = uc $fc{sideBand};
   my $sideband_flip = undef;
+
+  # Check side-band restricted observations.
+  if (($sb_mode eq 'USB') or ($sb_mode eq 'LSB')) {
+    throw OMP::Error::TranslateFail("Specified sideband is '$sb' but the sideband mode is '$sb_mode'")
+      unless $sb eq $sb_mode;
+
+    # Treat as 'SSB' hereafter for now.
+    $sb_mode = 'SSB';
+  }
+
+  $fe->sb_mode($sb_mode);
 
   if ($sb eq 'BEST') {
     # determine from lookup table
@@ -1820,20 +1838,6 @@ sub correlator {
       my @hwmap = $hw_map->receptor( $r );
       throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map!") unless @hwmap;
 
-      # Temporary slot mapping if necessary for HARP.
-      my $slot_mapping = undef;
-      if (2 == scalar @hwmap) {
-        if ((exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
-                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
-                and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
-            $slot_mapping = [1, 0];
-        }
-      }
-      throw OMP::Error::FatalError(
-        "Slot mapping size does not match the number of slots!")
-        if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
-
       # Some configurations actually use multiple correlator modules in
       # a single subband so we need to take this into account when
       # calculating the mapping.
@@ -1848,7 +1852,7 @@ sub correlator {
         throw OMP::Error::TranslateFail("The observation specified " . ($slot_i + 1) . " (or more) subbands but there are only ". @hwmap . " slots available for receptor '$r'")
           if $slot_i > $#hwmap;
 
-        my $hw = $hwmap[(defined $slot_mapping) ? $slot_mapping->[$slot_i] : $slot_i];
+        my $hw = $hwmap[$slot_i];
 
         my $cmid = $hw->{CM_ID};
         my $dcmid = $hw->{DCM_ID};
@@ -1932,9 +1936,7 @@ sub correlator {
   throw OMP::Error::FatalError("Somehow the LO2 settings were never calculated")
     unless exists $info{freqconfig}->{LO2};
 
-  # Temporary default LO2 frequency to avoid tuning issues with high
-  # frequency synthesizers.
-  my @lo2 = (7.5e9) x 4;
+  my @lo2;
   for my $i (0..$#lo2spw) {
     my $spwid = $lo2spw[$i];
     next unless defined $spwid;
@@ -1946,16 +1948,6 @@ sub correlator {
     # store it
     $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
   }
-
-  # Temporary check: LO2 #3 (array index 2)'s high synthesizer is
-  # inoperative.  [6-8GHz OK, 8-10GHz not OK]
-  # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
-  if (defined $lo2[2] and ($lo2[2] > 7.9999e9)) {
-    throw OMP::Error::FatalError(sprintf(
-      "LO2 #3 can currently not tune above 8 GHz (%.3f GHz requested)",
-      $lo2[2] / 1.0e9));
-  }
-
   $if->lo2freqs( @lo2 );
 
   # Set the LO3 to a fixed value (all the test files do this)
@@ -3494,23 +3486,23 @@ sub bandwidth_mode {
     } elsif ($nsubband == 3) {
       # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      #              :  [ |     | ]
       # [ |     | ]  :
+      #              :  [ |     | ]
       @refchan = ($nch_mid,
-                  $nch_mid + $subband_shift,
-                  $nch_mid - $subband_shift);
+                  $nch_mid - $subband_shift,
+                  $nch_mid + $subband_shift);
       @sbif = ($s->{'if'}) x 3;
 
     } elsif ($nsubband == 4) {
       # Subbands all referenced to the centre IF.
       #         [ |     |:]
       #                 [:|     | ]
-      # [ |     | ]      :
       #                  :      [ |     | ]
+      # [ |     | ]      :
       @refchan = ($nch_lo,
                   $nch_hi,
-                  $nch_lo - $subband_shift,
-                  $nch_hi + $subband_shift);
+                  $nch_hi + $subband_shift,
+                  $nch_lo - $subband_shift);
       @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
