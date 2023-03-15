@@ -39,10 +39,23 @@ offline (e.g. graphs).
 This is done in the OMP so that we can check that
 the user is permitted to view the resource.
 
-Currently we check that the project had observations
-on the night in question.  If more 'types' of resources
-are to be added, it may be necessary to perform a
-different kind of authorization for each one.
+Authorization depends on the resource type.  If the user
+authenticated via a project then C<$projectid> will
+be defined.  Otherwise they will have authenticated
+via local or staff access.
+
+=over 4
+
+=item dq-nightly
+
+For project access, ensure C<$utdate> is given and check
+that the project had observations on the night in question.
+
+=item fault-image
+
+Project access not currently permitted.
+
+=back
 
 =cut
 
@@ -55,9 +68,10 @@ sub get_resource {
 
   my $type = $q->url_param('type');
   my $utdate = $q->url_param('utdate');
+  my $faultid = $q->url_param('fault');
   my $filename = $q->url_param('filename');
 
-  if (defined $projectid) {
+  if (defined $utdate) {
     # Check UT date is valid.
     $utdate =~ s/-//g;
     if ($utdate =~ /^([0-9]{8})$/) {
@@ -66,20 +80,38 @@ sub get_resource {
     else {
       croak('UT date string ['.$utdate.'] is not valid.');
     }
-
-    my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                                 date => $utdate,
-                                                 comments => 0,
-                                                 transactions => 0,
-                                                 format => 'data',});
-
-    unless (scalar @$observed) {
-      $self->_write_forbidden();
-      return;
-    }
   }
 
-  $comp->_get_resource_ut($type, $utdate, $filename);
+  if (defined $faultid) {
+    $faultid = OMP::General->extract_faultid("[${faultid}]");
+    croak 'Invalid fault ID' unless defined $faultid;
+  }
+
+  my $subdirectory = undef;
+  if ($type eq 'dq-nightly') {
+    if (defined $projectid) {
+      croak('UT date not specified') unless defined $utdate;
+      my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
+                                                   date => $utdate,
+                                                   comments => 0,
+                                                   transactions => 0,
+                                                   format => 'data',});
+
+      return $self->_write_forbidden() unless scalar @$observed;
+    }
+
+    $subdirectory = $utdate;
+  }
+  elsif ($type eq 'fault-image') {
+    return $self->_write_forbidden() if defined $projectid;
+
+    $subdirectory = $faultid;
+  }
+  else {
+    croak "Resource type not recognized.";
+  }
+
+  $comp->_get_resource($type, $subdirectory, $filename);
 }
 
 =back
