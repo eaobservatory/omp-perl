@@ -3519,23 +3519,23 @@ sub bandwidth_mode {
     } elsif ($nsubband == 3) {
       # Subbands all referenced to the centre IF.
       #         [ |  :  | ]
-      # [ |     | ]  :
       #              :  [ |     | ]
+      # [ |     | ]  :
       @refchan = ($nch_mid,
-                  $nch_mid - $subband_shift,
-                  $nch_mid + $subband_shift);
+                  $nch_mid + $subband_shift,
+                  $nch_mid - $subband_shift);
       @sbif = ($s->{'if'}) x 3;
 
     } elsif ($nsubband == 4) {
       # Subbands all referenced to the centre IF.
       #         [ |     |:]
       #                 [:|     | ]
-      #                  :      [ |     | ]
       # [ |     | ]      :
+      #                  :      [ |     | ]
       @refchan = ($nch_lo,
                   $nch_hi,
-                  $nch_hi + $subband_shift,
-                  $nch_lo - $subband_shift);
+                  $nch_lo - $subband_shift,
+                  $nch_hi + $subband_shift);
       @sbif = ($s->{'if'}) x 4;
     } else {
       # THIS ONLY WORKS FOR 4 SUBBANDS
