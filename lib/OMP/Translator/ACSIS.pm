@@ -1855,6 +1855,20 @@ sub correlator {
       my @hwmap = $hw_map->receptor( $r );
       throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map!") unless @hwmap;
 
+      # Temporary slot mapping if necessary for HARP.
+      my $slot_mapping = undef;
+      if (2 == scalar @hwmap) {
+        if ((exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
+                and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
+                and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
+                and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
+            $slot_mapping = [1, 0];
+        }
+      }
+      throw OMP::Error::FatalError(
+        "Slot mapping size does not match the number of slots!")
+        if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
+
       # Some configurations actually use multiple correlator modules in
       # a single subband so we need to take this into account when
       # calculating the mapping.
@@ -1869,7 +1883,7 @@ sub correlator {
         throw OMP::Error::TranslateFail("The observation specified " . ($slot_i + 1) . " (or more) subbands but there are only ". @hwmap . " slots available for receptor '$r'")
           if $slot_i > $#hwmap;
 
-        my $hw = $hwmap[$slot_i];
+        my $hw = $hwmap[(defined $slot_mapping) ? $slot_mapping->[$slot_i] : $slot_i];
 
         my $cmid = $hw->{CM_ID};
         my $dcmid = $hw->{DCM_ID};
@@ -1953,7 +1967,9 @@ sub correlator {
   throw OMP::Error::FatalError("Somehow the LO2 settings were never calculated")
     unless exists $info{freqconfig}->{LO2};
 
-  my @lo2;
+  # Temporary default LO2 frequency to avoid tuning issues with high
+  # frequency synthesizers.
+  my @lo2 = (7.5e9) x 4;
   for my $i (0..$#lo2spw) {
     my $spwid = $lo2spw[$i];
     next unless defined $spwid;
