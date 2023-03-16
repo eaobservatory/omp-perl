@@ -278,6 +278,8 @@ sub fixup_historical_problems {
           and 2 == scalar @{$info->{'freqconfig'}->{'subsystems'}}
           and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} - 6.0E9)
           and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} - 6.0E9)
+          and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'rest_freq'}
+            - $info->{'freqconfig'}->{'subsystems'}->[1]->{'rest_freq'})
           and ($info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 2048
             or $info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 8192)
           and ($info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 2048
