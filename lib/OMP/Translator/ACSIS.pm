@@ -271,7 +271,7 @@ sub fixup_historical_problems {
   }
 
   # Change Uu 6GHz IF standards to 5GHz to avoid bad LO2. (If using 2x chained mode.)
-  if ('JCMTCAL' eq uc $info->{'PROJECTID'}
+  if ($info->{'PROJECTID'} =~ /^(?:JCMT)?CAL$/i
           and 'SCIENCE' eq uc $info->{'obs_type'}
           and 'SPITERSTAREOBS' eq uc $info->{'MODE'}
           and 'UU' eq uc $info->{'instrument'}
