@@ -25,7 +25,7 @@ use Data::Dumper;
 
 use File::Spec;
 use Astro::Coords::Offset;
-use List::Util qw/ min max /;
+use List::Util qw/ min max all /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil floor /;
 use Math::Trig qw/ rad2deg /;
@@ -285,8 +285,11 @@ sub fixup_historical_problems {
           and ($info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 2048
             or $info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 8192)
           ) {
-      $info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} = 5.0E9;
-      $info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} = 5.0E9;
+      my $synth_status = _get_lo2_synth_status();
+      if (not all {$_} @{$synth_status->{'high'}}) {
+          $info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} = 5.0E9;
+          $info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} = 5.0E9;
+      }
   }
 
   return if $info->{freqconfig}->{beName} eq 'acsis';
@@ -1969,9 +1972,13 @@ sub correlator {
   throw OMP::Error::FatalError("Somehow the LO2 settings were never calculated")
     unless exists $info{freqconfig}->{LO2};
 
-  # Temporary default LO2 frequency to avoid tuning issues with high
-  # frequency synthesizers.
-  my @lo2 = (7.5e9) x 4;
+  my $synth_status = _get_lo2_synth_status();
+
+  # Supply default LO2 frequency to avoid tuning issues with LO2 synthesizers.
+  my @lo2 = map {
+    (not $synth_status->{'high'}->[$_]) ? 7.5e9 :
+    ((not $synth_status->{'low'}->[$_]) ? 8.5e9 : undef)} 0 .. 3;
+
   for my $i (0..$#lo2spw) {
     my $spwid = $lo2spw[$i];
     next unless defined $spwid;
@@ -1984,13 +1991,16 @@ sub correlator {
     $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
   }
 
-  # Temporary check: LO2 #3 (array index 2)'s high synthesizer is
-  # inoperative.  [6-8GHz OK, 8-10GHz not OK]
+  # Check whether desired LO2 synthesizers are inoperative.
   # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
-  if (defined $lo2[2] and ($lo2[2] > 7.9999e9)) {
-    throw OMP::Error::FatalError(sprintf(
-      "LO2 #3 can currently not tune above 8 GHz (%.3f GHz requested)",
-      $lo2[2] / 1.0e9));
+  for my $lo2index (0 .. 3) {
+    next unless defined $lo2[$lo2index];
+    my $synth = ($lo2[$lo2index] > 7.9999e9) ? 'high' : 'low';
+    if (not $synth_status->{$synth}->[$lo2index]) {
+      throw OMP::Error::FatalError(sprintf(
+        "LO2 #%i (%i counting from 0) %s synthesizer is unavailable (%.3f GHz requested)",
+        ($lo2index + 1), $lo2index, $synth, $lo2[$lo2index] / 1.0e9));
+    }
   }
 
   $if->lo2freqs( @lo2 );
@@ -2005,6 +2015,17 @@ sub correlator {
   $acsis->acsis_map( $map );
 
   return;
+}
+
+sub _get_lo2_synth_status {
+    return {map {
+        my @status = OMP::Config->getData(
+            'acsis_translator.lo2_synth_status_' . $_);
+        throw OMP::Error::FatalError(
+            'Wrong number of elements in lo2_synth_status config parameter')
+            unless 4 == scalar @status;
+        $_ => \@status;
+    } qw/low high/};
 }
 
 =item B<create_image_subsystems>
