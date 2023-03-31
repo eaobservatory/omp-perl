@@ -485,6 +485,8 @@ sub render_template {
     # the _ORDER parameter from OMP::Info::Obs::nightlog.
     local $Template::Stash::PRIVATE = undef;
 
+    local $Text::Wrap::huge = 'overflow';
+
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
         FILTERS => {
