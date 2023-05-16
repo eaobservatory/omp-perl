@@ -107,13 +107,12 @@ my %cal_patterns = (
             qr/Point$/,
             qr/Focus.*7-sample/,
         ],
-        if => '5.0E9',
     },
     'Uu' => {
         patterns => [
-            qr/Uu Point$/,
-            qr/Uu Focus.*7-sample/,
-            qr/Uu Align.*7-sample/,
+            qr/Point$/,
+            qr/Focus.*7-sample/,
+            qr/Align.*7-sample/,
         ],
     },
     'Aweoweo' => {
@@ -122,6 +121,14 @@ my %cal_patterns = (
             qr/Focus.*7-sample/,
             qr/Align.*7-sample/,
         ],
+    },
+    'Alaihi' => {
+        patterns => [
+            qr/Point$/,
+            qr/Focus.*7-sample/,
+            qr/Align.*7-sample/,
+        ],
+        cal_only => 1,
     },
 );
 
@@ -218,7 +225,9 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
     $hst = $hst->hms('-');
 
     while (my ($band, $tau) = each %band) {
-        foreach my $instrument (keys %cal_patterns) {
+        while (my ($instrument, $instrument_info) = each %cal_patterns) {
+            next if $instrument_info->{'cal_only'};
+
             while (my ($query, $countrysemester) = each %query) {
                 print "$utdate $hst band $band $instrument $query\n\n";
 
