@@ -20,6 +20,8 @@ our $AFFILIATIONALLOCATIONTABLE = 'ompaffiliationalloc';
 
 # Printable names for affiliation codes.
 our %AFFILIATION_NAMES = (
+    ar => 'Argentina',
+    br => 'Brazil',
     ca => 'Canada',
     xc => 'Canada (national)',
     cn => 'China',
