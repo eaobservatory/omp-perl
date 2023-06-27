@@ -4918,7 +4918,7 @@ sub SpInstHeterodyne {
   # We need to tidy up this instrument name because
   # i) we really need Rx in front of A3 but not HARP
   # ii) W(C) is not an instrument
-  my @plain_instruments = qw/HARP ALAIHI UU AWEOWEO/;
+  my @plain_instruments = qw/HARP ALAIHI UU AWEOWEO KUNTUR/;
   $summary{instrument} = "RX". $summary{instrument}
     unless ($summary{instrument} =~ /^RX/ || grep {$summary{instrument} eq $_} @plain_instruments);
 

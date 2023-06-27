@@ -64,6 +64,7 @@ our %FE_MAP = (
                ALAIHI => 'ALAIHI',
                UU => 'UU',
                AWEOWEO => 'AWEOWEO',
+               KUNTUR => 'KUNTUR',
               );
 
 # Telescope diameter in metres
