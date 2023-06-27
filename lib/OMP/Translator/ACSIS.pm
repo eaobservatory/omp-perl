@@ -81,6 +81,7 @@ my %ACSIS_Layouts = (
                      ALAIHI => 's2r2g1',
                      UU => 's4r4g1',
                      AWEOWEO => 's4r4g1',
+                     KUNTUR => 's4r4g1',
 
                      HARP => 's8r8g1',
                     );
@@ -907,7 +908,7 @@ sub frontend_config {
 
   # Apply historical tuning offset for receivers which do not yet support
   # reading their IF frequency from the configure XML.
-  my %variable_if_inst = map {$_ => 1} qw/alaihi uu aweoweo/;
+  my %variable_if_inst = map {$_ => 1} qw/alaihi uu aweoweo kuntur/;
   unless (exists $variable_if_inst{lc($self->ocs_frontend($info{instrument}))}) {
     # Get the IF which the instrument will be using, in GHz.
     my $iffreq_conf_ghz = $inst->if_center_freq();
