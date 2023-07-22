@@ -73,6 +73,7 @@ sub format_fault {
   my $category = $fault->category;
   my $shifttype = $fault->shifttype;
   my $remote = $fault->remote;
+  my $projects = $fault->projects;
 
   # Don't show the status if there is only the initial filing and it is 'Open'
   my $status = $responses[1] || $fault->statusText !~ /open/i
@@ -105,6 +106,10 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   $meta .= '<pre>'.
 '<b>Location:</b> ' . $fault->locationText().
 '</pre><br>' if $fault->location();
+
+  $meta .= '<pre>'.
+'<b>Projects:</b> ' . (join ', ', sort {$a cmp $b} map {uc $_} @$projects) .
+'</pre><br>' if scalar @$projects;
 
   my @faulttext;
 
