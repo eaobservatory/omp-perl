@@ -631,7 +631,10 @@ sub _write_http_header {
   my $q = $self->cgi;
   my $cookie = $self->auth->cookie;
 
-  my %header_opt = (-expires => '-1d');
+  my %header_opt = (
+    -expires => '-1d',
+    -charset => 'utf-8',
+  );
   $header_opt{'-cookie'} = $cookie if defined $cookie;
   $header_opt{'-status'} = $status if defined $status;
 

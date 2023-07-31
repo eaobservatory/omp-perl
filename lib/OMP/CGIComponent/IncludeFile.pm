@@ -155,7 +155,7 @@ sub _get_resource {
   my $pathname = join('/', $directory, $subdirectory, $filename);
 
   unless (-e $pathname) {
-    print $self->cgi->header(-status => '404 Not Found');
+    print $self->cgi->header(-status => '404 Not Found', -charset => 'utf-8');
     print '<h1>404 Not Found</h1>';
     return;
   }

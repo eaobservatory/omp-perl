@@ -118,7 +118,7 @@ sub list_observations_txt {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
-  print $query->header( -type => 'text/plain' );
+  print $query->header( -type => 'text/plain', -charset => 'utf-8' );
 
   my $obsgroup;
   try {

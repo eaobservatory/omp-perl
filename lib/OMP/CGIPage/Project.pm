@@ -359,7 +359,7 @@ sub program_summary {
         unless defined $sp;
 
     # Program retrieved successfully: apply summary XSLT.
-    print $q->header(-type => 'text/plain');
+    print $q->header(-type => 'text/plain', -charset => 'utf-8');
 
     $sp->apply_xslt('toml_summary.xslt');
 }
