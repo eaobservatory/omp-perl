@@ -175,7 +175,8 @@ CREATE TABLE `ompobslog` (
   `commentstatus` int(11) NOT NULL,
   `obsid` varchar(48) DEFAULT NULL,
   PRIMARY KEY (`obslogid`),
-  KEY `idx_obsid` (`obsid`)
+  KEY `idx_obsid` (`obsid`),
+  FULLTEXT KEY `idx_ompobslog_commenttext` (`commenttext`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompproj` (
   `projectid` varchar(32) NOT NULL,
@@ -284,7 +285,8 @@ CREATE TABLE `ompshiftlog` (
   `author` varchar(32) NOT NULL,
   `telescope` varchar(32) NOT NULL,
   `text` longtext NOT NULL,
-  PRIMARY KEY (`shiftid`)
+  PRIMARY KEY (`shiftid`),
+  FULLTEXT KEY `idx_ompshiftlog_text` (`text`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `omptimeacct` (
   `date` datetime NOT NULL,
