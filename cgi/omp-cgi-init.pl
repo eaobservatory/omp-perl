@@ -27,7 +27,7 @@ BEGIN {
 }
 
 # Make sure that all modules configure CGI::Carp the same way
-use CGI;
+use CGI qw/-utf8/;
 use CGI::Carp qw/fatalsToBrowser/;
 
 # Set the module search path to be the same location as the
