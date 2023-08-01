@@ -489,6 +489,7 @@ sub render_template {
 
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        ENCODING => 'utf8',
         FILTERS => {
             remove_pre_tags => sub {
                 my $text = shift;
@@ -499,6 +500,7 @@ sub render_template {
         },
     }) or die "Could not configure template object: $Template::ERROR";
 
+    binmode STDOUT, ':utf8';
     $template->process($name, $context) or die $template->error();
 }
 
