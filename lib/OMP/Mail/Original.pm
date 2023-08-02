@@ -31,6 +31,7 @@ use OMP::Display;
 use OMP::DateTools;
 use OMP::General;
 
+use Encode qw/encode find_encoding/;
 use Mail::Internet;
 use MIME::Entity;
 
@@ -98,6 +99,14 @@ sub build {
       unless exists $args{$key};
   }
 
+  # Avoid Encode::MIME::Header and Mail::Header both folding the header.
+  my $std_header_encoding = find_encoding('MIME-Header');
+  my $header_encoding = bless {
+    %$std_header_encoding,
+    Name => 'MIME-Header-Long',
+    bpl => 900,
+  }, ref $std_header_encoding;
+
   my $sender = $args{'from'};
 
   # Decide if we'll have attachments or not and set the MIME type accordingly
@@ -105,13 +114,12 @@ sub build {
   my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
 
   # Setup the message
-  my %utf8 = ( 'Charset' => 'utf-8' );
-  my %recipient = $self->process_addr( map { $_ => $args{ $_ } } qw[ to cc bcc ] );
-  my %details = ( %utf8,
-                  From    => $sender->as_email_hdr_via_flex(),
-                  Subject => $args{subject},
+  my $charset = 'utf-8';
+  my %recipient = $self->process_addr( $header_encoding, map { $_ => $args{ $_ } } qw[ to cc bcc ] );
+  my %details = (
+                  From    => $header_encoding->encode($sender->as_email_hdr_via_flex()),
+                  Subject => $header_encoding->encode($args{subject}),
                   Type     => $type,
-                  Encoding =>'8bit',
                   %recipient
                 );
 
@@ -120,7 +128,14 @@ sub build {
 
   # No HTML in message so we won't be attaching anything.  Just include the
   # message content
-  ($type eq "text/plain") and $details{Data} = $args{message};
+  if ($type eq "text/plain") {
+    $details{'Encoding'} = 'quoted-printable';
+    $details{'Charset'} = $charset;
+    $details{'Data'} = encode($charset, $args{message});
+  }
+  else {
+    $details{'Encoding'} = '7bit';
+  }
 
   # Create the message
   my $mess = MIME::Entity->build(%details);
@@ -130,7 +145,7 @@ sub build {
 
   # Create a Reply-To header if requested.
   if ($args{'reply_to_sender'}) {
-    $args{'headers'}->{'Reply-To'} = $sender->as_email_hdr()
+    $args{'headers'}->{'Reply-To'} = $header_encoding->encode($sender->as_email_hdr())
         if defined $sender->email();
   }
 
@@ -148,27 +163,34 @@ sub build {
     my $plaintext = OMP::Display->html2plain($text);
 
     # Attach the plain text message
-    $mess->attach(  %utf8,
+    $mess->attach(  Charset => $charset,
+                    Encoding => 'quoted-printable',
                     'Type' => "text/plain",
-                    'Data' => $plaintext,
+                    'Data' => encode($charset, $plaintext),
                   )
       or throw OMP::Error::MailError("Error attaching plain text message\n");
 
     # Now attach the original message (it should come up as the default message
     # in the mail reader)
-    $mess->attach(  %utf8,
+    $mess->attach(  Charset => $charset,
+                    Encoding => 'quoted-printable',
                     'Type'=>"text/html",
-                    'Data' => $args{message},
+                    'Data' => encode($charset, $args{message}),
                  )
       or throw OMP::Error::MailError("Error attaching HTML message\n");
   }
+
+  # Increase header folding length because our mail system apparently has trouble
+  # with wrapped headers.  RFC2822 says lines should be no more than 78
+  # but must be no more than 998.
+  $mess->head->fold_length(318);
 
   return $mess;
 }
 
 sub process_addr {
 
-  my ( $self, %list ) = @_;
+  my ( $self, $header_encoding, %list ) = @_;
 
   #  Convert OMP::User objects to suitable mail headers.
   my ( %out , %seen );
@@ -186,7 +208,7 @@ sub process_addr {
       push @tmp , $user->as_email_hdr();
       push @{ $self->{ $alt } } , $addr;
     }
-    scalar @tmp and $out{ $hdr } = join ', ' , @tmp;
+    scalar @tmp and $out{ $hdr } = $header_encoding->encode(join ', ' , @tmp);
   }
   return %out;
 }
