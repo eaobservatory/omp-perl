@@ -774,16 +774,14 @@ sub infer_userid {
     # Note that "le Guin" is surname LEGUIN
     # van der Blah is VANDERBLAH
     if (scalar(@parts) > 2) {
-      if ($parts[-2] =~ /^(LE)$/i ||
-          $parts[-2] =~ /^DE$/i ||
-          $parts[-2] =~ /^van$/i
-         ) {
-        $surname = $parts[-2] . $surname;
-      } elsif (scalar(@parts) > 3 &&
-               $parts[-3] =~ /^van$/i && $parts[-2] =~ /^der$/) {
+      if (scalar(@parts) > 3 &&
+               $parts[-3] =~ /^van$/i &&
+               $parts[-2] =~ /^(der|de|'t)$/) {
         $surname = $parts[-3] . $parts[-2] . $surname;
       }
-
+      elsif ($parts[-2] =~ /^(le|de|di|van|von)$/i) {
+        $surname = $parts[-2] . $surname;
+      }
     }
 
   }
