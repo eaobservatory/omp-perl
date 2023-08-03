@@ -25,6 +25,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use Unicode::Normalize qw/normalize/;
 use OMP::UserServer;
 
 # Overloading
@@ -793,8 +794,11 @@ sub _clean_id {
 
   my ( $id ) = @_;
 
+  # Decompose to separate diacritics from letters.
+  $id = normalize('D', $id);
+
   # Remove characters that are not  letter (eg hyphens)
-  $id =~ s/\W//g;
+  $id =~ s/[^A-Za-z]//g;
 
   return uc( $id );
 }

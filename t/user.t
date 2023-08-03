@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 8 + 30 + (17 * 2) + 10;
+use Test::More tests => 8 + 31 + (17 * 2) + 10;
 use strict;
 require_ok("OMP::User");
 
@@ -69,6 +69,7 @@ my %guessed = (
                VONNOVATOY => 'Yvonne von Novato',
                DIGORYC => 'Cedric di Gory',
                VANDELAS => 'Spencer van de La',
+               MUNOZM => "Mat\x{ed}as Mu\x{f1}oz",
               );
 
 for my $userid (keys %guessed) {
