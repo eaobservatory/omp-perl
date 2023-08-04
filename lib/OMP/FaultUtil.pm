@@ -55,6 +55,9 @@ sub format_fault {
 
   my $faultid = $fault->id;
 
+  # Avoid wrapping long "words", e.g. URLs.
+  local $Text::Wrap::huge = 'overflow';
+
   # Get the fault system URL
   my $baseurl = $omp_url . OMP::Config->getData('cgidir');
 
