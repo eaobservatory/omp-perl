@@ -104,7 +104,7 @@ sub historyMSB {
   throw OMP::Error::BadArgs( "Must supply either checksum or projectid to historyMSB" )
     if (!defined $checksum && !defined $projectid);
 
-  my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
+  my $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n<MSBDoneQuery>" .
     ( $checksum ? "<checksum>$checksum</checksum>" : "" ) .
       ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
           "</MSBDoneQuery>";
@@ -153,7 +153,7 @@ sub historyMSBtid {
   return unless $msbtid =~ /\w/;
 
   # Construct the query
-  my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
+  my $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n<MSBDoneQuery>" .
       "<msbtid>$msbtid</msbtid>" .
           "</MSBDoneQuery>";
 
