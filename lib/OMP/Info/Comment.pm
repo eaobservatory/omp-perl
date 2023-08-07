@@ -98,6 +98,7 @@ __PACKAGE__->CreateAccessors( _text => '$',
                               telescope => '$',
                               startobs => 'Time::Piece',
                               obsid => '$',
+                              relevance => '$',
                             );
 
 =end __PRIVATE__
