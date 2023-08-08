@@ -570,6 +570,7 @@ sub _reorganize_comments {
                 startobs => $startobs,
                 obsid => $obsid,
                 author => $users->{$row->{'commentauthor'}},
+                relevance => $row->{relevance},
               );
   }
 
