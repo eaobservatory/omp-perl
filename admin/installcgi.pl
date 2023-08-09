@@ -83,7 +83,8 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    ompusers.pl
                    projecthome.pl projusers.pl props.pl pubsched.pl
                    qstatus.pl queryfault.pl retrieve_data.pl
-                   sched.pl schedcal.pl schedcallist.pl schedstat.pl shiftlog.pl
+                   sched.pl schedcal.pl schedcallist.pl schedstat.pl
+                   searchobslog.pl searchshiftlog.pl shiftlog.pl
                    sourceplot.pl spregion.pl spsummary.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl

@@ -99,6 +99,8 @@ __PACKAGE__->CreateAccessors( _text => '$',
                               startobs => 'Time::Piece',
                               obsid => '$',
                               relevance => '$',
+                              id => '$',
+                              is_time_gap => '$',
                             );
 
 =end __PRIVATE__

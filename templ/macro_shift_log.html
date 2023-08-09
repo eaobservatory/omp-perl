@@ -12,7 +12,7 @@
                 [% SET timecellclass = 'time' %]
             [% END %]
             [% FOREACH comment IN date.value %]
-                <tr class="row_[% bgcolor %]" valign="top">
+                <tr class="row_[% bgcolor %]" valign="top" id="shiftid_[% comment.id %]">
                     <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
                     <td class="[% timecellclass _ '_' _ bgcolor %]">
                         [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>

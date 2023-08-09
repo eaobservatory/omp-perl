@@ -1,0 +1,50 @@
+[% PROCESS "macro_general_search.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Search Observation Log</h1>
+
+<form method="post" action="[% form_info.target %]">
+    [% render_common_fields(form_info.values) %]
+    [% render_search_text_field(form_info.values) %]
+    <p>
+        <b>Comment type:</b>
+        <select name="type">
+            <option value="">All</option>
+            <option value="obs" [% IF form_info.values.type == "obs" %]selected="selected"[% END %]>Observation</option>
+            <option value="gap" [% IF form_info.values.type == "gap" %]selected="selected"[% END %]>Time gap</option>
+        </select>
+    </p>
+    <p>
+        <b>Comment active:</b>
+        <label>
+            <input type="checkbox" name="active" [% IF form_info.values.active %]checked="checked"[% END %] />
+            (last comment by user)
+        </label>
+    </p>
+    [% render_sort_fields(form_info.values) %]
+    <p>
+        <input type="submit" name="search" value="Search"/>
+    </p>
+</form>
+
+[% IF message.defined %]
+<p>
+    [% message | html %]
+</p>
+[% END %]
+
+[% IF log_entries.defined %]
+    <table class="bordered" width="800">
+        [% FOR comment IN log_entries %]
+            <tr valign="top">
+                <td>[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
+                <td>[% IF comment.is_time_gap %]
+                    <a href="/cgi-bin/nightrep.pl?utdate=[% comment.startobs.strftime("%Y-%m-%d") %]&tel=[% telescope | html %]#timegapid_[% comment.obsid | html %]">[% comment.startobs.strftime("%Y-%m-%d %H:%M") %]</a>
+                [% ELSE %]
+                    <a href="/cgi-bin/nightrep.pl?utdate=[% comment.startobs.strftime("%Y-%m-%d") %]&tel=[% telescope | html %]#obsid_[% comment.obsid | html %]">[% comment.startobs.strftime("%Y-%m-%d") %]  #[% comment.runnr | html %]</a>
+                [% END %]</td>
+                <td width="400">[% comment.text | remove_pre_tags %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% END %]
+[% END %]
