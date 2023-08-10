@@ -182,6 +182,10 @@ sub storeProgram {
 
   OMP::General->log_message( "storeProgram: Complete in ".
                              tv_interval($t0)." seconds. Stored with timestamp $timestamp\n");
+
+  # Ensure response is sent as text even if it contains special characters.
+  $string = SOAP::Data->type(string => $string) if exists $ENV{'HTTP_SOAPACTION'};
+
   return [$string, $timestamp], @headers;
 }
 
@@ -499,6 +503,9 @@ sub SpInsertCat {
   my $infostr = join("\n", @info) . "\n";
 
   my $spstr = compressReturnedItem($sp, $rettype);
+
+  # Ensure response is sent as text even if it contains special characters.
+  $infostr = SOAP::Data->type(string => $infostr) if exists $ENV{'HTTP_SOAPACTION'};
 
   # Return the result
   return [$spstr, $infostr];
