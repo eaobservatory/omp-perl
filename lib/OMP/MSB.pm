@@ -25,6 +25,7 @@ use Carp;
 # External modules
 use XML::LibXML;                # Our standard parser
 use Digest::MD5 2.20 qw/ md5_hex /;
+use Encode qw/encode/;
 use OMP::Error qw/ :try /;
 use OMP::DateTools;
 use OMP::General;
@@ -1151,7 +1152,7 @@ sub find_checksum {
   $string =~ s/\&quot\;/\"/g;
 
   # and generate a checksum
-  my $checksum = md5_hex( $string );
+  my $checksum = md5_hex(encode('UTF-8', $string));
 
   # In order to ditinguish MSBs associated with logic we prefixx
   # an OR and/or AND if the MSB is in such a construct. Otherwise
@@ -3986,7 +3987,7 @@ sub TargetList {
 
     # convert the telescope XML to a checksum
     my $telstr = $obscomp->toString;
-    my $checksum = md5_hex( $telstr );
+    my $checksum = md5_hex(encode('UTF-8', $telstr));
 
     # Have we seen this position before?
     if (exists $collisions{ $checksum }) {
