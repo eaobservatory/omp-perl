@@ -205,11 +205,13 @@ do {
             print "Writing: $pathname\n";
             make_path($directory);
             my $fh = new IO::File($pathname, 'w');
+            $fh->binmode(':utf8');
             print $fh msb_to_xml($result->projectid, $msb);
             $fh->close();
 
             # Write the MSB information to another file.
             my $fh = new IO::File($pathnameinfo, 'w');
+            $fh->binmode(':utf8');
             print $fh $result->summary('xmlshort');
             $fh->close();
         }
@@ -303,6 +305,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
                         make_path($directory);
                         my $fh = new IO::File($pathname, 'w');
+                        $fh->binmode(':utf8');
                         print $fh msb_to_xml($result->projectid, $msb);
                         $fh->close();
 
@@ -316,6 +319,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     # even if linking the MSB itself as other parameters such
                     # as elevation may have changed.
                     my $fh = new IO::File($pathnameinfo, 'w');
+                    $fh->binmode(':utf8');
                     print $fh $result->summary('xmlshort');
                     $fh->close();
 
@@ -355,7 +359,7 @@ sub msb_to_xml {
     # of having emergency backup MSBs, it's probably OK
     # so long as the translator can handle it.
     my @xml = (
-        '<?xml version="1.0" encoding="ISO-8859-1"?>',
+        '<?xml version="1.0" encoding="UTF-8"?>',
         '<SpProg type="pr" subtype="none" ' .
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
             'xmlns="http://omp.eao.hawaii.edu/schema/TOML">',
