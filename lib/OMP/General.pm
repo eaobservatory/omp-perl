@@ -370,88 +370,17 @@ sub extract_projectid {
 
   my $projid;
 
-  my $any_ukirt = qr{\b ( u/ [^/\s]+? / [-_a-z0-9]+ ) \b}xi;
-
-  my $ukirt_dk = q{ u/ \d\d[ab] / [dhjk]? [0-9]+ };
-  my $ukirt_sem = qr{\b( $ukirt_dk (?: [a-d] [0-9]* )? )\b}xi;
-
-  my $ukidss   = qr{u/ukidss}i;
-  my $ukidss_3 = qr{$ukidss/[a-z]{3}}i;
-
-  # UKIRT UKIDSS survey program as communucations channel, like GPS, UDS;
-  my $ukidss_comm     = qr{\b($ukidss / (?:dx|g[cp]|la|ud)s )\b}xi;
-
-  # like GPS14, LAS7D;
-  my $ukidss_alphnum  = qr{\b($ukidss_3 \d+ [a-z]?)\b}xi;
-
-  # (Based on number of parts around "_" at the end.)
-  # like LAS_p11b, UDS_SV;
-  my $ukidss_two      = qr{\b($ukidss_3 _ (?:[a-z]+ \d+ [a-z]? | sv) )\b}xi;
-  # like LAS_J2_12A.
-  my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
-
-  # UKIDSS Hemisphere Survey, UHS and the new unrelated surveys UHSK and UHSH.
-  my $uhs         = 'u/uhs[hk]?';
-  my $uhs_comm    = qr{\b ($uhs / (?:uhs[hk]? | casu)) \b}xi;
-  # H, J & K bands projects.
-  my $uhs_alphnum = qr{\b ($uhs / uhs [hjk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
-
-  # UKIRT KASI.
-  my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
-
-  # Lockheed Martin, Univ of AZ, NASA, etc... as project id.
-  my $ukirt_lm_az =
-    qr{ \b
-        ( u
-          / \d\d[ab]
-          / (?: lm | ua | na | osu | nau | nav | ncu | uo | djh ) (?: [0-9][1-9] | [1-9]0 ) [a-z]?
-        )
-        \b
-      }xi;
-
-  # Lockheed Martin & Univ of AZ as semester.
-  my $ukirt_lm_az_sem =
-    qr{ \b
-        ( u
-          / (?: lm | ua )
-          / (?: casu | wfau )
-        )
-        \b
-      }xi;
-
-  # EAO projects.
-  my $ukirt_eao = qr/\b(u\/(?:SERV\/)?\d\d[ab]\/EAP\d\d\d)\b/i;
-
-  if ($string =~ $ukirt_sem                          # UKIRT
-      or $string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
+  if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
       or $string =~ /\b(mjls[sgncdjty]\d+)\b/i      # JCMT Legacy Surveys
       or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/i # JCMT LS: semester-based
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
-      or $string =~ m{\b(u/serv/\d+)\b}i            # UKIRT serv
-      or $string =~ m{\b(u/ec/\d+)\b}i              # UKIRT E&C
-      or $string =~ $uhs_alphnum
-      or $string =~ $uhs_comm
-      or $string =~ $ukidss_alphnum
-      or $string =~ $ukidss_two
-      or $string =~ $ukidss_three
-      or $string =~ $ukidss_comm
-      or $string =~ $ukirt_kasi
-      or $string =~ $ukirt_lm_az
-      or $string =~ $ukirt_lm_az_sem
-      or $string =~ $ukirt_eao
-      or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
-      or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
-      or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH
-      or $string =~ m{\b($ukidss/casu)\b}i          # UKIRT project for email use w/ CASU
-      or $string =~ m{\b(u/cmp/\d+)\b}i             # UKIRT Campaigns
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
       or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/i   # Things like JCMTCAL
       or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
             && $string !~ /\bs[uinc]\d+\b/          # but not JCMT service abbrev
-            && $string !~ $any_ukirt                # and not UKIRTS ones u/*/*.
           )
      ) {
     $projid = $1;
