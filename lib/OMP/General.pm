@@ -201,28 +201,24 @@ Given a subset of a project ID attempt to determine the actual
 project ID.
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                        );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                          semester => $sem,
                                        );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                          date => $date,
                                        );
 
-If telescope is not supplied it is guessed.  If the project ID is just
-a number it is assumed to be part of a UKIRT style project. If it is a
+If telescope is not supplied it is guessed.  If the project ID is a
 number with a letter prefix it is assumed to be the JCMT style (ie u03
--> m01bu03) although a prefix of "s" is treated as a UKIRT service
-project and expanded to "u/serv/01" (for "s1"). If the supplied ID is
-ambiguous (most likely from a UH ID since both JCMT and UKIRT would
-use a shortened id of "h01") the telescope must be supplied or else
-the routine will croak. Japanese UKIRT programs can be abbreviated
-as "j4" for "u/02b/j4". JCMT service programs can be abbreviated with
+-> m01bu03). If the supplied ID is
+ambiguous the telescope must be supplied or else
+the routine will croak. JCMT service programs can be abbreviated with
 the letter "s" and the country code ("su03" maps to s02bu03, valid
 prefixes are "su", "si", and "sc". Dutch service programmes can not
 be abbreviated). In general JCMT service programs do not really benefit
@@ -269,20 +265,17 @@ sub infer_projectid {
     return $1 . sprintf("%02d", $2);
   }
 
-  # We need a guess at a telescope before we can guess a semester
+  # We need a guess at a telescope before we can guess a semester.
   # In most cases the supplied ID will be able to distinguish
-  # JCMT from UKIRT (for example JCMT has a letter prefix
-  # such as "u03" whereas UKIRT mainly has a number "03" or "3")
-  # The exception is for UH where both telescopes have
-  # an "h" prefix. Additinally "s" prefix is UKIRT service.
+  # JCMT (for example JCMT has a letter prefix such as "u03").
+  # The exception is for UH where multiple telescopes may have
+  # an "h" prefix.
   my $tel;
   if (exists $args{telescope}) {
     $tel = uc($args{telescope});
   } else {
     # Guess
-    if ($projid =~ /^[sj]?\d+$/i) {
-      $tel = "UKIRT";
-    } elsif ($projid =~ /^s?[unci]\d+$/i) {
+    if ($projid =~ /^s?[juncidpltvkzf]\d+$/i) {
       $tel = "JCMT";
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
@@ -301,33 +294,7 @@ sub infer_projectid {
 
   # Now guess the actual projectid
   my $fullid;
-  if ($tel eq "UKIRT") {
-
-    # Get the prefix and numbers if supplied project id is in
-    # that form
-
-    if ($projid =~ /^([hsHSJj]?)(\d+)$/ ) {
-      my $prefix = $1;
-      my $digits = $2;
-
-      # Need to remove leading zeroes
-      $digits =~ s/^0+//;
-
-      # For service the semester is always "serv" and
-      # the prefix is blank
-      if ($prefix =~ /[sS]/) {
-        $sem = "serv";
-        $prefix = '';
-      }
-
-      # Recreate the root project id
-      $projid = $prefix . $digits;
-    }
-
-    # Now construct the full ID
-    $fullid = "u/$sem/$projid";
-
-  } elsif ($tel eq "JCMT") {
+  if ($tel eq "JCMT") {
 
     # Service mode changes the prefix
     my $prefix = ( $projid =~ /^s/  ? 's' : 'm' );
