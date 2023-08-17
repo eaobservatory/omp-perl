@@ -24,6 +24,7 @@ maintained in external databases. All methods are class methods.
 use strict;
 use warnings;
 use Carp;
+use Encode qw/encode/;
 
 # OMP dependencies
 use OMP::User;
@@ -134,7 +135,7 @@ sub fetchMSB {
     $otvers = "<ot_version>".$msb->ot_version."</ot_version>\n";
   }
 
-  my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>
+  my $spprog = q{<?xml version="1.0" encoding="UTF-8"?>
 <SpProg type="pr" subtype="none">
   <meta_gui_filename>ompdummy.xml</meta_gui_filename>
   <meta_gui_hasBeenSaved>true</meta_gui_hasBeenSaved>
@@ -152,7 +153,7 @@ sub fetchMSB {
   my $log = sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
               tv_interval( $t0 ), $msb->projectID, $msb->checksum ;
 
-  my ( $converted, $zipped ) = _convert_sciprog( $spprog, $rettype, $log );
+  my ( $converted, $zipped ) = _convert_sciprog( encode('UTF-8', $spprog), $rettype, $log );
   return
     $zipped
       ? SOAP::Data->type( 'base64' => $converted )
@@ -290,7 +291,7 @@ is zero then the default number are returned (usually 100).
 
 The format of the resulting document is:
 
-  <?xml version="1.0" encoding="ISO-8859-1"?>
+  <?xml version="1.0" encoding="UTF-8"?>
   <QueryResult>
    <SpMSBSummary id="unique">
      <something>XXX</something>
@@ -358,7 +359,7 @@ sub queryMSB {
 
   try {
     my $tag = "QueryResult";
-    my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
+    my $xmlhead = '<?xml version="1.0" encoding="UTF-8"?>';
     $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
     OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
@@ -369,6 +370,9 @@ sub queryMSB {
     $E = shift;
   };
   $class->throwException( $E ) if defined $E;
+
+  $result = SOAP::Data->type(base64 => encode('UTF-8', $result)) if exists $ENV{'HTTP_SOAPACTION'};
+
   return $result;
 }
 
