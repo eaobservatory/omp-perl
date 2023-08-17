@@ -32,6 +32,7 @@ WriteMakefile(
                     Starlink::ATL::Region => '0.01',
                     JSON => 0,
                     Test::Number::Delta => 0,
+                    Encode => '2.50',  # this version no-longer untaints data
                    },
     dist          => { COMPRESS => "gzip -9f" },
    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005

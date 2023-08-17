@@ -30,6 +30,11 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Template;
 use Template::Stash;
 
+BEGIN {
+    use Encode;
+    die 'Encode module is too old (untaints data)' if $Encode::VERSION < '2.50';
+}
+
 use OMP::Auth;
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
