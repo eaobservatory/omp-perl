@@ -382,7 +382,7 @@ sub extract_faultid {
 
     # Regular expression based on that in OMP::CGIComponent::Fault::fault_table
     # for recognizing fault IDs.
-    if ($string =~ /\[((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})\]/) {
+    if ($string =~ /\[((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})\]/a) {
         return $1;
     }
 
