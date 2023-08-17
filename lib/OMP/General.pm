@@ -337,17 +337,17 @@ sub extract_projectid {
 
   my $projid;
 
-  if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
-      or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
-      or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
-      or $string =~ /\b(mjls[sgncdjty]\d+)\b/i      # JCMT Legacy Surveys
-      or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/i # JCMT LS: semester-based
-      or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
-      or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
-      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
-      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/i   # Things like JCMTCAL
-      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
-            && $string !~ /\bs[uinc]\d+\b/          # but not JCMT service abbrev
+  if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai # JCMT [inc serv, FB and A/B suffix]
+      or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai       # JCMT E&C
+      or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai       # JCMT Guaranteed Time
+      or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai    # JCMT Legacy Surveys
+      or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/aai # JCMT LS: semester-based
+      or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/aai # UH funny suffix JCMT
+      or $string =~ /\b(nls\d+)\b/aai               # JCMT Dutch service (deprecated format)
+      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai  # SHADES proposal
+      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai # Things like JCMTCAL
+      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai  # Staff projects TJ02
+            && $string !~ /\bs[uinc]\d+\b/aai       # but not JCMT service abbrev
           )
      ) {
     $projid = $1;
