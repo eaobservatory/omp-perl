@@ -327,7 +327,7 @@ sub write_page {
     elsif ($auth_type eq 'project') {
       # Require project access.
 
-      my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+      my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
       unless (defined $projectid) {
         return $self->_write_project_choice() unless $auth_ok;
       }
@@ -507,6 +507,30 @@ sub render_template {
 
     binmode STDOUT, ':utf8';
     $template->process($name, $context) or die $template->error();
+}
+
+=item B<decoded_url_param>
+
+Get URL parameter from the CGI object (using its C<url_param> method)
+and ensure it has been decoded.
+
+    $value = $page->decoded_url_param('parameter');
+
+Note: the CGI module's C<utf8> pragma enables decoding of parameters
+when fetched via the C<param> method, but currently not when fetched
+via C<url_param>.  This method does the same thing to results from
+C<url_param>.
+
+=cut
+
+sub decoded_url_param {
+    my $self = shift;
+    my $param = shift;
+    my $value = $self->cgi->url_param($param);
+
+    $value = Encode::decode('UTF-8', $value) unless Encode::is_utf8($value);
+
+    return $value;
 }
 
 =back

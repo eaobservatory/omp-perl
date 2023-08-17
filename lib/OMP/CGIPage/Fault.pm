@@ -959,7 +959,7 @@ sub _write_page_extra {
     my $q = $self->cgi;
 
     my $cat;
-    my $faultid = $q->url_param('fault');
+    my $faultid = $self->decoded_url_param('fault');
 
     if (defined $faultid) {
         my $fault;
@@ -981,7 +981,7 @@ sub _write_page_extra {
         $cat = $fault->category;
     }
     else {
-        $cat = uc($q->url_param('cat'));
+        $cat = uc $self->decoded_url_param('cat');
 
         my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
         undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');
