@@ -67,8 +67,6 @@ sub fb_fault_content {
   my $self = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;
-
   # Get a fault component object
   my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
 
@@ -77,9 +75,9 @@ sub fb_fault_content {
 
   # Display the first fault if a fault isnt specified in the URL
   my $showfault;
-  if ($q->url_param('fault')) {
+  my $faultid = $self->decoded_url_param('fault');
+  if ($faultid) {
     my %faults = map {$_->faultid, $_} @faults;
-    my $faultid = $q->url_param('fault');
     $showfault = $faults{$faultid};
   } else {
     $showfault = $faults[0];
@@ -538,7 +536,7 @@ sub support {
   my $q = $self->cgi;
 
   # Try and get a project ID
-  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+  my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
 
   return {
     target_base => $q->url(-absolute => 1),
@@ -650,7 +648,7 @@ sub alter_proj {
 
   my $q = $self->cgi;
 
-  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+  my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
 
   return {
     target_base => $q->url(-absolute => 1),

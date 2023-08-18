@@ -178,8 +178,8 @@ sub projlog_content {
   my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
   my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
-  my $utdatestr = $q->url_param('utdate');
-  my $no_retrieve = $q->url_param('noretrv');
+  my $utdatestr = $self->decoded_url_param('utdate');
+  my $no_retrieve = $self->decoded_url_param('noretrv');
 
   my $utdate;
 

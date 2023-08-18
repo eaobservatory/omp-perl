@@ -58,10 +58,11 @@ sub details {
   my $q = $self->cgi;
 
   # Get user object
+  my $userid = $self->decoded_url_param('user');
   my $user;
   my $E = undef;
   try {
-    $user = OMP::UserServer->getUser($q->url_param('user'));
+    $user = OMP::UserServer->getUser($userid);
   } otherwise {
     $E = shift;
   };
@@ -69,7 +70,7 @@ sub details {
   return $self->_write_error("Unable to retrieve user: $E")
     if defined $E;
 
-  return $self->_write_error("Unable to retrieve details for unknown user [".$q->url_param('user')."]")
+  return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
     unless $user;
 
   my $hedwig2omp = new OMP::DBbackend::Hedwig2OMP();
@@ -195,7 +196,7 @@ sub edit_details {
 
   my $q = $self->cgi;
 
-  my $userid = $q->url_param("user");
+  my $userid = $self->decoded_url_param("user");
 
   my $user = OMP::UserServer->getUser($userid);
 

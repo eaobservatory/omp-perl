@@ -60,8 +60,9 @@ sub parse_query {
   my %return = ();
 
 # Telescope. This is a string made up of word characters.
-  if ($q->url_param('telescope')) {
-    ( $return{'telescope'} = $q->url_param('telescope') ) =~ s/\W//g;
+  my $telescope = $self->page->decoded_url_param('telescope');
+  if ($telescope) {
+    ( $return{'telescope'} = $telescope ) =~ s/\W//g;
   }
 
 # Time Zone for display. This is either UT or HST. Defaults to UT.
@@ -88,8 +89,9 @@ sub parse_query {
 
 # Date. This is in yyyy-mm-dd format. If it is not set, it
 # will default to the current UT date.
-  if ($q->url_param('date')) {
-    my $dateobj = OMP::DateTools->parse_date($q->url_param('date'));
+  my $date = $self->page->decoded_url_param('date');
+  if ($date) {
+    my $dateobj = OMP::DateTools->parse_date($date);
     $return{'date'} = $dateobj->ymd;
   } else {
     my $dateobj = gmtime;

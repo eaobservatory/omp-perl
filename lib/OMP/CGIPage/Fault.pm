@@ -486,8 +486,8 @@ sub query_fault_output {
   my $total_loss = 0.0;
   my $fault_summary = undef;
   my $fault_info = undef;
-  my $sort_order = $q->url_param('sort_order') // 'descending';
-  my $orderby = $q->url_param('orderby') // 'response';
+  my $sort_order = $self->decoded_url_param('sort_order') // 'descending';
+  my $orderby = $self->decoded_url_param('orderby') // 'response';
 
   # Show results as a summary if that option was checked
   if ($q->param('summary') and $faults->[0]) {
@@ -800,7 +800,7 @@ sub update_resp {
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  my $respid = $q->url_param('respid');
+  my $respid = $self->decoded_url_param('respid');
 
   return $self->_write_error(
       "A fault ID and response ID must be provided.")

@@ -108,12 +108,10 @@ sub _sched_view {
 sub _sched_view_edit_info {
     my $self = shift;
 
-    my $q = $self->cgi;
-
-    my $tel = $q->url_param('tel')
+    my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
-    my $semester = $q->url_param('semester');
+    my $semester = $self->decoded_url_param('semester');
     if (defined $semester) {
         die 'Semester not in expected format'
             unless $semester =~ /^(\d\d[AB])$/;
@@ -245,9 +243,7 @@ sub sched_view_queue_stats {
 sub sched_cal_list {
     my $self = shift;
 
-    my $q = $self->cgi;
-
-    my $tel = $q->url_param('tel')
+    my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
@@ -267,7 +263,7 @@ sub sched_cal_view {
 
     my $q = $self->cgi;
 
-    my $token = $q->url_param('token')
+    my $token = $self->decoded_url_param('token')
         or die 'Access token not specified';
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
