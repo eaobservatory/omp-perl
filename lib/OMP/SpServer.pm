@@ -212,7 +212,7 @@ sub compressReturnedItem {
   OMP::General->log_message( "Format=$rettype\n");
 
   # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
+  if ($rettype !~ /^\d$/a) {
     if($rettype eq 'XML'){$rettype = OMP__SCIPROG_XML;}
     elsif($rettype eq 'OBJECT'){$rettype = OMP__SCIPROG_OBJ;}
     elsif($rettype eq 'GZIP'){$rettype = OMP__SCIPROG_GZIP;}

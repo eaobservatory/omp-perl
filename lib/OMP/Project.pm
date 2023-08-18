@@ -877,7 +877,7 @@ sub tagpriority {
   if (@_) {
     if (scalar @_ == 1 && ref($_[0]) ne 'HASH') {
       # if we have a number, it is being set
-      if ($_[0] =~ /\d/) {
+      if ($_[0] =~ /\d/a) {
         # set every priority
         my @c = $self->country;
         if (@c) {
@@ -1427,7 +1427,7 @@ sub science_case_url {
   } elsif ($projid =~ /^u/i) {
     # UKIRT
     # Service programs are in a different location
-    if ($projid =~ /serv\/(\d+)$/i) {
+    if ($projid =~ /serv\/(\d+)$/aai) {
       # Get the number
       my $num = $1;
       return "http://www.jach.hawaii.edu/JAClocal/UKIRT/ukirtserv/forms/$num.txt";
@@ -1453,12 +1453,12 @@ sub project_number {
 
   my $number;
 
-  if ($string =~ m!^u/\d{2}[ab]/[jhd]?(\d+).*$!i     # UKIRT
-      or $string =~ m!^u/[a-z]+/(\d+)$!i             # UKIRT serv
-      or $string =~ /^[ms]\d{2}[ab][a-z]+(\d+).*$/i  # JCMT
-      or $string =~ /^nls(\d+)$/i                    # JCMT Dutch service
-      or $string =~ /^[LS]X_(\d{2}).*$/i             # SHADES proposal
-      or $string =~ /^[a-z]{2,}(\d{2})$/i            # Staff projects (TJ02)
+  if ($string =~ m!^u/\d{2}[ab]/[jhd]?(\d+).*$!aai     # UKIRT
+      or $string =~ m!^u/[a-z]+/(\d+)$!aai             # UKIRT serv
+      or $string =~ /^[ms]\d{2}[ab][a-z]+(\d+).*$/aai  # JCMT
+      or $string =~ /^nls(\d+)$/aai                    # JCMT Dutch service
+      or $string =~ /^[LS]X_(\d{2}).*$/aai             # SHADES proposal
+      or $string =~ /^[a-z]{2,}(\d{2})$/aai            # Staff projects (TJ02)
      ) {
     $number = $1;
   }
@@ -1482,8 +1482,8 @@ sub semester_ori {
 
   my $sem;
 
-  if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!i       # UKIRT
-        or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/i  # JCMT
+  if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!aai       # UKIRT
+        or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/aai  # JCMT
      ) {
     $sem = $1;
   }

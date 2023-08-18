@@ -297,13 +297,13 @@ my $utstart = gmtime->ymd;
 $utstart = $utd if (defined $utd and not defined $crds);
 $utstart =~ s/\-//g;
 die "*Error* '-utd $utd' not a valid date yyyymmd or yyyy-mm-dd\n"
-    if ( $utstart !~ /^\d{8}$/ );
+    if ( $utstart !~ /^\d{8}$/a );
 
 my $utstop  = $utstart;
 $utstop = $uts if (defined $uts and not defined $crds);
 $utstop =~ s/\-//g;
 die "*Error* '-uts $uts' not a valid date yyyymmd or yyyy-mm-dd\n"
-    if ( $utstop !~ /^\d{1,8}$/ );
+    if ( $utstop !~ /^\d{1,8}$/a );
 
 # If small number interpret as interval rather than date
 if ($utstop < 367) {
@@ -319,7 +319,7 @@ if ($utstop < 367) {
 my $maxdist = 2.5*3600.0;
 if (defined $max) {
   my $unit = 's';  # default unit, append to max to have at least 1 char.
-  "${max}${unit}" =~ /(\d+\.?\d*)([a-z]?)/i && do {$maxdist = $1; $unit = $2};
+  "${max}${unit}" =~ /(\d+\.?\d*)([a-z]?)/aai && do {$maxdist = $1; $unit = $2};
 
   die "*Error* '-max $max' unit not recognized.\nUse 'm' for arcmins and 'd' for degrees. Nothing or 's' for arcsecs.\n"  if ($unit !~ /(s|m|d)/i);
 
@@ -506,8 +506,8 @@ sub get_observed_targets {
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {
 
-    next unless ( $ref->{'project'} =~ /^M\d\d(A|B)/i and
-                  $ref->{'project'} !~ /^M\d\d(A|B)EC/i );
+    next unless ( $ref->{'project'} =~ /^M\d\d(A|B)/aai and
+                  $ref->{'project'} !~ /^M\d\d(A|B)EC/aai );
 
     printf STDERR "[%s] ".ucfirst($mode).": %-16s", $ref->{'project'}, $ref->{'name'}
           if $debug;
@@ -613,7 +613,7 @@ AND Q.projectid IN
   my @observed;
   while (my $ref = $sth->fetchrow_hashref()) {
 
-    next unless ( $ref->{'project'} !~ /^M\d\d(A|B)EC/i );
+    next unless ( $ref->{'project'} !~ /^M\d\d(A|B)EC/aai );
 
     printf STDERR "[%s] Scheduled: %-16s", $ref->{'project'}, $ref->{'name'}
           if $debug;

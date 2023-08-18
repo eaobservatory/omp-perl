@@ -2171,7 +2171,7 @@ sub _insert_row {
     # Wavelength must be a number (just check for presence of any number)
     $obs->{wavelength} = $obs->{waveband}->wavelength if $obs->{waveband};
     $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and
-                                     $obs->{wavelength} =~ /\d/);
+                                     $obs->{wavelength} =~ /\d/a);
 
     # Retrieve coordstype and target name, so that if the coordstype
     # requires validation of the target name, we can apply that.

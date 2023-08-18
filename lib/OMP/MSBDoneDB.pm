@@ -253,7 +253,7 @@ sub addMSBcomment {
       throw OMP::Error::BadArgs("Wrong class for comment object: ". ref($comment))
         unless UNIVERSAL::isa($comment, "OMP::Info::Comment");
 
-    } elsif ($comment =~ /^\d+$/) {
+    } elsif ($comment =~ /^\d+$/a) {
       # An integer index
       $comment = ($msbinfo->comments)[$comment];
     } else {

@@ -118,7 +118,7 @@ sub common_search_xml {
             unless ($datestr) {
                 undef;
             }
-            elsif ($datestr !~ /^\d{8}$/ and $datestr !~ /^\d\d\d\d-\d\d-\d\d$/) {
+            elsif ($datestr !~ /^\d{8}$/a and $datestr !~ /^\d\d\d\d-\d\d-\d\d$/a) {
                 $message = 'Date "' . $datestr . '" not understood.';
                 undef;
             }

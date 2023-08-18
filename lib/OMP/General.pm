@@ -260,8 +260,8 @@ sub infer_projectid {
   # If it's a special reserved ID (two characters + digit)
   # and *not* an abbreviated JCMT service programme
   # return it - padding the number)
-  if ($projid !~ /^s[uic]\d\d/i &&
-      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
+  if ($projid !~ /^s[uic]\d\d/aai &&
+      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/a) {
     return $1 . sprintf("%02d", $2);
   }
 
@@ -275,7 +275,7 @@ sub infer_projectid {
     $tel = uc($args{telescope});
   } else {
     # Guess
-    if ($projid =~ /^s?[juncidpltvkzf]\d+$/i) {
+    if ($projid =~ /^s?[juncidpltvkzf]\d+$/aai) {
       $tel = "JCMT";
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";

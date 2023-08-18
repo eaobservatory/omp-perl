@@ -904,7 +904,7 @@ sub internal_priority {
   }
 
   if (defined $pri) {
-    if ($pri =~ /\d/) {
+    if ($pri =~ /\d/a) {
       $pri = int($pri);
       if ($pri < 1) {
         $pri = 1;

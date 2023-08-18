@@ -110,18 +110,18 @@ sub plot_sources {
     unless (defined $prj) {
         die 'You must specify a science program';
     }
-    $prj =~ /^([\w\@\/\$\.\_]+)$/ && ($projlis = $1) || ($projlis = "");
+    $prj =~ /^([\w\@\/\$\.\_]+)$/a && ($projlis = $1) || ($projlis = "");
 
     my $objlis;
     if (defined $objs) {
-        $objs =~ /^([\w\@\/\$\.\_\s]+)$/ && ($objlis = $1) || ($objlis = "");
+        $objs =~ /^([\w\@\/\$\.\_\s]+)$/a && ($objlis = $1) || ($objlis = "");
     }
 
     # UT date
     my $utdate;
     if (defined $pld) {
-        $pld =~ /^(\d{8})$/ && ($utdate = $1) || ($utdate = "");
-        if ($utdate !~ /^\d{8}$/) {
+        $pld =~ /^(\d{8})$/a && ($utdate = $1) || ($utdate = "");
+        if ($utdate !~ /^\d{8}$/a) {
             die "UTDATE '$pld' must have format YYYYMMDD";
         }
     } else {
@@ -134,7 +134,7 @@ sub plot_sources {
     # Telescope:
     my $telescope;
     if (defined $tel) {
-        $tel =~ /^([\w\+\-\.\_]+)$/ && ($telescope = $1) || ($telescope = "");
+        $tel =~ /^([\w\+\-\.\_]+)$/a && ($telescope = $1) || ($telescope = "");
         if ($telescope eq "") {
             die "Telescope '$tel' should be regular text string";
         }
@@ -146,7 +146,7 @@ sub plot_sources {
     # Mode:
     my $plmode;
     if (defined $mod) {
-        $mod =~ /^([\w\+\-\.\_]+)$/ && ($plmode = $1) || ($plmode = "");
+        $mod =~ /^([\w\+\-\.\_]+)$/a && ($plmode = $1) || ($plmode = "");
         if ($plmode !~ /^all$/i && $plmode !~ /^active$/i && $plmode !~ /^completed$/i) {
             die "MODE must be [ all | active | completed ]";
         }
@@ -168,29 +168,29 @@ sub plot_sources {
 
     # Format:
     if (defined $ptype && $ptype ne "TIMEEL") {
-        $ptype =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'format'} = "$1");
+        $ptype =~ /^([\w\+\-\.\_]+)$/a && ($sargs{'format'} = "$1");
     }
 
     # Timezone:
     if (defined $tzone && $tzone != 10) {
-        $tzone =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'ut0hr'} = "$1");
+        $tzone =~ /^([\w\+\-\.\_]+)$/a && ($sargs{'ut0hr'} = "$1");
     }
 
     # Airmassgrid:
     if (defined $agrid && $agrid != 0) {
-        $agrid =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'airmassgrid'} = 1);
+        $agrid =~ /^([\w\+\-\.\_]+)$/a && ($sargs{'airmassgrid'} = 1);
     }
 
     # Label position:
     if (defined $labpos && $labpos ne "curve") {
-        $labpos =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'objlabel'} = "$1");
+        $labpos =~ /^([\w\+\-\.\_]+)$/a && ($sargs{'objlabel'} = "$1");
     }
 
-    if ($utdate =~ /^\d{8}$/) {
+    if ($utdate =~ /^\d{8}$/a) {
         $sargs{'start'} = Time::Piece->strptime( "${utdate}T00:00:00", "%Y%m%dT%T");
         $sargs{'end'}   = Time::Piece->strptime( "${utdate}T23:59:59", "%Y%m%dT%T");
 
-        if ($tel =~ /jcmt/i or $projlis =~ /^m\d/i) {
+        if ($tel =~ /jcmt/i or $projlis =~ /^m\d/aai) {
             # Plot around shift change
             $sargs{'plot_center'} = 1.5*3600.0;
         }

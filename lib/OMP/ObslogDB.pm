@@ -97,7 +97,7 @@ sub addComment {
     # Fall over if we aren't a comment object.
     throw OMP::Error::BadArgs( "Wrong class for comment object: " . ref( $comment ) )
     unless UNIVERSAL::isa( $comment, "OMP::Info::Comment" );
-  } elsif( $comment =~ /^\d+$/ ) {
+  } elsif( $comment =~ /^\d+$/a ) {
     # An integer index.
     $comment = ( $obs->comments )[$comment];
   } else {

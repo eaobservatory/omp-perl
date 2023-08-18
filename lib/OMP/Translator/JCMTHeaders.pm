@@ -396,7 +396,7 @@ sub getSurveyName {
   my %info = @_;
   my $project = $class->getProject( $cfg, %info );
 
-  if ($project =~ /^MJLS([A-Z]+)\d+$/i) {
+  if ($project =~ /^MJLS([A-Z]+)\d+$/aai) {
     my $short = $1;
     if ($short eq 'G') {
       return "GBS";

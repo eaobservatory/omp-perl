@@ -270,7 +270,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
                     # And skip LAP observations outside of the LAP queue
                     # to get a better selection of emergency MSBs...
-                    next if $result->projectid() =~ /^M\d\d[AB]L/ && $query ne 'lap';
+                    next if $result->projectid() =~ /^M\d\d[AB]L/a && $query ne 'lap';
 
                     # Make safe version of MSB title for inclusion in the file name.
                     my $title = substr($result->title(), 0, 20);

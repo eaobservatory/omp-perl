@@ -88,7 +88,7 @@ of them into MSBs.
 sub standardize_tle_name {
     my $target = shift;
 
-    if ($target =~ /^\s*NORAD\s*(\d{1,5})\s*$/i) {
+    if ($target =~ /^\s*NORAD\s*(\d{1,5})\s*$/aai) {
         # Target is a "NORAD" catalog identifier.
 
         my $norad = $1;

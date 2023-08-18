@@ -318,10 +318,10 @@ sub query_fault_output {
       # catching these...
       for ($mindatestr, $maxdatestr) {
         if ($_) {
-          unless ($_ =~ /^\d{8}$/ or
-                  $_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
-                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
-                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+          unless ($_ =~ /^\d{8}$/a or
+                  $_ =~ /^\d\d\d\d-\d\d-\d\d$/a or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/a or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/a) {
 
             croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
           }
@@ -363,7 +363,7 @@ sub query_fault_output {
       # and last days of the last month
       my $year;
       my $month;
-      if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
+      if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/a) {
         $year = $1;
         $month = $2;
       }

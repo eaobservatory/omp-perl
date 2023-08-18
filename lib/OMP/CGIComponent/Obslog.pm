@@ -254,9 +254,9 @@ sub cgi_to_obs {
   my $self = shift;
 
   my $verify =
-   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/,
-     'runnr'   => qr/^(\d+)$/,
-     'inst'    => qr/^([\-\w\d]+)$/,
+   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/a,
+     'runnr'   => qr/^(\d+)$/a,
+     'inst'    => qr/^([\-\w\d]+)$/a,
      'timegap' => qr/^([01])$/,
      'oid'     => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
    };
@@ -430,7 +430,7 @@ parameter name, and a hash reference of parameter names as keys &
 compiled regexen (capturing a value to be returned) as values.
 
   $value = $comp->_cleanse_query_value( 'number',
-                                  { 'number' => qr/^(\d+)$/, }
+                                  { 'number' => qr/^(\d+)$/a, }
                                 );
 
 =cut

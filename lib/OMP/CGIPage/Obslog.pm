@@ -184,7 +184,7 @@ sub projlog_content {
   my $utdate;
 
   # Untaint the date string
-  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
+  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/a) {
     $utdate = $1;
   } else {
     croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");

@@ -62,7 +62,7 @@ sub parse_query {
 # Telescope. This is a string made up of word characters.
   my $telescope = $self->page->decoded_url_param('telescope');
   if ($telescope) {
-    ( $return{'telescope'} = $telescope ) =~ s/\W//g;
+    ( $return{'telescope'} = $telescope ) =~ s/\W//ag;
   }
 
 # Time Zone for display. This is either UT or HST. Defaults to UT.
@@ -100,7 +100,7 @@ sub parse_query {
 
 # Time. This is in hh:mm:ss or hhmmss format. If it is not set, it
 # will default to the current local time.
-  if( exists( $vars->{'time'} ) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/ ) {
+  if( exists( $vars->{'time'} ) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/a ) {
     $return{'time'} = "$1:$2:$3";
   } else {
     my $dateobj = localtime;
@@ -197,7 +197,7 @@ sub submit_comment {
   my $userobj = $self->auth->user;
 
 # Form the date.
-  $time =~ /(\d\d):(\d\d):(\d\d)/;
+  $time =~ /(\d\d):(\d\d):(\d\d)/a;
   my ($hour, $minute, $second) = ($1, $2, $3);
 
   # Convert the time zone to UT, if necessary.

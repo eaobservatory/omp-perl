@@ -1539,7 +1539,7 @@ sub _find_return_type {
   $rettype = uc($rettype);
 
   # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
+  if ($rettype !~ /^\d$/a) {
     $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
     $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
     $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';

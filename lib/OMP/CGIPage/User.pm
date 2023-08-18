@@ -231,7 +231,7 @@ sub edit_details {
 
     if ( $q->param("email") ) {
       # we were given a value
-      if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
+      if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/a) {
         $from_form{email} = $1;
       } else {
         # did not pass test so do not update
@@ -244,7 +244,7 @@ sub edit_details {
 
     if ( $q->param("cadcuser") ) {
       # we were given a value
-      if ($q->param("cadcuser") =~ /^(\w+)$/) {
+      if ($q->param("cadcuser") =~ /^(\w+)$/a) {
         $from_form{cadcuser} = $1;
       } else {
         # did not pass test so do not update
@@ -383,7 +383,7 @@ sub _add_user_try {
 
     # Check the email (using the same pattern as above for in "edit_details").
     return 'Email address is not valid.'
-        unless $email =~ /^(.+?@.+?\.\w+)$/;
+        unless $email =~ /^(.+?@.+?\.\w+)$/a;
 
     my $omp_user = new OMP::User(
         userid => $userid,

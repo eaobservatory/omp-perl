@@ -162,7 +162,7 @@ sub list_projects {
 
         # Fudge with semesters like 99A so that they are sorted
         # before and not after later semesters like 00B and 04A
-        ($sem =~ /^(9\d)([ab])$/i) and $sem = $1 - 100 . $2;
+        ($sem =~ /^(9\d)([ab])$/aai) and $sem = $1 - 100 . $2;
 
         push @{$group{$_->telescope}{$sem}{$_->country}}, $_;
       }
@@ -385,7 +385,7 @@ sub proposals {
 
   my $propfilebase = $projectid;
 
-  $propfilebase =~ s/\W//g;
+  $propfilebase =~ s/\W//ag;
   $propfilebase = lc($propfilebase);
 
   my %extensions = (ps => "application/postscript",
@@ -716,7 +716,7 @@ sub alter_proj {
   for my $queue (sort keys %tagpriority) {
     push @priority, {
         queue => $queue,
-        adj => ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+        adj => ($tagadj{$queue} =~ /^\d+$/a ? '+' : '') . $tagadj{$queue},
         priority => $tagpriority{$queue},
     };
   }
