@@ -1095,7 +1095,7 @@ sub _untaint_dir {
 sub _untaint_YYYYMMDD {
   my $utstr = shift;
   Carp::confess "Can not untaint an undefined date!" unless defined $utstr;
-  if ($utstr =~ /^(\d\d\d\d\d\d\d\d)$/) {
+  if ($utstr =~ /^(\d\d\d\d\d\d\d\d)$/a) {
     # untaint
     $utstr = $1;
   } else {
@@ -1113,7 +1113,7 @@ sub _untaint_data_files {
   # They will have a directory prefix
   my @untaint;
   for my $f (@files) {
-    if ($f =~ /^(\d+\/[A-Za-z0-9_.]+)$/) {
+    if ($f =~ /^(\d+\/[A-Za-z0-9_.]+)$/a) {
       push(@untaint, $1);
     } else {
       croak "File [$f] does not pass untaint test";
@@ -1185,12 +1185,12 @@ Guess whether a file's URI at CADC should have a ".gz" suffix.
 
         my ($date, $inst, $obs);
 
-        if ($filename =~ /^a(\d{8})_(\d{5})_\d{2}_\d{4}\.sdf$/) {
+        if ($filename =~ /^a(\d{8})_(\d{5})_\d{2}_\d{4}\.sdf$/a) {
             $date = $1;
             $inst = 'ACSIS';
             $obs = $2;
         }
-        elsif ($filename =~ /^s[48][abcd](\d{8})_(\d{5})_\d{4}\.sdf$/) {
+        elsif ($filename =~ /^s[48][abcd](\d{8})_(\d{5})_\d{4}\.sdf$/a) {
             $date = $1;
             $inst = 'SCUBA-2';
             $obs = $2;

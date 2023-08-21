@@ -67,8 +67,6 @@ sub fb_fault_content {
   my $self = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;
-
   # Get a fault component object
   my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
 
@@ -77,9 +75,9 @@ sub fb_fault_content {
 
   # Display the first fault if a fault isnt specified in the URL
   my $showfault;
-  if ($q->url_param('fault')) {
+  my $faultid = $self->decoded_url_param('fault');
+  if ($faultid) {
     my %faults = map {$_->faultid, $_} @faults;
-    my $faultid = $q->url_param('fault');
     $showfault = $faults{$faultid};
   } else {
     $showfault = $faults[0];
@@ -164,7 +162,7 @@ sub list_projects {
 
         # Fudge with semesters like 99A so that they are sorted
         # before and not after later semesters like 00B and 04A
-        ($sem =~ /^(9\d)([ab])$/i) and $sem = $1 - 100 . $2;
+        ($sem =~ /^(9\d)([ab])$/aai) and $sem = $1 - 100 . $2;
 
         push @{$group{$_->telescope}{$sem}{$_->country}}, $_;
       }
@@ -359,7 +357,7 @@ sub program_summary {
         unless defined $sp;
 
     # Program retrieved successfully: apply summary XSLT.
-    print $q->header(-type => 'text/plain');
+    print $q->header(-type => 'text/plain', -charset => 'utf-8');
 
     $sp->apply_xslt('toml_summary.xslt');
 }
@@ -387,7 +385,7 @@ sub proposals {
 
   my $propfilebase = $projectid;
 
-  $propfilebase =~ s/\W//g;
+  $propfilebase =~ s/\W//ag;
   $propfilebase = lc($propfilebase);
 
   my %extensions = (ps => "application/postscript",
@@ -538,7 +536,7 @@ sub support {
   my $q = $self->cgi;
 
   # Try and get a project ID
-  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+  my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
 
   return {
     target_base => $q->url(-absolute => 1),
@@ -650,7 +648,7 @@ sub alter_proj {
 
   my $q = $self->cgi;
 
-  my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+  my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
 
   return {
     target_base => $q->url(-absolute => 1),
@@ -718,7 +716,7 @@ sub alter_proj {
   for my $queue (sort keys %tagpriority) {
     push @priority, {
         queue => $queue,
-        adj => ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+        adj => ($tagadj{$queue} =~ /^\d+$/a ? '+' : '') . $tagadj{$queue},
         priority => $tagpriority{$queue},
     };
   }

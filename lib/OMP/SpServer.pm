@@ -113,15 +113,6 @@ sub storeProgram {
     OMP::General->log_message( "storeProgram: Project " .
                              $sp->projectID . "\n");
 
-    # Temporary special error message for UKIRT projects.  (This
-    # guesses the telescope based on the project code in order to
-    # respond quickly and bypass the other checks.)
-    if ($sp->projectID =~ /^U\//i) {
-      OMP::General->log_message("storeProgram: apparent UKIRT project code\n");
-      throw OMP::Error::SpStoreFail(
-        "MSB submissions should be to the UKIRT database at the IFA.");
-    }
-
     # Check the version number and abort if it is too old
     my $minver = OMP::Config->getData('ot-min-version');
     my $otver = $sp->ot_version;
@@ -182,6 +173,10 @@ sub storeProgram {
 
   OMP::General->log_message( "storeProgram: Complete in ".
                              tv_interval($t0)." seconds. Stored with timestamp $timestamp\n");
+
+  # Ensure response is sent as text even if it contains special characters.
+  $string = SOAP::Data->type(string => $string) if exists $ENV{'HTTP_SOAPACTION'};
+
   return [$string, $timestamp], @headers;
 }
 
@@ -217,7 +212,7 @@ sub compressReturnedItem {
   OMP::General->log_message( "Format=$rettype\n");
 
   # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
+  if ($rettype !~ /^\d$/a) {
     if($rettype eq 'XML'){$rettype = OMP__SCIPROG_XML;}
     elsif($rettype eq 'OBJECT'){$rettype = OMP__SCIPROG_OBJ;}
     elsif($rettype eq 'GZIP'){$rettype = OMP__SCIPROG_GZIP;}
@@ -278,15 +273,6 @@ sub fetchProgram {
   my @headers;
 
   try {
-    # Temporary special error message for UKIRT projects.  (This
-    # guesses the telescope based on the project code in order to
-    # respond quickly and bypass the other checks.)
-    if ($rawprojectid =~ /^U\//i) {
-      OMP::General->log_message("fetchProgram: apparent UKIRT project code\n");
-      throw OMP::Error::SpRetrieveFail(
-        "MSB submissions should be to the UKIRT database at the IFA.");
-    }
-
     ($projectid, $auth, @headers) = $class->get_verified_projectid(
       $provider, $username, $password, $rawprojectid);
 
@@ -499,6 +485,9 @@ sub SpInsertCat {
   my $infostr = join("\n", @info) . "\n";
 
   my $spstr = compressReturnedItem($sp, $rettype);
+
+  # Ensure response is sent as text even if it contains special characters.
+  $infostr = SOAP::Data->type(string => $infostr) if exists $ENV{'HTTP_SOAPACTION'};
 
   # Return the result
   return [$spstr, $infostr];

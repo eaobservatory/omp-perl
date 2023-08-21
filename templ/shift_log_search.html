@@ -1,0 +1,31 @@
+[% PROCESS "macro_general_search.html" -%]
+[% WRAPPER "layout.html" %]
+<h1>Search Shift Log</h1>
+
+<form method="post" action="[% form_info.target %]">
+    [% render_common_fields(form_info.values) %]
+    [% render_search_text_field(form_info.values) %]
+    [% render_sort_fields(form_info.values) %]
+    <p>
+        <input type="submit" name="search" value="Search"/>
+    </p>
+</form>
+
+[% IF message.defined %]
+<p>
+    [% message | html %]
+</p>
+[% END %]
+
+[% IF log_entries.defined %]
+    <table class="bordered" width="800">
+        [% FOR comment IN log_entries %]
+            <tr valign="top">
+                <td>[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
+                <td><a href="/cgi-bin/shiftlog.pl?date=[% comment.date.strftime("%Y-%m-%d") %]&telescope=[% telescope | html %]#shiftid_[% comment.id %]">[% comment.date.strftime("%Y-%m-%d %H:%M:%S") %]&nbsp;UT</a></td>
+                <td width="400">[% comment.text | remove_pre_tags %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% END %]
+[% END %]

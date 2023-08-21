@@ -268,10 +268,10 @@ sub _process_freeut_range {
   my @processed;
   for my $r (@ranges) {
     my $out;
-    if ($r =~ /^\s*\d\d:\d\d\s*$/) {
+    if ($r =~ /^\s*\d\d:\d\d\s*$/a) {
       # HH:MM
       $out = OMP::DateTools->parse_date($refdate->ymd . "T$r");
-    } elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/) {
+    } elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/a) {
       require Astro::Coords;
       my $mode = $1;
       my $offset = $2;

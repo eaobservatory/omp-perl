@@ -257,7 +257,7 @@
                     [% SET nightlog = entry.nightlog %]
 
                     [% IF entry.is_time_gap %]
-                        <tr class="[% rowclass %]">
+                        <tr class="[% rowclass %]" id="timegapid_[% obs.comments.first.obsid | html %]">
                             <td colspan="[% num_columns - 1 %]">
                                 <font color="BLACK">
                                     [% FOREACH line IN nightlog._STRING.split("\n") %]
@@ -296,7 +296,7 @@
                         [% SET status = obs.status %]
                         [% SET css_status = status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0 %]
                         [% SET label_status = status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0 %]
-                        <tr class="[% rowclass %]">
+                        <tr class="[% rowclass %]" id="obsid_[% obs.obsid | html %]">
                             [% FOREACH column_name IN column_order %]
                                 <td class="[% css_status %]">
                                     [% nightlog.$column_name.join(', ') | html %]

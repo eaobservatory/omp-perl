@@ -18,13 +18,13 @@
 
 <p>
     [% UNLESS ut_date_delta %]
-        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">Go to previous</a>
+        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">Go to previous</a>
         |
-        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Go to next</a>
+        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Go to next</a>
     [% END %]
 </p>
 
-<form method="get" action="[% target_base | html %]">
+<form method="get" action="[% target_base %]">
     <p>
         View report
         [% IF ut_date_delta %]
@@ -45,9 +45,9 @@
 
 <p>
     [% IF ut_date_delta %]
-        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">View a single night report</a>
+        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">View a single night report</a>
     [% ELSE %]
-        <a href="[% target_base | html %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">View a report for multiple nights</a>
+        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">View a report for multiple nights</a>
     [% END %]
 </p>
 

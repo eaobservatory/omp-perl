@@ -108,14 +108,14 @@ sub parse_date {
   my $format;
 
   # Need to disambiguate ISO date from MySQL date
-  if ($date =~/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/) {
+  if ($date =~/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/a) {
     # MySQL
 
     $format = "%Y-%m-%d %T";
 
     print "$date = MySQL date with format $format\n" if $DEBUG;
 
-  } elsif ($date =~ /\d\d\d\d-\d\d-\d\d/) {
+  } elsif ($date =~ /\d\d\d\d-\d\d-\d\d/a) {
     # ISO
 
     # All arguments should have a day, month and year
@@ -130,12 +130,12 @@ sub parse_date {
     }
     print "$date = ISO date with format $format\n" if $DEBUG;
 
-  } elsif ($date =~ /^\d\d\d\d\d\d\d\d\b/) {
+  } elsif ($date =~ /^\d\d\d\d\d\d\d\d\b/a) {
     # YYYYMMDD format
 
     $format = "%Y%m%d";
 
-    if ($date =~ /\s\d\d:\d\d:\d\d$/) {
+    if ($date =~ /\s\d\d:\d\d:\d\d$/a) {
       $format .= " %H:%M:%S";
       print "$date = YYYYMMDD HH:MM:SS with format $format\n" if $DEBUG;
     } else {
@@ -454,7 +454,7 @@ sub determine_semester {
                         (?: [01]\d | 1[0-2])
                         (?: [0-2]\d | 3[01])
                         $
-                      /x) {
+                      /ax) {
     # Convert to Time::Piece.
     $date = Time::Piece->strptime($date, '%Y%m%d');
   } else {
@@ -543,7 +543,7 @@ sub _determine_pparc_semester_boundary {
     $sem = $oldsem{$sem};
   }
 
-  if ($sem =~ /^(\d\d)([AB])$/) {
+  if ($sem =~ /^(\d\d)([AB])$/a) {
     my $year = $1;
     my $ab   = $2;
 

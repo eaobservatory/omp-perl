@@ -58,10 +58,11 @@ sub details {
   my $q = $self->cgi;
 
   # Get user object
+  my $userid = $self->decoded_url_param('user');
   my $user;
   my $E = undef;
   try {
-    $user = OMP::UserServer->getUser($q->url_param('user'));
+    $user = OMP::UserServer->getUser($userid);
   } otherwise {
     $E = shift;
   };
@@ -69,7 +70,7 @@ sub details {
   return $self->_write_error("Unable to retrieve user: $E")
     if defined $E;
 
-  return $self->_write_error("Unable to retrieve details for unknown user [".$q->url_param('user')."]")
+  return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
     unless $user;
 
   my $hedwig2omp = new OMP::DBbackend::Hedwig2OMP();
@@ -195,7 +196,7 @@ sub edit_details {
 
   my $q = $self->cgi;
 
-  my $userid = $q->url_param("user");
+  my $userid = $self->decoded_url_param("user");
 
   my $user = OMP::UserServer->getUser($userid);
 
@@ -230,7 +231,7 @@ sub edit_details {
 
     if ( $q->param("email") ) {
       # we were given a value
-      if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
+      if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/a) {
         $from_form{email} = $1;
       } else {
         # did not pass test so do not update
@@ -243,7 +244,7 @@ sub edit_details {
 
     if ( $q->param("cadcuser") ) {
       # we were given a value
-      if ($q->param("cadcuser") =~ /^(\w+)$/) {
+      if ($q->param("cadcuser") =~ /^(\w+)$/a) {
         $from_form{cadcuser} = $1;
       } else {
         # did not pass test so do not update
@@ -382,7 +383,7 @@ sub _add_user_try {
 
     # Check the email (using the same pattern as above for in "edit_details").
     return 'Email address is not valid.'
-        unless $email =~ /^(.+?@.+?\.\w+)$/;
+        unless $email =~ /^(.+?@.+?\.\w+)$/a;
 
     my $omp_user = new OMP::User(
         userid => $userid,

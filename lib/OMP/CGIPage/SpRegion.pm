@@ -70,11 +70,11 @@ sub view_region {
 
   # Check input
 
-  die 'Invalid output format' unless $q->param('format') =~ /^(\w+)$/;
+  die 'Invalid output format' unless $q->param('format') =~ /^(\w+)$/a;
   my $format = $1;
   die 'Unrecognised output format' unless exists $mime{$format};
 
-  die 'Invalid output type' unless $q->param('type') =~ /^(\w+)$/;
+  die 'Invalid output type' unless $q->param('type') =~ /^(\w+)$/a;
   my $type = $1;
   die 'Unrecognised output format' unless exists $types{$type};
 

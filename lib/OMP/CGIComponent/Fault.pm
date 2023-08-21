@@ -653,7 +653,7 @@ sub parse_file_fault_form {
     my $islocal = ($q->param('tz') =~ /HST/ ? 1 : 0);
     my $utdate;
 
-    if ($time =~ /^(\d\d*?)\W*(\d{2})$/) {
+    if ($time =~ /^(\d\d*?)\W*(\d{2})$/a) {
       # Just the time (something like HH:MM)
       my $hh = $1;
       my $mm = $2;

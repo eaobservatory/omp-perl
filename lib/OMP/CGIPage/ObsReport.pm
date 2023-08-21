@@ -95,7 +95,7 @@ sub night_report {
     # Get delta from URL
     if ($q->param('delta')) {
       my $deltastr = $q->param('delta');
-      if ($deltastr =~ /^(\d+)$/) {
+      if ($deltastr =~ /^(\d+)$/a) {
         $delta = $1;
       } else {
         croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");

@@ -60,8 +60,9 @@ sub parse_query {
   my %return = ();
 
 # Telescope. This is a string made up of word characters.
-  if ($q->url_param('telescope')) {
-    ( $return{'telescope'} = $q->url_param('telescope') ) =~ s/\W//g;
+  my $telescope = $self->page->decoded_url_param('telescope');
+  if ($telescope) {
+    ( $return{'telescope'} = $telescope ) =~ s/\W//ag;
   }
 
 # Time Zone for display. This is either UT or HST. Defaults to UT.
@@ -88,8 +89,9 @@ sub parse_query {
 
 # Date. This is in yyyy-mm-dd format. If it is not set, it
 # will default to the current UT date.
-  if ($q->url_param('date')) {
-    my $dateobj = OMP::DateTools->parse_date($q->url_param('date'));
+  my $date = $self->page->decoded_url_param('date');
+  if ($date) {
+    my $dateobj = OMP::DateTools->parse_date($date);
     $return{'date'} = $dateobj->ymd;
   } else {
     my $dateobj = gmtime;
@@ -98,7 +100,7 @@ sub parse_query {
 
 # Time. This is in hh:mm:ss or hhmmss format. If it is not set, it
 # will default to the current local time.
-  if( exists( $vars->{'time'} ) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/ ) {
+  if( exists( $vars->{'time'} ) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/a ) {
     $return{'time'} = "$1:$2:$3";
   } else {
     my $dateobj = localtime;
@@ -195,7 +197,7 @@ sub submit_comment {
   my $userobj = $self->auth->user;
 
 # Form the date.
-  $time =~ /(\d\d):(\d\d):(\d\d)/;
+  $time =~ /(\d\d):(\d\d):(\d\d)/a;
   my ($hour, $minute, $second) = ($1, $2, $3);
 
   # Convert the time zone to UT, if necessary.

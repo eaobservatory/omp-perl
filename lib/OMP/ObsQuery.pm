@@ -111,12 +111,12 @@ sub sql {
   $where = " WHERE " . join( " AND ", @where)
     if @where;
 
-  my $select = "SELECT *";
+  # Prepare relevance expression if doing a fulltext index search.
+  my @rel = $self->_qhash_relevance();
+  my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
 
   # Now need to put this SQL into the template query
-  # This returns a row per response
-  # So will duplicate static fault info
-  my $sql = "($select FROM $table $where)";
+  my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
 
   return "$sql\n";
 
@@ -158,25 +158,13 @@ sub _post_process_hash {
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
 
-  # Loop over each key
-  for my $key (keys %$href ) {
-    # Skip private keys
-    next if $key =~ /^_/;
-
-    # Protect against rounding errors
-    # Not sure we need this so leave it out for now
-    #if ($key eq 'faultid') {
-      # Need to loop over each fault
-    #  $href->{$key} = [
-#                      map {
-#                        new OMP::Range(Min => ($_ - 0.0005),
-#                                       Max => ($_ + 0.0005))
-#                      } @{ $href->{$key} } ];
-
-#    }
-
+  if (exists $href->{'text'}) {
+    my $prefix = 'TEXTFIELD__';
+    $prefix .= 'BOOLEAN__' if exists $href->{'_attr'}->{'text'}
+      and exists $href->{'_attr'}->{'text'}->{'mode'}
+      and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
+    $href->{$prefix . 'commenttext'} = delete $href->{'text'};
   }
-
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

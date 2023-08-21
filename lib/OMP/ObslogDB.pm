@@ -97,7 +97,7 @@ sub addComment {
     # Fall over if we aren't a comment object.
     throw OMP::Error::BadArgs( "Wrong class for comment object: " . ref( $comment ) )
     unless UNIVERSAL::isa( $comment, "OMP::Info::Comment" );
-  } elsif( $comment =~ /^\d+$/ ) {
+  } elsif( $comment =~ /^\d+$/a ) {
     # An integer index.
     $comment = ( $obs->comments )[$comment];
   } else {
@@ -348,7 +348,10 @@ sub removeComment {
 Query the observation comment table. Query must be supplied as
 an C<OMP::ObsQuery> object.
 
-  @results = $db->queryComments( $query );
+  @results = $db->queryComments( $query, {allow_dateless => 0} );
+
+The query must constrain the date unless C<allow_dateless>
+is set.
 
 Returns an array of C<Info::Comment> objects in list context, or
 a reference to an array of C<Info::Comment> objects in scalar context.
@@ -359,12 +362,14 @@ sub queryComments {
 
   my $self = shift;
   my $query = shift;
+  my $opts = shift || {};
 
   my $query_hash = $query->query_hash;
 
 # Do some rudimentary checks on the query to make sure we're not
 # trying to get every comment from the beginning of time
-  if(defined($query_hash->{date})) {
+  if ($opts->{'allow_dateless'}) {
+  } elsif(defined($query_hash->{date})) {
     my $date;
     if(ref($query_hash->{date}) eq 'ARRAY') {
       $date = $query_hash->{date}->[0];
@@ -373,7 +378,7 @@ sub queryComments {
     }
     if(UNIVERSAL::isa($date, 'OMP::Range')) {
       if($date->isinverted or !$date->isbound) {
-        throw OMP::Error::BadArgs("Date range muse be closed and consecutive");
+        throw OMP::Error::BadArgs("Date range must be closed and consecutive");
       }
     }
   } else {
@@ -570,6 +575,7 @@ sub _reorganize_comments {
                 startobs => $startobs,
                 obsid => $obsid,
                 author => $users->{$row->{'commentauthor'}},
+                relevance => $row->{relevance},
               );
   }
 

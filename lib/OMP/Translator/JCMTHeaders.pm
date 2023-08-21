@@ -36,6 +36,7 @@ use strict;
 use warnings;
 use Carp;
 use Data::Dumper;
+use Unicode::Normalize qw/normalize/;
 use OMP::DateTools;
 
 =head1 HELPER METHODS
@@ -108,6 +109,40 @@ sub islocal {
     return 1;
   }
   return 0;
+}
+
+=item B<fitsSafeString>
+
+Attempt to prepare a string for use as a FITS header.  It should
+be restricted to allowable ASCII characters and trimmed to length.
+
+    $value = $class->fitsSafeString($value);
+
+=cut
+
+sub fitsSafeString {
+    my $class = shift;
+    my $value = shift;
+
+    # Separate and remove diacritics.
+    $value = normalize('D', $value);
+    $value =~ s/\p{Diacritic}//g;
+
+    # Replace any other characters not allowed in FITS headers.
+    $value =~ s/[^ -~]/?/ag;
+
+    # Trim to no more than 68 characters.
+    $value = substr $value, 0, 68;
+
+    # Single quotes will be doubled in the FITS header, so allow
+    # an extra character for each.
+    for (;;) {
+        my @quotes = $value =~ /(')/g;
+        last if 69 > (length $value) + (scalar @quotes);
+        $value =~ s/.$//;
+    }
+
+    return $value;
 }
 
 =back
@@ -187,7 +222,7 @@ sub getMSBTitle {
     my %info = @_;
     my $title = $info{'MSBTITLE'};
     return undef unless defined $title;
-    return substr($title, 0, 68);
+    return $class->fitsSafeString($title);
 }
 
 =item B<getRemoteAgent>
@@ -361,7 +396,7 @@ sub getSurveyName {
   my %info = @_;
   my $project = $class->getProject( $cfg, %info );
 
-  if ($project =~ /^MJLS([A-Z]+)\d+$/i) {
+  if ($project =~ /^MJLS([A-Z]+)\d+$/aai) {
     my $short = $1;
     if ($short eq 'G') {
       return "GBS";

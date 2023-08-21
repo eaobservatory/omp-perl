@@ -1,5 +1,5 @@
 [% MACRO render_msb_comment_form(target, comment_msb_id_fields) BLOCK %]
-    <form method="post" action="[% target | url %]">
+    <form method="post" action="[% target %]">
         <table border="0">
             <tr>
                 <td>User:</td>
@@ -66,7 +66,7 @@
                     <td>&nbsp;</td>
                     <td>
                         [% IF loop.first && comment.tid.defined %]
-                            <form method="post" action="[% msb_info.target | url %]">
+                            <form method="post" action="[% msb_info.target %]">
                                 <input type="submit" name="submit_add_comment" value="Add comment" /> 
                                 [% IF (comment_group.n_done > 0) && (entry.msb.defined) %]
                                     <input type="submit" name="submit_undo" value="Undo" />
@@ -101,7 +101,7 @@
             <tr>
                 <td>&nbsp;</td>
                 <td colspan="2">
-                    <form method="post" action="[% msb_info.target | url %]">
+                    <form method="post" action="[% msb_info.target %]">
                         [% IF entry.msb.isRemoved %]
                             <input type="submit" name="submit_unremove" value="Un-remove"/>
                             (re-enable this MSB in the science program)

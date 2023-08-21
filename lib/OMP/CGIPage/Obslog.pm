@@ -28,6 +28,7 @@ use OMP::CGIComponent::Obslog;
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
+use OMP::CGIComponent::Search;
 use OMP::CGIComponent::Shiftlog;
 use OMP::CGIComponent::Weather;
 use OMP::Config;
@@ -40,9 +41,11 @@ use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::NightRep;
 use OMP::ObslogDB;
+use OMP::ObsQuery;
 use OMP::ProjServer;
 use OMP::BaseDB;
 use OMP::ArchiveDB;
+use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::Error qw/ :try /;
 
@@ -118,7 +121,7 @@ sub list_observations_txt {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
 
-  print $query->header( -type => 'text/plain' );
+  print $query->header( -type => 'text/plain', -charset => 'utf-8' );
 
   my $obsgroup;
   try {
@@ -175,13 +178,13 @@ sub projlog_content {
   my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
   my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
-  my $utdatestr = $q->url_param('utdate');
-  my $no_retrieve = $q->url_param('noretrv');
+  my $utdatestr = $self->decoded_url_param('utdate');
+  my $no_retrieve = $self->decoded_url_param('noretrv');
 
   my $utdate;
 
   # Untaint the date string
-  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
+  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/a) {
     $utdate = $1;
   } else {
     croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
@@ -287,6 +290,87 @@ sub projlog_content {
           ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
       ],
   }
+}
+
+=item B<obslog_search>
+
+Creates a page for searching obslog entries.
+
+=cut
+
+sub obslog_search {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    my $search = OMP::CGIComponent::Search->new(page => $self);
+
+    # To allow us to characterize log entries, note the lowest status
+    # constant corresponding to a type of time gap.
+    my $min_status_timegap = OMP__TIMEGAP_INSTRUMENT;
+
+    my $telescope = 'JCMT';
+    my $message = undef;
+    my $result = undef;
+    my %values = (
+        type => '',
+        active => 1,
+        text => '',
+        text_boolean => 0,
+        period => 'arbitrary',
+        author => '',
+        mindate => '',
+        maxdate => '',
+        days => '',
+    );
+
+    if ($q->param('search')) {
+        %values = (
+            %values,
+            $search->read_search_common(),
+            $search->read_search_sort(),
+        );
+
+        ($message, my $xml) = $search->common_search_xml(\%values, 'commentauthor');
+
+        my $active = $values{'active'} = ($q->param('active') ? 1 : 0);
+        if ($active) {
+            push @$xml, '<obsactive>1</obsactive>';
+        }
+
+        my $type = $values{'type'} = $q->param('type');
+        if ($type) {
+            my $typexml = '<commentstatus><min>' . $min_status_timegap . '</min></commentstatus>';
+            push @$xml, ($type eq 'gap') ? $typexml : ('<not>' . $typexml . '</not>');
+        }
+
+        unless (defined $message) {
+            my $query = OMP::ObsQuery->new(XML => join '',
+                '<ObsQuery>',
+                '<telescope>' . $telescope . '</telescope>',
+                @$xml,
+                '</ObsQuery>');
+
+            my $odb = new OMP::ObslogDB(DB => new OMP::DBbackend);
+            $result = $search->sort_search_results(
+                \%values, 'startobs',
+                [map {
+                    $_->is_time_gap($_->status >= $min_status_timegap); $_
+                } $odb->queryComments($query, {allow_dateless => 1})]);
+
+            $message = 'No matching observation log entries found.'
+                unless scalar @$result;
+        }
+    }
+
+    return {
+        message => $message,
+        form_info => {
+            target => url_absolute($q),
+            values => \%values,
+        },
+        log_entries => $result,
+        telescope => $telescope,
+    };
 }
 
 =back

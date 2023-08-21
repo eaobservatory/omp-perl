@@ -22,13 +22,18 @@ BEGIN {
 use Config::IniFiles;
 use OMP::UserServer;
 use Data::Dumper;
+use IO::File;
 
 # Read file from arg list
 my $file = shift(@ARGV);
 die "Please supply a filename\n" unless defined $file;
 
 my %alloc;
-tie %alloc, 'Config::IniFiles', ( -file => $file );
+my $fh = IO::File->new($file, 'r');
+die "Could not open file '$file'" unless defined $fh;
+$fh->binmode(':utf8');
+tie %alloc, 'Config::IniFiles', ( -file => $fh );
+$fh->close();
 
 # Loop over all projects
 my %users;

@@ -49,6 +49,10 @@ Specify email address to send "from".
 
 Set a reply-to header (referring to the sender).
 
+=item B<--html>
+
+Prepare a multipart email with HTML.
+
 =item B<-debug> | B<-d>
 
 Dumps L<MIME::Entity> object and any return value after sending the email.
@@ -98,13 +102,14 @@ use OMP::Mail::Original;
 
 my $MY_NAME = (fileparse($0))[0];
 
-my (@cc, $from, $reply_to, $debug, $debug_mail_orig, $debug_net_smtp, $help);
+my (@cc, $from, $reply_to, $debug, $debug_mail_orig, $debug_net_smtp, $help, $html);
 GetOptions(
     'h|help|man' => \$help,
 
     'cc=s@'      => \@cc,
     'from=s'     => \$from,
     'reply-to!'  => \$reply_to,
+    'html'      => \$html,
 
     'd|debug!'            => \$debug,
     'DM|debug-mail-orig!' => \$debug_mail_orig,
@@ -126,13 +131,15 @@ my $cc_users = make_user(@cc);
 
 local $OMP::Mail::Original::DEBUG         = $debug_mail_orig;
 local $OMP::Mail::Original::DEBUG_NetSMTP = $debug_net_smtp;
+my $message = "Testing separate mailing code...\n";
+$message = "<p>$message</p>" if $html;
 my $mailer = OMP::Mail::Original->new();
 my $mess = $mailer->build(
     'to'      => $to_user,
     'from'    => $from_user,
     ($cc_users ? ('cc' => $cc_users) : ()),
     'subject' => 'Test mail, ' . scalar localtime(),
-    'message' => "Testing separate mailing code...\n",
+    'message' => $message,
     reply_to_sender => $reply_to,
 );
 

@@ -19,6 +19,8 @@ status of a project.
 use strict;
 use warnings;
 
+use Encode qw/decode/;
+
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 $| = 1;
@@ -68,6 +70,9 @@ Get an "absolute" URL (without host) including only query parameters.
 
     my $url = url_absolute($q, [%extra_query_parameters]);
 
+Note: the URL should already be escaped (by CGI-E<gt>url) so it should not
+be further escaped, e.g. by the template 'url' filter.
+
 =cut
 
 sub url_absolute {
@@ -75,7 +80,12 @@ sub url_absolute {
     my %extra_params = @_;
     return $q->new({
         %extra_params,
-        map {$_ => $q->url_param($_)} $q->url_param()
+        map {
+            my $value = $q->url_param($_);
+            $value = Encode::decode('UTF-8', $value)
+                unless Encode::is_utf8($value);
+            $_ => $value
+        } $q->url_param()
     })->url(-absolute => 1, -query => 1);
 }
 

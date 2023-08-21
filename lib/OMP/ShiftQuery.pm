@@ -75,10 +75,14 @@ sub sql {
   $where = " WHERE " . join( " AND ", @where)
     if @where;
 
+  # Prepare relevance expression if doing a fulltext index search.
+  my @rel = $self->_qhash_relevance();
+  my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
+
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "(SELECT * FROM $table $where)";
+  my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
 
   return "$sql\n";
 
@@ -99,6 +103,29 @@ located in the query XML. Returns "ShiftQuery" by default.
 
 sub _root_element {
   return "ShiftQuery";
+}
+
+=item B<_post_process_hash>
+
+Mark text query as "TEXTFIELD" so that a fulltext index search is used.
+
+=cut
+
+sub _post_process_hash {
+  my $self = shift;
+  my $href = shift;
+
+  $self->SUPER::_post_process_hash($href);
+
+  if (exists $href->{'text'}) {
+    my $prefix = 'TEXTFIELD__';
+    $prefix .= 'BOOLEAN__' if exists $href->{'_attr'}->{'text'}
+      and exists $href->{'_attr'}->{'text'}->{'mode'}
+      and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
+    $href->{$prefix . 'text'} = delete $href->{'text'};
+  }
+
+  delete $href->{_attr};
 }
 
 =back

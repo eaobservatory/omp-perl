@@ -111,7 +111,7 @@ foreach my $fields (@{Text::CSV::csv(in => $ARGV[0])}) {
     if (exists $QUEUE{$queue}) {
         $queue = $QUEUE{$queue};
     }
-    elsif ($queue =~ /^M\d\d[ABXYZW]([PLH])/) {
+    elsif ($queue =~ /^M\d\d[ABXYZW]([PLH])/a) {
         if ($1 eq 'P') {$queue = 'PI';}
         elsif ($1 eq 'L') {$queue = 'LAP';}
         elsif ($1 eq 'H') {$queue = 'UH';}

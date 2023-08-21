@@ -253,22 +253,20 @@ inst - The instrument that the observation was taken with. Case-insensitive.
 sub cgi_to_obs {
   my $self = shift;
 
-  my $q = $self->cgi;
-
   my $verify =
-   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/,
-     'runnr'   => qr/^(\d+)$/,
-     'inst'    => qr/^([\-\w\d]+)$/,
+   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/a,
+     'runnr'   => qr/^(\d+)$/a,
+     'inst'    => qr/^([\-\w\d]+)$/a,
      'timegap' => qr/^([01])$/,
      'oid'     => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
    };
 
-  my $ut      = _cleanse_query_value( $q, 'ut',      $verify );
-  my $runnr   = _cleanse_query_value( $q, 'runnr',   $verify );
-  my $inst    = _cleanse_query_value( $q, 'inst',    $verify );
-  my $timegap = _cleanse_query_value( $q, 'timegap', $verify );
+  my $ut      = $self->_cleanse_query_value( 'ut',      $verify );
+  my $runnr   = $self->_cleanse_query_value( 'runnr',   $verify );
+  my $inst    = $self->_cleanse_query_value( 'inst',    $verify );
+  my $timegap = $self->_cleanse_query_value( 'timegap', $verify );
   $timegap   ||= 0;
-  my $obsid   = _cleanse_query_value( $q, 'oid',     $verify );
+  my $obsid   = $self->_cleanse_query_value( 'oid',     $verify );
 
   # Form the Time::Piece object
   $ut = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
@@ -431,17 +429,17 @@ Returns the cleansed URL parameter value given a CGI object,
 parameter name, and a hash reference of parameter names as keys &
 compiled regexen (capturing a value to be returned) as values.
 
-  $value = _cleanse_query_value( $cgi, 'number',
-                                  { 'number' => qr/^(\d+)$/, }
+  $value = $comp->_cleanse_query_value( 'number',
+                                  { 'number' => qr/^(\d+)$/a, }
                                 );
 
 =cut
 
 sub _cleanse_query_value {
 
-  my ( $q, $key, $verify ) = @_;
+  my ( $self, $key, $verify ) = @_;
 
-  my $val = $q->url_param( $key );
+  my $val = $self->page->decoded_url_param( $key );
 
   return
     unless defined $val

@@ -64,7 +64,7 @@ check_project_expiry();
 exit 0;
 
 sub check_project_expiry {
-    my $standard_semester = qr/^\d\d[AB]$/;
+    my $standard_semester = qr/^\d\d[AB]$/a;
     my $dt = DateTime->now(time_zone => 'UTC');
     my $semester = OMP::DateTools->determine_semester(date => $dt, tel => $tel);
 

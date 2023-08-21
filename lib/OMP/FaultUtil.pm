@@ -55,6 +55,9 @@ sub format_fault {
 
   my $faultid = $fault->id;
 
+  # Avoid wrapping long "words", e.g. URLs.
+  local $Text::Wrap::huge = 'overflow';
+
   # Get the fault system URL
   my $baseurl = $omp_url . OMP::Config->getData('cgidir');
 
@@ -379,7 +382,7 @@ sub getResponse {
 
     my ( $baseurl, $text ) = @_;
 
-    $fault_id = qr/(?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}/
+    $fault_id = qr/(?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}/a
         unless $fault_id;
 
     $text =~ s!($fault_id)!<a href="$baseurl/viewfault.pl?fault=$1">$1</a>!g;

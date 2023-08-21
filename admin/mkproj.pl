@@ -171,6 +171,7 @@ BEGIN {
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use Data::Dumper;
+use IO::File;
 use OMP::DBServer;
 use OMP::General;
 use OMP::ProjDB;
@@ -214,7 +215,11 @@ if ($version) {
 # Read the file
 my $file = shift(@ARGV);
 my %alloc;
-tie %alloc, 'Config::IniFiles', ( -file => $file );
+my $fh = IO::File->new($file, 'r');
+die "Could not open file '$file'" unless defined $fh;
+$fh->binmode(':utf8');
+tie %alloc, 'Config::IniFiles', ( -file => $fh );
+$fh->close();
 
 my %ok_field;
 { my @field =
