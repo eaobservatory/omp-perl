@@ -19,7 +19,16 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 190;
+use Test::More tests => 2
+    + 19 # infer
+    + 3
+    + 10 # bands
+    + 18
+    + 35 # project extract
+    + 3 # project extract fail
+    + 1 # fault extract
+    + 1 # fault extract fail
+    + 9;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -30,11 +39,6 @@ require_ok('OMP::SiteQuality');
 print "# Project ID\n";
 
 my @input = (
-             {
-              semester => "01b",
-              projectid => "03",
-              result => "u/01b/3",
-             },
              {
               projectid => "u04",
               semester => "02a",
@@ -47,63 +51,8 @@ my @input = (
               result => "m02ah01",
              },
              {
-              projectid => "h01",
-              semester => "02a",
-              telescope => "ukirt",
-              result => "u/02a/h1",
-             },
-             {
-              projectid => "H1",
-              semester => "02a",
-              telescope => "ukirt",
-              result => "u/02a/H1",
-             },
-             {
-              projectid => "j28",
-              semester => "02a",
-              telescope => "ukirt",
-              result => "u/02a/j28",
-             },
-             {
-              projectid => "j4",
-              semester => "02a",
-              telescope => "ukirt",
-              result => "u/02a/j4",
-             },
-             {
-              projectid => "j04",
-              semester => "03b",
-              telescope => "ukirt",
-              result => "u/03b/j4",
-             },
-             {
-              projectid => "22",
-              semester => "99a",
-              result => "u/99a/22",
-             },
-             {
               projectid => "m01bu52",
               result => "m01bu52",
-             },
-             {
-              projectid => "u/01b/52",
-              result => "u/01b/52",
-             },
-             {
-              projectid => "u/serv/52",
-              result => "u/serv/52",
-             },
-             {
-              projectid => "s1",
-              result => "u/serv/1",
-             },
-             {
-              projectid => "s04",
-              result => "u/serv/4",
-             },
-             {
-              projectid => "s4565",
-              result => "u/serv/4565",
              },
              {
               projectid => "thk1",
@@ -112,25 +61,6 @@ my @input = (
              {
               projectid => "tj125",
               result => "tj125",
-             },
-             {
-              projectid => "UKIRTCAL",
-              result => "UKIRTCAL",
-             },
-             {
-              # Special project for email use
-              projectid => 'U/UKIDSS/0',
-              result => 'U/UKIDSS/0',
-             },
-             {
-              # MEGA survey
-              projectid => "SX_30EW_LO",
-              result => "SX_30EW_LO",
-             },
-             {
-              # MEGA survey
-              projectid => "LX_30EW_LO",
-              result => "LX_30EW_LO",
              },
              # JCMT service
              {
@@ -278,11 +208,6 @@ is($range->min,0.0, "Lower bound");
 
 # Projectid extraction
 my %extract = (
-               'u/SERV/192' => 'project u/SERV/192 is complete',
-               'u/02a/55'   => '[u/02a/55]',
-               'u/03b/h6a'  => '[u/03b/h6a]',
-               'u/02b/h55'  => 'MAIL: [u/02b/h55] is complete',
-               'U/03A/J4'   => 'a Japanese ukirt project U/03A/J4',
                's02ac03'    => '[s02ac03]',
                's02au03'    => '[s02au03]',
                's02ai03'    => '[s02ai03]',
@@ -297,7 +222,6 @@ my %extract = (
                'MEGACAL'    => '[MEGACAL]',
                'JCMTCAL'    => '[JCMTCAL]',
                'JCMTCALOLD' => '[JCMTCALOLD]',
-               'ukirtcal'   => '[ukirtcal] blah di blah',
                'tj03'       => 'hello tj03',
                'thk125'     => 'this is [thk125]',
                'm02bh37b1'  => 'this is uh project m02bh37b1',
@@ -316,61 +240,9 @@ my %extract = (
                'E21AK001'  => 'EAO South Korean supplemental call project E21AK001',
                'E21AZ001'  => 'EAO Chinese supplemental project E21AZ001',
                'M21BF001'  => 'EAO I.F. queue project M21BF001',
-               'u/02b/d03' => 'u/02b/d03 is a UKIRT DDT project',
                'm03au05fb' => 'a fallback project: m03au05fb',
-               'u/ec/1'    => 'A UKIRT E&C project u/ec/1',
                'm03ad07a'  => 'A JCMT DDT project m03ad07a',
                'm03bu135d' => 'A fallback project m03bu135d of a different type',
-               'u/ukidss/las15' => '[u/ukidss/las15] Survey time',
-               'u/ukidss/las_p11b'   => '[u/ukidss/las_p11b]',
-               'u/ukidss/las_j2_12a' => 'make u/ukidss/las_j2_12a similar to las_p11b',
-               'u/ukidss/uds'   => 'Add special project u/ukidss/uds',
-               'u/uhs/uhs'    => ' u/uhs/uhs which is used for comments and feedback',
-               'U/UHS/UHSK03' => 'K band third project: U/UHS/UHSK03',
-               'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
-               'U/UHSK/UHSK'    => ' U/UHSK/UHSK which is used for comments and feedback',
-               'U/UHSK/UHSK25' => 'U/UHSK/UHSK25 - K band project',
-               'U/UHSK/CASU' => 'We will need to send mails to U/UHSK/CASU',
-               'U/UHSH/UHSH'    => ' U/UHSH/UHSH which is used for comments and feedback',
-               'U/UHSH/UHSH25' => 'U/UHSH/UHSH25 - H band project',
-               'U/11B/H50C' => '[U/11B/H50C]',
-               'u/12a/h01d' => '[u/12a/h01d]',
-               'U/15A/H10A1' => 'for U/15A/H10A1 mail bounced back',
-               'U/15A/H10A2' => 'have not tried anything for U/15A/H10A2 ...',
-               'u/12a/kasi2' => '[u/12a/kasi2]',
-               'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
-               'U/UHSK/UHSK_PATCH' => 'U/UHSK/UHSK_PATCH: UHSK K Patch Up',
-               'u/13a/lm01' => 'Lockheed Martin projects start with u/13a/lm01',
-               'u/13b/lm10' => 'Lockheed Martin project: u/13b/lm10',
-               'u/14a/lm01' => 'Lockheed Martin project: u/14a/lm01',
-               'u/14a/LM88' => 'Lockheed Martin project(u/14a/LM88)',
-               'U/14A/LM90' => 'U/14A/LM90 would be a Lockheed Martin project.',
-               'U/14A/LM99' => 'U/14A/LM99 would be the last Lockheed Martin project.',
-               'U/13A/UA01' => 'University of Arizona projects start with U/13A/UA01',
-               'U/14A/UA01' => 'University of Arizona project: U/14A/UA01',
-               'u/14a/ua20' => 'University of Arizona project<u/14a/ua20>',
-               'u/14a/ua88' => 'University of Arizona project, u/14a/ua88',
-               'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.',
-               'U/17A/OSU99' => 'OSU project U/17A/OSU99',
-               'U/17A/NAU99' => 'NAU project U/17A/NAU99',
-               'u/ua/casu'  => 'Univ of AZ as semester in u/ua/casu',
-               'u/ua/wfau'  => 'Univ of AZ as semester in u/ua/wfau',
-               'u/lm/casu'  => 'Lockheed Martin as semester in u/lm/casu',
-               'u/lm/wfau'  => 'Lockheed Martin as semester in u/lm/wfau',
-               'U/15A/NA05' => 'U/15A/NA05        NA_SUP',
-               'U/15A/NA01b' => 'more projects: U/15A/NA01b NA_OD',
-               'U/15A/NA03a' => 'more projects: U/15A/NA03a NA_OD',
-               'U/15A/UA09' => 'U/15A/UA09        UA',
-               'U/15A/UA04a' => 'U/15A/UA04a       UA',
-               'U/15A/UA10a' => 'U/15A/UA10a       UA',
-               'U/15A/UA13b' => 'U/15A/UA13b      UA',
-               'U/15B/NA05A' => 'Project U/15B/NA05A has A suffix',
-               'U/17B/NAV05' => 'Project U/17B/NAV05 for USNO',
-               'u/18a/ncu01' => 'Project u/18a/ncu01 as mentioned in fault 20180317.001',
-               'U/18A/EAP002' => 'Project U/18A/EAP002 -- first EAO UKIRT code',
-               'U/SERV/17B/EAP001' => 'Example UKIRT urgent project code: U/SERV/17B/EAP001',
-               'U/19A/UO01' => 'UKIRT project U/19A/UO01 for country "UKIRT"',
-               'U/20A/DJH01' => 'UKIRT project U/20A/DJH01',
               );
 
 for my $proj (keys %extract) {
@@ -379,30 +251,10 @@ for my $proj (keys %extract) {
 }
 
 # some failures
-my @fail =
-  ( '[su03]',  '[sc04]', '[s06]',
-    # No UHS project that matches '00\d, ,..
-    'u/uhs/uhsK003',
-    # ... or in band other than (J, K).
-    '[u/uhs/uhsL02]',
-    # year should have 2 digits
-    'u/9b/ua01',
-    #  starts from 1, not 0.
-    'u/13a/lm00',
-    'u/14a/lm00',
-    # no numbers or extra alphas.
-    'u/ua/casu1',
-    'u/ua/casu_1',
-    'u/ua/wfau2',
-    'u/ua/wfau_2',
-    'u/lm/casu1',
-    'u/lm/casu_1',
-    'u/lm/wfau2',
-    'u/lm/wfau_2',
-    # none such requirement yet.
-    "U/NA/casu",
-    "U/NA/WFAU"
-
+my @fail = (
+    '[su03]',
+    '[sc04]',
+    '[s06]',
   );
 for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef,

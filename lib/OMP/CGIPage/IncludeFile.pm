@@ -63,13 +63,12 @@ sub get_resource {
   my $self = shift;
   my $projectid = shift;
 
-  my $q = $self->cgi;
   my $comp = new OMP::CGIComponent::IncludeFile(page => $self);
 
-  my $type = $q->url_param('type');
-  my $utdate = $q->url_param('utdate');
-  my $faultid = $q->url_param('fault');
-  my $filename = $q->url_param('filename');
+  my $type = $self->decoded_url_param('type');
+  my $utdate = $self->decoded_url_param('utdate');
+  my $faultid = $self->decoded_url_param('fault');
+  my $filename = $self->decoded_url_param('filename');
 
   if (defined $utdate) {
     # Check UT date is valid.

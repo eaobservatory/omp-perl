@@ -79,7 +79,7 @@ sub forecast_plot {
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
-  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
   $gifdate = "$1-$2-$3";
 
   return 'MKWC forecast',
@@ -103,7 +103,7 @@ sub meteogram_plot {
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
-  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
   $gifdate = "$1-$2-$3";
 
   my $meteogram_plot_dir = OMP::Config->getData( 'meteogram-plot-url' );
@@ -131,7 +131,7 @@ sub opacity_plot {
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
-  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
   $gifdate = "$1-$2-$3";
 
   return 'Maunakea opacity',
@@ -219,7 +219,7 @@ sub transparency_plot {
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
-  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
   $gifdate = "$1-$2-$3";
 
   return 'CFHT transparency',

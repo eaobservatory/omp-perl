@@ -308,6 +308,9 @@ sub extract_body {
     my $entity = shift;
     my @bodytexts = ();
 
+    my $head = $entity->head;
+    my $charset = $head->mime_attr('content-type.charset');
+
     my $num_parts = $entity->parts;
 
     # If more than one part, call this routine again.
@@ -324,6 +327,11 @@ sub extract_body {
         if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
             my $bh = $entity->bodyhandle;
             my $text = $bh->as_string;
+
+            if (defined $charset) {
+                $text = decode($charset, $text);
+            }
+
             push @bodytexts, $text;
         }
         else {

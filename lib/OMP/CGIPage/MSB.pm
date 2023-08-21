@@ -184,8 +184,8 @@ sub observed {
 
   my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
 
-  my $telescope = $q->url_param('telescope'),
-  my $utdate = $q->url_param('utdate');
+  my $telescope = $self->decoded_url_param('telescope'),
+  my $utdate = $self->decoded_url_param('utdate');
 
   my $comment_msb_id_fields = undef;
   my $projects = undef;

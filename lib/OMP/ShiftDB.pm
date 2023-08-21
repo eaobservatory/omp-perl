@@ -232,6 +232,8 @@ sub _reorganize_shiftlog {
                      text => $row->{text},
                      date => OMP::DateTools->parse_date( $row->{date} ),
                      author => $users->{$row->{'author'}},
+                     relevance => $row->{'relevance'},
+                     id => $row->{'shiftid'},
       );
   }
 

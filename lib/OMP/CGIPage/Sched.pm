@@ -69,7 +69,7 @@ sub _sched_view {
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
     my ($semester_next, $semester_prev, @semester_options);
-    if ($semester =~ /^(\d\d)([AB])$/) {
+    if ($semester =~ /^(\d\d)([AB])$/a) {
         if ($2 eq 'A') {
             $semester_prev = sprintf('%02d%s', $1 - 1, 'B');
             $semester_next = sprintf('%02d%s', $1, 'B');
@@ -79,7 +79,7 @@ sub _sched_view {
             $semester_next = sprintf('%02d%s', $1 + 1, 'A');
         }
     }
-    if (OMP::DateTools->determine_semester(tel => $tel) =~ /^(\d\d)([AB])$/) {
+    if (OMP::DateTools->determine_semester(tel => $tel) =~ /^(\d\d)([AB])$/a) {
         for (my ($year, $suffix) = ($1, $2); $year > 14; ($year, $suffix) = ($suffix eq 'B') ? ($year, 'A') : ($year - 1, 'B')) {
             push @semester_options, sprintf('%02d%s', $year, $suffix);
         }
@@ -108,15 +108,13 @@ sub _sched_view {
 sub _sched_view_edit_info {
     my $self = shift;
 
-    my $q = $self->cgi;
-
-    my $tel = $q->url_param('tel')
+    my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
-    my $semester = $q->url_param('semester');
+    my $semester = $self->decoded_url_param('semester');
     if (defined $semester) {
         die 'Semester not in expected format'
-            unless $semester =~ /^(\d\d[AB])$/;
+            unless $semester =~ /^(\d\d[AB])$/a;
         $semester = $1;
     }
     else {
@@ -245,9 +243,7 @@ sub sched_view_queue_stats {
 sub sched_cal_list {
     my $self = shift;
 
-    my $q = $self->cgi;
-
-    my $tel = $q->url_param('tel')
+    my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
@@ -267,7 +263,7 @@ sub sched_cal_view {
 
     my $q = $self->cgi;
 
-    my $token = $q->url_param('token')
+    my $token = $self->decoded_url_param('token')
         or die 'Access token not specified';
 
     my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
@@ -312,7 +308,7 @@ sub _create_calendar {
 
     my $semester = OMP::DateTools->determine_semester(tel => $tel);
     my $semester_next;
-    if ($semester =~ /^(\d\d)([AB])$/) {
+    if ($semester =~ /^(\d\d)([AB])$/a) {
         if ($2 eq 'A') {
             $semester_next = sprintf('%02d%s', $1, 'B');
         }

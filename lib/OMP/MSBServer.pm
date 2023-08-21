@@ -24,6 +24,7 @@ maintained in external databases. All methods are class methods.
 use strict;
 use warnings;
 use Carp;
+use Encode qw/encode/;
 
 # OMP dependencies
 use OMP::User;
@@ -126,9 +127,6 @@ sub fetchMSB {
   # Return stringified form of object
   # Note that we have to make these actual Science Programs
   # so that the OM and Java Sp class know what to do.
-  # One complication is that the format of the XML changed
-  # mid stream. We need to put a different heading for each.
-  my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>  };
   my $msbxml = "$msb";
 
   # optionally include the OT version
@@ -137,21 +135,13 @@ sub fetchMSB {
     $otvers = "<ot_version>".$msb->ot_version."</ot_version>\n";
   }
 
-  # Switch on meta_gui
-  if ($msbxml =~ /meta_gui/) {
-    $spprog .= q{
+  my $spprog = q{<?xml version="1.0" encoding="UTF-8"?>
 <SpProg type="pr" subtype="none">
   <meta_gui_filename>ompdummy.xml</meta_gui_filename>
   <meta_gui_hasBeenSaved>true</meta_gui_hasBeenSaved>
   <meta_gui_dir>/tmp</meta_gui_dir>
   <meta_gui_collapsed>false</meta_gui_collapsed>
 } . $otvers;
-  } else {
-    $spprog .= q{
-<SpProg>
-  <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
-};
-  }
 
   $spprog = join '',
               $spprog,
@@ -163,7 +153,7 @@ sub fetchMSB {
   my $log = sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
               tv_interval( $t0 ), $msb->projectID, $msb->checksum ;
 
-  my ( $converted, $zipped ) = _convert_sciprog( $spprog, $rettype, $log );
+  my ( $converted, $zipped ) = _convert_sciprog( encode('UTF-8', $spprog), $rettype, $log );
   return
     $zipped
       ? SOAP::Data->type( 'base64' => $converted )
@@ -301,7 +291,7 @@ is zero then the default number are returned (usually 100).
 
 The format of the resulting document is:
 
-  <?xml version="1.0" encoding="ISO-8859-1"?>
+  <?xml version="1.0" encoding="UTF-8"?>
   <QueryResult>
    <SpMSBSummary id="unique">
      <something>XXX</something>
@@ -369,7 +359,7 @@ sub queryMSB {
 
   try {
     my $tag = "QueryResult";
-    my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
+    my $xmlhead = '<?xml version="1.0" encoding="UTF-8"?>';
     $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
     OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
@@ -380,6 +370,9 @@ sub queryMSB {
     $E = shift;
   };
   $class->throwException( $E ) if defined $E;
+
+  $result = SOAP::Data->type(base64 => encode('UTF-8', $result)) if exists $ENV{'HTTP_SOAPACTION'};
+
   return $result;
 }
 
@@ -1546,7 +1539,7 @@ sub _find_return_type {
   $rettype = uc($rettype);
 
   # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
+  if ($rettype !~ /^\d$/a) {
     $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
     $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
     $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';

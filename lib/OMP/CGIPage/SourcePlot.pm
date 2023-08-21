@@ -110,13 +110,13 @@ sub _show_plot {
     my @msg    = ();
 
     my $proj = $q->param('project');
-    $proj =~ /^([\w\/\$\.\_\@]+)$/ && ($projid = $1) || (do {
+    $proj =~ /^([\w\/\$\.\_\@]+)$/a && ($projid = $1) || (do {
            $projid = "";
            push @msg, "Error: must specify a project!";
         } );
 
     my $utd = $q->param('utdate');
-    $utd =~ /^(\d{8})$/ && ($utdate = $1) || (do {
+    $utd =~ /^(\d{8})$/a && ($utdate = $1) || (do {
            $utdate = "";
            if ($utd ne "") {
              push @msg, "Error: date format: '$utd' incorrect (YYYYMMDD)!";
@@ -124,25 +124,25 @@ sub _show_plot {
         } );
 
     my $objs = $q->param('object');
-    $objs =~ /^([\w\/\$\.\_\@\"\'\s]+)$/ && ($object = $1) || ($object = "");
+    $objs =~ /^([\w\/\$\.\_\@\"\'\s]+)$/a && ($object = $1) || ($object = "");
 
     my $mod = $q->param('mode');
-    $mod =~ /^([\w\+\-\.\_]+)$/ && ($mode = $1) || ($mode = "");
+    $mod =~ /^([\w\+\-\.\_]+)$/a && ($mode = $1) || ($mode = "");
     $mode =~ s/\'//g;
     $mode =~ s/\ /\\\+/g;
 
     my $ptyp = $q->param('ptype');
-    $ptyp =~ /^([\w\+\-\.\_]+)$/ && ($ptype = $1) || ($ptype = "");
+    $ptyp =~ /^([\w\+\-\.\_]+)$/a && ($ptype = $1) || ($ptype = "");
     $ptype =~ s/\'//g;
     $ptype =~ s/\ /\\\+/g;
 
     my $air = $q->param('agrid');
-    $air =~ /^([\w\+\-\.\_]+)$/ && ($agrid = $1) || ($agrid ="");
+    $air =~ /^([\w\+\-\.\_]+)$/a && ($agrid = $1) || ($agrid ="");
     $agrid =~ s/\'//g;
     $agrid =~ s/\ /\\\+/g;
 
     my $lpos = $q->param('label');
-    $lpos =~ /^([\w\+\-\.\_]+)$/ && ($labpos = $1) || ($labpos = "");
+    $lpos =~ /^([\w\+\-\.\_]+)$/a && ($labpos = $1) || ($labpos = "");
     $labpos =~ s/\'//g;
     $labpos =~ s/\ /\\\+/g;
 

@@ -22,7 +22,7 @@
             [% IF sort_order.0 == selected_sort_order %]
                 Showing [% sort_order.1 | html %]
             [% ELSE %]
-                <a href="[% sort_order.2 | url %]">Show [% sort_order.1 | html %]</a>
+                <a href="[% sort_order.2 %]">Show [% sort_order.1 | html %]</a>
             [% END %]
             [% IF ! loop.last %]|[%END %]
         [% END %]
@@ -31,7 +31,7 @@
             [% IF order_by.0 == selected_order_by %]
                 Sorted by [% order_by.1 | html %]
             [% ELSE %]
-                <a href="[% order_by.2 | url %]">Sort by [% order_by.1 | html %]</a>
+                <a href="[% order_by.2 %]">Sort by [% order_by.1 | html %]</a>
             [% END %]
             [% IF ! loop.last %]|[%END %]
         [% END %]

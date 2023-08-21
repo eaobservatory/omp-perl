@@ -112,7 +112,7 @@ sub make_schedule {
           # empty lines.
           $
         )
-      }ix;
+      }aaix;
 
   my $date_sep_re = qr{[-./ ]+};
 
@@ -125,7 +125,7 @@ sub make_schedule {
                             (?:$month_num_re|$month_name_re)
                           )
                           \b
-                        }ix;
+                        }aaix;
 
   my $tss_repeat    = q["];
   my $tss_sep       = q[/];
@@ -146,7 +146,7 @@ sub make_schedule {
                           # day.
                           (\d+)
                           \b
-                        }x;
+                        }ax;
 
   my ( %data, $old_tss, $old_tss_day, $month );
 

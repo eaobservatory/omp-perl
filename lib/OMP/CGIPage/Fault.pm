@@ -318,10 +318,10 @@ sub query_fault_output {
       # catching these...
       for ($mindatestr, $maxdatestr) {
         if ($_) {
-          unless ($_ =~ /^\d{8}$/ or
-                  $_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
-                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
-                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+          unless ($_ =~ /^\d{8}$/a or
+                  $_ =~ /^\d\d\d\d-\d\d-\d\d$/a or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/a or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/a) {
 
             croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
           }
@@ -363,7 +363,7 @@ sub query_fault_output {
       # and last days of the last month
       my $year;
       my $month;
-      if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
+      if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/a) {
         $year = $1;
         $month = $2;
       }
@@ -486,8 +486,8 @@ sub query_fault_output {
   my $total_loss = 0.0;
   my $fault_summary = undef;
   my $fault_info = undef;
-  my $sort_order = $q->url_param('sort_order') // 'descending';
-  my $orderby = $q->url_param('orderby') // 'response';
+  my $sort_order = $self->decoded_url_param('sort_order') // 'descending';
+  my $orderby = $self->decoded_url_param('orderby') // 'response';
 
   # Show results as a summary if that option was checked
   if ($q->param('summary') and $faults->[0]) {
@@ -800,7 +800,7 @@ sub update_resp {
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  my $respid = $q->url_param('respid');
+  my $respid = $self->decoded_url_param('respid');
 
   return $self->_write_error(
       "A fault ID and response ID must be provided.")
@@ -959,7 +959,7 @@ sub _write_page_extra {
     my $q = $self->cgi;
 
     my $cat;
-    my $faultid = $q->url_param('fault');
+    my $faultid = $self->decoded_url_param('fault');
 
     if (defined $faultid) {
         my $fault;
@@ -981,7 +981,7 @@ sub _write_page_extra {
         $cat = $fault->category;
     }
     else {
-        $cat = uc($q->url_param('cat'));
+        $cat = uc $self->decoded_url_param('cat');
 
         my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
         undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');

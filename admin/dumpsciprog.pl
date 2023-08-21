@@ -62,7 +62,7 @@ if (-e $dumplog) {
   # It looks like "gmtime" might accept anything, so check the format here.
   # The check below may not actually ever trigger.
   die "Date of last dump not in expected format"
-    unless $line =~ /^\d{10}$/;
+    unless $line =~ /^\d{10}$/a;
 
   $date = gmtime($line);
   die "Unable to parse date of last dump!"

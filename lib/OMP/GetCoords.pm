@@ -369,7 +369,7 @@ sub get_omp_coords {
     printf "%d MSBs returned\n", $#msbs+1 if( $debug );
 
     my $prjstr = $sp->projectID . '@';
-    $prjstr =~ s/^m\d{2}[a,b]//i;
+    $prjstr =~ s/^m\d{2}[a,b]//aai;
     print "Project string: $prjstr\n" if ( $debug );
 
     # Handle each MSB
@@ -550,7 +550,7 @@ sub get_catalog_coords {
         if( $line =~ /$proj/i ) {
           $found = 1;
           $prjstr = "${proj}@";
-          $prjstr =~ s/^m\d{2}[a,b]//i;
+          $prjstr =~ s/^m\d{2}[a,b]//aai;
           print "Project string: $prjstr\n" if ( $debug );
           last;
         }

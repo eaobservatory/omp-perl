@@ -30,6 +30,11 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Template;
 use Template::Stash;
 
+BEGIN {
+    use Encode;
+    die 'Encode module is too old (untaints data)' if $Encode::VERSION < '2.50';
+}
+
 use OMP::Auth;
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
@@ -322,7 +327,7 @@ sub write_page {
     elsif ($auth_type eq 'project') {
       # Require project access.
 
-      my $projectid = OMP::General->extract_projectid($q->url_param('project'));
+      my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
       unless (defined $projectid) {
         return $self->_write_project_choice() unless $auth_ok;
       }
@@ -489,6 +494,7 @@ sub render_template {
 
     my $template = new Template({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        ENCODING => 'utf8',
         FILTERS => {
             remove_pre_tags => sub {
                 my $text = shift;
@@ -499,7 +505,32 @@ sub render_template {
         },
     }) or die "Could not configure template object: $Template::ERROR";
 
+    binmode STDOUT, ':utf8';
     $template->process($name, $context) or die $template->error();
+}
+
+=item B<decoded_url_param>
+
+Get URL parameter from the CGI object (using its C<url_param> method)
+and ensure it has been decoded.
+
+    $value = $page->decoded_url_param('parameter');
+
+Note: the CGI module's C<utf8> pragma enables decoding of parameters
+when fetched via the C<param> method, but currently not when fetched
+via C<url_param>.  This method does the same thing to results from
+C<url_param>.
+
+=cut
+
+sub decoded_url_param {
+    my $self = shift;
+    my $param = shift;
+    my $value = $self->cgi->url_param($param);
+
+    $value = Encode::decode('UTF-8', $value) unless Encode::is_utf8($value);
+
+    return $value;
 }
 
 =back
@@ -631,7 +662,10 @@ sub _write_http_header {
   my $q = $self->cgi;
   my $cookie = $self->auth->cookie;
 
-  my %header_opt = (-expires => '-1d');
+  my %header_opt = (
+    -expires => '-1d',
+    -charset => 'utf-8',
+  );
   $header_opt{'-cookie'} = $cookie if defined $cookie;
   $header_opt{'-status'} = $status if defined $status;
 

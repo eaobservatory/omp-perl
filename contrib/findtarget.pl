@@ -97,7 +97,7 @@ if (defined($help)) {
 
 # Ra, Dec, Project:
 my $proj = "";
-if ( $prj =~ /^([\w\/\*]+)$/ ) {
+if ( $prj =~ /^([\w\/\*]+)$/a ) {
   $proj = uc $1;
   $proj =~ s/\*/\&/g;
 } elsif ( defined $prj ) {

@@ -91,6 +91,7 @@ BEGIN {
 
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
+use IO::File;
 use OMP::ProjDB;
 use OMP::DBbackend;
 use OMP::SiteQuality;
@@ -119,7 +120,11 @@ if ($version) {
 # Read the file
 my $file = shift(@ARGV);
 my %alloc;
-tie %alloc, 'Config::IniFiles', ( -file => $file );
+my $fh = IO::File->new($file, 'r');
+die "Could not open file '$file'" unless defined $fh;
+$fh->binmode(':utf8');
+tie %alloc, 'Config::IniFiles', ( -file => $fh );
+$fh->close();
 
 # Connect to the database
 my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );

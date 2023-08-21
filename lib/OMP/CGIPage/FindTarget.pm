@@ -96,33 +96,33 @@ sub _show_output {
 
     # Project:
     my $prj = $q->param('projid');
-    ($prj =~ /^([\w\/\*]+)$/ ) &&  ($proj = "$1") || ($proj = "");
+    ($prj =~ /^([\w\/\*]+)$/a ) &&  ($proj = "$1") || ($proj = "");
 
     # RA
     my $rra = $q->param('ra');
     $rra =~ s/\ /\:/g;
     $rra =~ s/^\s+//;
     $rra =~ s/\s+$//;
-    ($proj eq "" && $rra =~ /^([\d\:\.\ ]+)$/) && ($ra = "$1") || ($ra = "");
+    ($proj eq "" && $rra =~ /^([\d\:\.\ ]+)$/a) && ($ra = "$1") || ($ra = "");
 
     # Dec
     my $ddec = $q->param('dec');
     $ddec =~ s/\ /\:/g;
     $ddec =~ s/^\s+//;
     $ddec =~ s/\s+$//;
-    ($proj eq "" && $ddec =~ /^([\d\-\:\.\ ]+)$/) && ($dec = "$1") || ($dec = "");
+    ($proj eq "" && $ddec =~ /^([\d\-\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
 
     # Telescope
     my $ttel = $q->param('tel');
-    ( $ttel =~ /^(\w+)$/ ) && ($tel = $ttel) || ($tel = "");
+    ( $ttel =~ /^(\w+)$/a ) && ($tel = $ttel) || ($tel = "");
 
     # Separation
     my $ssep = $q->param('sep');
-    ( $ssep =~ /^(\d+)$/ ) && ($sep = $ssep) || ($sep = "600");
+    ( $ssep =~ /^(\d+)$/a ) && ($sep = $ssep) || ($sep = "600");
 
     # Semester
     my $ssem= $q->param('sem');
-    ( $ssem =~ /^([\w\d\*]+)$/ ) && ($sem = $ssem) || ($sem = OMP::DateTools->determine_semester(tel => $tel));
+    ( $ssem =~ /^([\w\d\*]+)$/a ) && ($sem = $ssem) || ($sem = OMP::DateTools->determine_semester(tel => $tel));
     $sem =~ s/^m//i;
 
     if ( $ra eq "" || $dec eq "" and $proj eq "" ) {

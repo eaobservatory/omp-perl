@@ -5,7 +5,7 @@ CREATE TABLE `ompaffiliationalloc` (
   `allocation` double NOT NULL,
   `observed` double NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`semester`,`affiliation`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompauth` (
   `userid` varchar(32) NOT NULL,
   `token` varchar(32) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE `ompauth` (
   `is_staff` tinyint(1) NOT NULL DEFAULT 0,
   `duration` varchar(32) NOT NULL DEFAULT 'default',
   PRIMARY KEY (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompfault` (
   `faultid` double NOT NULL,
   `category` varchar(32) NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE `ompfault` (
   `remote` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`faultid`),
   FULLTEXT KEY `idx_ompfault_subject` (`subject`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompfaultassoc` (
   `associd` bigint(20) NOT NULL AUTO_INCREMENT,
   `faultid` double NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE `ompfaultassoc` (
   PRIMARY KEY (`associd`),
   KEY `idx_faultid` (`faultid`),
   KEY `idx_projectid` (`projectid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompfaultbody` (
   `respid` bigint(20) NOT NULL AUTO_INCREMENT,
   `faultid` double NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE `ompfaultbody` (
   PRIMARY KEY (`respid`),
   KEY `idx_ompfaultbody_1` (`faultid`),
   FULLTEXT KEY `idx_ompfaultbody_text` (`text`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompfeedback` (
   `commid` bigint(20) NOT NULL AUTO_INCREMENT,
   `projectid` varchar(32) NOT NULL,
@@ -68,11 +68,11 @@ CREATE TABLE `ompfeedback` (
   PRIMARY KEY (`commid`),
   KEY `feedback_idx` (`projectid`),
   KEY `idx_date` (`date`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompkey` (
   `keystring` varchar(64) NOT NULL,
   `expiry` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompmsb` (
   `msbid` bigint(20) NOT NULL AUTO_INCREMENT,
   `projectid` varchar(32) NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE `ompmsb` (
   KEY `idx_taumin` (`taumin`),
   KEY `idx_telescope` (`telescope`),
   KEY `idx_timeest` (`timeest`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompmsbdone` (
   `commid` bigint(20) NOT NULL AUTO_INCREMENT,
   `checksum` varchar(64) NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE `ompmsbdone` (
   PRIMARY KEY (`commid`),
   KEY `msbdone_idx` (`projectid`),
   KEY `msbtid_idx` (`msbtid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompobs` (
   `msbid` int(11) NOT NULL,
   `projectid` varchar(32) NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE `ompobs` (
   KEY `idx_instument` (`instrument`),
   KEY `idx_msbid` (`msbid`),
   KEY `idx_projectid` (`projectid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompobslog` (
   `obslogid` bigint(20) NOT NULL AUTO_INCREMENT,
   `runnr` int(11) NOT NULL,
@@ -175,8 +175,9 @@ CREATE TABLE `ompobslog` (
   `commentstatus` int(11) NOT NULL,
   `obsid` varchar(48) DEFAULT NULL,
   PRIMARY KEY (`obslogid`),
-  KEY `idx_obsid` (`obsid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  KEY `idx_obsid` (`obsid`),
+  FULLTEXT KEY `idx_ompobslog_commenttext` (`commenttext`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompproj` (
   `projectid` varchar(32) NOT NULL,
   `pi` varchar(32) NOT NULL,
@@ -202,13 +203,13 @@ CREATE TABLE `ompproj` (
   KEY `idx_remaining` (`remaining`),
   KEY `idx_semester` (`semester`),
   KEY `idx_telescope` (`telescope`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompprojaffiliation` (
   `projectid` varchar(32) NOT NULL,
   `affiliation` varchar(32) NOT NULL,
   `fraction` double NOT NULL,
   PRIMARY KEY (`projectid`,`affiliation`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompprojqueue` (
   `uniqid` bigint(20) NOT NULL AUTO_INCREMENT,
   `projectid` varchar(32) NOT NULL,
@@ -221,7 +222,7 @@ CREATE TABLE `ompprojqueue` (
   KEY `idx_projectid` (`projectid`),
   KEY `idx_tagadj` (`tagadj`),
   KEY `idx_tagpriority` (`tagpriority`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompprojuser` (
   `uniqid` bigint(20) NOT NULL AUTO_INCREMENT,
   `projectid` varchar(32) NOT NULL,
@@ -233,7 +234,7 @@ CREATE TABLE `ompprojuser` (
   `omp_access` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`uniqid`),
   UNIQUE KEY `idx_ompprojuser_2` (`projectid`,`userid`,`capacity`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompsched` (
   `telescope` varchar(32) NOT NULL,
   `date` date NOT NULL,
@@ -245,7 +246,7 @@ CREATE TABLE `ompsched` (
   `notes` varchar(80) DEFAULT NULL,
   `notes_private` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`telescope`,`date`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompschedcal` (
   `calid` int(11) NOT NULL AUTO_INCREMENT,
   `telescope` varchar(16) NOT NULL,
@@ -255,7 +256,7 @@ CREATE TABLE `ompschedcal` (
   `token` varchar(80) NOT NULL,
   PRIMARY KEY (`calid`),
   UNIQUE KEY `token` (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompschedqueue` (
   `telescope` varchar(32) NOT NULL,
   `queue` varchar(32) NOT NULL,
@@ -264,37 +265,38 @@ CREATE TABLE `ompschedqueue` (
   `background` varchar(32) DEFAULT NULL,
   `foreground` varchar(32) DEFAULT NULL,
   PRIMARY KEY (`telescope`,`queue`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompschedslot` (
   `telescope` varchar(32) NOT NULL,
   `date` date NOT NULL,
   `time` time NOT NULL,
   `queue` varchar(32) NOT NULL,
   PRIMARY KEY (`telescope`,`date`,`time`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompsciprog` (
   `projectid` varchar(32) NOT NULL,
   `timestamp` int(11) NOT NULL,
   `sciprog` longtext NOT NULL,
   PRIMARY KEY (`projectid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompshiftlog` (
   `shiftid` bigint(20) NOT NULL AUTO_INCREMENT,
   `date` datetime NOT NULL,
   `author` varchar(32) NOT NULL,
   `telescope` varchar(32) NOT NULL,
   `text` longtext NOT NULL,
-  PRIMARY KEY (`shiftid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`shiftid`),
+  FULLTEXT KEY `idx_ompshiftlog_text` (`text`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `omptimeacct` (
   `date` datetime NOT NULL,
   `projectid` varchar(32) NOT NULL,
   `timespent` int(11) NOT NULL,
   `confirmed` tinyint(4) NOT NULL,
   `shifttype` varchar(70) NOT NULL DEFAULT '',
-  `comment` text DEFAULT NULL,
+  `comment` mediumtext DEFAULT NULL,
   PRIMARY KEY (`date`,`projectid`,`shifttype`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `omptle` (
   `target` varchar(32) NOT NULL,
   `el1` double NOT NULL,
@@ -307,7 +309,7 @@ CREATE TABLE `omptle` (
   `el8` double NOT NULL,
   `retrieved` datetime NOT NULL,
   UNIQUE KEY `tle_idx` (`target`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompuser` (
   `userid` varchar(32) NOT NULL,
   `uname` varchar(255) NOT NULL,
@@ -318,4 +320,4 @@ CREATE TABLE `ompuser` (
   `no_fault_cc` tinyint(4) NOT NULL DEFAULT 0,
   `staff_access` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`userid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

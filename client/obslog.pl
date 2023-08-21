@@ -1897,7 +1897,7 @@ sub save_shift_comment {
   # Use current date if the field is blank
   my $date;
 
-  if (defined $time && $time =~ /\d/) {
+  if (defined $time && $time =~ /\d/a) {
     # Now need to parse the time (either as UT or local time)
     my $islocal = ( $TZ eq 'UT' ? 0 : 1 );
     $date = OMP::DateTools->parse_date( $time, $islocal );

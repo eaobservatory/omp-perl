@@ -47,22 +47,28 @@
 
 <ul>
 [% WRAPPER link_group title = "Observing reports" %]
-    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT">View an observing report</a></li>
-    <li><a href="/cgi-bin/shiftlog.pl?telescope=JCMT">View shift log comments</a></li>
-    <li><a href="/cgi-bin/wwwobserved.pl?telescope=JCMT">View an MSB summary</a></li>
-    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT&amp;delta=7">View a weekly synopsis</a></li>
+    <li>
+        <a href="/cgi-bin/nightrep.pl?tel=JCMT">Observing report</a>
+        &mdash; (<a href="/cgi-bin/searchobslog.pl">search</a>)
+    </li>
+    <li>
+        <a href="/cgi-bin/shiftlog.pl?telescope=JCMT">Shift log comments</a>
+        &mdash; (<a href="/cgi-bin/searchshiftlog.pl">search</a>)
+    </li>
+    <li><a href="/cgi-bin/wwwobserved.pl?telescope=JCMT">MSB summary</a></li>
+    <li><a href="/cgi-bin/nightrep.pl?tel=JCMT&amp;delta=7">Weekly synopsis</a></li>
 [% END %]
 
 [% WRAPPER link_group title = "Project administration" %]
-    <li><a href="/cgi-bin/listprojects.pl">View and sort projects</a></li>
-    <li><a href="/cgi-bin/ompusers.pl">View and edit user details</a></li>
-    <li><a href="/cgi-bin/alterproj.pl">View and edit project details</a></li>
-    <li><a href="/cgi-bin/edit_support.pl">View and edit support contacts</a></li>
+    <li><a href="/cgi-bin/listprojects.pl">Projects</a></li>
+    <li><a href="/cgi-bin/ompusers.pl">User details</a></li>
+    <li><a href="/cgi-bin/alterproj.pl">Project details</a></li>
+    <li><a href="/cgi-bin/edit_support.pl">Support contacts</a></li>
 [% END %]
 
 [% WRAPPER link_group title = "Target tools" %]
-    <li><a href="/cgi-bin/sourceplot.pl">View target observability</a></li>
-    <li><a href="/cgi-bin/findtarget.pl">View target positioning</a></li>
+    <li><a href="/cgi-bin/sourceplot.pl">Target observability</a></li>
+    <li><a href="/cgi-bin/findtarget.pl">Target positioning</a></li>
 [% END %]
 
 [% WRAPPER link_group title = "Useful links" %]

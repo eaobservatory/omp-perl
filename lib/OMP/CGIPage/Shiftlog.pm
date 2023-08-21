@@ -24,8 +24,12 @@ use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Helper qw/url_absolute/;
+use OMP::CGIComponent::Search;
 use OMP::CGIComponent::Shiftlog;
+use OMP::DBbackend;
 use OMP::Error qw/:try/;
+use OMP::ShiftDB;
+use OMP::ShiftQuery;
 
 use base qw/OMP::CGIPage/;
 
@@ -84,6 +88,68 @@ sub shiftlog_page {
 
       comments => $comp->get_shift_comments($parsed),
   };
+}
+
+=item B<shiftlog_search>
+
+Creates a page for searching shiftlog entries.
+
+=cut
+
+sub shiftlog_search {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    my $search = OMP::CGIComponent::Search->new(page => $self);
+
+    my $telescope = 'JCMT';
+    my $message = undef;
+    my $result = undef;
+    my %values = (
+        text => '',
+        text_boolean => 0,
+        period => 'arbitrary',
+        author => '',
+        mindate => '',
+        maxdate => '',
+        days => '',
+    );
+
+    if ($q->param('search')) {
+        %values = (
+            %values,
+            $search->read_search_common(),
+            $search->read_search_sort(),
+        );
+
+        ($message, my $xml) = $search->common_search_xml(\%values, 'author');
+
+        unless (defined $message) {
+            my $query = OMP::ShiftQuery->new(XML => join '',
+                '<ShiftQuery>',
+                '<telescope>' . $telescope . '</telescope>',
+                @$xml,
+                '</ShiftQuery>');
+
+            my $sdb = new OMP::ShiftDB(DB => new OMP::DBbackend);
+            $result = $search->sort_search_results(
+                \%values, 'date',
+                scalar $sdb->getShiftLogs($query));
+
+            $message = 'No matching shift log entries found.'
+                unless scalar @$result;
+        }
+    }
+
+    return {
+        message => $message,
+        form_info => {
+            target => url_absolute($q),
+            values => \%values,
+        },
+        log_entries => $result,
+        telescope => $telescope,
+    };
 }
 
 =back

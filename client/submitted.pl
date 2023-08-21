@@ -163,7 +163,7 @@ die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
 $sth->execute();
 die 'Error executing minimum date query: ' . $DBI::errstr if $DBI::err;
 while (my ($proj, $first) = $sth->fetchrow_array()) {
-  die 'Did not understand date' unless $first =~ /^(\d\d\d\d)-(\d\d)-(\d\d) /;
+  die 'Did not understand date' unless $first =~ /^(\d\d\d\d)-(\d\d)-(\d\d) /a;
   $first = "$1$2$3";
   $new_submission{$proj} = ($first ge $mindate_str);
 }

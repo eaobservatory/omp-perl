@@ -292,7 +292,7 @@ sub add_shift {
         $total_time = 0.0;
         for my $proj (keys %final) {
             next if ($proj =~ /EXTENDED/ || $proj =~ /BADOBS/);
-            if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/) {
+            if (defined $final{$proj} && $final{$proj} =~ /^(\d+|\d+\.|\d+\.\d+)$/a) {
                 $total_time += $final{$proj};
             }
         }

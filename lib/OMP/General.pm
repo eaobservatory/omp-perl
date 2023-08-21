@@ -201,28 +201,24 @@ Given a subset of a project ID attempt to determine the actual
 project ID.
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                        );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                          semester => $sem,
                                        );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
+                                         telescope => 'jcmt',
                                          date => $date,
                                        );
 
-If telescope is not supplied it is guessed.  If the project ID is just
-a number it is assumed to be part of a UKIRT style project. If it is a
+If telescope is not supplied it is guessed.  If the project ID is a
 number with a letter prefix it is assumed to be the JCMT style (ie u03
--> m01bu03) although a prefix of "s" is treated as a UKIRT service
-project and expanded to "u/serv/01" (for "s1"). If the supplied ID is
-ambiguous (most likely from a UH ID since both JCMT and UKIRT would
-use a shortened id of "h01") the telescope must be supplied or else
-the routine will croak. Japanese UKIRT programs can be abbreviated
-as "j4" for "u/02b/j4". JCMT service programs can be abbreviated with
+-> m01bu03). If the supplied ID is
+ambiguous the telescope must be supplied or else
+the routine will croak. JCMT service programs can be abbreviated with
 the letter "s" and the country code ("su03" maps to s02bu03, valid
 prefixes are "su", "si", and "sc". Dutch service programmes can not
 be abbreviated). In general JCMT service programs do not really benefit
@@ -264,25 +260,22 @@ sub infer_projectid {
   # If it's a special reserved ID (two characters + digit)
   # and *not* an abbreviated JCMT service programme
   # return it - padding the number)
-  if ($projid !~ /^s[uic]\d\d/i &&
-      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
+  if ($projid !~ /^s[uic]\d\d/aai &&
+      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/a) {
     return $1 . sprintf("%02d", $2);
   }
 
-  # We need a guess at a telescope before we can guess a semester
+  # We need a guess at a telescope before we can guess a semester.
   # In most cases the supplied ID will be able to distinguish
-  # JCMT from UKIRT (for example JCMT has a letter prefix
-  # such as "u03" whereas UKIRT mainly has a number "03" or "3")
-  # The exception is for UH where both telescopes have
-  # an "h" prefix. Additinally "s" prefix is UKIRT service.
+  # JCMT (for example JCMT has a letter prefix such as "u03").
+  # The exception is for UH where multiple telescopes may have
+  # an "h" prefix.
   my $tel;
   if (exists $args{telescope}) {
     $tel = uc($args{telescope});
   } else {
     # Guess
-    if ($projid =~ /^[sj]?\d+$/i) {
-      $tel = "UKIRT";
-    } elsif ($projid =~ /^s?[unci]\d+$/i) {
+    if ($projid =~ /^s?[juncidpltvkzf]\d+$/aai) {
       $tel = "JCMT";
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
@@ -301,33 +294,7 @@ sub infer_projectid {
 
   # Now guess the actual projectid
   my $fullid;
-  if ($tel eq "UKIRT") {
-
-    # Get the prefix and numbers if supplied project id is in
-    # that form
-
-    if ($projid =~ /^([hsHSJj]?)(\d+)$/ ) {
-      my $prefix = $1;
-      my $digits = $2;
-
-      # Need to remove leading zeroes
-      $digits =~ s/^0+//;
-
-      # For service the semester is always "serv" and
-      # the prefix is blank
-      if ($prefix =~ /[sS]/) {
-        $sem = "serv";
-        $prefix = '';
-      }
-
-      # Recreate the root project id
-      $projid = $prefix . $digits;
-    }
-
-    # Now construct the full ID
-    $fullid = "u/$sem/$projid";
-
-  } elsif ($tel eq "JCMT") {
+  if ($tel eq "JCMT") {
 
     # Service mode changes the prefix
     my $prefix = ( $projid =~ /^s/  ? 's' : 'm' );
@@ -370,88 +337,17 @@ sub extract_projectid {
 
   my $projid;
 
-  my $any_ukirt = qr{\b ( u/ [^/\s]+? / [-_a-z0-9]+ ) \b}xi;
-
-  my $ukirt_dk = q{ u/ \d\d[ab] / [dhjk]? [0-9]+ };
-  my $ukirt_sem = qr{\b( $ukirt_dk (?: [a-d] [0-9]* )? )\b}xi;
-
-  my $ukidss   = qr{u/ukidss}i;
-  my $ukidss_3 = qr{$ukidss/[a-z]{3}}i;
-
-  # UKIRT UKIDSS survey program as communucations channel, like GPS, UDS;
-  my $ukidss_comm     = qr{\b($ukidss / (?:dx|g[cp]|la|ud)s )\b}xi;
-
-  # like GPS14, LAS7D;
-  my $ukidss_alphnum  = qr{\b($ukidss_3 \d+ [a-z]?)\b}xi;
-
-  # (Based on number of parts around "_" at the end.)
-  # like LAS_p11b, UDS_SV;
-  my $ukidss_two      = qr{\b($ukidss_3 _ (?:[a-z]+ \d+ [a-z]? | sv) )\b}xi;
-  # like LAS_J2_12A.
-  my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
-
-  # UKIDSS Hemisphere Survey, UHS and the new unrelated surveys UHSK and UHSH.
-  my $uhs         = 'u/uhs[hk]?';
-  my $uhs_comm    = qr{\b ($uhs / (?:uhs[hk]? | casu)) \b}xi;
-  # H, J & K bands projects.
-  my $uhs_alphnum = qr{\b ($uhs / uhs [hjk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
-
-  # UKIRT KASI.
-  my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
-
-  # Lockheed Martin, Univ of AZ, NASA, etc... as project id.
-  my $ukirt_lm_az =
-    qr{ \b
-        ( u
-          / \d\d[ab]
-          / (?: lm | ua | na | osu | nau | nav | ncu | uo | djh ) (?: [0-9][1-9] | [1-9]0 ) [a-z]?
-        )
-        \b
-      }xi;
-
-  # Lockheed Martin & Univ of AZ as semester.
-  my $ukirt_lm_az_sem =
-    qr{ \b
-        ( u
-          / (?: lm | ua )
-          / (?: casu | wfau )
-        )
-        \b
-      }xi;
-
-  # EAO projects.
-  my $ukirt_eao = qr/\b(u\/(?:SERV\/)?\d\d[ab]\/EAP\d\d\d)\b/i;
-
-  if ($string =~ $ukirt_sem                          # UKIRT
-      or $string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
-      or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
-      or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
-      or $string =~ /\b(mjls[sgncdjty]\d+)\b/i      # JCMT Legacy Surveys
-      or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/i # JCMT LS: semester-based
-      or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
-      or $string =~ m{\b(u/serv/\d+)\b}i            # UKIRT serv
-      or $string =~ m{\b(u/ec/\d+)\b}i              # UKIRT E&C
-      or $string =~ $uhs_alphnum
-      or $string =~ $uhs_comm
-      or $string =~ $ukidss_alphnum
-      or $string =~ $ukidss_two
-      or $string =~ $ukidss_three
-      or $string =~ $ukidss_comm
-      or $string =~ $ukirt_kasi
-      or $string =~ $ukirt_lm_az
-      or $string =~ $ukirt_lm_az_sem
-      or $string =~ $ukirt_eao
-      or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
-      or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
-      or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH
-      or $string =~ m{\b($ukidss/casu)\b}i          # UKIRT project for email use w/ CASU
-      or $string =~ m{\b(u/cmp/\d+)\b}i             # UKIRT Campaigns
-      or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
-      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
-      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/i   # Things like JCMTCAL
-      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
-            && $string !~ /\bs[uinc]\d+\b/          # but not JCMT service abbrev
-            && $string !~ $any_ukirt                # and not UKIRTS ones u/*/*.
+  if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai # JCMT [inc serv, FB and A/B suffix]
+      or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai       # JCMT E&C
+      or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai       # JCMT Guaranteed Time
+      or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai    # JCMT Legacy Surveys
+      or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/aai # JCMT LS: semester-based
+      or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/aai # UH funny suffix JCMT
+      or $string =~ /\b(nls\d+)\b/aai               # JCMT Dutch service (deprecated format)
+      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai  # SHADES proposal
+      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai # Things like JCMTCAL
+      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai  # Staff projects TJ02
+            && $string !~ /\bs[uinc]\d+\b/aai       # but not JCMT service abbrev
           )
      ) {
     $projid = $1;
@@ -486,7 +382,7 @@ sub extract_faultid {
 
     # Regular expression based on that in OMP::CGIComponent::Fault::fault_table
     # for recognizing fault IDs.
-    if ($string =~ /\[((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})\]/) {
+    if ($string =~ /\[((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})\]/a) {
         return $1;
     }
 
