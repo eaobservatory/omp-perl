@@ -96,6 +96,7 @@ for my $projid (@projects) {
     my $outfile = $projid . ".xml";
     $outfile =~ s/\//_/g;
     open my $fh, '>',  $outfile or die "Error opening outfile, $outfile: $!\n";
+    binmode $fh, ':utf8';
     print $fh $xml;
     close $fh;
 
