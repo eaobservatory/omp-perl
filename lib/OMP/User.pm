@@ -643,14 +643,22 @@ sub addressee {
 =item B<as_email_hdr>
 
 Return the user name and email address in the format suitable for
-use in an email header. (i.e.: "'Kynan Delorey" <kynan@jach.hawaii.edu>').
+use in an email header. (i.e.: '"Kynan Delorey" <kynan@jach.hawaii.edu>').
 
-  $email_hdr = $u->as_email_hdr;
+  $email_hdr = $u->as_email_hdr($encoding);
+
+If C<$encoding> is specified then its C<encode> method is applied
+to the name.  Otherwise the name is enclosed in double quotes.
 
 =cut
 
 sub as_email_hdr {
   my $self = shift;
+  my $encoding = shift;
+
+  my $encode = (defined $encoding)
+    ? (sub {return $encoding->encode($_[0]);})
+    : (sub {return '"' . $_[0] . '"';});
 
   # Done this way to get rid of multiple "Use of uninitialized value in
   # concatenation (.) or string at msbserver/OMP/User.pm line 477" errors
@@ -669,9 +677,9 @@ sub as_email_hdr {
   my $email = $self->email;
 
   if ( defined $name && defined $email ) {
-     return "\"$name\" <$email>";
+     return $encode->($name) . " <$email>";
   } elsif ( defined $name ) {
-     return "\"$name\"";
+     return $encode->($name);
   } elsif ( defined $email ) {
      return "$email";
   } else {
@@ -689,13 +697,14 @@ field where an email is being sent via flex.  This appends
 
 sub as_email_hdr_via_flex {
     my $self = shift;
+    my $encoding = shift;
 
     my $flex = $self->get_flex();
 
     my $name = $self->name();
     $flex->name($name . ' (via flex)') if defined $name;
 
-    return $flex->as_email_hdr();
+    return $flex->as_email_hdr($encoding);
 }
 
 =item B<infer_userid>
