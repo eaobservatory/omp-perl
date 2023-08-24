@@ -818,7 +818,7 @@ sub shiftTypes {
 }
 
 
-=itme B<remoteTypes>
+=item B<remoteTypes>
 For a specific fault category (eg JCMT or UKIRT) return a list of the allowed remote types.
 
     %remotetypes = OMP::Fault->remoteTypes( "JCMT");
@@ -997,8 +997,6 @@ sub faultCanAssocProjects {
     return 0;
   }
 }
-
-=cut
 
 =item B<faultCanLoseTime>
 
