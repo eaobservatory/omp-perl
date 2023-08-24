@@ -18,7 +18,8 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 8 + 31 + (17 * 2) + 10;
+use Test::More tests => 8 + 31 + (17 * 2) + 13;
+use Encode qw/find_encoding/;
 use strict;
 require_ok("OMP::User");
 
@@ -135,14 +136,19 @@ $user = new OMP::User(
     email => 'john@smith.me',
 );
 
+my $encoding = find_encoding('MIME-Header');
+
 is($user->as_email_hdr(), '"John Smith" <john@smith.me>', 'Full email header');
+is($user->as_email_hdr($encoding), '=?UTF-8?B?Sm9obiBTbWl0aA==?= <john@smith.me>', 'Full email header (encoded)');
 is($user->as_email_hdr_via_flex(), '"John Smith (via flex)" <flex@eaobservatory.org>', 'Full email header (flex)');
+is($user->as_email_hdr_via_flex($encoding), '=?UTF-8?B?Sm9obiBTbWl0aCAodmlhIGZsZXgp?= <flex@eaobservatory.org>', 'Full email header (flex, encoded)');
 
 $user = new OMP::User(
     name => 'John Smith',
 );
 
 is($user->as_email_hdr(), '"John Smith"', 'Name-only email header');
+is($user->as_email_hdr($encoding), '=?UTF-8?B?Sm9obiBTbWl0aA==?=', 'Name-only email header');
 is($user->as_email_hdr_via_flex(), '"John Smith (via flex)" <flex@eaobservatory.org>', 'Name-only email header (flex)');
 
 $user = new OMP::User(

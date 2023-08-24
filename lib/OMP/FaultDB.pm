@@ -749,7 +749,6 @@ sub _mail_fault {
 
   my $system = $fault->systemText;
   my $type = $fault->typeText;
-  my $category = $fault->category;
 
   # The email subject
   my $subject = "[$faultid] $system/$type - " . $fault->subject;
@@ -769,28 +768,35 @@ sub _mail_fault {
     push @cc, $author;
   }
 
-  my $faultuser = OMP::User->new( 'name' =>
-                                    $category
-                                    . ( $fault->isJCMTEvents
-                                        ? ''
-                                        : $fault->isSafety
-                                          ? ' Reporting'
-                                          : ' Faults'
-                                      ),
-
-                                  'email' => $fault->mail_list
-                                 );
+  my @faultusers = $fault->mail_list_users;
 
   # If there is no email address associated with author of last response
   # use the fault list "user" for the From header
-  my $from = ($responses[-1]->author->email ? $responses[-1]->author : $faultuser);
+  my $from;
+  if ($responses[-1]->author->email) {
+    $from = $responses[-1]->author;
+  }
+  elsif (scalar @faultusers) {
+    $from = $faultusers[0];
+  }
+  else {
+    # No address to send from - do not attempt to mail the fault.
+    return;
+  }
+
+  # If there is no list, send directly to recipients rather than using CC?
+  unless (scalar @faultusers) {
+    return unless scalar @cc;
+    @faultusers = @cc;
+    @cc = ();
+  }
 
   # Get the fault message
   my $msg = OMP::FaultUtil->format_fault($fault, 0, OMP::Config->getData('omp-url'));
 
   # Mail it off
   $self->_mail_information(message => $msg,
-                           to => [ $faultuser ],
+                           to => \@faultusers,
                            cc => \@cc,
                            from => $from,
                            subject => $subject,
@@ -874,13 +880,14 @@ sub _mail_fault_update {
 
   my $email = $fault->author;
 
+  my @faultusers = $fault->mail_list_users;
+
   # Don't want to attempt to mail the fault if author doesn't have an email
-  # address
-  if ($fault->author->email) {
+  # address (or we don't have an address from which to send).
+  if ($fault->author->email and scalar @faultusers) {
     $self->_mail_information(message => $msg,
                              to => [ $fault->author ],
-                             from => OMP::User->new(name => $fault->category . " Faults",
-                                                    email=> $fault->mail_list,),
+                             from => $faultusers[0],
                              subject => "Your fault [" . $fault->id . "] has been updated",)
         unless $fault->author->no_fault_cc();
   }

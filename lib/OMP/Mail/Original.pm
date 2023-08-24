@@ -117,7 +117,7 @@ sub build {
   my $charset = 'utf-8';
   my %recipient = $self->process_addr( $header_encoding, map { $_ => $args{ $_ } } qw[ to cc bcc ] );
   my %details = (
-                  From    => $header_encoding->encode($sender->as_email_hdr_via_flex()),
+                  From    => $sender->as_email_hdr_via_flex($header_encoding),
                   Subject => $header_encoding->encode($args{subject}),
                   Type     => $type,
                   %recipient
@@ -145,7 +145,7 @@ sub build {
 
   # Create a Reply-To header if requested.
   if ($args{'reply_to_sender'}) {
-    $args{'headers'}->{'Reply-To'} = $header_encoding->encode($sender->as_email_hdr())
+    $args{'headers'}->{'Reply-To'} = $sender->as_email_hdr($header_encoding)
         if defined $sender->email();
   }
 
@@ -205,10 +205,10 @@ sub process_addr {
       $addr && length $addr or next;
       $seen{ $addr }++ and next;
 
-      push @tmp , $user->as_email_hdr();
+      push @tmp , $user->as_email_hdr($header_encoding);
       push @{ $self->{ $alt } } , $addr;
     }
-    scalar @tmp and $out{ $hdr } = $header_encoding->encode(join ', ' , @tmp);
+    scalar @tmp and $out{ $hdr } = join ', ' , @tmp;
   }
   return %out;
 }

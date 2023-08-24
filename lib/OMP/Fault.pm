@@ -34,6 +34,7 @@ use Time::Seconds;
 use OMP::Config;
 use OMP::Display;
 use OMP::Error qw[ :try ];
+use OMP::User;
 
 our $VERSION = '2.000';
 
@@ -283,7 +284,9 @@ my %MAILLIST;
 
 my $config = OMP::Config->new();
 for my $name (@list_name) {
-    $MAILLIST{$name} = $config->getData('email-address.' . lc $name);
+    $MAILLIST{$name} = [
+        grep {$_} map {s/^ +//; s/ +$//; $_}
+        $config->getData('email-address.' . lc $name)];
 }
 
 my %DATA = (
@@ -818,7 +821,7 @@ sub shiftTypes {
 }
 
 
-=itme B<remoteTypes>
+=item B<remoteTypes>
 For a specific fault category (eg JCMT or UKIRT) return a list of the allowed remote types.
 
     %remotetypes = OMP::Fault->remoteTypes( "JCMT");
@@ -997,8 +1000,6 @@ sub faultCanAssocProjects {
     return 0;
   }
 }
-
-=cut
 
 =item B<faultCanLoseTime>
 
@@ -1829,10 +1830,13 @@ sub relevance {
 
 =item B<mail_list>
 
-Mailing list associated with the fault category. This value is
-fixed by the class and can not be modified.
+Mailing lists associated with the fault category, as an array
+reference.
 
-  $list = $fault->mail_list;
+  \@lists = $fault->mail_list;
+
+Note: this is taken from the C<email-address> section of the
+OMP configuration file.
 
 =cut
 
@@ -1840,6 +1844,29 @@ sub mail_list {
   my $self = shift;
   my $cat = $self->category;
   return $MAILLIST{$cat};
+}
+
+=item B<mail_list_users>
+
+Get a list of C<OMP::User> objects representing the addresses
+given by C<mail_list>.
+
+    @fault_users = $fault->mail_list_users;
+
+=cut
+
+sub mail_list_users {
+    my $self = shift;
+    my $category = $self->category;
+
+    return map {
+        OMP::User->new(
+            'name' => $category . ($self->isJCMTEvents
+                ? ''
+                : $self->isSafety ? ' Reporting' : ' Faults'),
+            'email' => $_,
+        )
+    } @{$self->mail_list};
 }
 
 =item B<close_fault>
@@ -1922,7 +1949,7 @@ sub stringify {
     if $self->isUrgent;
 
   # Get email address
-  my $email = $self->mail_list;
+  my $email = join ', ', @{$self->mail_list};
   $email = "UNKNOWN" unless $email;
 
   # Entity has a special meaning if the system is Instrument
