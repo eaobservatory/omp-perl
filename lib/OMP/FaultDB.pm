@@ -792,7 +792,9 @@ sub _mail_fault {
   }
 
   # Get the fault message
-  my $msg = OMP::FaultUtil->format_fault($fault, 0, OMP::Config->getData('omp-url'));
+  my $msg = OMP::FaultUtil->format_fault(
+    $fault, 0,
+    omp_url => OMP::Config->getData('omp-url'));
 
   # Mail it off
   $self->_mail_information(message => $msg,
