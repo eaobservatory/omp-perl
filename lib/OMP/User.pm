@@ -290,7 +290,7 @@ sub get_omp_group {
     my $class = shift;
     return $class->new(
         name => 'OMP Group',
-        email => 'omp_group@eao.hawaii.edu');
+        email => 'omp-group@eaobservatory.org');
 }
 
 =back
