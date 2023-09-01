@@ -164,4 +164,4 @@ is($user->as_email_hdr(), 'No contact information', 'Empty email header');
 is($user->as_email_hdr_via_flex(), '"OMP" <flex@eaobservatory.org>', 'Empty email header (flex)');
 
 is(OMP::User->get_flex()->as_email_hdr(), '"OMP" <flex@eaobservatory.org>', 'Flex email header');
-is(OMP::User->get_omp_group()->as_email_hdr(), '"OMP Group" <omp_group@eao.hawaii.edu>', 'OMP group header');
+is(OMP::User->get_omp_group()->as_email_hdr(), '"OMP Group" <omp-group@eaobservatory.org>', 'OMP group header');

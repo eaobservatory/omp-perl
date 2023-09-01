@@ -34,16 +34,30 @@ use OMP::Config;
 
 =over 4
 
-=item <format_fault>
+=item B<format_fault>
 
 Format a fault in such a way that it is readable in a mail viewer.  This
 method retains the HTML in fault responses and uses HTML for formatting.
 
-  $text = OMP::FaultUtil->format_fault($fault, $bottompost, [$omp_url]);
+  $text = OMP::FaultUtil->format_fault($fault, $bottompost, [%opt]);
 
 The first argument should be an C<OMP::Fault> object.  If the second argument
 is true then responses are displayed in ascending order (newer responses appear
 at the bottom).
+
+Other options:
+
+=over 4
+
+=item omp_url
+
+Base URL to the OMP.  Often given by the "omp-url" configuration entry.
+
+=item max_entries
+
+Maximum number of responses to show.
+
+=back
 
 =cut
 
@@ -51,7 +65,10 @@ sub format_fault {
   my $self = shift;
   my $fault = shift;
   my $bottompost = shift;
-  my $omp_url = shift // '';
+  my %opt = @_;
+
+  my $omp_url = $opt{'omp_url'} // '';
+  my $max_entries = $opt{'max_entries'};
 
   my $faultid = $fault->id;
 
@@ -81,7 +98,7 @@ sub format_fault {
   # Don't show the status if there is only the initial filing and it is 'Open'
   my $status = $responses[1] || $fault->statusText !~ /open/i
                 ? '<b>Status:</b> ' . $fault->statusText
-                  : undef;
+                  : '';
 
   my $faultdatetext;
   if ($fault->faultdate) {
@@ -92,47 +109,55 @@ sub format_fault {
     $faultdatetext = "hrs at ". OMP::DateTools->display_date($faultdate);
   }
 
-  my $shifttext = "";
-  if ($shifttype) {
-      $shifttext = sprintf("%-58s %s", "<b>Shift type:</b> $shifttype","<b>Remote status:</b> $remote<br>")
-  }
-  my $faultauthor = $fault->author->html;
-
   # Create the fault meta info portion of our message
-  my $meta =
-"<pre>".
-sprintf("%-58s %s","<b>System:</b> $system","<b>Fault type:</b> $type<br>").
-$shifttext .
-sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
-"</pre><br>";
+  my $meta = sprintf("<pre>%-58s %s", "<b>System:</b> $system", "<b>Fault type:</b> $type");
 
-  $meta .= '<pre>'.
-'<b>Location:</b> ' . $fault->locationText().
-'</pre><br>' if $fault->location();
+  $meta .= sprintf("<br>%-58s %s", "<b>Shift type:</b> $shifttype","<b>Remote status:</b> $remote")
+    if $shifttype;
 
-  $meta .= '<pre>'.
-'<b>Projects:</b> ' . (join ', ', sort {$a cmp $b} map {uc $_} @$projects) .
-'</pre><br>' if scalar @$projects;
+  $meta .= sprintf("<br>%-58s %s","<b>Time lost:</b> $loss $faultdatetext","$status");
 
-  my @faulttext;
+  $meta .= '<br><b>Location:</b> ' . $fault->locationText()
+    if $fault->location();
+
+  $meta .= '<br><b>Projects:</b> ' . (join ', ', sort {$a cmp $b} map {uc $_} @$projects)
+    if scalar @$projects;
+
+  $meta .= "</pre>";
 
   # Create the fault text
+  my @faulttext;
 
   if ($responses[1]) {
-    my %authors;
-
     # Make it noticeable if this fault is urgent
-    push(@faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>")
+    push @faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>"
       if $fault->isUrgent;
 
     # Include a response link at the top for convenience.
-    push(@faulttext, "To respond to this fault go to $responselink<br>\n--------------------------------<br>\n<br>\n");
+    push @faulttext, "To respond to this fault go to $responselink<br>--------------------------------<br><br>";
 
-    # If we aren't bottom posting arrange the responses in descending order
     my @order;
-    ($bottompost) and @order = @responses or
-      @order = reverse @responses;
+    my $heading = undef;
+    unless (defined $max_entries and $max_entries < scalar @responses) {
+      # If we aren't bottom posting arrange the responses in descending order
+      @order = $bottompost ? @responses : reverse @responses;
+    }
+    else {
+      @order = @responses[$bottompost ? (- $max_entries .. -1) : (reverse - $max_entries .. -1)];
 
+      # Since our text is truncated by max_entries, prepare heading information.
+      my $author = $fault->author->html;
+      my $date = OMP::DateTools->display_date(scalar localtime($fault->filedate->epoch));
+      $heading = "$category fault filed by $author on $date<br>";
+    };
+
+    push @faulttext,
+      $heading,
+      $meta,
+      '<br>================================================================================<br>'
+      if defined $heading && $bottompost;
+
+    my $i = 0;
     for (@order) {
       my $user = $_->author;
       my $author = $user->html; # This is an html mailto
@@ -146,25 +171,44 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
       $text = _make_fault_id_link( $baseurl, $text );
 
+      # Add separator before each response except the first.
+      if ($i ++) {
+        push @faulttext, '--------------------------------------------------------------------------------<br>';
+      }
+
       if ($_->isfault) {
-         push(@faulttext, "$category fault filed by $author on $date<br><br>");
+         push @faulttext, "$category fault filed by $author on $date<br><br>";
 
          # The meta data should appear right after the initial filing unless
          # we are bottom posting in which case it appears right before
          if (!$bottompost) {
-           push(@faulttext, "<br>$text<br>================================================================================<br>$meta");
-         } else {
-           push(@faulttext, "$meta================================================================================<br>$text<br>--------------------------------------------------------------------------------<br>");
+           push @faulttext,
+             $text,
+             '<br>================================================================================<br>',
+             $meta,
+             '<br>';
          }
-
-       } else {
-         push(@faulttext, "Response filed by $author on $date<br><br>$text<br>");
-         push(@faulttext, "--------------------------------------------------------------------------------<br>");
+         else {
+           push @faulttext,
+             $meta,
+             '================================================================================<br>',
+             $text,
+             '<br>';
+         }
+       }
+       else {
+         push @faulttext, "Response filed by $author on $date<br><br>$text<br>";
        }
     }
 
-  } else {
-
+    push @faulttext,
+      '================================================================================<br>',
+      $heading,
+      $meta,
+      '<br>'
+      if defined $heading && not $bottompost;
+  }
+  else {
     # This is an initial filing so arrange the message with the meta info first
     # followed by the initial report
     my $author = $responses[0]->author->html; # This is an html mailto
@@ -182,18 +226,23 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
     $text = _make_fault_id_link( $baseurl, $text );
 
-    push(@faulttext, "$category fault filed by $author on $date<br><br>");
+    push @faulttext, "$category fault filed by $author on $date<br><br>";
 
     # Make it noticeable if this fault is urgent
-    push(@faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>")
+    push @faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>"
       if $fault->isUrgent;
-    push(@faulttext, "$meta================================================================================<br>$text<br><br>");
+
+    push @faulttext,
+      $meta,
+      '<br>================================================================================<br>',
+      $text,
+      '<br>';
   }
 
   # Add the response link to the bottom of our message
-  push(@faulttext, "--------------------------------<br>To respond to this fault go to $responselink<br>\n");
+  push @faulttext, "--------------------------------<br>To respond to this fault go to $responselink<br>";
 
-  return join('',@faulttext);
+  return join '', @faulttext;
 }
 
 =item B<print_faults>
