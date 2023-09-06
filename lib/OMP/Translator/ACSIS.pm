@@ -1167,12 +1167,15 @@ sub rotator_config {
   my %angles = map { $_, undef } @angles;
 
   # Sort angles so that the XML produced is stable.  (The hash keys could
-  # be in random order.)  Sorting before applying range constraint isn't
-  # perfect but should be good enough for stable XML.
-  my @pas = map { new Astro::Coords::Angle( $pa->degrees + $_,
-                                            units => 'degrees',
-                                            range => "2PI")
-  } sort {$a <=> $b} keys %angles;
+  # be in random order.)
+  my @pas = sort {
+    $a->radians <=> $b->radians
+  } map {
+    Astro::Coords::Angle->new(
+      $pa->degrees + $_,
+      units => 'degrees',
+      range => 'PI')
+  } keys %angles;
 
   # decide on slew option
   my $slew = "LONGEST_TRACK";
