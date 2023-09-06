@@ -2466,6 +2466,15 @@ sub acsisdr_recipe {
                                                        validation => 0);
   $acsis->red_config_list( $dr );
   $self->output("Read ACSIS DR recipe from '$filename'\n");
+  my $recipe_id = 'unknown version';
+  do {
+    my @nodes = $dr->_tree->findnodes('.//red_recipe_id');
+    if (@nodes) {
+      $recipe_id = $nodes[0]->textContent;
+      $recipe_id =~ s/^\s*//;
+      $recipe_id =~ s/\s*$//;
+    }
+  };
 
   # and now the mapping that is also recipe specific
   my $sl = new JAC::OCS::Config::ACSIS::SemanticLinks( EntityFile => $filename,
@@ -2492,7 +2501,7 @@ sub acsisdr_recipe {
   my $rmode = $info{observing_mode};
   $rmode =~ s/_/\//g;
   $acsis->red_obs_mode( $rmode );
-  $acsis->red_recipe_id( "incorrect. Should be read from file");
+  $acsis->red_recipe_id( $recipe_id );
 
 }
 
