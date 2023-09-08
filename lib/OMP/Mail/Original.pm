@@ -121,7 +121,7 @@ sub build {
   my %recipient = $self->process_addr( $header_encoding, map { $_ => $args{ $_ } } qw[ to cc bcc ] );
   my %details = (
                   From    => $sender->as_email_hdr_via_flex($header_encoding),
-                  Subject => $header_encoding->encode($args{subject}),
+                  Subject => encode_if_necessary($header_encoding, $args{subject}),
                   'Message-ID' => make_message_id($args{subject}),
                   Type     => $type,
                   %recipient
@@ -242,6 +242,24 @@ sub make_message_id {
 
   return sprintf '<%s.%s.%06d.%d@%s>',
     (substr $checksum, 0, 8), $time, $microseconds, $$, $domain;
+}
+
+=item B<encode_if_necessary>
+
+Encode an unstructured header (e.g. Subject) if needed.
+
+    $encoded = encode_if_necessary($encoding, $value);
+
+=cut
+
+sub encode_if_necessary {
+    my $header_encoding = shift;
+    my $value = shift;
+
+    return $header_encoding->encode($value)
+        if $value =~ /[^ -~]/;
+
+    return $value;
 }
 
 sub remove_empty {
