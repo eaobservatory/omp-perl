@@ -31,9 +31,12 @@ use OMP::Display;
 use OMP::DateTools;
 use OMP::General;
 
+use DateTime;
+use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode find_encoding/;
 use Mail::Internet;
 use MIME::Entity;
+use Time::HiRes qw/gettimeofday/;
 
 our $DEBUG = 0;
 our $DEBUG_NetSMTP = 0;
@@ -119,6 +122,7 @@ sub build {
   my %details = (
                   From    => $sender->as_email_hdr_via_flex($header_encoding),
                   Subject => $header_encoding->encode($args{subject}),
+                  'Message-ID' => make_message_id($args{subject}),
                   Type     => $type,
                   %recipient
                 );
@@ -211,6 +215,33 @@ sub process_addr {
     scalar @tmp and $out{ $hdr } = join ', ' , @tmp;
   }
   return %out;
+}
+
+=item B<make_message_id>
+
+Attempt to create a unique value for a Message-ID header.
+
+    $message_id = make_message_id($subject);
+
+This contains (the start of) the MD5 sum of the given subject,
+the date and time, the current microseconds and the process ID.
+
+=cut
+
+sub make_message_id {
+  my $subject = shift // 'no subject';
+
+  my $checksum = md5_hex(encode('UTF-8', $subject));
+
+  my $dt = DateTime->now(time_zone => 'UTC');
+  my $time = $dt->strftime('%Y%m%d%H%M%S');
+  (undef, my $microseconds) = gettimeofday;
+
+  my $url = OMP::Config->getData('omp-url');
+  (undef, my $domain) = split /:\/\//, $url, 2;
+
+  return sprintf '<%s.%s.%06d.%d@%s>',
+    (substr $checksum, 0, 8), $time, $microseconds, $$, $domain;
 }
 
 sub remove_empty {
