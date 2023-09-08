@@ -1322,7 +1322,7 @@ sub hasBeenObserved {
       if ($cnode) {
         # get the current value
         my $pcnode = $cnode->firstChild;
-        my $curval = $pcnode->toString;
+        my $curval = $pcnode->textContent;
 
         # do nothing if the current value is already zero
         # only modify counts if we have not already done so
@@ -1876,7 +1876,7 @@ sub stringify {
             my ($child_standard) = $obs->findnodes('.//standard');
             my $isstd;
             if (defined $child_standard) {
-              my $str = $child_standard->firstChild->toString;
+              my $str = $child_standard->textContent;
               $isstd = $self->_str_to_bool( $str );
             }
 
@@ -3179,6 +3179,13 @@ anything (eg E<lt>targetName/E<gt>).
 Returns undef if the element is found but it contains more than one child.
 (ie more elements).
 
+B<Historical note:> it looks like the original implementation of this method
+pre-dated the C<XML::LibXML> method C<textContent> and therefore returned
+the XML-serialized form of the selected child text node.  Currently we retain
+the checks on child nodes (as described above) but now return the string
+extracted using C<textContent>.  This will no longer contain XML-encoded
+things such as XML entities.
+
 =cut
 
 sub _get_pcdata {
@@ -3196,8 +3203,8 @@ sub _get_pcdata {
     my @children = $matches[-1]->childNodes;
     return undef if scalar(@children) > 1;
 
-    # convert to string
-    $pcdata = $child->toString;
+    # get string content
+    $pcdata = $matches[-1]->textContent;
   }
 
   return $pcdata;
@@ -3377,6 +3384,13 @@ search for a matching element just the values).
 
 Returns an empty list if the tag does not exist.
 
+B<Historical note:> as for C<_get_pcdata>, it looks like the original
+implementation of this method pre-dated the C<XML::LibXML> method
+C<textContent> and therefore returned the XML-serialized form
+of the child text node of each value.  We now use the C<textContent>
+method so the values should no longer contain XML-encoded
+things such as XML entities.
+
 =cut
 
 sub _get_pcvalues {
@@ -3397,7 +3411,7 @@ sub _get_pcvalues {
   return () unless defined $node;
 
   my @valuenodes = $self->_get_children_by_name( $node, 'value');
-  my @values = map { $_->firstChild->toString } @valuenodes;
+  my @values = map { $_->textContent } @valuenodes;
 
   return @values;
 }
@@ -4102,7 +4116,7 @@ sub SpIterFolder {
       }
     } elsif ($name eq 'repeatCount') {
       # SpIterRepeat
-      my $repeat = $child->firstChild->toString;
+      my $repeat = $child->textContent;
       $summary{$parent}{ATTR} = [ map { { repeat => undef } } 1..$repeat ];
     } elsif ($name eq 'pattern' && $parent eq 'SpIterMicroStep') {
       # do not parse offsets in MicroStep. Let the translator define them
@@ -4457,7 +4471,7 @@ sub SpIterFolder {
       # scan information is in <obsArea>
       # PA
       my ($node) = $child->findnodes(".//obsArea/PA");
-      $scan{MAP_PA} = $node->firstChild->toString;
+      $scan{MAP_PA} = $node->textContent;
 
       ($node) = $child->findnodes(".//obsArea/SCAN_AREA/AREA");
       $scan{MAP_HEIGHT} = $self->_get_attribute($node, 'HEIGHT');
@@ -4480,7 +4494,7 @@ sub SpIterFolder {
 
       # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");
-      $scan{SCAN_PA} = [ map { $_->firstChild->toString } @scanpa ];
+      $scan{SCAN_PA} = [ map { $_->textContent } @scanpa ];
 
       push(@{$summary{$parent}{CHILDREN}}, { SpIterRasterObs => \%scan});
 

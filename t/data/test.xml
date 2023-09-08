@@ -1,10 +1,12 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <SpProg type="pr" subtype="none"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
   <title>Test program for OMP classes</title>
+  <telescope>ukirt</telescope>
   <meta_gui_collapsed>false</meta_gui_collapsed>
   <country>UK</country>
+  <ot_version>20240101</ot_version>
   <projectID>TJ01</projectID>
   <meta_gui_filename>test.xml</meta_gui_filename>
   <pi>Tim Jenness</pi>
