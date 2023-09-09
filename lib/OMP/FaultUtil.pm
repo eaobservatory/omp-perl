@@ -154,6 +154,7 @@ sub format_fault {
     push @faulttext,
       $heading,
       $meta,
+      '(Additional messages hidden.)',
       '<br>================================================================================<br>'
       if defined $heading && $bottompost;
 
@@ -203,6 +204,8 @@ sub format_fault {
 
     push @faulttext,
       '================================================================================<br>',
+      '(Additional messages hidden.)',
+      '<br><br>',
       $heading,
       $meta,
       '<br>'
