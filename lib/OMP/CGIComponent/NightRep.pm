@@ -1,12 +1,12 @@
-package OMP::CGIComponent::Obslog;
+package OMP::CGIComponent::NightRep;
 
 =head1 NAME
 
-OMP::CGIComponent::Obslog - CGI functions for the observation log tool.
+OMP::CGIComponent::NightRep - CGI functions for the observation log tool.
 
 =head1 SYNOPSIS
 
-use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::NightRep;
 
 =head1 DESCRIPTION
 
@@ -373,7 +373,7 @@ sub cgi_to_obsgroup {
     } elsif( defined( $projid ) ) {
       $telescope = OMP::ProjServer->getTelescope( $projid );
     } else {
-      throw OMP::Error("CGIObslog: Cannot determine telescope!\n");
+      throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");
     }
   }
 
@@ -454,7 +454,7 @@ sub _cleanse_query_value {
 
 =head1 SEE ALSO
 
-C<OMP::CGIPage::Obslog>
+C<OMP::CGIPage::NightRep>
 
 =head1 AUTHOR
 

@@ -23,7 +23,7 @@ use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 use Net::Domain qw/ hostfqdn /;
 
-use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::NightRep;
 use OMP::CGIComponent::WORF;
 use OMP::Error qw/ :try /;
 use OMP::General;
@@ -522,7 +522,7 @@ sub _thumbnails_page {
 
 =head1 SEE ALSO
 
-C<OMP::CGIComponent::WORF>, C<OMP::CGIComponent::Obslog>
+C<OMP::CGIComponent::WORF>, C<OMP::CGIComponent::NightRep>
 
 =head1 AUTHOR
 

@@ -13,10 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::Obslog;
+use OMP::CGIPage::NightRep;
 
-OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
-    \&OMP::CGIPage::Obslog::projlog_content,
+OMP::CGIPage::NightRep->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::NightRep::projlog_content,
     'project',
     title => 'Project Log',
     template => 'project_obs_log.html');

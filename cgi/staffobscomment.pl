@@ -13,9 +13,9 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::Obslog;
+use OMP::CGIPage::NightRep;
 
-OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
+OMP::CGIPage::NightRep->new(cgi => new CGI())->write_page(
     'file_comment',
     'staff',
     title => 'Observation Comment',

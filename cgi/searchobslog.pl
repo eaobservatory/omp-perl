@@ -13,10 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::Obslog;
+use OMP::CGIPage::NightRep;
 
-OMP::CGIPage::Obslog->new(cgi => new CGI())->write_page(
-    \&OMP::CGIPage::Obslog::obslog_search,
+OMP::CGIPage::NightRep->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::NightRep::obslog_search,
     'staff',
     title => 'Search Observing Report',
     template => 'obs_log_search.html');

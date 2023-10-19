@@ -1,12 +1,12 @@
-package OMP::CGIPage::Obslog;
+package OMP::CGIPage::NightRep;
 
 =head1 NAME
 
-OMP::CGIPage::Obslog - Disply complete observation log web pages
+OMP::CGIPage::NightRep - Disply complete observation log web pages
 
 =head1 SYNOPSIS
 
-use OMP::CGIPage::Obslog;
+use OMP::CGIPage::NightRep;
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 use Time::Seconds qw/ ONE_DAY /;
 
-use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::NightRep;
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
@@ -74,7 +74,7 @@ sub file_comment {
 
   my $q = $self->cgi;
 
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
+  my $comp = new OMP::CGIComponent::NightRep(page => $self);
 
   my $messages;
   if ($q->param('submit_comment')) {
@@ -119,7 +119,7 @@ sub list_observations_txt {
   my $query = $self->cgi;
   my $qv = $query->Vars;
 
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
+  my $comp = new OMP::CGIComponent::NightRep(page => $self);
 
   print $query->header( -type => 'text/plain', -charset => 'utf-8' );
 
@@ -172,7 +172,7 @@ sub projlog_content {
 
   my $q = $self->cgi;
 
-  my $comp = new OMP::CGIComponent::Obslog(page => $self);
+  my $comp = new OMP::CGIComponent::NightRep(page => $self);
   my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
   my $shiftcomp = new OMP::CGIComponent::ShiftLog(page => $self);
   my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
@@ -377,7 +377,7 @@ sub obslog_search {
 
 =head1 SEE ALSO
 
-C<OMP::CGIComponent::Obslog>, C<OMP::CGIComponent::MSB>,
+C<OMP::CGIComponent::NightRep>, C<OMP::CGIComponent::MSB>,
 C<OMP::CGIComponent::ShiftLog>, C<OMP::CGIComponent::Weather>
 
 =head1 AUTHORS
