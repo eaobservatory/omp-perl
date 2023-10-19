@@ -24,7 +24,7 @@ use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Helper qw/start_form_absolute/;
-use OMP::CGIComponent::Obslog;
+use OMP::CGIComponent::NightRep;
 use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
 use OMP::WORF;
@@ -99,7 +99,7 @@ sub display_graphic {
 
   }
 
-  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
+  my $obs = OMP::CGIComponent::NightRep->new(page => $self->page)->cgi_to_obs();
 
   $self->display_observation( $obs, $suffix );
 
@@ -176,7 +176,7 @@ sub return_fits {
     $group = 1;
   }
 
-  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
+  my $obs = OMP::CGIComponent::NightRep->new(page => $self->page)->cgi_to_obs();
 
   my $worf = new OMP::WORF( obs => $obs,
                             suffix => $suffix,
@@ -235,7 +235,7 @@ sub return_ndf {
     $group = 1;
   }
 
-  my $obs = OMP::CGIComponent::Obslog->new(page => $self->page)->cgi_to_obs();
+  my $obs = OMP::CGIComponent::NightRep->new(page => $self->page)->cgi_to_obs();
 
   my $worf = new OMP::WORF( obs => $obs,
                             suffix => $suffix,
