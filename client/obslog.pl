@@ -167,7 +167,7 @@ $| = 1;
 my $obslog;              # refers to the object that holds the obslog information
 my %obs;                 # keys are instruments, values are ObsGroup objects
 my %obs_ref;             # Quick lookup for observations.
-my @shiftcomments;       # Shiftlog comments.
+my @shiftcomments;       # Shift log comments.
 my %notebook_contents;   # All the notebook content windows
 my %notebook_headers;    # All the notebook header windows
 my $notebook;            # The widget that holds the tabbed windows.
@@ -360,7 +360,7 @@ sub create_main_window {
 
   my $adjuster = $mainFrame->Adjuster();
 
-  # Shiftlog frame
+  # Shift log frame
   my $shiftFrame = $mainFrame->Frame();
   create_shiftlog_widget( $shiftFrame );
 

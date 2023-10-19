@@ -17,9 +17,9 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::Shiftlog;
+use OMP::CGIPage::ShiftLog;
 
-OMP::CGIPage::Shiftlog->new(cgi => new CGI())->write_page(
+OMP::CGIPage::ShiftLog->new(cgi => new CGI())->write_page(
     'shiftlog_page',
     'staff',
     title => 'Shift Log',

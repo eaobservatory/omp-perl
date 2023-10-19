@@ -29,7 +29,7 @@ use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Search;
-use OMP::CGIComponent::Shiftlog;
+use OMP::CGIComponent::ShiftLog;
 use OMP::CGIComponent::Weather;
 use OMP::Config;
 use OMP::Constants;
@@ -174,7 +174,7 @@ sub projlog_content {
 
   my $comp = new OMP::CGIComponent::Obslog(page => $self);
   my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
-  my $shiftcomp = new OMP::CGIComponent::Shiftlog(page => $self);
+  my $shiftcomp = new OMP::CGIComponent::ShiftLog(page => $self);
   my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
   my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
@@ -378,7 +378,7 @@ sub obslog_search {
 =head1 SEE ALSO
 
 C<OMP::CGIComponent::Obslog>, C<OMP::CGIComponent::MSB>,
-C<OMP::CGIComponent::Shiftlog>, C<OMP::CGIComponent::Weather>
+C<OMP::CGIComponent::ShiftLog>, C<OMP::CGIComponent::Weather>
 
 =head1 AUTHORS
 

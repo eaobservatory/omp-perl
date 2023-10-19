@@ -2,7 +2,7 @@ package OMP::CommentServer;
 
 =head1 NAME
 
-OMP::CommentServer - Shiftlog comment information Server class
+OMP::CommentServer - Shift log comment information server class
 
 =head1 SYNOPSIS
 

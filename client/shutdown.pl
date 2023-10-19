@@ -248,7 +248,7 @@ my $tacctgrp = new OMP::TimeAcctGroup( accounts => \@taccts );
 # Display time accounts and shiftlog comments
 print "Time accounts created (". scalar(@taccts) .")\n";
 printf "Total time: %.2f hours\n", $tacctgrp->totaltime->hours;
-print "\nShiftlog comments created (". scalar(@shiftcomms) .")\n";
+print "\nShift log comments created (". scalar(@shiftcomms) .")\n";
 if (scalar @shiftcomms) {
   print "Author: ". $shiftcomms[0]->author . "\n";
   print "Comment: ". $shiftcomms[0]->text . "\n";
@@ -275,7 +275,7 @@ if (! $DEBUG) {
     $shiftdb->enterShiftLog( $comment, $tel );
   }
 
-  print "Stored shiftlog comments.\n";
+  print "Stored shift log comments.\n";
 }
 
 print "Done.\n";

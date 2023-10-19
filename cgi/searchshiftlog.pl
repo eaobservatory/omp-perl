@@ -13,10 +13,10 @@ BEGIN {
   }
 }
 
-use OMP::CGIPage::Shiftlog;
+use OMP::CGIPage::ShiftLog;
 
-OMP::CGIPage::Shiftlog->new(cgi => new CGI())->write_page(
-    \&OMP::CGIPage::Shiftlog::shiftlog_search,
+OMP::CGIPage::ShiftLog->new(cgi => new CGI())->write_page(
+    \&OMP::CGIPage::ShiftLog::shiftlog_search,
     'staff',
     title => 'Search Shift Log',
     template => 'shift_log_search.html');

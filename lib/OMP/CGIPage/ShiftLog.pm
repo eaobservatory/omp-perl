@@ -1,12 +1,12 @@
-package OMP::CGIPage::Shiftlog;
+package OMP::CGIPage::ShiftLog;
 
 =head1 NAME
 
-OMP::CGIPage::Shiftlog - Display complete web pages for the shiftlog tool.
+OMP::CGIPage::ShiftLog - Display complete web pages for the shiftlog tool.
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Shiftlog;
+  use OMP::CGIComponent::ShiftLog;
 
   shiftlog_page( $cgi );
 
@@ -25,7 +25,7 @@ use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::Search;
-use OMP::CGIComponent::Shiftlog;
+use OMP::CGIComponent::ShiftLog;
 use OMP::DBbackend;
 use OMP::Error qw/:try/;
 use OMP::ShiftDB;
@@ -55,7 +55,7 @@ sub shiftlog_page {
   my $projectid = shift;
 
   my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::Shiftlog(page => $self);
+  my $comp = new OMP::CGIComponent::ShiftLog(page => $self);
 
   my $parsed = $comp->parse_query();
 
@@ -156,7 +156,7 @@ sub shiftlog_search {
 
 =head1 SEE ALSO
 
-C<OMP::CGIComponent::Shiftlog>
+C<OMP::CGIComponent::ShiftLog>
 
 =head1 AUTHOR
 
