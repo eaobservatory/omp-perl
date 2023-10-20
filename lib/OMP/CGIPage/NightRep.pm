@@ -193,20 +193,9 @@ sub night_report {
                                 # to include last day
   }
   else {
-    if ($q->param('utdate')) {
-      # Get UT date from single night form
-      $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate'));
+    ($utdate, my $utdate_today) = $self->_get_utdate();
 
-      # Croak if date format is wrong
-      croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-        if (! $utdate);
-    }
-    else {
-      # No UT date in URL.  Use current date.
-      $utdate = OMP::DateTools->today(1);
-
-      $start = substr($utdate->ymd(), 0, 8);
-    }
+    $start = substr($utdate->ymd(), 0, 8) if $utdate_today;
 
     # Get delta from URL
     if ($q->param('delta')) {
@@ -228,19 +217,8 @@ sub night_report {
   }
 
   # Get the telescope from the URL
-  my $telstr = $q->param('tel');
-
-  # Untaint the telescope string
-  my $tel;
-  if ($telstr) {
-    if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
-      $tel = uc($1);
-    } else {
-      croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
-    }
-  } else {
-    return $self->_write_error('No telescope selected.');
-  }
+  my $tel = $self->_get_telescope('tel')
+    or return $self->_write_error('No telescope selected.');
 
   # Setup our arguments for retrieving night report
   my %args = (date => $utdate->ymd,
@@ -512,6 +490,85 @@ sub obslog_search {
         log_entries => $result,
         telescope => $telescope,
     };
+}
+
+=item B<time_accounting>
+
+Creates a page for confirming nightly time accounting.
+
+=cut
+
+sub time_accounting {
+    my $self = shift;
+
+    my $q = $self->cgi;
+
+    my $tel = $self->_get_telescope()
+        or return $self->_write_error('No telescope selected.');
+
+    my $utdate = $self->_get_utdate();
+
+    $self->_sidebar_night($tel, $utdate);
+
+    return {
+        telescope => $tel,
+        ut_date => $utdate,
+    };
+}
+
+=item B<_get_telescope>
+
+Read telescope CGI parameter.
+
+=cut
+
+sub _get_telescope {
+    my $self = shift;
+    my $param = shift // 'telescope';
+
+    my $telstr = $self->cgi->param($param);
+
+    # Untaint the telescope string
+    if ($telstr) {
+        if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
+            return uc $1;
+        } else {
+            croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
+        }
+    }
+
+    return undef;
+}
+
+=item B<_get_utdate>
+
+Read utdate CGI parameter.
+
+=cut
+
+sub _get_utdate {
+    my $self = shift;
+    my $param = shift // 'utdate';
+
+    my $datestr = $self->cgi->param($param);
+
+    my $today = 0;
+    my $utdate;
+    if ($datestr) {
+        $utdate = OMP::DateTools->parse_date($datestr);
+
+        # Croak if date format is wrong
+        croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+            unless $utdate;
+    }
+    else {
+        # No UT date in URL.  Use current date.
+        $utdate = OMP::DateTools->today(1);
+        $today = 1;
+    }
+
+    return $utdate unless wantarray;
+    return ($utdate, $today);
 }
 
 =back

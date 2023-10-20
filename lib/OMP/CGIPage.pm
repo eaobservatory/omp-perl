@@ -639,6 +639,7 @@ sub _sidebar_night {
 
   $self->side_bar($utdate, [
     ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
+    ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
     ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
     ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
     ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
