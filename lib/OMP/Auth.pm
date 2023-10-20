@@ -119,9 +119,17 @@ sub log_in {
     $auth->cookie($cls->_make_cookie($q, $duration, token => $token)) if defined $token;
 
     if (defined $redirect) {
-        my %args = (-uri => $redirect);
+        my %args = ();
         $args{'-cookie'} = $auth->cookie if defined $token;
-        print $q->redirect(%args);
+
+        unless (OMP::Config->getData('www-meta-refresh')) {
+            print $q->redirect(-uri => $redirect, %args);
+        }
+        else {
+            print $q->header(-expires => '-1d', -charset => 'utf-8', %args);
+            print "<html><head><meta http-equiv=\"refresh\" content=\"2; url=$redirect\" /></head><body><p>Redirecting&hellip;</p><p><a href=\"$redirect\">$redirect</a></p></body></html>";
+        }
+
         $abort = 1;
     }
 

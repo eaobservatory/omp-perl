@@ -751,9 +751,16 @@ sub _write_redirect {
     my $self = shift;
     my $url = shift;
 
-    my $q = $self->cgi;
+    unless (OMP::Config->getData('www-meta-refresh')) {
+        my $q = $self->cgi;
 
-    print $q->redirect($url);
+        print $q->redirect($url);
+    }
+    else {
+        $self->_write_http_header(undef, {});
+
+        print "<html><head><meta http-equiv=\"refresh\" content=\"2; url=$url\" /></head><body><p>Redirecting&hellip;</p><p><a href=\"$url\">$url</a></p></body></html>";
+    }
 
     return undef;
 }
