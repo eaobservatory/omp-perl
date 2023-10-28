@@ -1330,7 +1330,8 @@ sub _get_time_summary_shift {
                 $totalpending += $pending;
             }
 
-            $comment = $shiftacct->{$tel.$proj}->comment if defined $shiftacct;
+            $comment = $shiftacct->{$tel.$proj}->comment
+                if defined $shiftacct and exists $shiftacct->{$tel.$proj};
 
             $total += $time unless $proj eq 'EXTENDED';
             $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
@@ -1365,7 +1366,8 @@ sub _get_time_summary_shift {
             }
 
             my $comment;
-            $comment = $shiftacct->{$proj}->comment if defined $shiftacct;
+            $comment = $shiftacct->{$proj}->comment
+                if defined $shiftacct and exists $shiftacct->{$proj};
 
             push @project, {
                 project => $proj, time => $time,
