@@ -11,20 +11,25 @@
 [% END -%]
 [% MACRO render_nr_time_summary(night_report) BLOCK %]
     [% SET time_summary = night_report.get_time_summary %]
-    <p>
-        There were shift types of
-        [% FOREACH shift_info IN time_summary.shift %]
-            [% shift_info.shift %]
-        [% END %]
-        in this time period.
-    </p>
+    [% IF time_summary.shift.empty %]
+        <p>
+            There is no time accounting information available
+            for this time period.
+        </p>
+    [% ELSIF time_summary.shift.size > 1 %]
+        <p>
+            There were shift types of
+            [% FOREACH shift_info IN time_summary.shift %]
+                [% shift_info.shift %][% UNLESS loop.last %][% IF loop.index == loop.size - 2 %] and [% ELSE %],[% END %][% END %]
+            [% END %]
+            in this time period.
+        </p>
 
-    [% render_time_summary_shift(time_summary.overall) %]
+        [% render_time_summary_shift(time_summary.overall) %]
+    [% END %]
 
-    [% IF time_summary.shift.size > 1 %]
-        [% FOREACH shift_info IN time_summary.shift %]
-            [% render_time_summary_shift(shift_info) %]
-        [% END %]
+    [% FOREACH shift_info IN time_summary.shift %]
+        [% render_time_summary_shift(shift_info) %]
     [% END %]
 [% END -%]
 [% MACRO render_time_summary_shift(info) BLOCK %]
