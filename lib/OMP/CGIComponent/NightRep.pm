@@ -23,6 +23,7 @@ use Net::Domain qw/ hostfqdn /;
 
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
+use OMP::DBbackend;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::MSBDoneDB;
@@ -33,6 +34,8 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::ObslogDB;
 use OMP::ProjServer;
+use OMP::Project::TimeAcct;
+use OMP::TimeAcctDB;
 use OMP::Error qw/ :try /;
 
 use base qw/OMP::CGIComponent/;
@@ -218,6 +221,321 @@ sub obs_add_comment {
   return {
     messages => ['Comment successfully stored in database.'],
   };
+}
+
+=item B<time_accounting_shift>
+
+Prepare time accounting information for a shift.
+
+This generates an information hash for the given shift containing:
+
+=over 4
+
+=item shift
+
+Name of shift.
+
+=item entries
+
+List of time accounting entries.
+
+=back
+
+=cut
+
+sub time_accounting_shift {
+    my $self = shift;
+    my $tel = shift;
+    my $shift = shift;
+    my $times = shift;
+    my $timelost = shift;
+
+    my %exclude = map {$tel . $_ => 1} qw/EXTENDED WEATHER UNKNOWN OTHER FAULT BADOBS/;
+    my @entries = ();
+
+    # If this shift exists in the times:
+    my %rem;
+    if (defined $times) {
+        for my $proj (sort keys %$times) {
+            if ($proj =~ /^$tel/) {
+                $rem{$proj}++;
+            }
+            else {
+                push @entries, $self->_time_accounting_project(1 ,$proj, $times->{$proj});
+            }
+        }
+
+        # Now put up everything else (except EXTENDED which is a special case)
+        # and special WEATHER and UNKNOWN which we want to force the order
+        for my $proj (sort keys %rem) {
+            next if exists $exclude{$proj};
+            push @entries, $self->_time_accounting_project(1, $proj, $times->{$proj});
+        }
+    }
+
+    # Now put up the WEATHER, UNKNOWN
+    my %strings = (
+        WEATHER => 'Time lost to weather',
+        OTHER => 'Other time',
+    );
+    for my $label (qw/WEATHER OTHER/) {
+        my $proj = $tel . $label;
+        push @entries, $self->_time_accounting_project(
+            1, $strings{$label},
+            (exists $times->{$proj} ? $times->{$proj} : {}),
+            key => $proj,
+        );
+    }
+
+    push @entries,
+        $self->_time_accounting_project(
+            0, 'Time lost to faults',
+            {},
+            time_fixed => (defined $timelost ? $timelost->hours : 0.0),
+            key => $tel . 'FAULTS',
+        ),
+        $self->_time_accounting_project(
+            0, 'Bad/junk obs (not in total)',
+            $times->{$tel . 'BADOBS'},
+            key => $tel . 'BADOBS',
+            no_total => 1,
+        ),
+        $self->_time_accounting_project(
+            0, 'Total time',
+            {},
+            key => 'TOTAL',
+        ),
+        $self->_time_accounting_project(
+            1, 'Extended time',
+            (exists $times->{$tel . 'EXTENDED'} ? $times->{$tel . 'EXTENDED'} : {}),
+            key => $tel . 'EXTENDED',
+            no_total => 1,
+        );
+
+    return {
+        shift => $shift,
+        entries => \@entries,
+    };
+}
+
+sub _time_accounting_project {
+    my $self = shift;
+    my $editable = shift;
+    my $proj = shift;
+    my $times = shift;
+    my %opt = @_;
+
+    my %entry = (
+        name => $proj,
+        editable => $editable,
+    );
+
+    foreach my $param (qw/key no_total/) {
+        $entry{$param} = $opt{$param} if exists $opt{$param};
+    }
+
+    # Decide on the default value
+    # Choose DATA over DB unless DB is confirmed.
+    if (exists $opt{'time_fixed'}) {
+        $entry{'time'} = sprintf '%.2f', $opt{'time_fixed'};
+    }
+    elsif (exists $times->{DB} and $times->{DB}->confirmed) {
+        # Confirmed overrides data headers
+        $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
+        $entry{'comment'} = $times->{DB}->comment;
+    }
+    elsif (exists $times->{DATA}) {
+        $entry{'time'} = _round_to_ohfive($times->{DATA}->timespent->hours);
+    }
+    elsif (exists $times->{DB}) {
+        $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
+        $entry{'comment'} = $times->{DB}->comment;
+    }
+    else {
+        # Empty
+        $entry{'time'} = '';
+    }
+
+    # Notes about the data source
+    if (exists $times->{DB}) {
+        $entry{'status'} = 'ESTIMATED';
+        if ($times->{DB}->confirmed) {
+            $entry{'status'} = 'CONFIRMED';
+        }
+
+        # Now also add the MSB estimate if it is an estimate
+        # Note that we put it after the DATA estimate
+        unless ($times->{DB}->confirmed) {
+            $entry{'time_msb'} = _round_to_ohfive($times->{DB}->timespent->hours);
+        }
+    }
+    elsif (exists $times->{DATA} and not $times->{DATA}->confirmed) {
+        $entry{'status'} = 'ESTIMATED';
+    }
+
+    if (exists $times->{DATA}) {
+        $entry{'time_data'} = _round_to_ohfive($times->{DATA}->timespent->hours);
+    }
+
+    return \%entry;
+}
+
+# Round to nearest 0.05
+# Accepts number, returns number with the decimal part rounded to 0.05
+
+sub _round_to_ohfive {
+    my $num = shift;
+
+    my $frac = 100 * ($num - int($num));
+    my $byfive = $frac / 5;
+
+    $frac = 5 * int( $byfive + 0.5 );
+
+    return sprintf '%.2f', int($num) + ($frac / 100);
+}
+
+=item B<read_time_accounting_shift>
+
+Read time accounting form for one shift.
+
+Takes an information hash as generated by C<time_accounting_shift>
+and updates the included list of entries based on the CGI parameters.
+
+Returns a list of errors encountered, if any.
+
+=cut
+
+sub read_time_accounting_shift {
+    my $self = shift;
+    my $info = shift;
+
+    my $q = $self->cgi;
+    my $shift = $info->{'shift'};
+
+    my %seen = ();
+    my @errors = ();
+
+    foreach my $entry (@{$info->{'entries'}}) {
+        next unless $entry->{'editable'};
+        my $key = $entry->{exists $entry->{'key'} ? 'key' : 'name'};
+        $seen{$key} = 1;
+
+        die 'Invalid time' unless $q->param(sprintf 'time_%s_%s', $shift, $key) =~ /^([0-9.]*)$/;
+        $entry->{'time'} = $1;
+
+        die 'Invalid comment' unless $q->param(sprintf 'comment_%s_%s', $shift, $key) =~ /^(.*)$/;
+        $entry->{'comment'} = $1;
+    }
+
+    my $pattern = qr/^time_${shift}_(\w+)$/a;
+    my $ndup = 0;
+
+    foreach my $param ($q->param) {
+        next unless $param =~ $pattern;
+        my $key = $1;
+        next if exists $seen{$key} or $key eq 'new';
+
+        die 'Invalid project' unless $q->param(sprintf 'name_%s_%s', $shift, $key) =~ /^([A-Za-z0-9]*)$/;
+        my $name = $1;
+
+        die 'Invalid time' unless $q->param(sprintf 'time_%s_%s', $shift, $key) =~ /^([0-9.]*)$/;
+        my $time = $1;
+
+        die 'Invalid comment' unless $q->param(sprintf 'comment_%s_%s', $shift, $key) =~ /^(.*)$/;
+        my $comment = $1;
+
+        my %entry = (
+            editable => 1,
+            name => $name,
+            time => $time,
+            comment => $comment,
+            user_added => 1,
+        );
+
+        if (exists $seen{$name}) {
+            push @errors, sprintf 'Duplicate entry for %s: %s.', $shift, $name;
+            $entry{'key'} = sprintf 'dup_%i', ++ $ndup;
+        }
+        else {
+            $seen{$key} = 1;
+        }
+
+        push @{$info->{'entries'}}, \%entry;
+    }
+
+    return @errors;
+}
+
+=item B<store_time_accounting>
+
+Attempt to store time accounting to the database.
+
+Converts a list of hashes updated by C<read_time_accounting_shift>
+and converts them to C<OMP::Project::TimeAcct> objects.
+
+Returns a list of errors encountered.  If there were none, stores
+the time accounting information in the database and updates the
+given C<OMP::NightRep> object.
+
+=cut
+
+sub store_time_accounting {
+    my $self = shift;
+    my $nr = shift;
+    my $shifts = shift;
+
+    my $date = $nr->date;
+
+    my @errors = ();
+    my @acct = ();
+
+    foreach my $info (@$shifts) {
+        my $shift = $info->{'shift'};
+
+        foreach my $entry (@{$info->{'entries'}}) {
+            my $proj = $entry->{exists $entry->{'key'} ? 'key' : 'name'};
+            next if $proj eq 'TOTAL' or $proj =~ /FAULTS/ or $proj =~/BADOBS/;
+
+            # If the project was added by the user, verify that it exists and
+            # is enabled.
+            if ($entry->{'user_added'}) {
+                unless (OMP::ProjServer->verifyProject($proj)) {
+                    push @errors, sprintf 'Project %s does not exist.', $proj;
+                    next;
+                }
+
+                my $p = OMP::ProjServer->projectDetails($proj, 'object');
+                unless ($p->state) {
+                    push @errors, sprintf 'Project %s exists but is disabled.', $proj;
+                    next;
+                }
+            }
+
+            my $tot = $entry->{'time'};
+            $tot = 0.0 unless length($tot);
+
+            my $comment = $entry->{'comment'};
+            undef $comment if $comment eq '';
+
+            push @acct, OMP::Project::TimeAcct->new(
+                projectid => $proj,
+                timespent => Time::Seconds->new($tot * 3600),
+                date => $date,
+                confirmed => 1,
+                shifttype => $shift,
+                comment => $comment,
+            );
+        }
+    }
+
+    unless (scalar @errors) {
+        my $db = OMP::TimeAcctDB->new(DB => OMP::DBbackend->new);
+        $db->setTimeSpent(@acct);
+
+        $nr->db_accounts(OMP::TimeAcctGroup->new(accounts => \@acct));
+    }
+
+    return @errors;
 }
 
 =item B<cgi_to_obs>

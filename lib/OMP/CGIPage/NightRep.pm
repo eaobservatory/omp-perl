@@ -502,17 +502,75 @@ sub time_accounting {
     my $self = shift;
 
     my $q = $self->cgi;
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
     my $tel = $self->_get_telescope()
         or return $self->_write_error('No telescope selected.');
 
     my $utdate = $self->_get_utdate();
 
+    my $nr = OMP::NightRep->new(date => $utdate, telescope => $tel);
+
+    my %times = $nr->accounting;
+    my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
+
+    my %timelostbyshift = $nr->timelostbyshift;
+
+    my @all_shifts = qw/NIGHT EO DAY OTHER/;
+
+    my %shift_added = map {$_ => 1} $q->multi_param('shift_extra');
+    my $submitted = 0;
+    foreach my $shift (@all_shifts) {
+        $submitted = $shift_added{$shift} = 1 if $q->param('submit_add_' . $shift);
+    }
+    my @shifts = grep {
+        $shift_added{$_}
+        or exists $times{$_}
+        or (exists $timelostbyshift{$_} and $timelostbyshift{$_} > 0)
+    } @all_shifts;
+
+    # Add any additional shifts from the database.  (E.g. "UNKNOWN".)
+    foreach my $shift (keys %times, keys %timelostbyshift) {
+        push @shifts, $shift if defined $shift and $shift ne '' and not grep {$shift eq $_} @shifts;
+    }
+
+    my @result = map {
+        $comp->time_accounting_shift(
+            $nr->telescope,
+            $_,
+            $times{$_},
+            $timelostbyshift{$_})
+    } @shifts;
+
+    my @errors = ();
+    if ($submitted or $q->param('submit_confirm')) {
+        push @errors, $comp->read_time_accounting_shift($_) foreach @result;
+    }
+
+    if ($q->param('submit_confirm')) {
+        unless (scalar @errors) {
+            push @errors, $comp->store_time_accounting($nr, \@result);
+        }
+
+        unless (scalar @errors) {
+            $nr->mail_report if $q->param('send_mail');
+
+            return $self->_write_redirect(
+                sprintf '/cgi-bin/nightrep.pl?tel=%s&utdate=%s', $tel, $utdate->ymd);
+        }
+    }
+
     $self->_sidebar_night($tel, $utdate);
 
     return {
         telescope => $tel,
         ut_date => $utdate,
+        target => $q->url(-absolute => 1, -query => 0),
+        warnings => $warnings,
+        errors => \@errors,
+        shifts => \@result,
+        shifts_extra => [keys %shift_added],
+        shifts_other => [grep {my $x = $_; not grep {$_ eq $x} @shifts} @all_shifts],
     };
 }
 
