@@ -696,3 +696,7 @@ input[type="submit"]:hover, select:hover, input[type="file"]::file-selector-butt
 input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="time"], input[type="email"] {
     background: #FFF;
 }
+
+.template {
+    display: none;
+}

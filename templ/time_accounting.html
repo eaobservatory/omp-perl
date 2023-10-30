@@ -1,3 +1,124 @@
 [% WRAPPER "layout.html" %]
 <h1>Time accounting for [% ut_date.ymd | html %] at [% telescope | html %]</h1>
+
+<form method="get" action="[% target %]">
+    <p>
+        View time accounting for
+        <input type="text" name="utdate" value="[% ut_date.ymd | html %]" size="10" />
+        UT
+        <input type="submit" name="" value="Submit" />
+        <input type="hidden" name="telescope" value="[% telescope | html %]" />
+    </p>
+</form>
+
+[% UNLESS warnings.empty %]
+    <h2>Warnings from header analysis</h2>
+
+    <ul>
+        [% FOREACH warning IN warnings %]
+            <li>[% warning | html %]</li>
+        [% END %]
+    </ul>
+[% END %]
+
+[% UNLESS errors.empty %]
+    <h2>Errors</h2>
+
+    <ul>
+        [% FOREACH error IN errors %]
+            <li>[% error | html %]</li>
+        [% END %]
+    </ul>
+[% END %]
+
+<form method="post" action="[% target %]" class="submit_timeout">
+    [% FOREACH shift IN shifts %]
+        [% SET shift_name = shift.shift %]
+        <h2>Shift: [% shift_name | html %]</h2>
+
+        <table class="bordered time_acct_shift" name="table_[% shift_name %]">
+            <tr>
+                <th>Name</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Time from<br />data headers</th>
+                <th>Time from<br />MSB acceptance</th>
+                <th>Comments</th>
+            </tr>
+            [% FOREACH entry IN shift.entries %]
+                [% IF entry.exists("key") %]
+                    [% SET key = entry.key %]
+                [% ELSE %]
+                    [% SET key = entry.name %]
+                [% END %]
+                <tr>
+                    <td>
+                        [% UNLESS entry.user_added %]
+                            [% entry.name | html %]</td>
+                        [% ELSE %]
+                            <input type="text" name="name_[% shift_name %]_[% key %]" value="[% entry.name %]" size="10" />
+                        [% END %]
+                    <td>
+                        [% IF entry.editable %]
+                            <input type="number" name="time_[% shift_name %]_[% key %]" value="[% entry.time | html %]" min="0" step="0.05" data-total="[% entry.no_total ? 'false' : 'true' %]" />
+                        [% ELSIF entry.key == 'TOTAL' %]
+                            <span class="time_acct_total">&hellip;</span>
+                        [% ELSE %]
+                            <span class="time_acct_value" data-total="[% entry.no_total ? 'false' : 'true' %]">[% entry.time | html %]</span>
+                        [% END %]
+                    </td>
+                    <td>[% entry.status | html %]</td>
+                    <td>[% entry.time_data| html %]</td>
+                    <td>[% entry.time_msb | html %]</td>
+                    <td>
+                        [% IF entry.editable %]
+                            <input type="text" name="comment_[% shift_name %]_[% key %]" value="[% entry.comment | html %]" size="40" />
+                        [% ELSE %]
+                            [% entry.comment | html %]
+                        [% END %]
+                    </td>
+                </tr>
+            [% END %]
+            <tr class="template">
+                <td><input type="text" name="name_[% shift_name %]_new" value="" size="10" /></td>
+                <td><input type="number" name="time_[% shift_name %]_new" value="0" min="0" step="0.05" data-total="true" /></td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td><input type="text" name="comment_[% shift_name %]_new" value="" size="40" /></td>
+            </tr>
+        </table>
+
+        <p>
+            <input type="button" id="add_project_[% shift_name %]" value="Add project" />
+        </p>
+    [% END %]
+
+    [% UNLESS shifts_other.empty %]
+        <h2>Other shifts</h2>
+
+        <p>
+            [% FOREACH shift IN shifts_other %]
+                <input type="submit" name="submit_add_[% shift %]" value="Add shift [% shift %]" />
+            [% END %]
+        </p>
+    [% END %]
+
+    <h2>Confirmation</h2>
+
+    <p>
+        <label>
+            <input type="checkbox" name="send_mail" value="1" />
+            Email night report
+        </label>
+    </p>
+    <p>
+        <input type="submit" name="submit_confirm" value="Confirm times" />
+        <input type="hidden" name="utdate" value="[% ut_date.ymd | html %]" />
+        <input type="hidden" name="telescope" value="[% telescope | html %]" />
+        [% FOREACH shift IN shifts_extra %]
+            <input type="hidden" name="shift_extra" value="[% shift | html %]" />
+        [% END %]
+    </p>
+</form>
 [% END %]

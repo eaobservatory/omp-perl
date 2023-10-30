@@ -19,4 +19,6 @@ OMP::CGIPage::NightRep->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::NightRep::time_accounting,
     'staff',
     title => 'Time Accounting',
-    template => 'time_accounting.html');
+    template => 'time_accounting.html',
+    javascript => ['form_submit_timeout.js', 'time_accounting.js'],
+);
