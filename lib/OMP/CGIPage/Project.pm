@@ -255,19 +255,17 @@ sub project_home {
 
   # Display nights where data was taken
   my %accounts = ();
-  if (@$nights) {
-    # Sort account objects by night
-    for my $acc (@accounts) {
-      my $ymd = $acc->date->ymd;
-      unless (exists $accounts{$ymd}) {
-          $accounts{$ymd} = {
-            confirmed => 0.0,
-            unconfirmed => 0.0,
-          };
-      }
-      $accounts{$ymd}->{$acc->confirmed ? 'confirmed' : 'unconfirmed'}
-        += $acc->timespent->hours;
+  # Sort account objects by night
+  for my $acc (@accounts) {
+    my $ymd = $acc->date->ymd;
+    unless (exists $accounts{$ymd}) {
+        $accounts{$ymd} = {
+          confirmed => 0.0,
+          unconfirmed => 0.0,
+        };
     }
+    $accounts{$ymd}->{$acc->confirmed ? 'confirmed' : 'unconfirmed'}
+      += $acc->timespent->hours;
   }
 
   # Some instruments do not allow data retrieval. For now, assume that
