@@ -250,7 +250,9 @@ sub time_accounting_shift {
     my $times = shift;
     my $timelost = shift;
 
-    my %exclude = map {$tel . $_ => 1} qw/EXTENDED WEATHER UNKNOWN OTHER FAULT BADOBS/;
+    my %exclude = map {$tel . $_ => 1} qw/
+        EXTENDED WEATHER UNKNOWN OTHER FAULT BADOBS _SHUTDOWN
+    /;
     my @entries = ();
 
     # If this shift exists in the times:
@@ -276,9 +278,10 @@ sub time_accounting_shift {
     # Now put up the WEATHER, UNKNOWN
     my %strings = (
         WEATHER => 'Time lost to weather',
+        _SHUTDOWN => 'Scheduled shutdown',
         OTHER => 'Other time',
     );
-    for my $label (qw/WEATHER OTHER/) {
+    for my $label (qw/WEATHER _SHUTDOWN OTHER/) {
         my $proj = $tel . $label;
         push @entries, $self->_time_accounting_project(
             1, $strings{$label},
