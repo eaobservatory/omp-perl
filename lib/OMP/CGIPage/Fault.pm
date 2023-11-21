@@ -835,11 +835,19 @@ sub update_resp {
   # Strip out ^M
   $text =~ s/\015//g;
 
+  my $flag = undef;
+  if (defined $q->param('flag')) {
+    if ($q->param('flag') =~ /^(-?\d)$/a) {
+      $flag = $1;
+    }
+  }
+
   # Get the response object
   my $response = OMP::FaultUtil->getResponse($respid, $fault);
 
   # Make changes to the response object
   $response->text($text);
+  $response->flag($flag) if defined $flag;
 
   # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
 

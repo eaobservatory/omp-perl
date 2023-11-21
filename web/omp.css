@@ -700,3 +700,26 @@ input[type="text"], input[type="password"], input[type="number"], input[type="da
 .template {
     display: none;
 }
+
+.faultresponse_valuable {
+    border: 5px dotted #FF0;
+    background: #EED;
+}
+
+.faultresponse_invaluable {
+    border: 5px dashed #FF0;
+    background: #FFC;
+    box-shadow: 0px 0px 10px 5px #FF0;
+}
+
+.faultresponse_redundant {
+    border: 5px dotted #888;
+    background: #CCD;
+    color: #444;
+}
+
+.faultresponse_hidden {
+    border: 5px dashed #888;
+    background: #BBB;
+    color: #888;
+}
