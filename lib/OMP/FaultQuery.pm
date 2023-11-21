@@ -107,7 +107,7 @@ sub sql {
   # This returns a row per response
   # So will duplicate static fault info
   my $select = $options{'no_text'}
-    ? "F.*, R.respid, R.date, R.author, R.isfault, R.respnum"
+    ? "F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag"
     : "F.*, R.*";
   $select .= ", $frel + SUBSEL.relevance AS relevance";
 

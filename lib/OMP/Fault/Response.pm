@@ -77,6 +77,7 @@ sub new {
               IsFault => 0,
               RespID => undef,
               RespNum => undef,
+              Flag => 0,
              };
 
   bless $resp, $class;
@@ -228,6 +229,23 @@ sub respnum {
     $self->{'RespNum'} = shift;
   }
   return $self->{'RespNum'};
+}
+
+=item B<flag>
+
+Retrieve or store the response flag.
+
+  $num = $resp->flag;
+  $resp->flag( $num );
+
+=cut
+
+sub flag {
+  my $self = shift;
+  if (@_) {
+    $self->{'Flag'} = shift;
+  }
+  return $self->{'Flag'};
 }
 
 =back

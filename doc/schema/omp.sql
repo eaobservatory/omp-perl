@@ -50,6 +50,7 @@ CREATE TABLE `ompfaultbody` (
   `isfault` int(11) NOT NULL,
   `text` longtext NOT NULL,
   `respnum` int(11) NOT NULL DEFAULT 0,
+  `flag` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`respid`),
   KEY `idx_ompfaultbody_1` (`faultid`),
   FULLTEXT KEY `idx_ompfaultbody_text` (`text`)

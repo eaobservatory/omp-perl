@@ -488,7 +488,8 @@ sub _add_new_response {
     @{$cols}{qw/date author isfault text/},
     {SQL => sprintf
         'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
-        $FAULTBODYTABLE, $id});
+        $FAULTBODYTABLE, $id},
+    @{$cols}{qw/flag/});
 }
 
 =item B<_prepare_response_columns>
@@ -519,6 +520,7 @@ sub _prepare_response_columns {
     author => $userid,
     isfault => $resp->isfault,
     text => $text,
+    flag => $resp->flag,
   }
 }
 
