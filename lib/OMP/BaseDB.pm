@@ -416,8 +416,8 @@ named inserts].
 
 If an entry in the data array contains a reference to a hash
 (rather than a scalar) it is assumed that this indicates
-a TEXT field (which must be inserted in a different manner
-to normal fields) and must have the following keys:
+a TEXT field (which is inserted in the same manner
+as normal fields) and must have the following keys:
 
   TEXT => the text to be inserted
   COLUMN  => the name of the column
@@ -431,8 +431,7 @@ Alternatively, if the second argument is a hash ref containing keys:
   $db->_db_insert_data( $table, { COLUMN => 'projectid,
                                   POSN => 2 }, @data );
 
-this will be used to optimize large text inserts only. They
-are not mandatory.
+it is considered to be an obsolete hint and ignored.
 
 =cut
 
