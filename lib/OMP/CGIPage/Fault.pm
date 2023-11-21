@@ -30,6 +30,7 @@ use Time::Seconds qw(ONE_DAY);
 use OMP::CGIComponent::Fault;
 use OMP::CGIComponent::Project;
 use OMP::Config;
+use OMP::Constants qw/:faultresponse/;
 use OMP::DBServer;
 use OMP::Display;
 use OMP::DateTools;
@@ -573,6 +574,13 @@ sub view_fault {
   return $self->_write_error("Fault [$faultid] not found.")
       unless $fault;
 
+  my $show =$self->decoded_url_param('show');
+  my $order = $self->decoded_url_param('order');
+  my %filter_info = (
+    show => $show,
+    order => $order,
+  );
+
   if ($q->param('respond')) {
     # Make sure all the necessary params were provided
     my %params = (Response => "text",);
@@ -590,6 +598,8 @@ sub view_fault {
           fault_info => $comp->fault_table($fault),
           response_info => $comp->response_form(fault => $fault),
           missing_fields => \@error,
+          target_base => $q->url(-absolute => 1),
+          filter_info => \%filter_info,
       };
     }
 
@@ -677,11 +687,21 @@ sub view_fault {
     }
   }
   else {
+    if ($order =~ /desc/ or $show !~ /all/) {
+      my @responses = $fault->responses;
+      my $original = shift @responses;
+      @responses = grep {$_->flag != OMP__FR_HIDDEN} @responses if $show !~ /all/;
+      @responses = reverse @responses if $order =~ /desc/;
+      $fault->responses([$original, @responses]);
+    }
+
     return {
         title => $comp->category_title($category) . ': View Fault: ' . $faultid,
         fault_info => $comp->fault_table($fault),
         response_info => $comp->response_form(fault => $fault),
         missing_fields => undef,
+        target_base => $q->url(-absolute => 1),
+        filter_info => \%filter_info,
     };
   }
 
