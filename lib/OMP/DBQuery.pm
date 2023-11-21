@@ -26,7 +26,6 @@ use Carp;
 
 # External modules
 use XML::LibXML; # Our standard parser
-use OMP::Display;
 use OMP::Error;
 use OMP::DateTools;
 use OMP::General;
@@ -520,7 +519,7 @@ sub _convert_elem_to_perl {
         # This is just PCDATA
 
         # Make sure this is not simply white space
-        my $string = $grand->toString;
+        my $string = $grand->textContent;
         next unless $string =~ /\w/;
 
         $self->_add_text_to_hash( \%query, $name, $string, \%attr );
@@ -536,7 +535,7 @@ sub _convert_elem_to_perl {
         my $firstchild = $grand->firstChild;
         if ($firstchild) {
           $self->_add_text_to_hash(\%query,
-                                   $name, $firstchild->toString,
+                                   $name, $grand->textContent,
                                    $childname, \%attr );
         }
         elsif ($childname eq 'null') {
@@ -614,9 +613,6 @@ sub _add_text_to_hash {
   # in the middle of a clause
   $value =~ s/^\s+//;
   $value =~ s/\s+\Z//;
-
-  # Convert &quot; &amp; etc... to " &
-  $value = OMP::Display->replace_entity($value);
 
   if (exists $hash->{$key}) {
 

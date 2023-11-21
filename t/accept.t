@@ -22,7 +22,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 37;
+use Test::More tests => 41;
 
 require_ok('OMP::SciProg');
 require_ok('OMP::MSBDB');
@@ -204,8 +204,14 @@ is_deeply(msb_list($prog), [
     ['MSB L',  '10', $checksum{'MSB L'}],
 ], 'MSB list after accepting H');
 
+like("$prog", qr/<choose>1<\/choose>/, 'Choose 1 before accepting J');
+unlike("$prog", qr/<choose>0<\/choose>/, 'Not choose 0 before accepting J');
+
 # Accept MSB "J" (in choose-1 survey container).
 ok(accept_msb($prog, $checksum{'MSB J'}), 'Accept J');
+
+like("$prog", qr/<choose>0<\/choose>/, 'Choose 0 after accepting J');
+unlike("$prog", qr/<choose>1<\/choose>/, 'Not choose 1 after accepting J');
 
 is_deeply(msb_list($prog), [
     ['MSB A',  '10', $checksum{'MSB A'}],

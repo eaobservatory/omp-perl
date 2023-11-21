@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 295;
+use Test::More tests => 297;
 use Data::Dumper;
 
 require_ok( 'OMP::SciProg' );
@@ -48,8 +48,10 @@ my $obj = new OMP::SciProg( FILE => $file );
 ok($obj,"We got an object");
 isa_ok( $obj, "OMP::SciProg");
 
-# Check the project ID
-is($obj->projectID, "TJ01","Verify projectid");
+# Check the project ID, etc.
+is($obj->projectID, "TJ01", "Verify projectid");
+is($obj->telescope, "UKIRT", "Verify telescope");
+is($obj->ot_version, "20240101", "Verify OT version");
 
 # Now count the number of MSBs
 # Should be 11

@@ -133,7 +133,8 @@
                             [% IF ! response.isfault %]
                                 <tr bgcolor="[% bgcolor %]">
                                     <td>
-                                        <b>Response by:</b>
+                                        <b>Response
+                                        <a name="response[% response.respnum %]">#[% response.respnum %]</a> by:</b>
                                         [% render_user_name(response.author) %]
                                     </td>
                                     <td>
@@ -151,7 +152,7 @@
                                     <table border="0">
                                         <tr>
                                             <td><font color="[% bgcolor %]">___</font></td>
-                                            <td>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>') %]</td>
+                                            <td [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>').replace('(?<!\S)#([0-9]+)\b', '<a href="#response$1">#$1</a>') %]</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -192,6 +193,18 @@
                 <td>&nbsp;</td>
                 <td><textarea name="text" rows="20" cols="72">[% info.values.text | html %]</textarea></td>
             </tr>
+            [% IF info.response.defined %]
+            <tr>
+                <td><b>Flag:</b></td>
+                <td>
+                    <select name="flag">
+                        [% FOREACH flag IN info.flags %]
+                            <option [% IF flag.0 == info.values.flag %]selected="selected"[% END %] value="[% flag.0 %]">[% flag.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+            [% END %]
             <tr>
                 <td colspan="2" align="right">
                     <input type="submit" name="respond" value="[% info.values.submitlabel | html %]" />

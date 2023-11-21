@@ -212,7 +212,7 @@ sub ot_version {
   my $self = shift;
   my @nodes = $self->_tree->findnodes('.//ot_version');
   if (defined $nodes[-1]) {
-    my $ver = $nodes[-1]->getFirstChild->toString;
+    my $ver = $nodes[-1]->textContent;
     # Clean it.
     $ver =~ s/-//g;
 
@@ -240,7 +240,7 @@ sub telescope {
     for my $n (@nodes) {
       my $child = $n->getFirstChild;
       next unless defined $child;
-      my $tel = uc($child->toString);
+      my $tel = uc $n->textContent;
       return $tel;
     }
   }
@@ -600,14 +600,14 @@ sub find_projectid {
   if (defined $element) {
     # This forces the dom tree to be modified to include an
     # uppercased version
-    $self->projectID( $element->getFirstChild->toString );
+    $self->projectID( $element->textContent );
   } else {
     # Could not find projectID so look for a "project" element
     # which has been added automatically by the OMP
     my ($element2) = $self->_tree->findnodes('.//project[1]');
 
     if (defined $element2) {
-      $self->projectID( $element2->getFirstChild->toString );
+      $self->projectID( $element2->textContent );
     } else {
       #    throw OMP::Error::UnknownProject("The Science Program does not contain a
       #project identifier");

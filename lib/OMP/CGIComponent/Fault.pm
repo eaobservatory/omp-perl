@@ -25,6 +25,7 @@ use Carp;
 
 use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
+use OMP::Constants qw/:faultresponse/;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::General;
@@ -434,6 +435,7 @@ sub response_form {
     }
 
     %defaults = (text => $text,
+                 flag => $resp->flag,
                  submitlabel => "Submit changes",);
   } else {
 
@@ -443,7 +445,7 @@ sub response_form {
   }
 
   # Param list values take precedence
-  for (qw/text status/) {
+  for (qw/text status flag/) {
     if ($q->param($_)) {
       $defaults{$_} = $q->param($_);
     }
@@ -454,6 +456,13 @@ sub response_form {
       statuses => \@statuses,
       response => $resp,
       values => \%defaults,
+      flags => [
+          [OMP__FR_INVALUABLE, 'Invaluable'],
+          [OMP__FR_VALUABLE, 'Valuable'],
+          [OMP__FR_NORMAL, 'Normal'],
+          [OMP__FR_REDUNDANT, 'Redundant'],
+          [OMP__FR_HIDDEN, 'Hidden'],
+      ],
   };
 }
 

@@ -479,6 +479,31 @@ sub _add_new_response {
   my $id = shift;
   my $resp = shift;
 
+  my $cols = $self->_prepare_response_columns($id, $resp);
+
+  $self->_db_insert_data(
+    $FAULTBODYTABLE,
+    undef,
+    $id,
+    @{$cols}{qw/date author isfault text/},
+    {SQL => sprintf
+        'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
+        $FAULTBODYTABLE, $id},
+    @{$cols}{qw/flag/});
+}
+
+=item B<_prepare_response_columns>
+
+Prepare columns for response table which are common between
+insert and update operations.
+
+=cut
+
+sub _prepare_response_columns {
+  my $self = shift;
+  my $id = shift;
+  my $resp = shift;
+
   my $author = $resp->author;
   my $date = $resp->date;
   my $text = $resp->text;
@@ -490,21 +515,13 @@ sub _add_new_response {
 
   throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]") unless ($userid);
 
-
-  # Format the date in a way that MySQL understands
-  $date = $date->strftime("%Y-%m-%d %T");
-
-  $self->_db_insert_data( $FAULTBODYTABLE,
-                          { COLUMN => 'faultid',
-                            QUOTE => 0,
-                            POSN => 0 },
-                          undef, $id, $date, $userid, $resp->isfault,
-                          {
-                           TEXT => $text,
-                           COLUMN => 'text',
-                          }
-                        );
-
+  return {
+    date => $date->strftime("%Y-%m-%d %T"),
+    author => $userid,
+    isfault => $resp->isfault,
+    text => $text,
+    flag => $resp->flag,
+  }
 }
 
 =item B<_close_fault>
@@ -674,7 +691,7 @@ sub _update_fault_row {
 
 Delete and reinsert a fault response.
 
-  $db->_update_response_rows( $faultid, $response );
+  $db->_update_response_row( $faultid, $response );
 
 where C<$faultid> is the id of the fault the response should be associated with
 and C<$response> is an C<OMP::Fault::Response> object.
@@ -687,14 +704,13 @@ sub _update_response_row {
   my $resp = shift;
 
   if (UNIVERSAL::isa($resp, "OMP::Fault::Response")) {
-    # Where clause for the delete
+    # Where clause for the update
     my $clause = "respid = ". $resp->id;
 
-    # Delete the response
-    $self->_db_delete_data( $FAULTBODYTABLE, $clause );
+    my $cols = $self->_prepare_response_columns($faultid, $resp);
 
-    # Now re-add the response (this will result in a new response ID)
-    $self->_add_new_response( $faultid, $resp );
+    # Update the response
+    $self->_db_update_data( $FAULTBODYTABLE, $cols, $clause );
 
   } else {
     throw OMP::Error::BadArgs("Argument to _update_response_row must be of type OMP::Fault::Response\n");

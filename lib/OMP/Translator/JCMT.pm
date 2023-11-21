@@ -666,7 +666,11 @@ sub tcs_base {
   for my $t ( keys %tags ) {
     my $b = new JAC::OCS::Config::TCS::BASE();
     $b->tag( $t );
-    $b->coords( $tags{$t}->{coords} );
+    my $coords = Storable::dclone($tags{$t}->{coords});
+    my $targetName = $coords->name;
+    $coords->name(OMP::Translator::JCMTHeaders->fitsSafeString($targetName))
+      if defined $targetName;
+    $b->coords( $coords );
 
     if (exists $tags{$t}->{OFFSET_DX} ||
         exists $tags{$t}->{OFFSET_DY} ) {

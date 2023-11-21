@@ -54,7 +54,15 @@ my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
 my @logging = qw/ OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
                   OMP__LOG_INFO OMP__LOG_DEBUG /;
 
-@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap, @logging);
+my @fr = qw/
+    OMP__FR_NORMAL
+    OMP__FR_VALUABLE
+    OMP__FR_INVALUABLE
+    OMP__FR_REDUNDANT
+    OMP__FR_HIDDEN
+/;
+
+@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap, @logging, @fr);
 
 %EXPORT_TAGS = (
                 'all' =>[ @EXPORT_OK ],
@@ -65,6 +73,7 @@ my @logging = qw/ OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
                 'logging' => \@logging,
                 'obs' => \@obs,
                 'timegap' => \@timegap,
+                'faultresponse' => \@fr,
                );
 
 Exporter::export_tags( keys %EXPORT_TAGS);
@@ -612,6 +621,52 @@ use constant OMP__LOG_DEBUG => 16;
 
 =back
 
+=head2 Fault System
+
+=over 4
+
+=item OMP__FR_NORMAL
+
+Default flag for fault responses.
+
+=cut
+
+use constant OMP__FR_NORMAL => 0;
+
+=item OMP__FR_VALUABLE
+
+Flag for useful fault responses.
+
+=cut
+
+use constant OMP__FR_VALUABLE => 1;
+
+=item OMP__FR_INVALUABLE
+
+Flag for very useful fault responses.
+
+=cut
+
+use constant OMP__FR_INVALUABLE => 2;
+
+=item OMP__FR_REDUNDANT
+
+Flag for less useful fault responses.
+
+=cut
+
+use constant OMP__FR_REDUNDANT => -1;
+
+=item OMP__FR_HIDDEN
+
+Flag for the least useful fault responses.
+
+=cut
+
+use constant OMP__FR_HIDDEN => -2;
+
+=back
+
 =head1 TAGS
 
 Individual sets of constants can be imported by
@@ -656,6 +711,10 @@ Constants associated with time gaps.
 =item :logging
 
 Constants associated the logging system.
+
+=item :faultresponse
+
+Constants used as fault response flags.
 
 =back
 
