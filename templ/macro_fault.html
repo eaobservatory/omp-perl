@@ -133,7 +133,8 @@
                             [% IF ! response.isfault %]
                                 <tr bgcolor="[% bgcolor %]">
                                     <td>
-                                        <b>Response by:</b>
+                                        <b>Response
+                                        <a name="response[% response.respnum %]">#[% response.respnum %]</a> by:</b>
                                         [% render_user_name(response.author) %]
                                     </td>
                                     <td>
@@ -151,7 +152,7 @@
                                     <table border="0">
                                         <tr>
                                             <td><font color="[% bgcolor %]">___</font></td>
-                                            <td>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>') %]</td>
+                                            <td>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>').replace('(?<!\S)#([0-9]+)\b', '<a href="#response$1">#$1</a>') %]</td>
                                         </tr>
                                     </table>
                                 </td>
