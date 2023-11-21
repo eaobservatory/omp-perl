@@ -76,6 +76,7 @@ sub new {
               Date => undef,
               IsFault => 0,
               RespID => undef,
+              RespNum => undef,
              };
 
   bless $resp, $class;
@@ -210,6 +211,23 @@ A synonym for C<id> described elsewhere in this document.
 sub respid {
   my $self = shift;
   return $self->id(@_);
+}
+
+=item B<respnum>
+
+Retrieve or store the response counter number.
+
+  $num = $resp->respnum;
+  $resp->respnum( $num );
+
+=cut
+
+sub respnum {
+  my $self = shift;
+  if (@_) {
+    $self->{'RespNum'} = shift;
+  }
+  return $self->{'RespNum'};
 }
 
 =back
