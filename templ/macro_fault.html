@@ -82,7 +82,7 @@
                         </tr>
                     [% END %]
                     <tr bgcolor="#ffffff">
-                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %][% fault_info.display_date_local(fault.faultdate) | html %][% ELSE %]unknown[% END %]</td>
+                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %]<a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&tel=JCMT">[% fault_info.display_date_local(fault.faultdate) | html %]</a>[% ELSE %]unknown[% END %]</td>
                         <td>
                             <b>Status:</b>
                             [% IF fault_info.allow_edit %]
