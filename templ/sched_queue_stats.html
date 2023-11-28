@@ -2,10 +2,12 @@
 <h1>[% title | html %]</h1>
 
 <p>
-    <br /><a href="sched.pl?tel=[% telescope %]&semester=[% semester %]">View schedule</a>
-    <br /><a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
+    <a href="sched.pl?tel=[% telescope %]&semester=[% semester %]">View schedule</a>
+    <br />
+    <a href="edsched.pl?tel=[% telescope %]&semester=[% semester %]">Edit schedule</a>
 </p>
 
+<h2>Queue Statistics</h2>
 
 <table class="bordered">
     <tr>
@@ -60,4 +62,35 @@ slots assigned to each queue, counting both individual
 slot assignments and slots for which no individual
 assignment was made, in which case the primary queue for the night is used.
 </p>
+
+<h2>Staff Statistics</h2>
+
+<table class="bordered">
+    <tr>
+        <th>Staff member</th>
+        <th>Nights</th>
+        <th><abbr title="Morning">AM</abbr>/days</th>
+    </tr>
+    [% FOREACH member = staff_night.keys.sort %]
+        <tr>
+            [% SET member_info = staff_night.$member %]
+            <td>[% member | html %]</td>
+            <td style="text-align: center;">
+                [% IF member_info.exists('op') %]
+                    [% member_info.op | html %]
+                [% ELSE %]
+                    &mdash;
+                [% END %]
+            </td>
+            <td style="text-align: center;">
+                [% IF member_info.exists('eo') %]
+                    [% member_info.eo | html %]
+                [% ELSE %]
+                    &mdash;
+                [% END %]
+            </td>
+        </tr>
+    [% END %]
+</table>
+
 [% END %]
