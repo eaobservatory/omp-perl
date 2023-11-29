@@ -68,7 +68,7 @@
                 </tr>
             [% END %]
             <tr>
-                <td>[% result.project | html %]</td>
+                <td><a href="/cgi-bin/projecthome.pl?project=[% result.project | html %]">[% result.project | html %]</a></td>
                 <td>[% result.target | html %]</td>
                 <td>[% result.separation | format('%.0f"') %]</td>
                 <td>[% result.ra | html %]</td>
