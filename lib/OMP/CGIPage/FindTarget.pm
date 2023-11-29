@@ -110,7 +110,7 @@ sub _show_output {
     $ddec =~ s/\ /\:/g;
     $ddec =~ s/^\s+//;
     $ddec =~ s/\s+$//;
-    ($proj eq "" && $ddec =~ /^([\d\-\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
+    ($proj eq "" && $ddec =~ /^([-+\d\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
 
     # Telescope
     my $ttel = $q->param('tel');
