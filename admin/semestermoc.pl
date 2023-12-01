@@ -37,8 +37,8 @@ use OMP::ProjQuery;
 
 my ($semester, $queue, $filename, $help);
 GetOptions(
-    'semester=s' => \$semester,
-    'queue=s' => \$queue,
+    'semester=s@' => \$semester,
+    'queue=s@' => \$queue,
     'out=s' => \$filename,
     help => \$help,
 ) or pod2usage(2);
@@ -58,9 +58,10 @@ my $msbdb = OMP::MSBDB->new(DB => $db);
 my @projects = $projdb->listProjects(OMP::ProjQuery->new(XML => sprintf
     '<ProjQuery>' .
     '<state>1</state><telescope>JCMT</telescope>' .
-    '<semester>%s</semester><country>%s</country>' .
+   ' %s%s' .
     '</ProjQuery>',
-    $semester, $queue,
+    (join '', map {sprintf '<semester>%s</semester>', $_} @$semester),
+    (join '', map {sprintf '<country>%s</country>', $_} @$queue),
 ));
 
 my $combined = undef;
