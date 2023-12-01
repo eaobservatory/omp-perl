@@ -141,7 +141,13 @@
                                         <b>Date:</b>
                                         [% fault_info.display_date_local(response.date) | html %]
                                         [% IF fault_info.allow_edit %]
-                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                            &nbsp;&nbsp;
+                                            <form method="post" action="[% fault_info.target %]" style="display: inline;">
+                                                <input type="hidden" name="respid" value="[% response.id | html %]" />
+                                                <input type="submit" name="submit_flag_down" value="-" />
+                                                <input type="submit" name="submit_flag_up" value="+" />
+                                            </form>
+                                            &nbsp;&nbsp;
                                             <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
                                         [% END %]
                                     </td>

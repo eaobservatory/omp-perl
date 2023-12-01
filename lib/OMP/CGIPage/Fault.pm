@@ -29,6 +29,7 @@ use Time::Seconds qw(ONE_DAY);
 
 use OMP::CGIComponent::Fault;
 use OMP::CGIComponent::Project;
+use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
 use OMP::DBServer;
@@ -685,6 +686,34 @@ sub view_fault {
     } else {
       return $self->_write_error("This fault already has a status of \"" . $fault->statusText . "\"");
     }
+  }
+  elsif ($q->param('submit_flag_up') or $q->param('submit_flag_down')) {
+    my $respid = $q->param('respid');
+    my $response = OMP::FaultUtil->getResponse($respid, $fault);
+    my $redirect = sprintf '%s#response%i', url_absolute($q), $response->respnum;
+
+    my $flag = $response->flag();
+    if ($q->param('submit_flag_up') and $flag < OMP__FR_INVALUABLE) {
+      $response->flag($flag + 1);
+    }
+    elsif ($q->param('submit_flag_down') and $flag > OMP__FR_HIDDEN) {
+      $response->flag($flag - 1);
+    }
+    else {
+      return $self->_write_redirect($redirect);
+    }
+
+    my $E;
+    try {
+      OMP::FaultServer->updateResponse($faultid, $response);
+    } otherwise {
+      $E = shift;
+    };
+
+    return $self->_write_error("Unable to update response", "$E")
+        if defined $E;
+
+    return $self->_write_redirect($redirect);
   }
   else {
     if ($order =~ /desc/ or $show !~ /all/) {
