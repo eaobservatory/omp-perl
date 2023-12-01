@@ -206,6 +206,7 @@ sub sched_view_queue_stats {
 
     my %queue_night = ();
     my %queue_slot = ();
+    my %staff_night = ();
     my $total_night = 0;
     my $total_slot = 0;
 
@@ -215,6 +216,14 @@ sub sched_view_queue_stats {
         foreach my $slot_info (@{$night->slots_full()}) {
             $queue_slot{$slot_info->{'queue'} // 'Unassigned'} ++;
             $total_slot ++;
+        }
+
+        foreach my $capacity (qw/op eo/) {
+            my $method = 'staff_' . $capacity;
+            my $staff = $night->$method;
+            foreach my $member ($staff =~ /[A-Z]+/g) {
+                $staff_night{$member}->{$capacity} ++;
+            }
         }
     }
 
@@ -228,11 +237,12 @@ sub sched_view_queue_stats {
     $total_slot = 1 unless $total_slot;
 
     return {
-        title => "$tel Schedule $semester Queue Statistics",
+        title => "$tel Schedule $semester Statistics",
         queues => [sort keys %queues],
         queue_night => \%queue_night,
         queue_slot => \%queue_slot,
         queue_info => $queue_info,
+        staff_night => \%staff_night,
         total_night => $total_night,
         total_slot => $total_slot,
         telescope => $tel,

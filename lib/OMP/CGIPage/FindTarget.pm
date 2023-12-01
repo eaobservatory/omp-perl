@@ -19,7 +19,6 @@ use strict;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DateTools;
 use OMP::FindTarget;
 
@@ -67,7 +66,7 @@ sub _show_input_page {
     my $q = $self->cgi;
 
     return {
-        target => url_absolute($q),
+        target => $q->url(-absolute => 1),
         values => {
             projid => (scalar $q->param('projid')),
             ra => (scalar $q->param('ra')),
@@ -110,7 +109,7 @@ sub _show_output {
     $ddec =~ s/\ /\:/g;
     $ddec =~ s/^\s+//;
     $ddec =~ s/\s+$//;
-    ($proj eq "" && $ddec =~ /^([\d\-\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
+    ($proj eq "" && $ddec =~ /^([-+\d\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
 
     # Telescope
     my $ttel = $q->param('tel');

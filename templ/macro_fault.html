@@ -82,7 +82,7 @@
                         </tr>
                     [% END %]
                     <tr bgcolor="#ffffff">
-                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %][% fault_info.display_date_local(fault.faultdate) | html %][% ELSE %]unknown[% END %]</td>
+                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %]<a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&tel=JCMT">[% fault_info.display_date_local(fault.faultdate) | html %]</a>[% ELSE %]unknown[% END %]</td>
                         <td>
                             <b>Status:</b>
                             [% IF fault_info.allow_edit %]
@@ -141,7 +141,13 @@
                                         <b>Date:</b>
                                         [% fault_info.display_date_local(response.date) | html %]
                                         [% IF fault_info.allow_edit %]
-                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                            &nbsp;&nbsp;
+                                            <form method="post" action="[% fault_info.target %]" style="display: inline;">
+                                                <input type="hidden" name="respid" value="[% response.id | html %]" />
+                                                <input type="submit" name="submit_flag_down" value="-" />
+                                                <input type="submit" name="submit_flag_up" value="+" />
+                                            </form>
+                                            &nbsp;&nbsp;
                                             <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
                                         [% END %]
                                     </td>

@@ -19,7 +19,7 @@
         <tr>
             <td>RA</td>
             <td><input type="text" name="ra" value="[% values.ra %]" size="16" /></td>
-            <td>(dd:am:as.s No default)</td>
+            <td>(hh:mm:ss.s No default)</td>
         </tr>
             <tr><td>Dec</td>
             <td><input type="text" name="dec" value="[% values.dec %]" size="16" /></td>
@@ -68,7 +68,7 @@
                 </tr>
             [% END %]
             <tr>
-                <td>[% result.project | html %]</td>
+                <td><a href="/cgi-bin/projecthome.pl?project=[% result.project | html %]">[% result.project | html %]</a></td>
                 <td>[% result.target | html %]</td>
                 <td>[% result.separation | format('%.0f"') %]</td>
                 <td>[% result.ra | html %]</td>
