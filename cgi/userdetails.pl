@@ -19,4 +19,6 @@ OMP::CGIPage::User->new(cgi => new CGI())->write_page(
     \&OMP::CGIPage::User::details,
     'local_or_staff',
     title => 'User Details',
-    template => 'user_details.html');
+    template => 'user_details.html',
+    javascript => ['table_filter.js'],
+);
