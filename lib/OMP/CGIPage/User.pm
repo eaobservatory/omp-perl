@@ -109,17 +109,26 @@ sub details {
 
   # Sort out user's capacity for each project
   my %capacities;
-  $capacities{Support} = \@support
-    if (@support);
+  foreach my $support_projects ([1, \@support], [0, \@projects]) {
+    my ($is_support, $projects) = @$support_projects;
 
-  for my $project (@projects) {
-    if ($project->pi->userid eq $user->userid) {
-      push @{$capacities{"Principal Investigator"}}, $project;
-    }
+    foreach my $project (@$projects) {
+      my $project_id = $project->projectid;
+      $capacities{$project_id} = {project => $project, capacity => {}}
+          unless exists $capacities{$project_id};
 
-    for ($project->coi) {
-      if ($_->userid eq $user->userid) {
-        push @{$capacities{"Co-Investigator"}}, $project;
+      if ($is_support) {
+        $capacities{$project_id}->{'capacity'}->{'support'} = 1;
+      }
+      elsif ($project->pi->userid eq $user->userid) {
+        $capacities{$project_id}->{'capacity'}->{'pi'} = 1;
+      }
+      else {
+        for ($project->coi) {
+          if ($_->userid eq $user->userid) {
+            $capacities{$project_id}->{'capacity'}->{'coi'} = 1;
+          }
+        }
       }
     }
   }
@@ -150,7 +159,14 @@ sub details {
     hedwig_ids => \@hedwigids,
     hedwig_profile => 'https://proposals.eaobservatory.org/person/',
     icon_url => OMP::Config->getData('iconsdir'),
-    project_capacities => \%capacities,
+    project_capacities => [sort {
+            my $sa = $a->{'project'}->semester_ori;
+            my $sb = $b->{'project'}->semester_ori;
+            (($sb =~ /^\d/ ? 1 : 0) - ($sa =~ /^\d/ ? 1 : 0)) or
+            $sb cmp $sa or
+            $a->{'project'}->primaryqueue cmp $b->{'project'}->primaryqueue or
+            $a->{'project'}->projectid cmp $b->{'project'}->projectid
+        } values %capacities],
     faults => \%faults,
   };
 }

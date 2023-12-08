@@ -27,7 +27,9 @@ use 5.006;
 use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
+use JSON;
 use Template;
+use Template::Context;
 use Template::Stash;
 
 BEGIN {
@@ -492,8 +494,16 @@ sub render_template {
 
     local $Text::Wrap::huge = 'overflow';
 
-    my $template = new Template({
+    my $templatecontext = Template::Context->new({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+    });
+
+    $templatecontext->define_vmethod('hash', 'json', sub {
+        return encode_json($_[0]);
+    });
+
+    my $template = new Template({
+        CONTEXT => $templatecontext,
         ENCODING => 'utf8',
         FILTERS => {
             remove_pre_tags => sub {

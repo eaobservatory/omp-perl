@@ -1,44 +1,72 @@
 [% WRAPPER "layout.html" %]
 <h1>User Details for [% user.name | html %]</h1>
 
-<p>
-    [% user.name | html %]
+<table>
+    <tr>
+        <th style="text-align: left;">User ID</th>
+        <td>[% user.userid | html %]</td>
+    </tr>
+    <tr>
+        <th style="text-align: left;">Name</th>
+        <td>[% user.name | html %]</td>
+    </tr>
     [% IF user.email %]
-        ([% user.email | html %])
+        <tr>
+            <th style="text-align: left;">Email</th>
+            <td>[% user.email | html %]</td>
+        </tr>
     [% END %]
     [% IF user.cadcuser %]
-        (CADC ID: [% user.cadcuser | html %])
+        <tr>
+            <th style="text-align: left;">CADC ID</th>
+            <td>[% user.cadcuser | html %]</td>
+        </tr>
     [% END %]
     [% IF ! hedwig_ids.empty %]
-        (Hedwig ID: [% FOREACH hedwig_id = hedwig_ids %][% IF ! loop.first %], [% END %]<a href="[% hedwig_profile _ hedwig_id %]">[% hedwig_id %]</a>[% END %])
+        <tr>
+            <th style="text-align: left;">Hedwig ID</th>
+            <td>[% FOREACH hedwig_id = hedwig_ids %][% IF ! loop.first %], [% END %]<a href="[% hedwig_profile _ hedwig_id %]">[% hedwig_id %]</a>[% END %]</td>
+        </tr>
     [% END %]
-</p>
+</table>
 
 [% IF user.staff_access %]
-    <p>User has access to staff log in.</p>
+    <p>&#x2605; User has access to staff log in.</p>
 [% END %]
 
 [% IF user.is_obfuscated %]
-    <p>User account is obfuscated.</p>
+    <p>&bull; User account is obfuscated.</p>
 [% END %]
 
 [% IF user.no_fault_cc %]
-  <p>Fault CC messages suppressed.</p>
+    <p>&bull; Fault CC messages suppressed.</p>
 [% END %]
 
-[% FOREACH capacity = ["Principal Investigator", "Co-Investigator", "Support"] %]
-    [% SET project_capacity = project_capacities.$capacity %]
-    [% IF project_capacity %]
-      <h2>[% capacity %]</h2>
+[% IF ! project_capacities.empty %]
+    <h2>Projects</h2>
 
-      <table>
-          <tr>
-              <td>&nbsp;</td>
-              <td>Receives email</td>
-              <td>OMP access</td>
-          </tr>
-          [% FOREACH project = project_capacity %]
-            <tr>
+    <p class="table_filter" data-table="project_capacity" data-parameter="capacity">
+        Show:
+        <label><input type="checkbox" data-capacity="pi" checked="checked">Principal Investigator</label>
+        &nbsp;
+        <label><input type="checkbox" data-capacity="coi" checked="checked">Co-Investigator</label>
+        &nbsp;
+        <label><input type="checkbox" data-capacity="support" checked="checked">Support</label>
+    </p>
+
+    <table class="bordered" id="project_capacity">
+        <tr>
+            <th>Project</th>
+            <th>Email</th>
+            <th>OMP<br />access</th>
+            <th>Capacity</th>
+            <th>Support</th>
+            <th>Title</th>
+        </tr>
+        [% FOREACH project_info = project_capacities %]
+            [% SET project = project_info.project %]
+            [% SET capacity = project_info.capacity %]
+            <tr data-capacity="[% capacity.json | html %]">
                 <td><a href="/cgi-bin/projecthome.pl?project=[% project.projectid | uri %]">[% project.projectid | html %]</a></td>
                 <td align="center"><a href="/cgi-bin/projusers.pl?project=[% project.projectid | uri %]">
                     [% IF project.contactable(user.userid) %]
@@ -50,27 +78,40 @@
                 <td align="center">
                     [% IF project.omp_access(user.userid) %]&#x2605;[% ELSE %]&nbsp;[% END %]
                 </td>
+                <td align="center">
+                    [% IF capacity.pi %]PI[% ELSIF capacity.coi %]CoI[% ELSE %]&nbsp;[% END %]
+                </td>
+                <td align="center">
+                    [% IF capacity.support %]&check;[% ELSE %]&nbsp;[% END %]
+                </td>
+                <td>
+                    [% project.title | html %]
+                </td>
             </tr>
-          [% END %]
-
-      </table>
-    [% END %]
+        [% END %]
+    </table>
 [% END %]
 
 [% IF ! faults.empty %]
-    <h2>User associated faults for the past 2 weeks</h2>
+    <h2>Faults</h2>
 
-    <table>
+    <p>
+        User-associated faults for the past 2 weeks:
+    </p>
+
+    <table class="bordered">
         <tr>
-            <td>Category</td>
-            <td align="center">Subject</td>
+            <th>Fault ID</th>
+            <th>Category</th>
+            <th>Subject</th>
         </tr>
         [% FOREACH category = faults.keys.sort %]
             [% SET category_faults = faults.$category %]
             [% FOREACH fault = category_faults %]
                 <tr>
+                    <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.faultid | uri %]">[% fault.faultid | html %]</a></td>
                     <td>[% category %]</td>
-                    <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.faultid | uri %]">[% fault.subject | html %]</a></td>
+                    <td>[% fault.subject | html %]</td>
                 </tr>
             [% END %]
         [% END %]
