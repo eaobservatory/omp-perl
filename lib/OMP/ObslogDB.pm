@@ -191,7 +191,7 @@ sub _mail_staff_no_good {
   OMP::General->log_message( qq[ObslogDB: Preparing to send mail about obs ($obsref) no good.\n] );
 
   my $to_key = 'mail.to-obs-rejected';
-  my @to = OMP::Config->getData( $to_key, 'telescope' => $tel );
+  my @to = grep {/./} OMP::Config->getData( $to_key, 'telescope' => $tel );
 
   unless ( scalar @to ) {
 
