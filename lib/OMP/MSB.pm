@@ -2393,6 +2393,67 @@ sub processAutoCoords {
   }
 }
 
+=item B<dummy_sciprog_xml>
+
+Create a dummy science program wrapper around the XML
+form of this MSB.  Options:
+
+=over 4
+
+=item projectid
+
+value for E<lt>projectIDE<gt> element, otherwise use the
+value from the C<projectID> method.
+
+=item queue
+
+value for E<lt>countryE<gt> element.
+
+=item xmlns
+
+include XML namespace attributes if true.
+
+=back
+
+B<Note:> SP writing code extracted from C<OMP::MSBServer::fetchMSB>.
+The XML might not quite validate, but will be useable
+so long as the translator can handle it.
+
+=cut
+
+sub dummy_sciprog_xml {
+    my $self = shift;
+    my %opt = @_;
+
+    my @xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<SpProg type="pr" subtype="none"' .
+            ($opt{'xmlns'}
+                ? ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+                . ' xmlns="http://omp.eao.hawaii.edu/schema/TOML"'
+                : '') .
+        '>',
+        '<meta_gui_collapsed>false</meta_gui_collapsed>',
+        '<meta_gui_filename>ompdummy.xml</meta_gui_filename>',
+    );
+
+    push @xml, '<country>' . $opt{'queue'} . '</country>'
+        if exists $opt{'queue'};
+
+    push @xml, '<ot_version>'.$self->ot_version.'</ot_version>'
+        if defined $self->ot_version;
+
+    my $projectid = $opt{'projectid'} // $self->projectID;
+
+    push @xml, (
+        '<projectID>' . $projectid . '</projectID>',
+        "$self",
+        '</SpProg>'
+    );
+
+    return join "\n", @xml;
+}
+
 =item B<_is_blank_target>
 
 Returns true if the supplied target node contains a blank
