@@ -497,11 +497,23 @@ in the science program (because it was updated between doing
 the query and reading from the science program) then we will still
 catch an inconsitency.
 
+Option options:
+
+=over 4
+
+=item internal
+
+Do not log the retrieval in the MSB done table.
+
+=back
+
 =cut
 
 sub fetchMSB {
   my $self = shift;
   my %args = @_;
+
+  my $internal = delete $args{'internal'};
 
   # The important result is the checksum
   my $checksum;
@@ -585,7 +597,8 @@ sub fetchMSB {
   # science program during the observation. This requires a transaction.
   # Connect to the DB (and lock it out)
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-                           "MSB retrieved from DB", OMP__DONE_FETCH );
+                           "MSB retrieved from DB", OMP__DONE_FETCH )
+    unless $internal;
 
   return $msb;
 }
