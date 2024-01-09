@@ -294,6 +294,7 @@ sub project_home {
 
   return {
     project => $project,
+    is_staff => (!! $self->auth->is_staff),
     proposal_url => 'https://proposals.eaobservatory.org/'
         . (lc $project->telescope)
         . '/proposal_by_code?code=' . $projectid,
@@ -1029,6 +1030,61 @@ sub _update_project_make_message {
   return;
 }
 
+sub translate_msb {
+    my $self = shift;
+    my $projectid = shift;
+
+    return $self->_write_forbidden() unless $self->auth->is_staff;
+
+    die 'No valid checksum specified'
+        unless $self->decoded_url_param('checksum') =~ /^([0-9a-f]+)$/a;
+    my $checksum = $1;
+
+    # Import OMP::Translator here because CGI scripts using this method will
+    # need to use JAC::Setup qw/ocsq ocscfg/ to make the relevant modules available.
+    require OMP::Translator;
+    require IO::String;
+
+    my $logh = IO::String->new();
+    my $error = undef;
+    my $result = undef;
+
+    try {
+        my $db = OMP::MSBDB->new(
+            ProjectID => $projectid,
+            DB => OMP::DBbackend->new());
+
+        my $msb = $db->fetchMSB(checksum => $checksum, internal => 1);
+
+        $result = OMP::Translator->translate(
+            OMP::SciProg->new(XML => $msb->dummy_sciprog_xml()),
+            asdata => 1,
+            loghandle => $logh,
+            no_log_input => 1);
+    }
+    catch OMP::Error with {
+        my $E = shift;
+        $error = $E->{'-text'};
+    }
+    otherwise {
+        my $E = shift;
+        if (UNIVERSAL::isa($E, 'XML::LibXML::Error')) {
+            $error = $E->as_string();
+        }
+        else {
+            $error = "$E";
+        }
+    };
+
+    my $logref = $logh->string_ref;
+
+    return {
+        checksum => $checksum,
+        error => $error,
+        log => $$logref,
+        configs => $result,
+    };
+}
 
 =back
 

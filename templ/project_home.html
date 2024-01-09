@@ -136,6 +136,9 @@
                     <td><b>Est. time</b></td>
                     <td><b>Opacity range</b></td>
                     <td><b>Remaining</b></td>
+                    [% IF is_staff %]
+                        <td><b>Actions</b></td>
+                    [% END %]
                 [% ELSE %]
                     <td><b>N Repeats</b></td>
                 [% END %]
@@ -158,6 +161,11 @@
                             <td>&mdash;</td>
                         [% END %]
                         <td>[% msb.remaining | html %]</td>
+                        [% IF is_staff %]
+                            <td>
+                                <a href="/cgi-bin/translatemsb.pl?project=[% project.projectid %]&checksum=[% msb.checksum %]">translate</a>
+                            </td>
+                        [% END %]
                     [% ELSE %]
                         <td>[% msb.nrepeats | html %]</td>
                     [% END %]

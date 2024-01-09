@@ -87,7 +87,7 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    searchobslog.pl searchshiftlog.pl shiftlog.pl
                    sourceplot.pl spregion.pl spsummary.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
-                   timeacct.pl
+                   timeacct.pl translatemsb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
                    viewfault.pl worf_fits.pl

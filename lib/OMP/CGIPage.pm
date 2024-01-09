@@ -723,6 +723,8 @@ sub _write_forbidden {
       'The system was unable to verify your access to this page.',
     ],
   });
+
+  return undef;
 }
 
 =item B<_write_error>
