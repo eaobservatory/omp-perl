@@ -127,28 +127,7 @@ sub fetchMSB {
   # Return stringified form of object
   # Note that we have to make these actual Science Programs
   # so that the OM and Java Sp class know what to do.
-  my $msbxml = "$msb";
-
-  # optionally include the OT version
-  my $otvers = '';
-  if (defined $msb->ot_version) {
-    $otvers = "<ot_version>".$msb->ot_version."</ot_version>\n";
-  }
-
-  my $spprog = q{<?xml version="1.0" encoding="UTF-8"?>
-<SpProg type="pr" subtype="none">
-  <meta_gui_filename>ompdummy.xml</meta_gui_filename>
-  <meta_gui_hasBeenSaved>true</meta_gui_hasBeenSaved>
-  <meta_gui_dir>/tmp</meta_gui_dir>
-  <meta_gui_collapsed>false</meta_gui_collapsed>
-} . $otvers;
-
-  $spprog = join '',
-              $spprog,
-              "<projectID>", $msb->projectID, "</projectID>\n",
-              $msbxml,
-              "\n</SpProg>\n"
-              ;
+  my $spprog = $msb->dummy_sciprog_xml();
 
   my $log = sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
               tv_interval( $t0 ), $msb->projectID, $msb->checksum ;

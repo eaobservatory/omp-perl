@@ -77,6 +77,8 @@ are:
   log    : Log verbose messages to file. If the global $VERBOSE is true, then
            messages will also go to stdout. If $VERBOSE is false then
            verbosity will be enabled in the translation class but only to log file.
+  loghandle : Handle to which to send log messages instead of a file.
+  no_log_input: Do not include the input MSB in the log output
 
   asdata : If true, method will return either a list of translated
             configuration objects (the type of which depends on
@@ -167,6 +169,11 @@ sub translate {
     } otherwise {
       # no logging around
     };
+  }
+  elsif (exists $opts{'loghandle'}) {
+    $logh = $opts{'loghandle'};
+    $verbose = 1;
+    push @handles, $logh;
   }
 
   # Log the translation details with the OMP
@@ -312,7 +319,7 @@ sub translate {
       # We always get objects, sometimes multiple objects
       my @new = $class->translate( $tmpmsb, simulate => $opts{simulate} );
 
-      if (defined $logh) {
+      if (defined $logh and not $opts{'no_log_input'}) {
         # Basic XML
         print $logh "---------------------------------------------\n";
         print $logh "Input MSB:\n";

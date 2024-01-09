@@ -502,17 +502,16 @@ sub render_template {
         return encode_json($_[0]);
     });
 
+    $templatecontext->define_filter('remove_pre_tags', sub {
+        my $text = shift;
+        $text =~ s/^\s*<PRE>//i;
+        $text =~ s/<\/PRE>\s*$//i;
+        return $text;
+    });
+
     my $template = new Template({
         CONTEXT => $templatecontext,
         ENCODING => 'utf8',
-        FILTERS => {
-            remove_pre_tags => sub {
-                my $text = shift;
-                $text =~ s/^\s*<PRE>//i;
-                $text =~ s/<\/PRE>\s*$//i;
-                return $text;
-            },
-        },
     }) or die "Could not configure template object: $Template::ERROR";
 
     binmode STDOUT, ':utf8';
@@ -724,6 +723,8 @@ sub _write_forbidden {
       'The system was unable to verify your access to this page.',
     ],
   });
+
+  return undef;
 }
 
 =item B<_write_error>

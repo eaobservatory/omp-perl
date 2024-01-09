@@ -1,0 +1,37 @@
+[% WRAPPER "layout.html" %]
+
+<h1>MSB Translation Output</h1>
+
+<p>MSB checksum: [% checksum %]</p>
+
+[% IF configs.defined %]
+    <ul>
+        [% FOREACH config IN configs %]
+            <li>
+                <a href="#config[% loop.count %]">Configuration [% loop.count %]</a>
+                ([% config.instrument | html %] [% config.duration.seconds | html %] seconds)
+            </li>
+        [% END %]
+    </ul>
+[% END %]
+
+[% IF error.defined %]
+    <h2>Error</h2>
+
+    <pre>[% error | html %]</pre>
+[% END %]
+
+[% IF log %]
+    <h2>Log Messages</h2>
+
+    <pre>[% log | html %]</pre>
+[% END %]
+
+[% IF configs.defined %]
+    [% FOREACH config IN configs %]
+        <h2 id="config[% loop.count %]">Configuration [% loop.count %]</h2>
+
+        <pre>[% config.stringify | html %]</pre>
+    [% END %]
+[% END %]
+[% END %]

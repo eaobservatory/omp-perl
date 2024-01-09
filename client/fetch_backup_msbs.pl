@@ -353,28 +353,8 @@ sub msb_to_xml {
     my $projectid = shift;
     my $msb = shift;
 
-    # SP writing code based on OMP::MSBServer::fetchMSB as
-    # unfortunately that code isn't in a subroutine we can
-    # use.  Might not quite validate, but for the purposes
-    # of having emergency backup MSBs, it's probably OK
-    # so long as the translator can handle it.
-    my @xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<SpProg type="pr" subtype="none" ' .
-            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
-            'xmlns="http://omp.eao.hawaii.edu/schema/TOML">',
-        '<meta_gui_collapsed>false</meta_gui_collapsed>',
-        '<meta_gui_filename>ompdummy.xml</meta_gui_filename>',
-        '<country>UNKNOWN</country>',
-    );
-    push @xml, '<ot_version>'.$msb->ot_version.'</ot_version>' if defined $msb->ot_version;
-    push @xml, (
-        '<projectID>' . $projectid . '</projectID>',
-        "$msb",
-        '</SpProg>'
-    );
-
-    return join("\n", @xml);
+    return $msb->dummy_sciprog_xml(
+        projectid => $projectid, queue => 'UNKNOWN', xmlns => 1);
 }
 
 =head1 AUTHOR
