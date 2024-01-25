@@ -32,6 +32,7 @@ use warnings;
 use strict;
 use Carp;
 
+use OMP::Display;
 use OMP::Error;
 use Time::Piece qw/ :override /;
 
@@ -220,7 +221,8 @@ sub summary {
     for my $key (keys %summary) {
       next if $key =~ /^_/;
       next unless defined $summary{$key};
-      $xml .= "<$key>$summary{$key}</$key>\n";
+      $xml .= sprintf "<$key>%s</$key>\n",
+          OMP::Display::escape_entity($summary{$key});
     }
     $xml .= "</SpComment>\n";
     return $xml;

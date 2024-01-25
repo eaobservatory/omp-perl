@@ -36,6 +36,7 @@ use JAC::Setup qw/hdrtrans/;
 use Carp;
 use OMP::Range;
 use OMP::DateTools;
+use OMP::Display;
 use OMP::General;
 use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
@@ -838,8 +839,8 @@ sub summary {
       next unless defined $summary{$key};
 
       # Create XML segment
-      $xml .= "<$key>$summary{$key}</$key>\n";
-
+      $xml .= sprintf "<$key>%s</$key>\n",
+          OMP::Display::escape_entity($summary{$key});
     }
     $xml .= "</SpObsSummary>\n";
     return $xml;

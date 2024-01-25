@@ -855,9 +855,6 @@ sub summary {
       # Allow OMP::Range objects to stringify in the summary
       if (ref($summary{$key})) {
         next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
-
-        # Now we know we have to escape the > and < and &
-        $summary{$key} = OMP::Display::escape_entity( $summary{$key}."" );
       }
 
       # Currently Matt needs the msbid to be included
@@ -865,7 +862,9 @@ sub summary {
       # next if $key eq "msbid";
 
       # Create XML segment
-      $xml .= "  <$key>$summary{$key}</$key>\n";
+      # Now we know we have to escape the > and < and &
+      $xml .= sprintf "  <$key>%s</$key>\n",
+          OMP::Display::escape_entity($summary{$key});
     }
 
     # Now add in the observations if we are doing the long version
