@@ -277,7 +277,11 @@ sub connect {
 
   if ($DBIdriver eq 'mysql') {
     $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10";
-  } else {
+  }
+  elsif ($DBIdriver eq 'SQLite') {
+    $dboptions = ":dbname=$DBdatabase";
+  }
+  else {
     throw OMP::Error::DBConnection("DBI driver $DBIdriver not recognized");
   }
 
