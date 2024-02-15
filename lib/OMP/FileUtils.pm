@@ -265,19 +265,18 @@ sub get_meta_files {
 
   # Get meta file list.
   my $inst = $config->{'instrument'};
-  my ( $meta_re, $meta_date_re, $meta_dir )
-    = map { $sys_config->getData( "${inst}.${_}", %{ $config } ) }
-          qw[ metafileregexp
-              metafiledateregexp
-              metafiledir
-            ];
+  my ($meta_dir, $meta_re) = map {
+    $sys_config->getData("${inst}.${_}", %$config)
+  } ('metafiledir', ($config->{'runnr'}
+    ? 'metafiledaterunregexp'
+    : 'metafiledateregexp'));
 
   my $metas;
   try {
 
     $metas =
       OMP::General->get_directory_contents( 'dir' => $meta_dir,
-                                            'filter' => qr/$meta_date_re/,
+                                            'filter' => qr/$meta_re/,
                                             'sort' => 1
                                             );
   }
