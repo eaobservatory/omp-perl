@@ -1728,113 +1728,111 @@ sub _populate_basic_from_generic {
   my $self = shift;
   my $generic = shift;
 
-  my %generic_header = %$generic;
+  $self->projectid( $generic->{PROJECT} );
+  $self->checksum( $generic->{MSBID} );
+  $self->msbtid( $generic->{MSB_TRANSACTION_ID} );
+  $self->instrument( uc $generic->{INSTRUMENT} );
 
-  $self->projectid( $generic_header{PROJECT} );
-  $self->checksum( $generic_header{MSBID} );
-  $self->msbtid( $generic_header{MSB_TRANSACTION_ID} );
-  $self->instrument( uc( $generic_header{INSTRUMENT} ) );
-
-  $self->duration( $generic_header{EXPOSURE_TIME} );
-  $self->number_of_coadds( $generic_header{NUMBER_OF_COADDS} );
-  $self->number_of_frequencies($generic_header{'NUMBER_OF_FREQUENCIES'});
-  $self->disperser( $generic_header{GRATING_NAME} );
-  $self->type( $generic_header{OBSERVATION_TYPE} );
-  $generic_header{TELESCOPE} =~ /^(\w+)/;
+  $self->duration( $generic->{EXPOSURE_TIME} );
+  $self->number_of_coadds( $generic->{NUMBER_OF_COADDS} );
+  $self->number_of_frequencies($generic->{'NUMBER_OF_FREQUENCIES'});
+  $self->disperser( $generic->{GRATING_NAME} );
+  $self->type( $generic->{OBSERVATION_TYPE} );
+  $generic->{TELESCOPE} =~ /^(\w+)/;
   $self->telescope( uc($1) );
-  $self->filename( $generic_header{FILENAME} );
-  $self->inst_dhs( $generic_header{INST_DHS} );
-  $self->subsystem_idkey( $generic_header{SUBSYSTEM_IDKEY} );
+  $self->filename( $generic->{FILENAME} );
+  $self->inst_dhs( $generic->{INST_DHS} );
+  $self->subsystem_idkey( $generic->{SUBSYSTEM_IDKEY} );
 
   # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
-  if (! defined( $generic_header{SHIFT_TYPE} ) || $generic_header{SHIFT_TYPE} eq '') {
+  if (! defined( $generic->{SHIFT_TYPE} ) || $generic->{SHIFT_TYPE} eq '') {
       $self->shifttype('UNKNOWN');
   } else {
-      $self->shifttype( $generic_header{SHIFT_TYPE} );
+      $self->shifttype( $generic->{SHIFT_TYPE} );
   }
 
-  $self->remote( $generic_header{REMOTE} );
+  $self->remote( $generic->{REMOTE} );
 
   # Build the Astro::WaveBand object
-  if ( defined( $generic_header{GRATING_WAVELENGTH} ) &&
-       length( $generic_header{GRATING_WAVELENGTH} ) != 0 ) {
-    $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{GRATING_WAVELENGTH},
-                                           Instrument => $generic_header{INSTRUMENT} ) );
-  } elsif ( defined( $generic_header{FILTER} ) &&
-            length( $generic_header{FILTER} ) != 0 ) {
-    $self->waveband( new Astro::WaveBand( Filter     => $generic_header{FILTER},
-                                           Instrument => $generic_header{INSTRUMENT} ) );
+  if ( defined( $generic->{GRATING_WAVELENGTH} ) &&
+       length( $generic->{GRATING_WAVELENGTH} ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Wavelength => $generic->{GRATING_WAVELENGTH},
+                                           Instrument => $generic->{INSTRUMENT} ) );
+  } elsif ( defined( $generic->{FILTER} ) &&
+            length( $generic->{FILTER} ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Filter     => $generic->{FILTER},
+                                           Instrument => $generic->{INSTRUMENT} ) );
   }
 
   # Build the Time::Piece startobs and endobs objects
-  if(length($generic_header{UTSTART} . "") != 0) {
-    my $startobs = OMP::DateTools->parse_date($generic_header{UTSTART});
+  if(length($generic->{UTSTART} . "") != 0) {
+    my $startobs = OMP::DateTools->parse_date($generic->{UTSTART});
     $self->startobs( $startobs );
   }
-  if(length($generic_header{UTEND} . "") != 0) {
-    my $endobs = OMP::DateTools->parse_date($generic_header{UTEND});
+  if(length($generic->{UTEND} . "") != 0) {
+    my $endobs = OMP::DateTools->parse_date($generic->{UTEND});
     $self->endobs( $endobs );
   }
 
   # Easy object modifiers (some of which are used later in the method
-  $self->runnr( $generic_header{OBSERVATION_NUMBER} );
-  $self->utdate( $generic_header{UTDATE} );
-  $self->speed( $generic_header{SPEED_GAIN} );
-  if( defined( $generic_header{AIRMASS_START} ) && defined( $generic_header{AIRMASS_END} ) ) {
-    $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
+  $self->runnr( $generic->{OBSERVATION_NUMBER} );
+  $self->utdate( $generic->{UTDATE} );
+  $self->speed( $generic->{SPEED_GAIN} );
+  if( defined( $generic->{AIRMASS_START} ) && defined( $generic->{AIRMASS_END} ) ) {
+    $self->airmass( ( $generic->{AIRMASS_START} + $generic->{AIRMASS_END} ) / 2 );
   } else {
-    $self->airmass( $generic_header{AIRMASS_START} );
+    $self->airmass( $generic->{AIRMASS_START} );
   }
-  $self->airmass_start( $generic_header{AIRMASS_START} );
-  $self->airmass_end( $generic_header{AIRMASS_END} );
-  $self->rows( $generic_header{Y_DIM} );
-  $self->columns( $generic_header{X_DIM} );
-  $self->drrecipe( $generic_header{DR_RECIPE} );
-  $self->group( $generic_header{DR_GROUP} );
-  $self->standard( $generic_header{STANDARD} );
-  $self->slitname( $generic_header{SLIT_NAME} );
-  $self->slitangle( $generic_header{SLIT_ANGLE} );
-  $self->raoff( $generic_header{RA_TELESCOPE_OFFSET} );
-  $self->decoff( $generic_header{DEC_TELESCOPE_OFFSET} );
-  $self->grating( $generic_header{GRATING_NAME} );
-  $self->order( $generic_header{GRATING_ORDER} );
-  $self->tau( $generic_header{TAU} );
-  $self->seeing( $generic_header{SEEING} );
-  $self->bolometers( $generic_header{BOLOMETERS} );
-  $self->velocity( $generic_header{VELOCITY} );
-  $self->velsys( $generic_header{SYSTEM_VELOCITY} );
-  $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
-  $self->chopthrow( $generic_header{CHOP_THROW} );
-  $self->chopangle( $generic_header{CHOP_ANGLE} );
-  $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
-  $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
-  $self->rest_frequency( $generic_header{REST_FREQUENCY} );
-  $self->cycle_length( $generic_header{CYCLE_LENGTH} );
-  $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
-  $self->backend( $generic_header{BACKEND} );
-  $self->bandwidth_mode( $generic_header{BANDWIDTH_MODE} );
-  $self->filter( $generic_header{FILTER} );
-  $self->camera( $generic_header{CAMERA} );
-  $self->camera_number( $generic_header{CAMERA_NUMBER} );
-  $self->pol( $generic_header{POLARIMETRY} );
-  if( defined( $generic_header{POLARIMETER} ) ) {
-    $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
+  $self->airmass_start( $generic->{AIRMASS_START} );
+  $self->airmass_end( $generic->{AIRMASS_END} );
+  $self->rows( $generic->{Y_DIM} );
+  $self->columns( $generic->{X_DIM} );
+  $self->drrecipe( $generic->{DR_RECIPE} );
+  $self->group( $generic->{DR_GROUP} );
+  $self->standard( $generic->{STANDARD} );
+  $self->slitname( $generic->{SLIT_NAME} );
+  $self->slitangle( $generic->{SLIT_ANGLE} );
+  $self->raoff( $generic->{RA_TELESCOPE_OFFSET} );
+  $self->decoff( $generic->{DEC_TELESCOPE_OFFSET} );
+  $self->grating( $generic->{GRATING_NAME} );
+  $self->order( $generic->{GRATING_ORDER} );
+  $self->tau( $generic->{TAU} );
+  $self->seeing( $generic->{SEEING} );
+  $self->bolometers( $generic->{BOLOMETERS} );
+  $self->velocity( $generic->{VELOCITY} );
+  $self->velsys( $generic->{SYSTEM_VELOCITY} );
+  $self->nexp( $generic->{NUMBER_OF_EXPOSURES} );
+  $self->chopthrow( $generic->{CHOP_THROW} );
+  $self->chopangle( $generic->{CHOP_ANGLE} );
+  $self->chopsystem( $generic->{CHOP_COORDINATE_SYSTEM} );
+  $self->chopfreq( $generic->{CHOP_FREQUENCY} );
+  $self->rest_frequency( $generic->{REST_FREQUENCY} );
+  $self->cycle_length( $generic->{CYCLE_LENGTH} );
+  $self->number_of_cycles( $generic->{NUMBER_OF_CYCLES} );
+  $self->backend( $generic->{BACKEND} );
+  $self->bandwidth_mode( $generic->{BANDWIDTH_MODE} );
+  $self->filter( $generic->{FILTER} );
+  $self->camera( $generic->{CAMERA} );
+  $self->camera_number( $generic->{CAMERA_NUMBER} );
+  $self->pol( $generic->{POLARIMETRY} );
+  if( defined( $generic->{POLARIMETER} ) ) {
+    $self->pol_in( $generic->{POLARIMETER} ? 'T' : 'F' );
   } else {
     $self->pol_in( 'unknown' );
   }
-  if (defined $generic_header{'FOURIER_TRANSFORM_SPECTROMETER'}) {
-    $self->fts_in($generic_header{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
+  if (defined $generic->{'FOURIER_TRANSFORM_SPECTROMETER'}) {
+    $self->fts_in($generic->{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
   }
   else {
     $self->fts_in('unknown');
   }
 
-  $self->switch_mode( $generic_header{SWITCH_MODE} );
-  $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
-  $self->humidity( $generic_header{HUMIDITY} );
-  $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
-  $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
-  $self->tile( $generic_header{TILE_NUMBER} );
+  $self->switch_mode( $generic->{SWITCH_MODE} );
+  $self->ambient_temp( $generic->{AMBIENT_TEMPERATURE} );
+  $self->humidity( $generic->{HUMIDITY} );
+  $self->user_az_corr( $generic->{USER_AZIMUTH_CORRECTION} );
+  $self->user_el_corr( $generic->{USER_ELEVATION_CORRECTION} );
+  $self->tile( $generic->{TILE_NUMBER} );
 }
 
 =item B<_populate>
