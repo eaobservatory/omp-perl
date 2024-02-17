@@ -1715,26 +1715,20 @@ sub _defined_fits {
     || defined $self->{'_hdrhash'};
 }
 
-=item B<_populate>
+=item B<_populate_basic_from_generic>
 
-Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
-the remainder of the accessors.
+Populate basic parts of the object using information from a hash
+of generic headers.
 
-  $obs->_populate();
-
-Note that if other accessors exist prior to running this method, they will
-be overwritten.
+  $obs->_populate_basic_from_generic(\%generic);
 
 =cut
 
-sub _populate {
+sub _populate_basic_from_generic {
   my $self = shift;
+  my $generic = shift;
 
-  my $header = $self->hdrhash;
-  return unless $header;
-
-  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header, frameset => $self->wcs);
-  return unless keys %generic_header;
+  my %generic_header = %$generic;
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
@@ -1841,6 +1835,31 @@ sub _populate {
   $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
   $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
   $self->tile( $generic_header{TILE_NUMBER} );
+}
+
+=item B<_populate>
+
+Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
+the remainder of the accessors.
+
+  $obs->_populate();
+
+Note that if other accessors exist prior to running this method, they will
+be overwritten.
+
+=cut
+
+sub _populate {
+  my $self = shift;
+
+  my $header = $self->hdrhash;
+  return unless $header;
+
+  my $translation_class = Astro::FITS::HdrTrans::determine_class($header, undef, 1);
+  my %generic_header = $translation_class->translate_from_FITS($header, frameset => $self->wcs);
+  return unless keys %generic_header;
+
+  $self->_populate_basic_from_generic(\%generic_header);
 
   # The default calibration is simply the project ID. This will
   # ensure that all calibrations associated with a project
