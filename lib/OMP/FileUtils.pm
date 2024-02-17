@@ -325,11 +325,12 @@ sub get_flag_files {
 
     foreach my $f ( @{ $flags } ) {
 
-      $f =~ /$filter/;
-      if( int($1) == $runnr ) {
-
-        $flags = [ $f ];
-        last;
+      my $basename = fileparse($f);
+      if ($basename =~ /$filter/) {
+        if( int($1) == $runnr ) {
+          $flags = [ $f ];
+          last;
+        }
       }
     }
   }
