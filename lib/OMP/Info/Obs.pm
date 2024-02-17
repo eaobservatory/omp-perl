@@ -1728,21 +1728,22 @@ sub _populate_basic_from_generic {
   my $self = shift;
   my $generic = shift;
 
-  $self->projectid( $generic->{PROJECT} );
-  $self->checksum( $generic->{MSBID} );
-  $self->msbtid( $generic->{MSB_TRANSACTION_ID} );
-  $self->instrument( uc $generic->{INSTRUMENT} );
+  $self->projectid( $generic->{PROJECT} ) if exists $generic->{'PROJECT'};
+  $self->checksum( $generic->{MSBID} ) if exists $generic->{'MSBID'};
+  $self->msbtid( $generic->{MSB_TRANSACTION_ID} ) if exists $generic->{'MSB_TRANSACTION_ID'};
+  $self->instrument( uc $generic->{INSTRUMENT} ) if exists $generic->{'INSTRUMENT'};
 
-  $self->duration( $generic->{EXPOSURE_TIME} );
-  $self->number_of_coadds( $generic->{NUMBER_OF_COADDS} );
-  $self->number_of_frequencies($generic->{'NUMBER_OF_FREQUENCIES'});
-  $self->disperser( $generic->{GRATING_NAME} );
-  $self->type( $generic->{OBSERVATION_TYPE} );
-  $generic->{TELESCOPE} =~ /^(\w+)/;
-  $self->telescope( uc($1) );
-  $self->filename( $generic->{FILENAME} );
-  $self->inst_dhs( $generic->{INST_DHS} );
-  $self->subsystem_idkey( $generic->{SUBSYSTEM_IDKEY} );
+  $self->duration( $generic->{EXPOSURE_TIME} ) if exists $generic->{'EXPOSURE_TIME'};
+  $self->number_of_coadds( $generic->{NUMBER_OF_COADDS} ) if exists $generic->{'NUMBER_OF_COADDS'};
+  $self->number_of_frequencies($generic->{'NUMBER_OF_FREQUENCIES'}) if exists $generic->{'NUMBER_OF_FREQUENCIES'};
+  $self->disperser( $generic->{GRATING_NAME} ) if exists $generic->{'GRATING_NAME'};
+  $self->type( $generic->{OBSERVATION_TYPE} ) if exists $generic->{'OBSERVATION_TYPE'};
+  if (exists $generic->{'TELESCOPE'} and $generic->{TELESCOPE} =~ /^(\w+)/) {
+    $self->telescope( uc($1) );
+  }
+  $self->filename( $generic->{FILENAME} ) if exists $generic->{'FILENAME'};
+  $self->inst_dhs( $generic->{INST_DHS} ) if exists $generic->{'INST_DHS'};
+  $self->subsystem_idkey( $generic->{SUBSYSTEM_IDKEY} ) if exists $generic->{'SUBSYSTEM_IDKEY'};
 
   # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
   if (! defined( $generic->{SHIFT_TYPE} ) || $generic->{SHIFT_TYPE} eq '') {
@@ -1751,70 +1752,74 @@ sub _populate_basic_from_generic {
       $self->shifttype( $generic->{SHIFT_TYPE} );
   }
 
-  $self->remote( $generic->{REMOTE} );
+  $self->remote( $generic->{REMOTE} ) if exists $generic->{'REMOTE'};
 
   # Build the Astro::WaveBand object
-  if ( defined( $generic->{GRATING_WAVELENGTH} ) &&
+  if ( exists $generic->{'INSTRUMENT'} &&
+       defined( $generic->{GRATING_WAVELENGTH} ) &&
        length( $generic->{GRATING_WAVELENGTH} ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Wavelength => $generic->{GRATING_WAVELENGTH},
                                            Instrument => $generic->{INSTRUMENT} ) );
-  } elsif ( defined( $generic->{FILTER} ) &&
+  } elsif ( exists $generic->{'INSTRUMENT'} &&
+            defined( $generic->{FILTER} ) &&
             length( $generic->{FILTER} ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Filter     => $generic->{FILTER},
                                            Instrument => $generic->{INSTRUMENT} ) );
   }
 
   # Build the Time::Piece startobs and endobs objects
-  if(length($generic->{UTSTART} . "") != 0) {
+  if(exists $generic->{'UTSTART'} and length($generic->{UTSTART} . "") != 0) {
     my $startobs = OMP::DateTools->parse_date($generic->{UTSTART});
     $self->startobs( $startobs );
   }
-  if(length($generic->{UTEND} . "") != 0) {
+  if(exists $generic->{'UTEND'} and length($generic->{UTEND} . "") != 0) {
     my $endobs = OMP::DateTools->parse_date($generic->{UTEND});
     $self->endobs( $endobs );
   }
 
   # Easy object modifiers (some of which are used later in the method
-  $self->runnr( $generic->{OBSERVATION_NUMBER} );
-  $self->utdate( $generic->{UTDATE} );
-  $self->speed( $generic->{SPEED_GAIN} );
-  if( defined( $generic->{AIRMASS_START} ) && defined( $generic->{AIRMASS_END} ) ) {
-    $self->airmass( ( $generic->{AIRMASS_START} + $generic->{AIRMASS_END} ) / 2 );
-  } else {
-    $self->airmass( $generic->{AIRMASS_START} );
+  $self->runnr( $generic->{OBSERVATION_NUMBER} ) if exists $generic->{'OBSERVATION_NUMBER'};
+  $self->utdate( $generic->{UTDATE} ) if exists $generic->{'UTDATE'};
+  $self->speed( $generic->{SPEED_GAIN} ) if exists $generic->{'SPEED_GAIN'};
+  if( defined $generic->{AIRMASS_START} ) {
+    if ( defined $generic->{AIRMASS_END} ) {
+      $self->airmass( ( $generic->{AIRMASS_START} + $generic->{AIRMASS_END} ) / 2 );
+    } else {
+      $self->airmass( $generic->{AIRMASS_START} );
+    }
   }
-  $self->airmass_start( $generic->{AIRMASS_START} );
-  $self->airmass_end( $generic->{AIRMASS_END} );
-  $self->rows( $generic->{Y_DIM} );
-  $self->columns( $generic->{X_DIM} );
-  $self->drrecipe( $generic->{DR_RECIPE} );
-  $self->group( $generic->{DR_GROUP} );
-  $self->standard( $generic->{STANDARD} );
-  $self->slitname( $generic->{SLIT_NAME} );
-  $self->slitangle( $generic->{SLIT_ANGLE} );
-  $self->raoff( $generic->{RA_TELESCOPE_OFFSET} );
-  $self->decoff( $generic->{DEC_TELESCOPE_OFFSET} );
-  $self->grating( $generic->{GRATING_NAME} );
-  $self->order( $generic->{GRATING_ORDER} );
-  $self->tau( $generic->{TAU} );
-  $self->seeing( $generic->{SEEING} );
-  $self->bolometers( $generic->{BOLOMETERS} );
-  $self->velocity( $generic->{VELOCITY} );
-  $self->velsys( $generic->{SYSTEM_VELOCITY} );
-  $self->nexp( $generic->{NUMBER_OF_EXPOSURES} );
-  $self->chopthrow( $generic->{CHOP_THROW} );
-  $self->chopangle( $generic->{CHOP_ANGLE} );
-  $self->chopsystem( $generic->{CHOP_COORDINATE_SYSTEM} );
-  $self->chopfreq( $generic->{CHOP_FREQUENCY} );
-  $self->rest_frequency( $generic->{REST_FREQUENCY} );
-  $self->cycle_length( $generic->{CYCLE_LENGTH} );
-  $self->number_of_cycles( $generic->{NUMBER_OF_CYCLES} );
-  $self->backend( $generic->{BACKEND} );
-  $self->bandwidth_mode( $generic->{BANDWIDTH_MODE} );
-  $self->filter( $generic->{FILTER} );
-  $self->camera( $generic->{CAMERA} );
-  $self->camera_number( $generic->{CAMERA_NUMBER} );
-  $self->pol( $generic->{POLARIMETRY} );
+  $self->airmass_start( $generic->{AIRMASS_START} ) if exists $generic->{'AIRMASS_START'};
+  $self->airmass_end( $generic->{AIRMASS_END} ) if exists $generic->{'AIRMASS_END'};
+  $self->rows( $generic->{Y_DIM} ) if exists $generic->{'Y_DIM'};
+  $self->columns( $generic->{X_DIM} ) if exists $generic->{'X_DIM'};
+  $self->drrecipe( $generic->{DR_RECIPE} ) if exists $generic->{'DR_RECIPE'};
+  $self->group( $generic->{DR_GROUP} ) if exists $generic->{'DR_GROUP'};
+  $self->standard( $generic->{STANDARD} ) if exists $generic->{'STANDARD'};
+  $self->slitname( $generic->{SLIT_NAME} ) if exists $generic->{'SLIT_NAME'};
+  $self->slitangle( $generic->{SLIT_ANGLE} ) if exists $generic->{'SLIT_ANGLE'};
+  $self->raoff( $generic->{RA_TELESCOPE_OFFSET} ) if exists $generic->{'RA_TELESCOPE_OFFSET'};
+  $self->decoff( $generic->{DEC_TELESCOPE_OFFSET} ) if exists $generic->{'DEC_TELESCOPE_OFFSET'};
+  $self->grating( $generic->{GRATING_NAME} ) if exists $generic->{'GRATING_NAME'};
+  $self->order( $generic->{GRATING_ORDER} ) if exists $generic->{'GRATING_ORDER'};
+  $self->tau( $generic->{TAU} ) if exists $generic->{'TAU'};
+  $self->seeing( $generic->{SEEING} ) if exists $generic->{'SEEING'};
+  $self->bolometers( $generic->{BOLOMETERS} ) if exists $generic->{'BOLOMETERS'};
+  $self->velocity( $generic->{VELOCITY} ) if exists $generic->{'VELOCITY'};
+  $self->velsys( $generic->{SYSTEM_VELOCITY} ) if exists $generic->{'SYSTEM_VELOCITY'};
+  $self->nexp( $generic->{NUMBER_OF_EXPOSURES} ) if exists $generic->{'NUMBER_OF_EXPOSURES'};
+  $self->chopthrow( $generic->{CHOP_THROW} ) if exists $generic->{'CHOP_THROW'};
+  $self->chopangle( $generic->{CHOP_ANGLE} ) if exists $generic->{'CHOP_ANGLE'};
+  $self->chopsystem( $generic->{CHOP_COORDINATE_SYSTEM} ) if exists $generic->{'CHOP_COORDINATE_SYSTEM'};
+  $self->chopfreq( $generic->{CHOP_FREQUENCY} ) if exists $generic->{'CHOP_FREQUENCY'};
+  $self->rest_frequency( $generic->{REST_FREQUENCY} ) if exists $generic->{'REST_FREQUENCY'};
+  $self->cycle_length( $generic->{CYCLE_LENGTH} ) if exists $generic->{'CYCLE_LENGTH'};
+  $self->number_of_cycles( $generic->{NUMBER_OF_CYCLES} ) if exists $generic->{'NUMBER_OF_CYCLES'};
+  $self->backend( $generic->{BACKEND} ) if exists $generic->{'BACKEND'};
+  $self->bandwidth_mode( $generic->{BANDWIDTH_MODE} ) if exists $generic->{'BANDWIDTH_MODE'};
+  $self->filter( $generic->{FILTER} ) if exists $generic->{'FILTER'};
+  $self->camera( $generic->{CAMERA} ) if exists $generic->{'CAMERA'};
+  $self->camera_number( $generic->{CAMERA_NUMBER} ) if exists $generic->{'CAMERA_NUMBER'};
+  $self->pol( $generic->{POLARIMETRY} ) if exists $generic->{'POLARIMETRY'};
   if( defined( $generic->{POLARIMETER} ) ) {
     $self->pol_in( $generic->{POLARIMETER} ? 'T' : 'F' );
   } else {
@@ -1827,12 +1832,12 @@ sub _populate_basic_from_generic {
     $self->fts_in('unknown');
   }
 
-  $self->switch_mode( $generic->{SWITCH_MODE} );
-  $self->ambient_temp( $generic->{AMBIENT_TEMPERATURE} );
-  $self->humidity( $generic->{HUMIDITY} );
-  $self->user_az_corr( $generic->{USER_AZIMUTH_CORRECTION} );
-  $self->user_el_corr( $generic->{USER_ELEVATION_CORRECTION} );
-  $self->tile( $generic->{TILE_NUMBER} );
+  $self->switch_mode( $generic->{SWITCH_MODE} ) if exists $generic->{'SWITCH_MODE'};
+  $self->ambient_temp( $generic->{AMBIENT_TEMPERATURE} ) if exists $generic->{'AMBIENT_TEMPERATURE'};
+  $self->humidity( $generic->{HUMIDITY} ) if exists $generic->{'HUMIDITY'};
+  $self->user_az_corr( $generic->{USER_AZIMUTH_CORRECTION} ) if exists $generic->{'USER_AZIMUTH_CORRECTION'};
+  $self->user_el_corr( $generic->{USER_ELEVATION_CORRECTION} ) if exists $generic->{'USER_ELEVATION_CORRECTION'};
+  $self->tile( $generic->{TILE_NUMBER} ) if exists $generic->{'TILE_NUMBER'};
 }
 
 =item B<_populate>
