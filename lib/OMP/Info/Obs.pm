@@ -501,9 +501,11 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               shifttype => '$',
                               slitangle => '$',
                               slitname => '$',
+                              spectrum_number => '$',
                               speed => '$',
                               standard => '$',
                               startobs => 'Time::Piece',
+                              subsystem_number => '$',
                               switch_mode => '$',
                               target => '$',
                               tau => '$',
@@ -1746,6 +1748,8 @@ sub _populate_basic_from_generic {
   $self->filename( $generic->{FILENAME} ) if exists $generic->{'FILENAME'};
   $self->inst_dhs( $generic->{INST_DHS} ) if exists $generic->{'INST_DHS'};
   $self->subsystem_idkey( $generic->{SUBSYSTEM_IDKEY} ) if exists $generic->{'SUBSYSTEM_IDKEY'};
+  $self->subsystem_number($generic->{'SUBSYSTEM_NUMBER'}) if exists $generic->{'SUBSYSTEM_NUMBER'};
+  $self->spectrum_number($generic->{'SPECTRUM_NUMBER'}) if exists $generic->{'SPECTRUM_NUMBER'};
 
   # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
   if (! defined( $generic->{SHIFT_TYPE} ) || $generic->{SHIFT_TYPE} eq '') {
