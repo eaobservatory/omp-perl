@@ -116,10 +116,15 @@ sub new {
   # translate the fits header to generic
   my %args = @_;
 
-  $obs->_populate()
-    if ( exists $args{'fits'}    && $args{'fits'}    )
-    || ( exists $args{'hdrhash'} && $args{'hdrhash'} )
-    ;
+  if ((exists $args{'fits'} && $args{'fits'})
+      || (exists $args{'hdrhash'} && $args{'hdrhash'})) {
+    $obs->_populate();
+  }
+  elsif (exists $args{'generichash'} && $args{'generichash'}) {
+    throw OMP::Error::BadArgs('Generic hash must be a HASH reference')
+      unless 'HASH' eq ref $args{'generichash'};
+    $obs->_populate_basic_from_generic($args{'generichash'});
+  }
 
   return $obs;
 }
@@ -229,6 +234,9 @@ distinct from the primary object.
 
 Subsytems are determined by looking at the C<subsystem_idkey> in the FITS header.
 
+B<NOTE:> this method can only be used if FITS headers have been retained
+(e.g. if the object was constructed with C<retainhdr> set).
+
 =cut
 
 sub subsystems {
@@ -312,6 +320,48 @@ sub subsystems {
     $obs->filename( $subscans{$subid} );
     $obs->obsidss( $subid );
     push(@obs, $obs);
+  }
+
+  return \@obs unless wantarray;
+  return @obs;
+}
+
+=item B<subsystems_tiny>
+
+Return C<OMP::Info::Obs> objects representing the subsystems present,
+via 'tiny' subsystem differences stored in the object.
+
+B<WARNING:> this method is currently intended only for display purposes.
+Where reliably accurate information is desired, C<subsystems> should
+be used instead.
+
+B<NOTE:> this method can only be used if the C<_subsys_tiny> has been
+set up, i.e. if the object was constructed without C<retainhdr>.
+Otherwise the main C<subsystems> method should be used.
+
+=cut
+
+sub subsystems_tiny {
+  my $self = shift;
+
+  # For consistency with 'subsystems', return a copy of this object
+  # if there is no available subsystem information.
+  my $subsystems = $self->_subsys_tiny();
+  return $self->copy() unless defined $subsystems and scalar @$subsystems;
+
+  my @obs = ();
+  foreach my $subsystem (@$subsystems) {
+    my $obs = $self->copy();
+    $obs->{$_} = $subsystem->{$_}
+      foreach grep {not /^_/} keys %$subsystem;
+
+    my @obsidss = $subsystem->obsidss;
+    $obs->filename([$self->subsystem_filenames($obsidss[0])])
+      if 1 == scalar @obsidss;
+
+    delete $obs->{$_} foreach qw/_subsys_tiny _SUBSYS_FILES wcs/;
+
+    push @obs, $obs;
   }
 
   return \@obs unless wantarray;
@@ -443,6 +493,7 @@ Create the accessor methods from a signature of their contents.
 
 __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               _hdrhash => '%',
+                              _subsys_tiny => '@OMP::Info::Obs',
 
                               airmass => '$',
                               airmass_start => '$',
@@ -2064,8 +2115,62 @@ sub _populate {
   if( ! $self->retainhdr ) {
     $self->fits( undef );
     $self->hdrhash( undef );
-  }
 
+    # If we are not retaining headers, but SUBHEADERS are present,
+    # store minimal subsystem information in the _subsys_tiny attribute.
+    if (exists $header->{'SUBHEADERS'}) {
+      # Apply same subsystem grouping logic as main "subsystems" method.
+      my $idkey = $self->subsystem_idkey();
+      my %subsys;
+      my @suborder;
+      foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
+        my $subid = $subhdr->{$idkey};
+        unless (exists $subsys{$subid}) {
+          $subsys{$subid} = [];
+          push @suborder, $subid;
+        }
+        push @{$subsys{$subid}}, Astro::FITS::Header->new(Hash => $subhdr);
+      }
+
+      my @subsystems = ();
+      foreach my $subid (@suborder) {
+        my $subhdrs = $subsys{$subid};
+        my $merged = shift @$subhdrs;
+        ($merged, undef) = $merged->merge_primary(
+            {merge_unique => 1},
+            @$subhdrs) if scalar @$subhdrs;
+
+        # Now instead of splicing into the full header, translate just
+        # the subsystem-specific set of headers.
+        $merged->tiereturnsref(1);
+        tie my %mergedhdr, (ref $merged), $merged;
+        my %sub = $translation_class->translate_from_FITS(\%mergedhdr);
+
+        # Copy generic headers which are problematic not to have (e.g. waveband
+        # is not constructed without INSTRUMENT.)
+        foreach (qw/FILTER
+            GRATING_WAVELENGTH
+            INSTRUMENT
+            REST_FREQUENCY
+            SHIFT_TYPE/) {
+          $sub{$_} = $generic_header{$_} unless (exists $sub{$_}) || ! (exists $generic_header{$_});
+        }
+
+        my $subsystem = $self->new(generichash => \%sub);
+
+        # Ensure obsidss is filled in.
+        my $key = "OBSERVATION_ID_SUBSYSTEM";
+        if (exists $sub{$key}) {
+          my @list = (ref $sub{$key} ? @{$sub{$key}} : $sub{$key});
+          $subsystem->obsidss(@list);
+        }
+
+        push @subsystems, $subsystem;
+      }
+
+      $self->_subsys_tiny(\@subsystems);
+    }
+  }
 }
 
 sub _backend_acsis_like {
