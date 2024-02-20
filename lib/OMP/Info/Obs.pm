@@ -314,6 +314,7 @@ sub subsystems {
     push(@obs, $obs);
   }
 
+  return \@obs unless wantarray;
   return @obs;
 }
 
@@ -1393,6 +1394,7 @@ sub nightlog {
     }
   }
 
+  return \%return unless wantarray;
   return %return;
 
 }
