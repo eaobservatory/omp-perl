@@ -1771,6 +1771,12 @@ sub _populate_basic_from_generic {
             length( $generic->{FILTER} ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Filter     => $generic->{FILTER},
                                            Instrument => $generic->{INSTRUMENT} ) );
+  } elsif (exists $generic->{'INSTRUMENT'} &&
+           defined( $generic->{'REST_FREQUENCY'} ) &&
+           length( $generic->{'REST_FREQUENCY'} ) != 0 ) {
+    $self->waveband(Astro::WaveBand->new(
+        Frequency => $generic->{'REST_FREQUENCY'},
+        Instrument => $generic->{'INSTRUMENT'}));
   }
 
   # Build the Time::Piece startobs and endobs objects
