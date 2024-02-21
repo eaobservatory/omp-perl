@@ -1036,10 +1036,10 @@ sub nightlog {
     $form{'obj-pad-length'} = $form{'obj-length'} + 3;
 
     $return{'Run'} = $self->runnr;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Obsmode'} = $self->mode;
-    $return{'Project ID'} = $self->projectid;
-    $return{'Object'} = $self->target;
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Mode'} = $self->mode;
+    $return{'Project'} = $self->projectid;
+    $return{'Source'} = $self->target;
     $return{'Tau225'} = sprintf( "%.$form{'tau-dec'}f", $self->tau);
     $return{'Seeing'} = sprintf( "%.$form{'seeing-dec'}f", $self->seeing);
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
@@ -1061,12 +1061,12 @@ sub nightlog {
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
-        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
+        $return{'_ORDER'} = ["Run", "UT", "Mode", "Project", "Source", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
         @short_val = map $return{$_} , @{$return{'_ORDER'}};
         $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
         $short_form_head ="%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %6s  %6s  %7s %7s %-7s";
     } else {
-        $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
+        $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
         push @short_val , $return{'Bolometers'}[0] ;
@@ -1109,9 +1109,9 @@ sub nightlog {
   }
   elsif( $instrument =~ /^(rxh3)$/i ) {
     $return{'Run'} = $self->runnr;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Obsmode'} = $self->mode;
-    $return{'Project ID'} = $self->projectid;
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Mode'} = $self->mode;
+    $return{'Project'} = $self->projectid;
     $return{'Frequency'} = $self->rest_frequency() // '';
     $return{'Num. freq.'} = $self->number_of_frequencies() // '';
     my $file = $self->simple_filename() // '';
@@ -1121,16 +1121,16 @@ sub nightlog {
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     $return{'_ORDER'} = [
-        'Run', 'UT time', 'Obsmode', 'Project ID', 'Frequency', 'Num. freq.', 'File', 'Shift',
+        'Run', 'UT', 'Mode', 'Project', 'Frequency', 'Num. freq.', 'File', 'Shift',
     ];
 
-    $return{'_STRING_HEADER'} = 'Run  UT start              Mode      Project  Frequency  Num. freq.             File  Shift  ';
+    $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.             File  Shift  ';
     $return{'_STRING'} = sprintf(
         '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s  %-7s',
         $return{'Run'},
-        $return{'UT time'},
-        $return{'Obsmode'},
-        $return{'Project ID'},
+        $return{'UT'},
+        $return{'Mode'},
+        $return{'Project'},
         $return{'Frequency'},
         $return{'Num. freq.'},
         $return{'File'},
@@ -1178,21 +1178,20 @@ sub nightlog {
       $velocity_formatted = sprintf('%5s/%6s', $return{'Velocity'}, $return{'Velsys'});
     }
 
-    $return{'Project ID'} = $self->projectid;
+    $return{'Project'} = $self->projectid;
     $return{'Bandwidth Mode'} = $self->bandwidth_mode;
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
-    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project ID", "Source", "Cycle Length", "Number of Cycles",
+    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source", "Cycle Length", "Number of Cycles",
                           "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys      BW Mode Shift  ";
-#    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
+    $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys      BW Mode Shift  ";
     $return{'_STRING'} =
       sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %12s %-7s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
-        $return{'Project ID'},
+        $return{'Project'},
         $return{'Source'},
         $return{'Cycle Length'},
         $return{'Number of Cycles'},
@@ -1212,32 +1211,32 @@ sub nightlog {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = defined( $self->group ) ? $self->group : 0;
     $return{'Tile'} = defined( $self->tile ) ? $self->tile : 0;
-    $return{'Object'} = defined( $self->target ) ? $self->target : '';
+    $return{'Source'} = defined( $self->target ) ? $self->target : '';
     $return{'Observation type'} = defined( $self->type ) ? $self->type : '';
     $return{'Waveband'} = defined( $self->filter ) ? $self->filter : '';
     $return{'RA offset'} = defined( $self->raoff ) ? sprintf( "%.3f", $self->raoff ) : 0;
     $return{'Dec offset'} = defined( $self->decoff ) ? sprintf( "%.3f", $self->decoff ) : 0;
-    $return{'UT time'} = defined( $self->startobs ) ? $self->startobs->hms : '';
+    $return{'UT'} = defined( $self->startobs ) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined( $self->airmass ) ? sprintf( "%.2f", $self->airmass ) : 0;
     $return{'Exposure time'} = defined( $self->duration ) ? sprintf( "%.2f", $self->duration ) : 0;
     $return{'Number of coadds'} = defined( $self->number_of_coadds ) ? sprintf( "%d", $self->number_of_coadds ) : 0;
     $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
-    $return{'Project ID'} = defined( $self->projectid ) ? $self->projectid : '';
+    $return{'Project'} = defined( $self->projectid ) ? $self->projectid : '';
     $return{'Hour Angle'} = defined( $self->coords ) ? $self->coords->ha( "s" ) : '';
-    $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
+    $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project", "UT", "Source",
                           "Observation type", "Exposure time", "Number of coadds", "Waveband",
                           "RA offset", "Dec offset", "Airmass", "Hour Angle", "DR Recipe" ];
 
                                 #.... .... .... ....5....0....5.
-    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID   UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
+    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project      UT Start          Source     Type  ExpT  Filt     Offsets   AM Recipe";
     $return{'_STRING'} =
       sprintf "%4d %4d %4d ${ukirt_proj_format} %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s",
         $return{'Observation'},
         $return{'Group'},
         $return{'Tile'},
-        $return{'Project ID'},
-        $return{'UT time'},
-        $return{'Object'},
+        $return{'Project'},
+        $return{'UT'},
+        $return{'Source'},
         $return{'Observation type'},
         $return{'Exposure time'},
         $return{'Waveband'},
@@ -1253,7 +1252,7 @@ sub nightlog {
 
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = defined($self->group) ? $self->group : 0;
-    $return{'Object'} = defined($self->target) ? $self->target : '';
+    $return{'Source'} = defined($self->target) ? $self->target : '';
     $return{'Observation type'} = defined($self->type) ? $self->type : '';
     if (defined($self->waveband())) {
       $return{'Waveband'} = defined($self->waveband->filter) ? $self->waveband->filter : ( defined( $self->waveband->wavelength ) ? sprintf("%.2f", $self->waveband->wavelength) : '' );
@@ -1263,24 +1262,24 @@ sub nightlog {
     }
     $return{'RA offset'} = defined($self->raoff) ? sprintf( "%.3f", $self->raoff) : 0;
     $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined($self->airmass) ? sprintf( "%.2f", $self->airmass) : 0;
     $return{'Exposure time'} = defined($self->duration) ? sprintf( "%.2f",$self->duration ) : 0;
     $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
-    $return{'Project ID'} = $self->projectid;
-    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "UT time", "Object",
+    $return{'Project'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project", "UT", "Source",
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
 
                                 #.... .... ....5....0....5.
-    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID      UT Start      Object     Type   ExpT Wvbnd     Offsets    AM Recipe";
+    $return{'_STRING_HEADER'} = " Obs  Grp  Project         UT Start      Source     Type   ExpT Wvbnd     Offsets    AM Recipe";
     $return{'_STRING'} =
       sprintf "%4d %4d ${ukirt_proj_format} %8.8s %11.11s %8.8s %6.2f %5.5s %5.1f/%5.1f  %4.2f %-22.22s",
         $return{'Observation'},
         $return{'Group'},
-        $return{'Project ID'},
-        $return{'UT time'},
-        $return{'Object'},
+        $return{'Project'},
+        $return{'UT'},
+        $return{'Source'},
         $return{'Observation type'},
         $return{'Exposure time'},
         $return{'Waveband'},
@@ -1420,7 +1419,7 @@ sub nightlog {
     $return{Mode} = uc($self->mode);
 
     $return{_ORDER} = [ "Run", "UT", "Mode", "ProjectID", "Source" ];
-    $return{_STRING_HEADER} = "Run  UT start              Mode     Project          Source";
+    $return{_STRING_HEADER} = "Run  UT                    Mode     Project          Source";
     $return{_STRING} =
       sprintf "%3s  %8s  %16.16s %11s %15s",
         $return{'Run'},
