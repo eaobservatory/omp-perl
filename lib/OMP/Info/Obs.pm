@@ -1152,10 +1152,9 @@ sub nightlog {
     $return{'Source'} = $self->target;
     $return{'Subsystem'} = $self->subsystem_number;
     $return{'Spectrum'} = $self->spectrum_number;
-    $return{'Frequency'} = $self->rest_frequency;
 
     # Convert the rest frequency into GHz for display purposes.
-    $return{'Frequency'} /= 1000000000;
+    $return{'Frequency'} = sprintf '%7.3f', $self->rest_frequency / 1000000000;
 
     $return{'Velocity'} = $self->velocity;
     $return{'Velsys'} = $self->velsys;
@@ -1185,7 +1184,7 @@ sub nightlog {
 
     $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
     $return{'_STRING'} =
-      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7.3f %12s %12s %-7s",
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7s %12s %12s %-7s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
