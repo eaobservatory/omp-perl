@@ -1152,6 +1152,8 @@ sub nightlog {
     $return{'Source'} = $self->target;
     $return{'Subsystem'} = $self->subsystem_number;
     $return{'Spectrum'} = $self->spectrum_number;
+    $return{'Species'} = (defined $self->waveband) ? $self->waveband->species : 'Undefined';
+    $return{'Transition'} = (defined $self->waveband) ? $self->waveband->transition : 'Undefined';
 
     # Convert the rest frequency into GHz for display purposes.
     $return{'Frequency'} = sprintf '%7.3f', $self->rest_frequency / 1000000000;
@@ -1180,7 +1182,7 @@ sub nightlog {
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source", "Subsystem", "Spectrum",
-                          "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
+                          "Species", "Transition", "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
 
     $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
     $return{'_STRING'} =
@@ -1823,7 +1825,9 @@ sub _populate_basic_from_generic {
            length( $generic->{'REST_FREQUENCY'} ) != 0 ) {
     $self->waveband(Astro::WaveBand->new(
         Frequency => $generic->{'REST_FREQUENCY'},
-        Instrument => $generic->{'INSTRUMENT'}));
+        Instrument => $generic->{'INSTRUMENT'},
+        Species => ($generic->{'SPECIES'} // 'Unknown'),
+        Transition => ($generic->{'TRANSITION'} // 'Unknown')));
   }
 
   # Build the Time::Piece startobs and endobs objects
@@ -2148,6 +2152,8 @@ sub _populate {
             GRATING_WAVELENGTH
             INSTRUMENT
             REST_FREQUENCY
+            SPECIES
+            TRANSITION
             SHIFT_TYPE/) {
           $sub{$_} = $generic_header{$_} unless (exists $sub{$_}) || ! (exists $generic_header{$_});
         }
