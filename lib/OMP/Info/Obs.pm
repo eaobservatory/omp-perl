@@ -1061,7 +1061,7 @@ sub nightlog {
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
-        $return{'_ORDER'} = ["Run", "UT", "Mode", "Project", "Source", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
+        $return{'_ORDER'} = ["Run", "UT", "Mode", "Project", "Source", "Filter", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
         @short_val = map $return{$_} , @{$return{'_ORDER'}};
         $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
         $short_form_head ="%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %6s  %6s  %7s %7s %-7s";
@@ -1150,10 +1150,8 @@ sub nightlog {
     $return{'UT'} = $self->startobs->hms;
     $return{'Mode'} = uc($self->mode);
     $return{'Source'} = $self->target;
-    $return{'Cycle Length'} = ( defined( $self->cycle_length ) ?
-                                sprintf( "%3d", $self->cycle_length ) :
-                                ' - ' );
-    $return{'Number of Cycles'} = $self->number_of_cycles;
+    $return{'Subsystem'} = $self->subsystem_number;
+    $return{'Spectrum'} = $self->spectrum_number;
     $return{'Frequency'} = $self->rest_frequency;
 
     # Convert the rest frequency into GHz for display purposes.
@@ -1182,19 +1180,19 @@ sub nightlog {
     $return{'Bandwidth Mode'} = $self->bandwidth_mode;
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
-    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source", "Cycle Length", "Number of Cycles",
+    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source", "Subsystem", "Spectrum",
                           "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys      BW Mode Shift  ";
+    $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
     $return{'_STRING'} =
-      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %12s %-7s",
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7.3f %12s %12s %-7s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
         $return{'Project'},
         $return{'Source'},
-        $return{'Cycle Length'},
-        $return{'Number of Cycles'},
+        $return{'Subsystem'},
+        $return{'Spectrum'},
         $return{'Frequency'},
         $velocity_formatted,
         $return{'Bandwidth Mode'},
