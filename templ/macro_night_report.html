@@ -326,7 +326,7 @@
             <td colspan="[% num_columns %]">
                 [% FOREACH comment IN obs_comments %]
                     <span class="[% obs_summary.status_class.item(comment.status) %]">
-                        [% comment.date.cdate | html %] UT /
+                        [% comment.date.strftime('%F %T') | html %] UT /
                         [% comment.author.name | html %]:
                         [% FOREACH line IN comment.text.split("\n") %]
                             [% line | html %]
