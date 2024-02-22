@@ -247,7 +247,7 @@
             <h3>Observations for [% instblock.instrument %]</h3>
 
             [% SET column_order = instblock.heading._ORDER %]
-            [% SET num_columns = column_order.size + 2 %]
+            [% SET num_columns = column_order.size + 1 %]
 
             <table class="sum_table" border="0">
                 <tr class="sum_other">
@@ -255,7 +255,6 @@
                         <td>[% column_name | html %]</td>
                     [% END %]
                     <td>Status</td>
-                    <td>Comments</td>
                 </tr>
                 [% FOREACH entry IN instblock.obs %]
                     [% SET obs = entry.obs %]
@@ -263,7 +262,17 @@
 
                     [% IF entry.is_time_gap %]
                         <tr class="[% rowclass %]" id="timegapid_[% obs.comments.first.obsid | html %]">
-                            <td colspan="[% num_columns - 1 %]">
+                            <td>
+                                <font color="BLACK">
+                                    Gap
+                                </font>
+                            </td>
+                            <td>
+                                <font color="BLACK">
+                                    [% nightlog.UT | html %]
+                                </font>
+                            </td>
+                            <td colspan="[% num_columns - 3 %]">
                                 <font color="BLACK">
                                     [% FOREACH line IN nightlog._STRING.split("\n") %]
                                         [% line | html %]
@@ -271,7 +280,9 @@
                                     [% END %]
                                 </font>
                             </td>
-                            <td><a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid, timegap=1) %]">comment</a></td>
+                            <td>
+                                <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid, timegap=1) %]">comment</a>
+                            </td>
                         </tr>
                     [% ELSE %]
                         [% IF entry.exists('msb_comments') %]
@@ -301,18 +312,44 @@
                         [% SET status = obs.status %]
                         [% SET css_status = status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0 %]
                         [% SET label_status = status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0 %]
-                        <tr class="[% rowclass %]" id="obsid_[% obs.obsid | html %]">
-                            [% FOREACH column_name IN column_order %]
-                                <td class="[% css_status %]">
-                                    [% nightlog.$column_name.join(', ') | html %]
-                                </td>
-                            [% END %]
-                            <td class="[% css_status %]">
-                                [% label_status | html %]
-                            </td>
-                            <td><a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a></td>
-                        </tr>
-                        [% render_observation_log_comments(obs_summary, obs.scalar.comments, num_columns, rowclass) %]
+                        [% SET subsystems = obs.scalar.subsystems_tiny %]
+                        [% SET comments = obs.scalar.comments %]
+                        [% SET num_rows = subsystems.size + comments.size %]
+                        [% FOREACH ss IN obs.scalar.subsystems_tiny() %]
+                            [% SET row_first = loop.first %]
+                            [% SET ssnightlog = ss.scalar.nightlog() %]
+                            <tr class="[% rowclass %]" id="obsid_[% obs.obsid | html %]">
+                                [% FOREACH column_name IN column_order %]
+                                    [% IF column_name == 'Run' || column_name == 'UT'  %]
+                                        [% IF row_first %]
+                                            <td class="[% css_status %]" rowspan="[% num_rows %]">
+                                                [% nightlog.$column_name.join(', ') | html %]
+                                            </td>
+                                        [% END %]
+                                    [% ELSIF column_name == 'Mode' || column_name == 'Project' || column_name == 'Source' || column_name == 'Shift' %]
+                                        [% IF row_first %]
+                                            <td class="[% css_status %]" rowspan="[% subsystems.size %]">
+                                                [% nightlog.$column_name.join(', ') | html %]
+                                            </td>
+                                        [% END %]
+                                    [% ELSE %]
+                                        <td class="[% css_status %]">
+                                            [% ssnightlog.$column_name.join(', ') | html %]
+                                        </td>
+                                    [% END %]
+                                [% END %]
+                                [% IF row_first %]
+                                    <td class="[% css_status %]" rowspan="[% num_rows %]">
+                                        [% label_status | html %]
+                                        <br />
+                                        <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a>
+                                    </td>
+                                [% END %]
+                            </tr>
+                        [% END %]
+                        [% IF ! obs_comments.empty %]
+                            [% render_observation_log_comments(obs_summary, comments, num_columns - 3, rowclass) %]
+                        [% END %]
                     [% END %]
                     [% SET rowclass = (rowclass == 'row_a') ? 'row_b' : 'row_a' %]
                 [% END %]
@@ -321,20 +358,17 @@
     [% END %]
 [% END -%]
 [% MACRO render_observation_log_comments(obs_summary, obs_comments, num_columns, rowclass) BLOCK %]
-    [% IF ! obs_comments.empty %]
+    [% FOREACH comment IN obs_comments %]
         <tr class="[% rowclass %]">
             <td colspan="[% num_columns %]">
-                [% FOREACH comment IN obs_comments %]
-                    <span class="[% obs_summary.status_class.item(comment.status) %]">
-                        [% comment.date.strftime('%F %T') | html %] UT /
-                        [% comment.author.name | html %]:
-                        [% FOREACH line IN comment.text.split("\n") %]
-                            [% line | html %]
-                            [% IF ! loop.last %]<br />[% END %]
-                        [% END %]
-                    </span>
-                    [% IF ! loop.last %]<br />[% END %]
-                [% END %]
+                <span class="[% obs_summary.status_class.item(comment.status) %]">
+                    [% comment.date.strftime('%F %T') | html %] UT /
+                    [% comment.author.name | html %]:
+                    [% FOREACH line IN comment.text.split("\n") %]
+                        [% line | html %]
+                        [% IF ! loop.last %]<br />[% END %]
+                    [% END %]
+                </span>
             </td>
         </tr>
     [% END %]
