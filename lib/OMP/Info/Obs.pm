@@ -347,7 +347,11 @@ sub subsystems_tiny {
   # For consistency with 'subsystems', return a copy of this object
   # if there is no available subsystem information.
   my $subsystems = $self->_subsys_tiny();
-  return $self->copy() unless defined $subsystems and scalar @$subsystems;
+  unless (defined $subsystems and scalar @$subsystems) {
+      my $obs = $self->copy();
+      return [$obs] unless wantarray;
+      return $obs;
+  }
 
   my @obs = ();
   foreach my $subsystem (@$subsystems) {
