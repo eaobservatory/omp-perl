@@ -347,7 +347,11 @@ sub subsystems_tiny {
   # For consistency with 'subsystems', return a copy of this object
   # if there is no available subsystem information.
   my $subsystems = $self->_subsys_tiny();
-  return $self->copy() unless defined $subsystems and scalar @$subsystems;
+  unless (defined $subsystems and scalar @$subsystems) {
+      my $obs = $self->copy();
+      return [$obs] unless wantarray;
+      return $obs;
+  }
 
   my @obs = ();
   foreach my $subsystem (@$subsystems) {
@@ -2118,9 +2122,9 @@ sub _populate {
 
     # If we are not retaining headers, but SUBHEADERS are present,
     # store minimal subsystem information in the _subsys_tiny attribute.
-    if (exists $header->{'SUBHEADERS'}) {
+    my $idkey = $self->subsystem_idkey();
+    if (defined $idkey and exists $header->{'SUBHEADERS'}) {
       # Apply same subsystem grouping logic as main "subsystems" method.
-      my $idkey = $self->subsystem_idkey();
       my %subsys;
       my @suborder;
       foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
