@@ -1089,36 +1089,6 @@ sub nearest_mult {
     return nint($value / $mult) * $mult;
 }
 
-=back
-
-=head2 References
-
-=over 4
-
-=item B<hashref_keys_size>
-
-Returns the number of keys in a given hash reference; returns nothing
-if the reference is undefined or is not actually a reference.
-
-  print "given hash ref is undef, empty, or not a reference at all"
-    unless OMP::General->hashref_keys_size( $some_hash_ref );
-
-=back
-
-=cut
-
-sub hashref_keys_size {
-  my ( $self, $r ) = @_;
-  return unless defined $r and ref $r ;
-  return scalar keys %{ $r };
-}
-
-=pod
-
-=head2 Unit Conversion
-
-=over 4
-
 =item B<rot13>
 
 Given a list of strings, returns list of ROT-13 obfuscated strings.
@@ -1138,6 +1108,28 @@ sub rot13 {
       and tr/A-Za-z/N-ZA-Mn-za-m/;
   }
   return @in;
+}
+
+=back
+
+=head2 References
+
+=over 4
+
+=item B<hashref_keys_size>
+
+Returns the number of keys in a given hash reference; returns nothing
+if the reference is undefined or is not actually a reference.
+
+  print "given hash ref is undef, empty, or not a reference at all"
+    unless OMP::General->hashref_keys_size( $some_hash_ref );
+
+=cut
+
+sub hashref_keys_size {
+  my ( $self, $r ) = @_;
+  return unless defined $r and ref $r ;
+  return scalar keys %{ $r };
 }
 
 =back
