@@ -2122,9 +2122,9 @@ sub _populate {
 
     # If we are not retaining headers, but SUBHEADERS are present,
     # store minimal subsystem information in the _subsys_tiny attribute.
-    if (exists $header->{'SUBHEADERS'}) {
+    my $idkey = $self->subsystem_idkey();
+    if (defined $idkey and exists $header->{'SUBHEADERS'}) {
       # Apply same subsystem grouping logic as main "subsystems" method.
-      my $idkey = $self->subsystem_idkey();
       my %subsys;
       my @suborder;
       foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
