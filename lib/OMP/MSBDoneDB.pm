@@ -45,6 +45,7 @@ use 5.006;
 use warnings;
 use strict;
 
+use Astro::WaveBand;
 use Carp;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :done /;
@@ -945,7 +946,8 @@ sub _reorganize_msb_done {
         title => $row->{title},
         checksum => $row->{checksum},
         target => $row->{target},
-        waveband => $row->{waveband},
+        wavebands => $self->_construct_waveband_objects(
+            $row->{'instrument'}, $row->{'waveband'}),
         instrument => $row->{instrument},
         projectid => $row->{projectid},
         nrepeats => 0, # initial value
@@ -967,6 +969,55 @@ sub _reorganize_msb_done {
   }
 
   return \%msbs;
+}
+
+sub _construct_waveband_objects {
+    my $self = shift;
+    my $instrument_spec = shift;
+    my $waveband_spec = shift;
+
+    my @instruments = split '/', $instrument_spec;
+    my @wavebands = split '/', $waveband_spec;
+
+    # In general if there are multiple instruments we can't
+    # tell which is associated with which waveband, so only
+    # define $instrument if we only have one.
+    my $instrument = (1 == scalar @instruments) ? $instruments[0] : undef;
+
+    my @objects = ();
+    foreach my $wb (@wavebands) {
+        # The database does not specify the "unit" of the waveband,
+        # so attempt to make a guess.
+        my $unit;
+        unless ($wb =~ /^[0-9\.E]*$/) {
+            # Value is not a number: guess it is a filter.
+            $unit = 'Filter';
+        }
+        elsif ($wb eq '850' or $wb eq '450') {
+            # 850 or 450 could be a SCUBA-2 filter.
+            $unit = 'Filter';
+        }
+        elsif ($wb > 1.0e9) {
+            # Guess frequency.
+            $unit = 'Frequency';
+        }
+        else {
+            # Otherwise wavelength?
+            $unit = 'Wavelength';
+        }
+
+        my %opt = ($unit => $wb);
+        $opt{'Instrument'} = $instrument if defined $instrument;
+        my $object = Astro::WaveBand->new(%opt);
+
+        # If we did not have a (unique) instrument, at least set the
+        # "natural_unit" to match what was in the database.
+        $object->natural_unit(lc $unit) unless defined $instrument;
+
+        push @objects, $object;
+    }
+
+    return \@objects;
 }
 
 =back

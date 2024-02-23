@@ -1127,7 +1127,7 @@ sub astext {
       $str .= "  $proj\n";
       for my $msb (@{$msbs->{$proj}}) {
           $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
-                          $msb->wavebands, $msb->title). "\n";
+                          $msb->waveband, $msb->title). "\n";
       }
   }
   $str .= "\n";

@@ -159,20 +159,24 @@
 [% MACRO render_nr_msb_summary(night_report) BLOCK %]
     <h2>MSB summary</h2>
 
-    <table class="sum_table" cellspacing="0" width="600">
+    <table class="sum_table" cellspacing="0" width="800">
         [% FOREACH project IN night_report.msbs %]
             <tr class="sum_other">
                 <td><a href="/cgi-bin/msbhist.pl?project=[% project.key | uri %]" class="link_dark">[% project.key | html %]</a></td>
                 <td>Name</td>
                 <td>Waveband</td>
                 <td>Instrument</td>
-                <td>N&nbsp;Repeats</td>
+                <td>Repeats</td>
             </tr>
             [% FOREACH msb IN project.value %]
                 <tr class="row_a">
                     <td>&nbsp;</td>
                     <td>[% msb.title | html %]</td>
-                    <td>[% msb.wavebands | html %]</td>
+                    <td>
+                        [% FOR waveband IN msb.wavebands %]
+                            [% waveband.natural({format => 1}) | html %][% IF ! loop.last %],[% END %]
+                        [% END %]
+                    </td>
                     <td>[% msb.instruments | html %]</td>
                     <td>[% msb.nrepeats | html %]</td>
                 </tr>
