@@ -119,6 +119,8 @@ sub nightlog {
 
   my %return;
 
+  $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+
   $return{'_STRING'} = $return{'_STRING_LONG'} = "Time gap: ";
 
   if( $self->status == OMP__TIMEGAP_INSTRUMENT ) {

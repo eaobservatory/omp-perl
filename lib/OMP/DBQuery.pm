@@ -62,6 +62,9 @@ returns the object.
 
 Throws DBMalformedQuery exception if the XML is not valid.
 
+As an alternative, currently intended for debugging, the
+query can be specified via a hashref "HASH" instead of XML.
+
 =cut
 
 sub new {
@@ -72,7 +75,7 @@ sub new {
 
   my %args = @_;
 
-  my ($parser, $tree);
+  my ($parser, $tree, $givenhash);
   if (exists $args{XML}) {
     # Now convert XML to parse tree
     $parser = new XML::LibXML;
@@ -80,6 +83,10 @@ sub new {
     $tree = eval { $parser->parse_string( $args{XML} ) };
     throw OMP::Error::DBMalformedQuery("Error parsing XML query [$args{XML}] from: $@")
       if $@;
+  } elsif (exists $args{'HASH'}) {
+    $givenhash = $args{'HASH'};
+    throw OMP::Error::DBMalformedQuery("Given HASH argument is not a hashref")
+      unless 'HASH' eq ref $givenhash;
   } else {
     # Nothing of use
     return undef;
@@ -90,6 +97,7 @@ sub new {
            Tree => $tree,
            QHash => {},
            Constraints => undef,
+           GivenHash => $givenhash,
           };
 
   # and create the object
@@ -169,6 +177,19 @@ sub _tree {
   return $self->{Tree};
 }
 
+=item B<_given_hash>
+
+Retrieves or sets an explicit query hash, possibly given as
+constructor argument C<HASH>.
+
+=cut
+
+sub _given_hash {
+  my $self = shift;
+  if (@_) {$self->{'GivenHash'} = shift;}
+  return $self->{'GivenHash'};
+}
+
 =item B<query_hash>
 
 Retrieve query in the form of a perl hash. Entries are either hashes
@@ -243,7 +264,17 @@ This method is also invoked via a stringification overload.
 
 sub stringify {
   my $self = shift;
-  $self->_tree->toString;
+
+  my $tree = $self->_tree;
+  return $tree->toString if defined $tree;
+
+  my $givenhash = $self->_given_hash;
+  if (defined $givenhash) {
+    require Data::Dumper;
+    return Data::Dumper->Dump([$givenhash], ['HASH']);
+  }
+
+  return 'UNDEFINED';
 }
 
 =begin __PRIVATE__METHODS__
@@ -453,17 +484,27 @@ Result is stored in C<query_hash>.
 
 sub _convert_to_perl {
   my $self = shift;
+
+  my %query;
   my $tree = $self->_tree;
+  if (defined $tree) {
+    my $rootelement = $self->_root_element();
 
-  my $rootelement = $self->_root_element();
+    # Get the root element
+    my @msbquery = $tree->findnodes($rootelement);
+    throw OMP::Error::MSBMalformedQuery("Could not find <$rootelement> element")
+      unless @msbquery == 1;
+    my $msbquery = $msbquery[0];
 
-  # Get the root element
-  my @msbquery = $tree->findnodes($rootelement);
-  throw OMP::Error::MSBMalformedQuery("Could not find <$rootelement> element")
-    unless @msbquery == 1;
-  my $msbquery = $msbquery[0];
+    %query = $self->_convert_elem_to_perl($msbquery);
+  }
+  else {
+    my $givenhash = $self->_given_hash;
+    throw OMP::Error::MSBMalformedQuery("Query has neither XML nor given HASH")
+      unless defined $givenhash;
 
-  my %query = $self->_convert_elem_to_perl($msbquery);
+    %query = $self->_process_given_hash($givenhash);
+  }
 
   # Store it before post-processing
   $self->raw_query_hash( { %query } );
@@ -478,6 +519,14 @@ sub _convert_to_perl {
 #  use Data::Dumper;
 #  print STDERR Dumper(\%query);
 }
+
+=item B<_convert_elem_to_perl>
+
+Convert parsed XML element to intermediate hash representation.
+
+    my %query = $self->_convert_elem_to_perl($element);
+
+=cut
 
 sub _convert_elem_to_perl {
   my $self = shift;
@@ -637,6 +686,37 @@ sub _add_text_to_hash {
   $hash->{_attr} = {} unless exists $hash->{_attr};
   $hash->{_attr}->{$key} = $attr if defined $attr;
 
+}
+
+=item B<_process_given_hash>
+
+Process an explicitly given query hash to produce a similar intermediate
+representation as C<_convert_elem_to_perl> would do.
+
+    my %query = $self->_process_given_hash($hashref);
+
+B<NOTE:> currently a placeholder implementation which just promotes
+scalar values to single-element arrays.  This method should be developed
+to help construct more possible queries.
+
+=cut
+
+sub _process_given_hash {
+  my $self = shift;
+  my $givenhash = shift;
+
+  my %query = ();
+
+  while (my ($key, $value) = each %$givenhash) {
+    if (ref $value) {
+      $query{$key} = $value;
+    }
+    else {
+      $query{$key} = [$value];
+    }
+  }
+
+  return %query;
 }
 
 =item B<_post_process_hash>

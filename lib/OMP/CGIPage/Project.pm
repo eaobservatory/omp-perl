@@ -1037,7 +1037,7 @@ sub translate_msb {
     return $self->_write_forbidden() unless $self->auth->is_staff;
 
     die 'No valid checksum specified'
-        unless $self->decoded_url_param('checksum') =~ /^([0-9a-f]+)$/a;
+        unless $self->decoded_url_param('checksum') =~ /^([0-9a-f]+[OAS]*)$/a;
     my $checksum = $1;
 
     # Import OMP::Translator here because CGI scripts using this method will

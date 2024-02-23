@@ -36,6 +36,7 @@ use JAC::Setup qw/hdrtrans/;
 use Carp;
 use OMP::Range;
 use OMP::DateTools;
+use OMP::Display;
 use OMP::General;
 use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
@@ -115,10 +116,15 @@ sub new {
   # translate the fits header to generic
   my %args = @_;
 
-  $obs->_populate()
-    if ( exists $args{'fits'}    && $args{'fits'}    )
-    || ( exists $args{'hdrhash'} && $args{'hdrhash'} )
-    ;
+  if ((exists $args{'fits'} && $args{'fits'})
+      || (exists $args{'hdrhash'} && $args{'hdrhash'})) {
+    $obs->_populate();
+  }
+  elsif (exists $args{'generichash'} && $args{'generichash'}) {
+    throw OMP::Error::BadArgs('Generic hash must be a HASH reference')
+      unless 'HASH' eq ref $args{'generichash'};
+    $obs->_populate_basic_from_generic($args{'generichash'});
+  }
 
   return $obs;
 }
@@ -228,6 +234,9 @@ distinct from the primary object.
 
 Subsytems are determined by looking at the C<subsystem_idkey> in the FITS header.
 
+B<NOTE:> this method can only be used if FITS headers have been retained
+(e.g. if the object was constructed with C<retainhdr> set).
+
 =cut
 
 sub subsystems {
@@ -313,6 +322,49 @@ sub subsystems {
     push(@obs, $obs);
   }
 
+  return \@obs unless wantarray;
+  return @obs;
+}
+
+=item B<subsystems_tiny>
+
+Return C<OMP::Info::Obs> objects representing the subsystems present,
+via 'tiny' subsystem differences stored in the object.
+
+B<WARNING:> this method is currently intended only for display purposes.
+Where reliably accurate information is desired, C<subsystems> should
+be used instead.
+
+B<NOTE:> this method can only be used if the C<_subsys_tiny> has been
+set up, i.e. if the object was constructed without C<retainhdr>.
+Otherwise the main C<subsystems> method should be used.
+
+=cut
+
+sub subsystems_tiny {
+  my $self = shift;
+
+  # For consistency with 'subsystems', return a copy of this object
+  # if there is no available subsystem information.
+  my $subsystems = $self->_subsys_tiny();
+  return $self->copy() unless defined $subsystems and scalar @$subsystems;
+
+  my @obs = ();
+  foreach my $subsystem (@$subsystems) {
+    my $obs = $self->copy();
+    $obs->{$_} = $subsystem->{$_}
+      foreach grep {not /^_/} keys %$subsystem;
+
+    my @obsidss = $subsystem->obsidss;
+    $obs->filename([$self->subsystem_filenames($obsidss[0])])
+      if 1 == scalar @obsidss;
+
+    delete $obs->{$_} foreach qw/_subsys_tiny _SUBSYS_FILES wcs/;
+
+    push @obs, $obs;
+  }
+
+  return \@obs unless wantarray;
   return @obs;
 }
 
@@ -441,6 +493,7 @@ Create the accessor methods from a signature of their contents.
 
 __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               _hdrhash => '%',
+                              _subsys_tiny => '@OMP::Info::Obs',
 
                               airmass => '$',
                               airmass_start => '$',
@@ -499,9 +552,11 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               shifttype => '$',
                               slitangle => '$',
                               slitname => '$',
+                              spectrum_number => '$',
                               speed => '$',
                               standard => '$',
                               startobs => 'Time::Piece',
+                              subsystem_number => '$',
                               switch_mode => '$',
                               target => '$',
                               tau => '$',
@@ -838,8 +893,8 @@ sub summary {
       next unless defined $summary{$key};
 
       # Create XML segment
-      $xml .= "<$key>$summary{$key}</$key>\n";
-
+      $xml .= sprintf "<$key>%s</$key>\n",
+          OMP::Display::escape_entity($summary{$key});
     }
     $xml .= "</SpObsSummary>\n";
     return $xml;
@@ -981,10 +1036,10 @@ sub nightlog {
     $form{'obj-pad-length'} = $form{'obj-length'} + 3;
 
     $return{'Run'} = $self->runnr;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Obsmode'} = $self->mode;
-    $return{'Project ID'} = $self->projectid;
-    $return{'Object'} = $self->target;
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Mode'} = $self->mode;
+    $return{'Project'} = $self->projectid;
+    $return{'Source'} = $self->target;
     $return{'Tau225'} = sprintf( "%.$form{'tau-dec'}f", $self->tau);
     $return{'Seeing'} = sprintf( "%.$form{'seeing-dec'}f", $self->seeing);
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
@@ -1006,12 +1061,12 @@ sub nightlog {
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
-        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
+        $return{'_ORDER'} = ["Run", "UT", "Mode", "Project", "Source", "Filter", "Tau225", "Seeing", "Pol In?", "FTS In?", "Shift"];
         @short_val = map $return{$_} , @{$return{'_ORDER'}};
         $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
         $short_form_head ="%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %6s  %6s  %7s %7s %-7s";
     } else {
-        $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
+        $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
         push @short_val , $return{'Bolometers'}[0] ;
@@ -1054,9 +1109,9 @@ sub nightlog {
   }
   elsif( $instrument =~ /^(rxh3)$/i ) {
     $return{'Run'} = $self->runnr;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Obsmode'} = $self->mode;
-    $return{'Project ID'} = $self->projectid;
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Mode'} = $self->mode;
+    $return{'Project'} = $self->projectid;
     $return{'Frequency'} = $self->rest_frequency() // '';
     $return{'Num. freq.'} = $self->number_of_frequencies() // '';
     my $file = $self->simple_filename() // '';
@@ -1066,16 +1121,16 @@ sub nightlog {
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
     $return{'_ORDER'} = [
-        'Run', 'UT time', 'Obsmode', 'Project ID', 'Frequency', 'Num. freq.', 'File', 'Shift',
+        'Run', 'UT', 'Mode', 'Project', 'Frequency', 'Num. freq.', 'File', 'Shift',
     ];
 
-    $return{'_STRING_HEADER'} = 'Run  UT start              Mode      Project  Frequency  Num. freq.             File  Shift  ';
+    $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.             File  Shift  ';
     $return{'_STRING'} = sprintf(
         '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s  %-7s',
         $return{'Run'},
-        $return{'UT time'},
-        $return{'Obsmode'},
-        $return{'Project ID'},
+        $return{'UT'},
+        $return{'Mode'},
+        $return{'Project'},
         $return{'Frequency'},
         $return{'Num. freq.'},
         $return{'File'},
@@ -1095,14 +1150,13 @@ sub nightlog {
     $return{'UT'} = $self->startobs->hms;
     $return{'Mode'} = uc($self->mode);
     $return{'Source'} = $self->target;
-    $return{'Cycle Length'} = ( defined( $self->cycle_length ) ?
-                                sprintf( "%3d", $self->cycle_length ) :
-                                ' - ' );
-    $return{'Number of Cycles'} = $self->number_of_cycles;
-    $return{'Frequency'} = $self->rest_frequency;
+    $return{'Subsystem'} = $self->subsystem_number;
+    $return{'Spectrum'} = $self->spectrum_number;
+    $return{'Species'} = (defined $self->waveband) ? $self->waveband->species : 'Undefined';
+    $return{'Transition'} = (defined $self->waveband) ? $self->waveband->transition : 'Undefined';
 
     # Convert the rest frequency into GHz for display purposes.
-    $return{'Frequency'} /= 1000000000;
+    $return{'Frequency'} = sprintf '%7.3f', $self->rest_frequency / 1000000000;
 
     $return{'Velocity'} = $self->velocity;
     $return{'Velsys'} = $self->velsys;
@@ -1123,24 +1177,23 @@ sub nightlog {
       $velocity_formatted = sprintf('%5s/%6s', $return{'Velocity'}, $return{'Velsys'});
     }
 
-    $return{'Project ID'} = $self->projectid;
+    $return{'Project'} = $self->projectid;
     $return{'Bandwidth Mode'} = $self->bandwidth_mode;
     $return{'Shift'} = defined($self->shifttype) ? $self->shifttype : '?';
 
-    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project ID", "Source", "Cycle Length", "Number of Cycles",
-                          "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
+    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project", "Source", "Subsystem", "Spectrum",
+                          "Species", "Transition", "Frequency", "Velocity", "Velsys", "Bandwidth Mode", "Shift" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys      BW Mode Shift  ";
-#    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
+    $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
     $return{'_STRING'} =
-      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %12s %12s %-7s",
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7s %12s %12s %-7s",
         $return{'Run'},
         $return{'UT'},
         $return{'Mode'},
-        $return{'Project ID'},
+        $return{'Project'},
         $return{'Source'},
-        $return{'Cycle Length'},
-        $return{'Number of Cycles'},
+        $return{'Subsystem'},
+        $return{'Spectrum'},
         $return{'Frequency'},
         $velocity_formatted,
         $return{'Bandwidth Mode'},
@@ -1157,32 +1210,32 @@ sub nightlog {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = defined( $self->group ) ? $self->group : 0;
     $return{'Tile'} = defined( $self->tile ) ? $self->tile : 0;
-    $return{'Object'} = defined( $self->target ) ? $self->target : '';
+    $return{'Source'} = defined( $self->target ) ? $self->target : '';
     $return{'Observation type'} = defined( $self->type ) ? $self->type : '';
     $return{'Waveband'} = defined( $self->filter ) ? $self->filter : '';
     $return{'RA offset'} = defined( $self->raoff ) ? sprintf( "%.3f", $self->raoff ) : 0;
     $return{'Dec offset'} = defined( $self->decoff ) ? sprintf( "%.3f", $self->decoff ) : 0;
-    $return{'UT time'} = defined( $self->startobs ) ? $self->startobs->hms : '';
+    $return{'UT'} = defined( $self->startobs ) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined( $self->airmass ) ? sprintf( "%.2f", $self->airmass ) : 0;
     $return{'Exposure time'} = defined( $self->duration ) ? sprintf( "%.2f", $self->duration ) : 0;
     $return{'Number of coadds'} = defined( $self->number_of_coadds ) ? sprintf( "%d", $self->number_of_coadds ) : 0;
     $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
-    $return{'Project ID'} = defined( $self->projectid ) ? $self->projectid : '';
+    $return{'Project'} = defined( $self->projectid ) ? $self->projectid : '';
     $return{'Hour Angle'} = defined( $self->coords ) ? $self->coords->ha( "s" ) : '';
-    $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
+    $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project", "UT", "Source",
                           "Observation type", "Exposure time", "Number of coadds", "Waveband",
                           "RA offset", "Dec offset", "Airmass", "Hour Angle", "DR Recipe" ];
 
                                 #.... .... .... ....5....0....5.
-    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID   UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
+    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project      UT Start          Source     Type  ExpT  Filt     Offsets   AM Recipe";
     $return{'_STRING'} =
       sprintf "%4d %4d %4d ${ukirt_proj_format} %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s",
         $return{'Observation'},
         $return{'Group'},
         $return{'Tile'},
-        $return{'Project ID'},
-        $return{'UT time'},
-        $return{'Object'},
+        $return{'Project'},
+        $return{'UT'},
+        $return{'Source'},
         $return{'Observation type'},
         $return{'Exposure time'},
         $return{'Waveband'},
@@ -1198,7 +1251,7 @@ sub nightlog {
 
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = defined($self->group) ? $self->group : 0;
-    $return{'Object'} = defined($self->target) ? $self->target : '';
+    $return{'Source'} = defined($self->target) ? $self->target : '';
     $return{'Observation type'} = defined($self->type) ? $self->type : '';
     if (defined($self->waveband())) {
       $return{'Waveband'} = defined($self->waveband->filter) ? $self->waveband->filter : ( defined( $self->waveband->wavelength ) ? sprintf("%.2f", $self->waveband->wavelength) : '' );
@@ -1208,24 +1261,24 @@ sub nightlog {
     }
     $return{'RA offset'} = defined($self->raoff) ? sprintf( "%.3f", $self->raoff) : 0;
     $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
-    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined($self->airmass) ? sprintf( "%.2f", $self->airmass) : 0;
     $return{'Exposure time'} = defined($self->duration) ? sprintf( "%.2f",$self->duration ) : 0;
     $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
-    $return{'Project ID'} = $self->projectid;
-    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "UT time", "Object",
+    $return{'Project'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project", "UT", "Source",
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
 
                                 #.... .... ....5....0....5.
-    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID      UT Start      Object     Type   ExpT Wvbnd     Offsets    AM Recipe";
+    $return{'_STRING_HEADER'} = " Obs  Grp  Project         UT Start      Source     Type   ExpT Wvbnd     Offsets    AM Recipe";
     $return{'_STRING'} =
       sprintf "%4d %4d ${ukirt_proj_format} %8.8s %11.11s %8.8s %6.2f %5.5s %5.1f/%5.1f  %4.2f %-22.22s",
         $return{'Observation'},
         $return{'Group'},
-        $return{'Project ID'},
-        $return{'UT time'},
-        $return{'Object'},
+        $return{'Project'},
+        $return{'UT'},
+        $return{'Source'},
         $return{'Observation type'},
         $return{'Exposure time'},
         $return{'Waveband'},
@@ -1365,7 +1418,7 @@ sub nightlog {
     $return{Mode} = uc($self->mode);
 
     $return{_ORDER} = [ "Run", "UT", "Mode", "ProjectID", "Source" ];
-    $return{_STRING_HEADER} = "Run  UT start              Mode     Project          Source";
+    $return{_STRING_HEADER} = "Run  UT                    Mode     Project          Source";
     $return{_STRING} =
       sprintf "%3s  %8s  %16.16s %11s %15s",
         $return{'Run'},
@@ -1392,6 +1445,7 @@ sub nightlog {
     }
   }
 
+  return \%return unless wantarray;
   return %return;
 
 }
@@ -1714,6 +1768,141 @@ sub _defined_fits {
     || defined $self->{'_hdrhash'};
 }
 
+=item B<_populate_basic_from_generic>
+
+Populate basic parts of the object using information from a hash
+of generic headers.
+
+  $obs->_populate_basic_from_generic(\%generic);
+
+=cut
+
+sub _populate_basic_from_generic {
+  my $self = shift;
+  my $generic = shift;
+
+  $self->projectid( $generic->{PROJECT} ) if exists $generic->{'PROJECT'};
+  $self->checksum( $generic->{MSBID} ) if exists $generic->{'MSBID'};
+  $self->msbtid( $generic->{MSB_TRANSACTION_ID} ) if exists $generic->{'MSB_TRANSACTION_ID'};
+  $self->instrument( uc $generic->{INSTRUMENT} ) if exists $generic->{'INSTRUMENT'};
+
+  $self->duration( $generic->{EXPOSURE_TIME} ) if exists $generic->{'EXPOSURE_TIME'};
+  $self->number_of_coadds( $generic->{NUMBER_OF_COADDS} ) if exists $generic->{'NUMBER_OF_COADDS'};
+  $self->number_of_frequencies($generic->{'NUMBER_OF_FREQUENCIES'}) if exists $generic->{'NUMBER_OF_FREQUENCIES'};
+  $self->disperser( $generic->{GRATING_NAME} ) if exists $generic->{'GRATING_NAME'};
+  $self->type( $generic->{OBSERVATION_TYPE} ) if exists $generic->{'OBSERVATION_TYPE'};
+  if (exists $generic->{'TELESCOPE'} and $generic->{TELESCOPE} =~ /^(\w+)/) {
+    $self->telescope( uc($1) );
+  }
+  $self->filename( $generic->{FILENAME} ) if exists $generic->{'FILENAME'};
+  $self->inst_dhs( $generic->{INST_DHS} ) if exists $generic->{'INST_DHS'};
+  $self->subsystem_idkey( $generic->{SUBSYSTEM_IDKEY} ) if exists $generic->{'SUBSYSTEM_IDKEY'};
+  $self->subsystem_number($generic->{'SUBSYSTEM_NUMBER'}) if exists $generic->{'SUBSYSTEM_NUMBER'};
+  $self->spectrum_number($generic->{'SPECTRUM_NUMBER'}) if exists $generic->{'SPECTRUM_NUMBER'};
+
+  # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
+  if (! defined( $generic->{SHIFT_TYPE} ) || $generic->{SHIFT_TYPE} eq '') {
+      $self->shifttype('UNKNOWN');
+  } else {
+      $self->shifttype( $generic->{SHIFT_TYPE} );
+  }
+
+  $self->remote( $generic->{REMOTE} ) if exists $generic->{'REMOTE'};
+
+  # Build the Astro::WaveBand object
+  if ( exists $generic->{'INSTRUMENT'} &&
+       defined( $generic->{GRATING_WAVELENGTH} ) &&
+       length( $generic->{GRATING_WAVELENGTH} ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Wavelength => $generic->{GRATING_WAVELENGTH},
+                                           Instrument => $generic->{INSTRUMENT} ) );
+  } elsif ( exists $generic->{'INSTRUMENT'} &&
+            defined( $generic->{FILTER} ) &&
+            length( $generic->{FILTER} ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Filter     => $generic->{FILTER},
+                                           Instrument => $generic->{INSTRUMENT} ) );
+  } elsif (exists $generic->{'INSTRUMENT'} &&
+           defined( $generic->{'REST_FREQUENCY'} ) &&
+           length( $generic->{'REST_FREQUENCY'} ) != 0 ) {
+    $self->waveband(Astro::WaveBand->new(
+        Frequency => $generic->{'REST_FREQUENCY'},
+        Instrument => $generic->{'INSTRUMENT'},
+        Species => ($generic->{'SPECIES'} // 'Unknown'),
+        Transition => ($generic->{'TRANSITION'} // 'Unknown')));
+  }
+
+  # Build the Time::Piece startobs and endobs objects
+  if(exists $generic->{'UTSTART'} and length($generic->{UTSTART} . "") != 0) {
+    my $startobs = OMP::DateTools->parse_date($generic->{UTSTART});
+    $self->startobs( $startobs );
+  }
+  if(exists $generic->{'UTEND'} and length($generic->{UTEND} . "") != 0) {
+    my $endobs = OMP::DateTools->parse_date($generic->{UTEND});
+    $self->endobs( $endobs );
+  }
+
+  # Easy object modifiers (some of which are used later in the method
+  $self->runnr( $generic->{OBSERVATION_NUMBER} ) if exists $generic->{'OBSERVATION_NUMBER'};
+  $self->utdate( $generic->{UTDATE} ) if exists $generic->{'UTDATE'};
+  $self->speed( $generic->{SPEED_GAIN} ) if exists $generic->{'SPEED_GAIN'};
+  if( defined $generic->{AIRMASS_START} ) {
+    if ( defined $generic->{AIRMASS_END} ) {
+      $self->airmass( ( $generic->{AIRMASS_START} + $generic->{AIRMASS_END} ) / 2 );
+    } else {
+      $self->airmass( $generic->{AIRMASS_START} );
+    }
+  }
+  $self->airmass_start( $generic->{AIRMASS_START} ) if exists $generic->{'AIRMASS_START'};
+  $self->airmass_end( $generic->{AIRMASS_END} ) if exists $generic->{'AIRMASS_END'};
+  $self->rows( $generic->{Y_DIM} ) if exists $generic->{'Y_DIM'};
+  $self->columns( $generic->{X_DIM} ) if exists $generic->{'X_DIM'};
+  $self->drrecipe( $generic->{DR_RECIPE} ) if exists $generic->{'DR_RECIPE'};
+  $self->group( $generic->{DR_GROUP} ) if exists $generic->{'DR_GROUP'};
+  $self->standard( $generic->{STANDARD} ) if exists $generic->{'STANDARD'};
+  $self->slitname( $generic->{SLIT_NAME} ) if exists $generic->{'SLIT_NAME'};
+  $self->slitangle( $generic->{SLIT_ANGLE} ) if exists $generic->{'SLIT_ANGLE'};
+  $self->raoff( $generic->{RA_TELESCOPE_OFFSET} ) if exists $generic->{'RA_TELESCOPE_OFFSET'};
+  $self->decoff( $generic->{DEC_TELESCOPE_OFFSET} ) if exists $generic->{'DEC_TELESCOPE_OFFSET'};
+  $self->grating( $generic->{GRATING_NAME} ) if exists $generic->{'GRATING_NAME'};
+  $self->order( $generic->{GRATING_ORDER} ) if exists $generic->{'GRATING_ORDER'};
+  $self->tau( $generic->{TAU} ) if exists $generic->{'TAU'};
+  $self->seeing( $generic->{SEEING} ) if exists $generic->{'SEEING'};
+  $self->bolometers( $generic->{BOLOMETERS} ) if exists $generic->{'BOLOMETERS'};
+  $self->velocity( $generic->{VELOCITY} ) if exists $generic->{'VELOCITY'};
+  $self->velsys( $generic->{SYSTEM_VELOCITY} ) if exists $generic->{'SYSTEM_VELOCITY'};
+  $self->nexp( $generic->{NUMBER_OF_EXPOSURES} ) if exists $generic->{'NUMBER_OF_EXPOSURES'};
+  $self->chopthrow( $generic->{CHOP_THROW} ) if exists $generic->{'CHOP_THROW'};
+  $self->chopangle( $generic->{CHOP_ANGLE} ) if exists $generic->{'CHOP_ANGLE'};
+  $self->chopsystem( $generic->{CHOP_COORDINATE_SYSTEM} ) if exists $generic->{'CHOP_COORDINATE_SYSTEM'};
+  $self->chopfreq( $generic->{CHOP_FREQUENCY} ) if exists $generic->{'CHOP_FREQUENCY'};
+  $self->rest_frequency( $generic->{REST_FREQUENCY} ) if exists $generic->{'REST_FREQUENCY'};
+  $self->cycle_length( $generic->{CYCLE_LENGTH} ) if exists $generic->{'CYCLE_LENGTH'};
+  $self->number_of_cycles( $generic->{NUMBER_OF_CYCLES} ) if exists $generic->{'NUMBER_OF_CYCLES'};
+  $self->backend( $generic->{BACKEND} ) if exists $generic->{'BACKEND'};
+  $self->bandwidth_mode( $generic->{BANDWIDTH_MODE} ) if exists $generic->{'BANDWIDTH_MODE'};
+  $self->filter( $generic->{FILTER} ) if exists $generic->{'FILTER'};
+  $self->camera( $generic->{CAMERA} ) if exists $generic->{'CAMERA'};
+  $self->camera_number( $generic->{CAMERA_NUMBER} ) if exists $generic->{'CAMERA_NUMBER'};
+  $self->pol( $generic->{POLARIMETRY} ) if exists $generic->{'POLARIMETRY'};
+  if( defined( $generic->{POLARIMETER} ) ) {
+    $self->pol_in( $generic->{POLARIMETER} ? 'T' : 'F' );
+  } else {
+    $self->pol_in( 'unknown' );
+  }
+  if (defined $generic->{'FOURIER_TRANSFORM_SPECTROMETER'}) {
+    $self->fts_in($generic->{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
+  }
+  else {
+    $self->fts_in('unknown');
+  }
+
+  $self->switch_mode( $generic->{SWITCH_MODE} ) if exists $generic->{'SWITCH_MODE'};
+  $self->ambient_temp( $generic->{AMBIENT_TEMPERATURE} ) if exists $generic->{'AMBIENT_TEMPERATURE'};
+  $self->humidity( $generic->{HUMIDITY} ) if exists $generic->{'HUMIDITY'};
+  $self->user_az_corr( $generic->{USER_AZIMUTH_CORRECTION} ) if exists $generic->{'USER_AZIMUTH_CORRECTION'};
+  $self->user_el_corr( $generic->{USER_ELEVATION_CORRECTION} ) if exists $generic->{'USER_ELEVATION_CORRECTION'};
+  $self->tile( $generic->{TILE_NUMBER} ) if exists $generic->{'TILE_NUMBER'};
+}
+
 =item B<_populate>
 
 Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
@@ -1732,114 +1921,11 @@ sub _populate {
   my $header = $self->hdrhash;
   return unless $header;
 
-  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header, frameset => $self->wcs);
+  my $translation_class = Astro::FITS::HdrTrans::determine_class($header, undef, 1);
+  my %generic_header = $translation_class->translate_from_FITS($header, frameset => $self->wcs);
   return unless keys %generic_header;
 
-  $self->projectid( $generic_header{PROJECT} );
-  $self->checksum( $generic_header{MSBID} );
-  $self->msbtid( $generic_header{MSB_TRANSACTION_ID} );
-  $self->instrument( uc( $generic_header{INSTRUMENT} ) );
-
-  $self->duration( $generic_header{EXPOSURE_TIME} );
-  $self->number_of_coadds( $generic_header{NUMBER_OF_COADDS} );
-  $self->number_of_frequencies($generic_header{'NUMBER_OF_FREQUENCIES'});
-  $self->disperser( $generic_header{GRATING_NAME} );
-  $self->type( $generic_header{OBSERVATION_TYPE} );
-  $generic_header{TELESCOPE} =~ /^(\w+)/;
-  $self->telescope( uc($1) );
-  $self->filename( $generic_header{FILENAME} );
-  $self->inst_dhs( $generic_header{INST_DHS} );
-  $self->subsystem_idkey( $generic_header{SUBSYSTEM_IDKEY} );
-
-  # Special case: if SHIFT_TYPE is undefined or the empty string, set it to UNKNOWN.
-  if (! defined( $generic_header{SHIFT_TYPE} ) || $generic_header{SHIFT_TYPE} eq '') {
-      $self->shifttype('UNKNOWN');
-  } else {
-      $self->shifttype( $generic_header{SHIFT_TYPE} );
-  }
-
-  $self->remote( $generic_header{REMOTE} );
-
-  # Build the Astro::WaveBand object
-  if ( defined( $generic_header{GRATING_WAVELENGTH} ) &&
-       length( $generic_header{GRATING_WAVELENGTH} ) != 0 ) {
-    $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{GRATING_WAVELENGTH},
-                                           Instrument => $generic_header{INSTRUMENT} ) );
-  } elsif ( defined( $generic_header{FILTER} ) &&
-            length( $generic_header{FILTER} ) != 0 ) {
-    $self->waveband( new Astro::WaveBand( Filter     => $generic_header{FILTER},
-                                           Instrument => $generic_header{INSTRUMENT} ) );
-  }
-
-  # Build the Time::Piece startobs and endobs objects
-  if(length($generic_header{UTSTART} . "") != 0) {
-    my $startobs = OMP::DateTools->parse_date($generic_header{UTSTART});
-    $self->startobs( $startobs );
-  }
-  if(length($generic_header{UTEND} . "") != 0) {
-    my $endobs = OMP::DateTools->parse_date($generic_header{UTEND});
-    $self->endobs( $endobs );
-  }
-
-  # Easy object modifiers (some of which are used later in the method
-  $self->runnr( $generic_header{OBSERVATION_NUMBER} );
-  $self->utdate( $generic_header{UTDATE} );
-  $self->speed( $generic_header{SPEED_GAIN} );
-  if( defined( $generic_header{AIRMASS_START} ) && defined( $generic_header{AIRMASS_END} ) ) {
-    $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
-  } else {
-    $self->airmass( $generic_header{AIRMASS_START} );
-  }
-  $self->airmass_start( $generic_header{AIRMASS_START} );
-  $self->airmass_end( $generic_header{AIRMASS_END} );
-  $self->rows( $generic_header{Y_DIM} );
-  $self->columns( $generic_header{X_DIM} );
-  $self->drrecipe( $generic_header{DR_RECIPE} );
-  $self->group( $generic_header{DR_GROUP} );
-  $self->standard( $generic_header{STANDARD} );
-  $self->slitname( $generic_header{SLIT_NAME} );
-  $self->slitangle( $generic_header{SLIT_ANGLE} );
-  $self->raoff( $generic_header{RA_TELESCOPE_OFFSET} );
-  $self->decoff( $generic_header{DEC_TELESCOPE_OFFSET} );
-  $self->grating( $generic_header{GRATING_NAME} );
-  $self->order( $generic_header{GRATING_ORDER} );
-  $self->tau( $generic_header{TAU} );
-  $self->seeing( $generic_header{SEEING} );
-  $self->bolometers( $generic_header{BOLOMETERS} );
-  $self->velocity( $generic_header{VELOCITY} );
-  $self->velsys( $generic_header{SYSTEM_VELOCITY} );
-  $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
-  $self->chopthrow( $generic_header{CHOP_THROW} );
-  $self->chopangle( $generic_header{CHOP_ANGLE} );
-  $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
-  $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
-  $self->rest_frequency( $generic_header{REST_FREQUENCY} );
-  $self->cycle_length( $generic_header{CYCLE_LENGTH} );
-  $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
-  $self->backend( $generic_header{BACKEND} );
-  $self->bandwidth_mode( $generic_header{BANDWIDTH_MODE} );
-  $self->filter( $generic_header{FILTER} );
-  $self->camera( $generic_header{CAMERA} );
-  $self->camera_number( $generic_header{CAMERA_NUMBER} );
-  $self->pol( $generic_header{POLARIMETRY} );
-  if( defined( $generic_header{POLARIMETER} ) ) {
-    $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
-  } else {
-    $self->pol_in( 'unknown' );
-  }
-  if (defined $generic_header{'FOURIER_TRANSFORM_SPECTROMETER'}) {
-    $self->fts_in($generic_header{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
-  }
-  else {
-    $self->fts_in('unknown');
-  }
-
-  $self->switch_mode( $generic_header{SWITCH_MODE} );
-  $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
-  $self->humidity( $generic_header{HUMIDITY} );
-  $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
-  $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
-  $self->tile( $generic_header{TILE_NUMBER} );
+  $self->_populate_basic_from_generic(\%generic_header);
 
   # The default calibration is simply the project ID. This will
   # ensure that all calibrations associated with a project
@@ -2029,8 +2115,64 @@ sub _populate {
   if( ! $self->retainhdr ) {
     $self->fits( undef );
     $self->hdrhash( undef );
-  }
 
+    # If we are not retaining headers, but SUBHEADERS are present,
+    # store minimal subsystem information in the _subsys_tiny attribute.
+    if (exists $header->{'SUBHEADERS'}) {
+      # Apply same subsystem grouping logic as main "subsystems" method.
+      my $idkey = $self->subsystem_idkey();
+      my %subsys;
+      my @suborder;
+      foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
+        my $subid = $subhdr->{$idkey};
+        unless (exists $subsys{$subid}) {
+          $subsys{$subid} = [];
+          push @suborder, $subid;
+        }
+        push @{$subsys{$subid}}, Astro::FITS::Header->new(Hash => $subhdr);
+      }
+
+      my @subsystems = ();
+      foreach my $subid (@suborder) {
+        my $subhdrs = $subsys{$subid};
+        my $merged = shift @$subhdrs;
+        ($merged, undef) = $merged->merge_primary(
+            {merge_unique => 1},
+            @$subhdrs) if scalar @$subhdrs;
+
+        # Now instead of splicing into the full header, translate just
+        # the subsystem-specific set of headers.
+        $merged->tiereturnsref(1);
+        tie my %mergedhdr, (ref $merged), $merged;
+        my %sub = $translation_class->translate_from_FITS(\%mergedhdr);
+
+        # Copy generic headers which are problematic not to have (e.g. waveband
+        # is not constructed without INSTRUMENT.)
+        foreach (qw/FILTER
+            GRATING_WAVELENGTH
+            INSTRUMENT
+            REST_FREQUENCY
+            SPECIES
+            TRANSITION
+            SHIFT_TYPE/) {
+          $sub{$_} = $generic_header{$_} unless (exists $sub{$_}) || ! (exists $generic_header{$_});
+        }
+
+        my $subsystem = $self->new(generichash => \%sub);
+
+        # Ensure obsidss is filled in.
+        my $key = "OBSERVATION_ID_SUBSYSTEM";
+        if (exists $sub{$key}) {
+          my @list = (ref $sub{$key} ? @{$sub{$key}} : $sub{$key});
+          $subsystem->obsidss(@list);
+        }
+
+        push @subsystems, $subsystem;
+      }
+
+      $self->_subsys_tiny(\@subsystems);
+    }
+  }
 }
 
 sub _backend_acsis_like {
