@@ -695,9 +695,24 @@ representation as C<_convert_elem_to_perl> would do.
 
     my %query = $self->_process_given_hash($hashref);
 
-B<NOTE:> currently a placeholder implementation which just promotes
-scalar values to single-element arrays.  This method should be developed
-to help construct more possible queries.
+B<NOTE:> currently a placeholder implementation which promotes
+scalar values to single-element arrays.  This method should be
+developed futher to help construct more possible queries.
+It ensures that there is an entry in C<_attr> for each key in
+in the given hash.  Values can be hashes including the
+following sets of keys:
+
+=over 4
+
+=item value, delta
+
+Moves the C<delta> parameter to the C<_attr> section.
+
+=item min, max
+
+Left as is.
+
+=back
 
 =cut
 
@@ -705,11 +720,27 @@ sub _process_given_hash {
   my $self = shift;
   my $givenhash = shift;
 
-  my %query = ();
+  my %query = (
+    _attr => (exists $givenhash->{'_attr'}) ? $givenhash->{'_attr'} : {},
+  );
 
-  while (my ($key, $value) = each %$givenhash) {
-    if (ref $value) {
+  foreach my $key (keys %$givenhash) {
+    next if $key eq '_attr';
+    $query{'_attr'}->{$key} = {} unless exists $query{'_attr'}->{$key};
+
+    my $value = $givenhash->{$key};
+    if ('ARRAY' eq ref $value) {
       $query{$key} = $value;
+    }
+    elsif ('HASH' eq ref $value) {
+      if (exists $value->{'value'} and exists $value->{'delta'}) {
+        $query{$key} = [$value->{'value'}];
+        $query{'_attr'}->{$key}->{delta} = $value->{'delta'};
+      }
+      else {
+        # Pass through representations such as {min => ..., max => ...}.
+        $query{$key} = $value;
+      }
     }
     else {
       $query{$key} = [$value];
