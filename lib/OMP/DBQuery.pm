@@ -42,7 +42,7 @@ our $DEFAULT_RESULT_COUNT = 500;
 
 # Hash of column names which are also MySQL reserved words - these must
 # be quoted in SQL queries.
-our %RESERVED_WORDS = map {$_ => 1} qw/condition/;
+our %RESERVED_WORDS = map {$_ => 1} qw/condition group/;
 
 # Overloading
 use overload '""' => "stringify";
