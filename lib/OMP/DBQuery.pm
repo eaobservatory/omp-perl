@@ -708,7 +708,23 @@ following sets of keys:
 
 Moves the C<delta> parameter to the C<_attr> section.
 
+=item boolean =E<gt> 0 | 1
+
+Converted to C<OMP::DBQuery::True> object.
+
+=item or =E<gt> \%subquery
+
+Converted to OR expresion.  (Key name is arbitrary.)
+
+=item not =E<gt> \%subquery
+
+Converted to NOT expresion.  (Key name is arbitrary.)
+
 =item min, max
+
+Left as is.
+
+=item null =E<gt> 0 | 1
 
 Left as is.
 
@@ -726,9 +742,26 @@ sub _process_given_hash {
 
   foreach my $key (keys %$givenhash) {
     next if $key eq '_attr';
+    my $value = $givenhash->{$key};
+
+    # Recognize recursive entries first, before ensuring _attr entry exists.
+    if ('HASH' eq ref $value) {
+        if (exists $value->{'or'}) {
+            $query{$key} = {
+                _JOIN => 'OR',
+                $self->_process_given_hash($value->{'or'})};
+            next;
+        }
+        elsif (exists $value->{'not'}) {
+            $query{$key} = {
+                _JOIN => 'AND', _FUNC => 'NOT',
+                $self->_process_given_hash($value->{'not'})};
+            next;
+        }
+    }
+
     $query{'_attr'}->{$key} = {} unless exists $query{'_attr'}->{$key};
 
-    my $value = $givenhash->{$key};
     if ('ARRAY' eq ref $value) {
       $query{$key} = $value;
     }
@@ -736,6 +769,9 @@ sub _process_given_hash {
       if (exists $value->{'value'} and exists $value->{'delta'}) {
         $query{$key} = [$value->{'value'}];
         $query{'_attr'}->{$key}->{delta} = $value->{'delta'};
+      }
+      elsif (exists $value->{'boolean'}) {
+        $query{$key} = OMP::DBQuery::True->new(true => $value->{'boolean'});
       }
       else {
         # Pass through representations such as {min => ..., max => ...}.
