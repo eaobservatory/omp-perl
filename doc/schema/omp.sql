@@ -180,6 +180,22 @@ CREATE TABLE `ompobslog` (
   KEY `idx_obsid` (`obsid`),
   FULLTEXT KEY `idx_ompobslog_commenttext` (`commenttext`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE `omppreview` (
+  `filename` varchar(80) NOT NULL,
+  `telescope` varchar(16) NOT NULL,
+  `date` datetime NOT NULL,
+  `instrument` varchar(16) NOT NULL,
+  `runnr` int(11) NOT NULL,
+  `group` tinyint(1) NOT NULL DEFAULT 0,
+  `subscan_number` int(11) DEFAULT NULL,
+  `subsystem_number` int(11) NOT NULL,
+  `suffix` varchar(16) NOT NULL,
+  `size` int(11) NOT NULL,
+  `filesize` int(11) NOT NULL,
+  `md5sum` varchar(40) NOT NULL,
+  `date_modified` datetime NOT NULL,
+  PRIMARY KEY (`filename`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompproj` (
   `projectid` varchar(32) NOT NULL,
   `pi` varchar(32) NOT NULL,
