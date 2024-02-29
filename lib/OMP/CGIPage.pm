@@ -496,6 +496,9 @@ sub render_template {
 
     my $templatecontext = Template::Context->new({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        VARIABLES => {
+            'create_counter' => sub {OMP::CGIPage::Counter->new(@_)},
+        },
     });
 
     $templatecontext->define_vmethod('hash', 'json', sub {
@@ -830,6 +833,35 @@ sub _write_project_choice {
 
 =back
 
+=cut
+
+package OMP::CGIPage::Counter;
+
+sub new {
+    my $class = shift;
+    my $value = shift // 0;
+
+    my $self = {
+        value => $value,
+    };
+
+    return bless $self, $class;
+}
+
+sub nextvalue {
+    my $self = shift;
+    return ++ $self->{'value'};
+}
+
+sub value {
+    my $self = shift;
+    return $self->{'value'};
+}
+
+1;
+
+__END__
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
@@ -855,10 +887,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;
-
-
-
