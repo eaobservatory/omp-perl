@@ -751,6 +751,27 @@ sub _write_error {
   return undef;
 }
 
+=item B<_write_not_found>
+
+Create a basic not-found error response.
+
+B<Note:> unlike the other error page methods, this does not
+call C<_write_http_header>, so does not include cookies,
+or render a full template.  As such it is more useful for
+resource-fetching scripts.
+
+=cut
+
+sub _write_not_found {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    print $q->header(-status => '404 Not Found', -type => 'text/plain', -charset => 'utf-8');
+    print '404 Not Found';
+
+    return undef;
+}
+
 =item B<_write_redirect>
 
 Create a redirect response.
