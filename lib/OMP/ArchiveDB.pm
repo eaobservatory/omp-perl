@@ -341,6 +341,8 @@ tables and it is possible that a single ut and run number will
 match at multiple telescopes. This could be handled via subclassing
 if it becomes endemic for the class.
 
+An additional key C<retainhdr> will be passed on to the C<queryArc> method.
+
 ASIDE - do we do an automatic query to the ObsLog table and attach the
 resulting comments?
 
@@ -388,7 +390,7 @@ sub getObs {
 
   # retain the fits header since it is probably useful if we
   # are retrieving single observations
-  my @result = $self->queryArc( $query, 1 );
+  my @result = $self->queryArc( $query, ($args{'retainhdr'} // 1) );
 
   # Just return the first result.
   return $result[0];
@@ -401,7 +403,7 @@ Query the archive using the supplied query (supplied as a
 C<OMP::ArcQuery> object). Results are returned as C<OMP::Info::Obs>
 objects.
 
-  @obs = $db->queryArc( $query );
+  @obs = $db->queryArc( $query, $retainhdr, $ignorebad, $search );
 
 This method will first query the database and then look on disk. Note
 that a disk lookup will only be performed if the database query
