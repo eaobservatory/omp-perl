@@ -363,6 +363,14 @@ sub subsystems_tiny {
     $obs->filename([$self->subsystem_filenames($obsidss[0])])
       if 1 == scalar @obsidss;
 
+    # Attempt to match previews to subsystems by looking at subsystem
+    # number or filter.
+    $obs->previews([grep {
+        $_->subsystem_number == (
+            $obs->subsystem_number
+            // $obs->filter
+    )} @{$self->previews}]);
+
     delete $obs->{$_} foreach qw/_subsys_tiny _SUBSYS_FILES wcs/;
 
     push @obs, $obs;
@@ -545,6 +553,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               oper_loc => '$',
                               pol => '$',
                               pol_in => '$',
+                              previews => '@OMP::Info::Preview',
                               projectid => '$',
                               raoff => '$',
                               remote => '$',
@@ -1745,6 +1754,45 @@ sub uniqueid {
     return $self->runnr . $self->backend . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
   }
   return $self->runnr . $self->instrument . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
+}
+
+=item B<previews_sorted>
+
+Return preview images in sorted order, first by subscan number
+and then by suffix.
+
+Ideally this method would contain a preference order for preview images
+by suffix so that the most important are returned first.  For now
+just sort alphabetically (and "rimg" will come before "rsp").
+
+    $previews = $obs->previews_sorted({group => 0});
+
+Accepts an optional hash reference with possible keys:
+
+=over 4
+
+=item group
+
+Filter by whether the preview image is a group product.
+
+=back
+
+=cut
+
+sub previews_sorted {
+    my $self = shift;
+    my $options = shift // {};
+
+    my $group = (exists $options->{'group'}) ? $options->{'group'} : undef;
+
+    return [
+        sort {
+            $a->subscan_number <=> $b->subscan_number
+            || $a->suffix cmp $b->suffix
+        }
+        grep {not ((defined $group) and ($group xor $_->group))}
+        @{$self->previews}
+    ];
 }
 
 =back
