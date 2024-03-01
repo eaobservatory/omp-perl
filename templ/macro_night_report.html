@@ -319,7 +319,7 @@
                         [% SET subsystems = obs.scalar.subsystems_tiny %]
                         [% SET comments = obs.scalar.comments %]
                         [% SET num_rows = subsystems.size + comments.size %]
-                        [% FOREACH ss IN obs.scalar.subsystems_tiny() %]
+                        [% FOREACH ss IN subsystems %]
                             [% SET row_first = loop.first %]
                             [% SET ssnightlog = ss.scalar.nightlog() %]
                             <tr class="[% rowclass %]" id="obsid_[% obs.obsid | html %]">
