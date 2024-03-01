@@ -18,11 +18,22 @@ and stores them in the MongoDB database.
 use strict;
 use warnings;
 
-use JAC::Setup qw/omp jsa archiving/;
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => File::Spec->catdir(
+    "$FindBin::RealBin", File::Spec->updir, 'lib');
+use lib OMPLIB;
+
+BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
+
+use JAC::Setup qw/jsa archiving/;
 
 use Getopt::Long;
 use Pod::Usage;
-use FindBin;
 use Time::Piece;
 use Log::Log4perl qw(:easy);
 
@@ -61,7 +72,7 @@ my $class = $instrument_class{uc($instrument_name)};
 die "Instrument '$instrument_name' not recognized"
     unless defined $class;
 my $instrument = $class->new(
-    'dict' => "$FindBin::RealBin/import/data.dictionary");
+    dict => File::Spec->catfile(OMPLIB, '../cfg/jcmt/data.dictionary'));
 
 my $construct_missing = sub {
     return $instrument->construct_missing_headers(@_);

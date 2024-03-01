@@ -20,10 +20,21 @@ redirected to a file or piped directly to md5sum for checking.
 
 use strict;
 
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => File::Spec->catdir(
+    "$FindBin::RealBin", File::Spec->updir, 'lib');
+use lib OMPLIB;
+
+BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
+
 use Getopt::Long;
 use Pod::Usage;
 
-use JAC::Setup qw/omp/;
 use OMP::DBbackend::Archive;
 
 my $help;

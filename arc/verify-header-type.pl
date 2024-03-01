@@ -69,11 +69,22 @@ and  L<JAC::OCS::Config::Header/remove_excluded_headers>).
 
 =cut
 
-use JAC::Setup qw/omp archiving ocscfg/;
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => File::Spec->catdir(
+    "$FindBin::RealBin", File::Spec->updir, 'lib');
+use lib OMPLIB;
+
+BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
+
+use JAC::Setup qw/archiving ocscfg/;
 
 my $DEBUG = 0;
 
-use File::Spec;
 use Getopt::Long qw/:config gnu_compat no_ignore_case/;
 use Pod::Usage;
 

@@ -153,12 +153,22 @@ Skips any data files that are from simulated runs (SIMULATE=T).
 use strict;
 use warnings;
 
-# Add "archiving" because JCMT::DataVerify is needed by JSA::EnterData.
-use JAC::Setup qw/omp jsa archiving/;
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => File::Spec->catdir(
+    "$FindBin::RealBin", File::Spec->updir, 'lib');
+use lib OMPLIB;
 
 BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+
     $ENV{'OMP_SITE_CONFIG'} = '/jac_sw/etc/enterdata/enterdata.cfg';
 }
+
+# Add "archiving" because JCMT::DataVerify is needed by JSA::EnterData.
+use JAC::Setup qw/jsa archiving/;
 
 use OMP::FileUtils;
 
@@ -170,8 +180,6 @@ use JSA::EnterData::RxH3;
 use JSA::EnterData::SCUBA2;
 use JSA::LogSetup qw/make_logfile/;
 
-use FindBin;
-use File::Spec;
 use Time::Piece;
 use Getopt::Long;
 use IO::File;
@@ -429,7 +437,7 @@ sub get_instruments {
         next unless $no_inst || $opt{$key};
 
         my $enter = $class->new(
-            dict => "$FindBin::RealBin/import/data.dictionary",
+            dict => File::Spec->catfile(OMPLIB, '../cfg/jcmt/data.dictionary'),
             debug_fh => $debug_fh);
 
         $inst{$enter->instrument_name()} = $enter;
