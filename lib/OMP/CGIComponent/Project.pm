@@ -21,7 +21,6 @@ use warnings;
 use Carp;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -77,7 +76,7 @@ sub list_projects_form {
   push @countries, 'PI+IF';
 
   return {
-    target => url_absolute($q),
+    target => $self->page->url_absolute(),
     semesters => [sort @sem],
     semester_selected => $sem,
     statuses => [

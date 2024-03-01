@@ -23,7 +23,6 @@ use Carp;
 use Time::Seconds qw(ONE_HOUR);
 use CGI;
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Constants qw(:done);
 use OMP::DBServer;
 use OMP::Display;
@@ -284,7 +283,7 @@ sub msb_comments {
   }
 
   return {
-      target => url_absolute($q),
+      target => $self->page->url_absolute(),
       status_colors => \%colors,
       msbs => \@msbs,
   };

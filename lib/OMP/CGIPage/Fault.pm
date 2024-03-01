@@ -29,7 +29,6 @@ use Time::Seconds qw(ONE_DAY);
 
 use OMP::CGIComponent::Fault;
 use OMP::CGIComponent::Project;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
 use OMP::DBServer;
@@ -690,7 +689,7 @@ sub view_fault {
   elsif ($q->param('submit_flag_up') or $q->param('submit_flag_down')) {
     my $respid = $q->param('respid');
     my $response = OMP::FaultUtil->getResponse($respid, $fault);
-    my $redirect = sprintf '%s#response%i', url_absolute($q), $response->respnum;
+    my $redirect = sprintf '%s#response%i', $self->url_absolute(), $response->respnum;
 
     my $flag = $response->flag();
     if ($q->param('submit_flag_up') and $flag < OMP__FR_INVALUABLE) {

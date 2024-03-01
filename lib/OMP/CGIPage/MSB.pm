@@ -23,7 +23,6 @@ use Carp;
 use Time::Seconds;
 
 use OMP::CGIComponent::Feedback;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
@@ -90,7 +89,7 @@ sub fb_msb_output {
   return {
       project => OMP::ProjServer->projectDetails($projectid, 'object'),
       num_comments => $fbcomp->fb_entries_count($projectid),
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       prog_info => $prog_info,
       comment_msb_checksum => $checksum,
       messages => \@messages,
@@ -156,7 +155,7 @@ sub msb_hist {
   }
 
   return {
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       target_base => $q->url(-absolute => 1),
       project => OMP::ProjServer->projectDetails($projectid, 'object'),
       msb_info => $msb_info,
@@ -234,7 +233,7 @@ sub observed {
   $self->_sidebar_night($telescope, $utdate);
 
   return {
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       target_base => $q->url(-absolute => 1),
       telescopes => [$projdb->listTelescopes],
       values => {

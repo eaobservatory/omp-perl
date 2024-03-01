@@ -20,7 +20,6 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::DBbackend::Hedwig2OMP;
@@ -322,7 +321,7 @@ sub edit_details {
 
   return {
     messages => \@messages,
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     user => $user,
   };
 }
@@ -354,7 +353,7 @@ sub _add_user_form {
     my $q = $self->cgi;
 
     return {
-        target => url_absolute($q),
+        target => $self->url_absolute(),
         message => $message,
         new_user_id => ($q->param('new_user_id') // ''),
         new_user_name => ($q->param('new_user_name') // ''),

@@ -23,7 +23,6 @@ use OMP::Error qw/ :try /;
 use File::Basename;
 our $VERSION = '0.03';
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::ProjServer;
 use OMP::PackageData;
 
@@ -108,7 +107,7 @@ sub request_data {
     }
 
   } else {
-      $ctx{'target'} = url_absolute($q);
+      $ctx{'target'} = $self->url_absolute();
   }
 
   return \%ctx;

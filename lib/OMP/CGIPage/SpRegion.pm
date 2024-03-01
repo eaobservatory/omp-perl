@@ -15,7 +15,6 @@ use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use PGPLOT;
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::MSBDB;
@@ -44,7 +43,7 @@ sub view_region {
   unless ($q->param('submit_output')) {
     return {
       title => 'Download or Plot Regions for ' . uc($projectid),
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       selections => [
         [all => 'All observations'],
         [new => 'New observations'],

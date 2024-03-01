@@ -10,7 +10,6 @@ use strict;
 use warnings;
 
 use OMP::AuthDB;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Constants qw/:logging/;
 use OMP::DBbackend;
@@ -40,9 +39,9 @@ our %PROVIDERS = (
 
 =item B<log_in>
 
-Attempt to log a user in, using information from a CGI object.
+Attempt to log a user in, using information from an OMP::CGIPage object.
 
-    my $auth = OMP::Auth->log_in($q, %opt);
+    my $auth = OMP::Auth->log_in($page, %opt);
 
 The L<cookie> method should subsequently be used to obtain the cookie
 which must be included in the HTTP header.
@@ -59,9 +58,10 @@ which must be included in the HTTP header.
 
 sub log_in {
     my $cls = shift;
-    my $q = shift;
+    my $page = shift;
     my %opt = @_;
 
+    my $q = $page->cgi;
     my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
 
     my $user = undef;
@@ -81,7 +81,7 @@ sub log_in {
             my $provider_class = $cls->_get_provider($provider_name);
 
             my $method = $opt{'method'} // 'log_in';
-            my $user_info = $provider_class->$method($q);
+            my $user_info = $provider_class->$method($page);
 
             $abort = 1 if exists $user_info->{'abort'};
             $redirect = $user_info->{'redirect'} if exists $user_info->{'redirect'};
@@ -92,7 +92,7 @@ sub log_in {
                     $user, $q->remote_addr(), $q->user_agent(), $user_info->{'duration'});
 
                 # Redirect back to the current page so it is loaded normally.
-                $redirect = url_absolute($q) unless defined $redirect;
+                $redirect = $page->url_absolute() unless defined $redirect;
             }
         }
         else {

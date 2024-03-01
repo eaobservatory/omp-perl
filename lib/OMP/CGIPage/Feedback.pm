@@ -22,7 +22,6 @@ use Carp;
 
 use OMP::DateTools;
 use OMP::ProjServer;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
@@ -63,7 +62,7 @@ sub add_comment {
 
   return {
     project => OMP::ProjServer->projectDetails($projectid, 'object'),
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     values => {
         # We don't re-display the form, but some pages link here with
         # a pre-prepared subject in a query parameter.
@@ -105,7 +104,7 @@ sub fb_output {
   my $q = $self->cgi;
 
   return {
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     project => OMP::ProjServer->projectDetails($projectid, 'object'),
     num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
     feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),

@@ -26,7 +26,6 @@ use Time::Piece;
 use Time::Seconds qw/ ONE_DAY /;
 
 use OMP::CGIComponent::NightRep;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::IncludeFile;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Search;
@@ -98,7 +97,7 @@ sub file_comment {
   }
 
   return {
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       obs => $obs,
       is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
       status_class => \%OMP::Info::Obs::status_class,
@@ -383,7 +382,7 @@ sub projlog_content {
   };
 
   return {
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       project => $proj,
       utdate => $utdate,
       telescope => $telescope,
@@ -484,7 +483,7 @@ sub obslog_search {
     return {
         message => $message,
         form_info => {
-            target => url_absolute($q),
+            target => $self->url_absolute(),
             values => \%values,
         },
         log_entries => $result,
