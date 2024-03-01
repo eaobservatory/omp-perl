@@ -228,8 +228,10 @@
 [% MACRO render_observation_log(obs_summary, projectid) BLOCK %]
     [% IF projectid %]
         [% USE comment_url = url('/cgi-bin/fbobscomment.pl', project=projectid) %]
+        [% USE worf_url = url('/cgi-bin/fbworf.pl', project=projectid) %]
     [% ELSE %]
         [% USE comment_url = url('/cgi-bin/staffobscomment.pl') %]
+        [% USE worf_url = url('/cgi-bin/staffworf.pl') %]
     [% END %]
 
     [% UNLESS obs_summary.defined && obs_summary.block.defined %]
@@ -347,6 +349,7 @@
                                         [% label_status | html %]
                                         <br />
                                         <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a>
+                                        <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
                                     </td>
                                 [% END %]
                             </tr>
