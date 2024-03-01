@@ -656,6 +656,7 @@ sub _sidebar_night {
     ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
     ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
         . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
+    ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
   ]);
 }
 

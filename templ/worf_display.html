@@ -1,6 +1,52 @@
 [% USE scalar -%]
 [% PROCESS "macro_night_report.html" -%]
 [% WRAPPER "layout.html" %]
+<h1>
+    WORF Images
+    [% IF projectid.defined %]
+        for Project [% projectid %]
+    [% END %]
+</h1>
+
 [% render_observation_log(obs_summary, projectid) %]
-[% content_html %]
+
+[% SET n_preview = create_counter() %]
+
+[% MACRO render_images(title, previews) BLOCK %]
+    [% IF previews.size > 0 %]
+        <p>
+            [% title %]
+        </p>
+        <p>
+            [% FOR preview IN previews %]
+                [% CALL n_preview.nextvalue %]
+                <img src="[% target_image | html %]filename=[% preview.filename | html %]&amp;md5sum=[% preview.md5sum | html %]" width="256" height="256" alt="[% preview.suffix | html %]" />
+            [% END %]
+        </p>
+    [% END %]
+[% END %]
+
+<h3>Preview Images</h3>
+
+[% FOREACH obs IN observations %]
+    [% SET subsystems = obs.scalar.subsystems_tiny %]
+    [% FOREACH ss IN subsystems %]
+        [% IF ss.previews.size > 0 %]
+            [% IF ss.subsystem_number.defined %]
+                <h4>[% ss.subsystem_number | html %]</h4>
+            [% ELSIF ss.filter.defined %]
+                <h4>[% ss.filter | html %]</h4>
+            [% END %]
+            [% render_images('Observation', ss.previews_sorted({group => 0})) %]
+            [% render_images('Group', ss.previews_sorted({group => 1})) %]
+        [% END %]
+    [% END %]
+[% END %]
+
+[% IF 0 == n_preview.value %]
+    <p>
+        No preview images available.
+    </p>
+[% END %]
+
 [% END %]

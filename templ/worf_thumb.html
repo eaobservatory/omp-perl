@@ -1,3 +1,63 @@
+[% USE scalar -%]
 [% WRAPPER "layout.html" %]
-[% content_html %]
+<h1>
+    WORF Thumbnails for
+    [% IF projectid.defined %]
+        Project [% projectid %],
+    [% END %]
+    [% ut_date.ymd %]
+</h1>
+
+[% MACRO render_thumbnails(previews) BLOCK %]
+    [% IF previews.size > 0 %]
+        [% FOR preview IN previews %]
+            <a href="[% target_obs | html %]inst=[% preview.instrument | html %]&runnr=[% preview.runnr | html %]"><img src="[% target_image | html %]filename=[% preview.filename %]&amp;md5sum=[% preview.md5sum | html %]" width="64" height="64" alt="[% preview.suffix | html %]" /></a>
+        [% END %]
+    [% ELSE %]
+        &nbsp;
+    [% END %]
+[% END %]
+
+[% SET rowclass = 'row_b' %]
+<table class="sum_table" border="0">
+    [% FOREACH obs IN observations %]
+        [% SET subsystems = obs.scalar.subsystems_tiny %]
+        [% SET num_rows = subsystems.size %]
+        [% FOREACH ss IN subsystems %]
+            <tr class="[% rowclass %]">
+                [% IF loop.first %]
+                    <td rowspan="[% num_rows %]">
+                        Instrument: [% obs.instrument | html %]
+                        <br />Observation: [% obs.runnr | html %]
+                        [% IF obs.target.defined %]
+                            <br />Target: [% obs.target | html %]
+                        [% END %]
+                        [% IF obs.projectid.defined %]
+                            <br />Project: [% obs.projectid | html %]
+                        [% END %]
+                        [% IF obs.mode.defined %]
+                            <br />Mode: [% obs.mode | html %]
+                        [% END %]
+                    </td>
+                [% END %]
+                <td>
+                    [% IF ss.subsystem_number.defined %]
+                        [% ss.subsystem_number | html %]
+                    [% ELSIF ss.filter.defined %]
+                        [% ss.filter | html %]
+                    [% ELSE %]
+                        &nbsp;
+                    [% END %]
+                </td>
+                <td>
+                    [% render_thumbnails(ss.previews_sorted({group => 0})) %]
+                </td>
+                <td>
+                    [% render_thumbnails(ss.previews_sorted({group => 1})) %]
+                </td>
+            </tr>
+        [% END %]
+        [% SET rowclass = (rowclass == 'row_a') ? 'row_b' : 'row_a' %]
+    [% END %]
+</table>
 [% END %]

@@ -1,15 +1,4 @@
 #!/local/perl/bin/perl -XT
-#
-# WWW Observing Remotely Facility (WORF)
-#
-# http://www.jach.hawaii.edu/JACpublic/UKIRT/software/worf/
-#
-# Requirements:
-# TBD
-#
-# Authors: Frossie Economou (f.economou@jach.hawaii.edu)
-#          Brad Cavanagh (b.cavanagh@jach.hawaii.edu)
-
 use strict;
 
 # Standard initialisation (not much shorter than the previous
@@ -27,7 +16,6 @@ BEGIN {
 use OMP::CGIPage::WORF;
 
 OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(
-    'thumbnails_page',
+    'display_graphic',
     'project',
-    title => 'WORF: WWW Observing Remotely Facility',
-    template => 'worf_thumb.html');
+);

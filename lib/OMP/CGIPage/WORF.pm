@@ -6,7 +6,7 @@ OMP::CGIPage::WORF - Display WORF web pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::WORF;
+    use OMP::CGIPage::WORF;
 
 =head1 DESCRIPTION
 
@@ -18,18 +18,21 @@ WORF web pages.
 use strict;
 use warnings;
 
-use Capture::Tiny qw/capture_stdout/;
 use CGI;
-use CGI::Carp qw/ fatalsToBrowser /;
-use Net::Domain qw/ hostfqdn /;
+use CGI::Carp qw/fatalsToBrowser/;
+use Digest::MD5 qw/md5_hex/;
+use File::Spec;
 
+use OMP::Config;
+use OMP::DBbackend;
 use OMP::CGIComponent::NightRep;
-use OMP::CGIComponent::WORF;
-use OMP::Error qw/ :try /;
+use OMP::DateTools;
+use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::Info::Obs;
 use OMP::NightRep;
-use OMP::WORF;
+use OMP::PreviewDB;
+use OMP::PreviewQuery;
 
 use base qw/OMP::CGIPage/;
 
@@ -38,491 +41,228 @@ use base qw/OMP::CGIPage/;
 =cut
 
 sub display_page {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $cgi = $self->cgi;
-  my $qv = $cgi->Vars;
+    die 'Invalid telescope'
+        unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
+    my $telescope = $1;
 
-  my $inst;
-  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /([\-\w\d]+)/;
-    $inst = $1;
-  }
-  my $runnr;
-  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
-    $qv->{'runnr'} =~ /(\d+)/;
-    $runnr = $1;
-  }
-  my $ut;
-  my $utdatetime;
-  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
-    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
-    $ut = $1;
-    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
-    $utdatetime = $1;
-  }
+    my $utdate_str = $self->decoded_url_param('ut');
+    my $utdate = OMP::DateTools->parse_date($utdate_str);
+    die 'Invalid date' unless defined $utdate;
 
-  my $adb = new OMP::ArchiveDB();
-  my $obs = $adb->getObs(
-    instrument => $inst,
-    ut => $ut,
-    runnr => $runnr);
+    die 'Invalid instrument'
+        unless $self->decoded_url_param('inst') =~ /^([\-\w\d]+)$/a;
+    my $inst = $1;
 
-  if ((defined $projectid)
-          and (lc $obs->projectid  ne lc $projectid)
-          and $obs->isScience) {
-    die "Observation does not match project $projectid.\n";
-  }
+    die 'Invalid runnr' unless $self->decoded_url_param('runnr') =~ /^(\d+)$/a;
+    my $runnr = $1;
 
-  my $group = new OMP::Info::ObsGroup(obs => [$obs]);
-  $group->commentScan;
+    my $utdate_ymd = $utdate->ymd('-');
+    my $worfimage;
+    if (defined $projectid) {
+        $worfimage = "fbworfimage.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
+    }
+    else {
+        $self->_sidebar_night($telescope, $utdate);
 
-  return {
-    projectid => $projectid,
-    obs_summary => OMP::NightRep->get_obs_summary(obsgroup => $group),
-    content_html => capture_stdout {
-      $self->_display_page($inst, $ut, $runnr, $utdatetime);}};
-}
+        $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
+    }
 
-sub _display_page {
-  my $self = shift;
-  my $inst = shift;
-  my $ut = shift;
-  my $runnr = shift;
-  my $utdatetime = shift;
+    my $adb = OMP::ArchiveDB->new();
+    my $obs = $adb->getObs(
+        telescope => $telescope,
+        instrument => $inst,
+        ut => $utdate_ymd,
+        runnr => $runnr,
+        retainhdr => 0
+    );
 
-  my $comp = OMP::CGIComponent::WORF->new(page => $self);
+    die 'No matching observation found' unless defined $obs;
 
-  my $cgi = $self->cgi;
-  my $qv = $cgi->Vars;
+    if ((defined $projectid)
+            and (lc $obs->projectid ne lc $projectid)
+            and $obs->isScience) {
+        die "Observation does not match project $projectid.\n";
+    }
 
-  # Filter out CGI variables.
-  my $xstart;
-  if( exists( $qv->{'xstart'} ) && defined( $qv->{'xstart'} ) ) {
-    $qv->{'xstart'} =~ /(\d+)/;
-    $xstart = $1;
-  }
-  my $xend;
-  if( exists( $qv->{'xend'} ) && defined( $qv->{'xend'} ) ) {
-    $qv->{'xend'} =~ /(\d+)/;
-    $xend = $1;
-  }
-  my $ystart;
-  if( exists( $qv->{'ystart'} ) && defined( $qv->{'ystart'} ) ) {
-    $qv->{'ystart'} =~ /(\d+)/;
-    $ystart = $1;
-  }
-  my $yend;
-  if( exists( $qv->{'yend'} ) && defined( $qv->{'yend'} ) ) {
-    $qv->{'yend'} =~ /(\d+)/;
-    $yend = $1;
-  }
-  my $zmin;
-  if( exists( $qv->{'zmin'} ) && defined( $qv->{'zmin'} ) ) {
-    $qv->{'zmin'} =~ /([\d\.\-eE]+)/;
-    $zmin = $1;
-  }
-  my $zmax;
-  if( exists( $qv->{'zmax'} ) && defined( $qv->{'zmax'} ) ) {
-    $qv->{'zmax'} =~ /([\d\.\-eE]+)/;
-    $zmax = $1;
-  }
-  my $autocut;
-  if( exists( $qv->{'autocut'} ) && defined( $qv->{'autocut'} ) ) {
-    $qv->{'autocut'} =~ /(\d+)/;
-    $autocut = $1;
-  }
-  my $cgi_group;
-  if( exists( $qv->{'group'} ) && defined( $qv->{'group'} ) ) {
-    $qv->{'group'} =~ /(\d+)/;
-    $cgi_group = $1;
-  }
+    my $grp = OMP::Info::ObsGroup->new(obs => [$obs]);
+    $grp->commentScan;
 
-  my $lut;
-  if( exists( $qv->{'lut'} ) && defined( $qv->{'lut'} ) ) {
-    $qv->{'lut'} =~ /([\w\d]+)/;
-    $lut = $1;
-  }
+    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+        telescope => $telescope,
+        instrument => $inst,
+        date => {value => $utdate->ymd(), delta => 1},
+        runnr => $runnr,
+        size => 256,
+    }));
 
-  my $size;
-  if( exists( $qv->{'size'} ) && defined( $qv->{'size'} ) ) {
-    $qv->{'size'} =~ /(\w+)/;
-    $size = $1;
-  }
-  my $type;
-  if( exists( $qv->{'type'} ) && defined( $qv->{'type'} ) ) {
-    $qv->{'type'} =~ /(\w+)/;
-    $type = $1;
-  }
-  my $cut;
-  if( exists( $qv->{'cut'} ) && defined( $qv->{'cut'} ) ) {
-    $qv->{'cut'} =~ /(\w+)/;
-    $cut = $1;
-  }
-  my $suffix;
-  if( exists( $qv->{'suffix'} ) && defined( $qv->{'suffix'} ) ) {
-    $qv->{'suffix'} =~ /([\d\w_]+)/;
-    $suffix = $1;
-  }
+    $grp->attach_previews($previews);
 
-# Display the observation.
-  print "<br>\n";
-  print "<img src=\"worf_image.pl?";
-  print "runnr=$runnr";
-  print "&ut=$utdatetime";
-  print "&inst=$inst";
-  print ( defined( $xstart ) ? "&xstart=$xstart" : '' );
-  print ( defined( $xend ) ? "&xend=$xend" : '' );
-  print ( defined( $ystart ) ? "&ystart=$ystart" : '' );
-  print ( defined( $yend ) ? "&yend=$yend" : '' );
-  print ( defined( $zmin ) ? "&zmin=$zmin" : '' );
-  print ( defined( $zmax ) ? "&zmax=$zmax" : '' );
-  print ( defined( $autocut ) ? "&autocut=$autocut" : '' );
-  print ( defined( $lut ) ? "&lut=$lut" : '' );
-  print ( defined( $size ) ? "&size=$size" : '' );
-  print ( defined( $type ) ? "&type=$type" : '' );
-  print ( defined( $cut ) ? "&cut=$cut" : '' );
-  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
-  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
-  print "\"><br><br>\n";
-
-# Print a link to download the FITS file.
-  print "<a href=\"worf_fits.pl?";
-  print "runnr=$runnr";
-  print "&ut=$utdatetime";
-  print "&inst=$inst";
-  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
-  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
-  print "\">Download FITS file</a> (right-click and Save As)<br>\n";
-
-# Print a link to download the NDF file.
-  print "<a href=\"worf_ndf.pl?";
-  print "runnr=$runnr";
-  print "&ut=$utdatetime";
-  print "&inst=$inst";
-  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
-  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
-  print "\">Download NDF file</a> (right-click and Save As)<br>\n";
-
-# Print a link to load the image using Aladin.
-  print "<a href=\"http://vizier.hia.nrc.ca/viz-bin/nph-aladin.pl?frame=launching&script=get+Local%28http:%2f%2fomp.eao.hawaii.edu%2fcgi-bin%2fworf_fits.pl%3f";
-  print "runnr%3d$runnr";
-  print "%26ut%3d$utdatetime";
-  print "%26inst%3d$inst";
-  print ( defined( $suffix ) ? "%26suffix%3d$suffix" : '' );
-  print ( defined( $cgi_group ) ? "%26group%3d$cgi_group" : '' );
-  print "%29%3b\">Open with Aladin Java applet</a> (imaging mode only)<br><br>\n";
-
-  $comp->options_form();
-
-#  print_worf_footer();
-
+    return {
+        projectid => $projectid,
+        obs_summary => OMP::NightRep->get_obs_summary(obsgroup => $grp),
+        observations => [
+            sort {$a->startobs->epoch <=> $b->startobs->epoch}
+            $grp->obs()],
+        target_image => $worfimage,
+    };
 }
 
 sub thumbnails_page {
-  my $self = shift;
-  return {content_html => capture_stdout {$self->_thumbnails_page(@_);}};
+    my $self = shift;
+    my $projectid = shift;
+
+    die 'Invalid telescope'
+        unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
+    my $telescope = $1;
+
+    my $utdate_str = $self->decoded_url_param('ut');
+    my $utdate = OMP::DateTools->parse_date($utdate_str);
+    die 'Invalid date' unless defined $utdate;
+
+    my %query = (
+        telescope => $telescope,
+        date => $utdate->ymd(),
+    );
+
+    my $utdate_ymd = $utdate->ymd('-');
+    my $worflink;
+    my $worfimage;
+    if (defined $projectid) {
+        $query{'projectid'} = $projectid;
+        $query{'inccal'} = 1;
+
+        $worflink = "fbworf.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
+        $worfimage = "fbworfimage.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
+    }
+    else {
+        $self->_sidebar_night($telescope, $utdate);
+
+        $worflink = "staffworf.pl?telescope=${telescope}&ut=${utdate_ymd}&";
+        $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
+    }
+
+    my $grp = OMP::Info::ObsGroup->new(%query);
+
+    return $self->_write_error('No observations for this project and night')
+        if (defined $projectid) and not $grp->numobs;
+
+    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+        telescope => $telescope,
+        size => 64,
+        date => {value => $utdate->ymd(), delta => 1},
+    }));
+
+    $grp->attach_previews($previews);
+
+    return {
+        projectid => $projectid,
+        ut_date => $utdate,
+        observations => [
+            sort {$a->startobs->epoch <=> $b->startobs->epoch}
+            $grp->obs()],
+        target_obs => $worflink,
+        target_image => $worfimage,
+    };
 }
 
-sub _thumbnails_page {
-  my $self = shift;
-  my $projectid = shift;
+sub display_graphic {
+    my $self = shift;
+    my $projectid = shift;
 
-  my $cgi = $self->cgi;
-  my $qv = $cgi->Vars;
+    my $q = $self->cgi;
 
-  unless (defined $projectid) {
-    $projectid = 'staff';
-  }
+    die 'Invalid telescope'
+        unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
+    my $telescope = $1;
 
-  my $project;
-  my $worflink;
-  if( $projectid ne 'staff' ) {
-    $project = OMP::ProjServer->projectDetails( $projectid,
-                                                'object' );
-    $worflink = "fbworf.pl?project=${projectid}&";
-  } else {
-    $worflink = "staffworf.pl?";
-  }
+    my $utdate_str = $self->decoded_url_param('ut');
+    my $utdate = OMP::DateTools->parse_date($utdate_str);
+    die 'Invalid date' unless defined $utdate;
 
-  # Figure out which telescope we're doing.
-  my $telescope;
-  if( exists($qv->{'telescope'}) && defined( $qv->{'telescope'} ) ) {
-    $telescope = $qv->{'telescope'};
-  } else {
+    die 'Invalid filename'
+        unless $self->decoded_url_param('filename') =~ /^([-_0-9A-Za-z]+\.png)$/;
+    my $filename = $1;
 
-    # Try to determine the telescope from the project details.
-    if( defined( $project ) ) {
-      $telescope = $project->telescope;
-    }
+    die 'Invalid md5sum'
+        unless $self->decoded_url_param('md5sum') =~ /^([0-9a-f]+)$/;
+    my $md5sum_request = $1;
 
-    if( !defined( $telescope ) ) {
+    # NOTE: Permission check disabled because we currently check the md5sum in
+    # the request -- the user could not request an image without knowing this.
+    # if (defined $projectid) {
+    #     # Fetch the list of previews available to the project and check
+    #     # for the requested file.
+    #     my $grp = OMP::Info::ObsGroup->new(
+    #         telescope => $telescope,
+    #         date => $utdate->ymd(),
+    #         projectid => $projectid,
+    #         inccal => 1,
+    #     );
+    #     my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    #     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    #         telescope => $telescope,
+    #         date => {value => $utdate->ymd(), delta => 1},
+    #     }));
+    #     $grp->attach_previews($previews);
+    #
+    #     my $found = 0;
+    #     OBSLOOP: foreach my $obs (@{$grp->obs}) {
+    #         foreach my $preview ($obs->previews) {
+    #             if ($preview->filename eq $filename) {
+    #                 $found = 1;
+    #                 last OBSLOOP;
+    #             }
+    #         }
+    #     }
+    #
+    #     return $self->_write_forbidden() unless $found;
+    # }
 
-      # Use the hostname of the computer we're running on.
-      my $hostname = hostfqdn;
-      if($hostname =~ /ulili/i) {
-        $telescope = "JCMT";
-      } elsif ($hostname =~ /mauiola/i) {
-        $telescope = "UKIRT";
-      } else {
+    my $basedir = OMP::Config->getData('preview.cachedir', telescope => $telescope);
+    die 'Base ouput directory does not exist'
+        unless -d $basedir;
+    my $utdir = File::Spec->catdir(
+        $basedir,
+        $utdate->strftime('%Y'),
+        $utdate->strftime('%m'),
+        $utdate->strftime('%d'));
+    return $self->_write_not_found()
+        unless -d $utdir;
 
-        throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
-      }
-    }
-  }
+    my $pathname = File::Spec->catfile($utdir, $filename);
+    return $self->_write_not_found() unless -e $pathname;
 
-  # Grab the UT date.
-  my $ut;
-  if( exists( $qv->{'ut'}) && defined( $qv->{'ut'} ) ) {
-    ( $ut = $qv->{'ut'} ) =~ s/-//g;
-  } else {
-    # Default to today's UT date.
-    ( $ut = OMP::DateTools->today() ) =~ s/-//g;
-  }
+    my $fh = IO::File->new($pathname, 'r');
+    die 'Failed to open image file' unless defined $fh;
+    $fh->read(my $buff, 10000000);
+    $fh->close();
 
-  # Get the list of instruments for that telescope.
-  my @instruments = OMP::Config->getData( 'instruments',
-                                          telescope => $telescope );
+    # Check the MD5 sum is as requested, so that we can specify a long
+    # cache expiry time.
+    my $md5sum_file = md5_hex($buff);
+    return $self->_write_not_found()
+        unless ($md5sum_request eq $md5sum_file);
 
-  # Print a header table.
-  print "<h1>WORF Thumbnails for $ut</h1>\n";
+    print $q->header(
+        -type => 'image/png',
+        -expires => '+1d',
+    );
 
-  # For each instrument, we're going to get the directory listing for
-  # the appropriate night. If the instrument name begins with "rx", skip
-  # it (since all heterodyne instruments will be gobbled up by the
-  # "heterodyne" instrument, and they all write to the same directory).
-
-  foreach my $instrument ( @instruments ) {
-
-    next if $instrument =~ /^rx(?!h3)/i;
-
-    # Get the directory.
-    my $directory;
-    if( $instrument =~ /heterodyne/i ) {
-      $directory = OMP::Config->getData('rawdatadir',
-                                        telescope => $telescope,
-                                        instrument => $instrument,
-                                        utdate => $ut,
-                                       );
-      $directory =~ s/\/dem$//;
-    } else {
-      $directory = OMP::Config->getData('reducedgroupdir',
-                                        telescope => $telescope,
-                                        instrument => $instrument,
-                                        utdate => $ut,
-                                       );
-    }
-
-    # Get a directory listing.
-    my $dir_h;
-    next if ( ! -d $directory );
-    opendir( $dir_h, $directory ) or
-      throw OMP::Error( "Could not open directory $directory for WORF thumbnail display: $!\n" );
-
-    my @files = readdir $dir_h or
-      throw OMP::Error( "Could not read directory $directory for WORF thumbnail display: $!\n" );
-
-    closedir $dir_h;
-
-    # Filter the files according to the groupregexp config.
-    my @grpregex = OMP::Config->getData('groupregexp',
-                                        telescope => $telescope
-                                       );
-    my $groupregex = join ',', @grpregex;
-    my @matchfiles = grep /$groupregex/, @files;
-
-    # Sort them just in case they're not sorted.
-    @matchfiles = sort OMP::CGIComponent::WORF::obsnumsort @matchfiles;
-
-    # Now we have a list of all the group files for the telescope
-    # that match the group format.
-
-    print "<table class=\"sum_table\" border=\"0\">\n";
-    my $rowclass="row_b";
-    print "<tr class=\"$rowclass\">";
-
-    my %displayed;
-    my $curgrp;
-    # Create Info::Obs objects for each file.
-    FILELOOP: foreach my $file ( @matchfiles ) {
-
-      if( $file =~ /_0_/ ) { next FILELOOP; }
-
-      my $obs;
-      try {
-        $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
-      }
-      catch OMP::Error with {
-        # Errors are already logged in OMP::Info::Obs::readfile, so just
-        # skip to the next file.
-        next FILELOOP;
-      }
-      otherwise {
-        # Errors are already logged in OMP::Info::Obs::readfile, so just
-        # skip to the next file.
-        next FILELOOP;
-      };
-
-      # If necessary, let's filter them for project ID.
-      if( $projectid ne 'staff' &&
-          uc( $obs->projectid ) ne uc( $projectid ) &&
-          ! $obs->isScience ) {
-        next FILELOOP;
-      }
-
-      next FILELOOP if ! defined $obs;
-
-      # Create a WORF object.
-      my $worf;
-      try {
-        $worf = new OMP::WORF( obs => $obs );
-      }
-      catch OMP::Error with {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-        print STDERR "Unable to form WORF object: $errortext\n";
-        next FILELOOP;
-      }
-      otherwise {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-        print STDERR "Unable to form WORF object: $errortext\n";
-        next FILELOOP;
-      };
-
-      # Get a list of suffices.
-      my @suffices = $worf->suffices( 1 );
-      if( $instrument =~ /heterodyne/ ) {
-        @suffices = $worf->suffices( 0 );
-      }
-
-      # Format the observation start time so WORF can understand it.
-      my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
-      $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
-
-      # If this file's suffix is either blank or matches one of the
-      # suffices in @suffices, write the HTML that will display
-      # the thumbnail along with a link to the fullsized WORF page
-      # for that observation.
-      if( $file =~ /\d\.sdf$/ ) {
-        if( defined( $curgrp ) ) {
-          my $runnr;
-          if( !defined( $obs->runnr ) ) {
-            $file =~ /_(\d{4})_/;
-            $runnr = int( $1 );
-          } else {
-            $runnr = $obs->runnr;
-          }
-          if( $runnr != $curgrp ) {
-            $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
-            print "</tr><tr class=\"$rowclass\">";
-            $curgrp = $obs->runnr;
-            if( ! defined( $obs->runnr ) ) {
-              # SCUBA rebinned image hack
-              $file =~ /_(\d{4})_/;
-              $curgrp = int( $1 );
-            }
-          }
-        } else {
-          $curgrp = $obs->runnr;
-          if( ! defined( $obs->runnr ) ) {
-            # SCUBA rebinned image hack
-            $file =~ /_(\d{4})_/;
-            $curgrp = int( $1 );
-          }
-        }
-        my $key = $instrument . $curgrp;
-        if( $displayed{$key} ) { next FILELOOP; }
-        print "<td>";
-        print "<a href=\"${worflink}ut=$obsut&runnr=";
-        print $curgrp . "&inst=" . $obs->instrument;
-        if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
-        print "\">";
-        print "<img src=\"worf_image.pl?";
-        print "runnr=" . $curgrp;
-        print "&ut=" . $obsut;
-        print "&inst=" . $obs->instrument;
-        if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
-        print "&size=thumb\"></a>";
-        print "</td><td>";
-        print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
-        print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
-        print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
-        print "Project:&nbsp;" . ( defined( $obs->projectid ) ? $obs->projectid : '' ) . "<br>\n";
-        print "Exposure time:&nbsp;" . ( defined( $obs->duration ) ? $obs->duration : '' ) . "<br>\n";
-        print "Suffix:&nbsp;none\n</td>";
-        $displayed{$key}++;
-        next FILELOOP;
-      } else {
-        foreach my $suffix ( @suffices ) {
-          if( ( ( uc($telescope) eq 'UKIRT') && ($file =~ /$suffix\./ ) ) ||
-              ( ( uc($telescope) eq 'JCMT')  && ($file =~ /$suffix/   ) ) ) {
-            if( defined( $curgrp ) ) {
-              my $runnr;
-              if( !defined( $obs->runnr ) ) {
-                $file =~ /_(\d{4})_/;
-                $runnr = int( $1 );
-              } else {
-                $runnr = $obs->runnr;
-              }
-              if( $runnr != $curgrp ) {
-                $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
-                print "</tr>\n<tr class=\"$rowclass\">";
-                $curgrp = $obs->runnr;
-                if( ! defined( $obs->runnr ) ) {
-                  # SCUBA rebinned image hack
-                  $file =~ /_(\d{4})_/;
-                  $curgrp = int( $1 );
-                }
-              }
-            } else {
-              $curgrp = $obs->runnr;
-              if( !defined( $obs->runnr ) ) {
-                # SCUBA rebinned image hack
-                $file =~ /_(\d{4})_/;
-                $curgrp = int( $1 );
-              }
-            }
-            my $key = $instrument . $curgrp . $suffix;
-            if( $displayed{$key} ) { next FILELOOP; }
-            print "<td>";
-            print "<a href=\"${worflink}ut=$obsut&runnr=";
-            print $curgrp . "&inst=" . $obs->instrument;
-            print "&suffix=$suffix";
-            if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
-            print "\">";
-            print "<img src=\"worf_image.pl?";
-            print "runnr=" . $curgrp;
-            print "&ut=" . $obsut;
-            print "&inst=" . $obs->instrument;
-            if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
-            print "&size=thumb";
-            print "&suffix=$suffix\"></a>";
-            print "</td><td>";
-            print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
-            print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
-            print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
-        print "Project:&nbsp;" . ( defined( $obs->projectid ) ? $obs->projectid : '' ) . "<br>\n";
-        print "Exposure time:&nbsp;" . ( defined( $obs->duration ) ? $obs->duration : '' ) . "<br>\n";
-            print "Suffix:&nbsp;" . $suffix . "\n</td>";
-            $displayed{$key}++;
-            next FILELOOP;
-          }
-        }
-      }
-    }
-
-    # End the table.
-    print "</table>\n";
-
-  }
-
+    print $buff;
 }
+
+1;
+
+__END__
 
 =head1 SEE ALSO
 
-C<OMP::CGIComponent::WORF>, C<OMP::CGIComponent::NightRep>
+C<OMP::CGIComponent::NightRep>
 
 =head1 AUTHOR
 
@@ -549,5 +289,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;
