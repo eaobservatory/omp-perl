@@ -1,0 +1,26 @@
+# This is the data dictionary for the Enterdata program.
+# The format of the dictionary is:
+#
+# COLUMN:alias1 alias2 alias3
+#
+# The column name that appears in the database must proceed the colon,
+# and alternate names for that column that may appear in the input data (ie.
+# aliases) must be separated by whitespace after the colon.
+#
+# Note: The location of this file must be specified in Enterdata.
+#
+obsgeo_x: obsgeo-x
+obsgeo_y: obsgeo-y
+obsgeo_z: obsgeo-z
+alt_obs: alt-obs
+lat_obs: lat-obs
+long_obs: long-obs
+date_obs: date-obs
+date_end: date-end
+bias: detbias
+bias_a: detbias_a
+bias_b: detbias_b
+bias_c: detbias_c
+bias_d: detbias_d
+req_mintau: rq_mntau
+req_maxtau: rq_mxtau
