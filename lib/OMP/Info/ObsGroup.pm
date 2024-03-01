@@ -2004,6 +2004,40 @@ sub shifttypes {
     return @shifttypes;
 }
 
+=item B<attach_previews>
+
+Takes (a reference to) an array of previews and attempts to attach
+them to the matching observations.
+
+    $grp->attach_previews(\@previews);
+
+=cut
+
+sub attach_previews {
+    my $self = shift;
+    my $previews = shift;
+
+    my %matched = ();
+    foreach my $obs ($self->obs) {
+        my $obs_utdate = 0 + $obs->startobs->ymd('');
+
+        my @obs_previews = ();
+        for (my $i = 0; $i <= $#$previews; $i ++) {
+            next if $matched{$i};
+            my $preview = $previews->[$i];
+
+            next unless
+                ($preview->runnr == $obs->runnr)
+                and ($preview->date->ymd('') == $obs_utdate)
+                and (uc $preview->instrument eq uc $obs->instrument);
+
+            $matched{$i} = 1;
+            push @obs_previews, $preview;
+        }
+
+        $obs->previews(\@obs_previews);
+    }
+}
 
 =back
 

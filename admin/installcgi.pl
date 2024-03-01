@@ -74,8 +74,9 @@ push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
 my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    fbcomment.pl fbfault.pl fblogout.pl
-                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbworf.pl
-                   fbworfthumb.pl feedback.pl filefault.pl
+                   fbmsb.pl fbobscomment.pl fbshiftlog.pl
+                   fbworf.pl fbworfthumb.pl fbworfimage.pl
+                   feedback.pl filefault.pl
                    findtarget.pl
                    get_resource.pl
                    index.pl
@@ -86,12 +87,12 @@ my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
                    sched.pl schedcal.pl schedcallist.pl schedstat.pl
                    searchobslog.pl searchshiftlog.pl shiftlog.pl
                    sourceplot.pl spregion.pl spsummary.pl
-                   spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
+                   spsrv.pl staffobscomment.pl
+                   staffworf.pl staffworfthumb.pl staffworfimage.pl
                    timeacct.pl translatemsb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl
-                   viewfault.pl worf_fits.pl
-                   worf_image.pl worf_ndf.pl wwwobserved.pl
+                   viewfault.pl wwwobserved.pl
                    fault_summary.js form_submit_timeout.js log_in.js
                    sched_edit.js submit_on_change.js
                    table_filter.js time_accounting.js time_set_now.js

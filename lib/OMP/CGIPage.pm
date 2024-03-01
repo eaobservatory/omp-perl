@@ -496,6 +496,9 @@ sub render_template {
 
     my $templatecontext = Template::Context->new({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
+        VARIABLES => {
+            'create_counter' => sub {OMP::CGIPage::Counter->new(@_)},
+        },
     });
 
     $templatecontext->define_vmethod('hash', 'json', sub {
@@ -653,6 +656,7 @@ sub _sidebar_night {
     ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
     ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
         . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
+    ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
   ]);
 }
 
@@ -751,6 +755,27 @@ sub _write_error {
   return undef;
 }
 
+=item B<_write_not_found>
+
+Create a basic not-found error response.
+
+B<Note:> unlike the other error page methods, this does not
+call C<_write_http_header>, so does not include cookies,
+or render a full template.  As such it is more useful for
+resource-fetching scripts.
+
+=cut
+
+sub _write_not_found {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    print $q->header(-status => '404 Not Found', -type => 'text/plain', -charset => 'utf-8');
+    print '404 Not Found';
+
+    return undef;
+}
+
 =item B<_write_redirect>
 
 Create a redirect response.
@@ -809,6 +834,35 @@ sub _write_project_choice {
 
 =back
 
+=cut
+
+package OMP::CGIPage::Counter;
+
+sub new {
+    my $class = shift;
+    my $value = shift // 0;
+
+    my $self = {
+        value => $value,
+    };
+
+    return bless $self, $class;
+}
+
+sub nextvalue {
+    my $self = shift;
+    return ++ $self->{'value'};
+}
+
+sub value {
+    my $self = shift;
+    return $self->{'value'};
+}
+
+1;
+
+__END__
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
@@ -834,10 +888,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;
-
-
-

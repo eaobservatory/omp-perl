@@ -268,7 +268,7 @@ sub msb_comments {
     push @msbs, {
         info => $msb,
         msb => $spmsb,
-        waveband_xhz => OMP::General::frequency_in_xhz($msb->waveband),
+        wavebands => $msb->wavebands,
         comments => [map {
             my $n_done = 0;
             foreach my $c (@$_) {

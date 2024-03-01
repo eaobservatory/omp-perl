@@ -36,6 +36,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use List::MoreUtils qw/any/;
 use OMP::Range;
 use OMP::Error;
 use OMP::Constants qw/ :msb /;
@@ -85,7 +86,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               telescope => '$',
                               cloud => 'OMP::Range',
                               observations => '@OMP::Info::Obs',
-                              wavebands => '$',
+                              _wavebands => '@Astro::WaveBand',
                               targets => '$',
                               instruments => '$',
                               coordstypes => '$',
@@ -216,10 +217,11 @@ are ignored.
 
   $wb = $msb->waveband();
 
-If a waveband string has been stored in C<wavebands()> that value
+If an array of Astro::WaveBand objects has been stored in C<wavebands()> that
 will be used in preference to looking for constituent observations.
 
-If a value is supplied it is passed onto the C<wavebands> method.
+If a value is supplied it must be an C<Astro::WaveBand> object,
+and is passed on to the C<wavebands> method.
 
 =cut
 
@@ -227,17 +229,35 @@ sub waveband {
   my $self = shift;
   if (@_) {
     my $wb = shift;
-    return $self->wavebands( $wb );
+    return $self->wavebands([$wb]);
   } else {
-    my $cache = $self->wavebands;
-    if ($cache) {
-      return $cache;
-    } else {
-      # Ask the observations
-      return scalar($self->_process_obs("waveband",1));
-    }
+    # Construct string concatenated representation to retain original
+    # behavior for use where a plain string is needed.
+    my $wbs = $self->wavebands;
+    return join '/', map {$_->natural} @$wbs;
   }
+}
 
+sub wavebands {
+  my $self = shift;
+
+  # Use basic accessor when setting the waveband list.
+  return $self->_wavebands(@_) if scalar @_;
+
+  # Return the stored list if it is set.
+  my $result = $self->_wavebands();
+  return $result if defined $result and scalar @$result;
+
+  # Otherwise get waveband objects from the observations.  Filter for
+  # uniqueness using Astro::WaveBand's overloaded '==' operator.
+  # (Note: this may unforunately let through multiple values
+  # which will look the same once formatted.)
+  my @wbs = ();
+  foreach my $wb (map {$_->waveband} $self->observations) {
+    next unless defined $wb;
+    push @wbs, $wb unless any {$wb == $_} @wbs;
+  }
+  return \@wbs;
 }
 
 =item B<instrument>

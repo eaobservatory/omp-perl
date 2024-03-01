@@ -6,7 +6,7 @@ OMP::CGIHelper - Helper for the OMP feedback system CGI scripts
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Helper qw/start_form_absolute/;
+  use OMP::CGIComponent::Helper qw/url_absolute/;
 
 =head1 DESCRIPTION
 
@@ -27,7 +27,7 @@ $| = 1;
 
 use parent qw/Exporter/;
 
-our @EXPORT_OK = qw/start_form_absolute url_absolute/;
+our @EXPORT_OK = qw/url_absolute/;
 
 our %EXPORT_TAGS = (
     'all' =>[ @EXPORT_OK ],
@@ -38,31 +38,6 @@ Exporter::export_tags(qw/ all /);
 =head1 Routines
 
 =over 4
-
-=item B<start_form_absolute>
-
-Return a start form tag (generated using CGI->start_form) using
-an "absolute" URL (without host).  Any additional arguments are
-passed to that method.  The URL should only contain query
-parameters from current URL parameters (not posted form parameters).
-
-  print start_form_absolute($q);
-
-=cut
-
-sub start_form_absolute {
-  my $q = shift;
-  my %args = @_;
-
-  my %url_opt = (-absolute => 1);
-  unless (exists $args{'-method'} and $args{'-method'} eq 'GET') {
-      # Create a new CGI object containing only the URL parameters.
-      $q = $q->new({map {$_ => $q->url_param($_)} $q->url_param()});
-      $url_opt{'-query'} = 1;
-  }
-
-  return $q->start_form(-action => $q->url(%url_opt), %args);
-}
 
 =item B<url_absolute>
 

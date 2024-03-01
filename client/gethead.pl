@@ -110,6 +110,9 @@ if (defined $obsid) {
   die "Need an obsid or ut with runnr";
 }
 
+OMP::ArchiveDB::skip_cache_query();
+OMP::ArchiveDB::skip_cache_making();
+
 my $arcdb = OMP::ArchiveDB->new();
 my $obs= $arcdb->getObs( %args );
 

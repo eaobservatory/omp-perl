@@ -23,15 +23,6 @@ BEGIN {
   }
 }
 
-# Set up the environment for PGPLOT
-BEGIN {
-  $ENV{'PGPLOT_DIR'} = '/star/bin';
-  $ENV{'PGPLOT_FONT'} = '/star/bin/grfont.dat';
-  $ENV{'PGPLOT_BACKGROUND'} = 'white';
-  $ENV{'PGPLOT_FOREGROUND'} = 'black';
-  $ENV{'HDS_SCRATCH'} = "/tmp";
-}
-
 use OMP::CGIPage::WORF;
 
 OMP::CGIPage::WORF->new(cgi => new CGI())->write_page(

@@ -42,7 +42,7 @@ our $DEFAULT_RESULT_COUNT = 500;
 
 # Hash of column names which are also MySQL reserved words - these must
 # be quoted in SQL queries.
-our %RESERVED_WORDS = map {$_ => 1} qw/condition/;
+our %RESERVED_WORDS = map {$_ => 1} qw/condition group/;
 
 # Overloading
 use overload '""' => "stringify";
@@ -695,9 +695,40 @@ representation as C<_convert_elem_to_perl> would do.
 
     my %query = $self->_process_given_hash($hashref);
 
-B<NOTE:> currently a placeholder implementation which just promotes
-scalar values to single-element arrays.  This method should be developed
-to help construct more possible queries.
+B<NOTE:> currently a placeholder implementation which promotes
+scalar values to single-element arrays.  This method should be
+developed futher to help construct more possible queries.
+It ensures that there is an entry in C<_attr> for each key in
+in the given hash.  Values can be hashes including the
+following sets of keys:
+
+=over 4
+
+=item value, delta
+
+Moves the C<delta> parameter to the C<_attr> section.
+
+=item boolean =E<gt> 0 | 1
+
+Converted to C<OMP::DBQuery::True> object.
+
+=item or =E<gt> \%subquery
+
+Converted to OR expresion.  (Key name is arbitrary.)
+
+=item not =E<gt> \%subquery
+
+Converted to NOT expresion.  (Key name is arbitrary.)
+
+=item min, max
+
+Left as is.
+
+=item null =E<gt> 0 | 1
+
+Left as is.
+
+=back
 
 =cut
 
@@ -705,11 +736,47 @@ sub _process_given_hash {
   my $self = shift;
   my $givenhash = shift;
 
-  my %query = ();
+  my %query = (
+    _attr => (exists $givenhash->{'_attr'}) ? $givenhash->{'_attr'} : {},
+  );
 
-  while (my ($key, $value) = each %$givenhash) {
-    if (ref $value) {
+  foreach my $key (keys %$givenhash) {
+    next if $key eq '_attr';
+    my $value = $givenhash->{$key};
+
+    # Recognize recursive entries first, before ensuring _attr entry exists.
+    if ('HASH' eq ref $value) {
+        if (exists $value->{'or'}) {
+            $query{$key} = {
+                _JOIN => 'OR',
+                $self->_process_given_hash($value->{'or'})};
+            next;
+        }
+        elsif (exists $value->{'not'}) {
+            $query{$key} = {
+                _JOIN => 'AND', _FUNC => 'NOT',
+                $self->_process_given_hash($value->{'not'})};
+            next;
+        }
+    }
+
+    $query{'_attr'}->{$key} = {} unless exists $query{'_attr'}->{$key};
+
+    if ('ARRAY' eq ref $value) {
       $query{$key} = $value;
+    }
+    elsif ('HASH' eq ref $value) {
+      if (exists $value->{'value'} and exists $value->{'delta'}) {
+        $query{$key} = [$value->{'value'}];
+        $query{'_attr'}->{$key}->{delta} = $value->{'delta'};
+      }
+      elsif (exists $value->{'boolean'}) {
+        $query{$key} = OMP::DBQuery::True->new(true => $value->{'boolean'});
+      }
+      else {
+        # Pass through representations such as {min => ..., max => ...}.
+        $query{$key} = $value;
+      }
     }
     else {
       $query{$key} = [$value];
