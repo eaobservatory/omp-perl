@@ -194,7 +194,8 @@ CREATE TABLE `omppreview` (
   `filesize` int(11) NOT NULL,
   `md5sum` varchar(40) NOT NULL,
   `date_modified` datetime NOT NULL,
-  PRIMARY KEY (`filename`)
+  PRIMARY KEY (`filename`),
+  KEY `idx_omppreview_tdir` (`telescope`,`date`,`instrument`,`runnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompproj` (
   `projectid` varchar(32) NOT NULL,
