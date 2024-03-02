@@ -1,14 +1,14 @@
-package JSA::LogSetup;
+package OMP::LogSetup;
 
 =pod
 
 =head1 NAME
 
-JSA::LogSetup - Setup a default log configuration for Log::Log4perl
+OMP::LogSetup - Setup a default log configuration for Log::Log4perl
 
 =head1 SYNOPSIS
 
-    use JSA::LogSetup qw/get_config logfile/;
+    use OMP::LogSetup qw/get_config logfile/;
 
 Pass default configuration to L<Log::Log4perl> ...
 

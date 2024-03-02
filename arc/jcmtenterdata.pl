@@ -178,7 +178,7 @@ use OMP::EnterData;
 use OMP::EnterData::ACSIS;
 use OMP::EnterData::RxH3;
 use OMP::EnterData::SCUBA2;
-use JSA::LogSetup qw/make_logfile/;
+use OMP::LogSetup qw/make_logfile/;
 
 use Time::Piece;
 use Getopt::Long;
@@ -230,10 +230,10 @@ do {
 
     pod2usage('-exitval' => 1, '-verbose' => 2) if $help;
 
-    JSA::LogSetup::logfile(make_logfile(
+    OMP::LogSetup::logfile(make_logfile(
         defined $logfile ? $logfile : 'jcmtenterdata.log'));
 
-    Log::Log4perl->init(JSA::LogSetup::get_config());
+    Log::Log4perl->init(OMP::LogSetup::get_config());
     my $log = Log::Log4perl->get_logger('');
     $log->level($verbose ? $DEBUG : $INFO);
 

@@ -33,7 +33,7 @@ use Scalar::Util qw/looks_like_number/;
 
 use JSA::Error qw/:try/;
 use JSA::DB::MySQL qw/connect_to_db/;
-use JSA::LogSetup qw/hashref_to_dumper/;
+use OMP::LogSetup qw/hashref_to_dumper/;
 
 use OMP::Config;
 use OMP::Constants qw /:status/;
