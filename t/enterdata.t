@@ -1,118 +1,109 @@
 use strict;
 
-my $n_test; BEGIN {$n_test = 1 + 30 + 5 + 2;}
-use Test::More tests => $n_test;
+use Test::More tests => 1 + 30 + 5 + 2;
 
-SKIP: {
-    eval {
-        require JAC::Setup; JAC::Setup->import(qw/omp archiving/);
-        require OMP::EnterData;
-    };
+use JAC::Setup qw/jsa archiving/;
+use OMP::EnterData;
 
-    skip 'OMP not present', $n_test if $@;
+my $dict = './cfg/jcmt/data.dictionary';
 
-    my $dict = '/jac_sw/archiving/jcmt/import/data.dictionary';
+my $enter = new OMP::EnterData(dict => $dict);
 
-    skip 'Data dictionary not present', $n_test unless -e $dict;
+isa_ok($enter, 'OMP::EnterData');
 
-    my $enter = new OMP::EnterData(dict => $dict);
+# Test "_find_header" method.
+my %header = (
+    HEADER1 => 1,
+    HEADER6 => undef,
+    HEADER7 => 0,
+    HEADER8 => 'aardvark',
+    HEADER0 => 'x',
 
-    isa_ok($enter, 'OMP::EnterData');
+    SUBHEADERS => [
+        {
+            HEADER2 => 10,
+        },
+        {
+            HEADER2 => 11,
+            HEADER0 => 'y',
+        },
+        {
+            HEADER3 => undef,
+            HEADER4 => 1,
+            HEADER5 => 0,
+            HEADER9 => 'zebra',
+            HEADER0 => 'z',
+        },
+    ],
+);
 
-    # Test "_find_header" method.
-    my %header = (
-        HEADER1 => 1,
-        HEADER6 => undef,
-        HEADER7 => 0,
-        HEADER8 => 'aardvark',
-        HEADER0 => 'x',
+ok($enter->_find_header(headers => \%header, name => 'HEADER1'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER2'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER6'));
+ok(! $enter->_find_header(headers => \%header, name => 'NOHEADER'));
 
-        SUBHEADERS => [
-            {
-                HEADER2 => 10,
-            },
-            {
-                HEADER2 => 11,
-                HEADER0 => 'y',
-            },
-            {
-                HEADER3 => undef,
-                HEADER4 => 1,
-                HEADER5 => 0,
-                HEADER9 => 'zebra',
-                HEADER0 => 'z',
-            },
-        ],
-    );
+ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'true'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER4', test => 'true'));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER5', test => 'true'));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER7', test => 'true'));
 
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER2'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER6'));
-    ok(! $enter->_find_header(headers => \%header, name => 'NOHEADER'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'defined'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER4', test => 'defined'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER5', test => 'defined'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER7', test => 'defined'));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER3', test => 'defined'));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER6', test => 'defined'));
 
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'true'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER4', test => 'true'));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER5', test => 'true'));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER7', test => 'true'));
+is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1)],
+          [1]);
+is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1)],
+          [10, 11]);
+is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER0', value => 1)],
+          # Existing implementation only returns primary header value if found there.
+          # [qw/x y z/]);
+          [qw/x/]);
 
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'defined'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER4', test => 'defined'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER5', test => 'defined'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER7', test => 'defined'));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER3', test => 'defined'));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER6', test => 'defined'));
+is(scalar $enter->_find_header(headers => \%header, name => 'HEADER8', value => 1),
+   'aardvark');
+is(scalar $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1),
+   10);
 
-    is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1)],
-              [1]);
-    is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1)],
-              [10, 11]);
-    is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER0', value => 1)],
-              # Existing implementation only returns primary header value if found there.
-              # [qw/x y z/]);
-              [qw/x/]);
+ok($enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^a/));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^z/));
 
-    is(scalar $enter->_find_header(headers => \%header, name => 'HEADER8', value => 1),
-       'aardvark');
-    is(scalar $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1),
-       10);
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER9', value_regex => qr/^a/));
+ok($enter->_find_header(headers => \%header, name => 'HEADER9', value_regex => qr/^z/));
 
-    ok($enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^a/));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^z/));
+%header = (
+    HEADER1 => 10,
+    HEADER2 => 0,
+);
 
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER9', value_regex => qr/^a/));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER9', value_regex => qr/^z/));
+ok($enter->_find_header(headers => \%header, name => 'HEADER1'));
+ok(! $enter->_find_header(headers => \%header, name => 'NOHEADER'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'true'));
+ok(! $enter->_find_header(headers => \%header, name => 'HEADER2', test => 'true'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'defined'));
+ok($enter->_find_header(headers => \%header, name => 'HEADER2', test => 'defined'));
+is(scalar $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1),
+   10);
 
-    %header = (
-        HEADER1 => 10,
-        HEADER2 => 0,
-    );
+# Test the "skip_calc_radec" method.
+ok(! $enter->skip_calc_radec(headers => {}));
+ok(! $enter->skip_calc_radec(headers => {OBS_TYPE => 'pointing'}));
+ok($enter->skip_calc_radec(headers => {OBS_TYPE => 'skydip'}));
+ok(! $enter->skip_calc_radec(headers => {OBJECT => 'NMLCyg'}));
+ok($enter->skip_calc_radec(headers => {OBJECT => 'SUN'}));
 
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1'));
-    ok(! $enter->_find_header(headers => \%header, name => 'NOHEADER'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'true'));
-    ok(! $enter->_find_header(headers => \%header, name => 'HEADER2', test => 'true'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'defined'));
-    ok($enter->_find_header(headers => \%header, name => 'HEADER2', test => 'defined'));
-    is(scalar $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1),
-       10);
+# Test the "_expand_header_arrays" method.
+is_deeply(
+    $enter->_expand_header_arrays({HEADER1 => 5, HEADER2 => 'x'}), [
+    {HEADER1 => 5, HEADER2 => 'x'},
+]);
 
-    # Test the "skip_calc_radec" method.
-    ok(! $enter->skip_calc_radec(headers => {}));
-    ok(! $enter->skip_calc_radec(headers => {OBS_TYPE => 'pointing'}));
-    ok($enter->skip_calc_radec(headers => {OBS_TYPE => 'skydip'}));
-    ok(! $enter->skip_calc_radec(headers => {OBJECT => 'NMLCyg'}));
-    ok($enter->skip_calc_radec(headers => {OBJECT => 'SUN'}));
-
-    # Test the "_expand_header_arrays" method.
-    is_deeply(
-        $enter->_expand_header_arrays({HEADER1 => 5, HEADER2 => 'x'}), [
-        {HEADER1 => 5, HEADER2 => 'x'},
-    ]);
-
-    is_deeply(
-        $enter->_expand_header_arrays({HEADER1 => 5, HEADER2 => [qw/a b c/], HEADER3 => [qw/x y z/]}), [
-        {HEADER1 => 5, HEADER2 => 'a', HEADER3 => 'x'},
-        {HEADER1 => 5, HEADER2 => 'b', HEADER3 => 'y'},
-        {HEADER1 => 5, HEADER2 => 'c', HEADER3 => 'z'},
-    ]);
-}
+is_deeply(
+    $enter->_expand_header_arrays({HEADER1 => 5, HEADER2 => [qw/a b c/], HEADER3 => [qw/x y z/]}), [
+    {HEADER1 => 5, HEADER2 => 'a', HEADER3 => 'x'},
+    {HEADER1 => 5, HEADER2 => 'b', HEADER3 => 'y'},
+    {HEADER1 => 5, HEADER2 => 'c', HEADER3 => 'z'},
+]);

@@ -1,112 +1,103 @@
 use strict;
 
-my $n_test; BEGIN {$n_test = 14;}
-use Test::More tests => $n_test;
+use Test::More tests => 14;
 
-SKIP: {
-    eval {
-        require JAC::Setup; JAC::Setup->import(qw/omp archiving/);
-        require OMP::EnterData;
-    };
+use JAC::Setup qw/jsa archiving/;
+use OMP::EnterData;
 
-    skip 'OMP not present', $n_test if $@;
+my $dict = './cfg/jcmt/data.dictionary';
 
-    my $dict = '/jac_sw/archiving/jcmt/import/data.dictionary';
+my $enter = new OMP::EnterData(dict => $dict);
 
-    skip 'Data dictionary not present', $n_test unless -e $dict;
+isa_ok($enter, 'OMP::EnterData');
 
-    my $enter = new OMP::EnterData(dict => $dict);
-
-    isa_ok($enter, 'OMP::EnterData');
-
-    is($enter->_combine_inbeam_values(
-        'shutter',
-        '',
-        ''),
-    undef,
-    'shutter first only');
-
-    is($enter->_combine_inbeam_values(
-        'shutter',
-        undef),
-    undef,
-    'shutter and undef');
-
-    is($enter->_combine_inbeam_values(
-        undef,
-        undef),
-    undef,
-    'all undef');
-
-    is($enter->_combine_inbeam_values(
-        undef,
-        'pol',
-        undef,
-        undef,
-        undef),
-    'pol',
-    'pol and undef');
-
-    is($enter->_combine_inbeam_values(
-        'shutter',
-        'shutter',
-        'shutter'),
+is($enter->_combine_inbeam_values(
     'shutter',
-    'shutter in all');
+    '',
+    ''),
+undef,
+'shutter first only');
 
-    is($enter->_combine_inbeam_values(
-        'shutter',
-        'pol',
-        'pol'),
-    'pol',
-    'shutter first then pol');
+is($enter->_combine_inbeam_values(
+    'shutter',
+    undef),
+undef,
+'shutter and undef');
 
-    is($enter->_combine_inbeam_values(
-        'shutter pol',
-        'pol',
-        'pol'),
-    'pol',
-    'shutter first, pol in all');
-
-    is($enter->_combine_inbeam_values(
-        'shutter pol',
-        '',
-        ''),
+is($enter->_combine_inbeam_values(
     undef,
-    'shutter and pol in first only');
+    undef),
+undef,
+'all undef');
 
-    is($enter->_combine_inbeam_values(
-        'shutter',
-        'pol',
-        'fts2'),
-    'fts2 pol',
-    'shutter in first, then pol/fts2');
+is($enter->_combine_inbeam_values(
+    undef,
+    'pol',
+    undef,
+    undef,
+    undef),
+'pol',
+'pol and undef');
 
-    is($enter->_combine_inbeam_values(
-        'shutter a b c',
-        'd f h',
-        'e g i'),
-    'd e f g h i',
-    'shutter in first, then multiple');
+is($enter->_combine_inbeam_values(
+    'shutter',
+    'shutter',
+    'shutter'),
+'shutter',
+'shutter in all');
 
-    is($enter->_combine_inbeam_values(
-        'shutter a b c',
-        'shutter d f h',
-        'shutter e g i'),
-    'a b c d e f g h i shutter',
-    'shutter in all with multiple');
+is($enter->_combine_inbeam_values(
+    'shutter',
+    'pol',
+    'pol'),
+'pol',
+'shutter first then pol');
 
-    is($enter->_combine_inbeam_values(
-        'a b c',
-        'd f h',
-        'e g i'),
-    'a b c d e f g h i',
-    'no shutter, multiple values');
+is($enter->_combine_inbeam_values(
+    'shutter pol',
+    'pol',
+    'pol'),
+'pol',
+'shutter first, pol in all');
 
-    is($enter->_combine_inbeam_values(
-        'fts2',
-        'fts2',
-        'fts2'),
+is($enter->_combine_inbeam_values(
+    'shutter pol',
+    '',
+    ''),
+undef,
+'shutter and pol in first only');
+
+is($enter->_combine_inbeam_values(
+    'shutter',
+    'pol',
+    'fts2'),
+'fts2 pol',
+'shutter in first, then pol/fts2');
+
+is($enter->_combine_inbeam_values(
+    'shutter a b c',
+    'd f h',
+    'e g i'),
+'d e f g h i',
+'shutter in first, then multiple');
+
+is($enter->_combine_inbeam_values(
+    'shutter a b c',
+    'shutter d f h',
+    'shutter e g i'),
+'a b c d e f g h i shutter',
+'shutter in all with multiple');
+
+is($enter->_combine_inbeam_values(
+    'a b c',
+    'd f h',
+    'e g i'),
+'a b c d e f g h i',
+'no shutter, multiple values');
+
+is($enter->_combine_inbeam_values(
     'fts2',
-    'no shutter, fts2 in all');
-}
+    'fts2',
+    'fts2'),
+'fts2',
+'no shutter, fts2 in all');

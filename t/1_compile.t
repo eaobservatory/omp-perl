@@ -25,7 +25,7 @@
 use strict;
 use warnings;
 
-use JAC::Setup qw/ocsq/;
+use JAC::Setup qw/ocsq jsa archiving/;
 
 use Test; # Not really needed since we don't use ok()
 
