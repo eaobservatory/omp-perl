@@ -1,14 +1,14 @@
-package JSA::DB::MySQL;
+package OMP::DB::JSA::MySQL;
 
 =pod
 
 =head1 NAME
 
-JSA::DB::MySQL - Connects to a MySQL database server
+OMP::DB::JSA::MySQL - Connects to a MySQL database server
 
 =head1 SYNOPSIS
 
-    use JSA::DB::MySQL qw/connect_to_db/;
+    use OMP::DB::JSA::MySQL qw/connect_to_db/;
 
     $dbh = connect_to_db($ini_config_file);
 

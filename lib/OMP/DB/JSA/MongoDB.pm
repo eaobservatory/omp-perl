@@ -1,10 +1,10 @@
 =head1 NAME
 
-JSA::DB::MongoDB - Interface module for storing JSA data in MongoDB
+OMP::DB::JSA::MongoDB - Interface module for storing JSA data in MongoDB
 
 =cut
 
-package JSA::DB::MongoDB;
+package OMP::DB::JSA::MongoDB;
 
 use strict;
 
@@ -34,7 +34,7 @@ our %need_wcs = map {$_ => 1} qw/ACSIS/;
 
 Prepares a MongoDB::MongoClient connection.
 
-    my $db = new JSA::DB::MongoDB();
+    my $db = new OMP::DB::JSA::MongoDB();
 
 =cut
 

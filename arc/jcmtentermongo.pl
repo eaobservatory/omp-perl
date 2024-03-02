@@ -41,7 +41,7 @@ use OMP::FileUtils;
 use OMP::EnterData::ACSIS;
 use OMP::EnterData::RxH3;
 use OMP::EnterData::SCUBA2;
-use JSA::DB::MongoDB;
+use OMP::DB::JSA::MongoDB;
 
 my ($help, $date, $instrument_name, $dry_run);
 my $verbose = 0;
@@ -83,7 +83,7 @@ my $observations = OMP::FileUtils->files_on_disk(
     instrument => $instrument->instrument_name());
 
 $logger->debug('Creating MongoDB access object');
-my $db = new JSA::DB::MongoDB();
+my $db = new OMP::DB::JSA::MongoDB();
 
 my $n_err = 0;
 

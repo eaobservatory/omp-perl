@@ -1,4 +1,4 @@
-package  JSA::DB::TableCOMMON;
+package  OMP::DB::JSA::TableCOMMON;
 
 use strict;
 use warnings;

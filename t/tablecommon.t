@@ -2,7 +2,7 @@ use strict;
 
 use Test::More tests => 2;
 
-BEGIN {use_ok('JSA::DB::TableCOMMON');}
+BEGIN {use_ok('OMP::DB::JSA::TableCOMMON');}
 
 # Check that the range end columns match the start columns
 # by applying conversions.
@@ -11,6 +11,6 @@ my @end = map {
     s/start$/end/;
     s/st$/en/;
     $_;
-} JSA::DB::TableCOMMON::range_start_columns;
+} OMP::DB::JSA::TableCOMMON::range_start_columns;
 
-is_deeply(\@end, [JSA::DB::TableCOMMON::range_end_columns]);
+is_deeply(\@end, [OMP::DB::JSA::TableCOMMON::range_end_columns]);

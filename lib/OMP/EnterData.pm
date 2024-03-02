@@ -40,15 +40,15 @@ use Scalar::Util qw/blessed looks_like_number/;
 
 use Astro::Coords::Angle::Hour;
 
-use JSA::DB;
+use OMP::DB::JSA;
 use JSA::Headers qw/read_jcmtstate file_md5sum/;
 use JSA::Datetime qw/make_datetime/;
-use JSA::DB::TableCOMMON;
+use OMP::DB::JSA::TableCOMMON;
 use JSA::Starlink qw/try_star_command/;
 use JSA::Error qw/:try/;
 use JSA::Files qw/looks_like_rawfile/;
 use JSA::WriteList qw/write_list/;
-use JSA::DB::TableTransfer;
+use OMP::DB::JSA::TableTransfer;
 use JCMT::DataVerify;
 
 use OMP::DBbackend::Archive;
@@ -278,8 +278,8 @@ sub prepare_and_insert {
 
     my $mdb = undef;
     if ($arg{'from_mongodb'}) {
-        require JSA::DB::MongoDB;
-        $mdb = new JSA::DB::MongoDB();
+        require OMP::DB::JSA::MongoDB;
+        $mdb = new OMP::DB::JSA::MongoDB();
     }
 
     my %update_args = map {$_ => $arg{$_}} qw/
@@ -1080,8 +1080,8 @@ sub prepare_update_hash {
     my (%start, %end);
 
     if ($table eq 'COMMON') {
-        %start = map {$_ => undef} JSA::DB::TableCOMMON::range_start_columns();
-        %end = map {$_ => undef} JSA::DB::TableCOMMON::range_end_columns();
+        %start = map {$_ => undef} OMP::DB::JSA::TableCOMMON::range_start_columns();
+        %end = map {$_ => undef} OMP::DB::JSA::TableCOMMON::range_end_columns();
     }
 
     my $is_overwrite = $arg{'overwrite'};
@@ -2295,7 +2295,7 @@ sub _verify_file_name {
 
 =item B<_get_xfer_unconnected_dbh>
 
-Get a JSA::DB::TableTransfer object, to be created as needed.
+Get a OMP::DB::JSA::TableTransfer object, to be created as needed.
 This method uses a new database handle
 unconnected to the one used elsewhere.  (Note it's not entirely
 unconnected -- if the default (or a previous) name is used, then
@@ -2313,10 +2313,10 @@ a cached object is returned.
 
         return $xfer{$name} if exists $xfer{$name};
 
-        my $db = new JSA::DB(name => $name);
+        my $db = new OMP::DB::JSA(name => $name);
         $db->use_transaction(0);
 
-        return $xfer{$name} = new JSA::DB::TableTransfer(
+        return $xfer{$name} = new OMP::DB::JSA::TableTransfer(
             db => $db, transactions => 0);
     }
 }
@@ -2407,7 +2407,7 @@ sub calcbounds_files_from_db {
           AND ( c.obsra IS NULL and c.obsdec IS NULL )',
         join(',', ('?') x scalar @$obs_types));
 
-    my $jdb = new JSA::DB();
+    my $jdb = new OMP::DB::JSA();
     my $tmp = $jdb->run_select_sql(
         sql    => $sql,
         values => [$pattern, $date, @$obs_types]);

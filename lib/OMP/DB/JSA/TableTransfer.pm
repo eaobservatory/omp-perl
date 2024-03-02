@@ -1,16 +1,16 @@
-package JSA::DB::TableTransfer;
+package OMP::DB::JSA::TableTransfer;
 
 =pod
 
 =head1 NAME
 
-JSA::DB::TableTransfer - Check file status, transfer files to CADC
+OMP::DB::JSA::TableTransfer - Check file status, transfer files to CADC
 
 =head1 SYNOPSIS
 
 Make an object ...
 
-    $xfer = new JSA::DB::TableTransfer(db => new JSA::DB());
+    $xfer = new OMP::DB::JSA::TableTransfer(db => new OMP::DB::JSA());
 
 Set copied state for some files ...
 
@@ -73,12 +73,12 @@ The state types are ...
 
 =item B<new> constructor
 
-Make a C<JSA::DB::TableTransfer> object.  It takes a hash of parameters ...
+Make a C<OMP::DB::JSA::TableTransfer> object.  It takes a hash of parameters ...
 
-    db           - JSA::DB object, which has succesfully connected to database;
+    db           - OMP::DB::JSA object, which has succesfully connected to database;
     transactions - (optional) truth value, used when changing tables;
 
-    $xfer = new JSA::DB::TableTransfer(db => $jsa_db);
+    $xfer = new OMP::DB::JSA::TableTransfer(db => $jsa_db);
 
 Throws L<JSA::Error::BadArgs> error when database handle is invalid object.
 
@@ -210,7 +210,7 @@ sub add_found {
 
 Returns a descriptive text given a state code.
 
-    $text = JSA::DB::TableTransfer::code_to_descr('f');
+    $text = OMP::DB::JSA::TableTransfer::code_to_descr('f');
 
 =cut
 
@@ -225,7 +225,7 @@ sub code_to_descr {
 
 Returns a state code given known descriptive text.
 
-    $code = JSA::DB::TableTransfer::descr_to_code('found');
+    $code = OMP::DB::JSA::TableTransfer::descr_to_code('found');
 
 =cut
 
@@ -298,7 +298,7 @@ sub get_files_not_end_state {
 
 Returns list of columns to uniquely identify a row.
 
-    @keys = JSA::DB::TableTransfer->unique_keys();
+    @keys = OMP::DB::JSA::TableTransfer->unique_keys();
 
 =cut
 
@@ -308,7 +308,7 @@ sub unique_keys {
 
 =item B<_dbhandle>
 
-Returns the database handle, which is obtained from our JSA::DB
+Returns the database handle, which is obtained from our OMP::DB::JSA
 object.
 
     $dbh = $xfer->_dbhandle();

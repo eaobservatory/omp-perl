@@ -1,16 +1,16 @@
-package JSA::DB;
+package OMP::DB::JSA;
 
 =pod
 
 =head1 NAME
 
-JSA::DB - Arranges for database handle given a configuration
+OMP::DB::JSA - Arranges for database handle given a configuration
 
 =head1 SYNOPSIS
 
 Make an object ...
 
-    $jdb = JSA::DB->new();
+    $jdb = OMP::DB::JSA->new();
 
 Pass jcmt database handle already being used if desired ...
 
@@ -32,7 +32,7 @@ use Log::Log4perl;
 use Scalar::Util qw/looks_like_number/;
 
 use JSA::Error qw/:try/;
-use JSA::DB::MySQL qw/connect_to_db/;
+use OMP::DB::JSA::MySQL qw/connect_to_db/;
 use OMP::LogSetup qw/hashref_to_dumper/;
 
 use OMP::Config;
@@ -52,16 +52,16 @@ my %_config = (
 
 =item B<new> constructor
 
-Make a C<JSA::DB> object.  It takes a hash of parameters ...
+Make a C<OMP::DB::JSA> object.  It takes a hash of parameters ...
 
     db-config - pass file name with database log in information in "ini" format;
                 default is /jac_sw/etc/enterdata/enterdata.cfg;
 
     name      - (optional) pass a string to differentiate db connections
-                with same log in configuration; default is 'JSA::DB'.
+                with same log in configuration; default is 'OMP::DB::JSA'.
 
-    $jdb = JSA::DB->new(
-        'name'      => 'JSA::DB'
+    $jdb = OMP::DB::JSA->new(
+        'name'      => 'OMP::DB::JSA'
         'db-config' => '/jac_sw/etc/enterdata/enterdata.cfg');
 
 Transactions are set to be used (see C<use_transaction> method).
@@ -136,7 +136,7 @@ Database handles are released at the end of the program via C<END>.
         # Check for handle in the class-level cache by "key", which is
         # made up of the name and configuration file.  Do this to
         # replicate the old module-level caching previously provided by
-        # the JSA::DB::MySQL module.
+        # the OMP::DB::JSA::MySQL module.
         my $config = $self->{'db-config'};
         my $key = join(':', $name, $config);
         my $dbh = undef;

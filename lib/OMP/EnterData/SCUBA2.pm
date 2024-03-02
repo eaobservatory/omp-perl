@@ -8,7 +8,7 @@ use Data::Dumper;
 use File::Spec;
 use List::Util qw/first/;
 
-use JSA::DB::TableCOMMON;
+use OMP::DB::JSA::TableCOMMON;
 
 use parent 'OMP::EnterData';
 
@@ -437,14 +437,14 @@ value to indicate if to skip darks.
     $scuba2->push_range_headers_to_main($header, $_)
         for @{$header->{'SUBHEADERS'}};
 
-Currently, the fields being moved are those defined in JSA::DB::TableCOMMON.
+Currently, the fields being moved are those defined in OMP::DB::JSA::TableCOMMON.
 
 =cut
 
     # Note: this doesn't include DATE-OBS and DATE-END because the
     # column names are date_obs and date_end -- those are handled separately.
-    my $start_re = join '|', JSA::DB::TableCOMMON::range_start_columns();
-    my $end_re = join '|', JSA::DB::TableCOMMON::range_end_columns();
+    my $start_re = join '|', OMP::DB::JSA::TableCOMMON::range_start_columns();
+    my $end_re = join '|', OMP::DB::JSA::TableCOMMON::range_end_columns();
     $_ = qr/(?:$_)/ix for $start_re, $end_re;
 
     sub push_range_headers_to_main {
