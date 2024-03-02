@@ -167,17 +167,17 @@ BEGIN {
     $ENV{'OMP_SITE_CONFIG'} = '/jac_sw/etc/enterdata/enterdata.cfg';
 }
 
-# Add "archiving" because JCMT::DataVerify is needed by JSA::EnterData.
+# Add "archiving" because JCMT::DataVerify is needed by OMP::EnterData.
 use JAC::Setup qw/jsa archiving/;
 
 use OMP::FileUtils;
 
 use OMP::DBbackend::Archive;
 use JSA::Datetime qw/make_datetime make_limited_datetime/;
-use JSA::EnterData;
-use JSA::EnterData::ACSIS;
-use JSA::EnterData::RxH3;
-use JSA::EnterData::SCUBA2;
+use OMP::EnterData;
+use OMP::EnterData::ACSIS;
+use OMP::EnterData::RxH3;
+use OMP::EnterData::SCUBA2;
 use JSA::LogSetup qw/make_logfile/;
 
 use Time::Piece;
@@ -423,9 +423,9 @@ sub get_instruments {
     my $debug_fh = delete $opt{'debug_fh'};
 
     my %class = (
-        ACSIS => 'JSA::EnterData::ACSIS',
-        'RxH3' => 'JSA::EnterData::RxH3',
-        'SCUBA-2' => 'JSA::EnterData::SCUBA2',
+        ACSIS => 'OMP::EnterData::ACSIS',
+        'RxH3' => 'OMP::EnterData::RxH3',
+        'SCUBA-2' => 'OMP::EnterData::SCUBA2',
     );
 
     # By default, use all instruments if none is specified.

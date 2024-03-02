@@ -1,4 +1,4 @@
-package JSA::EnterData::SCUBA2;
+package OMP::EnterData::SCUBA2;
 
 use strict;
 use warnings;
@@ -10,16 +10,16 @@ use List::Util qw/first/;
 
 use JSA::DB::TableCOMMON;
 
-use parent 'JSA::EnterData';
+use parent 'OMP::EnterData';
 
 =head1 NAME
 
-JSA::EnterData::SCUBA2 - SCUBA2 specific methods.
+OMP::EnterData::SCUBA2 - SCUBA2 specific methods.
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $scuba2 = new JSA::EnterData::SCUBA2();
+    my $scuba2 = new OMP::EnterData::SCUBA2();
 
     my $name = $scuba2->instrument_name();
 
@@ -44,9 +44,9 @@ methods.
 
 =item B<new>
 
-Constructor, returns an I<JSA::EnterData::SCUBA2> object.
+Constructor, returns an I<OMP::EnterData::SCUBA2> object.
 
-    $scuba2 = new JSA::EnterData::SCUBA2();
+    $scuba2 = new OMP::EnterData::SCUBA2();
 
 Currently, no extra arguments are handled.
 
@@ -141,7 +141,7 @@ number captured ...
         _\d{4}[.]sdf
       /x;
 
-    $re = JSA::EnterData::SCUBA2->raw_basename_regex();
+    $re = OMP::EnterData::SCUBA2->raw_basename_regex();
 
 =cut
 
@@ -161,7 +161,7 @@ sub raw_basename_regex {
 Returns the parent directory of a raw file, without array, date, &
 run number components.
 
-    $root = JSA::EnterData::SCUBA2->raw_parent_dir();
+    $root = OMP::EnterData::SCUBA2->raw_parent_dir();
 
 =cut
 
@@ -175,7 +175,7 @@ sub raw_parent_dir {
 Given a list of base file names, returns a list of (unverified)
 absolute paths.
 
-    my @path = JSA::EnterData::SCUBA2->make_raw_paths(@basename);
+    my @path = OMP::EnterData::SCUBA2->make_raw_paths(@basename);
 
 =cut
 
@@ -668,7 +668,7 @@ reference and an L<OMP::Info::Obs> object.
 
     $scuba2->fill_headers_FILES(\%header, $obs);
 
-This first calls the superclass method L<fill_headers_FILES/JSA::EnterData>.
+This first calls the superclass method L<fill_headers_FILES/OMP::EnterData>.
 
 =cut
 

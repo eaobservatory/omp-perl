@@ -7,7 +7,7 @@ SKIP: {
         require JAC::Setup; JAC::Setup->import(qw/omp archiving/);
         require OMP::Info::Obs;
         require OMP::DateTools;
-        require JSA::EnterData;
+        require OMP::EnterData;
     };
 
     skip "OMP not present", 10 if $@;
@@ -41,7 +41,7 @@ SKIP: {
 
         $science = $science ? 'science' : 'non-science';
 
-        is(JSA::EnterData::calculate_release_date($obs)->ymd(), $expect,
+        is(OMP::EnterData::calculate_release_date($obs)->ymd(), $expect,
             "$projectid $utdate $science -> $expect");
     }
 }

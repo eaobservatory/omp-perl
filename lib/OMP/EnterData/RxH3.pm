@@ -1,9 +1,9 @@
-package JSA::EnterData::RxH3;
+package OMP::EnterData::RxH3;
 
 use strict;
 use warnings;
 
-use parent 'JSA::EnterData';
+use parent 'OMP::EnterData';
 
 use Astro::FITS::CFITSIO qw/:longnames :constants/;
 use Astro::FITS::Header;
@@ -19,7 +19,7 @@ use Starlink::AST;
 
 =head1 NAME
 
-JSA::EnterData::RxH3 - RxH3 specific enter-data methods.
+OMP::EnterData::RxH3 - RxH3 specific enter-data methods.
 
 =head1 METHODS
 

@@ -1,20 +1,20 @@
-package JSA::EnterData;
+package OMP::EnterData;
 
 =head1 NAME
 
-JSA::EnterData - Parse headers and store in database
+OMP::EnterData - Parse headers and store in database
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $enter = new JSA::EnterData::SCUBA2('dict' => '/path/to/dict');
+    my $enter = new OMP::EnterData::SCUBA2('dict' => '/path/to/dict');
 
     # Upload metadata for Jun 25, 2008.
     $enter->prepare_and_insert(date => '20080625');
 
 =head1 DESCRIPTION
 
-JSA::EnterData is a object oriented module to enter observation
+OMP::EnterData is a object oriented module to enter observation
 metadata into the JCMT database.  It is the base class for a number of
 instrument-specific subclasses and as such should generally not be used
 directly -- instead instances of the subclasses should be constructed.
@@ -74,7 +74,7 @@ $| = 1; # Make unbuffered
 
 Constructor.  A data dictionary file name is required.
 
-  $enter = JSA::EnterData->new('dict' => '/file/path/');
+  $enter = OMP::EnterData->new('dict' => '/file/path/');
 
 Configuration values which can be passed as key-value pairs are:
 
@@ -1816,7 +1816,7 @@ sub get_insert_values {
 
 Return a hash reference containing the dictionary contents.
 
-    $dictionary = JSA::EnterData->create_dictionary($filename);
+    $dictionary = OMP::EnterData->create_dictionary($filename);
 
 =cut
 
@@ -1886,7 +1886,7 @@ Calculate RA/Dec extent (ICRS) of the observation and the base
 position.  It populates header with corners of grid (in decimal
 degrees).  Status is perl status: 1 is good, 0 bad.
 
-    $status = JSA::EnterData->calc_radec($header, \@filenames);
+    $status = OMP::EnterData->calc_radec($header, \@filenames);
 
 =cut
 

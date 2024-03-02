@@ -1,9 +1,9 @@
-package JSA::EnterData::ACSIS;
+package OMP::EnterData::ACSIS;
 
 use strict;
 use warnings;
 
-use parent 'JSA::EnterData';
+use parent 'OMP::EnterData';
 
 use File::Basename;
 use File::Spec;
@@ -11,12 +11,12 @@ use Log::Log4perl;
 
 =head1 NAME
 
-JSA::EnterData::ACSIS - ACSIS specific methods.
+OMP::EnterData::ACSIS - ACSIS specific methods.
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $enter = JSA::EnterData::ACSIS->new();
+    my $enter = OMP::EnterData::ACSIS->new();
 
     my $name = $enter->instrument_name();
 
@@ -41,9 +41,9 @@ specific methods.
 
 =item B<new>
 
-Constructor, returns an I<JSA::EnterData::ACSIS> object.
+Constructor, returns an I<OMP::EnterData::ACSIS> object.
 
-    $enter = new JSA::EnterData::ACSIS();
+    $enter = new OMP::EnterData::ACSIS();
 
 Currently, no extra arguments are handled.
 
@@ -143,7 +143,7 @@ number captured ...
         _\d{2}_\d{4}[.]sdf
       }x;
 
-    $re = JSA::EnterData::ACSIS->raw_basename_regex();
+    $re = OMP::EnterData::ACSIS->raw_basename_regex();
 
 =cut
 
@@ -164,7 +164,7 @@ sub raw_basename_regex {
 Returns the parent directory of a raw file without date and run number
 components.
 
-    $root = JSA::EnterData::ACSIS->raw_parent_dir();
+    $root = OMP::EnterData::ACSIS->raw_parent_dir();
 
 =cut
 
@@ -178,7 +178,7 @@ sub raw_parent_dir {
 Given a list of base file names, returns a list of (unverified)
 absolute paths.
 
-    my @path = JSA::EnterData::ACSIS->make_raw_paths(@basename);
+    my @path = OMP::EnterData::ACSIS->make_raw_paths(@basename);
 
 =cut
 
@@ -223,7 +223,7 @@ sub _fill_headers_obsid_subsys {
 
 Calculate frequency properties, updates given hash reference.
 
-    JSA::EnterData->calc_freq($obs, $headerref, \%wcs_by_basename);
+    OMP::EnterData->calc_freq($obs, $headerref, \%wcs_by_basename);
 
 It Calculates:
     zsource, restfreq

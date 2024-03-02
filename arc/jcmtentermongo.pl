@@ -38,9 +38,9 @@ use Time::Piece;
 use Log::Log4perl qw(:easy);
 
 use OMP::FileUtils;
-use JSA::EnterData::ACSIS;
-use JSA::EnterData::RxH3;
-use JSA::EnterData::SCUBA2;
+use OMP::EnterData::ACSIS;
+use OMP::EnterData::RxH3;
+use OMP::EnterData::SCUBA2;
 use JSA::DB::MongoDB;
 
 my ($help, $date, $instrument_name, $dry_run);
@@ -64,9 +64,9 @@ $date = Time::Piece->strptime($date, '%Y%m%d');
 
 die 'Instrument not specified' unless defined $instrument_name;
 my %instrument_class = (
-    ACSIS => 'JSA::EnterData::ACSIS',
-    SCUBA2 => 'JSA::EnterData::SCUBA2',
-    RXH3 => 'JSA::EnterData::RxH3',
+    ACSIS => 'OMP::EnterData::ACSIS',
+    SCUBA2 => 'OMP::EnterData::SCUBA2',
+    RXH3 => 'OMP::EnterData::RxH3',
 );
 my $class = $instrument_class{uc($instrument_name)};
 die "Instrument '$instrument_name' not recognized"

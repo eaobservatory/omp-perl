@@ -7,7 +7,7 @@ use Test::Number::Delta;
 SKIP: {
     eval {
         require JAC::Setup; JAC::Setup->import(qw/omp archiving/);
-        require JSA::EnterData::SCUBA2;
+        require OMP::EnterData::SCUBA2;
     };
 
     skip 'OMP not present', $n_test if $@;
@@ -16,9 +16,9 @@ SKIP: {
 
     skip 'Data dictionary not present', $n_test unless -e $dict;
 
-    my $enter = new JSA::EnterData::SCUBA2(dict => $dict);
+    my $enter = new OMP::EnterData::SCUBA2(dict => $dict);
 
-    isa_ok($enter, 'JSA::EnterData::SCUBA2');
+    isa_ok($enter, 'OMP::EnterData::SCUBA2');
 
     # Test get_total_int_time method.
 

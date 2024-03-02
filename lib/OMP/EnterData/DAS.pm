@@ -1,18 +1,18 @@
-package JSA::EnterData::DAS;
+package OMP::EnterData::DAS;
 
 use strict;
 use warnings;
 
-use parent 'JSA::EnterData::ACSIS';
+use parent 'OMP::EnterData::ACSIS';
 
 =head1 NAME
 
-JSA::EnterData::DAS - DAS specific methods.
+OMP::EnterData::DAS - DAS specific methods.
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $enter = new JSA::EnterData::DAS();
+    my $enter = new OMP::EnterData::DAS();
 
     my $name = $enter->instrument_name();
 
@@ -29,7 +29,7 @@ JSA::EnterData::DAS - DAS specific methods.
 JAS::EnterData::DAS is a object oriented module, having instrument specific
 methods.
 
-It inherits from L<JSA::EnterData::ACSIS>.
+It inherits from L<OMP::EnterData::ACSIS>.
 
 =head2 METHODS
 
@@ -39,9 +39,9 @@ It inherits from L<JSA::EnterData::ACSIS>.
 
 =item B<new>
 
-Constructor, returns an I<JSA::EnterData::DAS> object.
+Constructor, returns an I<OMP::EnterData::DAS> object.
 
-    $enter = new JSA::EnterData::DAS();
+    $enter = new OMP::EnterData::DAS();
 
 Currently, no extra arguments are handled.
 
@@ -79,7 +79,7 @@ number captured ...
         _\d{2}_\d{4}[.]sdf
       }x;
 
-    $re = JSA::EnterData::DAS->raw_basename_regex();
+    $re = OMP::EnterData::DAS->raw_basename_regex();
 
 =cut
 

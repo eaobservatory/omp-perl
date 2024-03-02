@@ -6,7 +6,7 @@ use Test::More tests => $n_test;
 SKIP: {
     eval {
         require JAC::Setup; JAC::Setup->import(qw/omp archiving/);
-        require JSA::EnterData;
+        require OMP::EnterData;
     };
 
     skip 'OMP not present', $n_test if $@;
@@ -15,9 +15,9 @@ SKIP: {
 
     skip 'Data dictionary not present', $n_test unless -e $dict;
 
-    my $enter = new JSA::EnterData(dict => $dict);
+    my $enter = new OMP::EnterData(dict => $dict);
 
-    isa_ok($enter, 'JSA::EnterData');
+    isa_ok($enter, 'OMP::EnterData');
 
     # Test "_find_header" method.
     my %header = (
