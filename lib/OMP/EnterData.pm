@@ -45,7 +45,7 @@ use JSA::Headers qw/read_jcmtstate file_md5sum/;
 use JSA::Datetime qw/make_datetime/;
 use OMP::DB::JSA::TableCOMMON;
 use JSA::Starlink qw/try_star_command/;
-use JSA::Error qw/:try/;
+use OMP::Error qw/:try/;
 use JSA::Files qw/looks_like_rawfile/;
 use JSA::WriteList qw/write_list/;
 use OMP::DB::JSA::TableTransfer;
@@ -92,9 +92,9 @@ sub new {
     my ($class, %args) = @_;
 
     my $dict = $args{'dict'};
-    throw JSA::Error::FatalError('No valid data dictionary given')
+    throw OMP::Error::FatalError('No valid data dictionary given')
         unless defined $dict ;
-    throw JSA::Error::FatalError("Data dictionary, $dict, is not a readable file.")
+    throw OMP::Error::FatalError("Data dictionary, $dict, is not a readable file.")
         unless -f $dict && -r _;
 
     my $obj = bless {
@@ -492,7 +492,7 @@ sub insert_observation {
             unless ($self->calc_radec($common_hdrs, $common_files)) {
                 $log->debug("problem while finding bounds; skipping");
 
-                throw JSA::Error('could not find bounds');
+                throw OMP::Error('could not find bounds');
             }
         }
 
@@ -500,7 +500,7 @@ sub insert_observation {
             $table_common, $columns->{$table_common}, $common_hdrs, %common_arg);
 
         if (grep {ref $_} values %$vals_common) {
-            throw JSA::Error('Multi-valued data found in COMMON values');
+            throw OMP::Error('Multi-valued data found in COMMON values');
         }
 
         my $existing_common = $self->_get_existing_values(
@@ -514,7 +514,7 @@ sub insert_observation {
                 $table_inst, $columns->{$table_inst}, $subsys_hdrs);
 
             if (grep {ref $_} values %$vals) {
-                throw JSA::Error('Multi-valued data found in instrument table values');
+                throw OMP::Error('Multi-valued data found in instrument table values');
             }
 
             push @vals_inst, $vals;
@@ -555,7 +555,7 @@ sub insert_observation {
 
             $db->rollback_trans() if not $dry_run;
 
-            throw JSA::Error($text);
+            throw OMP::Error($text);
         }
 
         # FILES and instrument-specific tables.
@@ -581,7 +581,7 @@ sub insert_observation {
 
                     $db->rollback_trans() if not $dry_run;
 
-                    throw JSA::Error($text);
+                    throw OMP::Error($text);
                 }
             }
 
@@ -664,7 +664,7 @@ sub _get_observations {
         my @file;
 
         unless (exists $args{'files'}) {
-            throw JSA::Error::FatalError('Neither files nor date given to _get_observations')
+            throw OMP::Error::FatalError('Neither files nor date given to _get_observations')
                 unless exists $args{'date'};
 
             # OMP uses Time::Piece (instead of DateTime).
@@ -1375,7 +1375,7 @@ sub update_hash {
             or $log->logdie("Could not prepare sql statement for UPDATE\n", $dbh->errstr, "\n");
 
         $sth->execute(@bind);
-        throw JSA::Error::DBError 'UPDATE error: ' . $dbh->errstr() . "\n... with { $sql, @bind }"
+        throw OMP::Error::DBError 'UPDATE error: ' . $dbh->errstr() . "\n... with { $sql, @bind }"
             if $dbh->err();
     }
 }
@@ -1710,12 +1710,12 @@ containing columns with their associated data types.
 sub get_columns {
     my ($self, $table, $dbh) = @_;
 
-    throw JSA::Error('get_columns: database handle is undefined')
+    throw OMP::Error('get_columns: database handle is undefined')
         unless defined $dbh;
 
     # Do query to retrieve column info
     my $col_href = $dbh->selectall_hashref("SHOW COLUMNS FROM $table", "Field")
-        or throw JSA::Error
+        or throw OMP::Error
             "Could not obtain column information for table [$table]: "
             . $dbh->errstr . "\n";
 
@@ -1864,7 +1864,7 @@ The skip test is:
 sub skip_calc_radec {
     my ($self, %arg) = @_;
 
-    throw JSA::Error::BadArgs('No "headers" value given to check if to find bounding box.')
+    throw OMP::Error::BadArgs('No "headers" value given to check if to find bounding box.')
         unless defined $arg{'headers'};
 
     return 1 if $self->_find_header(
@@ -2006,7 +2006,7 @@ sub _change_FILES {
     my ($headers, $db, $table, $table_columns, $dry_run, $skip_state) =
         @arg{qw/headers db table table_columns dry_run skip_state/};
 
-    throw JSA::Error('_change_FILES: columns not defined')
+    throw OMP::Error('_change_FILES: columns not defined')
         unless defined $table_columns;
 
     $log->trace(">Processing table: $table");
@@ -2017,7 +2017,7 @@ sub _change_FILES {
 
     my ($files, $error);
     try {
-        throw JSA::Error "Empty hash reference in _change_FILES."
+        throw OMP::Error "Empty hash reference in _change_FILES."
             unless scalar keys %$insert_ref;
 
         _verify_file_name($insert_ref->{'file_id'});
@@ -2038,7 +2038,7 @@ sub _change_FILES {
         $error = $dbh->errstr
             if $dbh->err();
     }
-    catch JSA::Error with {
+    catch OMP::Error with {
         $error = shift @_;
     };
 
@@ -2270,7 +2270,7 @@ C<{^ a 2\d{7} _ \d+ _ \d+ _ \d+ \. sdf $}x>, e.g.
 C<a20080726_00001_01_0001.sdf>.  File names can be given either as
 plain scalar or in an array reference.
 
-Throws C<JSA::Error> with a message listing all the file names in
+Throws C<OMP::Error> with a message listing all the file names in
 unexpected format.  Else, it simply returns.
 
 =cut
@@ -2289,7 +2289,7 @@ sub _verify_file_name {
 
     return unless $size;
 
-    throw JSA::Error sprintf "Bad file name%s: %s\n",
+    throw OMP::Error sprintf "Bad file name%s: %s\n",
                              ($size > 1 ? 's' : ''), join ', ', @bad ;
 }
 
@@ -2642,7 +2642,7 @@ sub calculate_release_date {
 sub _reformat_datetime {
     my $date = shift;
 
-    throw JSA::Error::FatalError('date is undefined')
+    throw OMP::Error::FatalError('date is undefined')
         unless defined $date;
 
     $date = DateTime::Format::ISO8601->parse_datetime($date)
@@ -2656,7 +2656,7 @@ sub _reformat_datetime {
 sub _unique_files {
     my $files = shift;
 
-    throw JSA::Error 'files must be a non-empty array reference'
+    throw OMP::Error 'files must be a non-empty array reference'
         unless $files && ref $files && scalar @$files;
 
     my %seen = ();

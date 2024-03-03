@@ -241,7 +241,7 @@ sub calc_freq {
     # need the Frameset
     my ($basename) = File::Basename::fileparse($filenames[0]);
     my $wcs = $file_wcs->{$basename};
-    throw JSA::Error::FatalError("WCS information missing for file $basename")
+    throw OMP::Error::FatalError("WCS information missing for file $basename")
         unless defined $wcs;
 
     # Change to BARYCENTRIC, GHz

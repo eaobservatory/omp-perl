@@ -45,7 +45,7 @@ use List::Util qw/min sum/;
 use List::MoreUtils qw/any/;
 use Log::Log4perl;
 
-use JSA::Error qw/:try/;
+use OMP::Error qw/:try/;
 
 my $_files_table = 'FILES';
 my $_state_table = 'transfer';
@@ -80,7 +80,7 @@ Make a C<OMP::DB::JSA::TableTransfer> object.  It takes a hash of parameters ...
 
     $xfer = new OMP::DB::JSA::TableTransfer(db => $jsa_db);
 
-Throws L<JSA::Error::BadArgs> error when database handle is invalid object.
+Throws L<OMP::Error::BadArgs> error when database handle is invalid object.
 
 =cut
 
@@ -88,7 +88,7 @@ sub new {
     my ($class, %arg) = @_;
 
     my $db = $arg{'db'};
-    throw JSA::Error::BadArgs "JSA database object is invalid."
+    throw OMP::Error::BadArgs "JSA database object is invalid."
         unless defined $db
             && ref $db;
 
@@ -168,7 +168,7 @@ sub get_found_files {
                                        {'Columns' => [2]},
                                        $_state{'found'},
                                        ($pattern ? $pattern : ()))
-        or throw JSA::Error::DBError $dbh->errstr;
+        or throw OMP::Error::DBError $dbh->errstr;
 
 
     return $out;
@@ -287,7 +287,7 @@ sub get_files_not_end_state {
     my $out = $dbh->selectall_hashref($sql, 'file_id', undef,
                                       @state,
                                       ($pattern ? $pattern : ()))
-        or throw JSA::Error::DBError $dbh->errstr;
+        or throw OMP::Error::DBError $dbh->errstr;
 
     return unless $out && keys %{$out};
 
@@ -397,7 +397,7 @@ sub _translate_instrument {
 
     return lc "s${1}" if $instr =~ /^s?([48][a-d])\b/i;
 
-    throw JSA::Error::BadArgs "Unknown instrument, '$instr', given.";
+    throw OMP::Error::BadArgs "Unknown instrument, '$instr', given.";
 }
 
 sub _check_filename_part {
@@ -418,7 +418,7 @@ sub _check_filename_part {
                     ? $part =~ $parse_date
                     : 1);
 
-    throw JSA::Error::BadArgs 'No valid date given to check for files.';
+    throw OMP::Error::BadArgs 'No valid date given to check for files.';
 }
 
 {
@@ -483,7 +483,7 @@ sub _check_state {
 
   return if exists $_state{$type};
 
-  throw JSA::Error::BadArgs
+  throw OMP::Error::BadArgs
       sprintf "Unknown state type, %s, given, exiting ...\n",
               (defined $type ? $type : 'undef');
 }

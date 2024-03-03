@@ -31,7 +31,7 @@ use List::MoreUtils qw/any all firstidx/;
 use Log::Log4perl;
 use Scalar::Util qw/looks_like_number/;
 
-use JSA::Error qw/:try/;
+use OMP::Error qw/:try/;
 use OMP::DB::JSA::MySQL qw/connect_to_db/;
 use OMP::LogSetup qw/hashref_to_dumper/;
 
@@ -232,7 +232,7 @@ and C<GROUP BY> clauses ...
                          ...
                          'order' => [ 'b' , 'a' ]);
 
-On database related errors, throws L<JSA::Error::DBError> type of
+On database related errors, throws L<OMP::Error::DBError> type of
 exceptions.
 
 =cut
@@ -269,7 +269,7 @@ sub select_loop {
         my ( @text ) = @_;
         my $text = join '', @text;
         $log->error($text);
-        throw JSA::Error::DBError $text;
+        throw OMP::Error::DBError $text;
     };
 
     my $st = $dbh->prepare($sql)
@@ -309,7 +309,7 @@ Returns nothing if nothing is found.
       $jdb->run_select_sql('sql' => q[SELECT ... WHERE a = ? AND b = ?],
                            'values' => [1, 2]);
 
-On database error, throws C<JSA::Error::DBError>.
+On database error, throws C<OMP::Error::DBError>.
 
 =cut
 
@@ -324,7 +324,7 @@ sub run_select_sql {
     $log->trace(hashref_to_dumper('sql' => $arg{'sql'}, 'bind' => $arg{'values'}));
 
     my $out = $dbh->selectall_arrayref($arg{'sql'}, {'Slice' => {}}, @bind)
-        or throw JSA::Error::DBError( $dbh->errstr );
+        or throw OMP::Error::DBError( $dbh->errstr );
 
     return unless $out && scalar @{$out};
     return $out;
@@ -608,7 +608,7 @@ Returns number of affected rows if any.
 
 
 On database error, rollbacks the transaction & throws
-C<JSA::Error::DBError>.
+C<OMP::Error::DBError>.
 
 =cut
 
@@ -624,7 +624,7 @@ sub _run_change_sql {
         or do {
             $dbh->rollback() if $self->use_transaction();
             $log->error('rollback; ' , $dbh->errstr);
-            throw JSA::Error::DBError( $dbh->errstr );
+            throw OMP::Error::DBError( $dbh->errstr );
         };
 }
 
@@ -684,7 +684,7 @@ errors.  On error, rolls back a transaction.  Returns nothing.
 
           if ($trans == 1  && ! $autoc) {
               $dbh->commit()
-                  or throw JSA::Error 'Cannot commit transaction: ' . $dbh->errstr();
+                  or throw OMP::Error 'Cannot commit transaction: ' . $dbh->errstr();
           }
 
           -- $trans;
@@ -696,7 +696,7 @@ errors.  On error, rolls back a transaction.  Returns nothing.
         if ($trans && ! $autoc) {
             $trans = 0;
             $dbh->rollback()
-                or throw JSA::Error 'Cannot rollback transaction: ' . $dbh->errstr();
+                or throw OMP::Error 'Cannot rollback transaction: ' . $dbh->errstr();
         }
         return;
     }
@@ -711,7 +711,7 @@ array reference if specified.
 It takes in a hash of values to be checked and check criteria
 identified by key C<_check_>.
 
-Throws C<JSA::Error::BadArgs> if criteria are not met.
+Throws C<OMP::Error::BadArgs> if criteria are not met.
 
     _check_input('table' => 'the_table',
                  'where' => 'a = ? AND b = ?'.
@@ -759,7 +759,7 @@ sub _check_input  {
     my $log = Log::Log4perl->get_logger('');
     $log->trace(hashref_to_dumper('input error' => \@err));
 
-    throw JSA::Error::BadArgs(join "\n", @err);
+    throw OMP::Error::BadArgs(join "\n", @err);
 }
 
 =item B<_name>

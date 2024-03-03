@@ -618,7 +618,7 @@ sub _fill_headers_obsid_subsys {
 Returns nothing.  Given a (sub)header hash reference, appends some of
 the fields with C<_[a-d]> as appropriate to the given new header hash.
 
-Throws L<JSA::Error> exception if a matching C<SUBARRAY> field value
+Throws L<OMP::Error> exception if a matching C<SUBARRAY> field value
 not found.
 
    $scuba2->append_array_column(\%new, $subheader);
@@ -641,7 +641,7 @@ sub append_array_column {
 
     my $subarray_col = qr/([a-d])/i;
     my ($col) = $sub->{'SUBARRAY'} =~ $subarray_col
-        or throw JSA::Error "No match found for subarray";
+        or throw OMP::Error "No match found for subarray";
 
     foreach my $field (@variation) {
         next unless exists $sub->{$field};
