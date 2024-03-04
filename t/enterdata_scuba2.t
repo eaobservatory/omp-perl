@@ -3,7 +3,7 @@ use strict;
 use Test::More tests => 1 + 4 + 4 + 4;
 use Test::Number::Delta;
 
-use JAC::Setup qw/jsa archiving/;
+use JAC::Setup qw/jsa dataverify/;
 use OMP::EnterData::SCUBA2;
 
 my $dict = './cfg/jcmt/data.dictionary';

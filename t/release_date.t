@@ -2,7 +2,7 @@ use strict;
 
 use Test::More tests => 10;
 
-use JAC::Setup qw/jsa archiving/;
+use JAC::Setup qw/jsa dataverify/;
 use OMP::Info::Obs;
 use OMP::DateTools;
 use OMP::EnterData;

@@ -2,7 +2,7 @@ use strict;
 
 use Test::More tests => 14;
 
-use JAC::Setup qw/jsa archiving/;
+use JAC::Setup qw/jsa dataverify/;
 use OMP::EnterData;
 
 my $dict = './cfg/jcmt/data.dictionary';

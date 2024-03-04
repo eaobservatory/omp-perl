@@ -167,8 +167,7 @@ BEGIN {
     $ENV{'OMP_SITE_CONFIG'} = '/jac_sw/etc/enterdata/enterdata.cfg';
 }
 
-# Add "archiving" because JCMT::DataVerify is needed by OMP::EnterData.
-use JAC::Setup qw/jsa archiving/;
+use JAC::Setup qw/jsa dataverify/;
 
 use OMP::FileUtils;
 

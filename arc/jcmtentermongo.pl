@@ -30,7 +30,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use JAC::Setup qw/jsa archiving/;
+use JAC::Setup qw/jsa dataverify/;
 
 use Getopt::Long;
 use Pod::Usage;
