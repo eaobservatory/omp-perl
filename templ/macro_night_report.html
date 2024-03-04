@@ -349,7 +349,9 @@
                                         [% label_status | html %]
                                         <br />
                                         <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a>
-                                        <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
+                                        [% IF obs.previews.size > 0 %]
+                                            <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
+                                        [% END %]
                                     </td>
                                 [% END %]
                             </tr>

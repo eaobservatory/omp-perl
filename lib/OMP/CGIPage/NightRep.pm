@@ -42,6 +42,8 @@ use OMP::MSBServer;
 use OMP::NightRep;
 use OMP::ObslogDB;
 use OMP::ObsQuery;
+use OMP::PreviewDB;
+use OMP::PreviewQuery;
 use OMP::ProjServer;
 use OMP::BaseDB;
 use OMP::ArchiveDB;
@@ -231,6 +233,15 @@ sub night_report {
       'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
       unless $nr;
 
+  if (1 == $nr->delta_day) {
+    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+        telescope => $tel,
+        date => {value => $utdate->ymd(), delta => 1},
+        size => 64,
+    })));
+  }
+
   my ($prev, $next);
   unless ($delta) {
     my $epoch = $utdate->epoch();
@@ -376,6 +387,13 @@ sub projlog_content {
                                       inccal => 1,);
 
     if ($grp->numobs > 0) {
+      my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+      $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+          telescope => $telescope,
+          date => {value => $utdate, delta => 1},
+          size => 64,
+      })));
+
       $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
     }
   } otherwise {
