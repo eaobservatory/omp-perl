@@ -20,7 +20,7 @@
         <p>
             [% FOR preview IN previews %]
                 [% CALL n_preview.nextvalue %]
-                <img src="[% target_image | html %]filename=[% preview.filename | html %]&amp;md5sum=[% preview.md5sum | html %]" width="256" height="256" alt="[% preview.suffix | html %]" />
+                <img src="[% target_image | html %]filename=[% preview.filename | html %]&amp;md5sum=[% preview.md5sum | html %]" width="256" height="256" alt="[% preview.suffix | html %]" id="[% preview.filename_no_size_ext | html %]" />
             [% END %]
         </p>
     [% END %]

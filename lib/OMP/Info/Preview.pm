@@ -29,6 +29,32 @@ __PACKAGE__->CreateAccessors(
     telescope => '$',
 );
 
+=head1 METHODS
+
+=over 4
+
+=item B<filename_no_size_ext>
+
+Return the filename without the trailing size and file extension.
+
+=cut
+
+sub filename_no_size_ext {
+    my $self = shift;
+
+    my $filename = $self->filename;
+    return undef unless defined $filename;
+
+    $filename =~ s/_\d+\.png$//;
+    return $filename;
+}
+
+=item B<stringify>
+
+Return string representation of the information stored in this object.
+
+=cut
+
 sub stringify {
     my $self = shift;
 
@@ -51,6 +77,8 @@ sub stringify {
 1;
 
 __END__
+
+=back
 
 =head1 COPYRIGHT
 
