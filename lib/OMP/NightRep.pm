@@ -299,8 +299,8 @@ sub faults {
     my $fgroup = $_[0];
     throw OMP::Error::BadArgs("Must provide faults as an OMP::FaultGroup object")
       unless UNIVERSAL::isa($fgroup, 'OMP::FaultGroup');
-    $self->{faults} = $fgroup;
-  } elsif (! $self->{faults}) {
+    $self->{Faults} = $fgroup;
+  } elsif (! $self->{Faults}) {
     # Retrieve faults from the fault database
     my $fdb = new OMP::FaultDB( DB => $self->db );
 
@@ -344,9 +344,9 @@ sub faults {
     # Convert result hash to array, then to fault group object
     my @results = map {$results{$_}} sort keys %results;
     my $fgroup = new OMP::FaultGroup(faults=>\@results);
-    $self->{faults} = $fgroup;
+    $self->{Faults} = $fgroup;
   }
-  return $self->{faults};
+  return $self->{Faults};
 }
 
 =item B<faultsbyshift>
