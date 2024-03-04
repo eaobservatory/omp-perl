@@ -92,6 +92,7 @@ sub new {
                   DBAccounts => undef,
                   HdrAccounts => undef,
                   Faults => undef,
+                  Observations => undef,
                   Warnings => [],
                   Telescope => undef,
                   UTDate => undef,
@@ -742,40 +743,47 @@ sub shutdownTime {
 
 =item B<obs>
 
-Return the observation details relevant to this telescope, night and
-UT date. This will include time gaps. Information is returned as an
-C<OMP::Info::ObsGroup> object.
+The observation details relevant to this telescope, night and
+UT date. This will include time gaps.
 
-Returns undef if no observations could be located.
+Information is given or returned as an C<OMP::Info::ObsGroup> object.
 
 =cut
 
 sub obs {
   my $self = shift;
 
-#  my $db = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+  if (@_) {
+    my $grp = shift;
+    throw OMP::Error::BadArgs('Must provide "obs" as an OMP::Info::ObsGroup')
+        unless eval {$grp->isa('OMP::Info::ObsGroup')};
+    $self->{'Observations'} = $grp;
+  }
+  elsif (! $self->{'Observations'}) {
+    my $db = new OMP::ArchiveDB();
 
-  my $db = new OMP::ArchiveDB();
+    # XML query to get all observations
+    my $xml = "<ArcQuery>".
+      "<telescope>". $self->telescope ."</telescope>".
+        "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+          "</ArcQuery>";
 
-  # XML query to get all observations
-  my $xml = "<ArcQuery>".
-    "<telescope>". $self->telescope ."</telescope>".
-      "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
-        "</ArcQuery>";
+    # Convert XML to an sql query
+    my $query = new OMP::ArcQuery( XML => $xml );
 
-  # Convert XML to an sql query
-  my $query = new OMP::ArcQuery( XML => $xml );
+    # Get observations
+    my @obs = $db->queryArc( $query, 0, 1 );
 
-  # Get observations
-  my @obs = $db->queryArc( $query, 0, 1 );
+    my $grp;
+    try {
+      $grp = new OMP::Info::ObsGroup( obs => \@obs );
+      $grp->commentScan;
+    };
 
-  my $grp;
-  try {
-    $grp = new OMP::Info::ObsGroup( obs => \@obs );
-    $grp->commentScan;
-  };
+    $self->{'Observations'} = $grp;
+  }
 
-  return $grp;
+  return $self->{'Observations'};
 }
 
 =item B<msbs>
