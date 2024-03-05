@@ -23,7 +23,6 @@ use strict;
 use warnings;
 use Carp;
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
 use OMP::Display;
@@ -91,7 +90,7 @@ sub fault_table {
       },
       system_label => _get_system_label($fault->category),
       allow_edit => ! $noedit,
-      target => url_absolute($q),
+      target => $self->page->url_absolute(),
       statuses => \@statuses,
       has_shift_type => !! %shifts,
   }
@@ -365,7 +364,7 @@ sub file_fault_form {
       if defined $fault;
 
   return {
-      target => url_absolute($q),
+      target => $self->page->url_absolute(),
       fault => $fault,
       has_location => $is_safety,
       has_time_loss => OMP::Fault->faultCanLoseTime($category),
@@ -452,7 +451,7 @@ sub response_form {
   }
 
   return {
-      target => url_absolute($q),
+      target => $self->page->url_absolute(),
       statuses => \@statuses,
       response => $resp,
       values => \%defaults,

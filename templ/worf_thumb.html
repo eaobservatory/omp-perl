@@ -11,7 +11,7 @@
 [% MACRO render_thumbnails(previews) BLOCK %]
     [% IF previews.size > 0 %]
         [% FOR preview IN previews %]
-            <a href="[% target_obs | html %]inst=[% preview.instrument | html %]&runnr=[% preview.runnr | html %]"><img src="[% target_image | html %]filename=[% preview.filename %]&amp;md5sum=[% preview.md5sum | html %]" width="64" height="64" alt="[% preview.suffix | html %]" /></a>
+            <a href="[% target_obs | html %]inst=[% preview.instrument | html %]&runnr=[% preview.runnr | html %]#[% preview.filename_no_size_ext | html %]"><img src="[% target_image | html %]filename=[% preview.filename %]&amp;md5sum=[% preview.md5sum | html %]" width="64" height="64" alt="[% preview.suffix | html %]" /></a>
         [% END %]
     [% ELSE %]
         &nbsp;

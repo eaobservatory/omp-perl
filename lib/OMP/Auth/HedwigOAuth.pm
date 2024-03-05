@@ -16,7 +16,6 @@ use URI;
 use URI::QueryParam;
 
 use OMP::Config;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DBbackend;
 use OMP::DBbackend::Hedwig2OMP;
 use OMP::Error;
@@ -51,12 +50,14 @@ Start the OAuth process by redirecting to Hedwig.
 
 sub log_in {
     my $cls = shift;
-    my $q = shift;
+    my $page = shift;
+
+    my $q = $page->cgi;
 
     my $redirect = $cls->_get_client()->uri_to_redirect(
         redirect_uri => OMP::Config->getData('auth_hedwig.url_redir'),
         scope => 'openid',
-        state => url_absolute($q,
+        state => $page->url_absolute(
             remember_me => ($q->param('remember_me') ? '1' : '0')),
     );
 
@@ -75,7 +76,9 @@ user's Hedwig person ID in the "sub" field.
 
 sub log_in_oauth {
     my $cls = shift;
-    my $q = shift;
+    my $page = shift;
+
+    my $q = $page->cgi;
 
     my $code = $q->param('code');
 

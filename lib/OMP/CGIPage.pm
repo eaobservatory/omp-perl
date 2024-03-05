@@ -38,7 +38,6 @@ BEGIN {
 }
 
 use OMP::Auth;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::ProjDB;
@@ -301,7 +300,7 @@ sub write_page {
     $self->html_title($opt{'title'});
   }
 
-  $self->auth(my $auth = OMP::Auth->log_in($q));
+  $self->auth(my $auth = OMP::Auth->log_in($self));
 
   return if $auth->abort();
 
@@ -436,7 +435,7 @@ sub write_page_finish_log_in {
 
   my $q = $self->cgi;
 
-  $self->auth(my $auth = OMP::Auth->log_in($q, @_));
+  $self->auth(my $auth = OMP::Auth->log_in($self, @_));
 
   return if $auth->abort();
 
@@ -543,6 +542,34 @@ sub decoded_url_param {
     $value = Encode::decode('UTF-8', $value) unless Encode::is_utf8($value);
 
     return $value;
+}
+
+=item B<url_absolute>
+
+Get an "absolute" URL (without host) including only query parameters.
+
+    my $url = $page->url_absolute([%extra_query_parameters]);
+
+Note: the URL should already be escaped (by CGI-E<gt>url) so it should not
+be further escaped, e.g. by the template 'url' filter.
+
+=cut
+
+sub url_absolute {
+    my $self = shift;
+    my %extra_params = @_;
+
+    my $q = $self->cgi;
+
+    return $q->new({
+        %extra_params,
+        map {
+            my $value = $q->url_param($_);
+            $value = Encode::decode('UTF-8', $value)
+                unless Encode::is_utf8($value);
+            $_ => $value
+        } $q->url_param()
+    })->url(-absolute => 1, -query => 1);
 }
 
 =back
@@ -697,13 +724,12 @@ Create a page with a login form.
 sub _write_login {
   my $self = shift;
   my %opt = (javascript => ['log_in.js']);
-  my $q = $self->cgi;
 
   $self->_write_http_header(undef, \%opt);
   $self->render_template('log_in.html', {
     %{$self->_write_page_context_extra(\%opt)},
     message => $self->auth->message,
-    target => url_absolute($q),
+    target => $self->url_absolute,
   });
 }
 

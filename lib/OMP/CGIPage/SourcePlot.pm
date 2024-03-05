@@ -16,7 +16,6 @@ done by OMP::GetCoords::Plot module.
 use strict;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::GetCoords::Plot qw/plot_sources/;
 
 use CGI;
@@ -73,7 +72,7 @@ sub _show_inputpage {
     my $q = $self->cgi;;
 
     return {
-        target => url_absolute($q),
+        target => $self->url_absolute(),
         ptypes => [
             [TIMEEL => 'Time-EL'],
             [AZEL   => 'AZ-EL'],

@@ -14,7 +14,6 @@ use CGI::Carp qw/fatalsToBrowser/;
 use List::MoreUtils qw/uniq/;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::DBbackend;
 use OMP::DateTools;
 use OMP::General;
@@ -199,7 +198,7 @@ sub _show_input_page {
     } keys %AFFILIATION_NAMES;
 
     return {
-        target => url_absolute($q),
+        target => $self->url_absolute(),
         semesters => [sort @semesters],
         countries => [sort @countries],
         affiliations => [map {

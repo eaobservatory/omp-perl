@@ -92,6 +92,7 @@ sub new {
                   DBAccounts => undef,
                   HdrAccounts => undef,
                   Faults => undef,
+                  Observations => undef,
                   Warnings => [],
                   Telescope => undef,
                   UTDate => undef,
@@ -299,8 +300,8 @@ sub faults {
     my $fgroup = $_[0];
     throw OMP::Error::BadArgs("Must provide faults as an OMP::FaultGroup object")
       unless UNIVERSAL::isa($fgroup, 'OMP::FaultGroup');
-    $self->{faults} = $fgroup;
-  } elsif (! $self->{faults}) {
+    $self->{Faults} = $fgroup;
+  } elsif (! $self->{Faults}) {
     # Retrieve faults from the fault database
     my $fdb = new OMP::FaultDB( DB => $self->db );
 
@@ -344,9 +345,9 @@ sub faults {
     # Convert result hash to array, then to fault group object
     my @results = map {$results{$_}} sort keys %results;
     my $fgroup = new OMP::FaultGroup(faults=>\@results);
-    $self->{faults} = $fgroup;
+    $self->{Faults} = $fgroup;
   }
-  return $self->{faults};
+  return $self->{Faults};
 }
 
 =item B<faultsbyshift>
@@ -742,40 +743,47 @@ sub shutdownTime {
 
 =item B<obs>
 
-Return the observation details relevant to this telescope, night and
-UT date. This will include time gaps. Information is returned as an
-C<OMP::Info::ObsGroup> object.
+The observation details relevant to this telescope, night and
+UT date. This will include time gaps.
 
-Returns undef if no observations could be located.
+Information is given or returned as an C<OMP::Info::ObsGroup> object.
 
 =cut
 
 sub obs {
   my $self = shift;
 
-#  my $db = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+  if (@_) {
+    my $grp = shift;
+    throw OMP::Error::BadArgs('Must provide "obs" as an OMP::Info::ObsGroup')
+        unless eval {$grp->isa('OMP::Info::ObsGroup')};
+    $self->{'Observations'} = $grp;
+  }
+  elsif (! $self->{'Observations'}) {
+    my $db = new OMP::ArchiveDB();
 
-  my $db = new OMP::ArchiveDB();
+    # XML query to get all observations
+    my $xml = "<ArcQuery>".
+      "<telescope>". $self->telescope ."</telescope>".
+        "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+          "</ArcQuery>";
 
-  # XML query to get all observations
-  my $xml = "<ArcQuery>".
-    "<telescope>". $self->telescope ."</telescope>".
-      "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
-        "</ArcQuery>";
+    # Convert XML to an sql query
+    my $query = new OMP::ArcQuery( XML => $xml );
 
-  # Convert XML to an sql query
-  my $query = new OMP::ArcQuery( XML => $xml );
+    # Get observations
+    my @obs = $db->queryArc( $query, 0, 1 );
 
-  # Get observations
-  my @obs = $db->queryArc( $query, 0, 1 );
+    my $grp;
+    try {
+      $grp = new OMP::Info::ObsGroup( obs => \@obs );
+      $grp->commentScan;
+    };
 
-  my $grp;
-  try {
-    $grp = new OMP::Info::ObsGroup( obs => \@obs );
-    $grp->commentScan;
-  };
+    $self->{'Observations'} = $grp;
+  }
 
-  return $grp;
+  return $self->{'Observations'};
 }
 
 =item B<msbs>

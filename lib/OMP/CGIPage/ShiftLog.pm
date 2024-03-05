@@ -23,7 +23,6 @@ use warnings;
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
-use OMP::CGIComponent::Helper qw/url_absolute/;
 use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
 use OMP::DBbackend;
@@ -73,14 +72,14 @@ sub shiftlog_page {
         "$E")
         if defined $E;
 
-      return $self->_write_redirect(url_absolute($q));
+      return $self->_write_redirect($self->url_absolute());
   }
 
   $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'})
     unless defined $projectid;
 
   return {
-      target => url_absolute($q),
+      target => $self->url_absolute(),
       target_base => $q->url(-absolute => 1),
       project_id => $projectid,
       values => $parsed,
@@ -144,7 +143,7 @@ sub shiftlog_search {
     return {
         message => $message,
         form_info => {
-            target => url_absolute($q),
+            target => $self->url_absolute(),
             values => \%values,
         },
         log_entries => $result,

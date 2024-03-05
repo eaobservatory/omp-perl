@@ -20,10 +20,10 @@ use OMP::Error;
 =item B<log_in>
 
 Attempt to get an OMP::User object representing the user logging in,
-using information from a CGI object.  Returned as a hash, perhaps
+using information from an OMP::CGIPage object.  Returned as a hash, perhaps
 including a 'user' key.
 
-    my $user_info = $provider_class->log_in($q);
+    my $user_info = $provider_class->log_in($page);
 
 This base class implementation calls L<log_in_userpass> using the
 C<username> and C<password> CGI parameters.
@@ -32,7 +32,9 @@ C<username> and C<password> CGI parameters.
 
 sub log_in {
     my $cls = shift;
-    my $q = shift;
+    my $page = shift;
+
+    my $q = $page->cgi;
 
     my $user_info = $cls->log_in_userpass(
         (scalar $q->param('username')), (scalar $q->param('password')));

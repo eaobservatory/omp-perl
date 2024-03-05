@@ -22,8 +22,6 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Time::Seconds;
 
 use OMP::CGIComponent::Fault;
-use OMP::CGIComponent::Feedback qw/url_absolute/;
-use OMP::CGIComponent::Helper;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb);
@@ -511,7 +509,7 @@ sub project_users {
   my %access = $project->omp_access;
 
   return {
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     project => $project,
     contacts => [map {my $userid = $_->userid; {
           user => $_,
@@ -623,7 +621,7 @@ sub support {
     target_base => $q->url(-absolute => 1),
     project_id => $projectid,
 
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     contacts => [map {my $userid = $_->userid; {
           user => $_,
           contactable => $contactable{$userid},
@@ -724,7 +722,7 @@ sub alter_proj {
     target_base => undef,
 
     project => $project,
-    target => url_absolute($q),
+    target => $self->url_absolute(),
     values => {
         pi => $pi,
         coi => $coi,
