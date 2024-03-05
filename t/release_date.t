@@ -30,12 +30,16 @@ foreach (
         ) {
     my ($projectid, $utdate, $science, $expect) = @$_;
 
-    my $obs = new OMP::Info::Obs(
-        telescope => 'JCMT', projectid => $projectid, utdate => $utdate);
+    my $obs = OMP::Info::Obs->new(
+        telescope => 'JCMT',
+        projectid => $projectid,
+        utdate => $utdate
+    );
     $obs->isScience($science);
 
     $science = $science ? 'science' : 'non-science';
 
-    is(OMP::EnterData::calculate_release_date($obs)->ymd(), $expect,
+    is(OMP::EnterData::calculate_release_date($obs)->ymd(),
+        $expect,
         "$projectid $utdate $science -> $expect");
 }

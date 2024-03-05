@@ -22,24 +22,25 @@ use Test::More tests => 23;
 use File::Spec;
 
 BEGIN {
-  # location of test configurations
-  $ENV{OMP_CFG_DIR} = File::Spec->rel2abs(File::Spec->catdir(File::Spec->curdir,
-                                                             't', 'configs'
-                                                            ));
+    # location of test configurations
+    $ENV{'OMP_CFG_DIR'} = File::Spec->rel2abs(File::Spec->catdir(
+        File::Spec->curdir, 't', 'configs'));
 
-  # Make sure hosts and domains are predictable
-  $ENV{OMP_NOGETHOST} = 1;
+    # Make sure hosts and domains are predictable
+    $ENV{'OMP_NOGETHOST'} = 1;
 
-  # Unset the OMP_SITE_CONFIG variable to prevent it overriding our settings.
-  delete $ENV{'OMP_SITE_CONFIG'} if exists $ENV{'OMP_SITE_CONFIG'};
+    # Unset the OMP_SITE_CONFIG variable to prevent it overriding our settings.
+    delete $ENV{'OMP_SITE_CONFIG'} if exists $ENV{'OMP_SITE_CONFIG'};
 }
 
-BEGIN { use_ok( 'OMP::Config' ); }
+BEGIN {
+    use_ok('OMP::Config');
+}
 
 my $class = 'OMP::Config' ;
 my $obj = $class->new;
 
-isa_ok( $obj, $class );
+isa_ok($obj, $class);
 
 # Test compatibility mode of a class method call which is actually now an
 # instance method call.
@@ -49,50 +50,50 @@ is($obj->getData('scalar'), 'default', 'Test scalar key');
 
 ok($class->getData('scalar') eq $obj->getData('scalar'),
     "Same scalar value (compatibility mode)"
-  );
+);
 
-my @array = $obj->getData( 'array' );
+my @array = $obj->getData('array');
 is($array[2], 3, 'Same array entry');
-ok( $array[2] == ($class->getData('array'))[2],
+ok($array[2] == ($class->getData('array'))[2],
     'Same array entry'
-  );
+);
 
 is($obj->getData('domain'), 'my', 'Test domain alias');
 ok($obj->getData('domain') eq $class->getData('domain'),
     'Same domain alias'
-  );
+);
 
 is($obj->getData('host'), 'myh', 'Test host alias');
-ok( $obj->getData('host') eq $class->getData('host'),
+ok($obj->getData('host') eq $class->getData('host'),
     'Same host alias'
-  );
+);
 
 is($obj->getData('dover'), 'fromdom', 'Override from domain');
-ok( $obj->getData('dover') eq $class->getData('dover'),
+ok($obj->getData('dover') eq $class->getData('dover'),
     'Sam override from domain'
-  );
+);
 
 is($obj->getData('hover'), 'fromh', 'Override from host');
-ok( $obj->getData('hover') eq $class->getData('hover'),
+ok($obj->getData('hover') eq $class->getData('hover'),
     'Same override from host'
-  );
+);
 
 is($obj->getData('password'), 'xxx', 'domain password');
-ok( $obj->getData('password') eq $class->getData('password'),
+ok($obj->getData('password') eq $class->getData('password'),
     'Same domain password'
-  );
+);
 
 is($obj->getData('hierarch.eso'), 'test', 'hierarchical keyword');
-ok( $obj->getData('hierarch.eso') eq $class->getData('hierarch.eso'),
+ok($obj->getData('hierarch.eso') eq $class->getData('hierarch.eso'),
     'Same hierarchical keyword'
-  );
+);
 
 is($obj->getData('over'), 'fromsite', 'Site config override');
-ok( $obj->getData('over') eq $class->getData('over'),
+ok($obj->getData('over') eq $class->getData('over'),
     'Same site config override'
-  );
+);
 
 is($obj->getData('database.server'), 'SYB', 'Site config override hierarchical');
-ok( $obj->getData('database.server') eq $class->getData('database.server'),
+ok($obj->getData('database.server') eq $class->getData('database.server'),
     'Same site config override hierarchical'
-  );
+);

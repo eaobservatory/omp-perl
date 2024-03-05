@@ -7,7 +7,7 @@ use OMP::EnterData;
 
 my $dict = './cfg/jcmt/data.dictionary';
 
-my $enter = new OMP::EnterData(dict => $dict);
+my $enter = OMP::EnterData->new(dict => $dict);
 
 isa_ok($enter, 'OMP::EnterData');
 
@@ -54,19 +54,22 @@ ok($enter->_find_header(headers => \%header, name => 'HEADER7', test => 'defined
 ok(! $enter->_find_header(headers => \%header, name => 'HEADER3', test => 'defined'));
 ok(! $enter->_find_header(headers => \%header, name => 'HEADER6', test => 'defined'));
 
-is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1)],
-          [1]);
-is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1)],
-          [10, 11]);
-is_deeply([sort $enter->_find_header(headers => \%header, name => 'HEADER0', value => 1)],
-          # Existing implementation only returns primary header value if found there.
-          # [qw/x y z/]);
-          [qw/x/]);
+is_deeply(
+    [sort $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1)],
+    [1]);
+is_deeply(
+    [sort $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1)],
+    [10, 11]);
+is_deeply(
+    [sort $enter->_find_header(headers => \%header, name => 'HEADER0', value => 1)],
+    # Existing implementation only returns primary header value if found there.
+    # [qw/x y z/]);
+    [qw/x/]);
 
 is(scalar $enter->_find_header(headers => \%header, name => 'HEADER8', value => 1),
-   'aardvark');
+    'aardvark');
 is(scalar $enter->_find_header(headers => \%header, name => 'HEADER2', value => 1),
-   10);
+    10);
 
 ok($enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^a/));
 ok(! $enter->_find_header(headers => \%header, name => 'HEADER8', value_regex => qr/^z/));
@@ -86,7 +89,7 @@ ok(! $enter->_find_header(headers => \%header, name => 'HEADER2', test => 'true'
 ok($enter->_find_header(headers => \%header, name => 'HEADER1', test => 'defined'));
 ok($enter->_find_header(headers => \%header, name => 'HEADER2', test => 'defined'));
 is(scalar $enter->_find_header(headers => \%header, name => 'HEADER1', value => 1),
-   10);
+    10);
 
 # Test the "skip_calc_radec" method.
 ok(! $enter->skip_calc_radec(headers => {}));

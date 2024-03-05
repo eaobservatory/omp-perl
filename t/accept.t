@@ -27,7 +27,7 @@ use Test::More tests => 41;
 require_ok('OMP::SciProg');
 require_ok('OMP::MSBDB');
 
-my $prog = new OMP::SciProg(FILE => 't/data/accept.xml');
+my $prog = OMP::SciProg->new(FILE => 't/data/accept.xml');
 
 isa_ok($prog, 'OMP::SciProg');
 
@@ -277,10 +277,11 @@ sub msb_list {
 
     foreach my $msb ($prog->msb()) {
         my $title = $msb->msbtitle();
+
         # Number duplicates to deal with survey containers.
-        $title .= $seen{$title} if $seen{$title} ++;
+        $title .= $seen{$title} if $seen{$title}++;
         push @result, [$title, $msb->remaining(), $msb->checksum()];
-    };
+    }
 
     return \@result;
 }

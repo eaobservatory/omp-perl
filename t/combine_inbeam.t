@@ -7,7 +7,7 @@ use OMP::EnterData;
 
 my $dict = './cfg/jcmt/data.dictionary';
 
-my $enter = new OMP::EnterData(dict => $dict);
+my $enter = OMP::EnterData->new(dict => $dict);
 
 isa_ok($enter, 'OMP::EnterData');
 

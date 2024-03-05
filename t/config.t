@@ -22,52 +22,51 @@ use Test::More tests => 15;
 use File::Spec;
 
 BEGIN {
-  # location of test configurations
-  $ENV{OMP_CFG_DIR} = File::Spec->rel2abs(File::Spec->catdir(File::Spec->curdir,
-                                                             "t","configs"
-                                                            ));
+    # location of test configurations
+    $ENV{'OMP_CFG_DIR'} = File::Spec->rel2abs(File::Spec->catdir(
+        File::Spec->curdir, 't', 'configs'));
 
-  # Make sure hosts and domains are predictable
-  $ENV{OMP_NOGETHOST} = 1;
+    # Make sure hosts and domains are predictable
+    $ENV{'OMP_NOGETHOST'} = 1;
 
-  # Unset the OMP_SITE_CONFIG variable to prevent it overriding our settings.
-  delete $ENV{'OMP_SITE_CONFIG'} if exists $ENV{'OMP_SITE_CONFIG'};
+    # Unset the OMP_SITE_CONFIG variable to prevent it overriding our settings.
+    delete $ENV{'OMP_SITE_CONFIG'} if exists $ENV{'OMP_SITE_CONFIG'};
 }
 
 use OMP::Config;
 use OMP::Error qw/:try/;
-my $c = "OMP::Config";
+my $c = 'OMP::Config';
 
-is($c->getData("scalar"), "default", "Test scalar key");
+is($c->getData('scalar'), 'default', 'Test scalar key');
 
-my @array = $c->getData("array");
-is($array[2], 3, "Test array entry");
+my @array = $c->getData('array');
+is($array[2], 3, 'Test array entry');
 
-is($c->getData("domain"), "my", "Test domain alias");
-is($c->getData("host"), "myh", "Test host alias");
+is($c->getData('domain'), 'my', 'Test domain alias');
+is($c->getData('host'), 'myh', 'Test host alias');
 
-is($c->getData("dover"),"fromdom","Override from domain");
-is($c->getData("hover"),"fromh","Override from host");
+is($c->getData('dover'), 'fromdom', 'Override from domain');
+is($c->getData('hover'), 'fromh', 'Override from host');
 
-is($c->getData("password"),"xxx","domain password");
+is($c->getData('password'), 'xxx', 'domain password');
 
-is($c->getData("hierarch.eso"),"test","hierarchical keyword");
+is($c->getData('hierarch.eso'), 'test', 'hierarchical keyword');
 
-is($c->getData("over"),"fromsite","Site config override");
-is($c->getData("database.server"),"SYB","Site config override hierarchical");
+is($c->getData('over'), 'fromsite', 'Site config override');
+is($c->getData('database.server'), 'SYB', 'Site config override hierarchical');
 
 is($c->getData('some_section.some_parameter'), '20', 'Direct query of some_parameter');
 
 my $threw = 0;
 try {
-  $c->getDataSearch(
-    'some_section.some_parameter_zzz',
-    'some_section.some_parameter_www');
-} catch OMP::Error::BadCfgKey with {
-  $threw = 1;
+    $c->getDataSearch(
+        'some_section.some_parameter_zzz',
+        'some_section.some_parameter_www');
+}
+catch OMP::Error::BadCfgKey with {
+    $threw = 1;
 };
 ok($threw, 'getDataSearch threw error for non-existent keys');
-
 
 is($c->getDataSearch(
         'some_section.some_parameter_xxx',
