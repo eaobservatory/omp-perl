@@ -6,11 +6,11 @@ nightrep - View end of night observing report
 
 =head1 SYNOPSIS
 
-  nightrep
-  nightrep -ut 2002-12-10
-  nightrep -tel jcmt
-  nightrep -ut 2002-10-05 -tel ukirt
-  nightrep --help
+    nightrep
+    nightrep -ut 2002-12-10
+    nightrep -tel jcmt
+    nightrep -ut 2002-10-05 -tel ukirt
+    nightrep --help
 
 =head1 DESCRIPTION
 
@@ -27,13 +27,6 @@ This program can now only be used in software debugging modes
 The following options are supported:
 
 =over 4
-
-=item B<-cache>
-
-=item B<-no-cache>
-
-Ignore any observations cache files related to given UT dates.
-Default is to query cache files.
 
 =item B<-dump>
 
@@ -53,6 +46,13 @@ If the supplied date is not parseable, the current date will be used.
 
 Specify the telescope to use for the report. If the telescope can
 be determined from the domain name it will be used automatically.
+
+=item B<-cache>
+
+=item B<-no-cache>
+
+Ignore any observations cache files related to given UT dates.
+Default is to query cache files.
 
 =item B<-version>
 
@@ -74,7 +74,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
+use Getopt::Long qw/:config gnu_compat no_ignore_case require_order/;
 use Pod::Usage;
 
 # Locate the OMP software through guess work
@@ -89,52 +89,51 @@ use OMP::NightRep;
 
 our $VERSION = '2.000';
 
-use vars qw/ $DEBUG /;
-$DEBUG = 0;
+my $DEBUG = 0;
 
 # Options
 my $use_cache = 1;
-my ($help, $man, $version, $dump, $tel, $ut, $ashtml );
-GetOptions( "help"    => \$help,
-            "man"     => \$man,
-            "version" => \$version,
-            'dump'    => \$dump,
-            "ut=s"    => \$ut,
-            "tel=s"   => \$tel,
-            'cache!'  => \$use_cache,
-            'ashtml'    => \$ashtml,
-          )
-          or pod2usage(1) ;
+my ($help, $man, $version, $dump, $tel, $ut, $ashtml);
+GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    'dump' => \$dump,
+    "ut=s" => \$ut,
+    "tel=s" => \$tel,
+    'cache!' => \$use_cache,
+    'ashtml' => \$ashtml,
+) or pod2usage(1);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "nightrep - End of night reporting tool\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "nightrep - End of night reporting tool\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Modify only the non-default behaviour.
-unless ( $use_cache ) {
-
-  require OMP::ArchiveDB;
-  OMP::ArchiveDB::skip_cache_query();
+unless ($use_cache) {
+    require OMP::ArchiveDB;
+    OMP::ArchiveDB::skip_cache_query();
 }
 
 # First thing we need to do is determine the telescope and
 # the UT date
-$ut = OMP::DateTools->determine_utdate( $ut )->ymd;
+$ut = OMP::DateTools->determine_utdate($ut)->ymd;
 
 # Telescope
 my $telescope;
-if(defined($tel)) {
-  $telescope = uc($tel);
-} else {
-  require Term::ReadLine;
-  my $term = new Term::ReadLine 'View night log';
-  $telescope = OMP::General->determine_tel($term);
-  die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
+if (defined $tel) {
+    $telescope = uc $tel;
+}
+else {
+    require Term::ReadLine;
+    my $term = Term::ReadLine->new('View night log');
+    $telescope = OMP::General->determine_tel($term);
+    die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
 unless ($dump or $ashtml) {
@@ -151,7 +150,7 @@ unless ($dump or $ashtml) {
 
 # Night report
 
-my $NR = new OMP::NightRep( date => $ut, telescope => $telescope );
+my $NR = OMP::NightRep->new(date => $ut, telescope => $telescope);
 
 if ($dump) {
     print scalar $NR->astext();
@@ -166,6 +165,8 @@ else {
     OMP::CGIPage->new()->render_template(\$template, {night_report => $NR});
     exit 0;
 }
+
+__END__
 
 =head1 AUTHOR
 

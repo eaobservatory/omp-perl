@@ -6,7 +6,7 @@ sp2cat - Extract target information from OMP science program
 
 =head1 SYNOPSIS
 
-  sp2cat program.xml
+    sp2cat program.xml
 
 =head1 DESCRIPTION
 
@@ -67,55 +67,58 @@ our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "sp2cat - science program source extractor\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "sp2cat - science program source extractor\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Get the filename [should probably also check stdin]
-my $filename = shift(@ARGV);
+my $filename = shift @ARGV;
 
 die "Please supply a filename for processing"
-  unless defined $filename;
+    unless defined $filename;
 
 die "Supplied file [$filename] does not exist"
-  unless -e $filename;
+    unless -e $filename;
 
 # Create new SP object
-my $sp = new OMP::SciProg( FILE => $filename );
+my $sp = OMP::SciProg->new(FILE => $filename);
 
 # Get the project ID
 my $projectid = $sp->projectID;
 
 # Extract all the coordinate objects
 my @coords;
-for my $msb ( $sp->msb ) {
-  for my $obs ( $msb->obssum ) {
-    push( @coords, $obs->{coords} );
-  }
+for my $msb ($sp->msb) {
+    for my $obs ($msb->obssum) {
+        push @coords, $obs->{coords};
+    }
 }
 
 # Set the comment field to the projectid
 for (@coords) {
-  $_->comment($projectid);
+    $_->comment($projectid);
 }
 
 # Create a catalog object
-my @stars = map { new Astro::Catalog::Star(Coords=>$_) } @coords;
-my $cat = new Astro::Catalog(Stars => \@stars);
-$cat->origin("OMP sp2cat");
+my @stars = map {Astro::Catalog::Star->new(Coords => $_)} @coords;
+my $cat = Astro::Catalog->new(Stars => \@stars);
+$cat->origin('OMP sp2cat');
 
 # And write it to stdout
-$cat->write_catalog( File => \*STDOUT, Format => 'JCMT' );
+$cat->write_catalog(File => \*STDOUT, Format => 'JCMT');
+
+__END__
 
 =back
 

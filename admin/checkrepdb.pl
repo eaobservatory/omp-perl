@@ -98,7 +98,7 @@ BEGIN {
         unless exists $ENV{OMP_CFG_DIR};
 };
 
-use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
+use Getopt::Long qw/:config gnu_compat no_ignore_case no_debug/;
 use Pod::Usage;
 use List::Util qw/max/;
 use Time::HiRes qw/gettimeofday tv_interval/;
@@ -119,7 +119,7 @@ do {
     my $fault = 0;
 
     # Database server host names.
-    my $primary_db   = "omp1";
+    my $primary_db = "omp1";
     my $secondary_db = undef;  # "omp2";
 
     my $wait  = 20;
@@ -325,7 +325,7 @@ sub check_key_rep {
 
         $verify = $sec_kdb->verifyKey($key) if $sec_kdb;
     }
-    while (!$verify && --$tries);
+    while (! $verify && -- $tries);
 
     # XXX To find the replication time.
     $msg .= sprintf "\n(key replication: total wait: %0.2f s,  tries: %d)\n",
@@ -376,7 +376,7 @@ sub check_missing_msb {
 
     foreach my $dbserver (@databases) {
         $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = new OMP::BaseDB(DB => new OMP::DBbackend(1));
+        my $db = OMP::BaseDB->new(DB => OMP::DBbackend->new(1));
 
         my $sql = "SELECT projectid FROM ompsciprog\n".
             "WHERE projectid NOT IN (SELECT DISTINCT projectid FROM ompmsb)";
@@ -427,7 +427,7 @@ sub compare_row_count {
 
     foreach my $dbserver (@databases) {
         $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = new OMP::BaseDB(DB => new OMP::DBbackend(1));
+        my $db = OMP::BaseDB->new(DB => OMP::DBbackend->new(1));
 
         for my $table (qw/ompfault ompfaultassoc ompfaultbody ompfeedback
                           ompmsb ompmsbdone ompobs ompobslog ompproj
@@ -488,8 +488,8 @@ sub check_missing_sciprog {
     my %results;
 
     foreach my $dbserver (@databases) {
-        $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = new OMP::BaseDB(DB => new OMP::DBbackend(1));
+        $ENV{'OMP_DBSERVER'} = $dbserver;
+        my $db = OMP::BaseDB->new(DB => OMP::DBbackend->new(1));
 
         my $ref = $db->_db_retrieve_data_ashash($sql);
 
@@ -529,8 +529,8 @@ sub check_truncated_sciprog {
     my %results;
 
     foreach my $dbserver (@databases) {
-        $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = new OMP::BaseDB(DB => new OMP::DBbackend(1));
+        $ENV{'OMP_DBSERVER'} = $dbserver;
+        my $db = OMP::BaseDB->new(DB => OMP::DBbackend->new(1));
 
         my $ref = $db->_db_retrieve_data_ashash($sql);
 

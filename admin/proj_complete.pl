@@ -13,20 +13,16 @@ use OMP::Password;
 OMP::Password->get_verified_auth('staff');
 
 # Connect to the database and create a proj db object
-my $db = new OMP::ProjDB( DB => new OMP::DBbackend,
-                        );
+my $db = OMP::ProjDB->new(DB => OMP::DBbackend->new);
 
 while (<>) {
-  chomp;
-  my $line = $_;
+    chomp;
+    my $line = $_;
 
-  # Comments
-  $line =~ s/\#.*//;
-  next unless length($line) > 0;
+    # Comments
+    $line =~ s/\#.*//;
+    next unless length($line) > 0;
 
-  $db->projectid( $line );
-  $db->disableProject();
-
-
-
+    $db->projectid($line);
+    $db->disableProject();
 }

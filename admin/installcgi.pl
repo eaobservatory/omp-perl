@@ -53,7 +53,7 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 use OMP::Config;
-use OMP::Error qw[ :try ];
+use OMP::Error qw/:try/;
 
 my $dry_run = undef;
 my $install_images = undef;
@@ -69,38 +69,42 @@ my $privdest = $config->getData('web-install.private');
 my $omplib = $config->getData('web-install.omplib');
 my $initpath = $config->getData('web-install.initpath');
 
-my @srcdirs = qw/ cgi server web /;
+my @srcdirs = qw/cgi server web/;
 push @srcdirs, File::Spec->catdir(qw/web images/) if $install_images;
 
-my @pubfiles = qw/ add_user.pl alterproj.pl edit_support.pl edsched.pl
-                   fbcomment.pl fbfault.pl fblogout.pl
-                   fbmsb.pl fbobscomment.pl fbshiftlog.pl
-                   fbworf.pl fbworfthumb.pl fbworfimage.pl
-                   feedback.pl filefault.pl
-                   findtarget.pl
-                   get_resource.pl
-                   index.pl
-                   listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
-                   ompusers.pl
-                   projecthome.pl projusers.pl props.pl pubsched.pl
-                   qstatus.pl queryfault.pl retrieve_data.pl
-                   sched.pl schedcal.pl schedcallist.pl schedstat.pl
-                   searchobslog.pl searchshiftlog.pl shiftlog.pl
-                   sourceplot.pl spregion.pl spsummary.pl
-                   spsrv.pl staffobscomment.pl
-                   staffworf.pl staffworfthumb.pl staffworfimage.pl
-                   timeacct.pl translatemsb.pl
-                   updatefault.pl updateresp.pl update_user.pl userdetails.pl
-                   utprojlog.pl
-                   viewfault.pl wwwobserved.pl
-                   fault_summary.js form_submit_timeout.js log_in.js
-                   sched_edit.js submit_on_change.js
-                   table_filter.js time_accounting.js time_set_now.js
-                   user_list.js /;
+my @pubfiles = qw/
+    add_user.pl alterproj.pl edit_support.pl edsched.pl
+    fbcomment.pl fbfault.pl fblogout.pl
+    fbmsb.pl fbobscomment.pl fbshiftlog.pl
+    fbworf.pl fbworfthumb.pl fbworfimage.pl
+    feedback.pl filefault.pl
+    findtarget.pl
+    get_resource.pl
+    index.pl
+    listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
+    ompusers.pl
+    projecthome.pl projusers.pl props.pl pubsched.pl
+    qstatus.pl queryfault.pl retrieve_data.pl
+    sched.pl schedcal.pl schedcallist.pl schedstat.pl
+    searchobslog.pl searchshiftlog.pl shiftlog.pl
+    sourceplot.pl spregion.pl spsummary.pl
+    spsrv.pl staffobscomment.pl
+    staffworf.pl staffworfthumb.pl staffworfimage.pl
+    timeacct.pl translatemsb.pl
+    updatefault.pl updateresp.pl update_user.pl userdetails.pl
+    utprojlog.pl
+    viewfault.pl wwwobserved.pl
+    fault_summary.js form_submit_timeout.js log_in.js
+    sched_edit.js submit_on_change.js
+    table_filter.js time_accounting.js time_set_now.js
+    user_list.js
+/;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp-dev.css
-    jquery.js robots.txt /;
+my @sharedfiles = qw/
+    omp-cgi-init.pl omp-srv-init.pl omp.css omp-dev.css
+    jquery.js robots.txt
+/;
 
 # Files which are renamed.
 my %renamed_files = (
@@ -116,65 +120,76 @@ my %shared = map {$_, undef} @sharedfiles;
 my %seen_dir = ();
 
 for my $subdir (@srcdirs) {
-  my $dir = File::Spec->catdir(OMPLIB, File::Spec->updir(), $subdir);
-  opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
-  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl|\.txt|\.png|\.gif|\.ico)$/} readdir(DIR);
-  closedir(DIR);
+    my $dir = File::Spec->catdir(OMPLIB, File::Spec->updir(), $subdir);
+    opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
+    my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl|\.txt|\.png|\.gif|\.ico)$/}
+        readdir(DIR);
+    closedir(DIR);
 
-  for my $file (@files) {
-    next if exists $no_install_files{$file};
-    my $srcfile = File::Spec->catfile($dir, $file);
-    my $destfile = $renamed_files{$file} // $file;
-    my @paths;
-    if (exists $pub{$file}) {
-      push @paths, [$pubdest];
-    } elsif (exists $shared{$file} or $file =~ /(?:\.gif|\.png|\.ico)$/) {
-      push @paths, [$pubdest];
-      push @paths, [$privdest];
-
-    } else {
-      push @paths, [$privdest];
-    }
-
-    for my $path (@paths) {
-      push(@$path, 'cgi-bin') if ($file =~ /\.pl$/);
-      push(@$path, 'images') if ($file =~ /(?:\.gif|\.png|\.ico)$/);
-
-      my $pathdir = File::Spec->catdir(@$path);
-      if (not exists $seen_dir{$pathdir} and not -e $pathdir) {
-        $seen_dir{$pathdir} = 1;
-        print "Making directory $pathdir\n";
-        unless ($dry_run) {
-          make_path($pathdir);
+    for my $file (@files) {
+        next if exists $no_install_files{$file};
+        my $srcfile = File::Spec->catfile($dir, $file);
+        my $destfile = $renamed_files{$file} // $file;
+        my @paths;
+        if (exists $pub{$file}) {
+            push @paths, [$pubdest];
         }
-      };
+        elsif (exists $shared{$file} or $file =~ /(?:\.gif|\.png|\.ico)$/) {
+            push @paths, [$pubdest];
+            push @paths, [$privdest];
 
-      my $dest = File::Spec->catfile(@$path, $destfile);
-      print "Copying $srcfile to $dest\n";
-      unless ($dry_run) {
-        if ($file =~ /\.pl$/ and ($initpath or $omplib)) {
-          my $in = new IO::File($srcfile, 'r');
-          unless ($in) {warn "Error opening file $srcfile for reading: $!"; next};
-          my $out = new IO::File($dest, O_WRONLY|O_CREAT|O_TRUNC, ((-x $srcfile) ? 0775 : 0664));
-          unless ($out) {warn "Error opening file $dest for writing: $!"; close $in; next};
-          while (defined (my $line = <$in>)) {
-            if ($initpath) {
-              $line =~ s/(\$retval = do ")\.(\/omp-(?:cgi|srv)-init.pl";)/$1$initpath$2/;
-            }
-            if ($omplib) {
-              $line =~ s/(use constant OMPLIB => ")[-_a-zA-Z0-9\/]*(";)/$1$omplib$2/;
-            }
-            print $out $line;
-          }
-          close $in;
-          close $out;
-        } else {
-          cp($srcfile, $dest) or
-            warn "Error copying file $srcfile to $dest: $!";
         }
-      }
+        else {
+            push @paths, [$privdest];
+        }
+
+        for my $path (@paths) {
+            push(@$path, 'cgi-bin') if ($file =~ /\.pl$/);
+            push(@$path, 'images') if ($file =~ /(?:\.gif|\.png|\.ico)$/);
+
+            my $pathdir = File::Spec->catdir(@$path);
+            if (not exists $seen_dir{$pathdir} and not -e $pathdir) {
+                $seen_dir{$pathdir} = 1;
+                print "Making directory $pathdir\n";
+                unless ($dry_run) {
+                    make_path($pathdir);
+                }
+            }
+
+            my $dest = File::Spec->catfile(@$path, $destfile);
+            print "Copying $srcfile to $dest\n";
+            unless ($dry_run) {
+                if ($file =~ /\.pl$/ and ($initpath or $omplib)) {
+                    my $in = IO::File->new($srcfile, 'r');
+                    unless ($in) {
+                        warn "Error opening file $srcfile for reading: $!";
+                        next;
+                    }
+                    my $out = IO::File->new($dest, O_WRONLY | O_CREAT | O_TRUNC, ((-x $srcfile) ? 0775 : 0664));
+                    unless ($out) {
+                        warn "Error opening file $dest for writing: $!";
+                        close $in;
+                        next;
+                    }
+                    while (defined(my $line = <$in>)) {
+                        if ($initpath) {
+                            $line =~ s/(\$retval = do ")\.(\/omp-(?:cgi|srv)-init.pl";)/$1$initpath$2/;
+                        }
+                        if ($omplib) {
+                            $line =~ s/(use constant OMPLIB => ")[-_a-zA-Z0-9\/]*(";)/$1$omplib$2/;
+                        }
+                        print $out $line;
+                    }
+                    close $in;
+                    close $out;
+                }
+                else {
+                    cp($srcfile, $dest)
+                        or warn "Error copying file $srcfile to $dest: $!";
+                }
+            }
+        }
     }
-  }
 }
 
 __END__

@@ -133,15 +133,14 @@ die "No such user [$author]"
     unless ($user);
 
 # Get the projects
-my $proj_fh = new IO::File($projectsfile, 'r')
+my $proj_fh = IO::File->new($projectsfile, 'r')
     or die "Couldn't open file [$projectsfile]: $!";
 
 my @projects;
 foreach my $id (<$proj_fh>) {
     chomp $id;
 
-    next
-        if $id =~ m/^\s*#/
+    next if $id =~ m/^\s*#/
         or $id =~ m/^\s*$/;
 
     push @projects, $id;
@@ -156,16 +155,16 @@ foreach my $projectid (@projects) {
 }
 
 # Create the comment
-my $comment_fh = new IO::File($commentfile, 'r')
+my $comment_fh = IO::File->new($commentfile, 'r')
     or die "Couldn't open file [$commentfile]: $!";
 my @comment = <$comment_fh>;
-close($comment_fh);
+$comment_fh->close();
 
 my $subject = shift @comment;
 chomp $subject;
 
 my %comment = (
-    text => join("", @comment),
+    text => (join '', @comment),
     author => $user,
     program => 'COMMENT_CLIENT',
     subject => $subject,
@@ -174,8 +173,7 @@ my %comment = (
 $comment{'status'} = OMP__FB_SUPPORT
     if defined $type && $type eq 'support';
 
-print
-    "Subject:\n",
+print "Subject:\n",
     $comment{'subject'}, "\n\n",
     "Text:\n",
     $comment{'text'}, "\n",

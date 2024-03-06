@@ -6,8 +6,8 @@ cat2sp - Make a science programme from a template and source catalogue
 
 =head1 SYNOPSIS
 
-  cat2sp -h
-  cat2sp template.xml catalogue.dat
+    cat2sp -h
+    cat2sp template.xml catalogue.dat
 
 =head1 DESCRIPTION
 
@@ -66,9 +66,9 @@ Display the full manual page.
 The input file should follow the JCMT catalogue format (although
 the column positions are not enforced). The format is:
 
- * My catalogue
- Target1   05 06 23.4  - 23 42 06.5   RJ
- Target2   12 20 15.0  + 16 32 22.5   GA
+    * My catalogue
+    Target1   05 06 23.4  - 23 42 06.5   RJ
+    Target2   12 20 15.0  + 16 32 22.5   GA
 
 The target name should not have spaces, "*" is a comment character
 and the sign should not be abutted against the declination degrees.
@@ -116,46 +116,49 @@ our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "cat2sp - catalogue to science program importer\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "cat2sp - catalogue to science program importer\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Read the useful arguments
 my ($template, $coords) = @ARGV;
 unless (defined $template && defined $coords) {
-  warn "Must specify MSB xml and catalogue file.\n";
-  pod2usage(1);
+    warn "Must specify MSB xml and catalogue file.\n";
+    pod2usage(1);
 }
 
 # Open the science program template
-my $sp = new OMP::SciProg( FILE => $template )
-  or die "Error opening template file $template";
+my $sp = OMP::SciProg->new(FILE => $template)
+    or die "Error opening template file $template";
 
 # now open the coordinates file. The opening and parsing is trivial
 # we use SrcCatalog::JCMT for this since it also converts to J2000.
 # If we do not want this dependency we will need to do more tweaking
 # of the XML since GA and RB require changes to the telescope XML
 # that are not currently in place.
-my $cat = new Astro::Catalog(Format => 'JCMT',
-                             File => $coords );
-my @sources = map { $_->coords } $cat->allstars;
+my $cat = Astro::Catalog->new(
+    Format => 'JCMT',
+    File => $coords,
+);
+my @sources = map {$_->coords} $cat->allstars;
 
 # Now clone the msbs
-my @info = $sp->cloneMSBs( @sources );
+my @info = $sp->cloneMSBs(@sources);
 
 # And print out warnings
 foreach (@info) {
-  warn $_ . "\n";
+    warn $_ . "\n";
 }
 
 # and send the science programme to stdout

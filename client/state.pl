@@ -6,11 +6,11 @@ state - Disable or enable a project
 
 =head1 SYNOPSIS
 
- state -id u/05a/1
- state -id u/05a/1 -disable
- state -id u/05a/1 -enable
+    state -id u/05a/1
+    state -id u/05a/1 -disable
+    state -id u/05a/1 -enable
 
- state -id u/05a/1,u/05a/2,u/05a/3 -disable
+    state -id u/05a/1,u/05a/2,u/05a/3 -disable
 
 =head1 DESCRIPTION
 
@@ -77,26 +77,27 @@ our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $idstr, $enable, $disable);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "id=s" => \$idstr,
-                        "enable" => \$enable,
-                        "disable" => \$disable,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "id=s" => \$idstr,
+    "enable" => \$enable,
+    "disable" => \$disable,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "state - Disable or enable a project\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "state - Disable or enable a project\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Die if options clash
 if ($enable and $disable) {
-  die "Use either -disable or -enable, not both.\n";
+    die "Use either -disable or -enable, not both.\n";
 }
 
 OMP::Password->get_verified_auth('staff');
@@ -104,34 +105,38 @@ OMP::Password->get_verified_auth('staff');
 print "\n";
 
 # Connect to the database
-my $dbconnection = new OMP::DBbackend;
+my $dbconnection = OMP::DBbackend->new();
 
-for my $id (split(',',$idstr)) {
-  my $projdb = new OMP::ProjDB( ProjectID => $id,
-                                DB => $dbconnection );
+for my $id (split(',', $idstr)) {
+    my $projdb = OMP::ProjDB->new(ProjectID => $id, DB => $dbconnection);
 
-  # Get project
-  my $proj = $projdb->projectDetails( 'object' );
+    # Get project
+    my $proj = $projdb->projectDetails('object');
 
-  # Display project state
-  print "Project " . $proj->projectid . " is currently " . ($proj->state ? "enabled" : "disabled") ."\n";
+    # Display project state
+    print "Project " . $proj->projectid . " is currently "
+        . ($proj->state ? "enabled" : "disabled")
+        . "\n";
 
-  if ($enable or $disable) {
-    if ($enable) {
-      print "Enabling project ". $proj->projectid ."... ";
+    if ($enable or $disable) {
+        if ($enable) {
+            print "Enabling project " . $proj->projectid . "... ";
 
-      # Set state to enabled
-      $projdb->enableProject();
-    } else {
-      print "Disabling project ". $proj->projectid ."... ";
+            # Set state to enabled
+            $projdb->enableProject();
+        }
+        else {
+            print "Disabling project " . $proj->projectid . "... ";
 
-      # Set state to enabled
-      $projdb->disableProject();
+            # Set state to enabled
+            $projdb->disableProject();
+        }
+
+        print "done.\n";
     }
-
-    print "done.\n";
-  }
 }
+
+__END__
 
 =head1 AUTHOR
 
@@ -156,4 +161,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-

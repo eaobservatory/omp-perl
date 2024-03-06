@@ -6,7 +6,7 @@ remsciprog - Remove a science program from the database
 
 =head1 SYNOPSIS
 
-  remsciprog
+    remsciprog
 
 =head1 DESCRIPTION
 
@@ -15,7 +15,6 @@ from the database.
 
 This program is intentionally interactive in order to prevent this
 from happening without thinking very hard.
-
 
 =head1 ARGUMENTS
 
@@ -35,8 +34,6 @@ This manual page.
 
 =cut
 
-
-
 use warnings;
 use strict;
 
@@ -46,8 +43,8 @@ use File::Spec;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -65,9 +62,10 @@ use OMP::Password;
 
 # Options
 my ($help, $man);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -75,31 +73,33 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 OMP::Password->get_verified_auth('staff');
 
 # Ask for the project id
-my $term = new Term::ReadLine 'Rem Sci Prog';
-my $project = $term->readline( "Project ID of science program to delete: ");
+my $term = Term::ReadLine->new('Rem Sci Prog');
+my $project = $term->readline('Project ID of science program to delete: ');
 
 # Create the new object
-my $db = new OMP::MSBDB(
-                        ProjectID => $project,
-                        DB => new OMP::DBbackend,
-                       );
+my $db = OMP::MSBDB->new(
+    ProjectID => $project,
+    DB => OMP::DBbackend->new(),
+);
 
 # First list a summary of the project by retrieving the science
 # program (disabling feedback notification)
 my $sp = $db->fetchSciProg(1);
 
-print join("\n",$sp->summary),"\n";
+print join("\n", $sp->summary), "\n";
 
-my $confirm = $term->readline("Confirm removal? [y/n] ");
+my $confirm = $term->readline('Confirm removal? [y/n] ');
 
 if ($confirm =~ /^[yY]/) {
-  $db->removeSciProg();
-} else {
-  print "Removal aborted\n";
+    $db->removeSciProg();
+}
+else {
+    print "Removal aborted\n";
 }
 
-
 exit;
+
+__END__
 
 =head1 AUTHOR
 

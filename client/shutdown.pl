@@ -6,8 +6,8 @@ shutdown - Produce time accounting for shutdown periods
 
 =head1 SYNOPSIS
 
-  shutdown -tel ukirt
-  shutdown -tel jcmt -ut
+    shutdown -tel ukirt
+    shutdown -tel jcmt -ut
 
 =head1 DESCRIPTION
 
@@ -91,63 +91,68 @@ our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $tel, $semester, $ut, $no_shiftlog);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "tel=s" => \$tel,
-                        "ut" => \$ut,
-                        "debug" => \$DEBUG,
-                        "no-shiftlog" => \$no_shiftlog,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "tel=s" => \$tel,
+    "ut" => \$ut,
+    "debug" => \$DEBUG,
+    "no-shiftlog" => \$no_shiftlog,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "shutdown - Produce time accounting for shutdown periods\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "shutdown - Produce time accounting for shutdown periods\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Setup term
-my $term = new Term::ReadLine 'Generate time accounting information for planned shutdowns';
+my $term = Term::ReadLine->new('Generate time accounting information for planned shutdowns');
 
 # Setup duration object display formats
-my $dseconds = DateTime::Format::Duration->new(pattern=>'%s',);
+my $dseconds = DateTime::Format::Duration->new(pattern => '%s');
 
 # Connect to the database
-my $dbconnection = new OMP::DBbackend;
+my $dbconnection = OMP::DBbackend->new();
 
 # Prompt for telescope name (unless it was provided as an argument)
 $tel = OMP::General->determine_tel($term)
-  unless (defined $tel);
+    unless defined $tel;
 
 # Verify telescope argument
 my %telescopes = map {$_, $_} OMP::General->determine_tel();
-if (defined $tel and exists $telescopes{uc($tel)}) {
-  $tel = $telescopes{uc($tel)};
-} else {
-  die "Must provide a valid telescope\n";
+if (defined $tel and exists $telescopes{uc $tel}) {
+    $tel = $telescopes{uc $tel};
+}
+else {
+    die "Must provide a valid telescope\n";
 }
 
 # Get staff auth
 my $auth = OMP::Password->get_verified_auth('staff');
 
-
 # Get shift type
-my $prompt = "SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ";
+my $prompt = 'SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ';
 my $shift = $term->readline($prompt);
-$shift =  uc($shift);
+$shift = uc $shift;
 die "Invalid shift: $shift\n"
-    unless ($shift eq "NIGHT" || $shift eq "DAY" || $shift eq "EO" || $shift eq "OTHER");
+    unless $shift eq 'NIGHT'
+    || $shift eq 'DAY'
+    || $shift eq 'EO'
+    || $shift eq 'OTHER';
+
 # Get start and end dates
 my $parser = DateTime::Format::ISO8601->new;
 
-$prompt = "Shutdown start date (YYYY-MM-DD): ";
+$prompt = 'Shutdown start date (YYYY-MM-DD): ';
 my $startdate = $term->readline($prompt);
 my $startdt = $parser->parse_datetime($startdate);
 
-$prompt = "Shutdown end date (YYYY-MM-DD): ";
+$prompt = 'Shutdown end date (YYYY-MM-DD): ';
 my $enddate = $term->readline($prompt);
 my $enddt = $parser->parse_datetime($enddate);
 
@@ -158,127 +163,136 @@ $startdt->set_time_zone($tz);
 $enddt->set_time_zone($tz);
 
 # Get shutdown time amount
-$prompt = "Length of each shutdown night (hours) [defaults to twilight]: ";
+$prompt = 'Length of each shutdown night (hours) [defaults to twilight]: ';
 my $shutlen_arg = $term->readline($prompt);
 
 # If shutdown length was provided, convert it to seconds
 my $shutlen;
 if ($shutlen_arg) {
-  my $shutlendur = DateTime::Duration->new(hours=> $shutlen_arg,);
-  $shutlen = $dseconds->format_duration($shutlendur);
+    my $shutlendur = DateTime::Duration->new(hours => $shutlen_arg);
+    $shutlen = $dseconds->format_duration($shutlendur);
 }
 
 # Get shutdown reason
 my $shutreason;
 unless ($no_shiftlog) {
-  $prompt = "Reason for shutdown: ";
-  $shutreason = $term->readline($prompt);
-  die "Must provide a comment"
-    unless (defined $shutreason);
+    $prompt = 'Reason for shutdown: ';
+    $shutreason = $term->readline($prompt);
+    die 'Must provide a comment'
+        unless defined $shutreason;
 }
 
 # Loop over each night...
-my $oneday = DateTime::Duration->new(days=>1,);
+my $oneday = DateTime::Duration->new(days => 1);
 my $currentdt = $startdt;
 my $set_time;
 my @taccts;
 my @shiftcomms;
 while ($currentdt <= $enddt) {
-  # Calculate length of night if the value was not provided
+    # Calculate length of night if the value was not provided
 
-  # Create Astro::Coords object
-  my $c = new Astro::Coords(planet=> 'sun',);
+    # Create Astro::Coords object
+    my $c = Astro::Coords->new(planet => 'sun');
 
-  # Register datetime object with the Astro::Coords object
-  $c->datetime($currentdt);
+    # Register datetime object with the Astro::Coords object
+    $c->datetime($currentdt);
 
-  # Register telescope with the Astro::Coords object
-  $c->telescope(new Astro::Telescope($tel));
+    # Register telescope with the Astro::Coords object
+    $c->telescope(Astro::Telescope->new($tel));
 
-  # Get set time (twilight begin)
-  $set_time = $c->set_time( horizon => Astro::Coords::AST_TWILIGHT );
+    # Get set time (twilight begin)
+    $set_time = $c->set_time(horizon => Astro::Coords::AST_TWILIGHT);
 
-  if (! $shutlen_arg) {
-    # We want the rise time for the next day, so set our Astro::Coords object's
-    # forward, past the current day's rise time
-    $c->datetime($set_time);
+    unless ($shutlen_arg) {
+        # We want the rise time for the next day, so set our Astro::Coords object's
+        # forward, past the current day's rise time
+        $c->datetime($set_time);
 
-    # Get rise time (twilight end)
-    my $rise_time = $c->rise_time( horizon => Astro::Coords::AST_TWILIGHT );
+        # Get rise time (twilight end)
+        my $rise_time = $c->rise_time(horizon => Astro::Coords::AST_TWILIGHT);
 
-    # Get difference between set and rise time
-    my $duration = $rise_time - $set_time;
+        # Get difference between set and rise time
+        my $duration = $rise_time - $set_time;
 
-    if ($DEBUG) {
-      print "Set: ". $set_time->datetime ." Rise: ". $rise_time->datetime . " Duration: ". $dseconds->format_duration($duration)."\n";
+        if ($DEBUG) {
+            print "Set: " . $set_time->datetime
+                . " Rise: " . $rise_time->datetime
+                . " Duration: " . $dseconds->format_duration($duration)
+                . "\n";
+        }
+
+        $shutlen = $dseconds->format_duration($duration);
     }
 
-    $shutlen = $dseconds->format_duration($duration);
-  }
+    # Convert DateTime object to Time::Piece object
+    # Assume that observing would begin at the start of astronomical twilight
+    my $starttimetp = gmtime($set_time->epoch);
 
-  # Convert DateTime object to Time::Piece object
-  # Assume that observing would begin at the start of astronomical twilight
-  my $starttimetp = gmtime($set_time->epoch);
+    # Create TimeAcct (use special $tel_SHUTDOWN category)
+    my $t = OMP::Project::TimeAcct->new(
+        projectid => "${tel}_SHUTDOWN",
+        date => $starttimetp,
+        timespent => $shutlen,
+        confirmed => 1,
+        shifttype => $shift,
+    );
 
-  # Create TimeAcct (use special $tel_SHUTDOWN category)
-  my $t = new OMP::Project::TimeAcct(projectid => "${tel}_SHUTDOWN",
-                                     date      => $starttimetp,
-                                     timespent => $shutlen,
-                                     confirmed => 1,
-                                     shifttype => $shift);
+    push @taccts, $t;
 
-  push (@taccts, $t);
+    # Create shiftlog comments
+    unless ($no_shiftlog) {
+        my $comment = OMP::Info::Comment->new(
+            author => $auth->user,
+            text => $shutreason,
+            date => $starttimetp,
+        );
 
-  # Create shiftlog comments
-  unless ($no_shiftlog) {
-    my $comment = new OMP::Info::Comment(author => $auth->user,
-                                         text   => $shutreason,
-                                         date   => $starttimetp);
+        push @shiftcomms, $comment;
+    }
 
-    push (@shiftcomms, $comment);
-  }
-
-  # Go to the next day
-  $currentdt += $oneday;
+    # Go to the next day
+    $currentdt += $oneday;
 }
 
 # Store accounts to a group for simple statistics
-my $tacctgrp = new OMP::TimeAcctGroup( accounts => \@taccts );
+my $tacctgrp = OMP::TimeAcctGroup->new(accounts => \@taccts);
 
 # Display time accounts and shiftlog comments
-print "Time accounts created (". scalar(@taccts) .")\n";
+print 'Time accounts created (' . scalar(@taccts) . ")\n";
 printf "Total time: %.2f hours\n", $tacctgrp->totaltime->hours;
-print "\nShift log comments created (". scalar(@shiftcomms) .")\n";
+print "\nShift log comments created (" . scalar(@shiftcomms) . ")\n";
 if (scalar @shiftcomms) {
-  print "Author: ". $shiftcomms[0]->author . "\n";
-  print "Comment: ". $shiftcomms[0]->text . "\n";
+    print 'Author: ' . $shiftcomms[0]->author . "\n";
+    print 'Comment: ' . $shiftcomms[0]->text . "\n";
 }
 
 if ($DEBUG) {
-  print "Comment created for the following dates:\n";
-  for my $comment (@shiftcomms) {
-    print "\t" . $comment->date . "\n";
-  }
+    print "Comment created for the following dates:\n";
+    for my $comment (@shiftcomms) {
+        print "\t" . $comment->date . "\n";
+    }
 }
 
 # Store the accounts and comments to the database
-if (! $DEBUG) {
-  # Store time accounts
-  my $acctdb = new OMP::TimeAcctDB( DB => $dbconnection );
-  $acctdb->setTimeSpent(@taccts);
+unless ($DEBUG) {
+    # Store time accounts
+    my $acctdb = OMP::TimeAcctDB->new(DB => $dbconnection);
+    $acctdb->setTimeSpent(@taccts);
 
-  print "Stored time accounts.\n";
+    print "Stored time accounts.\n";
 
-  # Store shiftlog comments
-  my $shiftdb = new OMP::ShiftDB( DB => $dbconnection );
-  for my $comment (@shiftcomms) {
-    $shiftdb->enterShiftLog( $comment, $tel );
-  }
+    # Store shiftlog comments
+    my $shiftdb = OMP::ShiftDB->new(DB => $dbconnection);
+    for my $comment (@shiftcomms) {
+        $shiftdb->enterShiftLog($comment, $tel);
+    }
 
-  print "Stored shift log comments.\n";
+    print "Stored shift log comments.\n";
 }
 
 print "Done.\n";
+
+__END__
 
 =head1 AUTHOR
 

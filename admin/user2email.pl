@@ -14,17 +14,17 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::UserServer;
 
 for my $userid (<>) {
-  chomp($userid);
-  next unless $userid =~ /\w/;
-  $userid =~ s/\s+//;
-  my $user = OMP::UserServer->getUser( $userid );
-  next unless defined $user;
-  print $user->as_email_hdr()."\n" if defined $user->email();
+    chomp($userid);
+    next unless $userid =~ /\w/;
+    $userid =~ s/\s+//;
+    my $user = OMP::UserServer->getUser($userid);
+    next unless defined $user;
+    print $user->as_email_hdr() . "\n" if defined $user->email();
 }

@@ -16,35 +16,36 @@ use OMP::DBbackend;
 use constant LONGEST => 40;
 
 # Connect
-my $db = new OMP::DBbackend;
+my $db = OMP::DBbackend->new();
 my $dbh = $db->handle;
 
 my @tab;
-(@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompmsb ompobs ompsciprog ompfeedback ompmsbdone
-  ompfault ompfaultbody ompuser ompprojuser ompprojqueue /;
+(@ARGV) and @tab = @ARGV or @tab = qw/
+    ompproj ompmsb ompobs ompsciprog ompfeedback ompmsbdone
+    ompfault ompfaultbody ompuser ompprojuser ompprojqueue
+/;
 
 foreach my $tab (@tab) {
-  my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab",{ Columns=>{} })
-    or die "Cannot select on $tab: ". $DBI::errstr;
+    my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab", {Columns => {}})
+        or die "Cannot select on $tab: " . $DBI::errstr;
 
-  print "\nTABLE: $tab\n";
-  my @columns = sort keys %{$ref->[0]};
-  print "COLUMNS: ",join(",",@columns),"\n";
+    print "\nTABLE: $tab\n";
+    my @columns = sort keys %{$ref->[0]};
+    print "COLUMNS: ", join(",", @columns), "\n";
 
-  for my $row (@$ref) {
-    my @full;
-    for my $col (@columns) {
-      my $entry = $row->{$col};
-      $entry = '' unless defined $entry;
-      $entry =~ s/\s+$//;
-      push(@full, $entry);
+    for my $row (@$ref) {
+        my @full;
+        for my $col (@columns) {
+            my $entry = $row->{$col};
+            $entry = '' unless defined $entry;
+            $entry =~ s/\s+$//;
+            push(@full, $entry);
+        }
+
+        # strip long entries
+        @full = map {$_ = "<LONG>" if length($_) > LONGEST; $_} @full;
+        print join(",", @full), "\n";
     }
-    # strip long entries
-    @full = map {  $_ = "<LONG>" if length($_) > LONGEST; $_ } @full;
-    print join(",",@full),"\n";
-  }
-
 }
 
 $dbh->disconnect;

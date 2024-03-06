@@ -6,7 +6,7 @@ setaffiliationalloc - Set affiliation allocation
 
 =head1 SYNOPSIS
 
-  admin/setaffiliationalloc.pl -tel JCMT|UKIRT allocation.csv
+    admin/setaffiliationalloc.pl -tel JCMT|UKIRT allocation.csv
 
 =head1 DESCRIPTION
 
@@ -35,9 +35,9 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use Pod::Usage;
 use Getopt::Long;
@@ -57,7 +57,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $help;
 die 'Telescope not specified'
     unless defined $telescope;
 
-my $affiliation_db = new OMP::ProjAffiliationDB(
+my $affiliation_db = OMP::ProjAffiliationDB->new(
     DB => OMP::DBServer->dbConnection());
 
 while (<>) {

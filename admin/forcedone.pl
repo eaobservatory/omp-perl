@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-forcedone - Fixup MSB done after the fact.
+forcedone - Fixup MSB done after the fact
 
 =head1 DESCRIPTION
 
@@ -14,7 +14,7 @@ has been verified.
 Accepts information from standard input. Each line must have the
 following format (comma separated):
 
-  YYYY-MM-DDTHH:MM:SS,PROJECTID,CHECKSUM,ACCEPT,USERID,COMMENT
+    YYYY-MM-DDTHH:MM:SS,PROJECTID,CHECKSUM,ACCEPT,USERID,COMMENT
 
 where the ACCEPT is a 1 or 0. 1 indicates the MSB was accepted
 and 0 indicates that it is to be rejected. A hash mark indicates
@@ -34,9 +34,9 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
@@ -45,47 +45,50 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::UserServer;
-use OMP::Constants ':done';
+use OMP::Constants qw/:done/;
 
 # Connect to database
-my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
-my $msbdone = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
+my $msbdb = OMP::MSBDB->new(DB => OMP::DBbackend->new());
+my $msbdone = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
 
 # Loop over info for modification
 for my $line (<>) {
-  next if $line !~ /\w/;
-  next if $line =~ /^\s*\#/;
+    next if $line !~ /\w/;
+    next if $line =~ /^\s*\#/;
 
-  my ($date,$proj,$checksum,$accept,$user,$comment) = split /,/, $line;
+    my ($date, $proj, $checksum, $accept, $user, $comment) = split /,/, $line;
 
-  $date = OMP::DateTools->parse_date( $date );
-  $user = OMP::UserServer->getUser( $user );
+    $date = OMP::DateTools->parse_date($date);
+    $user = OMP::UserServer->getUser($user);
 
-  my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
+    my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED);
 
-  my $c = new OMP::Info::Comment( text => ($comment ? $comment : undef),
-                                  author => $user,
-                                  date=> $date,
-                                  status => $status,
-                                );
+    my $c = OMP::Info::Comment->new(
+        text => ($comment ? $comment : undef),
+        author => $user,
+        date => $date,
+        status => $status,
+    );
 
-   print $date->datetime, ": $proj : $checksum : $user - $status\n";
+    print $date->datetime, ": $proj : $checksum : $user - $status\n";
 
-  if ($accept) {
-    # Force project ID
-    $msbdb->projectid( $proj );
+    if ($accept) {
+        # Force project ID
+        $msbdb->projectid($proj);
 
-    # Mark it as done
-    $msbdb->doneMSB( $checksum, $c, { adjusttime => 0 });
-  } else {
-    # Force project ID
-    $msbdone->projectid( $proj );
+        # Mark it as done
+        $msbdb->doneMSB($checksum, $c, {adjusttime => 0});
+    }
+    else {
+        # Force project ID
+        $msbdone->projectid($proj);
 
-    # Create reject text (this should be done with a proper rejectMSB method)
-    my $rejtext = "MSB Rejected";
-    $rejtext .= ": $comment" if defined $comment && $comment =~ /\w/;
-    $c->text($rejtext);
-    # Reject it
-    $msbdone->addMSBcomment( $checksum, $c );
-  }
+        # Create reject text (this should be done with a proper rejectMSB method)
+        my $rejtext = "MSB Rejected";
+        $rejtext .= ": $comment" if defined $comment && $comment =~ /\w/;
+        $c->text($rejtext);
+
+        # Reject it
+        $msbdone->addMSBcomment($checksum, $c);
+    }
 }

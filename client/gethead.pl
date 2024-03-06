@@ -6,9 +6,9 @@ getobs - Retrieve an observation FITS header from database
 
 =head1 SYNOPSIS
 
-  gethead -ut 20110912 -runnr 42
-  gethead -ut 20110912 -runnr 42 -inst SCUBA-2
-  gethead --obsid=scuba2_00052_20110912T165816
+    gethead -ut 20110912 -runnr 42
+    gethead -ut 20110912 -runnr 42 -inst SCUBA-2
+    gethead --obsid=scuba2_00052_20110912T165816
 
 =head1 DESCRIPTION
 
@@ -67,8 +67,8 @@ use FindBin;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -78,62 +78,68 @@ use Pod::Usage;
 
 use OMP::ArchiveDB;
 
-
-
 my ($ut, $inst, $runnr, $obsid, $help, $version, $man);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "ut=i" => \$ut,
-                        "instrument=s" => \$inst,
-                        "runnr=i" => \$runnr,
-                        "obsid=s" => \$obsid,
-                       );
+my $status = GetOptions(
+    'help' => \$help,
+    'man' => \$man,
+    'version' => \$version,
+    'ut=i' => \$ut,
+    'instrument=s' => \$inst,
+    'runnr=i' => \$runnr,
+    'obsid=s' => \$obsid,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "gethead - Get header of an observation from the database\n";
-  exit;
+    print "gethead - Get header of an observation from the database\n";
+    exit;
 }
 
-my %args = ( telescope => "JCMT" );
+my %args = (
+    telescope => 'JCMT',
+);
+
 if (defined $obsid) {
-  $args{obsid} = $obsid;
-} elsif (defined $ut && defined $runnr) {
-  $args{runnr} = $runnr;
-  $args{ut} = $ut;
-  $args{instrument} = $inst
-    if defined $inst;
-} else {
-  die "Need an obsid or ut with runnr";
+    $args{obsid} = $obsid;
+}
+elsif (defined $ut && defined $runnr) {
+    $args{runnr} = $runnr;
+    $args{ut} = $ut;
+    $args{instrument} = $inst
+        if defined $inst;
+}
+else {
+    die 'Need an obsid or ut with runnr';
 }
 
 OMP::ArchiveDB::skip_cache_query();
 OMP::ArchiveDB::skip_cache_making();
 
 my $arcdb = OMP::ArchiveDB->new();
-my $obs= $arcdb->getObs( %args );
+my $obs= $arcdb->getObs(%args);
 
 if ($obs) {
-
-  my $fits = $obs->fits;
-  print join( "\n", sort $fits->cards ),"\n";
-  my $dateobs = $obs->startobs;
-  my $mjd;
-  if (defined $dateobs) {
-    $mjd = $dateobs->mjd;
-  }
-  $dateobs = $obs->endobs;
-  if (defined $dateobs) {
-    my $endmjd = $dateobs->mjd;
-    $mjd = ($mjd + $endmjd) / 2.0;
-  }
-  use Astro::FITS::Header::Item;
-  my $mjdavg = Astro::FITS::Header::Item->new( Keyword => "MJD-AVG",
-                                               Value => $mjd, Type => 'FLOAT' );
-  print $mjdavg ."\n";
+    my $fits = $obs->fits;
+    print join("\n", sort $fits->cards), "\n";
+    my $dateobs = $obs->startobs;
+    my $mjd;
+    if (defined $dateobs) {
+        $mjd = $dateobs->mjd;
+    }
+    $dateobs = $obs->endobs;
+    if (defined $dateobs) {
+        my $endmjd = $dateobs->mjd;
+        $mjd = ($mjd + $endmjd) / 2.0;
+    }
+    use Astro::FITS::Header::Item;
+    my $mjdavg = Astro::FITS::Header::Item->new(
+        Keyword => "MJD-AVG",
+        Value => $mjd,
+        Type => 'FLOAT'
+    );
+    print $mjdavg . "\n";
 }
 
 =head1 AUTHOR

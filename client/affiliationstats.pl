@@ -6,7 +6,7 @@ affiliationstats - Generate observing statistics by affiliation
 
 =head1 SYNOPSIS
 
-  client/affiliationstats.pl TELESCOPE SEMESTER [--store]
+    client/affiliationstats.pl TELESCOPE SEMESTER [--store]
 
 =head1 DESCRIPTION
 
@@ -24,8 +24,8 @@ use File::Spec;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -39,10 +39,10 @@ my $telescope = uc($ARGV[0]) or die 'Telescope not specified';
 my $semester = uc($ARGV[1]) or die 'Semester not specified';
 my $store_to_database = (exists $ARGV[2]) && (lc($ARGV[2]) eq '--store');
 
-my $project_db = new OMP::ProjDB(
+my $project_db = OMP::ProjDB->new(
     DB => OMP::DBServer->dbConnection());
 
-my $affiliation_db = new OMP::ProjAffiliationDB(
+my $affiliation_db = OMP::ProjAffiliationDB->new(
     DB => OMP::DBServer->dbConnection());
 
 my $allocations = $affiliation_db->get_all_affiliation_allocations($telescope);
@@ -54,7 +54,7 @@ my $total = 0.0;
 print "\nProjects without affiliation:\n\n";
 
 foreach my $project ($project_db->listProjects(
-        new OMP::ProjQuery(XML => '<ProjQuery><telescope>' . $telescope .
+        OMP::ProjQuery->new(XML => '<ProjQuery><telescope>' . $telescope .
             '</telescope><semester>' . $semester .
             '</semester></ProjQuery>'))) {
     my $project_id = $project->projectid();
@@ -74,8 +74,9 @@ foreach my $project ($project_db->listProjects(
 
     $total += $observed;
 
-    push @projects, [$project_id, $observed, $project_affiliations,
-                     $project->pi()->name()];
+    push @projects, [
+        $project_id, $observed, $project_affiliations,
+        $project->pi()->name()];
 
     while (my ($affiliation, $fraction) = each %$project_affiliations) {
         $affiliations{$affiliation} =
@@ -103,8 +104,8 @@ my %percentages = ();
 while (my ($affiliation, $observed) = each %affiliations) {
     my $allocation = $allocations->{$semester}->{$affiliation}->{'allocation'};
     $percentages{$affiliation} = (defined $allocation)
-                               ? 100.0 * $observed / $allocation
-                               : undef;
+        ? 100.0 * $observed / $allocation
+        : undef;
 }
 
 foreach my $affiliation (sort {$percentages{$b} <=> $percentages{$a}}

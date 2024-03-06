@@ -6,9 +6,9 @@ maillist - Generate a list of PI and Co-I email addresses
 
 =head1 SYNOPSIS
 
-maillist -country UK [-telescope TEL]
+    maillist -country UK [-telescope TEL]
 
-maillist -project M99XY000
+    maillist -project M99XY000
 
 =head1 DESCRIPTION
 
@@ -70,60 +70,58 @@ $| = 1; # Make unbuffered
 # Options
 my ($country, $telescope, $single_project, $help, $man, $version);
 my $status = GetOptions(
-                        "country=s" => \$country,
-                        "telescope=s" => \$telescope,
-                        'project=s' => \$single_project,
-                        "help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                       );
+    "country=s" => \$country,
+    "telescope=s" => \$telescope,
+    'project=s' => \$single_project,
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "maillist - Generate a list of PI and Co-I email addresses\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "maillist - Generate a list of PI and Co-I email addresses\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 my $xmlquery;
 if (defined $single_project) {
-  $xmlquery = "<ProjQuery>"
-    . "<projectid>$single_project</projectid>"
-    . "</ProjQuery>";
+    $xmlquery = "<ProjQuery>"
+        . "<projectid>$single_project</projectid>"
+        . "</ProjQuery>";
 }
 elsif (defined $country) {
-  # XML query
-  $xmlquery = "<ProjQuery>".
-    "<country>$country</country>";
-  $xmlquery .= "<telescope>$telescope</telescope>"
-    unless (! $telescope);
-  $xmlquery .= "</ProjQuery>";
+    # XML query
+    $xmlquery = "<ProjQuery>" . "<country>$country</country>";
+    $xmlquery .= "<telescope>$telescope</telescope>"
+        unless (!$telescope);
+    $xmlquery .= "</ProjQuery>";
 }
 else {
-  # Die if missing certain arguments
-  die "The country or project argument must be specified\n";
+    # Die if missing certain arguments
+    die "The country or project argument must be specified\n";
 }
 
 # Get projects
-my $projects = OMP::ProjServer->listProjects( $xmlquery,
-                                              'object');
+my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 my %email_users;
 
 for my $project (@$projects) {
-  my @pis = $project->pi;
-  my @cois = $project->coi;
+    my @pis = $project->pi;
+    my @cois = $project->coi;
 
-  for my $user (@pis, @cois) {
-    $email_users{$user->userid} = $user
-      unless (! $user->email);
-  }
+    for my $user (@pis, @cois) {
+        $email_users{$user->userid} = $user
+            if $user->email;
+    }
 }
 
 # Print sorted
 for my $userid (sort keys %email_users) {
-  print $email_users{$userid}->as_email_hdr ."\n";
+    print $email_users{$userid}->as_email_hdr . "\n";
 }
 
 __END__

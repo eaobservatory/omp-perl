@@ -6,8 +6,8 @@ mkproj - Populate project database with initial details
 
 =head1 SYNOPSIS
 
-  mkproj defines.ini
-  mkproj -force defines.ini
+    mkproj defines.ini
+    mkproj -force defines.ini
 
 =head1 DESCRIPTION
 
@@ -109,38 +109,38 @@ provide general defaults that should apply to all projects
 in the file, with support indexed by country:
 
 
- [info]
- semester=02B
- telescope=JCMT
+    [info]
+    semester=02B
+    telescope=JCMT
 
- [support]
- UK=IMC
- CN=GMS
- INT=GMS
- UH=GMS
- NL=RPT
+    [support]
+    UK=IMC
+    CN=GMS
+    INT=GMS
+    UH=GMS
+    NL=RPT
 
 Individual projects are specified in the following sections, indexed
 by project ID. C<pi>, C<coi> and C<support> must be valid OMP User IDs
 (comma-separated).
 
- [m01bu32]
- tagpriority=1
- country=UK
- pi=HOLLANDW
- coi=GREAVESJ,ZUCKERMANB
- title=The Vega phenomenom around nearby stars
- allocation=24
- band=1
+    [m01bu32]
+    tagpriority=1
+    country=UK
+    pi=HOLLANDW
+    coi=GREAVESJ,ZUCKERMANB
+    title=The Vega phenomenom around nearby stars
+    allocation=24
+    band=1
 
- [m01bu44]
- tagpriority=2
- country=UK
- pi=RICHERJ
- coi=FULLERG,HATCHELLJ
- title=Completion of the SCUBA survey
- allocation=28
- band=1
+    [m01bu44]
+    tagpriority=2
+    country=UK
+    pi=RICHERJ
+    coi=FULLERG,HATCHELLJ
+    title=Completion of the SCUBA survey
+    allocation=28
+    band=1
 
 Allocations are in hours and "band" is the weather band. C<taurange>
 can be used directly (as a comma delimited range) if it is known.
@@ -164,9 +164,9 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
@@ -187,29 +187,30 @@ our $VERSION = '2.000';
 # Options
 my $do_country_check = 1;
 my $do_project_check = 1;
-my ($help, $man, $version,$force, $disable, $dry_run, %defaults );
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "force" => \$force,
-                        "disable" => \$disable,
-                        "dry-run" => \$dry_run,
-                        'no-cc|no-country-check' => sub {$do_country_check = 0;},
-                        'no-project-check' => sub {$do_project_check = 0;},
+my ($help, $man, $version, $force, $disable, $dry_run, %defaults);
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "force" => \$force,
+    "disable" => \$disable,
+    "dry-run" => \$dry_run,
+    'no-cc|no-country-check' => sub {$do_country_check = 0;},
+    'no-project-check' => sub {$do_project_check = 0;},
 
-                        "country=s"   => \$defaults{'country'},
-                        "priority=i"  => \$defaults{'tagpriority'},
-                        "semester=s"  => \$defaults{'semester'},
-                        "telescope=s" => \$defaults{'telescope'},
+    "country=s" => \$defaults{'country'},
+    "priority=i" => \$defaults{'tagpriority'},
+    "semester=s" => \$defaults{'semester'},
+    "telescope=s" => \$defaults{'telescope'},
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "mkproj - upload project details from file\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "mkproj - upload project details from file\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Read the file
@@ -218,50 +219,51 @@ my %alloc;
 my $fh = IO::File->new($file, 'r');
 die "Could not open file '$file'" unless defined $fh;
 $fh->binmode(':utf8');
-tie %alloc, 'Config::IniFiles', ( -file => $fh );
+tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
 
 my %ok_field;
-{ my @field =
-    ( 'allocation',
-      'band',
-      'cloud',
-      'coi',
-      'coi_affiliation',
-      'country',
-      'expiry',
-      'pi',
-      'pi_affiliation',
-      'seeing',
-      'semester',
-      'sky',
-      'support',
-      'tagadjustment',
-      'tagpriority',
-      'taurange',
-      'telescope',
-      'title',
+{
+    my @field = (
+        'allocation',
+        'band',
+        'cloud',
+        'coi',
+        'coi_affiliation',
+        'country',
+        'expiry',
+        'pi',
+        'pi_affiliation',
+        'seeing',
+        'semester',
+        'sky',
+        'support',
+        'tagadjustment',
+        'tagpriority',
+        'taurange',
+        'telescope',
+        'title',
     );
-  @ok_field{ @field } = ();
+    @ok_field{@field} = ();
 }
 
 # Get the defaults (if specified)
-%defaults = ( %defaults, %{ $alloc{info} } )
-  if $alloc{info};
+%defaults = (%defaults, %{$alloc{info}})
+    if $alloc{info};
 
 check_fields(\%defaults);
 
 # Get the support information
 my %support;
-%support = %{ $alloc{support} }
-  if $alloc{support};
+%support = %{$alloc{support}}
+    if $alloc{support};
 
 # oops
-if (!keys %alloc) {
-  for my $err (@Config::IniFiles::errors) {
-    print "! $err\n";
-  }
-  collect_err("Did not find any projects in input file")
+unless (keys %alloc) {
+    for my $err (@Config::IniFiles::errors) {
+        print "! $err\n";
+    }
+    collect_err("Did not find any projects in input file");
 }
 
 if (any_err()) {
@@ -274,183 +276,180 @@ unless ($dry_run) {
 }
 
 # Loop over each project and add it in
-for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
-  next if $proj eq 'support';
-  next if $proj eq 'info';
+for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
+    next if $proj eq 'support';
+    next if $proj eq 'info';
 
-  reset_err();
+    reset_err();
 
-  normalize_field_case( $alloc{$proj} );
-  normalize_coi( $alloc{$proj} );
-  check_fields( $alloc{$proj} );
+    normalize_field_case($alloc{$proj});
+    normalize_coi($alloc{$proj});
+    check_fields($alloc{$proj});
 
-  # Copy the data from the file and merge with the defaults
-  my %details = ( %defaults, %{ $alloc{$proj} });
+    # Copy the data from the file and merge with the defaults
+    my %details = (%defaults, %{$alloc{$proj}});
 
-  for my $key ( keys %details ) {
+    for my $key (keys %details) {
+        next unless defined $details{$key};
 
-    next unless defined $details{ $key };
+        $details{$key} =~ s/\s*#.*$//;
+    }
 
-    $details{ $key } =~ s/\s*#.*$//;
-  }
+    collect_err("No country code given")
+        unless exists $details{'country'}
+        and defined $details{'country'}
+        and length $details{'country'};
 
-  collect_err( "No country code given" )
-   unless exists $details{'country'}
-     and defined $details{'country'}
-     and length  $details{'country'}
-     ;
+    # Upper case country for lookup table
+    # and split on comma in case we have more than one
+    $details{country} = [split /,/, uc($details{country})];
 
-  # Upper case country for lookup table
-  # and split on comma in case we have more than one
-  $details{country} = [split /,/,uc($details{country}) ];
     #if exists $details{country};
 
-  upcase( \%details, qw/ pi coi support semester telescope / );
+    upcase(\%details, qw/pi coi support semester telescope/);
 
-  downcase(\%details, qw/pi_affiliation coi_affiliation/);
+    downcase(\%details, qw/pi_affiliation coi_affiliation/);
 
-  check_project($proj) if $do_project_check;
+    check_project($proj) if $do_project_check;
 
-  check_country($details{country}) if $do_country_check;
+    check_country($details{country}) if $do_country_check;
 
-  # TAG priority
-  my @tag;
-  @tag = split /,/, $details{tagpriority}
-    if exists $details{tagpriority};
+    # TAG priority
+    my @tag;
+    @tag = split /,/, $details{tagpriority}
+        if exists $details{tagpriority};
 
-  collect_err( "Number of TAG priorities is neither 1 nor number of countries [$proj]" )
-    unless ($#tag == 0 || $#tag == $#{$details{country}});
-  $details{tagpriority} = \@tag if scalar(@tag) > 1;
+    collect_err("Number of TAG priorities is neither 1 nor number of countries [$proj]")
+        unless ($#tag == 0 || $#tag == $#{$details{country}});
+    $details{tagpriority} = \@tag if scalar(@tag) > 1;
 
-  # TAG adjustment
-  my @tagadj;
-  if ($details{tagadjustment}) {
-    @tagadj = split /,/, $details{tagadjustment};
-    $details{tagadjustment} = \@tagadj if scalar(@tagadj) > 1;
-  }
-
-  # Deal with support issues
-  # but do not overrride one if it is already set
-  if ( !defined $details{support}
-        && exists $details{country}
-        && exists $details{country}->[0]
-      ) {
-    my $country = $details{country}->[0];
-    if (exists $support{$country}) {
-      $details{support} = $support{$country};
-    } else {
-      collect_err( "Can not find support for country " . $country );
+    # TAG adjustment
+    my @tagadj;
+    if ($details{tagadjustment}) {
+        @tagadj = split /,/, $details{tagadjustment};
+        $details{tagadjustment} = \@tagadj if scalar(@tagadj) > 1;
     }
-  }
 
-  collect_err( "Must supply a valid telescope." )
-    unless exists $details{telescope}
-        && verify_telescope( $details{telescope} );
-
-  # Now weather bands
-  my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
-  if (exists $details{taurange}) {
-    ($taumin, $taumax) = split_range( $details{taurange} );
-  } elsif (exists $details{band}) {
-    # Get the tau range from the weather bands if it exists
-    my @bands = split_range( $details{band} );
-    my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope},
-                                                       @bands);
-    collect_err( "Error determining tau range from band '$details{band}' !" )
-      unless defined $taurange;
-
-    ($taumin, $taumax) = $taurange->minmax;
-
-  }
-
-  # And seeing
-  my ($seemin, $seemax) = OMP::SiteQuality::default_range('SEEING');
-  if (exists $details{seeing}) {
-    ($seemin, $seemax) = split_range( $details{seeing} );
-  }
-
-  # cloud
-  my ($cloudmin, $cloudmax) = OMP::SiteQuality::default_range('CLOUD');
-  if (exists $details{cloud}) {
-    # if we have no comma, assume this is a cloudmax and "upgrade" it
-    if ($details{cloud} !~ /[-,]/) {
-      my $r = OMP::SiteQuality::upgrade_cloud( $details{cloud} );
-      ($cloudmin, $cloudmax) = $r->minmax;
-    } else {
-      ($cloudmin, $cloudmax) = split_range( $details{cloud} );
+    # Deal with support issues
+    # but do not overrride one if it is already set
+    if (! defined $details{support}
+            && exists $details{country}
+            && exists $details{country}->[0]) {
+        my $country = $details{country}->[0];
+        if (exists $support{$country}) {
+            $details{support} = $support{$country};
+        }
+        else {
+            collect_err("Can not find support for country " . $country);
+        }
     }
-  }
 
-  # And sky brightness
-  my ($skymin, $skymax) = OMP::SiteQuality::default_range('SKY');
-  if (exists $details{sky}) {
-    ($skymin, $skymax) = split_range( $details{sky} );
-  }
+    collect_err("Must supply a valid telescope.")
+        unless exists $details{telescope}
+        && verify_telescope($details{telescope});
 
-  # Now convert the allocation to seconds instead of hours
-  collect_err( "[project $proj] Allocation is mandatory!" )
-    unless defined $details{allocation};
+    # Now weather bands
+    my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
+    if (exists $details{taurange}) {
+        ($taumin, $taumax) = split_range($details{taurange});
+    }
+    elsif (exists $details{band}) {
+        # Get the tau range from the weather bands if it exists
+        my @bands = split_range($details{band});
+        my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope}, @bands);
+        collect_err("Error determining tau range from band '$details{band}' !")
+            unless defined $taurange;
 
-  # Set minimum of 1 s of time to avoid divide-by-zero problem elsewhere.
-  # Further, specifying (in configuration file) decimal result of 1/3600 is a
-  # pain.
-  $details{allocation} ||= 1/3600;
+        ($taumin, $taumax) = $taurange->minmax;
+    }
 
-  collect_err( "[project $proj] Allocation must be non-zero and positive!" )
-    unless $details{allocation} > 0;
+    # And seeing
+    my ($seemin, $seemax) = OMP::SiteQuality::default_range('SEEING');
+    if (exists $details{seeing}) {
+        ($seemin, $seemax) = split_range($details{seeing});
+    }
 
-  $details{allocation} *= 3600;
+    # cloud
+    my ($cloudmin, $cloudmax) = OMP::SiteQuality::default_range('CLOUD');
+    if (exists $details{cloud}) {
 
-  # User ids
-  if ( my @unknown = unverified_users( @details{qw/pi coi support/} ) ) {
+        # if we have no comma, assume this is a cloudmax and "upgrade" it
+        if ($details{cloud} !~ /[-,]/) {
+            my $r = OMP::SiteQuality::upgrade_cloud($details{cloud});
+            ($cloudmin, $cloudmax) = $r->minmax;
+        }
+        else {
+            ($cloudmin, $cloudmax) = split_range($details{cloud});
+        }
+    }
 
-    collect_err( 'Unverified user(s): ' . join ', ', @unknown );
-  }
+    # And sky brightness
+    my ($skymin, $skymax) = OMP::SiteQuality::default_range('SKY');
+    if (exists $details{sky}) {
+        ($skymin, $skymax) = split_range($details{sky});
+    }
 
-  print "\nAdding [$proj]\n";
+    # Now convert the allocation to seconds instead of hours
+    collect_err("[project $proj] Allocation is mandatory!")
+        unless defined $details{allocation};
 
-  if ( any_err() ) {
+    # Set minimum of 1 s of time to avoid divide-by-zero problem elsewhere.
+    # Further, specifying (in configuration file) decimal result of 1/3600 is a
+    # pain.
+    $details{allocation} ||= 1 / 3600;
 
-    print " skipped due to ... \n", get_err();
-    next;
-  }
+    collect_err("[project $proj] Allocation must be non-zero and positive!")
+        unless $details{allocation} > 0;
 
-  my @project_args = (
-    $proj,  # project id
-    $details{pi},
-    $details{coi},
-    $details{support},
-    $details{title},
-    $details{tagpriority},
-    $details{country},
-    $details{tagadjustment},
-    $details{semester},
-    $details{allocation},
-    $details{telescope},
-    $taumin, $taumax,
-    $seemin,$seemax,
-    $cloudmin, $cloudmax,
-    $skymin, $skymax,
-    ($disable ? 0 : 1),
-    $details{'pi_affiliation'},
-    $details{'coi_affiliation'},
-    $details{'expiry'},
-  );
+    $details{allocation} *= 3600;
 
-  # Stop here in dry-run mode.
-  if ($dry_run) {
-    print Dumper(\@project_args);
-    next;
-  }
+    # User ids
+    if (my @unknown = unverified_users(@details{qw/pi coi support/})) {
+        collect_err('Unverified user(s): ' . join ', ', @unknown);
+    }
 
-  # Now add the project
-  try {
-    OMP::ProjServer->addProject( $force, @project_args);
+    print "\nAdding [$proj]\n";
 
-  } catch OMP::Error::ProjectExists with {
-    print " - but the project already exists. Skipping.\n";
+    if (any_err()) {
+        print " skipped due to ... \n", get_err();
+        next;
+    }
 
-  };
+    my @project_args = (
+        $proj,  # project id
+        $details{pi},
+        $details{coi},
+        $details{support},
+        $details{title},
+        $details{tagpriority},
+        $details{country},
+        $details{tagadjustment},
+        $details{semester},
+        $details{allocation},
+        $details{telescope},
+        $taumin, $taumax,
+        $seemin, $seemax,
+        $cloudmin, $cloudmax,
+        $skymin, $skymax,
+        ($disable ? 0 : 1),
+        $details{'pi_affiliation'},
+        $details{'coi_affiliation'},
+        $details{'expiry'},
+    );
+
+    # Stop here in dry-run mode.
+    if ($dry_run) {
+        print Dumper(\@project_args);
+        next;
+    }
+
+    # Now add the project
+    try {
+        OMP::ProjServer->addProject($force, @project_args);
+    }
+    catch OMP::Error::ProjectExists with {
+        print " - but the project already exists. Skipping.\n";
+    };
 }
 
 # Given a a list of users (see "FORMAT" section of pod elsewhere) for a project,
@@ -461,34 +460,31 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 # user id verification is also done for all the user ids related to a project in
 # one go.
 sub unverified_users {
+    my (@list) = @_;
 
-  my ( @list ) = @_;
+    # For reference, see C<OMP::ProjServer->addProject()>.
+    my $id_sep = qr/[,:]+/;
 
-  # For reference, see C<OMP::ProjServer->addProject()>.
-  my $id_sep = qr/[,:]+/;
-
-  my @user;
-  for my $user ( map {  $_ ? split /$id_sep/, $_ : () } @list ) {
-
-    try {
-      push @user, $user
-        unless OMP::UserServer->verifyUser( $user );
+    my @user;
+    for my $user (map {$_ ? split /$id_sep/, $_ : ()} @list) {
+        try {
+            push @user, $user
+                unless OMP::UserServer->verifyUser($user);
+        }
+        catch OMP::Error with {
+            my $E = shift;
+            collect_err("Error while checking user id [$user]: $E");
+        }
     }
-    catch OMP::Error with {
 
-      my $E = shift;
-      collect_err( "Error while checking user id [$user]: $E" );
-    }
-  }
-  return sort { uc $a cmp uc $b } @user;
+    return sort {uc $a cmp uc $b} @user;
 }
 
 sub verify_telescope {
+    my ($tel) = @_;
 
-  my ( $tel ) = @_;
-
-  return defined $tel
-    && grep { uc $tel eq $_ } ( 'JCMT', 'UKIRT' );
+    return defined $tel
+        && grep {uc $tel eq $_} ('JCMT', 'UKIRT');
 }
 
 sub check_project {
@@ -507,141 +503,137 @@ sub check_project {
 }
 
 sub check_country {
+    my ($countries) = @_;
 
-  my ( $countries ) = @_;
+    my $projdb = OMP::ProjDB->new(DB => OMP::DBServer->dbConnection);
+    my %allowed = map {$_ => undef} $projdb->listCountries;
 
-  my $projdb  = OMP::ProjDB->new( DB => OMP::DBServer->dbConnection );
-  my %allowed = map { $_ => undef } $projdb->listCountries;
-  my $ok      = 1;
-  for my $c ( @{ $countries } ) {
-
-    unless ( exists $allowed{ $c } ) {
-
-      collect_err( "Unrecognized country code: $c" );
-      $ok = 0;
+    my $ok = 1;
+    for my $c (@{$countries}) {
+        unless (exists $allowed{$c}) {
+            collect_err("Unrecognized country code: $c");
+            $ok = 0;
+        }
     }
-  }
-  return $ok;
+
+    return $ok;
 }
 
 # Collect the errors for a project.
 {
-  my ( @err );
+    my (@err);
 
-  # To reset the error string list, say, while looping over a list of projects.
-  sub reset_err { undef @err ; return; }
+    # To reset the error string list, say, while looping over a list of projects.
+    sub reset_err {
+        undef @err;
+        return;
+    }
 
-  # Tell if any error strings have been saved yet.
-  sub any_err { return scalar @err; }
+    # Tell if any error strings have been saved yet.
+    sub any_err {
+        return scalar @err;
+    }
 
-  # Save errors.
-  sub collect_err { push @err, @_; return; }
+    # Save errors.
+    sub collect_err {
+        push @err, @_;
+        return;
+    }
 
-  # Returns a list of error strings with newlines at the end.  Optionally takes
-  # a truth value to disable addition of a newline.
-  sub get_err {
+    # Returns a list of error strings with newlines at the end.  Optionally takes
+    # a truth value to disable addition of a newline.
+    sub get_err {
+        my ($no_newline) = @_;
 
-    my ( $no_newline ) = @_;
+        return unless any_err();
 
-    return unless any_err() ;
-    return
-      map
-        {
-          my $nl =  $no_newline || $_ =~ m{\n\z}x ? '' : "\n";
-          sprintf " - %s$nl", $_ ;
-        }
-        @err ;
-  }
+        return map {
+            my $nl = $no_newline || $_ =~ m{\n\z}x ? '' : "\n";
+            sprintf " - %s$nl", $_;
+        } @err;
+    }
 }
 
 # Changes case of values (plain scalars or array references) to upper case in
 # place, given a hash reference and a list of interesting keys.
 sub upcase {
+    my ($hash, @key) = @_;
 
-  my ( $hash, @key ) = @_;
+    KEY: for my $k (@key) {
+        next unless exists $hash->{$k};
 
-  KEY:
-  for my $k ( @key ) {
+        for ($hash->{$k}) {
+            next KEY unless defined $_;
 
-    next unless exists $hash->{ $k };
-
-    for ( $hash->{ $k } ) {
-
-      next KEY unless defined $_;
-
-      # Only an array reference is expected.
-      $_ = ref $_ ? [ map { uc $_ } @{ $_ } ] : uc $_;
+            # Only an array reference is expected.
+            $_ = ref $_ ? [map {uc $_} @{$_}] : uc $_;
+        }
     }
-  }
-  return;
+
+    return;
 }
 
 sub downcase {
     my ($hash, @keys) = @_;
+
     foreach my $key (@keys) {
         $hash->{$key} = lc $hash->{$key} if exists $hash->{$key};
     }
 }
 
 sub split_range {
+    my ($in) = @_;
 
-  my ( $in ) = @_;
+    return
+        unless defined $in
+        && length $in;
 
-  return
-    unless defined $in
-    && length $in;
-
-  return split /[-,]/, $in;
+    return split /[-,]/, $in;
 }
 
 # Change field name to lower case.
 sub normalize_field_case {
+    my ($details) = @_;
 
-  my ( $details ) = @_;
+    for my $key (keys %{$details}) {
+        $key eq lc $key and next;
 
-  for my $key ( keys %{ $details } ) {
+        $details->{lc $key} = delete $details->{$key};
+    }
 
-    $key eq lc $key and next;
-
-    $details->{ lc $key } = delete $details->{ $key };
-  }
-  return;
+    return;
 }
 
 # Convert all variations on 'coi' to 'coi'.
 sub normalize_coi {
+    my ($details) = @_;
 
-  my ( $details ) = @_;
+    for my $alt ('cois', 'co-i', 'co-is') {
+        next unless exists $details->{$alt};
 
-  for my $alt ( 'cois', 'co-i', 'co-is' ) {
+        $details->{'coi'} = join ',',
+            (exists $details->{'coi'} ? $details->{'coi'} : ()),
+            delete $details->{$alt};
+    }
 
-    exists $details->{ $alt } or next;
-
-    $details->{'coi'} =
-      join ',',
-        ( exists $details->{'coi'} ? $details->{'coi'} : () ),
-        delete $details->{ $alt };
-  }
-
-  return;
+    return;
 }
 
 # Check for unknown, possibly misspelled, fields.
 sub check_fields {
+    my ($details) = @_;
 
-  my ( $details ) = @_;
+    my @unknown;
+    for my $field (sort {lc $a cmp lc $b} keys %{$details}) {
+        push @unknown, $field
+            unless exists $ok_field{lc $field};
+    }
 
-  my @unknown;
-  for my $field ( sort { lc $a cmp lc $b } keys %{ $details } ) {
+    return 1 unless scalar @unknown;
 
-    exists $ok_field{ lc $field }
-      or push @unknown, $field;
-  }
+    collect_err(sprintf 'Unknown field(s) listed: %s.', join ', ', @unknown);
 
-  scalar @unknown or return 1;
-
-  collect_err( sprintf q[Unknown field(s) listed: %s.], join ', ', @unknown );
-  return;
+    return;
 }
 
 __END__

@@ -53,9 +53,9 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::ProjDB;
 use OMP::Project;
@@ -69,53 +69,52 @@ my $force = 0;
 OMP::Password->get_verified_auth('staff');
 
 while (<>) {
-  chomp;
-  my $line = $_;
-  next unless $line =~ /\w/;
-  next if $line =~ /^#/;
+    chomp;
+    my $line = $_;
+    next unless $line =~ /\w/;
+    next if $line =~ /^#/;
 
-  # split on comma
-  my @file  = split(/,/,$line,3);
+    # split on comma
+    my @file = split /,/, $line, 3;
 
-  my $tel = $file[2];
-  $tel = "????" unless $tel;
+    my $tel = $file[2];
+    $tel = "????" unless $tel;
 
+    # Now need to create some project details:
+    my @details = (
+        "$file[0]??",
+        $file[1],
+        '',
+        $file[1],
+        "Support scientist testing",
+        1,
+        ["EAO"],
+        0,
+        "EAO",
+        10000,
+        $tel,
+        undef, undef,
+        undef, undef,
+        undef, undef,
+        undef, undef,
+        1,
+        undef, undef,
+        undef,
+    );
 
-  # Now need to create some project details:
-  my @details = ("$file[0]??",
-                 $file[1],
-                 '',
-                 $file[1],
-                 "Support scientist testing",
-                 1,
-                 ["EAO"],
-                 0,
-                 "EAO",
-                 10000,
-                 $tel,
-                 undef, undef,
-                 undef, undef,
-                 undef, undef,
-                 undef, undef,
-                 1,
-                 undef, undef,
-                 undef,
-                );
+    print join('--', @details), "\n";
 
-  print join("--",@details),"\n";
+    # Now loop over 9 project ids
+    for my $i (1 .. 10) {
+        # Calculate the project ID
+        $details[0] = $file[0] . sprintf('%02d', $i);
 
-  # Now loop over 9 project ids
-  for my $i (1..10) {
-    # Calculate the project ID
-    $details[0] = $file[0] . sprintf("%02d", $i);
+        # Insert telescope
+        unless ($file[2]) {
+            $details[11] = ($i <= 5 ? 'UKIRT' : 'JCMT');
+        }
 
-    # Insert telescope
-    if (!$file[2]) {
-      $details[11] = ( $i <= 5 ? "UKIRT" : "JCMT" );
+        # Upload
+        OMP::ProjServer->addProject($force, @details);
     }
-
-    # Upload
-    OMP::ProjServer->addProject( $force, @details );
-  }
-
 }

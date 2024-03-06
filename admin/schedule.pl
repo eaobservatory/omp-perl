@@ -39,8 +39,8 @@ use File::Spec;
 use FindBin;
 
 BEGIN {
-  use constant OMPLIB => "$FindBin::RealBin/../lib";
-  use lib OMPLIB;
+    use constant OMPLIB => "$FindBin::RealBin/../lib";
+    use lib OMPLIB;
 }
 
 use OMP::General;
@@ -72,7 +72,7 @@ unless (defined $semester) {
 my ($start, $end) = OMP::DateTools->semester_boundary(
     tel => $tel, semester => $semester);
 
-my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+my $db = OMP::SchedDB->new(DB => OMP::DBbackend->new());
 my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
 
 print $sched, "\n";
