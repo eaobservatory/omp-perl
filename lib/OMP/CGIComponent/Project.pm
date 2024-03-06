@@ -55,7 +55,7 @@ sub list_projects_form {
   my $q = $self->cgi;
   my $telescope = $opt{'telescope'};
 
-  my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
+  my $db = OMP::ProjDB->new(DB => $self->database);
 
   # get the current semester for the default telescope case
   # so it can be defaulted in addition to the list of all semesters

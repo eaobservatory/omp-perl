@@ -162,7 +162,7 @@ sub get_shift_comments {
   my $query = new OMP::ShiftQuery( XML => $xml );
 
   # Grab the results.
-  my $sdb = new OMP::ShiftDB( DB => new OMP::DBbackend );
+  my $sdb = OMP::ShiftDB->new(DB => $self->database);
   my @result = $sdb->getShiftLogs( $query );
 
   # At this point we have an array of relevant Info::Comment objects,
@@ -216,7 +216,7 @@ sub submit_comment {
                                       );
 
 # Store the comment in the database.
-  my $sdb = new OMP::ShiftDB( DB => new OMP::DBbackend );
+  my $sdb = OMP::ShiftDB->new(DB => $self->database);
   $sdb->enterShiftLog( $comment, $telescope );
 }
 

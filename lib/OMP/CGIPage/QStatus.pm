@@ -14,7 +14,6 @@ use CGI::Carp qw/fatalsToBrowser/;
 use List::MoreUtils qw/uniq/;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::DBbackend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
@@ -183,7 +182,7 @@ sub _show_input_page {
 
     my $q = $self->cgi;
 
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
+    my $db = OMP::ProjDB->new(DB => $self->database);
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
     push @semesters, $semester unless grep {$_ eq $semester} @semesters;

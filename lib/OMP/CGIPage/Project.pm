@@ -26,7 +26,6 @@ use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb);
 use OMP::Config;
-use OMP::DBbackend;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FBServer;
@@ -68,7 +67,7 @@ sub fb_fault_content {
   # Get a fault component object
   my $faultcomp = new OMP::CGIComponent::Fault(page => $self);
 
-  my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
+  my $faultdb = OMP::FaultDB->new(DB => $self->database);
   my @faults = $faultdb->getAssociations(lc($projectid),0);
 
   # Display the first fault if a fault isnt specified in the URL
@@ -246,7 +245,7 @@ sub project_home {
 
   # Since time may have been charged to the project even though no MSBs
   # were observed, check with the accounting DB as well
-  my $adb = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
+  my $adb = OMP::TimeAcctDB->new(DB => $self->database);
 
   # Because of shifttypes, there may be more than one shift per night.
   my @accounts = $adb->getTimeSpent( projectid => $project->projectid );
@@ -334,9 +333,9 @@ sub program_summary {
     my $sp = undef;
     my $error = undef;
     try {
-        my $db = new OMP::MSBDB(
+        my $db = OMP::MSBDB->new(
             ProjectID => $projectid,
-            DB => new OMP::DBbackend);
+            DB => $self->database);
         $sp = $db->fetchSciProg(1);
     } catch OMP::Error::UnknownProject with {
         $error = "Science program for $projectid not present in the database.";
@@ -484,8 +483,8 @@ sub project_users {
 
     # Store user contactable info to database (have to actually store
     # entire project back to database)
-    my $db = new OMP::ProjDB( ProjectID => $projectid,
-                              DB => new OMP::DBbackend, );
+    my $db = OMP::ProjDB->new( ProjectID => $projectid,
+                               DB => $self->database );
 
     my $error = undef;
     try {
@@ -541,8 +540,8 @@ sub support {
     contacts => undef,
   } unless defined $projectid;
 
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => new OMP::DBbackend, );
+  my $projdb = OMP::ProjDB->new( ProjectID => $projectid,
+                                 DB => $self->database );
 
   # Verify that project exists
   my $verify = $projdb->verifyProject;
@@ -653,8 +652,8 @@ sub alter_proj {
   } unless defined $projectid;
 
   # Connect to the database
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => new OMP::DBbackend );
+  my $projdb = OMP::ProjDB->new( ProjectID => $projectid,
+                                 DB => $self->database );
 
   # Verify that project exists
   my $verify = $projdb->verifyProject;
@@ -1050,7 +1049,7 @@ sub translate_msb {
     try {
         my $db = OMP::MSBDB->new(
             ProjectID => $projectid,
-            DB => OMP::DBbackend->new());
+            DB => $self->database);
 
         my $msb = $db->fetchMSB(checksum => $checksum, internal => 1);
 

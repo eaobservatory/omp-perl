@@ -106,6 +106,22 @@ sub cgi {
   return $page->cgi();
 }
 
+=item B<database>
+
+Obtain the parent CGIPage's database backend object.
+
+=cut
+
+sub database {
+    my $self = shift;
+
+    my $page = $self->page();
+    throw OMP::Error::BadArgs('OMP::CGIComponent has no parent OMP::CGIPage')
+        unless defined $page;
+
+    return $page->database();
+}
+
 =item B<auth>
 
 Obtain the parent CGIPage's authentication object.

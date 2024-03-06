@@ -40,12 +40,13 @@ BEGIN {
 use OMP::Auth;
 use OMP::Config;
 use OMP::DBbackend;
+use OMP::DBbackend::Archive;
+use OMP::DBbackend::Hedwig2OMP;
 use OMP::ProjDB;
 use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::General;
-use OMP::FaultServer;
 use OMP::NetTools;
 use OMP::Password;
 use OMP::UserServer;
@@ -79,6 +80,9 @@ sub new {
            Title => 'OMP System',
            Auth => undef,
            SideBar => [],
+           DB => undef,
+           DBArchive => undef,
+           DBHedwig2OMP => undef,
           };
 
   # create the object (else we cant use accessor methods)
@@ -158,6 +162,68 @@ sub auth {
   return $self->{Auth};
 }
 
+=item B<database>
+
+A database backend object.
+
+    $db = $page->database;
+
+This will be an C<OMP::DBbackend> instance, constructed the first
+time this method is called.
+
+=cut
+
+sub database {
+    my $self = shift;
+
+    unless (defined $self->{'DB'}) {
+        $self->{'DB'} = OMP::DBbackend->new();
+    }
+
+    return $self->{'DB'};
+}
+
+=item B<database_archive>
+
+A database backend object for the archive.
+
+    $db = $page->database_archive;
+
+This will be an C<OMP::DBbackend::Archive> instance, constructed the first
+time this method is called.
+
+=cut
+
+sub database_archive {
+    my $self = shift;
+
+    unless (defined $self->{'DBArchive'}) {
+        $self->{'DBArchive'} = OMP::DBbackend::Archive->new();
+    }
+
+    return $self->{'DBArchive'};
+}
+
+=item B<database_hedwig2omp>
+
+A backend object for the Hedwig2OMP database.
+
+    $db = $page->database_hedwig2omp;
+
+This will be an C<OMP::DBbackend::Hedwig2OMP> instance, constructed the first
+time this method is called.
+
+=cut
+
+sub database_hedwig2omp {
+    my $self = shift;
+
+    unless (defined $self->{'DBHedwig2OMP'}) {
+        $self->{'DBHedwig2OMP'} = OMP::DBbackend::Hedwig2OMP->new();
+    }
+
+    return $self->{'DBHedwig2OMP'};
+}
 =item B<side_bar>
 
 Add a section to the side bar:
@@ -636,7 +702,7 @@ sub _sidebar_project {
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
-  my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
+  my $faultdb = OMP::FaultDB->new(DB => $self->database);
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
 
   $self->side_bar("Project $projectid", [

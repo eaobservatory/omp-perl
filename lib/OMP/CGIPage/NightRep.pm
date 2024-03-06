@@ -47,8 +47,6 @@ use OMP::PreviewQuery;
 use OMP::ProjServer;
 use OMP::BaseDB;
 use OMP::ArchiveDB;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
 use OMP::Error qw/ :try /;
 
 use base qw/OMP::CGIPage/;
@@ -234,7 +232,7 @@ sub night_report {
       unless $nr;
 
   if (1 == $nr->delta_day) {
-    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $pdb = OMP::PreviewDB->new(DB => $self->database);
     $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
         telescope => $tel,
         date => {value => $utdate->ymd(), delta => 1},
@@ -387,7 +385,7 @@ sub projlog_content {
                                       inccal => 1,);
 
     if ($grp->numobs > 0) {
-      my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+      my $pdb = OMP::PreviewDB->new(DB => $self->database);
       $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
           telescope => $telescope,
           date => {value => $utdate, delta => 1},
@@ -486,7 +484,7 @@ sub obslog_search {
                 @$xml,
                 '</ObsQuery>');
 
-            my $odb = new OMP::ObslogDB(DB => new OMP::DBbackend);
+            my $odb = OMP::ObslogDB->new(DB => $self->database);
             $result = $search->sort_search_results(
                 \%values, 'startobs',
                 [map {

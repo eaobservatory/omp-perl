@@ -23,7 +23,6 @@ use Net::Domain qw/ hostfqdn /;
 
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
-use OMP::DBbackend;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::MSBDoneDB;
@@ -215,7 +214,7 @@ sub obs_add_comment {
                                       );
 
   # Store the comment in the database.
-  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  my $odb = OMP::ObslogDB->new(DB => $self->database);
   $odb->addComment( $comment, $obs );
 
   return {
@@ -532,7 +531,7 @@ sub store_time_accounting {
     }
 
     unless (scalar @errors) {
-        my $db = OMP::TimeAcctDB->new(DB => OMP::DBbackend->new);
+        my $db = OMP::TimeAcctDB->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
         $nr->db_accounts(OMP::TimeAcctGroup->new(accounts => \@acct));
@@ -614,7 +613,7 @@ sub cgi_to_obs {
   }
 
   # Comment-ise the Info::Obs object.
-  my $db = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  my $db = OMP::ObslogDB->new(DB => $self->database);
   $db->updateObsComment([$obs]);
 
   # And return the Info::Obs object.

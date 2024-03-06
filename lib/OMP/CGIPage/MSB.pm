@@ -181,7 +181,7 @@ sub observed {
   my $q = $self->cgi;
   my $comp = new OMP::CGIComponent::MSB(page => $self);
 
-  my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
+  my $projdb = OMP::ProjDB->new(DB => $self->database);
 
   my $telescope = $self->decoded_url_param('telescope'),
   my $utdate = $self->decoded_url_param('utdate');

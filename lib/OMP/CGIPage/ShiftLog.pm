@@ -25,7 +25,6 @@ use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
-use OMP::DBbackend;
 use OMP::Error qw/:try/;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
@@ -130,7 +129,7 @@ sub shiftlog_search {
                 @$xml,
                 '</ShiftQuery>');
 
-            my $sdb = new OMP::ShiftDB(DB => new OMP::DBbackend);
+            my $sdb = OMP::ShiftDB->new(DB => $self->database);
             $result = $search->sort_search_results(
                 \%values, 'date',
                 scalar $sdb->getShiftLogs($query));

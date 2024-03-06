@@ -82,9 +82,9 @@ sub view_region {
   my $sp = undef;
   my $error = undef;
   try {
-    my $db = new OMP::MSBDB(
+    my $db = OMP::MSBDB->new(
         ProjectID => $projectid,
-        DB => new OMP::DBbackend);
+        DB => $self->database);
     $sp = $db->fetchSciProg(1);
   } catch OMP::Error::UnknownProject with {
     $error = "Science program for $projectid not present in the database.";

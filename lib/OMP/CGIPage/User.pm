@@ -21,8 +21,6 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Config;
-use OMP::DBbackend;
-use OMP::DBbackend::Hedwig2OMP;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FaultQuery;
@@ -72,15 +70,14 @@ sub details {
   return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
     unless $user;
 
-  my $hedwig2omp = new OMP::DBbackend::Hedwig2OMP();
-  my @hedwigids = map {$_->[0]} @{$hedwig2omp->handle()->selectall_arrayref(
+  my @hedwigids = map {$_->[0]} @{$self->database_hedwig2omp->handle->selectall_arrayref(
     'SELECT hedwig_id FROM user WHERE omp_id = ?', {}, $user->userid)};
 
   # Get projects user belongs to
   my @projects;
   my @support;
   try {
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend);
+    my $db = OMP::ProjDB->new(DB => $self->database);
 
     my $xml = "<ProjQuery>".
       "<person>".$user->userid."</person>".
