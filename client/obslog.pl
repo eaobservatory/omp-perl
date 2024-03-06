@@ -315,13 +315,6 @@ sub create_main_window {
         -borderwidth => 2,
     );
 
-    # $buttonExit is the button that exits the program.
-    my $buttonExit = $buttonbarFrame->Button(
-        -text => 'EXIT',
-        -command => 'exit',
-        -font => $opt{'font-var'},
-    );
-
     # $buttonRescan is the button that rescans for new observations and comments.
     my $buttonRescan = $buttonbarFrame->Button(
         -text => 'Rescan',
@@ -406,7 +399,6 @@ sub create_main_window {
         -expand => 1,
     );
 
-    $buttonExit->pack(-side => 'left');
     $buttonRescan->pack(-side => 'left');
     $buttonDumpText->pack(-side => 'left');
 
