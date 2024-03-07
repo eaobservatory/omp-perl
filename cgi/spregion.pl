@@ -8,7 +8,7 @@ BEGIN {
     # PGPLOT needs to find its font file.
     $ENV{PGPLOT_DIR} = "/star/bin";
 
-    my $retval = do "./omp-cgi-init.pl";
+    my $retval = do './omp-cgi-init.pl';
     unless ($retval) {
         warn "couldn't parse omp-cgi-init.pl: $@" if $@;
         warn "couldn't do omp-cgi-init.pl: $!" unless defined $retval;

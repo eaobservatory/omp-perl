@@ -6,11 +6,11 @@ msbsrv - MSB Server
 
 =head1 SYNOPSIS
 
-  my $msb = new SOAP::Lite( uri => 'https://www.eao.hawaii.edu/OMP::MSBServer',
-                           proxy => 'https://www.whereever.edu/cgi-bin/msbsrv.pl'
-                          );
+    my $msb = SOAP::Lite->new(
+        uri => 'https://www.eao.hawaii.edu/OMP::MSBServer',
+        proxy => 'https://www.whereever.edu/cgi-bin/msbsrv.pl');
 
-  $sp->storeProgram( $xml, $password );
+    $sp->storeProgram($xml, $password);
 
 =head1 DESCRIPTION
 
@@ -26,23 +26,23 @@ use strict;
 # Standard initialisation (not much shorter than the previous
 # code but no longer has the module path hard-coded)
 BEGIN {
-  my $retval = do "./omp-srv-init.pl";
-  unless ($retval) {
-    warn "couldn't parse omp-srv-init.pl: $@" if $@;
-    warn "couldn't do omp-srv-init.pl: $!"    unless defined $retval;
-    warn "couldn't run omp-srv-init.pl"       unless $retval;
-    exit;
-  }
+    my $retval = do './omp-srv-init.pl';
+    unless ($retval) {
+        warn "couldn't parse omp-srv-init.pl: $@" if $@;
+        warn "couldn't do omp-srv-init.pl: $!" unless defined $retval;
+        warn "couldn't run omp-srv-init.pl" unless $retval;
+        exit;
+    }
 }
 
 use OMP::MSBServer;
 
 use SOAP::Transport::HTTP;
 
-SOAP::Transport::HTTP::CGI->dispatch_to("OMP::MSBServer")
-  ->options({compress_threshold=>500})
-  ->handle;
+SOAP::Transport::HTTP::CGI->dispatch_to('OMP::MSBServer')
+    ->options({compress_threshold => 500})->handle;
 
+__END__
 
 =head1 INSTALLATION
 
@@ -74,4 +74,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-

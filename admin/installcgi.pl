@@ -173,10 +173,10 @@ for my $subdir (@srcdirs) {
                     }
                     while (defined(my $line = <$in>)) {
                         if ($initpath) {
-                            $line =~ s/(\$retval = do ")\.(\/omp-(?:cgi|srv)-init.pl";)/$1$initpath$2/;
+                            $line =~ s/(\$retval = do ')\.(\/omp-(?:cgi|srv)-init.pl';)/$1$initpath$2/;
                         }
                         if ($omplib) {
-                            $line =~ s/(use constant OMPLIB => ")[-_a-zA-Z0-9\/]*(";)/$1$omplib$2/;
+                            $line =~ s/(use constant OMPLIB => ')[-_a-zA-Z0-9\/]*(';)/$1$omplib$2/;
                         }
                         print $out $line;
                     }
