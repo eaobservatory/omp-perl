@@ -39,8 +39,13 @@ use OMP::MSBServer;
 
 use SOAP::Transport::HTTP;
 
-SOAP::Transport::HTTP::CGI->dispatch_to('OMP::MSBServer')
-    ->options({compress_threshold => 500})->handle;
+SOAP::Transport::HTTP::CGI->dispatch_to(qw/
+    OMP::MSBServer::doneMSB
+    OMP::MSBServer::fetchCalProgram
+    OMP::MSBServer::fetchMSB
+    OMP::MSBServer::getTypeColumns
+    OMP::MSBServer::queryMSB
+/)->options({compress_threshold => 500})->handle;
 
 __END__
 

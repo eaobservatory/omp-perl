@@ -83,6 +83,8 @@ The following values can be used to specify different return types:
 I<GZIP>, I<AUTO>, I<XML> (default).
 See also I<_find_return_type> function.
 
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
+
 =cut
 
 sub fetchMSB {
@@ -169,6 +171,8 @@ These are not exported and are defined in the OMP::SpServer namespace.
 
 Note that for cases XML and GZIP, these will be Base64 encoded if returned
 via a SOAP request.
+
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
 
 =cut
 
@@ -288,6 +292,8 @@ tables in the database.
 
 Throws an exception on error.
 
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
+
 =cut
 
 sub queryMSB {
@@ -392,6 +398,9 @@ This is a standard shift name.
 An MSB title can also be specified
   OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid, $shifttype,
     $msbtitle );
+
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
+
 =cut
 
 sub doneMSB {
@@ -1374,6 +1383,8 @@ argument.
   $coltypes = OMP::MSBServer->getTypeColumns( $tel );
 
 Returns an array (as a reference).
+
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
 
 =cut
 
