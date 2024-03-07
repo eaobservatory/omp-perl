@@ -25,10 +25,6 @@ use lib OMPLIB;
 
 use OMP::NightRep;
 
-
-use lib '/home/agarwal/comp/perl5/lib';
-use Anubhav::Debug qw/epl eph errt/;
-
 my $ROOT = '/export/data/obslog-dump';
 my %OK_TEL = (
     'jcmt' => undef,
