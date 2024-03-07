@@ -1416,19 +1416,6 @@ sub getTypeColumns {
 
 }
 
-=item B<testServer>
-
-Test the server is actually handling requests.
-
-Run with no arguments. Returns 1 if working.
-
-=cut
-
-sub testServer {
-  my $class = shift;
-  return 1;
-}
-
 =item B<_convert_sciprog>
 
 Returns a list of converted string and compression indicating flag,
