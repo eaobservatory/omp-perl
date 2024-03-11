@@ -37,7 +37,6 @@ use Carp;
 use OMP::Error;
 use OMP::Range;
 
-use vars qw/%DBRANGES %OMPRANGES %CLOUDTERMS/;
 our $VERSION = '2.000';
 
 =head1 CONSTANTS
@@ -99,7 +98,7 @@ use constant OMP__SEEING_INF => 5000;
 # These are the infinite ranges from the viewpoint of the database
 # if these suddenly become floating point numbers the from_db
 # routine needs to be made cleverer.
-%DBRANGES = (
+our %DBRANGES = (
     TAU => [0, OMP__TAU_INF],
     SEEING => [0, OMP__SEEING_INF],
     SKY => [-1 * OMP__SKYBRIGHT_INF, OMP__SKYBRIGHT_INF],
@@ -108,7 +107,7 @@ use constant OMP__SEEING_INF => 5000;
 );
 
 # these are the default min/max ranges from the viewpoint of the user
-%OMPRANGES = (
+our %OMPRANGES = (
     TAU => [0, undef],
     SEEING => [0, undef],
     SKY => [undef, undef],
@@ -117,7 +116,7 @@ use constant OMP__SEEING_INF => 5000;
 );
 
 # These are the textual descriptions of the common cloud ranges
-%CLOUDTERMS = (
+our %CLOUDTERMS = (
     Photometric => [0, 0],
     Cirrus => [1, OMP__CLOUD_CIRRUS_MAX],
     Thick => [OMP__CLOUD_CIRRUS_MAX + 1, 100],

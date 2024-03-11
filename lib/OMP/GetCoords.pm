@@ -34,12 +34,11 @@ use OMP::MSB;
 use OMP::MSBDB;
 use OMP::Error qw/:try/;
 
-use vars qw/$VERSION @ISA @EXPORT_OK/;
-$VERSION = '1.1';
+our $VERSION = '1.1';
 
 use Exporter;
-@ISA = qw/Exporter/;
-@EXPORT_OK = qw/get_coords/;
+our @ISA = qw/Exporter/;
+our @EXPORT_OK = qw/get_coords/;
 
 =head1 FUNCTIONS
 

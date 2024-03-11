@@ -20,12 +20,11 @@ to return an OMP__ABORT or OMP__FATAL status using OMP::Error.
 use strict;
 use warnings;
 
-use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 our $VERSION = '2.000';
 
 require Exporter;
 
-@ISA = qw/Exporter/;
+our @ISA = qw/Exporter/;
 
 my @status = qw/
     OMP__OK
@@ -83,7 +82,7 @@ my @fr = qw/
     OMP__FR_HIDDEN
 /;
 
-@EXPORT_OK = (
+our @EXPORT_OK = (
     @status,
     @fb,
     @done,
@@ -94,7 +93,7 @@ my @fr = qw/
     @fr,
 );
 
-%EXPORT_TAGS = (
+our %EXPORT_TAGS = (
     'all' => [@EXPORT_OK],
     'status' => \@status,
     'fb' => \@fb,

@@ -44,8 +44,7 @@ use Config::IniFiles;
 use Data::Dumper;
 use Time::Seconds;
 
-use vars qw/$DEBUG/;
-$DEBUG = 0;
+our $DEBUG = 0;
 
 # just in case we need to know where we are
 use FindBin;

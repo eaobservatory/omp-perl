@@ -61,10 +61,8 @@ $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Indent = 1;
 $Data::Dumper::Deepcopy = 1;
 
-
-use vars qw/$VERSION $DEBUG/;
-$VERSION = 0.02;
-$DEBUG = 0;
+our $VERSION = 0.02;
+our $DEBUG = 0;
 
 =head1 METHODS
 

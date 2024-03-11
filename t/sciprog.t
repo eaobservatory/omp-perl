@@ -31,7 +31,7 @@ require_ok('OMP::SciProg');
 # is modified by dumping a new data structure.
 
 # Read the data hash
-use vars qw/$VAR1/;
+our $VAR1;
 $/ = undef;
 my $text = <DATA>;
 eval "$text";

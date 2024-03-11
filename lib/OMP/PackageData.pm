@@ -35,12 +35,11 @@ use strict;
 use warnings;
 use Carp;
 
-use vars qw/$VERSION $UseArchiveTar/;
-$VERSION = '0.02';
+our $VERSION = '0.02';
 
 # Do we want to ues the slower Archive::Tar (but which does not have
 # taint issues)
-$UseArchiveTar = 0;
+our $UseArchiveTar = 0;
 
 use File::Spec;
 use File::Copy;

@@ -406,8 +406,7 @@ package OMP::Info::Test;
 
 use warnings;
 use strict;
-use vars qw/@ISA/;
-@ISA = qw/OMP::Info::Base/;
+our @ISA = qw/OMP::Info::Base/;
 
 __PACKAGE__->CreateAccessors(
     scalar => '$',

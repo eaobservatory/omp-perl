@@ -44,10 +44,11 @@ use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
 
-use vars qw/
-    $FallbackToFiles $SkipDBLookup $AnyDate
-    $QueryCache $MakeCache
-/;
+our $FallbackToFiles;
+our $SkipDBLookup;
+our $AnyDate;
+our $QueryCache;
+our $MakeCache;
 
 use Scalar::Util qw/blessed/;
 use Data::Dumper;

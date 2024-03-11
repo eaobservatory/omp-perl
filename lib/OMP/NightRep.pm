@@ -59,8 +59,7 @@ use OMP::Display;
 use OMP::User;
 
 # This is the key used to specify warnings in result hashes
-use vars qw/$WARNKEY/;
-$WARNKEY = '__WARNINGS__';
+our $WARNKEY = '__WARNINGS__';
 
 =head1 METHODS
 
