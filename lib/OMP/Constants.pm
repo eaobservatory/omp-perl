@@ -6,9 +6,9 @@ OMP::Constants - Constants available to the OMP system
 
 =head1 SYNOPSIS
 
-  use OMP::Constants;
-  use OMP::Constants qw/OMP__OK/;
-  use OMP::Constants qw/:status/;
+    use OMP::Constants;
+    use OMP::Constants qw/OMP__OK/;
+    use OMP::Constants qw/:status/;
 
 =head1 DESCRIPTION
 
@@ -20,39 +20,60 @@ to return an OMP__ABORT or OMP__FATAL status using OMP::Error.
 use strict;
 use warnings;
 
-use vars qw/ @ISA %EXPORT_TAGS @EXPORT_OK/;
+use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 our $VERSION = '2.000';
 
 require Exporter;
 
 @ISA = qw/Exporter/;
 
-my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
-my @fb = qw/ OMP__FB_INFO OMP__FB_IMPORTANT
-             OMP__FB_HIDDEN OMP__FB_DELETE
-             OMP__FB_SUPPORT OMP__FB_MSG_SP_SUBMITTED
-             OMP__FB_MSG_SP_RETRIEVED OMP__FB_MSG_COMMENT
-             OMP__FB_MSG_DATA_OBTAINED OMP__FB_MSG_DATA_REQUESTED
-             OMP__FB_MSG_MSB_OBSERVED OMP__FB_MSG_MSB_SUMMARY
-             OMP__FB_MSG_PASSWD_ISSUED OMP__FB_MSG_TIME_ADJUST_CONFIRM
-             OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
-             OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
-             OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
-             OMP__FB_MSG_PROJECT_ENABLED OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT
-             /;
-my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_REMOVED
-  OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
-  OMP__DONE_REJECTED OMP__DONE_SUSPENDED OMP__DONE_UNREMOVED /;
-my @msb = qw/ OMP__MSB_REMOVED /;
-my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
-            OMP__OBS_REJECTED OMP__OBS_JUNK /;
-my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
-                  OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
-                  OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
-                  OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
-                  OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS /;
-my @logging = qw/ OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
-                  OMP__LOG_INFO OMP__LOG_DEBUG /;
+my @status = qw/
+    OMP__OK
+    OMP__ERROR
+    OMP__FATAL
+/;
+
+my @fb = qw/
+    OMP__FB_INFO OMP__FB_IMPORTANT
+    OMP__FB_HIDDEN OMP__FB_DELETE
+    OMP__FB_SUPPORT OMP__FB_MSG_SP_SUBMITTED
+    OMP__FB_MSG_SP_RETRIEVED OMP__FB_MSG_COMMENT
+    OMP__FB_MSG_DATA_OBTAINED OMP__FB_MSG_DATA_REQUESTED
+    OMP__FB_MSG_MSB_OBSERVED OMP__FB_MSG_MSB_SUMMARY
+    OMP__FB_MSG_PASSWD_ISSUED OMP__FB_MSG_TIME_ADJUST_CONFIRM
+    OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
+    OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
+    OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
+    OMP__FB_MSG_PROJECT_ENABLED OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT
+/;
+
+my @done = qw/
+    OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_REMOVED
+    OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
+    OMP__DONE_REJECTED OMP__DONE_SUSPENDED OMP__DONE_UNREMOVED
+/;
+
+my @msb = qw/
+    OMP__MSB_REMOVED
+/;
+
+my @obs = qw/
+    OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
+    OMP__OBS_REJECTED OMP__OBS_JUNK
+/;
+
+my @timegap = qw/
+    OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
+    OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
+    OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
+    OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
+    OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS
+/;
+
+my @logging = qw/
+    OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
+    OMP__LOG_INFO OMP__LOG_DEBUG
+/;
 
 my @fr = qw/
     OMP__FR_NORMAL
@@ -62,21 +83,30 @@ my @fr = qw/
     OMP__FR_HIDDEN
 /;
 
-@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap, @logging, @fr);
+@EXPORT_OK = (
+    @status,
+    @fb,
+    @done,
+    @msb,
+    @obs,
+    @timegap,
+    @logging,
+    @fr,
+);
 
 %EXPORT_TAGS = (
-                'all' =>[ @EXPORT_OK ],
-                'status'=>\@status,
-                'fb' =>\@fb,
-                'msb' => \@msb,
-                'done'=> \@done,
-                'logging' => \@logging,
-                'obs' => \@obs,
-                'timegap' => \@timegap,
-                'faultresponse' => \@fr,
-               );
+    'all' => [@EXPORT_OK],
+    'status' => \@status,
+    'fb' => \@fb,
+    'msb' => \@msb,
+    'done' => \@done,
+    'logging' => \@logging,
+    'obs' => \@obs,
+    'timegap' => \@timegap,
+    'faultresponse' => \@fr,
+);
 
-Exporter::export_tags( keys %EXPORT_TAGS);
+Exporter::export_tags(keys %EXPORT_TAGS);
 
 =head1 CONSTANTS
 
@@ -111,7 +141,6 @@ This constant contains the default exception value.
 
 use constant OMP__FATAL => -2;
 
-
 use constant OMP__AUTHFAIL => -3;
 use constant OMP__DBCONFAIL => -4;
 use constant OMP__MSBBADQUERY => -5;
@@ -121,7 +150,6 @@ use constant OMP__SPBADSTOR => -8;
 use constant OMP__SPBADRET => -9;
 use constant OMP__SPBADXML => -10;
 use constant OMP__SPEMPTY => -11;
-
 
 =back
 
@@ -194,7 +222,6 @@ was requested by a user.
 =cut
 
 use constant OMP__FB_MSG_DATA_REQUESTED => 65;
-
 
 =item B<OMP__FB_MSG_MSB_ALL_OBSERVED>
 
@@ -312,7 +339,6 @@ a time adjustment is awaiting confirmation.
 =cut
 
 use constant OMP__FB_MSG_TIME_ADJUST_CONFIRM => 71;
-
 
 =item B<OMP__FB_MSG_TIME_NONE_SPENT>
 
@@ -665,6 +691,10 @@ Flag for the least useful fault responses.
 
 use constant OMP__FR_HIDDEN => -2;
 
+1;
+
+__END__
+
 =back
 
 =head1 TAGS
@@ -672,7 +702,7 @@ use constant OMP__FR_HIDDEN => -2;
 Individual sets of constants can be imported by
 including the module with tags. For example:
 
-  use OMP::Constants qw/:status/;
+    use OMP::Constants qw/:status/;
 
 will import all constants associated with OMP status checking.
 
@@ -723,13 +753,13 @@ Constants used as fault response flags.
 The constants can be used as if they are subroutines.
 For example, if I want to print the value of OMP__ERROR I can
 
-  use OMP::Constants;
-  print OMP__ERROR;
+    use OMP::Constants;
+    print OMP__ERROR;
 
 or
 
-  use OMP::Constants ();
-  print OMP::Constants::OMP__ERROR;
+    use OMP::Constants ();
+    print OMP::Constants::OMP__ERROR;
 
 =head1 SEE ALSO
 
@@ -768,9 +798,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-
-
-1;

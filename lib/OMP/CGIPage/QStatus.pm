@@ -41,7 +41,7 @@ sub view_queue_status {
     my $self = shift;
 
     my $q = $self->cgi;
-    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+    my $capture = OMP::CGIComponent::CaptureImage->new(page => $self);
 
     return $self->_show_input_page({})
         unless $q->param('submit_plot');
@@ -271,3 +271,5 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
+
+=cut

@@ -6,7 +6,7 @@ OMP::CGIComponent::Project - Web display of project information
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Project;
+    use OMP::CGIComponent::Project;
 
 =head1 DESCRIPTION
 
@@ -22,8 +22,8 @@ use Carp;
 
 use OMP::Config;
 use OMP::Display;
-use OMP::Error qw/ :try /;
-use OMP::Constants qw/ :status /;
+use OMP::Error qw/:try/;
+use OMP::Constants qw/:status/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::MSBServer;
@@ -44,69 +44,70 @@ $| = 1;
 
 Create a form for taking the semester parameter
 
-  $comp->list_projects_form(telescope => $telescope);
+    $comp->list_projects_form(telescope => $telescope);
 
 =cut
 
 sub list_projects_form {
-  my $self = shift;
-  my %opt = @_;
+    my $self = shift;
+    my %opt = @_;
 
-  my $q = $self->cgi;
-  my $telescope = $opt{'telescope'};
+    my $q = $self->cgi;
+    my $telescope = $opt{'telescope'};
 
-  my $db = OMP::ProjDB->new(DB => $self->database);
+    my $db = OMP::ProjDB->new(DB => $self->database);
 
-  # get the current semester for the default telescope case
-  # so it can be defaulted in addition to the list of all semesters
-  # in the database
-  my $sem = OMP::DateTools->determine_semester;
-  my @sem = $db->listSemesters(telescope => $telescope);
+    # get the current semester for the default telescope case
+    # so it can be defaulted in addition to the list of all semesters
+    # in the database
+    my $sem = OMP::DateTools->determine_semester;
+    my @sem = $db->listSemesters(telescope => $telescope);
 
-  # Make sure the current semester is a selectable option
-  push @sem, $sem unless grep {$_ =~ /$sem/i} @sem;
+    # Make sure the current semester is a selectable option
+    push @sem, $sem unless grep {$_ =~ /$sem/i} @sem;
 
-  my @support =
-    sort {$a->[0] cmp $b->[0]}
-    map {[$_->userid, $_->name]}
-    $db->listSupport;
+    my @support =
+        sort {$a->[0] cmp $b->[0]}
+        map {[$_->userid, $_->name]}
+        $db->listSupport;
 
-  # Take serv out of the countries list
-  my @countries = grep {$_ !~ /^serv$/i} $db->listCountries(telescope => $telescope);
-  push @countries, 'PI+IF';
+    # Take serv out of the countries list
+    my @countries = grep {$_ !~ /^serv$/i}
+        $db->listCountries(telescope => $telescope);
+    push @countries, 'PI+IF';
 
-  return {
-    target => $self->page->url_absolute(),
-    semesters => [sort @sem],
-    semester_selected => $sem,
-    statuses => [
-        [active => 'Time remaining'],
-        [inactive => 'No time remaining'],
-        [all => 'Both'],
-    ],
-    states => [
-        [1 =>'Enabled'],
-        [0 => 'Disabled'],
-        [all => 'Both'],
-    ],
-    supports => \@support,
-    countries => [sort @countries],
-    orders => [
-        [priority => 'Priority'],
-        [projectid => 'Project ID'],
-        ['adj-priority' => 'Adjusted priority'],
-    ],
-    values => {
-        semester => $sem,
-    },
-  }
+    return {
+        target => $self->page->url_absolute(),
+        semesters => [sort @sem],
+        semester_selected => $sem,
+        statuses => [
+            [active => 'Time remaining'],
+            [inactive => 'No time remaining'],
+            [all => 'Both'],
+        ],
+        states => [
+            [1 => 'Enabled'],
+            [0 => 'Disabled'],
+            [all => 'Both'],
+        ],
+        supports => \@support,
+        countries => [sort @countries],
+        orders => [
+            [priority => 'Priority'],
+            [projectid => 'Project ID'],
+            ['adj-priority' => 'Adjusted priority'],
+        ],
+        values => {
+            semester => $sem,
+        },
+    };
 }
 
 =item B<proj_sum_table>
 
 Display details for multiple projects in a tabular format.
 
-  $comp->proj_sum_table($projects, $headings);
+    $comp->proj_sum_table($projects, $headings);
 
 If the third argument is true, table headings for semester and
 country will appear.
@@ -114,37 +115,43 @@ country will appear.
 =cut
 
 sub proj_sum_table {
-  my $self = shift;
-  my $projects = shift;
-  my $headings = shift;
+    my $self = shift;
+    my $projects = shift;
+    my $headings = shift;
 
-  # Count msbs for each project
-  my $proj_msbcount = {};
-  my $proj_instruments = {};
-  try {
-    my @projectids = map {$_->projectid} @$projects;
-    $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
-    $proj_instruments = OMP::SpServer->programInstruments(@projectids);
-  }
-  catch OMP::Error with { }
-  otherwise { };
+    # Count msbs for each project
+    my $proj_msbcount = {};
+    my $proj_instruments = {};
+    try {
+        my @projectids = map {$_->projectid} @$projects;
+        $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
+        $proj_instruments = OMP::SpServer->programInstruments(@projectids);
+    }
+    catch OMP::Error with {
+    }
+    otherwise {
+    };
 
-  return {
-    results => $projects,
-    show_headings => $headings,
-    project_msbcount => $proj_msbcount,
-    project_instruments => $proj_instruments,
-    taurange_is_default => sub {
-        return OMP::SiteQuality::is_default('TAU', $_[0]);
-    },
-  };
+    return {
+        results => $projects,
+        show_headings => $headings,
+        project_msbcount => $proj_msbcount,
+        project_instruments => $proj_instruments,
+        taurange_is_default => sub {
+            return OMP::SiteQuality::is_default('TAU', $_[0]);
+        },
+    };
 }
+
+1;
+
+__END__
+
+=back
 
 =head1 SEE ALSO
 
 C<OMP::CGI::ProjectPage>
-
-=back
 
 =head1 AUTHOR
 
@@ -171,5 +178,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

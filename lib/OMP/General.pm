@@ -6,25 +6,25 @@ OMP::General - general purpose methods
 
 =head1 SYNOPSIS
 
-  use OMP::General;
+    use OMP::General;
 
-  # To be saved with HTML markup.
-  $insertstring = OMP::General->prepare_for_insert( $string );
+    # To be saved with HTML markup.
+    $insertstring = OMP::General->prepare_for_insert($string);
 
-  # Provided project id is a partial string.
-  $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'ukirt',
-                                         semester => $sem,
-                                       );
+    # Provided project id is a partial string.
+    $proj = OMP::General->infer_projectid(
+        projectid => $input,
+        telescope => 'ukirt',
+        semester => $sem,
+    );
 
-  # Get array reference of file content.
-  $lines = OMP::General->get_file_contents( 'file' => '/file/path' );
+    # Get array reference of file content.
+    $lines = OMP::General->get_file_contents('file' => '/file/path');
 
 =head1 DESCRIPTION
 
 General purpose routines that are not associated with any particular
 class but that are useful in more than one class.
-
 
 =cut
 
@@ -48,16 +48,16 @@ if ($] >= 5.006 && $] < 5.008) {
   eval "use utf8;";
 }
 use Carp;
-use OMP::Constants qw/ :logging /;
+use OMP::Constants qw/:logging/;
 use OMP::Range;
 use OMP::NetTools;
 use OMP::DateTools;
-use Term::ANSIColor qw/ colored /;
+use Term::ANSIColor qw/colored/;
 use Time::Piece ':override';
 use File::Spec;
-use Fcntl qw/ :flock SEEK_END /;
-use OMP::Error qw/ :try /;
-use Text::Balanced qw/ extract_delimited /;
+use Fcntl qw/:flock SEEK_END/;
+use OMP::Error qw/:try/;
+use Text::Balanced qw/extract_delimited/;
 use OMP::SiteQuality;
 use POSIX qw/ /;
 
@@ -85,11 +85,11 @@ There are no instance methods, only class (static) methods.
 Convert a text string into one that is ready to be stored in
 the database.
 
-  $insertstring = OMP::General->prepare_for_insert( $string );
+    $insertstring = OMP::General->prepare_for_insert($string);
 
 This method converts the string as follows:
 
-=over 8
+=over 4
 
 =item *
 
@@ -110,14 +110,14 @@ The returned string is then ready to be inserted into the database.
 =cut
 
 sub prepare_for_insert {
-  my $class = shift;
-  my $string = shift;
+    my $class = shift;
+    my $string = shift;
 
-  $string =~ s/\'/\&apos;/g;
-  $string =~ s/\015//g;
-  $string =~ s/\n/<br>/g;
+    $string =~ s/\'/\&apos;/g;
+    $string =~ s/\015//g;
+    $string =~ s/\n/<br>/g;
 
-  return $string;
+    return $string;
 }
 
 =back
@@ -134,14 +134,26 @@ class. Please do not use these in new code.
 Determine the time allocation band. This is used for scheduling
 and for decrementing observing time.
 
-  $band = OMP::General->determine_band( %details );
+    $band = OMP::General->determine_band(%details);
 
 The band is determined from the supplied details. Recognized
 keys are:
 
-  TAU       - the current CSO tau
-  TAURANGE  - OMP::Range object containing a tau range
-  TELESCOPE - name of the telescope
+=over 4
+
+=item TAU
+
+The current CSO tau.
+
+=item TAURANGE
+
+OMP::Range object containing a tau range.
+
+=item TELESCOPE
+
+Name of the telescope.
+
+=back
 
 Currently TAU or TAURANGE are only used if TELESCOPE=JCMT. In all
 other cases (and if TELESCOPE is not supplied) the band returned is 0.
@@ -159,17 +171,20 @@ case starred bands will be recognized correctly.
 =cut
 
 sub determine_band {
-  my $self = shift;
-  my %details = @_;
-  warnings::warnif( "OMP::General::determine_band deprecated. Use OMP::SiteQuality instead");
-  return OMP::SiteQuality::determine_tauband( @_ );
+    my $self = shift;
+    my %details = @_;
+
+    warnings::warnif(
+        "OMP::General::determine_band deprecated. Use OMP::SiteQuality instead");
+
+    return OMP::SiteQuality::determine_tauband(@_);
 }
 
 =item B<get_band_range>
 
 Given a band name, return the OMP::Range object that defines the band.
 
-  $range = OMP::General->get_band_range($telescope, @bands);
+    $range = OMP::General->get_band_range($telescope, @bands);
 
 If multiple bands are supplied the range will include the extreme values.
 (BUG: no check is made to determine whether the bands are contiguous)
@@ -182,11 +197,14 @@ Returns undef if the band is not known.
 =cut
 
 sub get_band_range {
-  my $class = shift;
-  my $tel = shift;
-  my @bands = @_;
-  warnings::warnif( "OMP::General::get_band_range deprecated. Use OMP::SiteQuality instead");
-  return OMP::SiteQuality::get_tauband_range( $tel, @_);
+    my $class = shift;
+    my $tel = shift;
+    my @bands = @_;
+
+    warnings::warnif(
+        "OMP::General::get_band_range deprecated. Use OMP::SiteQuality instead");
+
+    return OMP::SiteQuality::get_tauband_range($tel, @_);
 }
 
 =back
@@ -200,19 +218,19 @@ sub get_band_range {
 Given a subset of a project ID attempt to determine the actual
 project ID.
 
-  $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'jcmt',
-                                       );
+    $proj = OMP::General->infer_projectid(
+        projectid => $input,
+        telescope => 'jcmt');
 
-  $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'jcmt',
-                                         semester => $sem,
-                                       );
+    $proj = OMP::General->infer_projectid(
+        projectid => $input,
+        telescope => 'jcmt',
+        semester => $sem);
 
-  $proj = OMP::General->infer_projectid( projectid => $input,
-                                         telescope => 'jcmt',
-                                         date => $date,
-                                       );
+    $proj = OMP::General->infer_projectid(
+        projectid => $input,
+        telescope => 'jcmt',
+        date => $date);
 
 If telescope is not supplied it is guessed.  If the project ID is a
 number with a letter prefix it is assumed to be the JCMT style (ie u03
@@ -244,71 +262,76 @@ will be returned without modification.
 =cut
 
 sub infer_projectid {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  # The supplied ID
-  my $projid = $args{projectid};
-  croak "Must supply a project ID"
-    unless defined $projid;
+    # The supplied ID
+    my $projid = $args{projectid};
+    croak "Must supply a project ID"
+        unless defined $projid;
 
-  # Make sure its not complete already (and extract substring at
-  # same time)
-  my $extracted = $self->extract_projectid( $projid );
-  return $extracted if defined $extracted;
+    # Make sure its not complete already (and extract substring at
+    # same time)
+    my $extracted = $self->extract_projectid($projid);
+    return $extracted if defined $extracted;
 
-  # If it's a special reserved ID (two characters + digit)
-  # and *not* an abbreviated JCMT service programme
-  # return it - padding the number)
-  if ($projid !~ /^s[uic]\d\d/aai &&
-      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/a) {
-    return $1 . sprintf("%02d", $2);
-  }
-
-  # We need a guess at a telescope before we can guess a semester.
-  # In most cases the supplied ID will be able to distinguish
-  # JCMT (for example JCMT has a letter prefix such as "u03").
-  # The exception is for UH where multiple telescopes may have
-  # an "h" prefix.
-  my $tel;
-  if (exists $args{telescope}) {
-    $tel = uc($args{telescope});
-  } else {
-    # Guess
-    if ($projid =~ /^s?[juncidpltvkzf]\d+$/aai) {
-      $tel = "JCMT";
-    } else {
-      croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
+    # If it's a special reserved ID (two characters + digit)
+    # and *not* an abbreviated JCMT service programme
+    # return it - padding the number)
+    if ($projid !~ /^s[uic]\d\d/aai
+            && $projid =~ /^([A-Za-z]{2,}?)(\d+)$/a) {
+        return $1 . sprintf("%02d", $2);
     }
-  }
 
-  # Now that we have a telescope we can find the semester
-  my $sem;
-  if (exists $args{semester}) {
-    $sem = $args{semester};
-  } elsif (exists $args{date}) {
-    $sem = OMP::DateTools->determine_semester( date => $args{date}, tel => $tel );
-  } else {
-    $sem = OMP::DateTools->determine_semester( tel => $tel );
-  }
+    # We need a guess at a telescope before we can guess a semester.
+    # In most cases the supplied ID will be able to distinguish
+    # JCMT (for example JCMT has a letter prefix such as "u03").
+    # The exception is for UH where multiple telescopes may have
+    # an "h" prefix.
+    my $tel;
+    if (exists $args{telescope}) {
+        $tel = uc($args{telescope});
+    }
+    else {
+        # Guess
+        if ($projid =~ /^s?[juncidpltvkzf]\d+$/aai) {
+            $tel = "JCMT";
+        }
+        else {
+            croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
+        }
+    }
 
-  # Now guess the actual projectid
-  my $fullid;
-  if ($tel eq "JCMT") {
+    # Now that we have a telescope we can find the semester
+    my $sem;
+    if (exists $args{semester}) {
+        $sem = $args{semester};
+    }
+    elsif (exists $args{date}) {
+        $sem = OMP::DateTools->determine_semester(
+            date => $args{date},
+            tel => $tel);
+    }
+    else {
+        $sem = OMP::DateTools->determine_semester(tel => $tel);
+    }
 
-    # Service mode changes the prefix
-    my $prefix = ( $projid =~ /^s/  ? 's' : 'm' );
+    # Now guess the actual projectid
+    my $fullid;
+    if ($tel eq "JCMT") {
+        # Service mode changes the prefix
+        my $prefix = ($projid =~ /^s/ ? 's' : 'm');
 
-    # remove the s signifier
-    $projid =~ s/^s//;
+        # remove the s signifier
+        $projid =~ s/^s//;
 
-    $fullid = "$prefix$sem$projid";
+        $fullid = "$prefix$sem$projid";
+    }
+    else {
+        croak "$tel is not a recognized telescope";
+    }
 
-  } else {
-    croak "$tel is not a recognized telescope";
-  }
-
-  return $fullid;
+    return $fullid;
 
 }
 
@@ -318,7 +341,7 @@ Given a string (for example a full project id or possibly a subject
 line of a mail message) attempt to extract a string that looks like
 a OMP project ID.
 
-  $projectid = OMP::General->extract_projectid( $string );
+    $projectid = OMP::General->extract_projectid($string);
 
 Returns undef if nothing looking like a project ID could be located.
 The match is done on word boundaries.
@@ -332,29 +355,27 @@ supplied variable.
 =cut
 
 sub extract_projectid {
-  my $class = shift;
-  my $string = shift;
+    my $class = shift;
+    my $string = shift;
 
-  my $projid;
+    my $projid;
 
-  if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai # JCMT [inc serv, FB and A/B suffix]
-      or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai       # JCMT E&C
-      or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai       # JCMT Guaranteed Time
-      or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai    # JCMT Legacy Surveys
-      or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/aai # JCMT LS: semester-based
-      or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/aai # UH funny suffix JCMT
-      or $string =~ /\b(nls\d+)\b/aai               # JCMT Dutch service (deprecated format)
-      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai  # SHADES proposal
-      or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai # Things like JCMTCAL
-      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai  # Staff projects TJ02
-            && $string !~ /\bs[uinc]\d+\b/aai       # but not JCMT service abbrev
-          )
-     ) {
-    $projid = $1;
-  }
+    if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai  # JCMT [inc serv, FB and A/B suffix]
+            or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai          # JCMT E&C
+            or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai          # JCMT Guaranteed Time
+            or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai       # JCMT Legacy Surveys
+            or $string =~ /\b(mjls[sgncdjty]\d\d[ab])\b/aai  # JCMT LS: semester-based
+            or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/aai   # UH funny suffix JCMT
+            or $string =~ /\b(nls\d+)\b/aai                  # JCMT Dutch service (deprecated format)
+            or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai     # SHADES proposal
+            or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai    # Things like JCMTCAL
+            or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai     # Staff projects TJ02
+                && $string !~ /\bs[uinc]\d+\b/aai            # but not JCMT service abbrev
+            )) {
+        $projid = $1;
+    }
 
-  return $projid;
-
+    return $projid;
 }
 
 =item B<extract_faultid>
@@ -364,7 +385,7 @@ attempt to extract a string that looks like an OMP fault ID.
 The fault ID is assumed to be surrounded with square brackets
 (as used in fault email subjects).
 
-  $faultid = OMP::General->extract_faultid($string);
+    $faultid = OMP::General->extract_faultid($string);
 
 Returns undef if nothing looking like a fault ID could be located.
 
@@ -408,7 +429,7 @@ in list context or an array ref in scalar context). ie, if called
 with a Tk widget, guarantees to return a single telescope, if called
 without a Tk widget is identical to querying the config system directly.
 
-  $tel = OMP::General->determine_tel( $MW );
+    $tel = OMP::General->determine_tel($MW);
 
 Returns undef if the user presses the "cancel" button when prompted
 for a telescope selection.
@@ -420,63 +441,74 @@ Tk option. Returns undef if the telescope was not valid after a prompt.
 =cut
 
 sub determine_tel {
-  my $class = shift;
-  my $w = shift;
+    my $class = shift;
+    my $w = shift;
 
-  my $tel = OMP::Config->getData( 'defaulttel' );
+    my $tel = OMP::Config->getData('defaulttel');
 
-  my $telescope;
-  if( ref($tel) eq "ARRAY" ) {
-    if (! defined $w) {
-      # Have no choice but to return the array
-      if (wantarray) {
-        return @$tel;
-      } else {
-        return $tel;
-      }
-    } elsif (UNIVERSAL::isa($w, "Term::ReadLine") ||
-             UNIVERSAL::isa($w, "Term::ReadLine::Perl")) {
-      # Prompt for it
-      my $res = $w->readline("Which telescope [".join(",",@$tel)."] : ");
-      $res = uc($res);
-      if (grep /^$res$/i, @$tel) {
-        return $res;
-      } else {
-        # no match
-        return ();
-      }
+    my $telescope;
+    if (ref($tel) eq "ARRAY") {
+        unless (defined $w) {
+            # Have no choice but to return the array
+            if (wantarray) {
+                return @$tel;
+            }
+            else {
+                return $tel;
+            }
+        }
+        elsif (UNIVERSAL::isa($w, "Term::ReadLine")
+                || UNIVERSAL::isa($w, "Term::ReadLine::Perl")) {
+            # Prompt for it
+            my $res = $w->readline("Which telescope [" . join(",", @$tel) . "] : ");
+            $res = uc($res);
+            if (grep /^$res$/i, @$tel) {
+                return $res;
+            }
+            else {
+                # no match
+                return ();
+            }
+        }
+        else {
+            # Can put up a widget
+            require Tk::DialogBox;
 
-    } else {
-      # Can put up a widget
-      require Tk::DialogBox;
-      my $newtel;
-      my $dbox = $w->DialogBox( -title => "Select telescope",
-                                -buttons => ["Accept","Cancel"],
-                              );
-      my $txt = $dbox->add('Label',
-                           -text => "Select telescope for obslog",
-                          )->pack;
-      foreach my $ttel ( @$tel ) {
-        my $rad = $dbox->add('Radiobutton',
-                             -text => $ttel,
-                             -value => $ttel,
-                             -variable => \$newtel,
-                            )->pack;
-      }
-      my $but = $dbox->Show;
+            my $newtel;
+            my $dbox = $w->DialogBox(
+                -title => "Select telescope",
+                -buttons => ["Accept", "Cancel"],
+            );
+            my $txt = $dbox->add(
+                'Label',
+                -text => "Select telescope for obslog",
+            )->pack;
 
-      if( $but eq 'Accept' && $newtel ne '') {
-        $telescope = uc($newtel);
-      } else {
-        # Pressed cancel
-        return ();
-      }
+            foreach my $ttel (@$tel) {
+                my $rad = $dbox->add(
+                    'Radiobutton',
+                    -text => $ttel,
+                    -value => $ttel,
+                    -variable => \$newtel,
+                )->pack;
+            }
+
+            my $but = $dbox->Show;
+
+            if ($but eq 'Accept' && $newtel ne '') {
+                $telescope = uc($newtel);
+            }
+            else {
+                # Pressed cancel
+                return ();
+            }
+        }
     }
-  } else {
-    $telescope = uc($tel);
-  }
+    else {
+        $telescope = uc($tel);
+    }
 
-  return $telescope;
+    return $telescope;
 }
 
 =back
@@ -490,14 +522,14 @@ sub determine_tel {
 See if the user ID can be guessed from the system environment
 without asking for it.
 
-  $user = OMP::General->determine_user( );
+    $user = OMP::General->determine_user();
 
 Uses the C<$USER> environment variable for the first guess. If that
 is not available or is not verified as a valid user the method either
 returns C<undef> or, if the optional widget object is supplied,
 popups up a Tk dialog box requesting input from the user.
 
-  $user = OMP::General->determine_user( $MW );
+    $user = OMP::General->determine_user($MW);
 
 If the userid supplied via the widget is still not valid, give
 up and return undef.
@@ -507,66 +539,80 @@ Returns the user as an OMP::User object.
 =cut
 
 sub determine_user {
-  my $class = shift;
-  my $w = shift;
+    my $class = shift;
+    my $w = shift;
 
-  my $user;
-  if (exists $ENV{USER}) {
-    $user = OMP::UserServer->getUser($ENV{USER});
-  }
-
-  unless ($user) {
-    # no user so far so if we have a widget popup dialog
-    if ($w) {
-      require Tk::DialogBox;
-      require Tk::LabEntry;
-
-      while( ! defined $user ) {
-
-        my $dbox = $w->DialogBox( -title => "Request OMP user ID",
-                                  -buttons => ["Accept","Don't Know"],
-                                );
-        my $ent = $dbox->add('LabEntry',
-                             -label => "Enter your OMP User ID:",
-                             -width => 15)->pack;
-        my $but = $dbox->Show;
-        if ($but eq 'Accept') {
-          my $id = $ent->get;
-
-          # Catch any errors that might pop up.
-          try {
-            $user = OMP::UserServer->getUser($id);
-          } catch OMP::Error with {
-            my $Error = shift;
-
-            my $dbox2 = $w->DialogBox( -title => "Error",
-                                       -buttons => ["OK"],
-                                     );
-            my $label = $dbox2->add( 'Label',
-                                     -text => "Error: " . $Error->{-text} )->pack;
-            my $but2 = $dbox2->Show;
-          } otherwise {
-            my $Error = shift;
-
-            my $dbox2 = $w->DialogBox( -title => "Error",
-                                       -buttons => ["OK"],
-                                     );
-            my $label = $dbox2->add( 'Label',
-                                     -text => "Error: " . $Error->{-text} )->pack;
-            my $but2 = $dbox2->Show;
-          };
-          if( defined( $user ) ) {
-            last;
-          }
-        } else {
-          last;
-        }
-      }
-
+    my $user;
+    if (exists $ENV{USER}) {
+        $user = OMP::UserServer->getUser($ENV{USER});
     }
-  }
 
-  return $user;
+    unless ($user) {
+        # no user so far so if we have a widget popup dialog
+        if ($w) {
+            require Tk::DialogBox;
+            require Tk::LabEntry;
+
+            while (! defined $user) {
+                my $dbox = $w->DialogBox(
+                    -title => "Request OMP user ID",
+                    -buttons => ["Accept", "Don't Know"],
+                );
+                my $ent = $dbox->add(
+                    'LabEntry',
+                    -label => "Enter your OMP User ID:",
+                    -width => 15
+                )->pack;
+
+                my $but = $dbox->Show;
+
+                if ($but eq 'Accept') {
+                    my $id = $ent->get;
+
+                    # Catch any errors that might pop up.
+                    try {
+                        $user = OMP::UserServer->getUser($id);
+                    }
+                    catch OMP::Error with {
+                        my $Error = shift;
+
+                        my $dbox2 = $w->DialogBox(
+                            -title => "Error",
+                            -buttons => ["OK"],
+                        );
+                        my $label =
+                            $dbox2->add('Label',
+                            -text => "Error: " . $Error->{-text},
+                        )->pack;
+
+                        my $but2 = $dbox2->Show;
+                    }
+                    otherwise {
+                        my $Error = shift;
+
+                        my $dbox2 = $w->DialogBox(
+                            -title => "Error",
+                            -buttons => ["OK"],
+                        );
+                        my $label =
+                            $dbox2->add('Label',
+                            -text => "Error: " . $Error->{-text},
+                        )->pack;
+
+                        my $but2 = $dbox2->Show;
+                    };
+                    if (defined($user)) {
+                        last;
+                    }
+                }
+                else {
+                    last;
+                }
+            }
+        }
+    }
+
+    return $user;
 }
 
 =back
@@ -579,16 +625,28 @@ sub determine_user {
 
 Control which log messages are written to the log file.
 
-  $current = OMP::General->log_level();
-  OMP::General->log_level( &OMP__LOG_DEBUG );
-  OMP::General->log_level( "DEBUG" );
+    $current = OMP::General->log_level();
+    OMP::General->log_level(&OMP__LOG_DEBUG);
+    OMP::General->log_level("DEBUG");
 
 The constants are defined in OMP::Constants. Currently supported
 logging levels are:
 
-  IMPORTANT   (only important messages)
-  INFO        (informational and important messages)
-  DEBUG       (debugging, info and important messages)
+=over 4
+
+=item IMPORTANT
+
+Only important messages.
+
+=item INFO
+
+Informational and important messages.
+
+=item DEBUG
+
+Debugging, info and important messages.
+
+=back
 
 The level can be set using the above strings as well as the actual
 constants, but constants will be returned if the level is requested.
@@ -604,87 +662,95 @@ by defining the environment OMP_LOG_LEVEL to one of "IMPORTANT", "INFO" or
 =cut
 
 {
-  # Hide access to this variable
-  my $LEVEL;
+    # Hide access to this variable
+    my $LEVEL;
 
-  # private routine to translate string to constant value
-  # and then sort out the bit mask
-  # return undef if not recognized
-  # Note that the only system that calculates level from bits is this
-  # internal function
-  sub _str_or_const_to_level {
-    my $arg = shift;
-    my $bits = 0;
+    # private routine to translate string to constant value
+    # and then sort out the bit mask
+    # return undef if not recognized
+    # Note that the only system that calculates level from bits is this
+    # internal function
+    sub _str_or_const_to_level {
+        my $arg = shift;
+        my $bits = 0;
 
-    # define some groups
-    my $important = OMP__LOG_IMPORTANT;
-    my $info      = $important | OMP__LOG_INFO;
-    my $debug     = $info | OMP__LOG_DEBUG;
-    my $err       = OMP__LOG_ERROR | OMP__LOG_WARNING;
+        # define some groups
+        my $important = OMP__LOG_IMPORTANT;
+        my $info = $important | OMP__LOG_INFO;
+        my $debug = $info | OMP__LOG_DEBUG;
+        my $err = OMP__LOG_ERROR | OMP__LOG_WARNING;
 
-    if ($arg eq 'IMPORTANT' || $arg eq OMP__LOG_IMPORTANT) {
-      $bits = $important;
-    } elsif ($arg eq 'INFO' || $arg eq OMP__LOG_INFO) {
-      $bits = $info;
-    } elsif($arg eq 'DEBUG' || $arg eq OMP__LOG_DEBUG) {
-      $bits = $debug;
+        if ($arg eq 'IMPORTANT' || $arg eq OMP__LOG_IMPORTANT) {
+            $bits = $important;
+        }
+        elsif ($arg eq 'INFO' || $arg eq OMP__LOG_INFO) {
+            $bits = $info;
+        }
+        elsif ($arg eq 'DEBUG' || $arg eq OMP__LOG_DEBUG) {
+            $bits = $debug;
+        }
+
+        # Now set LEVEL to this value if we have $bits != 0
+        # else no change to $LEVEL
+        # if we allow 0 then nothing will be logged ever. We currently
+        # do not have a OMP__LOG_NONE option
+        if ($bits != 0) {
+            # Include WARNING and ERROR in bitmask
+            $bits |= $err;
+            $LEVEL = $bits;
+        }
+
+        return;
     }
 
-    # Now set LEVEL to this value if we have $bits != 0
-    # else no change to $LEVEL
-    # if we allow 0 then nothing will be logged ever. We currently
-    # do not have a OMP__LOG_NONE option
-    if ($bits != 0) {
-      # Include WARNING and ERROR in bitmask
-      $bits |= $err;
-      $LEVEL = $bits;
+    # Accessor method
+    sub log_level {
+        my $class = shift;
+        if (@_) {
+            _str_or_const_to_level(shift);
+        }
+
+        # force default if required. This will only be called once
+        unless (defined $LEVEL) {
+            _str_or_const_to_level($ENV{'OMP_LOG_LEVEL'})
+                if exists $ENV{'OMP_LOG_LEVEL'};
+
+            _str_or_const_to_level(OMP__LOG_INFO)
+                unless defined $LEVEL;
+        }
+
+        return $LEVEL;
     }
 
-    return;
-  }
+    # Returns true if the supplied message severity is consistent with
+    # the current logging level.
+    # undef indicates INFO
+    # Keep this private for now
+    sub _log_logok {
+        my $class = shift;
+        my $sev = shift;
 
-  # Accessor method
-  sub log_level {
-    my $class = shift;
-    if (@_) {
-      _str_or_const_to_level( shift );
+        $sev = OMP__LOG_INFO unless defined $sev;
+
+        return ($class->log_level & $sev);
     }
-    # force default if required. This will only be called once
-    if (!defined $LEVEL) {
-      _str_or_const_to_level( $ENV{OMP_LOG_LEVEL} )
-        if exists $ENV{OMP_LOG_LEVEL};
-      _str_or_const_to_level( OMP__LOG_INFO )
-        unless defined $LEVEL;
+
+    # Translate supplied constant back to a descriptive string
+    # we assume that multiple logging levels are not specified
+    # keep internal for the moment since we only need it for the
+    # log output
+    sub _log_level_string {
+        my $class = shift;
+        my $sev = shift;
+
+        $sev = OMP__LOG_INFO unless defined $sev;
+
+        return colored("ERROR:    ", 'red') if $sev & OMP__LOG_ERROR;
+        return colored("WARNING:  ", 'yellow') if $sev & OMP__LOG_WARNING;
+        return colored("IMPORTANT:", 'green') if $sev & OMP__LOG_IMPORTANT;
+        return colored("INFO:     ", 'cyan') if $sev & OMP__LOG_INFO;
+        return colored("DEBUG:    ", 'magenta') if $sev & OMP__LOG_DEBUG;
     }
-    return $LEVEL;
-  }
-
-  # Returns true if the supplied message severity is consistent with
-  # the current logging level.
-  # undef indicates INFO
-  # Keep this private for now
-  sub _log_logok {
-    my $class = shift;
-    my $sev = shift;
-    $sev = OMP__LOG_INFO unless defined $sev;
-    return ( $class->log_level & $sev );
-  }
-
-  # Translate supplied constant back to a descriptive string
-  # we assume that multiple logging levels are not specified
-  # keep internal for the moment since we only need it for the
-  # log output
-  sub _log_level_string {
-    my $class = shift;
-    my $sev = shift;
-    $sev = OMP__LOG_INFO unless defined $sev;
-    return colored("ERROR:    ",'red')     if $sev & OMP__LOG_ERROR;
-    return colored("WARNING:  ",'yellow')  if $sev & OMP__LOG_WARNING;
-    return colored("IMPORTANT:",'green')   if $sev & OMP__LOG_IMPORTANT;
-    return colored("INFO:     ",'cyan')    if $sev & OMP__LOG_INFO;
-    return colored("DEBUG:    ",'magenta') if $sev & OMP__LOG_DEBUG;
-  }
-
 }
 
 =item B<log_message>
@@ -698,21 +764,39 @@ method). WARNING and ERROR log messages will always be written.
 By default, all messages are treated as "INFO" messages if no log
 level is specified.
 
-  OMP::General->log_message( $message );
+    OMP::General->log_message($message);
 
 If a second argument is provided, it specifies the log
 severity/importance level. Constants are available from
 C<OMP::Constants>.
 
-  OMP::General->log_message( $message, OMP__LOG_DEBUG );
+    OMP::General->log_message($message, OMP__LOG_DEBUG);
 
 The currently defined set are:
 
-  ERROR     - an error message
-  WARNING   - a warning message
-  IMPORTANT - important log message (always written)
-  INFO      - general information
-  DEBUG     - verbose logging
+=over 4
+
+=item ERROR
+
+An error message.
+
+=item WARNING
+
+A warning message.
+
+=item IMPORTANT
+
+Important log message (always written).
+
+=item INFO
+
+General information.
+
+=item DEBUG
+
+Verbose logging.
+
+=back
 
 The log file is opened for append (with a lock), the message is written
 and the file is closed. The message is augmented with details of the
@@ -733,119 +817,120 @@ error messages to STDERR if the process is attached to a terminal?].
 =cut
 
 sub log_message {
-  my $class = shift;
-  my $message = shift;
-  my $severity = shift;
+    my $class = shift;
+    my $message = shift;
+    my $severity = shift;
 
-  return if exists $ENV{OMP_NOLOG};
+    return if exists $ENV{'OMP_NOLOG'};
 
-  # Check the logging level.
-  return unless $class->_log_logok( $severity );
+    # Check the logging level.
+    return unless $class->_log_logok($severity);
 
-  # Get the current date
-  my $datestamp = gmtime;
+    # Get the current date
+    my $datestamp = gmtime;
 
-  # "Constants"
-  my $logdir;
+    # "Constants"
+    my $logdir;
 
-  # Look for the logdir but make sure this is none fatal
-  # so for any error ignore it. in some cases a bare eval{}
-  # here did not catch everyhing so use a try with empty otherwise
-  try {
-    # Make sure a date is available to the config system
-    $logdir = OMP::Config->getData( "logdir", utdate => $datestamp );
-  } otherwise {
-    # empty - we want to catch everything
-  };
-  my $fallback_logdir = File::Spec->catdir( File::Spec->tmpdir, "ompLogs");
-  my $today = $datestamp->strftime("%Y%m%d");
+    # Look for the logdir but make sure this is none fatal
+    # so for any error ignore it. in some cases a bare eval{}
+    # here did not catch everyhing so use a try with empty otherwise
+    try {
+        # Make sure a date is available to the config system
+        $logdir = OMP::Config->getData("logdir", utdate => $datestamp);
+    }
+    otherwise {
+        # empty - we want to catch everything
+    };
+    my $fallback_logdir = File::Spec->catdir(File::Spec->tmpdir, "ompLogs");
+    my $today = $datestamp->strftime("%Y%m%d");
 
-  # The filename depends on whether the logdir includes the ut date
-  my $file1 = "omp.log";
-  my $file2 = "omp_$today.log";
+    # The filename depends on whether the logdir includes the ut date
+    my $file1 = "omp.log";
+    my $file2 = "omp_$today.log";
 
-  # Create the message
-  my (undef, undef, $email) = OMP::NetTools->determine_host;
+    # Create the message
+    my (undef, undef, $email) = OMP::NetTools->determine_host;
 
-  my $sevstr = $class->_log_level_string( $severity );
+    my $sevstr = $class->_log_level_string($severity);
 
-  # Create the log message without a prefix
-  my $logmsg = colored("$datestamp",'blue underline').
-     " PID: ".colored("$$","green underline") .
-     " User: ".colored("$email","green underline")."\nMsg: $message\n";
+    # Create the log message without a prefix
+    my $logmsg = colored("$datestamp", 'blue underline')
+        . " PID: " . colored("$$", "green underline")
+        . " User: " . colored("$email", "green underline")
+        . "\nMsg: $message\n";
 
-  # Split on newline, attached prefix, and then join on new line
-  my @lines = split(/\n/, $logmsg);
-  $logmsg = join("\n", map { $sevstr .$_ } @lines) . "\n";
+    # Split on newline, attached prefix, and then join on new line
+    my @lines = split(/\n/, $logmsg);
+    $logmsg = join("\n", map {$sevstr . $_} @lines) . "\n";
 
-  # Get current umask
-  my $umask = umask;
+    # Get current umask
+    my $umask = umask;
 
-  # Set umask to 0 so that we can remove all protections
-  umask 0;
+    # Set umask to 0 so that we can remove all protections
+    umask 0;
 
-  # Try both the logdir and the back up
-  for my $thisdir ($logdir, $fallback_logdir) {
-    next unless defined $thisdir;
+    # Try both the logdir and the back up
+    for my $thisdir ($logdir, $fallback_logdir) {
+        next unless defined $thisdir;
 
-    my $filename = ($thisdir =~ /$today/ ? $file1 : $file2 );
+        my $filename = ($thisdir =~ /$today/ ? $file1 : $file2);
 
-    my $path = File::Spec->catfile( $thisdir, $filename);
+        my $path = File::Spec->catfile($thisdir, $filename);
 
-    # First check the directory and create it if it isnt here
-    # Loop around if we can not open it
-    unless (-d $thisdir) {
-      mkdir $thisdir, 0777
-        or next;
+        # First check the directory and create it if it isnt here
+        # Loop around if we can not open it
+        unless (-d $thisdir) {
+            mkdir $thisdir, 0777
+                or next;
+        }
+
+        # Open the file for append
+        # Creating the file if it is not there already
+        open my $fh, '>>', $path
+            or next;
+
+        # Attempt to get a lock in a reasonable amount of time.
+        # (Currently we try for 5 seconds.)
+        do {
+            # Try to get an exclusive lock (non-blocking).
+            my $lock_mode = LOCK_EX | LOCK_NB;
+            my $locked = flock($fh, $lock_mode);
+
+            # If we didn't get the lock, try 5 more times after
+            # 1 second delays.
+            for (my $i = 0; ((not $locked) and ($i < 5)); $i ++) {
+                sleep 1;
+                $locked = flock($fh, $lock_mode);
+            }
+
+            # If we still don't have the lock, give up on this log file
+            # and try the next.
+            unless ($locked) {
+                close $fh;
+                next;
+            }
+        };
+
+        # Seek in case the file was appended while we were
+        # waiting (see perlfunc flock "mailbox appender" example).
+        seek $fh, 0, SEEK_END;
+
+        # write out the message
+        print $fh $logmsg;
+
+        # Explicitly close the file (dont check return value since
+        # we will just return anyway)
+        close $fh;
+
+        # If we got to the end we jump out the loop
+        last;
     }
 
-    # Open the file for append
-    # Creating the file if it is not there already
-    open my $fh, '>>', $path
-      or next;
+    # Reset umask
+    umask $umask;
 
-    # Attempt to get a lock in a reasonable amount of time.
-    # (Currently we try for 5 seconds.)
-    do {
-      # Try to get an exclusive lock (non-blocking).
-      my $lock_mode = LOCK_EX | LOCK_NB;
-      my $locked = flock($fh, $lock_mode);
-
-      # If we didn't get the lock, try 5 more times after
-      # 1 second delays.
-      for (my $i = 0; ((not $locked) and ($i < 5)); $i ++) {
-        sleep 1;
-        $locked = flock($fh, $lock_mode);
-      }
-
-      # If we still don't have the lock, give up on this log file
-      # and try the next.
-      unless ($locked) {
-        close $fh;
-        next;
-      }
-    };
-
-    # Seek in case the file was appended while we were
-    # waiting (see perlfunc flock "mailbox appender" example).
-    seek $fh, 0, SEEK_END;
-
-    # write out the message
-    print $fh $logmsg;
-
-    # Explicitly close the file (dont check return value since
-    # we will just return anyway)
-    close $fh;
-
-    # If we got to the end we jump out the loop
-    last;
-
-  }
-
-  # Reset umask
-  umask $umask;
-
-  return;
+    return;
 }
 
 =back
@@ -885,50 +970,45 @@ to remove).
 Get all the lines with whitespace removed from both ends of file called
 F</file/path> ...
 
-  $lines = OMP::General
-          ->get_file_contents( 'file' => '/file/path' );
+    $lines = OMP::General->get_file_contents(
+        'file' => '/file/path');
 
 Get the lines matching "is" anywhere in the line, with whitespace at
 the line beginning intact ....
 
-  $filtered = OMP::General
-              ->get_file_contents( 'file' => '/file/path',
-                                    'filter' => qr{is}i,
-                                    'start-whitespace' => 1,
-                                  );
+    $filtered = OMP::General->get_file_contents(
+        'file' => '/file/path',
+        'filter' => qr/is/i,
+        'start-whitespace' => 1);
 
 =cut
 
 sub get_file_contents {
+    my ($self, %arg) = @_;
 
-  my ( $self, %arg ) =  @_;
+    open my $fh, '<', $arg{'file'}
+        or throw OMP::Error::FatalError
+        "Cannot open file \"$arg{'file'}\" to read: $!\n";
 
-  open my $fh , '<' , $arg{'file'}
-    or throw OMP::Error::FatalError
-              qq[Cannot open file "$arg{'file'}" to read: $!\n];
-
-  my @lines;
-  while ( my $line = <$fh> ) {
-
-    next if $arg{'filter'} && $line !~ $arg{'filter'};
-    push @lines, $line;
-  }
-
-  close $fh
-    or throw OMP::Error::FatalError
-              qq[Cannot close file "$arg{'file'}" after reading: $!\n];
-
-  # Loop only if requested to keep whitespace on at least one end.
-  unless ( $arg{'start-whitespace'} && $arg{'end-whitespace'} ) {
-
-    for ( @lines ) {
-
-      s/^\s+// unless $arg{'start-whitespace'};
-      s/\s+$// unless $arg{'end-whitespace'};
+    my @lines;
+    while (my $line = <$fh>) {
+        next if $arg{'filter'} && $line !~ $arg{'filter'};
+        push @lines, $line;
     }
-  }
 
-  return \@lines;
+    close $fh
+        or throw OMP::Error::FatalError
+        "Cannot close file \"$arg{'file'}\" after reading: $!\n";
+
+    # Loop only if requested to keep whitespace on at least one end.
+    unless ($arg{'start-whitespace'} && $arg{'end-whitespace'}) {
+        for (@lines) {
+            s/^\s+// unless $arg{'start-whitespace'};
+            s/\s+$// unless $arg{'end-whitespace'};
+        }
+    }
+
+    return \@lines;
 }
 
 =item B<get_directory_contents>
@@ -958,17 +1038,16 @@ Optional truth value to sort alphabetiscally.
 
 Get an unsorted, unfiletered list as array reference ...
 
-  $files = OMP::General
-          ->get_directory_contents( 'dir' => '/dir/path' );
+    $files = OMP::General->get_directory_contents(
+        'dir' => '/dir/path');
 
 Get the sorted list of files matching regular expression "te?mp"
 anywhere in the its name ...
 
-  $filtered = OMP::General
-              ->get_directory_contents( 'dir' => '/dir/path',
-                                        'filter' => qr{te?mp},
-                                        'sort' => 1
-                                      );
+    $filtered = OMP::General->get_directory_contents(
+        'dir' => '/dir/path',
+        'filter' => qr/te?mp/,
+        'sort' => 1);
 
 For other filter options, please refer to L<find(1)>, L<File::Find>,
 L<File::Find::Rule>.
@@ -977,33 +1056,31 @@ L<File::Find::Rule>.
 
 sub get_directory_contents {
 
-  my ( $self, %arg ) = @_;
+    my ($self, %arg) = @_;
 
-  my $dh;
-  opendir $dh, $arg{'dir'}
-    or throw OMP::Error::FatalError
-              qq[Could not open directory "$arg{'dir'}": $!\n];
+    my $dh;
+    opendir $dh, $arg{'dir'}
+        or throw OMP::Error::FatalError
+        "Could not open directory \"$arg{'dir'}\": $!\n";
 
-  my @file;
-  my ( $cur, $up ) = map { File::Spec->$_ } qw[ curdir updir ];
-  while ( my $f = readdir $dh ) {
+    my @file;
+    my ($cur, $up) = map {File::Spec->$_} qw/curdir updir/;
 
-    next if $f eq $cur or $f eq $up;
+    while (my $f = readdir $dh) {
+        next if $f eq $cur or $f eq $up;
 
-    next if $arg{'filter'} && $f !~ $arg{'filter'};
+        next if $arg{'filter'} && $f !~ $arg{'filter'};
 
-    push @file, File::Spec->catfile( $arg{'dir'}, $f );
-  }
+        push @file, File::Spec->catfile($arg{'dir'}, $f);
+    }
 
-  closedir $dh
-    or throw OMP::Error::FatalError
-              qq[Could not close directory "$arg{'dir'}": $!\n];
+    closedir $dh
+        or throw OMP::Error::FatalError
+        "Could not close directory \"$arg{'dir'}\": $!\n";
 
-  return
-    $arg{'sort'}
-    ? [ sort { $a cmp $b || $a <=> $b } @file ]
-    : \@file
-    ;
+    return $arg{'sort'}
+        ? [sort {$a cmp $b || $a <=> $b} @file]
+        : \@file;
 }
 
 =back
@@ -1018,41 +1095,41 @@ Split a string that uses a whitespace as a delimiter into a series of
 substrings. Substrings that are surrounded by double-quotes will be
 separated out using the double-quotes as the delimiters.
 
-  $string = 'foo "baz xyz" bar';
-  @substrings = OMP::General->split_string($string);
+    $string = 'foo "baz xyz" bar';
+    @substrings = OMP::General->split_string($string);
 
 Returns an array of substrings.
 
 =cut
 
 sub split_string {
-  my $self = shift;
-  my $string = shift;
+    my $self = shift;
+    my $string = shift;
 
-  my @substrings;
+    my @substrings;
 
-  # Loop over the string extracting out the double-quoted substrings
-  while ($string =~ /\".*?\"/s) {
-    my $savestring = '';
-    if ($string !~/^\"/) {
-      # Modify the string so that it begins with a quoted string and
-      # store the portion of the string preceding the quoted string
-      my $index = index($string, '"');
-      $savestring .= substr($string, 0, $index);
-      $string = substr($string, $index);
+    # Loop over the string extracting out the double-quoted substrings
+    while ($string =~ /\".*?\"/s) {
+        my $savestring = '';
+        if ($string !~ /^\"/) {
+            # Modify the string so that it begins with a quoted string and
+            # store the portion of the string preceding the quoted string
+            my $index = index($string, '"');
+            $savestring .= substr($string, 0, $index);
+            $string = substr($string, $index);
+        }
+
+        # Extract out the quoted string
+        my ($extracted, $remainder) = extract_delimited($string, '"');
+        $extracted =~ s/^\"(.*?)\"$/$1/;  # Get rid of the begin and end quotes
+        push @substrings, $extracted;
+        $string = $savestring . $remainder;
     }
 
-    # Extract out the quoted string
-    my ($extracted, $remainder) = extract_delimited($string,'"');
-    $extracted =~ s/^\"(.*?)\"$/$1/; # Get rid of the begin and end quotes
-    push @substrings, $extracted;
-    $string = $savestring . $remainder;
-  }
+    # Now split the string apart on white space
+    push @substrings, split(/\s+/, $string);
 
-  # Now split the string apart on white space
-  push @substrings, split(/\s+/,$string);
-
-  return @substrings;
+    return @substrings;
 }
 
 =item B<nint>
@@ -1060,7 +1137,7 @@ sub split_string {
 Return the nearest integer to a supplied floating point
 value. 0.5 is rounded up.
 
-  $nint = OMP::General::nint( $in );
+    $nint = OMP::General::nint($in);
 
 =cut
 
@@ -1069,10 +1146,11 @@ sub nint {
 
     if ($value >= 0) {
         return (int($value + 0.5));
-    } else {
+    }
+    else {
         return (int($value - 0.5));
     }
-};
+}
 
 =item B<nearest_mult>
 
@@ -1093,21 +1171,20 @@ sub nearest_mult {
 
 Given a list of strings, returns list of ROT-13 obfuscated strings.
 
-  # 'cbyxn qbg' is retuned.
-  @rot = OMP::General->rot13( 'polka dot' );
+    # 'cbyxn qbg' is retuned.
+    @rot = OMP::General->rot13('polka dot');
 
 =cut
 
 sub rot13 {
+    my ($self, @in) = @_;
 
-  my ( $self , @in ) = @_;
+    for (@in) {
+        defined $_
+            and tr/A-Za-z/N-ZA-Mn-za-m/;
+    }
 
-  for ( @in ) {
-
-    defined $_
-      and tr/A-Za-z/N-ZA-Mn-za-m/;
-  }
-  return @in;
+    return @in;
 }
 
 =back
@@ -1121,16 +1198,20 @@ sub rot13 {
 Returns the number of keys in a given hash reference; returns nothing
 if the reference is undefined or is not actually a reference.
 
-  print "given hash ref is undef, empty, or not a reference at all"
-    unless OMP::General->hashref_keys_size( $some_hash_ref );
+    print "given hash ref is undef, empty, or not a reference at all"
+        unless OMP::General->hashref_keys_size($some_hash_ref);
 
 =cut
 
 sub hashref_keys_size {
-  my ( $self, $r ) = @_;
-  return unless defined $r and ref $r ;
-  return scalar keys %{ $r };
+    my ($self, $r) = @_;
+    return unless defined $r and ref $r;
+    return scalar keys %{$r};
 }
+
+1;
+
+__END__
 
 =back
 
@@ -1160,8 +1241,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-
-1;

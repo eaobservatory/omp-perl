@@ -6,13 +6,13 @@ OMP::Range - Implement simple ranges
 
 =head1 SYNOPSIS
 
-  use OMP::Range;
+    use OMP::Range;
 
-  $r = new OMP::Range( Min => -4, Max => 20, units => 'pixels');
-  $r = new OMP::Range( Min => 0 );
-  $r->units("pixels");
+    $r = OMP::Range->new(Min => -4, Max => 20, units => 'pixels');
+    $r = OMP::Range->new(Min => 0);
+    $r->units("pixels");
 
-  print "$r";
+    print "$r";
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ use strict;
 use warnings;
 use Carp;
 
-use base qw/ Number::Interval /;
+use base qw/Number::Interval/;
 
 our $VERSION = '2.000';
 
@@ -41,22 +41,22 @@ our $VERSION = '2.000';
 Create a new object. Can be populated when supplied with
 keys C<Max> and C<Min>.
 
-  $r = new JAC::OCS::Config::Range();
-  $r = new JAC::OCS::Config::Range( Max => 5, Units => 'pixels' );
+    $r = OMP::Range->new();
+    $r = OMP::Range->new(Max => 5, Units => 'pixels');
 
 =cut
 
 sub new {
-  my $class = shift;
-  my $i = $class->SUPER::new( IncMin => 1, IncMax => 1, @_ );
+    my $class = shift;
+    my $i = $class->SUPER::new(IncMin => 1, IncMax => 1, @_);
 
-  # Populate it with units
-  if (@_) {
-    my %args = @_;
-    $i->units( $args{Units}) if exists $args{Units};
-  }
+    # Populate it with units
+    if (@_) {
+        my %args = @_;
+        $i->units($args{Units}) if exists $args{Units};
+    }
 
-  return $i;
+    return $i;
 }
 
 =back
@@ -69,20 +69,24 @@ sub new {
 
 Units of the numbers comprising the interval.
 
-  $u = $r->units;
-  $i->units("pixels");
+    $u = $r->units;
+    $i->units("pixels");
 
 Can return C<undef> if no unit has been specified.
 
 =cut
 
 sub units {
-  my $self = shift;
-  if (@_) {
-    $self->{Units} = shift;
-  }
-  return $self->{Units};
+    my $self = shift;
+    if (@_) {
+        $self->{Units} = shift;
+    }
+    return $self->{Units};
 }
+
+1;
+
+__END__
 
 =back
 
@@ -111,6 +115,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-
-1;
-

@@ -10,10 +10,9 @@ OMP::SciProgStats - Find statistical properties of a science program
 
 =head1 SYNOPSIS
 
- use OMP::SciProgStats;
+    use OMP::SciProgStats;
 
- @racover = $sp->ra_coverage();
-
+    @racover = $sp->ra_coverage();
 
 =head1 DESCRIPTION
 
@@ -43,7 +42,7 @@ No constructor or accessor methods provided by this extension.
 
 Return a histogram of RA coverage present in the science program.
 
-  my @hist = $sp->ra_coverage();
+    my @hist = $sp->ra_coverage();
 
 The return list contains 24 elements, starting at hour 0 and
 incrementing to 23. The values are the amount of time present
@@ -52,59 +51,67 @@ and multiplying by the number of MSB repeats.
 
 Optional arguments can be used to constrain the data.
 
- @hist = $sp->ra_coverage( instrument => 'SCUBA' );
+    @hist = $sp->ra_coverage(instrument => 'SCUBA');
 
 Allowed keys are:
 
- instrument    Specify an instrument for which the coverage is calculated
+=over 4
+
+=item instrument
+
+Specify an instrument for which the coverage is calculated
+
+=back
 
 =cut
 
 sub ra_coverage {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  # Initialise histogram
-  my @rahist = map { 0 } (0..23);
+    # Initialise histogram
+    my @rahist = map {0} (0 .. 23);
 
-  # Now loop over each MSB
-  for my $msb ($self->msb) {
+    # Now loop over each MSB
+    for my $msb ($self->msb) {
+        my $remaining = $msb->remaining;
 
-    my $remaining = $msb->remaining;
+        # Filter out complete MSBs or removed MSBs.
+        next unless $remaining > 0;
 
-    # Filter out complete MSBs or removed MSBs.
-    next unless $remaining > 0;
+        for my $obs ($msb->obssum) {
+            # skip if we are specifically looking for one instrument
+            next if (defined $args{instrument}
+                && $obs->{instrument} ne $args{instrument});
 
-    for my $obs ($msb->obssum) {
-      # skip if we are specifically looking for one instrument
-      next if (defined $args{instrument} &&
-               $obs->{instrument} ne $args{instrument});
+            my $target = $obs->{coords};
+            if ($target->type ne 'RADEC') {
+                # warn "Target ". $target->name ." in project ". $proj->projectid . " is non-sidereal. Skipping\n";
+                next;
+            }
+            my $ra = $target->ra(format => 'h');
+            $ra = int($ra + 0.5);
+            $ra = 0 if $ra >= 24;
 
-      my $target = $obs->{coords};
-      if ($target->type ne 'RADEC') {
-        # warn "Target ". $target->name ." in project ". $proj->projectid . " is non-sidereal. Skipping\n";
-        next;
-      }
-      my $ra = $target->ra( format => 'h' );
-      $ra = int( $ra + 0.5);
-      $ra = 0 if $ra >= 24;
+            # Take into account the estimated duration of each SpObs
+            # If we are just counting SpObs this factor is always 1
+            my $dur = $obs->{timeest} / 3600;
 
-      # Take into account the estimated duration of each SpObs
-      # If we are just counting SpObs this factor is always 1
-      my $dur = $obs->{timeest} / 3600;
+            # Total time for this SpObs is the duration of the observation
+            # times the number of repeats
+            my $incr = $remaining * $dur;
 
-      # Total time for this SpObs is the duration of the observation
-      # times the number of repeats
-      my $incr = $remaining * $dur;
-
-      # Add an entry for each repeat of an MSB
-      $rahist[$ra] += $incr;
+            # Add an entry for each repeat of an MSB
+            $rahist[$ra] += $incr;
+        }
     }
 
-  }
-
-  return @rahist;
+    return @rahist;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -135,5 +142,3 @@ Place,Suite 330, Boston, MA  02111-1307, USA
 L<OMP::SciProg>
 
 =cut
-
-1;

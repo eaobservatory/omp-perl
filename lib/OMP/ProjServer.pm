@@ -6,7 +6,7 @@ OMP::ProjServer - Project information Server class
 
 =head1 SYNOPSIS
 
-  $xmlsummary = OMP::ProjServer->summary( "open" );
+    $xmlsummary = OMP::ProjServer->summary("open");
 
 =head1 DESCRIPTION
 
@@ -29,7 +29,7 @@ use OMP::ProjDB;
 use OMP::ProjAffiliationDB;
 use OMP::SiteQuality;
 use OMP::Project;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -45,17 +45,16 @@ our $VERSION = '2.000';
 Return all the projects in the database table
 that match supplied criteria.
 
-  $projects = OMP::ProjServer->listProjects( $xmlquery,
-                                             $format);
+    $projects = OMP::ProjServer->listProjects($xmlquery, $format);
 
 The database query must be supplied in XML form. See C<OMP::ProjQuery>
 for more details on the format of an XML query. A typical query could
 be:
 
- <ProjQuery>
-  <status>active</status>
-  <semester>SERV</semester>
- </ProjQuery>
+    <ProjQuery>
+        <status>active</status>
+        <semester>SERV</semester>
+    </ProjQuery>
 
 The format of the returned data is controlled by the last argument.
 This can either be "object" (a reference to an array containing
@@ -67,54 +66,53 @@ C<E<lt>OMPProjectsE<gt>> surrounds the core data.
 =cut
 
 sub listProjects {
-  my $class = shift;
-  my $xmlquery = shift;
-  my $mode = lc( shift );
-  $mode = "xml" unless $mode;
+    my $class = shift;
+    my $xmlquery = shift;
+    my $mode = lc(shift);
+    $mode = "xml" unless $mode;
 
-  OMP::General->log_message("ProjServer::listProjects: \n".
-                            "Query: $xmlquery\n" .
-                            "Output format: $mode\n");
+    OMP::General->log_message(
+        "ProjServer::listProjects: \n"
+        . "Query: $xmlquery\n"
+        . "Output format: $mode\n");
 
+    my @projects;
+    my $E;
+    try {
+        # Triggers an exception on fatal errors
+        my $query = OMP::ProjQuery->new(XML => $xmlquery,);
 
-  my @projects;
-  my $E;
-  try {
+        my $db = OMP::ProjDB->new(DB => $class->dbConnection);
 
-    # Triggers an exception on fatal errors
-    my $query = new OMP::ProjQuery( XML => $xmlquery,
-                                 );
+        @projects = $db->listProjects($query);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    my $db = new OMP::ProjDB(
-                             DB => $class->dbConnection,
-                            );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-    @projects = $db->listProjects( $query );
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  if ($mode eq "xml") {
-    return "<OMPProjects>\n" . join("\n", map { scalar($_->summary) } @projects)
-      . "\n</OMPProjects>\n";
-  } elsif ($mode eq "hash") {
-    return [ map { {$_->summary} } @projects  ];
-  } else {
-    return \@projects;
-  }
-
+    if ($mode eq 'xml') {
+        return "<OMPProjects>\n"
+            . join("\n", map {scalar($_->summary)} @projects)
+            . "\n</OMPProjects>\n";
+    }
+    elsif ($mode eq 'hash') {
+        return [map {
+            {$_->summary}
+        } @projects];
+    }
+    else {
+        return \@projects;
+    }
 }
 
 =item B<projectDetails>
@@ -123,9 +121,9 @@ Return the details of a single project. The summary is returned as a
 data structure (a reference to a hash), as an C<OMP::Project> object
 or as XML.
 
-  $href = OMP::ProjServer->projectDetails( $project, "data" );
-  $xml = OMP::ProjServer->projectDetails( $project, "xml" );
-  $obj = OMP::ProjServer->projectDetails( $project, "object" );
+    $href = OMP::ProjServer->projectDetails($project, 'data');
+    $xml = OMP::ProjServer->projectDetails($project, 'xml');
+    $obj = OMP::ProjServer->projectDetails($project, 'object');
 
 Note that this may cause problems for a strongly typed language.
 
@@ -134,40 +132,37 @@ The default is to return XML since that is a simple string.
 =cut
 
 sub projectDetails {
-  my $class = shift;
-  my $projectid = shift;
-  my $mode = lc(shift);
-  $mode ||= 'xml';
+    my $class = shift;
+    my $projectid = shift;
+    my $mode = lc(shift);
+    $mode ||= 'xml';
 
-  OMP::General->log_message("ProjServer::projectDetails: $projectid\n");
+    OMP::General->log_message("ProjServer::projectDetails: $projectid\n");
 
-  my $E;
-  my $summary;
-  try {
+    my $E;
+    my $summary;
+    try {
+        my $db = OMP::ProjDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection);
 
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
+        $summary = $db->projectDetails($mode);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $summary = $db->projectDetails( $mode );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $summary;
+    return $summary;
 }
 
 =item B<verifyProject>
@@ -175,62 +170,60 @@ sub projectDetails {
 Verify that the specified project is active and present in the
 database.
 
-  $result = OMP::ProjServer->verifyProject( $projectid );
+    $result = OMP::ProjServer->verifyProject($projectid);
 
 Returns true or false.
 
 =cut
 
 sub verifyProject {
-  my $class = shift;
+    my $class = shift;
 
-  my $projectid = shift;
-  OMP::General->log_message("ProjServer::verifyProject: $projectid\n");
+    my $projectid = shift;
+    OMP::General->log_message("ProjServer::verifyProject: $projectid\n");
 
-  my $there;
-  my $E;
-  try {
+    my $there;
+    my $E;
+    try {
+        my $db = OMP::ProjDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection);
 
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
+        $there = $db->verifyProject();
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $there = $db->verifyProject();
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $there;
-
+    return $there;
 }
 
 =item B<addProject>
 
 Add details of a project to the database.
 
-  OMP::ProjServer->addProject($force, $projectid, $pi,
-                              $coi, $support,
-                              $title, $tagpriority, $country, $tagadj,
-                              $semester, $allocated
-                              $telescope, $taumin, $taumax,
-                              $seemin, $seemax, $cloudmin, $cloudmax,
-                              $skymin, $skymax,
-                              $state, $pi_affiliation, $coi_affiliation,
-                              $expirydate
-                             );
+    OMP::ProjServer->addProject(
+        $force,
+        $projectid, $pi, $coi, $support,
+        $title, $tagpriority, $country, $tagadj,
+        $semester, $allocated, $telescope,
+        $taumin, $taumax,
+        $seemin, $seemax,
+        $cloudmin, $cloudmax,
+        $skymin, $skymax,
+        $state,
+        $pi_affiliation, $coi_affiliation,
+        $expirydate);
 
 The first argument indicates
 whether it is desirable to overwrite an existing project. An exception
@@ -256,194 +249,202 @@ separated.
 =cut
 
 sub addProject {
-  my $class = shift;
-  my $force = shift;
-  my @project = @_;
-  OMP::General->log_message("ProjServer::addProject: $project[0]\n");
+    my $class = shift;
+    my $force = shift;
+    my @project = @_;
+    OMP::General->log_message("ProjServer::addProject: $project[0]\n");
 
-  my $E;
-  try {
+    my $E;
+    try {
+        throw OMP::Error::BadArgs(
+            "Should be at least 11 elements in project array. Found "
+            . scalar(@project))
+            unless scalar(@project) >= 11;
 
-    throw OMP::Error::BadArgs("Should be at least 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 11;
+        my $userdb = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $userdb = new OMP::UserDB( DB => $class->dbConnection );
-
-    # Split CoI and Support on colon or comma
-    my @coi;
-    if ($project[2]) {
-      @coi = map { $userdb->getUser($_)
-                     or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
-        split /[:,]/, $project[2];
-    }
-    if (defined $project[21]) {
-        my @coi_affiliations = split /[:,]/, $project[21];
-        foreach my $this_coi (@coi) {
-            last unless scalar @coi_affiliations;
-            my $affiliation = shift @coi_affiliations;
-            throw OMP::Error::FatalError("CoI [$project[1]] affiliation '$affiliation' not recognized by the OMP")
-                unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
-            $this_coi->affiliation($affiliation);
+        # Split CoI and Support on colon or comma
+        my @coi;
+        if ($project[2]) {
+            @coi = map {
+                $userdb->getUser($_)
+                    or throw OMP::Error::FatalError(
+                        "User ID $_ not recognized by OMP system [project=$project[0]]")
+                }
+                split /[:,]/, $project[2];
         }
+        if (defined $project[21]) {
+            my @coi_affiliations = split /[:,]/, $project[21];
+            foreach my $this_coi (@coi) {
+                last unless scalar @coi_affiliations;
+                my $affiliation = shift @coi_affiliations;
+                throw OMP::Error::FatalError(
+                    "CoI [$project[1]] affiliation '$affiliation' not recognized by the OMP")
+                    unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+                $this_coi->affiliation($affiliation);
+            }
+        }
+
+        my @support;
+        if ($project[3]) {
+            @support = map {
+                $userdb->getUser($_)
+                    or throw OMP::Error::FatalError(
+                        "User ID $_ not recognized by OMP system [project=$project[0]]")
+            } split /[:,]/, $project[3];
+        }
+
+        # Create range object for tau (and force defaults if required)
+        my $taurange = OMP::Range->new(Min => $project[11], Max => $project[12]);
+        OMP::SiteQuality::undef_to_default('TAU', $taurange);
+
+        # And seeing
+        my $seerange = OMP::Range->new(Min => $project[13], Max => $project[14]);
+        OMP::SiteQuality::undef_to_default('SEEING', $seerange);
+
+        # and cloud
+        my $cloudrange = OMP::Range->new(Min => $project[15], Max => $project[16]);
+        OMP::SiteQuality::undef_to_default('CLOUD', $cloudrange);
+
+        # and sky brightness
+        # reverse min and max for magnitudes (but how do we know?)
+        my $skyrange = OMP::Range->new(Min => $project[18], Max => $project[17]);
+
+        # Set up queue information
+        # Convert tag to array ref if required
+        my $tag = (ref($project[5]) ? $project[5] : [$project[5]]);
+        my $tagadjs = (ref($project[7]) ? $project[7] : [$project[7]]);
+
+        throw OMP::Error::FatalError("TAG priority/country mismatch")
+            unless ($#$tag == 0 || $#$tag == $#{$project[6]});
+
+        # set up queue for each country in turn
+        my %queue;
+        my %tagadj;
+        for my $i (0 .. $#{$project[6]}) {
+            # read out priority (this is the TAG priority)
+            my $pri = ($#$tag > 0 ? $tag->[$i] : $tag->[0]);
+
+            # find the TAG adjustment (default to 0 if we run out)
+            my $adj = ($#$tagadjs > 0 ? $tagadjs->[$i] : $tagadjs->[0]);
+            $adj = 0 unless defined $adj;
+
+            # must correct the TAG priority
+            $tagadj{uc($project[6]->[$i])} = $adj;
+            $queue{uc($project[6]->[$i])} = $pri + $adj;
+
+        }
+        my $primary = uc($project[6]->[0]);
+
+        throw OMP::Error::FatalError("Must supply a telescope")
+            unless defined $project[10];
+
+        # Get the PI information
+        my $pi = $userdb->getUser($project[1]);
+        throw OMP::Error::FatalError(
+            "PI [$project[1]] not recognized by the OMP")
+            unless defined $pi;
+        if (defined $project[20]) {
+            throw OMP::Error::FatalError(
+                "PI [$project[1]] affiliation '$project[20]' not recognized by the OMP")
+                unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[20]};
+            $pi->affiliation($project[20]);
+        }
+
+        my $expirydate = undef;
+        if (defined $project[22]) {
+            $expirydate = OMP::DateTools->parse_date($project[22]);
+            throw OMP::Error::FatalError("Expiry date not understood")
+                unless defined $expirydate;
+        }
+
+        throw OMP::Error::FatalError("Semester is mandatory.")
+            unless defined $project[8];
+
+        # Instantiate OMP::Project object
+        my $proj = OMP::Project->new(
+            projectid => $project[0],
+            pi => $pi,
+            coi => \@coi,
+            support => \@support,
+            title => $project[4],
+            primaryqueue => $primary,
+            queue => \%queue,
+            tagadjustment => \%tagadj,
+            semester => $project[8],
+            allocated => $project[9],
+            telescope => $project[10],
+            taurange => $taurange,
+            seeingrange => $seerange,
+            cloudrange => $cloudrange,
+            skyrange => $skyrange,
+            state => $project[19],
+            expirydate => $expirydate,
+        );
+
+        my $db = OMP::ProjDB->new(
+            DB => $class->dbConnection,
+            ProjectID => $proj->projectid,
+        );
+
+        $db->addProject($proj, $force);
     }
-
-    my @support;
-    if ($project[3]) {
-      @support = map { $userdb->getUser($_) or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]") } split /[:,]/, $project[3];
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
     }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    # Create range object for tau (and force defaults if required)
-    my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
-    OMP::SiteQuality::undef_to_default( 'TAU', $taurange );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-    # And seeing
-    my $seerange = new OMP::Range(Min=>$project[13], Max=>$project[14]);
-    OMP::SiteQuality::undef_to_default( 'SEEING', $seerange );
-
-    # and cloud
-    my $cloudrange = new OMP::Range(Min=>$project[15], Max=>$project[16]);
-    OMP::SiteQuality::undef_to_default( 'CLOUD', $cloudrange );
-
-    # and sky brightness
-    # reverse min and max for magnitudes (but how do we know?)
-    my $skyrange = new OMP::Range(Min=>$project[18], Max=>$project[17]);
-
-    # Set up queue information
-    # Convert tag to array ref if required
-    my $tag = ( ref($project[5]) ? $project[5] : [ $project[5] ] );
-    my $tagadjs = ( ref($project[7]) ? $project[7] : [ $project[7] ] );
-
-    throw OMP::Error::FatalError( "TAG priority/country mismatch" )
-      unless ($#$tag == 0 || $#$tag == $#{ $project[6] });
-
-    # set up queue for each country in turn
-    my %queue;
-    my %tagadj;
-    for my $i (0..$#{$project[6]}) {
-      # read out priority (this is the TAG priority)
-      my $pri = ( $#$tag > 0 ? $tag->[$i] : $tag->[0] );
-
-      # find the TAG adjustment (default to 0 if we run out)
-      my $adj = ( $#$tagadjs > 0 ? $tagadjs->[$i] : $tagadjs->[0] );
-      $adj = 0 if !defined $adj;
-
-      # must correct the TAG priority
-      $tagadj{ uc($project[6]->[$i]) } = $adj;
-      $queue{ uc($project[6]->[$i]) } = $pri + $adj;
-
-    }
-    my $primary = uc($project[6]->[0]);
-
-    throw OMP::Error::FatalError("Must supply a telescope")
-      unless defined $project[10];
-
-    # Get the PI information
-    my $pi = $userdb->getUser( $project[1] );
-    throw OMP::Error::FatalError("PI [$project[1]] not recognized by the OMP")
-      unless defined $pi;
-    if (defined $project[20]) {
-        throw OMP::Error::FatalError("PI [$project[1]] affiliation '$project[20]' not recognized by the OMP")
-            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[20]};
-        $pi->affiliation($project[20]);
-    }
-
-    my $expirydate = undef;
-    if (defined $project[22]) {
-        $expirydate = OMP::DateTools->parse_date($project[22]);
-        throw OMP::Error::FatalError("Expiry date not understood")
-            unless defined $expirydate;
-    }
-
-    throw OMP::Error::FatalError( "Semester is mandatory." )
-      if !defined $project[8];
-
-    # Instantiate OMP::Project object
-    my $proj = new OMP::Project(
-                                projectid => $project[0],
-                                pi => $pi,
-                                coi => \@coi,
-                                support => \@support,
-                                title => $project[4],
-                                primaryqueue => $primary,
-                                queue => \%queue,
-                                tagadjustment => \%tagadj,
-                                semester => $project[8],
-                                allocated => $project[9],
-                                telescope => $project[10],
-                                taurange => $taurange,
-                                seeingrange => $seerange,
-                                cloudrange => $cloudrange,
-                                skyrange => $skyrange,
-                                state => $project[19],
-                                expirydate => $expirydate,
-                               );
-
-    my $db = new OMP::ProjDB(
-                             DB => $class->dbConnection,
-                             ProjectID => $proj->projectid,
-                            );
-
-    $db->addProject( $proj, $force );
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return 1;
+    return 1;
 }
 
 =item B<getTelescope>
 
 Obtain the telescope associated with the specified project.
 
-  $tel = OMP::ProjServer->getTelescope( $project );
+    $tel = OMP::ProjServer->getTelescope($project);
 
 Returns null if the project does not exist.
 
 =cut
 
 sub getTelescope {
-  my $class = shift;
-  my $projectid = shift;
+    my $class = shift;
+    my $projectid = shift;
 
-  my $tel;
-  my $E;
-  try {
+    my $tel;
+    my $E;
+    try {
+        my $db = OMP::ProjDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection,
+        );
 
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
+        $tel = $db->getTelescope();
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $tel = $db->getTelescope();
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $tel;
-
+    return $tel;
 }
 
 =item B<verifyTelescope>
@@ -454,43 +455,45 @@ returns false. Also returns true if the project ID begins with a
 telescope prefix that matches - this removes the need for a database
 query.
 
-  $isthistel = OMP::ProjServer->verifyTelescope( $projectid, $tel );
+    $isthistel = OMP::ProjServer->verifyTelescope($projectid, $tel);
 
 =cut
 
 sub verifyTelescope {
-  my $class = shift;
-  my $projectid = shift;
-  my $tel = shift;
+    my $class = shift;
+    my $projectid = shift;
+    my $tel = shift;
 
-  my $ismatch;
-  my $E;
-  try {
+    my $ismatch;
+    my $E;
+    try {
+        my $db = OMP::ProjDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection,
+        );
 
-    my $db = new OMP::ProjDB(
-                             ProjectID => $projectid,
-                             DB => $class->dbConnection,
-                            );
+        $ismatch = $db->verifyTelescope($tel);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $ismatch = $db->verifyTelescope($tel);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $ismatch;
+    return $ismatch;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -521,5 +524,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-
-1;

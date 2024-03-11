@@ -6,15 +6,15 @@ OMP::CGIPage - Generate complete dynamic OMP web pages
 
 =head1 SYNOPSIS
 
-use CGI;
+    use CGI;
 
-use OMP::CGIPage;
+    use OMP::CGIPage;
 
-$query = new CGI;
+    $query = new CGI;
 
-$cgi = new OMP::CGIPage( CGI => $query );
+    $cgi = OMP::CGIPage->new(CGI => $query);
 
-$cgi->write_page(\&view_method, $auth_type, %opts);
+    $cgi->write_page(\&view_method, $auth_type, %opts);
 
 =head1 DESCRIPTION
 
@@ -43,7 +43,7 @@ use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::DBbackend::Hedwig2OMP;
 use OMP::ProjDB;
-use OMP::Error qw(:try);
+use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::General;
@@ -63,38 +63,38 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 Create a new instance of an C<OMP::CGIPage> object.
 
-  $cgi = new OMP::CGIPage( CGI => $q );
+    $cgi = OMP::CGIPage->new(CGI => $q);
 
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  # Read the arguments
-  my %args;
-  %args = @_ if @_;
+    # Read the arguments
+    my %args;
+    %args = @_ if @_;
 
-  my $c = {
-           CGI => undef,
-           Title => 'OMP System',
-           Auth => undef,
-           SideBar => [],
-           DB => undef,
-           DBArchive => undef,
-           DBHedwig2OMP => undef,
-          };
+    my $c = {
+        CGI => undef,
+        Title => 'OMP System',
+        Auth => undef,
+        SideBar => [],
+        DB => undef,
+        DBArchive => undef,
+        DBHedwig2OMP => undef,
+    };
 
-  # create the object (else we cant use accessor methods)
-  my $object = bless $c, $class;
+    # create the object (else we cant use accessor methods)
+    my $object = bless $c, $class;
 
-  # Populate object
-  for my $key (keys %args) {
-    my $method = lc($key);
-    $object->$method( $args{$key});
-  }
+    # Populate object
+    for my $key (keys %args) {
+        my $method = lc($key);
+        $object->$method($args{$key});
+    }
 
-  return $object;
+    return $object;
 }
 
 =back
@@ -107,59 +107,65 @@ sub new {
 
 Return the CGI object of class C<CGI>.
 
-  $q = $cgi->cgi;
-  $cgi->cgi( $q );
+    $q = $cgi->cgi;
+    $cgi->cgi($q);
 
 The argument must be in class C<CGI>.
 
 =cut
 
 sub cgi {
-  my $self = shift;
-  if (@_) {
-    my $cgi = shift;
-    croak "Incorrect type. Must be a CGI object"
-      unless UNIVERSAL::isa( $cgi, "CGI");
-    $self->{CGI} = $cgi;
-  }
-  return $self->{CGI};
+    my $self = shift;
+    if (@_) {
+        my $cgi = shift;
+
+        croak "Incorrect type. Must be a CGI object"
+            unless UNIVERSAL::isa($cgi, "CGI");
+
+        $self->{CGI} = $cgi;
+    }
+    return $self->{CGI};
 }
 
 =item B<html_title>
 
 Return the string to be used for the HTML title.
 
-  $title = $c->html_title;
-  $c->html_title( $title );
+    $title = $c->html_title;
+    $c->html_title($title);
 
 Default value is "OMP Feedback System".
 
 =cut
 
 sub html_title {
-  my $self = shift;
-  if (@_) { $self->{Title} = shift; }
-  return $self->{Title};
+    my $self = shift;
+    if (@_) {
+        $self->{Title} = shift;
+    }
+    return $self->{Title};
 }
 
 =item B<auth>
 
 The authentication object, if a user is logged in.
 
-  $auth = $cgi->auth();
-  $cgi->auth($auth);
+    $auth = $cgi->auth();
+    $cgi->auth($auth);
 
 =cut
 
 sub auth {
-  my $self = shift;
-  if (@_) {
-    my $auth = shift;
-    throw OMP::Error::BadArgs('OMP::CGIPage->auth must be an OMP::Auth')
-        unless UNIVERSAL::isa($auth, 'OMP::Auth');
-    $self->{Auth} = $auth;
-  }
-  return $self->{Auth};
+    my $self = shift;
+    if (@_) {
+        my $auth = shift;
+
+        throw OMP::Error::BadArgs('OMP::CGIPage->auth must be an OMP::Auth')
+            unless UNIVERSAL::isa($auth, 'OMP::Auth');
+
+        $self->{Auth} = $auth;
+    }
+    return $self->{Auth};
 }
 
 =item B<database>
@@ -334,103 +340,117 @@ first argument (after C<$self>) if project access is required.
 
 The subroutine passed to this method should shift off the first argument.
 
-  sub view_method {
-    my $self = shift;
-    ...
-  }
+    sub view_method {
+        my $self = shift;
+        ...
+    }
 
 =cut
 
 sub write_page {
-  my $self = shift;
-  my $view_method = shift;
-  my $auth_type = shift;
-  my %opt = @_;
+    my $self = shift;
+    my $view_method = shift;
+    my $auth_type = shift;
+    my %opt = @_;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  # Check to see that it is defined...
-  # Check that it is a code ref
-  throw OMP::Error::BadArgs("Code reference or method name not given")
-    unless defined $view_method;
+    # Check to see that it is defined...
+    # Check that it is a code ref
+    throw OMP::Error::BadArgs("Code reference or method name not given")
+        unless defined $view_method;
 
-  my $type = ref $view_method;
-  croak "Must be a code reference or method name."
-    unless ($type eq 'CODE' or $self->can($view_method));
+    my $type = ref $view_method;
+    croak "Must be a code reference or method name."
+        unless ($type eq 'CODE' or $self->can($view_method));
 
-  croak 'No auth_type specified' unless defined $auth_type;
+    croak 'No auth_type specified' unless defined $auth_type;
 
-  my $template = (exists $opt{'template'}) ? $opt{'template'} : undef;
+    my $template = (exists $opt{'template'}) ? $opt{'template'} : undef;
 
-  if (defined $opt{'title'}) {
-    $self->html_title($opt{'title'});
-  }
-
-  $self->auth(my $auth = OMP::Auth->log_in($self));
-
-  return if $auth->abort();
-
-  my $auth_ok = 0;
-
-  if ($auth_type =~ '^local_or_(\w+)$') {
-    $auth_type = $1;
-    $auth_ok = 1 if OMP::NetTools->is_host_local();
-  }
-
- if ($auth_type =~ '^staff_or_(\w+)$') {
-    $auth_type = $1;
-    $auth_ok = 1 if $auth->is_staff();
- }
-
-  my @args = ();
-  unless ($auth_type eq 'no_auth') {
-    # Check to see if any login information has been provided. If not then
-    # put up a login page.
-    return $self->_write_login() unless ($auth_ok or defined $auth->user());
-
-    if ($auth_type eq 'staff') {
-      return $self->_write_forbidden() unless ($auth_ok or $auth->is_staff());
+    if (defined $opt{'title'}) {
+        $self->html_title($opt{'title'});
     }
-    elsif ($auth_type eq 'project') {
-      # Require project access.
 
-      my $projectid = OMP::General->extract_projectid($self->decoded_url_param('project'));
-      unless (defined $projectid) {
-        return $self->_write_project_choice() unless $auth_ok;
-      }
-      else {
-        # Ensure project ID is upper case before attempting authorization.
-        $projectid = uc $projectid;
-      }
+    $self->auth(my $auth = OMP::Auth->log_in($self));
 
-      return $self->_write_forbidden()
-        unless ($auth_ok or $auth->is_staff or $auth->has_project($projectid));
+    return if $auth->abort();
 
-      push @args, $projectid;
-      $self->_sidebar_project($projectid);
-      $self->html_title($projectid . ': ' . $self->html_title());
+    my $auth_ok = 0;
+
+    if ($auth_type =~ '^local_or_(\w+)$') {
+        $auth_type = $1;
+        $auth_ok = 1 if OMP::NetTools->is_host_local();
     }
-    else {
-      croak 'Unrecognized auth_type value';
+
+    if ($auth_type =~ '^staff_or_(\w+)$') {
+        $auth_type = $1;
+        $auth_ok = 1 if $auth->is_staff();
     }
-  }
 
-  my $extra = $self->_write_page_extra();
-  throw OMP::Error::BadArgs("hashref not returned by _write_page_extra")
-      unless 'HASH' eq ref $extra;
-  return if (exists $extra->{'abort'} and $extra->{'abort'});
-  push @args, @{$extra->{'args'}} if exists $extra->{'args'};
+    my @args = ();
+    unless ($auth_type eq 'no_auth') {
+        # Check to see if any login information has been provided. If not then
+        # put up a login page.
+        return $self->_write_login()
+            unless ($auth_ok or defined $auth->user());
 
-  my $result = $self->_call_method($view_method, @args);
+        if ($auth_type eq 'staff') {
+            return $self->_write_forbidden()
+                unless ($auth_ok or $auth->is_staff());
+        }
+        elsif ($auth_type eq 'project') {
+            # Require project access.
 
-  if ((defined $template) and (defined $result)) {
-    $self->_write_http_header(undef, \%opt);
-    $self->render_template($template, {
-      %{$self->_write_page_context_extra(\%opt)},
-      %$result});
-  }
+            my $projectid = OMP::General->extract_projectid(
+                $self->decoded_url_param('project'));
 
-  return;
+            unless (defined $projectid) {
+                return $self->_write_project_choice()
+                    unless $auth_ok;
+            }
+            else {
+                # Ensure project ID is upper case before attempting authorization.
+                $projectid = uc $projectid;
+            }
+
+            return $self->_write_forbidden()
+                unless $auth_ok
+                or $auth->is_staff
+                or $auth->has_project($projectid);
+
+            push @args, $projectid;
+
+            $self->_sidebar_project($projectid);
+
+            $self->html_title($projectid . ': ' . $self->html_title());
+        }
+        else {
+            croak 'Unrecognized auth_type value';
+        }
+    }
+
+    my $extra = $self->_write_page_extra();
+    throw OMP::Error::BadArgs("hashref not returned by _write_page_extra")
+        unless 'HASH' eq ref $extra;
+
+    return if (exists $extra->{'abort'} and $extra->{'abort'});
+
+    push @args, @{$extra->{'args'}} if exists $extra->{'args'};
+
+    my $result = $self->_call_method($view_method, @args);
+
+    if ((defined $template) and (defined $result)) {
+        $self->_write_http_header(undef, \%opt);
+
+        $self->render_template(
+            $template, {
+                %{$self->_write_page_context_extra(\%opt)},
+                %$result,
+            });
+    }
+
+    return;
 }
 
 sub _write_page_context_extra {
@@ -497,46 +517,49 @@ the wrong set of query parameters.
 =cut
 
 sub write_page_finish_log_in {
-  my $self = shift;
+    my $self = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  $self->auth(my $auth = OMP::Auth->log_in($self, @_));
+    $self->auth(my $auth = OMP::Auth->log_in($self, @_));
 
-  return if $auth->abort();
+    return if $auth->abort();
 
-  if (defined $self->auth->message) {
-    return $self->_write_error($self->auth->message);
-  }
+    if (defined $self->auth->message) {
+        return $self->_write_error($self->auth->message);
+    }
 
-  return $self->_write_error('No log in process in progress.');
+    return $self->_write_error('No log in process in progress.');
 }
 
 =item B<write_page_logout>
 
 Creates a logout page and gives a cookie that has already expired.
 
-  $cgi->write_page_logout(\&content, %opt);
+    $cgi->write_page_logout(\&content, %opt);
 
 =cut
 
 sub write_page_logout {
-  my $self = shift;
-  my $content = shift;
-  my %opt = @_;
+    my $self = shift;
+    my $content = shift;
+    my %opt = @_;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  $self->auth(OMP::Auth->log_out($q));
+    $self->auth(OMP::Auth->log_out($q));
 
-  $self->html_title($opt{'title'});
+    $self->html_title($opt{'title'});
 
-  my $result = $self->_call_method($content);
+    my $result = $self->_call_method($content);
 
-  $self->_write_http_header(undef, \%opt);
-  $self->render_template($opt{'template'}, {
-    %{$self->_write_page_context_extra(\%opt)},
-    %$result});
+    $self->_write_http_header(undef, \%opt);
+
+    $self->render_template(
+        $opt{'template'}, {
+            %{$self->_write_page_context_extra(\%opt)},
+            %$result,
+        });
 }
 
 =item B<render_template>
@@ -562,7 +585,9 @@ sub render_template {
     my $templatecontext = Template::Context->new({
         INCLUDE_PATH => scalar OMP::Config->getData('www-templ'),
         VARIABLES => {
-            'create_counter' => sub {OMP::CGIPage::Counter->new(@_)},
+            'create_counter' => sub {
+                OMP::CGIPage::Counter->new(@_);
+            },
         },
     });
 
@@ -577,7 +602,7 @@ sub render_template {
         return $text;
     });
 
-    my $template = new Template({
+    my $template = Template->new({
         CONTEXT => $templatecontext,
         ENCODING => 'utf8',
     }) or die "Could not configure template object: $Template::ERROR";
@@ -603,6 +628,7 @@ C<url_param>.
 sub decoded_url_param {
     my $self = shift;
     my $param = shift;
+
     my $value = $self->cgi->url_param($param);
 
     $value = Encode::decode('UTF-8', $value) unless Encode::is_utf8($value);
@@ -648,21 +674,22 @@ sub url_absolute {
 
 Given a method name or code reference, call the method or code reference.
 
-  $cgi->($method_name, @args);
+    $cgi->($method_name, @args);
 
 =cut
 
 sub _call_method {
-  my $self = shift;
-  my $method = shift;
+    my $self = shift;
+    my $method = shift;
 
-  if (ref($method) eq 'CODE') {
-    # It's a code reference; call it with self as the object.
-    return $method->($self, @_);
-  } else {
-    # It's a method name, run it on self.
-    return $self->$method(@_);
-  }
+    if (ref($method) eq 'CODE') {
+        # It's a code reference; call it with self as the object.
+        return $method->($self, @_);
+    }
+    else {
+        # It's a method name, run it on self.
+        return $self->$method(@_);
+    }
 }
 
 =item B<_get_style>
@@ -676,16 +703,16 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $STYLE = [OMP::Config->getData('www-css')];
+    my $STYLE = [OMP::Config->getData('www-css')];
 
-  sub _get_style {
-    return $STYLE;
-  }
+    sub _get_style {
+        return $STYLE;
+    }
 
-  sub _set_style {
-    my $self = shift;
-    $STYLE = shift;
-  }
+    sub _set_style {
+        my $self = shift;
+        $STYLE = shift;
+    }
 }
 
 =item B<_sidebar_project>
@@ -697,60 +724,60 @@ Set up a project sidebar.
 =cut
 
 sub _sidebar_project {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  # If there are any faults associated with this project put a link up to the
-  # fault system and display the number of faults.
-  my $faultdb = OMP::FaultDB->new(DB => $self->database);
-  my @faults = $faultdb->getAssociations(lc($projectid), 1);
+    # If there are any faults associated with this project put a link up to the
+    # fault system and display the number of faults.
+    my $faultdb = OMP::FaultDB->new(DB => $self->database);
+    my @faults = $faultdb->getAssociations(lc($projectid), 1);
 
-  $self->side_bar("Project $projectid", [
-    ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
-    ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
-    ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
-    ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
-    ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
-    ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
-    ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
-    [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
-    (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
-  ]);
+    $self->side_bar("Project $projectid", [
+        ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
+        ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
+        ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+        ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
+        ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
+        ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
+        ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
+        [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
+        (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
+    ]);
 
-  $self->side_bar("Project administration", [
-    ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
-    ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
-    ['Target observability' => "/cgi-bin/sourceplot.pl?project=$projectid"],
-  ]) if $self->auth->is_staff;
+    $self->side_bar("Project administration", [
+        ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
+        ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
+        ['Target observability' => "/cgi-bin/sourceplot.pl?project=$projectid"],
+    ]) if $self->auth->is_staff;
 }
 
 =item B<_sidebar_night>
 
 Set up a side bar for staff-access night-based pages.
 
-  $page->_sidebar_night($telescope, $utdate);
+    $page->_sidebar_night($telescope, $utdate);
 
 =cut
 
 sub _sidebar_night {
-  my $self = shift;
-  my $telescope = shift;
-  my $utdate = shift;
+    my $self = shift;
+    my $telescope = shift;
+    my $utdate = shift;
 
-  return unless defined $telescope and defined $utdate;
+    return unless defined $telescope and defined $utdate;
 
-  $telescope = uc $telescope;
-  $utdate = $utdate->ymd if ref $utdate;
+    $telescope = uc $telescope;
+    $utdate = $utdate->ymd if ref $utdate;
 
-  $self->side_bar($utdate, [
-    ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
-    ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
-    ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
-    ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
-    ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
-        . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
-    ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
-  ]);
+    $self->side_bar($utdate, [
+        ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
+        ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
+        ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
+        ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+        ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
+            . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
+        ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
+    ]);
 }
 
 =item B<_write_http_header>
@@ -762,89 +789,96 @@ Write the HTTP header, including cookie if present.
 =cut
 
 sub _write_http_header {
-  my $self = shift;
-  my $status = shift;
-  my $opt = shift;
+    my $self = shift;
+    my $status = shift;
+    my $opt = shift;
 
-  my $q = $self->cgi;
-  my $cookie = $self->auth->cookie;
+    my $q = $self->cgi;
+    my $cookie = $self->auth->cookie;
 
-  my %header_opt = (
-    -expires => '-1d',
-    -charset => 'utf-8',
-  );
-  $header_opt{'-cookie'} = $cookie if defined $cookie;
-  $header_opt{'-status'} = $status if defined $status;
+    my %header_opt = (
+        -expires => '-1d',
+        -charset => 'utf-8',
+    );
 
-  print $q->header(%header_opt);
+    $header_opt{'-cookie'} = $cookie if defined $cookie;
+    $header_opt{'-status'} = $status if defined $status;
+
+    print $q->header(%header_opt);
 }
 
 =item B<_write_login>
 
 Create a page with a login form.
 
-  $cgi->_write_login();
+    $cgi->_write_login();
 
 =cut
 
 sub _write_login {
-  my $self = shift;
-  my %opt = (javascript => ['log_in.js']);
+    my $self = shift;
+    my %opt = (javascript => ['log_in.js']);
 
-  $self->_write_http_header(undef, \%opt);
-  $self->render_template('log_in.html', {
-    %{$self->_write_page_context_extra(\%opt)},
-    message => $self->auth->message,
-    target => $self->url_absolute,
-  });
+    $self->_write_http_header(undef, \%opt);
+
+    $self->render_template(
+        'log_in.html', {
+            %{$self->_write_page_context_extra(\%opt)},
+            message => $self->auth->message,
+            target => $self->url_absolute,
+        });
 }
 
 =item B<_write_forbidden>
 
 Create a page with "forbidden" error message.
 
-  $cgi->_write_forbidden();
+    $cgi->_write_forbidden();
 
 =cut
 
 sub _write_forbidden {
-  my $self = shift;
-  my %opt = ();
+    my $self = shift;
+    my %opt = ();
 
-  $self->_write_http_header('403 Forbidden', \%opt);
-  $self->render_template('error.html', {
-    %{$self->_write_page_context_extra(\%opt)},
-    error_title => 'Forbidden',
-    error_messages => [
-      'The system was unable to verify your access to this page.',
-    ],
-  });
+    $self->_write_http_header('403 Forbidden', \%opt);
 
-  return undef;
+    $self->render_template(
+        'error.html', {
+            %{$self->_write_page_context_extra(\%opt)},
+            error_title => 'Forbidden',
+            error_messages => [
+                'The system was unable to verify your access to this page.',
+            ],
+        });
+
+    return undef;
 }
 
 =item B<_write_error>
 
 Create a page with an error message.
 
-  $page->_write_error('Message', ...);
+    $page->_write_error('Message', ...);
 
 This method includes a header and footer.
 
 =cut
 
 sub _write_error {
-  my $self = shift;
-  my %opt = ();
+    my $self = shift;
+    my %opt = ();
 
-  $self->_write_http_header('500 Internal Server Error', \%opt);
-  $self->render_template('error.html', {
-    %{$self->_write_page_context_extra(\%opt)},
-    error_title => 'Error',
-    error_messages => \@_,
-  });
+    $self->_write_http_header('500 Internal Server Error', \%opt);
 
-  return undef;
+    $self->render_template(
+        'error.html', {
+            %{$self->_write_page_context_extra(\%opt)},
+            error_title => 'Error',
+            error_messages => \@_,
+        });
+
+    return undef;
 }
 
 =item B<_write_not_found>
@@ -898,30 +932,31 @@ sub _write_redirect {
 
 Create a page with a project choice form.
 
-  $cgi->_write_project_choice();
+    $cgi->_write_project_choice();
 
 =cut
 
 sub _write_project_choice {
-  my $self = shift;
-  my %opt = ();
-  my $q = $self->cgi;
+    my $self = shift;
+    my %opt = ();
+    my $q = $self->cgi;
 
-  my $project_choices = undef;
-  my %proj_opts = ();
-  if (defined $self->auth->user) {
-    my $projects = $self->auth->projects;
-    if (@$projects) {
-      $project_choices = [sort @$projects];
+    my $project_choices = undef;
+    my %proj_opts = ();
+    if (defined $self->auth->user) {
+        my $projects = $self->auth->projects;
+        if (@$projects) {
+            $project_choices = [sort @$projects];
+        }
     }
-  }
 
-  $self->_write_http_header(undef, \%opt);
-  $self->render_template('project_choice.html', {
-    %{$self->_write_page_context_extra(\%opt)},
-    project_choices => $project_choices,
-    target => $q->url(-absolute => 1),
-  });
+    $self->_write_http_header(undef, \%opt);
+    $self->render_template(
+        'project_choice.html', {
+            %{$self->_write_page_context_extra(\%opt)},
+            project_choices => $project_choices,
+            target => $q->url(-absolute => 1),
+        });
 }
 
 =back

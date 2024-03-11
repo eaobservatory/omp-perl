@@ -146,7 +146,7 @@ sub _show_output {
         else {
             $results = [map {
                 my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$_;
-                my $coord = new Astro::Coords(
+                my $coord = Astro::Coords->new(
                     ra => $ra, dec => $dec, type => 'J2000', units=> 'rad');
                 {reference => $ref, project => $proj, target => $target, separation => $sep,
                 ra => $coord->ra2000, dec => $coord->dec2000, instrument => $instr};
@@ -189,3 +189,5 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA  02111-1307, USA
+
+=cut

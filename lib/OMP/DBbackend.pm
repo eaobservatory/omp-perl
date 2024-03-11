@@ -6,16 +6,16 @@ OMP::DBbackend - Connect and disconnect from specific database backend
 
 =head1 SYNOPSIS
 
-  use OMP::DBbackend;
+    use OMP::DBbackend;
 
-  # Set up connection to database
-  my $db = new OMP::DBbackend;
+    # Set up connection to database
+    my $db = OMP::DBbackend->new;
 
-  # Get the connection handle
-  $dbh = $db->handle;
+    # Get the connection handle
+    $dbh = $db->handle;
 
-  # disconnect (automatic when goes out of scope)
-  $db->disconnect;
+    # disconnect (automatic when goes out of scope)
+    $db->disconnect;
 
 =head1 DESCRIPTION
 
@@ -57,20 +57,44 @@ This class method returns the information required to connect to a
 database. The details are returned in a hash with the following
 keys:
 
-  driver  =>  DBI driver to use for database connection [mysql]
-  server  =>  Database server (e.g. omp4)
-  database=>  The database to use for the transaction
-  user    =>  database login name
-  password=>  password for user
+=over 4
+
+=item driver
+
+DBI driver to use for database connection. [mysql]
+
+=item server
+
+Database server (e.g. omp4)
+
+=item database
+
+The database to use for the transaction
+
+=item user
+
+Database login name.
+
+=item password
+
+Password for user.
+
+=back
 
 This is a class method so that it can easily be subclassed.
 
-  %details = OMP::DBbackend->loginhash;
+    %details = OMP::DBbackend->loginhash;
 
 The following environment variables are recognised to override
 these values:
 
-  OMP_DBSERVER - the server to use
+=over 4
+
+=item OMP_DBSERVER
+
+The server to use.
+
+=back
 
 In the future this method may well read the details from a config
 file rather than hard-wiring the values in the module.
@@ -78,19 +102,19 @@ file rather than hard-wiring the values in the module.
 =cut
 
 sub loginhash {
-  my $class = shift;
-  my %details = (
-                 driver   => OMP::Config->getData("database.driver"),
-                 server   => OMP::Config->getData("database.server"),
-                 database => OMP::Config->getData("database.database"),
-                 user     => OMP::Config->getData("database.user"),
-                 password => OMP::Config->getData("database.password"),
-                );
+    my $class = shift;
+    my %details = (
+        driver => OMP::Config->getData("database.driver"),
+        server => OMP::Config->getData("database.server"),
+        database => OMP::Config->getData("database.database"),
+        user => OMP::Config->getData("database.user"),
+        password => OMP::Config->getData("database.password"),
+    );
 
-  $details{server} = $ENV{OMP_DBSERVER}
-    if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
+    $details{server} = $ENV{OMP_DBSERVER}
+        if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
 
-  return %details;
+    return %details;
 }
 
 =back
@@ -103,8 +127,8 @@ sub loginhash {
 
 Instantiate a new object.
 
-  $db = new OMP::DBbackend();
-  $db = new OMP::DBbackend(1);
+    $db = OMP::DBbackend->new();
+    $db = OMP::DBbackend->new(1);
 
 The connection to the database backend is made immediately.
 
@@ -122,24 +146,24 @@ calls the base class constructor.
 
 my %CACHE;
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-  my $nocache = shift;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $nocache = shift;
 
-  if (!$nocache && defined $CACHE{$class}) {
-    return $CACHE{$class};
-  }
+    if (! $nocache && defined $CACHE{$class}) {
+        return $CACHE{$class};
+    }
 
-  my $db = bless {
-                  TransCount => 0,
-                  Handle => undef,
-                  IsConnected => 0,
-                 }, $class;
+    my $db = bless {
+        TransCount => 0,
+        Handle => undef,
+        IsConnected => 0,
+    }, $class;
 
-  # Store object in the cache
-  $CACHE{$class} = $db;
+    # Store object in the cache
+    $CACHE{$class} = $db;
 
-  return $db;
+    return $db;
 }
 
 =back
@@ -152,8 +176,8 @@ sub new {
 
 Set or retrieve the connection status of the database object.
 
-  $db->_connected( 1 );
-  $connected = $db->_connected;
+    $db->_connected(1);
+    $connected = $db->_connected;
 
 When setting the status, this method takes one boolean parameter. It
 returns a boolean when called in scalar context, and returns false
@@ -162,18 +186,18 @@ by default.
 =cut
 
 sub _connected {
-  my $self = shift;
+    my $self = shift;
 
-  if (@_) { $self->{IsConnected} = shift; }
-  return $self->{IsConnected};
+    if (@_) {$self->{IsConnected} = shift;}
+    return $self->{IsConnected};
 }
 
 =item B<handle>
 
 The database connection handle associated with this object.
 
-  $dbh = $db->handle;
-  $db->handle( $dbh );
+    $dbh = $db->handle;
+    $db->handle($dbh);
 
 If this object is around for a long time it is possible that the
 connection may fail (maybe if the database has been rebooted). If that
@@ -183,18 +207,18 @@ object.
 =cut
 
 sub handle {
-  my $self = shift;
-  if (@_) {
-    $self->{Handle} = shift;
-  } elsif (!defined $self->{Handle} && !$self->_connected) {
+    my $self = shift;
+    if (@_) {
+        $self->{Handle} = shift;
+    }
+    elsif (! defined $self->{Handle} && ! $self->_connected) {
+        # Only do the connect when we're asked what the handle is. We
+        # only do this here so that we don't run into an infinite loop
+        # if we are supplied with a handle.
+        $self->connect;
 
-    # Only do the connect when we're asked what the handle is. We
-    # only do this here so that we don't run into an infinite loop
-    # if we are supplied with a handle.
-    $self->connect;
-
-  }
-  return $self->{Handle};
+    }
+    return $self->{Handle};
 }
 
 =item B<handle_checked>
@@ -220,8 +244,8 @@ sub handle_checked {
 
 Indicate whether we are in a transaction or not.
 
-  $intrans = $db->trans_count();
-  $db->trans_count(1);
+    $intrans = $db->trans_count();
+    $db->trans_count(1);
 
 The number returned by this method indicates the number of
 transactions that we have been asked to begin. A transaction
@@ -237,13 +261,13 @@ The number can not be negative (forced to zero if it is).
 =cut
 
 sub trans_count {
-  my $self = shift;
-  if (@_) {
-    my $c = shift;
-    $c = 0 if $c < 0;
-    $self->{TransCount} = $c;
-  }
-  return $self->{TransCount};
+    my $self = shift;
+    if (@_) {
+        my $c = shift;
+        $c = 0 if $c < 0;
+        $self->{TransCount} = $c;
+    }
+    return $self->{TransCount};
 }
 
 =back
@@ -263,51 +287,55 @@ does not succeed.
 =cut
 
 sub connect {
-  my $self = shift;
+    my $self = shift;
 
-  # Database details
-  my %details    = $self->loginhash;
-  my $DBIdriver  = $details{driver};
-  my $DBserver   = $details{server};
-  my $DBuser     = $details{user};
-  my $DBpwd      = $details{password};
-  my $DBdatabase = $details{database};
+    # Database details
+    my %details = $self->loginhash;
+    my $DBIdriver = $details{driver};
+    my $DBserver = $details{server};
+    my $DBuser = $details{user};
+    my $DBpwd = $details{password};
+    my $DBdatabase = $details{database};
 
-  my $dboptions = "";
+    my $dboptions = "";
 
-  if ($DBIdriver eq 'mysql') {
-    $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10";
-  }
-  elsif ($DBIdriver eq 'SQLite') {
-    $dboptions = ":dbname=$DBdatabase";
-  }
-  else {
-    throw OMP::Error::DBConnection("DBI driver $DBIdriver not recognized");
-  }
+    if ($DBIdriver eq 'mysql') {
+        $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10";
+    }
+    elsif ($DBIdriver eq 'SQLite') {
+        $dboptions = ":dbname=$DBdatabase";
+    }
+    else {
+        throw OMP::Error::DBConnection("DBI driver $DBIdriver not recognized");
+    }
 
-  print "DBI DRIVER: $DBIdriver; SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
-    if $DEBUG;
+    print "DBI DRIVER: $DBIdriver; SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
+        if $DEBUG;
 
-  OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver, database $DBdatabase, as $DBuser <-----");
+    OMP::General->log_message(
+        "------------> Login to DB $DBIdriver server $DBserver, database $DBdatabase, as $DBuser <-----");
 
-  my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, {
-      PrintError => 0,
-      mysql_auto_reconnect => 1,
-      mysql_enable_utf8 => 1,
-    })
-    or throw OMP::Error::DBConnection("Cannot connect to database $DBserver: $DBI::errstr");
+    my $dbh = DBI->connect(
+        "dbi:$DBIdriver" . $dboptions,
+        $DBuser, $DBpwd,
+        {
+            PrintError => 0,
+            mysql_auto_reconnect => 1,
+            mysql_enable_utf8 => 1,
+        },
+    ) or throw OMP::Error::DBConnection(
+        "Cannot connect to database $DBserver: $DBI::errstr");
 
-  # Disable newly-default SQL_MODE options until the OMP code can be updated
-  # to comply with the new strict requirements.
-  $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "STRICT_TRANS_TABLES", "")');
-  $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "ERROR_FOR_DIVISION_BY_ZERO", "")');
+    # Disable newly-default SQL_MODE options until the OMP code can be updated
+    # to comply with the new strict requirements.
+    $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "STRICT_TRANS_TABLES", "")');
+    $dbh->do('SET @@SQL_MODE = REPLACE(@@SQL_MODE, "ERROR_FOR_DIVISION_BY_ZERO", "")');
 
-  # Indicate that we have connected
-  $self->_connected(1);
+    # Indicate that we have connected
+    $self->_connected(1);
 
-  # Store the handle
-  $self->handle( $dbh );
-
+    # Store the handle
+    $self->handle($dbh);
 }
 
 =item B<disconnect>
@@ -318,10 +346,10 @@ sets the C<_connected> status to disconnected.
 =cut
 
 sub disconnect {
-  my $self = shift;
-  $self->handle->disconnect;
-  $self->handle( undef );
-  $self->_connected( 0 );
+    my $self = shift;
+    $self->handle->disconnect;
+    $self->handle(undef);
+    $self->_connected(0);
 }
 
 =item B<begin_trans>
@@ -339,26 +367,23 @@ two transactions the changes are only committed on the second commit.
 =cut
 
 sub begin_trans {
-  my $self = shift;
+    my $self = shift;
 
-  # Get the current count
-  my $transcount = $self->trans_count;
+    # Get the current count
+    my $transcount = $self->trans_count;
 
-  # If we are not in a transaction start one
-  if ($transcount == 0) {
+    # If we are not in a transaction start one
+    if ($transcount == 0) {
+        my $dbh = $self->handle
+            or throw OMP::Error::DBError("Database handle not valid");
 
-    my $dbh = $self->handle or
-      throw OMP::Error::DBError("Database handle not valid");
+        # Begin a transaction
+        $dbh->begin_work
+            or throw OMP::Error::DBError("Error in begin_work: $DBI::errstr\n");
+    }
 
-    # Begin a transaction
-    $dbh->begin_work
-      or throw OMP::Error::DBError("Error in begin_work: $DBI::errstr\n");
-
-  }
-
-  # increment the counter
-  $self->_inctrans;
-
+    # increment the counter
+    $self->_inctrans;
 }
 
 =item B<commit_trans>
@@ -372,25 +397,24 @@ commit when the last transaction is committed.
 =cut
 
 sub commit_trans {
-  my $self = shift;
+    my $self = shift;
 
-  # Get the current count and return if it is zero
-  my $transcount = $self->trans_count;
-  return unless $transcount;
+    # Get the current count and return if it is zero
+    my $transcount = $self->trans_count;
+    return unless $transcount;
 
-  if ($transcount == 1) {
-    # This is the last transaction so commit
-    my $dbh = $self->handle
-      or throw OMP::Error::DBError("Database handle not valid");
+    if ($transcount == 1) {
+        # This is the last transaction so commit
+        my $dbh = $self->handle
+            or throw OMP::Error::DBError("Database handle not valid");
 
-    $dbh->commit
-      or throw OMP::Error::DBError("Error committing transaction: $DBI::errstr");
+        $dbh->commit
+            or throw OMP::Error::DBError(
+            "Error committing transaction: $DBI::errstr");
+    }
 
-  }
-
-  # Decrement the counter
-  $self->_dectrans;
-
+    # Decrement the counter
+    $self->_dectrans;
 }
 
 =item B<rollback_trans>
@@ -404,22 +428,22 @@ handle nested transactions we must abort from all transactions.>
 =cut
 
 sub rollback_trans {
-  my $self = shift;
+    my $self = shift;
 
-  # Check that we are in a transaction
-  if ($self->trans_count) {
+    # Check that we are in a transaction
+    if ($self->trans_count) {
 
-    # Okay rollback the transaction
-    my $dbh = $self->handle
-      or throw OMP::Error::DBError("Database handle not valid");
+        # Okay rollback the transaction
+        my $dbh = $self->handle
+            or throw OMP::Error::DBError("Database handle not valid");
 
-    # Reset the counter
-    $self->trans_count(0);
+        # Reset the counter
+        $self->trans_count(0);
 
-    $dbh->rollback
-      or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
-
-  }
+        $dbh->rollback
+            or throw OMP::Error::DBError(
+            "Error rolling back transaction (ironically): $DBI::errstr");
+    }
 }
 
 =item B<lockdb>
@@ -432,8 +456,8 @@ lock all OMP tables or the tables supplied as arguments.
 =cut
 
 sub lockdb {
-  my $self = shift;
-  return;
+    my $self = shift;
+    return;
 }
 
 =item B<unlockdb>
@@ -446,8 +470,8 @@ unlock all OMP tables or the tables supplied as arguments.
 =cut
 
 sub unlockdb {
-  my $self = shift;
-  return;
+    my $self = shift;
+    return;
 }
 
 =item B<DESTROY>
@@ -459,14 +483,14 @@ are in a transaction.
 =cut
 
 sub DESTROY {
-  my $self = shift;
-  if ($self->_connected) {
-    my $dbh = $self->handle();
-    if (defined $dbh) {
-      $self->rollback_trans;
-      $self->disconnect;
+    my $self = shift;
+    if ($self->_connected) {
+        my $dbh = $self->handle();
+        if (defined $dbh) {
+            $self->rollback_trans;
+            $self->disconnect;
+        }
     }
-  }
 }
 
 =back
@@ -482,9 +506,9 @@ Increment the transaction count by one.
 =cut
 
 sub _inctrans {
-  my $self = shift;
-  my $transcount = $self->trans_count;
-  $self->trans_count( ++$transcount );
+    my $self = shift;
+    my $transcount = $self->trans_count;
+    $self->trans_count(++ $transcount);
 }
 
 =item B<_dectrans>
@@ -494,10 +518,14 @@ Decrement the transaction count by one. Can not go lower than zero.
 =cut
 
 sub _dectrans {
-  my $self = shift;
-  my $transcount = $self->trans_count;
-  $self->trans_count( --$transcount );
+    my $self = shift;
+    my $transcount = $self->trans_count;
+    $self->trans_count(-- $transcount);
 }
+
+1;
+
+__END__
 
 =back
 
@@ -525,7 +553,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

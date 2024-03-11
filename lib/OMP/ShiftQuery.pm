@@ -2,12 +2,12 @@ package OMP::ShiftQuery;
 
 =head1 NAME
 
-OMP::ShiftQuery - Class representing queries of the shift log table.
+OMP::ShiftQuery - Class representing queries of the shift log table
 
 =head1 SYNOPSIS
 
-$query = new OMP::ShiftQuery( XML => $xml );
-  $sql = $query->sql( $shiftlogtable );
+    $query = OMP::ShiftQuery->new(XML => $xml);
+    $sql = $query->sql($shiftlogtable);
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ use OMP::Error;
 use OMP::General;
 
 # Inheritance
-use base qw/ OMP::DBQuery /;
+use base qw/OMP::DBQuery/;
 
 # Package globals
 
@@ -43,7 +43,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $shiftlogtable )
+    $sql = $query->sql($shiftlogtable)
 
 Returns undef if the query could not be formed.
 
@@ -54,38 +54,38 @@ data structures indexed by single MSB IDs with multiple comments.
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) == 1;
+    throw OMP::Error::DBMalformedQuery(
+        "sql method invoked with incorrect number of arguments\n")
+        unless scalar(@_) == 1;
 
-  my ($table) = @_;
+    my ($table) = @_;
 
-  # Generate the WHERE clause from the query hash
-  # Note that we ignore elevation, airmass and date since
-  # these can not be dealt with in the database at the present
-  # time [they are used to calculate source availability]
-  # Disabling constraints on queries should be left to this
-  # subclass
-  my $subsql = $self->_qhash_tosql();
-  # Construct the the where clause. Depends on which
-  # additional queries are defined
-  my @where = grep { $_ } ( $subsql);
-  my $where = '';
-  $where = " WHERE " . join( " AND ", @where)
-    if @where;
+    # Generate the WHERE clause from the query hash
+    # Note that we ignore elevation, airmass and date since
+    # these can not be dealt with in the database at the present
+    # time [they are used to calculate source availability]
+    # Disabling constraints on queries should be left to this
+    # subclass
+    my $subsql = $self->_qhash_tosql();
+    # Construct the the where clause. Depends on which
+    # additional queries are defined
+    my @where = grep {$_} ($subsql);
+    my $where = '';
+    $where = " WHERE " . join(" AND ", @where)
+        if @where;
 
-  # Prepare relevance expression if doing a fulltext index search.
-  my @rel = $self->_qhash_relevance();
-  my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
+    # Prepare relevance expression if doing a fulltext index search.
+    my @rel = $self->_qhash_relevance();
+    my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
 
-  # Now need to put this SQL into the template query
-  # This returns a row per response
-  # So will duplicate static fault info
-  my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
+    # Now need to put this SQL into the template query
+    # This returns a row per response
+    # So will duplicate static fault info
+    my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
 
-  return "$sql\n";
-
+    return "$sql\n";
 }
 
 =back
@@ -102,7 +102,7 @@ located in the query XML. Returns "ShiftQuery" by default.
 =cut
 
 sub _root_element {
-  return "ShiftQuery";
+    return "ShiftQuery";
 }
 
 =item B<_post_process_hash>
@@ -112,21 +112,26 @@ Mark text query as "TEXTFIELD" so that a fulltext index search is used.
 =cut
 
 sub _post_process_hash {
-  my $self = shift;
-  my $href = shift;
+    my $self = shift;
+    my $href = shift;
 
-  $self->SUPER::_post_process_hash($href);
+    $self->SUPER::_post_process_hash($href);
 
-  if (exists $href->{'text'}) {
-    my $prefix = 'TEXTFIELD__';
-    $prefix .= 'BOOLEAN__' if exists $href->{'_attr'}->{'text'}
-      and exists $href->{'_attr'}->{'text'}->{'mode'}
-      and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
-    $href->{$prefix . 'text'} = delete $href->{'text'};
-  }
+    if (exists $href->{'text'}) {
+        my $prefix = 'TEXTFIELD__';
+        $prefix .= 'BOOLEAN__'
+            if exists $href->{'_attr'}->{'text'}
+            and exists $href->{'_attr'}->{'text'}->{'mode'}
+            and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
+        $href->{$prefix . 'text'} = delete $href->{'text'};
+    }
 
-  delete $href->{_attr};
+    delete $href->{_attr};
 }
+
+1;
+
+__END__
 
 =back
 
@@ -158,5 +163,3 @@ Boston, MA  02111-1307  USA
 
 
 =cut
-
-1;

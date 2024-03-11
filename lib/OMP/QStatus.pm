@@ -99,8 +99,8 @@ sub query_queue_status {
     die 'telescope not specified' unless defined $telescope;
 
     # Create MSB database instance
-    my $backend = new OMP::DBbackend();
-    my $db = new OMP::MSBDB(DB => $backend);
+    my $backend = OMP::DBbackend->new();
+    my $db = OMP::MSBDB->new(DB => $backend);
 
     # Are we searching for a particular affiliation?  If so read the list
     # of project affiliations.
@@ -110,7 +110,7 @@ sub query_queue_status {
         die 'Unknown affiliation "' . $affiliation .'"'
             unless grep {$_ eq $affiliation} @AFFILIATIONS;
 
-        my $affiliation_db = new OMP::ProjAffiliationDB(DB => $backend);
+        my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $backend);
         $affiliations = $affiliation_db->get_all_affiliations();
     }
 
@@ -124,17 +124,15 @@ sub query_queue_status {
         $utmax = OMP::DateTools->parse_date($today->ymd() . 'T23:59:59');
     }
     else {
-      ($utmin, $utmax) = OMP::Config->getData('freetimeut',
-                                              telescope => $telescope);
+        ($utmin, $utmax) = OMP::Config->getData('freetimeut', telescope => $telescope);
 
-      # parse the values, get them back as date objects
-      ($utmin, $utmax) = OMP::DateSun->_process_freeut_range($telescope,
-                                                             $today,
-                                                             $utmin, $utmax);
+        # parse the values, get them back as date objects
+        ($utmin, $utmax) = OMP::DateSun->_process_freeut_range(
+                $telescope, $today, $utmin, $utmax);
 
-      # Expand range to hour boundaries.
-      $utmin -= ONE_MINUTE * $utmin->min() if $utmin->min() > 0;
-      $utmax += ONE_MINUTE * (60 - $utmax->min()) if $utmax->min() > 0;
+        # Expand range to hour boundaries.
+        $utmin -= ONE_MINUTE * $utmin->min() if $utmin->min() > 0;
+        $utmax += ONE_MINUTE * (60 - $utmax->min()) if $utmax->min() > 0;
     }
 
     $utmin = gmtime($utmin->epoch());
@@ -173,7 +171,7 @@ sub query_queue_status {
         my $hr = $refdate->hour();
 
         # Form query object via XML
-        my $query = new OMP::MSBQuery(
+        my $query = OMP::MSBQuery->new(
             XML => (sprintf $query_format, $refdate->datetime()));
 
         my @results = $db->queryMSB($query, 'object');

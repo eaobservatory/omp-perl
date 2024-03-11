@@ -35,7 +35,7 @@ sub new {
     my $class = shift;
 
     my $self = {
-        DB => new OMP::DBbackend(),
+        DB => OMP::DBbackend->new(),
     };
 
     return bless $self, (ref $class) || $class;
@@ -109,18 +109,22 @@ name and elements el1 -- el8 to an Astro::Coords::TLE object.
 
 sub tle_row_to_coord {
     my $row = shift;
-    return new Astro::Coords::TLE(
+    return Astro::Coords::TLE->new(
         name => $row->{'target'},
         epoch => $row->{'el1'},
         bstar => $row->{'el2'},
-        inclination => new Astro::Coords::Angle($row->{'el3'}, units => 'rad'),
-        raanode => new Astro::Coords::Angle($row->{'el4'}, units => 'rad'),
+        inclination => Astro::Coords::Angle->new($row->{'el3'}, units => 'rad'),
+        raanode => Astro::Coords::Angle->new($row->{'el4'}, units => 'rad'),
         e => $row->{'el5'},
-        perigee => new Astro::Coords::Angle($row->{'el6'}, units => 'rad'),
-        mean_anomaly => new Astro::Coords::Angle($row->{'el7'}, units => 'rad'),
+        perigee => Astro::Coords::Angle->new($row->{'el6'}, units => 'rad'),
+        mean_anomaly => Astro::Coords::Angle->new($row->{'el7'}, units => 'rad'),
         mean_motion => $row->{'el8'},
     );
 }
+
+1;
+
+__END__
 
 =back
 
@@ -143,5 +147,3 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 =cut
-
-1;

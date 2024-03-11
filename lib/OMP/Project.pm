@@ -6,13 +6,12 @@ OMP::Project - Information relating to a single project
 
 =head1 SYNOPSIS
 
-  $proj = new OMP::Project( projectid => $projectid );
+    $proj = OMP::Project->new(projectid => $projectid);
 
-  $proj->pi("somebody\@somewhere.edu");
+    $proj->pi("somebody\@somewhere.edu");
 
-  %summary = $proj->summary;
-  $xmlsummary = $proj->summary;
-
+    %summary = $proj->summary;
+    $xmlsummary = $proj->summary;
 
 =head1 DESCRIPTION
 
@@ -35,13 +34,13 @@ use Time::Seconds;
 use OMP::SiteQuality;
 use OMP::User;
 
-use Scalar::Util qw/ looks_like_number /;
-use List::Util qw/ min max /;
+use Scalar::Util qw/looks_like_number/;
+use List::Util qw/min max/;
 
 our $VERSION = '2.000';
 
 # Delimiter for co-i strings
-our $DELIM = ":";
+our $DELIM = ':';
 
 # Name for the internal cache key. Specify it here since it
 # is used in two different methods without having an
@@ -61,7 +60,7 @@ used to prepopulate the object. The key names must match the names of
 the accessor methods (ignoring case). If they do not match they are
 ignored (for now).
 
-  $proj = new OMP::Project( %args );
+    $proj = OMP::Project->new(%args);
 
 Arguments are optional (although at some point a project ID would be
 helpful).
@@ -69,55 +68,56 @@ helpful).
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  my $proj = bless {
-                    Semester => undef,
-                    Allocated => Time::Seconds->new(0),
-                    Title => '',
-                    Telescope => undef,
-                    ProjectID => undef,
+    my $proj = bless {
+        Semester => undef,
+        Allocated => Time::Seconds->new(0),
+        Title => '',
+        Telescope => undef,
+        ProjectID => undef,
 
-                    # weather constrints
-                    TauRange => undef,
-                    SeeingRange => undef,
-                    CloudRange => undef,
-                    SkyRange => undef,
+        # weather constrints
+        TauRange => undef,
+        SeeingRange => undef,
+        CloudRange => undef,
+        SkyRange => undef,
 
-                    # Country and tag priority now
-                    # can have more than one value
-                    PrimaryQueue => undef,
-                    Queue => {},
-                    TAGAdjustment => {},
+        # Country and tag priority now
+        # can have more than one value
+        PrimaryQueue => undef,
+        Queue => {},
+        TAGAdjustment => {},
 
-                    PI => undef,
-                    CoI => [],
+        PI => undef,
+        CoI => [],
 
-                    Remaining => undef, # so that it defaults to allocated
-                    Pending => Time::Seconds->new(0),
-                    Support => [],
-                    State => 1,
-                    Contactable => {},
-                    OMPAccess => {},
-                    ExpiryDate => undef,
-                   }, $class;
+        Remaining => undef,  # so that it defaults to allocated
+        Pending => Time::Seconds->new(0),
+        Support => [],
+        State => 1,
+        Contactable => {},
+        OMPAccess => {},
+        ExpiryDate => undef,
+    }, $class;
 
-  # Deal with arguments
-  if (@_) {
-    my %args = @_;
+    # Deal with arguments
+    if (@_) {
+        my %args = @_;
 
-    # rather than populate hash directly use the accessor methods
-    # allow for upper cased variants of keys
-    for my $key (keys %args) {
-      my $method = lc($key);
-      if ($proj->can($method)) {
-        $proj->$method( $args{$key} );
-      }
+        # rather than populate hash directly use the accessor methods
+        # allow for upper cased variants of keys
+        for my $key (keys %args) {
+            my $method = lc($key);
+            if ($proj->can($method)) {
+                $proj->$method($args{$key});
+            }
+        }
+
     }
 
-  }
-  return $proj;
+    return $proj;
 }
 
 =back
@@ -135,22 +135,22 @@ disabled you will not be able to do queries on it by default.
 =cut
 
 sub state {
-  my $self = shift;
-  if (@_) {
-    my $state = shift;
-    # force binary
-    $state = ($state ? 1 : 0 );
-    $self->{State} = $state
-  };
-  return $self->{State};
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        # force binary
+        $state = ($state ? 1 : 0);
+        $self->{State} = $state;
+    }
+    return $self->{State};
 }
 
 =item B<allocated>
 
 The time allocated for the project (in seconds).
 
-  $time = $proj->allocated;
-  $proj->allocated( $time );
+    $time = $proj->allocated;
+    $proj->allocated($time);
 
 Returned as a C<Time::Seconds> object (this allows easy conversion
 to hours, minutes and seconds).
@@ -163,15 +163,15 @@ internals of the module may be much more complicated.
 =cut
 
 sub allocated {
-  my $self = shift;
-  if (@_) {
-    # if we have a Time::Seoncds object just store it. Else create one.
-    my $time = shift;
-    $time = new Time::Seconds( $time )
-      unless UNIVERSAL::isa($time, "Time::Seconds");
-    $self->{Allocated} = $time;
-  }
-  return $self->{Allocated};
+    my $self = shift;
+    if (@_) {
+        # if we have a Time::Seconds object just store it. Else create one.
+        my $time = shift;
+        $time = Time::Seconds->new($time)
+            unless UNIVERSAL::isa($time, "Time::Seconds");
+        $self->{Allocated} = $time;
+    }
+    return $self->{Allocated};
 }
 
 =item B<taurange>
@@ -180,7 +180,7 @@ Range of CSO tau in which the observations can be performed (the allocation
 is set for this tau range). No observations can be performed when the CSO
 tau is not within this range.
 
-  $range = $proj->taurange();
+    $range = $proj->taurange();
 
 Returns an C<OMP::Range> object.
 
@@ -193,17 +193,17 @@ This interface will change when non-contiguous tau ranges are supported.
 =cut
 
 sub taurange {
-  my $self = shift;
-  if (@_) {
-    my $range = shift;
-    if (defined $range && !ref($range) && looks_like_number($range)) {
-      $range = new OMP::Range( Max => $range );
+    my $self = shift;
+    if (@_) {
+        my $range = shift;
+        if (defined $range && !ref($range) && looks_like_number($range)) {
+            $range = OMP::Range->new(Max => $range);
+        }
+        croak "Tau range must be specified as an OMP::Range object"
+            unless UNIVERSAL::isa($range, "OMP::Range");
+        $self->{TauRange} = $range;
     }
-    croak "Tau range must be specified as an OMP::Range object"
-      unless UNIVERSAL::isa($range, "OMP::Range");
-    $self->{TauRange} = $range;
-  }
-  return $self->{TauRange};
+    return $self->{TauRange};
 }
 
 =item B<seeingrange>
@@ -212,7 +212,7 @@ Range of seeing conditions (in arcseconds) in which the observations
 can be performed. No observations can be performed when the seeing is
 not within this range.
 
-  $range = $proj->seeingrange();
+    $range = $proj->seeingrange();
 
 Returns an C<OMP::Range> object (or undef).
 
@@ -222,17 +222,17 @@ upper bound of a new range object.
 =cut
 
 sub seeingrange {
-  my $self = shift;
-  if (@_) {
-    my $range = shift;
-    if (defined $range && !ref($range) && looks_like_number($range)) {
-      $range = new OMP::Range( Max => $range );
+    my $self = shift;
+    if (@_) {
+        my $range = shift;
+        if (defined $range && !ref($range) && looks_like_number($range)) {
+            $range = OMP::Range->new(Max => $range);
+        }
+        croak "Seeing range must be specified as an OMP::Range object"
+            unless UNIVERSAL::isa($range, "OMP::Range");
+        $self->{SeeingRange} = $range;
     }
-    croak "Seeing range must be specified as an OMP::Range object"
-      unless UNIVERSAL::isa($range, "OMP::Range");
-    $self->{SeeingRange} = $range;
-  }
-  return $self->{SeeingRange};
+    return $self->{SeeingRange};
 }
 
 =item B<cloudrange>
@@ -240,7 +240,7 @@ sub seeingrange {
 Cloud constraints as a percentage attenuation variability, stored as an
 C<OMP::Range> object. C<undef> indicates no constraints,
 
-  $cloud = $proj->cloudrange();
+    $cloud = $proj->cloudrange();
 
 Special cases values of 0, 1 and 101 to match the old non-percentage
 implementation. If a number between 2 and 100 is provided, it is
@@ -249,17 +249,17 @@ assumed to be the upper limit.
 =cut
 
 sub cloudrange {
-  my $self = shift;
-  if (@_) {
-    my $range = shift;
-    if (defined $range && !ref($range) && looks_like_number($range)) {
-      $range = OMP::SiteQuality::upgrade_cloud();
+    my $self = shift;
+    if (@_) {
+        my $range = shift;
+        if (defined $range && !ref($range) && looks_like_number($range)) {
+            $range = OMP::SiteQuality::upgrade_cloud();
+        }
+        croak "Cloud range must be specified as an OMP::Range object"
+            unless UNIVERSAL::isa($range, "OMP::Range");
+        $self->{CloudRange} = $range;
     }
-    croak "Cloud range must be specified as an OMP::Range object"
-      unless UNIVERSAL::isa($range, "OMP::Range");
-    $self->{CloudRange} = $range;
-  }
-  return $self->{CloudRange};
+    return $self->{CloudRange};
 }
 
 =item B<skyrange>
@@ -272,7 +272,7 @@ that when magnitudes are used the range may be flipped from what was
 submitted in the OT in order for the contains() method and stringification
 to work correctly.
 
-  $range = $proj->skyrange();
+    $range = $proj->skyrange();
 
 Returns an C<OMP::Range> object (or undef).
 
@@ -282,17 +282,17 @@ upper bound of a new range object.
 =cut
 
 sub skyrange {
-  my $self = shift;
-  if (@_) {
-    my $range = shift;
-    if (defined $range && !ref($range) && looks_like_number($range)) {
-      $range = new OMP::Range( Max => $range );
+    my $self = shift;
+    if (@_) {
+        my $range = shift;
+        if (defined $range && !ref($range) && looks_like_number($range)) {
+            $range = OMP::Range->new(Max => $range);
+        }
+        croak "Sky range must be specified as an OMP::Range object"
+            unless UNIVERSAL::isa($range, "OMP::Range");
+        $self->{SkyRange} = $range;
     }
-    croak "Sky range must be specified as an OMP::Range object"
-      unless UNIVERSAL::isa($range, "OMP::Range");
-    $self->{SkyRange} = $range;
-  }
-  return $self->{SkyRange};
+    return $self->{SkyRange};
 }
 
 
@@ -300,8 +300,8 @@ sub skyrange {
 
 The telescope on which the project has been allocated time.
 
-  $time = $proj->telescope;
-  $proj->telescope( $time );
+    $time = $proj->telescope;
+    $proj->telescope($time);
 
 This is a string and not a C<Astro::Telescope> object.
 
@@ -310,9 +310,9 @@ Telescope is always upper-cased.
 =cut
 
 sub telescope {
-  my $self = shift;
-  if (@_) { $self->{Telescope} = uc(shift); }
-  return $self->{Telescope};
+    my $self = shift;
+    if (@_) {$self->{Telescope} = uc(shift);}
+    return $self->{Telescope};
 }
 
 =item B<coi>
@@ -321,22 +321,22 @@ The names of any co-investigators associated with the project.
 
 Return the Co-Is as an arrayC<OMP::User> objects:
 
-  @names = $proj->coi;
+    @names = $proj->coi;
 
 Return a colon-separated list of the Co-I user ids:
 
-  $names = $proj->coi;
+    $names = $proj->coi;
 
 Provide all the Co-Is for the project as an array of C<OMP::User>
 objects. If a supplied name is a string it is assumed to be a user
 ID that should be retrieved from the database:
 
-  $proj->coi( @names );
-  $proj->coi( \@names );
+    $proj->coi(@names);
+    $proj->coi(\@names);
 
 Provide a list of colon-separated user IDs:
 
-  $proj->coi( "name1:name2" );
+    $proj->coi("name1:name2");
 
 Co-Is are by default non-contactable so no call is made to
 the C<contactable> method if the CoI information is updated.
@@ -344,20 +344,18 @@ the C<contactable> method if the CoI information is updated.
 =cut
 
 sub coi {
+    my $self = shift;
 
-  my $self = shift;
+    my $key = 'CoI';
 
-  my $key = 'CoI';
+    if (scalar @_) {
+        my @user = $self->_handle_role(lc($key), @_);
+        $self->{$key} = [@user];
+    }
 
-  if ( scalar @_ ) {
-
-    my @user = $self->_handle_role( lc( $key ) , @_ );
-    $self->{ $key } = [ @user ];
-  }
-
-  my $list = $self->{ $key };
-  wantarray() and return @{ $list };
-  return join $DELIM, map $list->[$_]->userid() , 0 .. $#{ $list };
+    my $list = $self->{$key};
+    wantarray() and return @{$list};
+    return join $DELIM, map $list->[$_]->userid(), 0 .. $#{$list};
 }
 
 =item B<support>
@@ -366,22 +364,22 @@ The names of any staff contacts associated with the project.
 
 Return the names as an arrayC<OMP::User> objects:
 
-  @names = $proj->support;
+    @names = $proj->support;
 
 Return a colon-separated list of the support user ids:
 
-  $names = $proj->support;
+    $names = $proj->support;
 
 Provide all the staff contacts for the project as an array of
 C<OMP::User> objects. If a supplied name is a string it is assumed to
 be a user ID that should be retrieved from the database:
 
-  $proj->support( @names );
-  $proj->support( \@names );
+    $proj->support(@names);
+    $proj->support(\@names);
 
 Provide a list of colon-separated user IDs:
 
-  $proj->support( "name1:name2" );
+    $proj->support("name1:name2");
 
 By default when a support contact is updated it is made contactable and
 granted OMP access. If this is not the case the C<contactable> and
@@ -390,97 +388,92 @@ C<omp_access> methods must be called explicitly.
 =cut
 
 sub support {
+    my $self = shift;
 
-  my $self = shift;
+    my $key = 'Support';
 
-  my $key = 'Support';
+    if (scalar @_) {
+        my @user = $self->_handle_role(lc($key), @_);
 
-  if ( scalar @_ ) {
+        # Force being contactable and having OMP access.
+        for my $userid (map {$_->userid()} @user) {
+            $self->contactable($userid => 1);
+            $self->omp_access($userid => 1);
+        }
 
-    my @user = $self->_handle_role( lc( $key ) , @_ );
-
-    # Force being contactable and having OMP access.
-    for my $userid (map {$_->userid()} @user) {
-        $self->contactable( $userid => 1 );
-        $self->omp_access( $userid => 1 );
+        $self->{$key} = [@user];
     }
 
-    $self->{ $key } = [ @user ];
-  }
-
-  my $list = $self->{ $key };
-  wantarray() and return @{ $list };
-  #  OMP::User object stringifies to user name not user id!
-  return join $DELIM, map $list->[$_] , 0 .. $#{ $list };
+    my $list = $self->{$key};
+    wantarray() and return @{$list};
+    #  OMP::User object stringifies to user name not user id!
+    return join $DELIM, map $list->[$_], 0 .. $#{$list};
 }
 
 sub _handle_role {
+    my $self = shift;
+    my $role = shift;
 
-  my $self = shift;
-  my $role = shift;
+    scalar @_ or return;
 
-  scalar @_ or return;
+    my @ok = qw/coi support/;
+    my $ok_re = join '|', @ok;
+    $ok_re = qr/^(?: $ok_re )$/x;
 
-  my @ok = qw[ coi support ];
-  my $ok_re = join '|', @ok;
-     $ok_re = qr/^(?: $ok_re )$/x;
-
-  unless ( defined $role ) { throw OMP::Error::BadArgs( q[No role was given.] ); }
-  else                     { $role = lc $role; }
-
-  $role =~ /$ok_re/
-    or throw OMP::Error::BadArgs( qq[Unknown role, $role, given; known: ] . join ', ' , @ok ) ;
-
-  my @names;
-  if (ref($_[0]) eq 'ARRAY') {
-    @names = @{ $_[0] };
-  } elsif (defined $_[0]) {
-    # If the first name isnt valid assume none are
-    @names = @_;
-  }
-
-  # Now go through the array retrieving the OMP::User
-  # objects and strings
-  my @users;
-  for my $name (@names) {
-    if (UNIVERSAL::isa($name, "OMP::User")) {
-      push(@users, $name);
-    } else {
-      # Split on delimiter
-      my @split = split /$DELIM/, $name;
-
-      # Convert them to OMP::User objects
-      push(@users, map { OMP::User->new( userid => $_ ) } @split);
+    unless (defined $role) {
+        throw OMP::Error::BadArgs('No role was given.');
     }
-  }
+    else {$role = lc $role;}
 
-  return _uniq_users( @users );
+    $role =~ /$ok_re/
+        or throw OMP::Error::BadArgs(
+        "Unknown role, $role, given; known: " . join ', ', @ok);
+
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+        @names = @{$_[0]};
+    }
+    elsif (defined $_[0]) {
+        # If the first name isnt valid assume none are
+        @names = @_;
+    }
+
+    # Now go through the array retrieving the OMP::User
+    # objects and strings
+    my @users;
+    for my $name (@names) {
+        if (UNIVERSAL::isa($name, "OMP::User")) {
+            push @users, $name;
+        }
+        else {
+            # Split on delimiter
+            my @split = split /$DELIM/, $name;
+
+            # Convert them to OMP::User objects
+            push @users, map {OMP::User->new(userid => $_)} @split;
+        }
+    }
+
+    return _uniq_users(@users);
 }
 
 # Expects list of OMP::User objects.
 sub _uniq_users {
+    my (@user) = @_;
 
-  my ( @user ) = @_;
-
-  my %seen;
-  return
-    map
-    { $_->[1] }
-    grep
-    { ! $seen{ $_->[0] }++ }
-    map
-    { [ $_->userid() , $_ ] }
-    @user
-    ;
+    my %seen;
+    return map {$_->[1]}
+        grep {! $seen{$_->[0]} ++}
+        map {[$_->userid(), $_]}
+        @user;
 }
-
 
 =item B<coiemail>
 
 The email addresses of co-investigators associated with the project.
 
-  @email = $proj->coiemail;
-  $emails   = $proj->coiemail;
+    @email = $proj->coiemail;
+    $emails = $proj->coiemail;
 
 If this method is called in a scalar context the addresses will be
 returned as a single string joined by a comma.
@@ -491,27 +484,27 @@ directly. Email addresses can not be modified using this method.
 =cut
 
 sub coiemail {
-  my $self = shift;
+    my $self = shift;
 
-  # Only use defined emails
-  my @email = grep { $_ } map { $_->email } $self->coi ;
+    # Only use defined emails
+    my @email = grep {$_} map {$_->email} $self->coi;
 
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email);
-  }
-
+    # Return either the array of emails or a delimited string
+    if (wantarray) {
+        return @email;
+    }
+    else {
+        # This returns empty string if we dont have anything
+        return join($DELIM, @email);
+    }
 }
 
 =item B<supportemail>
 
 The email addresses of co-investigators associated with the project.
 
-  @email = $proj->supportemail;
-  $emails   = $proj->supportemail;
+    @email = $proj->supportemail;
+    $emails = $proj->supportemail;
 
 If this method is called in a scalar context the addresses will be
 returned as a single string joined by a comma.
@@ -522,31 +515,31 @@ directly. Email addresses can not be modified using this method.
 =cut
 
 sub supportemail {
-  my $self = shift;
+    my $self = shift;
 
-  my @email = map { $_->email } $self->support;
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email);
-  }
-
+    my @email = map {$_->email} $self->support;
+    # Return either the array of emails or a delimited string
+    if (wantarray) {
+        return @email;
+    }
+    else {
+        # This returns empty string if we dont have anything
+        return join($DELIM, @email);
+    }
 }
 
 =item B<country>
 
 Country from which project is allocated.
 
-  $id = $proj->country;
+    $id = $proj->country;
 
 Stores the country in a hash, but does not override previous country
 entries or assign a priority. Use the C<queue> method for full control
 of the contents of the country and priority.
 
-  $proj->country( @countries );
-  $proj->country( \@countries );
+    $proj->country(@countries);
+    $proj->country(\@countries);
 
 In scalar context returns simply the primary queue (for backwards
 compatibility reasons) unless that is not defined (unlikely) in which
@@ -565,43 +558,52 @@ clear the TAG priority.
 =cut
 
 sub country {
-  my $self = shift;
-  if (@_) {
-    # trap array ref
-    my @c = ( ref($_[0]) ? @{$_[0]} : @_);
+    my $self = shift;
+    if (@_) {
+        # trap array ref
+        my @c = (ref($_[0]) ? @{$_[0]} : @_);
 
-    # are we meant to apply a cached tag priority?
-    # Yes, if there are no previous countries
-    my $tagpri;
-    my %queue = $self->queue;
+        # are we meant to apply a cached tag priority?
+        # Yes, if there are no previous countries
+        my $tagpri;
+        my %queue = $self->queue;
 
-    if (keys %queue) {
-      # go through the existing entries, and remove
-      # any from the list that already exist. We do not
-      # want to clear old tag priorities
-      @c = grep { !exists $queue{uc($_)}  } @c;
-    } else {
-      $tagpri = $self->{$TAGPRI_KEY};
+        if (keys %queue) {
+            # go through the existing entries, and remove
+            # any from the list that already exist. We do not
+            # want to clear old tag priorities
+            @c = grep {! exists $queue{uc($_)}} @c;
+        }
+        else {
+            $tagpri = $self->{$TAGPRI_KEY};
+        }
+
+        # configure primary queue since we know the order
+        if (! keys %queue && ! defined $self->primaryqueue) {
+            $self->primaryqueue($c[0]);
+        }
+
+        # we can store without a TAG priority initially. We have to assume this value will be
+        # reinforced later
+        $self->queue(
+            map {
+                uc($_) => (defined $tagpri
+                    ? ($tagpri + $self->tagadjustment($_))
+                    : undef)
+            } @c);
+
     }
 
-    # configure primary queue since we know the order
-    if (! keys %queue && ! defined $self->primaryqueue) {
-      $self->primaryqueue( $c[0] );
+    if (wantarray) {
+        return sort keys %{$self->queue};
     }
-
-    # we can store without a TAG priority initially. We have to assume this value will be
-    # reinforced later
-    $self->queue( map { uc($_) => (defined $tagpri ? ($tagpri + $self->tagadjustment($_)) : undef ) } @c );
-
-  }
-  if (wantarray) {
-    return sort keys %{ $self->queue };
-  } else {
-    # Return the primary country
-    my $country = $self->primaryqueue;
-    return (defined $country ? $country :
-            join( "/", sort keys %{ $self->queue } ) );
-  }
+    else {
+        # Return the primary country
+        my $country = $self->primaryqueue;
+        return (defined $country
+            ? $country
+            : join("/", sort keys %{$self->queue}));
+    }
 }
 
 =item B<primaryqueue>
@@ -622,13 +624,13 @@ this value.
 =cut
 
 sub primaryqueue {
-  my $self = shift;
-  if (@_) {
-    my $c = uc(shift);
-    $self->{PrimaryQueue} = $c;
-    $self->country( $c );
-  }
-  return $self->{PrimaryQueue};
+    my $self = shift;
+    if (@_) {
+        my $c = uc(shift);
+        $self->{PrimaryQueue} = $c;
+        $self->country($c);
+    }
+    return $self->{PrimaryQueue};
 }
 
 =item B<pending>
@@ -636,30 +638,30 @@ sub primaryqueue {
 The amount of time (in seconds) that is to be removed from the
 remaining project allocation pending approval by the queue managers.
 
-  $time = $proj->pending();
-  $proj->pending( $time );
+    $time = $proj->pending();
+    $proj->pending($time);
 
 Returns a C<Time::Seconds> object.
 
 =cut
 
 sub pending {
-  my $self = shift;
-  if (@_) {
-    # if we have a Time::Seoncds object just store it. Else create one.
-    my $time = shift;
-    $time = new Time::Seconds( $time )
-      unless UNIVERSAL::isa($time, "Time::Seconds");
-    $self->{Pending} = $time;
-  }
-  return $self->{Pending};
+    my $self = shift;
+    if (@_) {
+        # if we have a Time::Seconds object just store it. Else create one.
+        my $time = shift;
+        $time = Time::Seconds->new($time)
+            unless UNIVERSAL::isa($time, "Time::Seconds");
+        $self->{Pending} = $time;
+    }
+    return $self->{Pending};
 }
 
 =item B<pi>
 
 Name of the principal investigator.
 
-  $pi = $proj->pi;
+    $pi = $proj->pi;
 
 Returned and stored as a C<OMP::User> object.
 
@@ -669,50 +671,50 @@ is not the case the C<contactable> method must be called explicitly.
 =cut
 
 sub pi {
-  my $self = shift;
-  if (@_) {
-    my $pi = shift;
-    throw OMP::Error::BadArgs("PI must be of type OMP::User but got '".
-                             (defined $pi ? $pi : "<undef>"). "'")
-      unless UNIVERSAL::isa($pi, "OMP::User");
-    $self->{PI} = $pi;
+    my $self = shift;
+    if (@_) {
+        my $pi = shift;
+        throw OMP::Error::BadArgs(
+            "PI must be of type OMP::User but got '"
+            . (defined $pi ? $pi : "<undef>") . "'")
+            unless UNIVERSAL::isa($pi, "OMP::User");
+        $self->{PI} = $pi;
 
-    # And force them to be contactable
-    my $userid = $pi->userid;
-    $self->contactable( $userid => 1 );
-    $self->omp_access( $userid => 1 );
-
-  }
-  return $self->{PI};
+        # And force them to be contactable
+        my $userid = $pi->userid;
+        $self->contactable($userid => 1);
+        $self->omp_access($userid => 1);
+    }
+    return $self->{PI};
 }
 
 =item B<piemail>
 
 Email address of the principal investigator.
 
-  $email = $proj->piemail;
+    $email = $proj->piemail;
 
 =cut
 
 sub piemail {
-  my $self = shift;
-  return ( defined $self->pi() ? $self->pi->email : '' );
+    my $self = shift;
+    return (defined $self->pi() ? $self->pi->email : '');
 }
 
 =item B<projectid>
 
 Project ID.
 
- $id = $proj->projectid;
+    $id = $proj->projectid;
 
 The project ID is always upcased.
 
 =cut
 
 sub projectid {
-  my $self = shift;
-  if (@_) { $self->{ProjectID} = uc(shift); }
-  return $self->{ProjectID};
+    my $self = shift;
+    if (@_) {$self->{ProjectID} = uc(shift);}
+    return $self->{ProjectID};
 }
 
 
@@ -720,8 +722,8 @@ sub projectid {
 
 The amount of time remaining on the project (in seconds).
 
-  $time = $proj->remaining;
-  $proj->remaining( $time );
+    $time = $proj->remaining;
+    $proj->remaining($time);
 
 If the value is not defined, the allocated value is automatically
 inserted.  This value never includes the time pending on the
@@ -733,18 +735,19 @@ Returns a C<Time::Seconds> object.
 =cut
 
 sub remaining {
-  my $self = shift;
-  if (@_) {
-    # if we have a Time::Seoncds object just store it. Else create one.
-    my $time = shift;
-    $time = new Time::Seconds( $time )
-      unless UNIVERSAL::isa($time, "Time::Seconds");
-    $self->{Remaining} = $time;
-  } else {
-    $self->{Remaining} = $self->allocated
-      unless defined $self->{Remaining};
-  }
-  return $self->{Remaining};
+    my $self = shift;
+    if (@_) {
+        # if we have a Time::Seoncds object just store it. Else create one.
+        my $time = shift;
+        $time = Time::Seconds->new($time)
+            unless UNIVERSAL::isa($time, "Time::Seconds");
+        $self->{Remaining} = $time;
+    }
+    else {
+        $self->{Remaining} = $self->allocated
+            unless defined $self->{Remaining};
+    }
+    return $self->{Remaining};
 }
 
 =item B<allRemaining>
@@ -753,16 +756,16 @@ Time remaining on the project including any time pending. This
 is simply that stored in the C<remaining> field minus that stored
 in the C<pending> field.
 
-  $left = $proj->allRemaining;
+    $left = $proj->allRemaining;
 
 Can be negative.
 
 =cut
 
 sub allRemaining {
-  my $self = shift;
-  my $all_left = $self->remaining - $self->pending;
-  return $all_left;
+    my $self = shift;
+    my $all_left = $self->remaining - $self->pending;
+    return $all_left;
 }
 
 =item B<percentComplete>
@@ -770,7 +773,7 @@ sub allRemaining {
 The amount of time spent on this project as a percentage of the amount
 allocated.
 
-  $completed = $proj->percentComplete;
+    $completed = $proj->percentComplete;
 
 Result is multiplied by 100 before being returned.
 
@@ -779,12 +782,12 @@ Returns 100% if no time has been allocated.
 =cut
 
 sub percentComplete {
-  my $self = shift;
-  my $alloc = $self->allocated;
-  if ($alloc > 0.0) {
-    return $self->used / $self->allocated * 100;
-  }
-  return 100;
+    my $self = shift;
+    my $alloc = $self->allocated;
+    if ($alloc > 0.0) {
+        return $self->used / $self->allocated * 100;
+    }
+    return 100;
 }
 
 =item B<used>
@@ -794,31 +797,31 @@ is calculated as the difference between the allocated amount and
 the time remaining on the project (the time pending is assumed to
 be included in this calculation).
 
-  $time = $proj->used;
+    $time = $proj->used;
 
 This value can exceed the allocated amount.
 
 =cut
 
 sub used {
-  my $self = shift;
-  return ($self->allocated - $self->allRemaining);
+    my $self = shift;
+    return ($self->allocated - $self->allRemaining);
 }
 
 =item B<semester>
 
 The semester for which the project was allocated time.
 
-  $semester = $proj->semester;
+    $semester = $proj->semester;
 
 Semester is upper-cased.
 
 =cut
 
 sub semester {
-  my $self = shift;
-  if (@_) { $self->{Semester} = uc(shift); }
-  return $self->{Semester};
+    my $self = shift;
+    if (@_) {$self->{Semester} = uc(shift);}
+    return $self->{Semester};
 }
 
 =item B<tagpriority>
@@ -828,13 +831,13 @@ in the queue. This priority is determined by the Time Allocation
 Group (TAG). Since a project can have different priorities in
 different queues, the queue name (aka country) must be supplied.
 
-  $pri = $proj->tagpriority( $country );
+    $pri = $proj->tagpriority($country);
 
 If multiple countries are specified (using a reference to an array),
 corresponding priorities are returned (undef if project is not
 associated with that country).
 
-  @pris = $proj->tagpriority( \@countries );
+    @pris = $proj->tagpriority(\@countries);
 
 If no country is supplied, all priorities are returned. In scalar
 context only the primary queue tag priority is returned unless that is
@@ -843,8 +846,8 @@ comma-separated string, all are returned in list context. They are
 returned in an order corresponding to the alphabetical order of the
 countries.
 
-  $pri = $proj->tagpriority;
-  @pri = $proj->tagpriority;
+    $pri = $proj->tagpriority;
+    @pri = $proj->tagpriority;
 
 If the single argument is a number, it is deemed to be the priority
 for all projects. Multiple priorities can be set using a hash in list
@@ -854,8 +857,8 @@ priorities can not be set for multiple queues without specifying the
 specific queue since the internal ordering of the countries is not
 defined.
 
-  $proj->tagpriority( CA => 1, UK => 5 );
-  $proj->tagpriority( \%update );
+    $proj->tagpriority(CA => 1, UK => 5);
+    $proj->tagpriority(\%update);
 
 Use the queue() method to set priorities and country information.
 
@@ -872,71 +875,76 @@ time.
 =cut
 
 sub tagpriority {
-  my $self = shift;
-  my $delim = ","; # for scalar context
-  if (@_) {
-    if (scalar @_ == 1 && ref($_[0]) ne 'HASH') {
-      # if we have a number, it is being set
-      if ($_[0] =~ /\d/a) {
-        # set every priority
-        my @c = $self->country;
-        if (@c) {
-          for my $c (@c) {
-            $self->queue( $c => ($_[0] + $self->tagadjustment($c)));
-          }
-        } else {
-          # Store it for later [uncorrected for Adj]
-          $self->{$TAGPRI_KEY} = $_[0];
+    my $self = shift;
+    my $delim = ",";  # for scalar context
+    if (@_) {
+        if (scalar @_ == 1 && ref($_[0]) ne 'HASH') {
+            # if we have a number, it is being set
+            if ($_[0] =~ /\d/a) {
+                # set every priority
+                my @c = $self->country;
+                if (@c) {
+                    for my $c (@c) {
+                        $self->queue($c => ($_[0] + $self->tagadjustment($c)));
+                    }
+                }
+                else {
+                    # Store it for later [uncorrected for Adj]
+                    $self->{$TAGPRI_KEY} = $_[0];
+                }
+            }
+            else {
+                # A country has been requested or more than one
+                my @c = (ref($_[0]) ? @{$_[0]} : @_);
+                my %queue = $self->queue;
+                my @pris = map {$queue{uc($_)} - $self->tagadjustment($_)} @c;
+                return (wantarray ? @pris : join($delim, @pris));
+            }
         }
-      } else {
-        # A country has been requested or more than one
-        my @c = ( ref($_[0]) ? @{$_[0]} : @_);
-        my %queue = $self->queue;
-        my @pris = map { $queue{uc($_)} - $self->tagadjustment($_) } @c;
-        return (wantarray ? @pris : join($delim,@pris));
-      }
-    } else {
-      # More than one argument, assume hash
-      my %queue = $self->queue;
-      my %args = (ref($_[0]) eq 'HASH' ? %{$_[0]} : @_);
-      for my $c (keys %args) {
-        my $uc = uc($c);
-        # check that the country is supported
-        croak "Country $c not recognized"
-          unless exists $queue{$uc};
-        $self->queue( $c => ($args{$c} + $self->tagadjustment($c)));
-      }
+        else {
+            # More than one argument, assume hash
+            my %queue = $self->queue;
+            my %args = (ref($_[0]) eq 'HASH' ? %{$_[0]} : @_);
+            for my $c (keys %args) {
+                my $uc = uc($c);
+                # check that the country is supported
+                croak "Country $c not recognized"
+                    unless exists $queue{$uc};
+                $self->queue($c => ($args{$c} + $self->tagadjustment($c)));
+            }
+        }
     }
-  }
 
-  # Return everything as a list or a single string
-  my %queue = $self->queue;
-  my @countries = sort map { $queue{$_} - $self->tagadjustment($_) } keys %queue;
+    # Return everything as a list or a single string
+    my %queue = $self->queue;
+    my @countries = sort map {$queue{$_} - $self->tagadjustment($_)} keys %queue;
 
-  if (wantarray) {
-    return @countries;
-  } else {
-    my $primary = $self->primaryqueue;
-    if (!defined $primary || !exists $queue{$primary}) {
-      return join($delim,@countries);
-    } else {
-      return ($queue{$primary} - $self->tagadjustment($primary));
+    if (wantarray) {
+        return @countries;
     }
-  }
+    else {
+        my $primary = $self->primaryqueue;
+        if (! defined $primary || ! exists $queue{$primary}) {
+            return join($delim, @countries);
+        }
+        else {
+            return ($queue{$primary} - $self->tagadjustment($primary));
+        }
+    }
 }
 
 =item B<title>
 
 The title of the project.
 
-  $title = $proj->title;
+    $title = $proj->title;
 
 =cut
 
 sub title {
-  my $self = shift;
-  if (@_) { $self->{Title} = shift; }
-  return $self->{Title};
+    my $self = shift;
+    if (@_) {$self->{Title} = shift;}
+    return $self->{Title};
 }
 
 =item investigators
@@ -945,18 +953,18 @@ Return user information for all those people with registered
 involvement in the project. This is simply an array of PI and
 Co-I C<OMP::User> objects.
 
-  my @users = $proj->investigators;
+    my @users = $proj->investigators;
 
 In scalar context acts just like an array. This may change.
 
 =cut
 
 sub investigators {
-  my $self = shift;
+    my $self = shift;
 
-  # Get all the User objects (forcing list context in coi method)
-  my @inv = ($self->pi, $self->coi);
-  return @inv;
+    # Get all the User objects (forcing list context in coi method)
+    my @inv = ($self->pi, $self->coi);
+    return @inv;
 }
 
 =item contacts
@@ -965,24 +973,22 @@ Return an array of C<OMP::User> objects for all those people
 associated with the project. This is the investigators and support
 scientists who are listed as "contactable".
 
-  my @users = $proj->contacts;
+    my @users = $proj->contacts;
 
 In scalar context acts just like an array. This may change.
 
 =cut
 
 sub contacts {
-  my $self = shift;
+    my $self = shift;
 
-  # Get all the User objects
-  # Store in a hash to weed out duplicates
-  my %users = map
-              { $_->userid, $_ }
-              grep
-              { $self->contactable($_->userid) and $_->email }
-              ( $self->investigators, $self->support );
+    # Get all the User objects
+    # Store in a hash to weed out duplicates
+    my %users = map {$_->userid, $_}
+        grep {$self->contactable($_->userid) and $_->email}
+        ($self->investigators, $self->support);
 
-  return map {$users{$_}} keys %users;
+    return map {$users{$_}} keys %users;
 }
 
 =item B<contactable>
@@ -996,47 +1002,50 @@ A case can be made for always contacting the PI and support scientists.
 
 Values can be modified by specifying a set of key value pairs:
 
-  $proj->contactable( TIMJ => 1, JRANDOM => 0);
+    $proj->contactable(TIMJ => 1, JRANDOM => 0);
 
 and the current state for a user can be retrieved by specifying a single
 user id:
 
-  $iscontactable = $proj->contactable( 'TIMJ' );
+    $iscontactable = $proj->contactable('TIMJ');
 
 The key is always upper-cased.
 
 Returns a hash reference in scalar context and a list in list context
 when no arguments are supplied.
 
-  %contacthash = $proj->contactable;
-  $cref = $proj->contactable;
+    %contacthash = $proj->contactable;
+    $cref = $proj->contactable;
 
 =cut
 
 sub contactable {
-  my $self = shift;
-  if (@_) {
-    if (scalar @_ == 1) {
-      # A single key
-      return $self->{Contactable}->{uc($_[0])};
-    } else {
-      # key/value pairs
-      my %args = @_;
-      for my $u (keys %args) {
-        # make sure we are case-insensitive
-        $self->{Contactable}->{uc($u)} = $args{$u};
-      }
+    my $self = shift;
+    if (@_) {
+        if (scalar @_ == 1) {
+            # A single key
+            return $self->{Contactable}->{uc($_[0])};
+        }
+        else {
+            # key/value pairs
+            my %args = @_;
+            for my $u (keys %args) {
+                # make sure we are case-insensitive
+                $self->{Contactable}->{uc($u)} = $args{$u};
+            }
+        }
     }
-  }
-  # return something
-  if (wantarray) {
-    return %{ $self->{Contactable} };
-  } else {
-    return $self->{Contactable};
-  }
+
+    # return something
+    if (wantarray) {
+        return %{$self->{Contactable}};
+    }
+    else {
+        return $self->{Contactable};
+    }
 }
 
-=item B<contactable>
+=item B<omp_access>
 
 A hash (indexed by OMP user ID) indicating whether a particular person
 should have OMP access.  This works in the same way as the C<contactable>
@@ -1045,26 +1054,29 @@ method.
 =cut
 
 sub omp_access {
-  my $self = shift;
-  if (@_) {
-    if (scalar @_ == 1) {
-      # A single key
-      return $self->{OMPAccess}->{uc($_[0])};
-    } else {
-      # key/value pairs
-      my %args = @_;
-      for my $u (keys %args) {
-        # make sure we are case-insensitive
-        $self->{OMPAccess}->{uc($u)} = $args{$u};
-      }
+    my $self = shift;
+    if (@_) {
+        if (scalar @_ == 1) {
+            # A single key
+            return $self->{OMPAccess}->{uc($_[0])};
+        }
+        else {
+            # key/value pairs
+            my %args = @_;
+            for my $u (keys %args) {
+                # make sure we are case-insensitive
+                $self->{OMPAccess}->{uc($u)} = $args{$u};
+            }
+        }
     }
-  }
-  # return something
-  if (wantarray) {
-    return %{ $self->{OMPAccess} };
-  } else {
-    return $self->{OMPAccess};
-  }
+
+    # return something
+    if (wantarray) {
+        return %{$self->{OMPAccess}};
+    }
+    else {
+        return $self->{OMPAccess};
+    }
 }
 
 =item B<queue>
@@ -1076,24 +1088,24 @@ is the combination of the TAG allocated priority and any TAG
 adjustment provided in the queue. See the C<tagpriority> and
 C<tagadjustment> methods to obtain the individual parts.
 
-  %queue = $proj->queue;
+    %queue = $proj->queue;
 
 Returns a hash reference in scalar context:
 
-  $ref = $proj->queue();
+    $ref = $proj->queue();
 
 Can be used to set countries and priorities:
 
-  $proj->queue( CA => 22, UK => 1 );
+    $proj->queue(CA => 22, UK => 1);
 
 or
 
-  $proj->queue( \%queue );
+    $proj->queue(\%queue);
 
 or as a special case, the current adjusted priority can be returned
 for a single country:
 
-  $pri = $proj->queue( 'CA' );
+    $pri = $proj->queue('CA');
 
 Other country information is retained. The queue can be cleared with
 the C<clearqueue> command.
@@ -1104,29 +1116,33 @@ method since the hash does not have a guaranteed order.
 =cut
 
 sub queue {
-  my $self = shift;
-  if (@_) {
-    # if only a single arg it may be a ref or a queue name
-    if (@_ == 1 && not ref( $_[0] )) {
-      my $arg = uc(shift);
-      if (exists $self->{Queue}->{$arg}) {
-        return $self->{Queue}->{$arg};
-      } else {
-        return undef;
-      }
-    } else {
-      # either a hash ref as first arg or a list
-      my %args = ( ref($_[0]) ? %{$_[0]} : @_);
-      for my $c (keys %args) {
-        $self->{Queue}->{uc($c)} = $args{$c};
-      }
+    my $self = shift;
+    if (@_) {
+        # if only a single arg it may be a ref or a queue name
+        if (@_ == 1 && not ref($_[0])) {
+            my $arg = uc(shift);
+            if (exists $self->{Queue}->{$arg}) {
+                return $self->{Queue}->{$arg};
+            }
+            else {
+                return undef;
+            }
+        }
+        else {
+            # either a hash ref as first arg or a list
+            my %args = (ref($_[0]) ? %{$_[0]} : @_);
+            for my $c (keys %args) {
+                $self->{Queue}->{uc($c)} = $args{$c};
+            }
+        }
     }
-  }
-  if (wantarray) {
-    return %{ $self->{Queue} };
-  } else {
-    return $self->{Queue};
-  }
+
+    if (wantarray) {
+        return %{$self->{Queue}};
+    }
+    else {
+        return $self->{Queue};
+    }
 }
 
 =item B<tagadjustment>
@@ -1135,70 +1151,74 @@ Queue entries and corresponding TAG priority adjustments.  (see also
 the C<queue> and C<tagpriority> methods).  Returns a hash with keys of
 "country" and values of priority.
 
-  %adj = $proj->tagadjustment;
+    %adj = $proj->tagadjustment;
 
 Returns a hash reference in scalar context:
 
-  $ref = $proj->tagadjustment();
+    $ref = $proj->tagadjustment();
 
 Can be used to set adjustments within particular queues: (no check is
 made that a particular queue exists in the C<queue>)
 
-  $proj->tagadjustment( CA => -2, UK => +2 );
+    $proj->tagadjustment(CA => -2, UK => +2);
 
 or
 
-  $proj->tagadjustment( \%queue );
+    $proj->tagadjustment(\%queue);
 
 If a single non reference is provided as argument it will be assumed to
 be the queue name and the corresponding value will be returned. A 0
 will be returned if the queue is not recognized.
 
-  $adj = $proj->tagadjustment( 'CA' );
+    $adj = $proj->tagadjustment('CA');
 
 =cut
 
 sub tagadjustment {
-  my $self = shift;
-  if (@_) {
-    # if only a single arg it may be a ref or a queue name
-    if (@_ == 1 && not ref( $_[0] )) {
-      my $arg = uc(shift);
-      if (exists $self->{TAGAdjustment}->{$arg}) {
-        return $self->{TAGAdjustment}->{$arg};
-      } else {
-        return 0;
-      }
-    } else {
-      # either a hash ref as first arg or a list
-      my %args = ( ref($_[0]) ? %{$_[0]} : @_);
-      for my $c (keys %args) {
-        $args{$c} = 0 if ( !defined $args{$c} || ref($args{$c}));
-        $self->{TAGAdjustment}->{uc($c)} = $args{$c};
-      }
+    my $self = shift;
+    if (@_) {
+        # if only a single arg it may be a ref or a queue name
+        if (@_ == 1 && not ref($_[0])) {
+            my $arg = uc(shift);
+            if (exists $self->{TAGAdjustment}->{$arg}) {
+                return $self->{TAGAdjustment}->{$arg};
+            }
+            else {
+                return 0;
+            }
+        }
+        else {
+            # either a hash ref as first arg or a list
+            my %args = (ref($_[0]) ? %{$_[0]} : @_);
+            for my $c (keys %args) {
+                $args{$c} = 0 if (! defined $args{$c} || ref($args{$c}));
+                $self->{TAGAdjustment}->{uc($c)} = $args{$c};
+            }
+        }
     }
-  }
-  if (wantarray) {
-    # list
-    return %{ $self->{TAGAdjustment} };
-  } else {
-    # hash ref
-    return $self->{TAGAdjustment};
-  }
+
+    if (wantarray) {
+        # list
+        return %{$self->{TAGAdjustment}};
+    }
+    else {
+        # hash ref
+        return $self->{TAGAdjustment};
+    }
 }
 
 =item B<clearqueue>
 
 Clear all queue information (country and priority).
 
- $proj->clearqueue();
+    $proj->clearqueue();
 
 =cut
 
 sub clearqueue {
-  my $self = shift;
-  %{$self->queue} = ();
-  return;
+    my $self = shift;
+    %{$self->queue} = ();
+    return;
 }
 
 =item B<isTOO>
@@ -1212,12 +1232,12 @@ it is associated with.
 =cut
 
 sub isTOO {
-  my $self = shift;
-  my @pri = $self->tagpriority;
-  for my $p (@pri) {
-    return 1 if $p <= 0;
-  }
-  return 0;
+    my $self = shift;
+    my @pri = $self->tagpriority;
+    for my $p (@pri) {
+        return 1 if $p <= 0;
+    }
+    return 0;
 }
 
 =item B<expirydate>
@@ -1227,12 +1247,12 @@ The expiry date of the project.
 =cut
 
 sub expirydate {
-  my $self = shift;
-  if (@_) {
-    my $expiry = shift;
-    $self->{'ExpiryDate'} = $expiry;
-  }
-  return $self->{'ExpiryDate'};
+    my $self = shift;
+    if (@_) {
+        my $expiry = shift;
+        $self->{'ExpiryDate'} = $expiry;
+    }
+    return $self->{'ExpiryDate'};
 }
 
 =back
@@ -1249,51 +1269,51 @@ with this project.
 =cut
 
 sub conditionstxt {
-  my $self = shift;
+    my $self = shift;
 
-  # currently only interested in the worst cloud conditions
-  my $cloud = $self->cloudtxt;
-  $cloud = '' if $cloud eq 'any';
-  $cloud = substr($cloud,0,4) if $cloud;
+    # currently only interested in the worst cloud conditions
+    my $cloud = $self->cloudtxt;
+    $cloud = '' if $cloud eq 'any';
+    $cloud = substr($cloud, 0, 4) if $cloud;
 
-  # Seeing. Need to fix lower end for prettification
-  my $seeing = $self->seeingrange();
-  my $seetxt = '';
-  if ($seeing) {
-    OMP::SiteQuality::undef_to_default( 'SEEING', $seeing );
-    # only put text if we have a range
-    unless (!$seeing->min && !$seeing->max) {
-      $seetxt = "s:$seeing";
+    # Seeing. Need to fix lower end for prettification
+    my $seeing = $self->seeingrange();
+    my $seetxt = '';
+    if ($seeing) {
+        OMP::SiteQuality::undef_to_default('SEEING', $seeing);
+        # only put text if we have a range
+        unless (! $seeing->min && ! $seeing->max) {
+            $seetxt = "s:$seeing";
+        }
     }
-  }
 
-  # Tau range (fix lower end for prettification)
-  my $taurange = $self->taurange();
-  my $tautxt = '';
-  if ($taurange) {
-    OMP::SiteQuality::undef_to_default( 'TAU', $taurange );
-    unless (!$taurange->min && !$taurange->max) {
-      # only create if we have a range defined
-      $tautxt = "t:$taurange";
+    # Tau range (fix lower end for prettification)
+    my $taurange = $self->taurange();
+    my $tautxt = '';
+    if ($taurange) {
+        OMP::SiteQuality::undef_to_default('TAU', $taurange);
+        unless (! $taurange->min && ! $taurange->max) {
+            # only create if we have a range defined
+            $tautxt = "t:$taurange";
+        }
     }
-  }
 
-  # Sky brightness
-  my $skyrange = $self->skyrange();
-  my $skytxt = '';
-  if ($skyrange) {
-    # map any leftover INF to undef
-    $skyrange = OMP::SiteQuality::from_db( 'SKY', $skyrange );
-    unless (!$skyrange->min && !$skyrange->max) {
-      # only create if we have a range defined
-      $skytxt = "b:$skyrange";
+    # Sky brightness
+    my $skyrange = $self->skyrange();
+    my $skytxt = '';
+    if ($skyrange) {
+        # map any leftover INF to undef
+        $skyrange = OMP::SiteQuality::from_db('SKY', $skyrange);
+        unless (! $skyrange->min && ! $skyrange->max) {
+            # only create if we have a range defined
+            $skytxt = "b:$skyrange";
+        }
     }
-  }
 
-  # form the text string
-  my $txt = join(",", grep { $_} ($tautxt, $seetxt, $skytxt, $cloud) );
+    # form the text string
+    my $txt = join(",", grep {$_} ($tautxt, $seetxt, $skytxt, $cloud));
 
-  return ( $txt ? $txt : 'any' );
+    return ($txt ? $txt : 'any');
 }
 
 =item B<cloudtxt>
@@ -1301,42 +1321,43 @@ sub conditionstxt {
 Approximate textual description of the cloud constraints. One of:
 "any", or a combination of "cirrus", "thick" or "photometric".
 
-  my $text = $proj->cloudtxt;
+    my $text = $proj->cloudtxt;
 
 =cut
 
 my @cloudlut;
 sub cloudtxt {
-  my $self = shift;
-  my $cloud = $self->cloudrange;
-  return 'any' unless defined $cloud;
+    my $self = shift;
+    my $cloud = $self->cloudrange;
+    return 'any' unless defined $cloud;
 
-  # initialise the cloud lookup array
-  if (!@cloudlut) {
-    $cloudlut[0] = 'photometric';
-    $cloudlut[$_] = 'cirrus' for (1..OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX);
-    $cloudlut[$_] = 'thick' for ((OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX+1)..100);
-  }
+    # initialise the cloud lookup array
+    if (! @cloudlut) {
+        $cloudlut[0] = 'photometric';
+        $cloudlut[$_] = 'cirrus' for (1 .. OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX);
+        $cloudlut[$_] = 'thick' for ((OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX + 1) .. 100);
+    }
 
-  my $min = max( 0, int( $cloud->min || 0 ) );
-  my $max = min( 100, int( $cloud->max || 100 ) );
+    my $min = max(0, int($cloud->min || 0));
+    my $max = min(100, int($cloud->max || 100));
 
+    my %text;  # somewhere to count how many times we have seen a key
+    my @texts; # somewhere to retain the ordering
+    for my $i ($min .. $max) {
+        $text{$cloudlut[$i]} ++;
+        push(@texts, $cloudlut[$i]) if $text{$cloudlut[$i]} == 1;
+    }
 
-  my %text; # somewhere to count how many times we have seen a key
-  my @texts; # somewhere to retain the ordering
-  for my $i ($min..$max) {
-    $text{$cloudlut[$i]}++;
-    push(@texts, $cloudlut[$i]) if $text{$cloudlut[$i]} == 1;
-  }
-
-  if (@texts == 0) {
-    return "????";
-  } elsif (@texts == 3) {
-    return "any";
-  } else {
-    # Start with worse conditions
-    return join(" or ", reverse @texts);
-  }
+    if (@texts == 0) {
+        return "????";
+    }
+    elsif (@texts == 3) {
+        return "any";
+    }
+    else {
+        # Start with worse conditions
+        return join(" or ", reverse @texts);
+    }
 }
 
 =item B<summary>
@@ -1344,58 +1365,62 @@ sub cloudtxt {
 Returns a summary of the project. In list context returns
 keys and values of a hash:
 
-  %summary = $proj->summary;
+    %summary = $proj->summary;
 
 In scalar context returns an XML string describing the
 project.
 
-  $xml = $proj->summary;
+    $xml = $proj->summary;
 
 where the keys match the element names and the project ID
 is an ID attribute of the root element:
 
-  <OMPProjectSummary projectid="M01BU53">
-    <pi>...</pi>
-    <tagpriority>23</tagpriority>
-    ...
-  </OMPProjectSummary>
+    <OMPProjectSummary projectid="M01BU53">
+        <pi>...</pi>
+        <tagpriority>23</tagpriority>
+        ...
+    </OMPProjectSummary>
 
 =cut
 
 sub summary {
-  my $self = shift;
+    my $self = shift;
 
-  # retrieve the information from the object
-  my %summary;
-  for my $key (qw/allocated coi coiemail country pending
-               pi piemail projectid remaining semester tagpriority
-               support supportemail /) {
-    $summary{$key} = $self->$key;
-  }
-
-  if (wantarray) {
-    return %summary;
-  } else {
-    # XML
-    my $projectid = $summary{projectid};
-    my $xml = "<OMPProjectSummary";
-    $xml .= " id=\"$projectid\"" if defined $projectid;
-    $xml .= ">\n";
-
-    for my $key (sort keys %summary) {
-      next if $key eq 'projectid';
-      my $value = $summary{$key};
-      if (defined $value and length($value) > 0) {
-        $xml .= "<$key>$value</$key>";
-      } else {
-        $xml .= "<$key/>";
-      }
-      $xml .= "\n";
+    # retrieve the information from the object
+    my %summary;
+    for my $key (qw/
+            allocated coi coiemail country pending
+            pi piemail projectid remaining semester tagpriority
+            support supportemail
+            /) {
+        $summary{$key} = $self->$key;
     }
-    $xml .= "</OMPProjectSummary>\n";
 
-    return $xml;
-  }
+    if (wantarray) {
+        return %summary;
+    }
+    else {
+        # XML
+        my $projectid = $summary{projectid};
+        my $xml = "<OMPProjectSummary";
+        $xml .= " id=\"$projectid\"" if defined $projectid;
+        $xml .= ">\n";
+
+        for my $key (sort keys %summary) {
+            next if $key eq 'projectid';
+            my $value = $summary{$key};
+            if (defined $value and length($value) > 0) {
+                $xml .= "<$key>$value</$key>";
+            }
+            else {
+                $xml .= "<$key/>";
+            }
+            $xml .= "\n";
+        }
+        $xml .= "</OMPProjectSummary>\n";
+
+        return $xml;
+    }
 
 }
 
@@ -1412,31 +1437,33 @@ we have to guess the telescope from the project ID.
 
 Returns C<undef> if the location can not be determined from the project ID.
 
-  $url = $proj->science_case_url;
+    $url = $proj->science_case_url;
 
 =cut
 
 sub science_case_url {
-  my $self = shift;
-  my $projid = $self->projectid;
+    my $self = shift;
+    my $projid = $self->projectid;
 
-  # Guess telescope
-  if ($projid =~ /^m/i) {
-    # JCMT
-    return undef;
-  } elsif ($projid =~ /^u/i) {
-    # UKIRT
-    # Service programs are in a different location
-    if ($projid =~ /serv\/(\d+)$/aai) {
-      # Get the number
-      my $num = $1;
-      return "http://www.jach.hawaii.edu/JAClocal/UKIRT/ukirtserv/forms/$num.txt";
+    # Guess telescope
+    if ($projid =~ /^m/i) {
+        # JCMT
+        return undef;
     }
+    elsif ($projid =~ /^u/i) {
+        # UKIRT
+        # Service programs are in a different location
+        if ($projid =~ /serv\/(\d+)$/aai) {
+            # Get the number
+            my $num = $1;
+            return "http://www.jach.hawaii.edu/JAClocal/UKIRT/ukirtserv/forms/$num.txt";
+        }
 
-    return undef;
-  } else {
-    return undef;
-  }
+        return undef;
+    }
+    else {
+        return undef;
+    }
 }
 
 =item B<project_number>
@@ -1447,23 +1474,23 @@ sorting projects numerically. May return undef.
 =cut
 
 sub project_number {
-  my $self = shift;
+    my $self = shift;
 
-  my $string = $self->projectid;
+    my $string = $self->projectid;
 
-  my $number;
+    my $number;
 
-  if ($string =~ m!^u/\d{2}[ab]/[jhd]?(\d+).*$!aai     # UKIRT
-      or $string =~ m!^u/[a-z]+/(\d+)$!aai             # UKIRT serv
-      or $string =~ /^[ms]\d{2}[ab][a-z]+(\d+).*$/aai  # JCMT
-      or $string =~ /^nls(\d+)$/aai                    # JCMT Dutch service
-      or $string =~ /^[LS]X_(\d{2}).*$/aai             # SHADES proposal
-      or $string =~ /^[a-z]{2,}(\d{2})$/aai            # Staff projects (TJ02)
-     ) {
-    $number = $1;
-  }
+    if ($string =~ m!^u/\d{2}[ab]/[jhd]?(\d+).*$!aai         # UKIRT
+            or $string =~ m!^u/[a-z]+/(\d+)$!aai             # UKIRT serv
+            or $string =~ /^[ms]\d{2}[ab][a-z]+(\d+).*$/aai  # JCMT
+            or $string =~ /^nls(\d+)$/aai                    # JCMT Dutch service
+            or $string =~ /^[LS]X_(\d{2}).*$/aai             # SHADES proposal
+            or $string =~ /^[a-z]{2,}(\d{2})$/aai            # Staff projects (TJ02)
+            ) {
+        $number = $1;
+    }
 
-  return $number;
+    return $number;
 
 }
 
@@ -1477,22 +1504,23 @@ project.
 =cut
 
 sub semester_ori {
-  my $self = shift;
-  my $string = $self->projectid;
+    my $self = shift;
+    my $string = $self->projectid;
 
-  my $sem;
+    my $sem;
 
-  if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!aai       # UKIRT
-        or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/aai  # JCMT
-     ) {
-    $sem = $1;
-  }
+    if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!aai  # UKIRT
+            or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/aai  # JCMT
+            ) {
+        $sem = $1;
+    }
 
-  if ($sem) {
-    return $sem
-  } else {
-    return $self->semester;
-  }
+    if ($sem) {
+        return $sem;
+    }
+    else {
+        return $self->semester;
+    }
 }
 
 =item B<fixAlloc>
@@ -1501,24 +1529,24 @@ Force a specific allocation on the project (not an increment), and
 correct the remaining time on the project.  Takes number of hours
 as an argument.
 
-  $proj->fixAlloc( 10 );
+    $proj->fixAlloc(10);
 
 =cut
 
 sub fixAlloc {
-  my $self = shift;
-  my $new = shift;
+    my $self = shift;
+    my $new = shift;
 
-  $new *= 3600;
+    $new *= 3600;
 
-  # Get the old allocation and time remaining
-  my $old = $self->allocated;
-  my $rem = $self->remaining;
-  my $inc = $new - $old;
+    # Get the old allocation and time remaining
+    my $old = $self->allocated;
+    my $rem = $self->remaining;
+    my $inc = $new - $old;
 
-  # Fix up the time remaining
-  $self->remaining( $rem + $inc );
-  $self->allocated( $new );
+    # Fix up the time remaining
+    $self->remaining($rem + $inc);
+    $self->allocated($new);
 }
 
 =item B<incPending>
@@ -1526,7 +1554,7 @@ sub fixAlloc {
 Increment the value of the C<pending> field by the specified amount.
 Units are in seconds.
 
-  $proj->incPending( 10 );
+    $proj->incPending(10);
 
 Returns without action if the supplied value is less than or equal to
 0.
@@ -1534,12 +1562,12 @@ Returns without action if the supplied value is less than or equal to
 =cut
 
 sub incPending {
-  my $self = shift;
-  my $inc = shift;
-  return unless defined $inc and $inc > 0;
+    my $self = shift;
+    my $inc = shift;
+    return unless defined $inc and $inc > 0;
 
-  my $current = $self->pending;
-  $self->pending( $current + $inc );
+    my $current = $self->pending;
+    $self->pending($current + $inc);
 }
 
 =item B<consolidateTimeRemaining>
@@ -1547,7 +1575,7 @@ sub incPending {
 Transfer the value stored in C<pending> to the time C<remaining> field
 and reset the value of C<pending>
 
-  $proj->consolidateTimeRemaining;
+    $proj->consolidateTimeRemaining;
 
 If the time pending is greater than the time remaining the remaining
 time is set to zero.
@@ -1555,22 +1583,21 @@ time is set to zero.
 =cut
 
 sub consolidateTimeRemaining {
-  my $self = shift;
+    my $self = shift;
 
-  # Get the current value for pending
-  my $pending = $self->pending;
+    # Get the current value for pending
+    my $pending = $self->pending;
 
-  # Reset pending
-  $self->pending( 0 );
+    # Reset pending
+    $self->pending(0);
 
-  # Get the current value remaining.
-  my $remaining = $self->remaining;
-  my $new = $remaining - $pending;
-  $new = 0 if $new < 0;
+    # Get the current value remaining.
+    my $remaining = $self->remaining;
+    my $new = $remaining - $pending;
+    $new = 0 if $new < 0;
 
-  # store it
-  $self->remaining( $new );
-
+    # store it
+    $self->remaining($new);
 }
 
 =item B<noneRemaining>
@@ -1586,9 +1613,9 @@ wish to re-enable a project]
 =cut
 
 sub noneRemaining {
-  my $self = shift;
-  $self->remaining( 0 );
-  $self->pending( 0 );
+    my $self = shift;
+    $self->remaining(0);
+    $self->pending(0);
 }
 
 =item B<isScience>
@@ -1598,9 +1625,13 @@ Return true if the project's primary queue is not E&C.
 =cut
 
 sub isScience {
-  my $self = shift;
-  return ($self->primaryqueue eq 'EC' ? 0 : 1);
+    my $self = shift;
+    return ($self->primaryqueue eq 'EC' ? 0 : 1);
 }
+
+1;
+
+__END__
 
 =back
 
@@ -1626,7 +1657,4 @@ You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
-
 =cut
-
-1;

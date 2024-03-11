@@ -23,8 +23,8 @@ use base qw/OMP::BaseDB/;
 
 our $AUTHTABLE = 'ompauth';
 our %DURATION = (
-    default => new Time::Seconds(8 * ONE_HOUR),
-    remember => new Time::Seconds(ONE_WEEK),
+    default => Time::Seconds->new(8 * ONE_HOUR),
+    remember => Time::Seconds->new(ONE_WEEK),
 );
 our $REFRESH_SECONDS = 600;
 
@@ -138,7 +138,7 @@ sub verify_token {
         $self->_db_commit_trans();
     }
 
-    my $user = new OMP::User(
+    my $user = OMP::User->new(
         userid => $result->{'userid'},
         name => $result->{'uname'},
         email => $result->{'email'},
@@ -259,7 +259,7 @@ Generate a new token string.
 sub _make_token {
     my $self = shift;
 
-    my $fh = new IO::File('/dev/random', 'r');
+    my $fh = IO::File->new('/dev/random', 'r');
     read $fh, (my $bytes), 21;
     close $fh;
 
@@ -294,6 +294,10 @@ sub _duration_description {
     return sprintf '+%is', $seconds;
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 COPYRIGHT
@@ -315,5 +319,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

@@ -34,7 +34,7 @@ our %need_wcs = map {$_ => 1} qw/ACSIS/;
 
 Prepares a MongoDB::MongoClient connection.
 
-    my $db = new OMP::DB::JSA::MongoDB();
+    my $db = OMP::DB::JSA::MongoDB->new();
 
 =cut
 
@@ -44,7 +44,7 @@ sub new {
     my $self = {
         client => MongoDB->connect(
             'mongodb://localhost', {
-            bson_codec => new BSON(
+            bson_codec => BSON->new(
                 ordered => 1,
                 wrap_strings => 1,
                 wrap_numbers => 1),
@@ -269,17 +269,17 @@ sub prepare_file_record_local {
     my $hdr;
 
     if ($file =~ /\.fits$/) {
-        $hdr = new Astro::FITS::Header::CFITSIO(File => $file, ReadOnly => 1);
+        $hdr = Astro::FITS::Header::CFITSIO->new(File => $file, ReadOnly => 1);
     }
     else {
-        $hdr = new Astro::FITS::Header::NDF(File => $file);
+        $hdr = Astro::FITS::Header::NDF->new(File => $file);
     }
 
     my $extra = $opt{'extra'};
     my $missing = undef;
     $missing = $opt{'construct_missing'}->($file, $hdr, $extra)
         if defined $opt{'construct_missing'};
-    $missing = new Astro::FITS::Header() unless defined $missing;
+    $missing = Astro::FITS::Header->new() unless defined $missing;
 
     my $instrument =
         $hdr->value('BACKEND') // $missing->value('BACKEND') //
@@ -351,7 +351,6 @@ sub prepare_file_record {
             obsid => bson_string($obsid),
         );
 }
-
 
 =item header_to_bson($header)
 
@@ -494,7 +493,7 @@ sub bson_to_header {
             die "Could not determine type for keyword $key";
         }
 
-        my $card = new Astro::FITS::Header::Item(
+        my $card = Astro::FITS::Header::Item->new(
             Keyword => $key,
             Value => $val,
             Type => $type,
@@ -509,7 +508,7 @@ sub bson_to_header {
         push @cards, $card;
     }
 
-    return new Astro::FITS::Header(Cards => \@cards);
+    return Astro::FITS::Header->new(Cards => \@cards);
 }
 
 =item wcs_to_bson($wcs)
@@ -526,7 +525,7 @@ sub wcs_to_bson {
 
     my @doc = ();
 
-    my $chan = new Starlink::AST::Channel(sink => sub {push @doc, shift});
+    my $chan = Starlink::AST::Channel->new(sink => sub {push @doc, shift});
     $chan->Write($wcs);
 
     return \@doc;
@@ -545,7 +544,7 @@ sub bson_to_wcs {
 
     my @lines = @$doc;
 
-    my $chan = new Starlink::AST::Channel(source => sub {
+    my $chan = Starlink::AST::Channel->new(source => sub {
         return (shift @lines)->value()});
 
     return $chan->Read();

@@ -6,9 +6,9 @@ OMP::Audio - methods to play audio files
 
 =head1 SYNOPSIS
 
-  use OMP::Audio;
+    use OMP::Audio;
 
-  OMP::Audio->play( 'alert.wav' );
+    OMP::Audio->play('alert.wav');
 
 =head1 DESCRIPTION
 
@@ -39,7 +39,7 @@ There are no instance methods, only class (static) methods.
 
 Play an audio file.
 
-  OMP::Audio->play( 'alert.wav' );
+    OMP::Audio->play('alert.wav');
 
 This method takes one argument, a string denoting the file to be played.
 The file must be located in the directory pointed to by concatenating
@@ -49,41 +49,48 @@ variable.
 =cut
 
 sub play {
-  my $class = shift;
-  my $audio_file = shift;
+    my $class = shift;
+    my $audio_file = shift;
 
-  my $audio_subdir = OMP::Config->getData( 'audiodir' );
+    my $audio_subdir = OMP::Config->getData('audiodir');
 
-  # Either look in OMP_DIR or one up from Config directory
-  my $rootdir;
-  if (exists $ENV{OMP_DIR}) {
-    $rootdir = $ENV{OMP_DIR};
-  } else {
-    $rootdir = File::Spec->catdir(OMP::Config->cfgdir, File::Spec->updir);
-  }
+    # Either look in OMP_DIR or one up from Config directory
+    my $rootdir;
+    if (exists $ENV{OMP_DIR}) {
+        $rootdir = $ENV{OMP_DIR};
+    }
+    else {
+        $rootdir = File::Spec->catdir(OMP::Config->cfgdir, File::Spec->updir);
+    }
 
-  # make a stab at the file name
-  my $file = File::Spec->catfile( $rootdir,
-                                  $audio_subdir,
-                                  $audio_file );
+    # make a stab at the file name
+    my $file = File::Spec->catfile($rootdir, $audio_subdir, $audio_file);
 
-  print "Looking for File $file\n" if $DEBUG;
-  return if ! -e $file;
+    print "Looking for File $file\n" if $DEBUG;
+    return if ! -e $file;
 
-  # Do some rudimentary taint checking on the path. Only allow
-  # alpha-numerics, periods, front slashes, underscores, and hyphens.
-  $file =~ /^([a-zA-Z0-9\/\._\-]*)$/;
-  $file = $1;
+    # Do some rudimentary taint checking on the path. Only allow
+    # alpha-numerics, periods, front slashes, underscores, and hyphens.
+    $file =~ /^([a-zA-Z0-9\/\._\-]*)$/;
+    $file = $1;
 
-  {
-    local $ENV{'PATH'} = "/bin:/usr/bin";
+    {
+        local $ENV{'PATH'} = '/bin:/usr/bin';
 
-    # Log this play to the log file.
-    OMP::General->log_message( "Playing $file audio file..." );
-    JAC::Audio::register_log_command( sub { OMP::General->log_message( $_ ) for @_ } );
-    JAC::Audio::play( $file );
-  }
+        # Log this play to the log file.
+        OMP::General->log_message("Playing $file audio file...");
+
+        JAC::Audio::register_log_command(sub {
+            OMP::General->log_message($_) for @_
+        });
+
+        JAC::Audio::play($file);
+    }
 }
+
+1;
+
+__END__
 
 =back
 
@@ -114,5 +121,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

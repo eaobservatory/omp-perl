@@ -2,13 +2,13 @@ package OMP::CGIPage::ShiftLog;
 
 =head1 NAME
 
-OMP::CGIPage::ShiftLog - Display complete web pages for the shiftlog tool.
+OMP::CGIPage::ShiftLog - Display complete web pages for the shiftlog tool
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::ShiftLog;
+    use OMP::CGIComponent::ShiftLog;
 
-  shiftlog_page( $cgi );
+    shiftlog_page($cgi);
 
 =head1 DESCRIPTION
 
@@ -21,7 +21,7 @@ use strict;
 use warnings;
 
 use CGI;
-use CGI::Carp qw/ fatalsToBrowser /;
+use CGI::Carp qw/fatalsToBrowser/;
 
 use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
@@ -44,48 +44,46 @@ All routines are exported by default.
 Creates a page with a form for filing a shiftlog entry
 after a form on that page has been submitted.
 
-  $page->shiftlog_page([$projectid]);
+    $page->shiftlog_page([$projectid]);
 
 =cut
 
 sub shiftlog_page {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
-  my $comp = new OMP::CGIComponent::ShiftLog(page => $self);
+    my $q = $self->cgi;
+    my $comp = OMP::CGIComponent::ShiftLog->new(page => $self);
 
-  my $parsed = $comp->parse_query();
+    my $parsed = $comp->parse_query();
 
-  if ($q->param('submit_comment')) {
-      my $E;
-      try {
-          $comp->submit_comment($parsed);
-      }
-      otherwise {
-          $E = shift;
-      };
+    if ($q->param('submit_comment')) {
+        my $E;
+        try {
+            $comp->submit_comment($parsed);
+        }
+        otherwise {
+            $E = shift;
+        };
 
-      return $self->_write_error(
-        'Error storing shift comment.',
-        "$E")
-        if defined $E;
+        return $self->_write_error('Error storing shift comment.', "$E")
+            if defined $E;
 
-      return $self->_write_redirect($self->url_absolute());
-  }
+        return $self->_write_redirect($self->url_absolute());
+    }
 
-  $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'})
-    unless defined $projectid;
+    $self->_sidebar_night($parsed->{'telescope'}, $parsed->{'date'})
+        unless defined $projectid;
 
-  return {
-      target => $self->url_absolute(),
-      target_base => $q->url(-absolute => 1),
-      project_id => $projectid,
-      values => $parsed,
-      telescopes => [sort map {uc} OMP::Config->telescopes()],
+    return {
+        target => $self->url_absolute(),
+        target_base => $q->url(-absolute => 1),
+        project_id => $projectid,
+        values => $parsed,
+        telescopes => [sort map {uc} OMP::Config->telescopes()],
 
-      comments => $comp->get_shift_comments($parsed),
-  };
+        comments => $comp->get_shift_comments($parsed),
+    };
 }
 
 =item B<shiftlog_search>
@@ -150,6 +148,10 @@ sub shiftlog_search {
     };
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 SEE ALSO
@@ -181,5 +183,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

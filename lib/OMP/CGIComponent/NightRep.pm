@@ -2,11 +2,11 @@ package OMP::CGIComponent::NightRep;
 
 =head1 NAME
 
-OMP::CGIComponent::NightRep - CGI functions for the observation log tool.
+OMP::CGIComponent::NightRep - CGI functions for the observation log tool
 
 =head1 SYNOPSIS
 
-use OMP::CGIComponent::NightRep;
+    use OMP::CGIComponent::NightRep;
 
 =head1 DESCRIPTION
 
@@ -19,10 +19,10 @@ use strict;
 use warnings;
 
 use CGI::Carp qw/fatalsToBrowser/;
-use Net::Domain qw/ hostfqdn /;
+use Net::Domain qw/hostfqdn/;
 
 use OMP::Config;
-use OMP::Constants qw/ :obs :timegap /;
+use OMP::Constants qw/:obs :timegap/;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::MSBDoneDB;
@@ -35,7 +35,7 @@ use OMP::ObslogDB;
 use OMP::ProjServer;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIComponent/;
 
@@ -50,7 +50,7 @@ our $VERSION = '2.000';
 Prints a plain text table containing a summary of information about a
 group of observations.
 
-  $comp->obs_table_text( $obsgroup, %options );
+    $comp->obs_table_text($obsgroup, %options);
 
 The first argument is the C<OMP::Info::ObsGroup>
 object, and remaining options tell the function how to
@@ -58,95 +58,96 @@ display things.
 
 =over 4
 
-=item *
+=item showcomments
 
-showcomments - Boolean on whether or not to print comments [true].
+Boolean on whether or not to print comments [true].
 
 =back
 
 =cut
 
 sub obs_table_text {
-  my $self = shift;
-  my $obsgroup = shift;
-  my %options = @_;
+    my $self = shift;
+    my $obsgroup = shift;
+    my %options = @_;
 
-  # Verify the ObsGroup object.
-  if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
-    throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
-  }
+    # Verify the ObsGroup object.
+    unless (UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup")) {
+        throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object");
+    }
 
-  my $showcomments;
-  if( exists( $options{showcomments} ) ) {
-    $showcomments = $options{showcomments};
-  } else {
-    $showcomments = 1;
-  }
-
-  my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
-
-  unless (defined $summary) {
-    print "No observations for this night\n";
-    return;
-  }
-
-  my $is_first_block = 1;
-  foreach my $instblock (@{$summary->{'block'}}) {
-    my $ut = $instblock->{'ut'};
-    my $currentinst = $instblock->{'instrument'};
-
-    if ($is_first_block) {
-      print "\nObservations for " . $currentinst . " on $ut\n";
+    my $showcomments;
+    if (exists($options{showcomments})) {
+        $showcomments = $options{showcomments};
     }
     else {
-      print "\nObservations for " . $currentinst . "\n";
+        $showcomments = 1;
     }
 
-    print $instblock->{'heading'}->{_STRING_HEADER}, "\n";
+    my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
 
-    foreach my $entry (@{$instblock->{'obs'}}) {
-      my $obs = $entry->{'obs'};
-      my $nightlog = $entry->{'nightlog'};
+    unless (defined $summary) {
+        print "No observations for this night\n";
+        return;
+    }
 
-      if ($entry->{'is_time_gap'}) {
-        print $nightlog->{'_STRING'}, "\n";
-      }
-      else {
-        my @text;
-        if (exists $entry->{'msb_comments'}) {
-          my $comment = $entry->{'msb_comments'};
+    my $is_first_block = 1;
+    foreach my $instblock (@{$summary->{'block'}}) {
+        my $ut = $instblock->{'ut'};
+        my $currentinst = $instblock->{'instrument'};
 
-          my $title = '';
-          $title = sprintf "%s\n", $comment->{'title'}
-            if defined $comment->{'title'};
-
-          foreach my $c (@{$comment->{'comments'}}) {
-            push @text, $title . sprintf "%s UT by %s\n%s\n",
-              $c->date,
-              ((defined $c->author) ? $c->author->name : 'UNKNOWN PERSON'),
-              $c->text();
-          }
+        if ($is_first_block) {
+            print "\nObservations for " . $currentinst . " on $ut\n";
+        }
+        else {
+            print "\nObservations for " . $currentinst . "\n";
         }
 
-        print @text, "\n", $nightlog->{'_STRING'}, "\n";
+        print $instblock->{'heading'}->{_STRING_HEADER}, "\n";
 
-        if ($showcomments) {
-          # Print the comments underneath, if there are any, and if the
-          # 'showcomments' parameter is not '0', and if we're not looking at a timegap
-          # (since timegap comments show up in the nightlog string)
-          my $comments = $obs->comments;
-          if (defined($comments) && defined($comments->[0])) {
-            foreach my $comment (@$comments) {
-              print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-              print $comment->text . "\n";
+        foreach my $entry (@{$instblock->{'obs'}}) {
+            my $obs = $entry->{'obs'};
+            my $nightlog = $entry->{'nightlog'};
+
+            if ($entry->{'is_time_gap'}) {
+                print $nightlog->{'_STRING'}, "\n";
             }
-          }
-        }
-      }
-    }
+            else {
+                my @text;
+                if (exists $entry->{'msb_comments'}) {
+                    my $comment = $entry->{'msb_comments'};
 
-    $is_first_block = 0;
-  }
+                    my $title = '';
+                    $title = sprintf "%s\n", $comment->{'title'}
+                        if defined $comment->{'title'};
+
+                    foreach my $c (@{$comment->{'comments'}}) {
+                        push @text, $title . sprintf "%s UT by %s\n%s\n",
+                            $c->date,
+                            ((defined $c->author) ? $c->author->name : 'UNKNOWN PERSON'),
+                            $c->text();
+                    }
+                }
+
+                print @text, "\n", $nightlog->{'_STRING'}, "\n";
+
+                if ($showcomments) {
+                    # Print the comments underneath, if there are any, and if the
+                    # 'showcomments' parameter is not '0', and if we're not looking at a timegap
+                    # (since timegap comments show up in the nightlog string)
+                    my $comments = $obs->comments;
+                    if (defined($comments) && defined($comments->[0])) {
+                        foreach my $comment (@$comments) {
+                            print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+                            print $comment->text . "\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        $is_first_block = 0;
+    }
 }
 
 =item B<obs_comment_form>
@@ -154,72 +155,75 @@ sub obs_table_text {
 Returns information for a form that is used to enter a comment about
 an observation or time gap.
 
-    $values = $comp->obs_comment_form( $obs, $projectid );
+    $values = $comp->obs_comment_form($obs, $projectid);
 
 The first argument must be a an C<Info::Obs> object.
 
 =cut
 
 sub obs_comment_form {
-  my $self = shift;
-  my $obs = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $obs = shift;
+    my $projectid = shift;
 
-  return {
-    statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
-        ? [
-            [OMP__TIMEGAP_UNKNOWN() => 'Unknown'],
-            [OMP__TIMEGAP_INSTRUMENT() => 'Instrument'],
-            [OMP__TIMEGAP_WEATHER() => 'Weather'],
-            [OMP__TIMEGAP_FAULT() => 'Fault'],
-            [OMP__TIMEGAP_NEXT_PROJECT() => 'Next project'],
-            [OMP__TIMEGAP_PREV_PROJECT() => 'Last project'],
-            [OMP__TIMEGAP_NOT_DRIVER() => 'Observer not driver'],
-            [OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime'],
-            [OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead'],
-            [OMP__TIMEGAP_LOGISTICS() => 'Logistics'],
-        ]
-        : [map {
-            [$_ => $OMP::Info::Obs::status_label{$_}]
-        } @OMP::Info::Obs::status_order]
-    ),
-  };
+    return {
+        statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
+            ? [
+                [OMP__TIMEGAP_UNKNOWN() => 'Unknown'],
+                [OMP__TIMEGAP_INSTRUMENT() => 'Instrument'],
+                [OMP__TIMEGAP_WEATHER() => 'Weather'],
+                [OMP__TIMEGAP_FAULT() => 'Fault'],
+                [OMP__TIMEGAP_NEXT_PROJECT() => 'Next project'],
+                [OMP__TIMEGAP_PREV_PROJECT() => 'Last project'],
+                [OMP__TIMEGAP_NOT_DRIVER() => 'Observer not driver'],
+                [OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime'],
+                [OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead'],
+                [OMP__TIMEGAP_LOGISTICS() => 'Logistics'],
+                ]
+            : [
+                map {
+                    [$_ => $OMP::Info::Obs::status_label{$_}]
+                } @OMP::Info::Obs::status_order
+            ]
+        ),
+    };
 }
 
 =item B<obs_add_comment>
 
 Store a comment in the database.
 
-  $comp->obs_add_comment();
+    $comp->obs_add_comment();
 
 =cut
 
 sub obs_add_comment {
-  my $self = shift;
+    my $self = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  # Set up variables.
-  my $qv = $q->Vars;
-  my $status = $qv->{'status'};
-  my $text = ( defined( $qv->{'text'} ) ? $qv->{'text'} : "" );
+    # Set up variables.
+    my $qv = $q->Vars;
+    my $status = $qv->{'status'};
+    my $text = (defined($qv->{'text'}) ? $qv->{'text'} : "");
 
-  # Get the Info::Obs object from the CGI object
-  my $obs = $self->cgi_to_obs( );
+    # Get the Info::Obs object from the CGI object
+    my $obs = $self->cgi_to_obs();
 
-  # Form the Info::Comment object.
-  my $comment = new OMP::Info::Comment( author => $self->auth->user,
-                                        text => $text,
-                                        status => $status,
-                                      );
+    # Form the Info::Comment object.
+    my $comment = OMP::Info::Comment->new(
+        author => $self->auth->user,
+        text => $text,
+        status => $status,
+    );
 
-  # Store the comment in the database.
-  my $odb = OMP::ObslogDB->new(DB => $self->database);
-  $odb->addComment( $comment, $obs );
+    # Store the comment in the database.
+    my $odb = OMP::ObslogDB->new(DB => $self->database);
+    $odb->addComment($comment, $obs);
 
-  return {
-    messages => ['Comment successfully stored in database.'],
-  };
+    return {
+        messages => ['Comment successfully stored in database.'],
+    };
 }
 
 =item B<time_accounting_shift>
@@ -259,10 +263,10 @@ sub time_accounting_shift {
     if (defined $times) {
         for my $proj (sort keys %$times) {
             if ($proj =~ /^$tel/) {
-                $rem{$proj}++;
+                $rem{$proj} ++;
             }
             else {
-                push @entries, $self->_time_accounting_project(1 ,$proj, $times->{$proj});
+                push @entries, $self->_time_accounting_project(1, $proj, $times->{$proj});
             }
         }
 
@@ -544,115 +548,117 @@ sub store_time_accounting {
 
 Return an C<Info::Obs> object.
 
-  $obs = $comp->cgi_to_obs( );
+    $obs = $comp->cgi_to_obs();
 
 In order for this method to work properly, the parent page's C<CGI> object
 must have the following URL parameters:
 
-=over 8
+=over 4
 
-=item *
+=item ut
 
-ut - In the form YYYY-MM-DD-hh-mm-ss, where the month, day, hour,
+In the form YYYY-MM-DD-hh-mm-ss, where the month, day, hour,
 minute and second can be optionally zero-padded. The month is 1-based
 (i.e. a value of "1" is January) and the hour is 0-based and based on
 the 24-hour clock.
 
-=item *
+=item runnr
 
-runnr - The run number of the observation.
+The run number of the observation.
 
-=item *
+=item inst
 
-inst - The instrument that the observation was taken with. Case-insensitive.
+The instrument that the observation was taken with. Case-insensitive.
 
 =back
 
 =cut
 
 sub cgi_to_obs {
-  my $self = shift;
+    my $self = shift;
 
-  my $verify =
-   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/a,
-     'runnr'   => qr/^(\d+)$/a,
-     'inst'    => qr/^([\-\w\d]+)$/a,
-     'timegap' => qr/^([01])$/,
-     'oid'     => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
-   };
+    my $verify = {
+        'ut' => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/a,
+        'runnr' => qr/^(\d+)$/a,
+        'inst' => qr/^([\-\w\d]+)$/a,
+        'timegap' => qr/^([01])$/,
+        'oid' => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
+    };
 
-  my $ut      = $self->_cleanse_query_value( 'ut',      $verify );
-  my $runnr   = $self->_cleanse_query_value( 'runnr',   $verify );
-  my $inst    = $self->_cleanse_query_value( 'inst',    $verify );
-  my $timegap = $self->_cleanse_query_value( 'timegap', $verify );
-  $timegap   ||= 0;
-  my $obsid   = $self->_cleanse_query_value( 'oid',     $verify );
+    my $ut = $self->_cleanse_query_value('ut', $verify);
+    my $runnr = $self->_cleanse_query_value('runnr', $verify);
+    my $inst = $self->_cleanse_query_value('inst', $verify);
+    my $timegap = $self->_cleanse_query_value('timegap', $verify);
+    $timegap ||= 0;
+    my $obsid = $self->_cleanse_query_value('oid', $verify);
 
-  # Form the Time::Piece object
-  $ut = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
+    # Form the Time::Piece object
+    $ut = Time::Piece->strptime($ut, '%Y-%m-%d-%H-%M-%S');
 
-  # Get the telescope.
-  my $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
+    # Get the telescope.
+    my $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
 
-  # Form the Info::Obs object.
-  my $obs;
-  if( $timegap ) {
-    $obs = new OMP::Info::Obs::TimeGap( runnr => $runnr,
-                                        endobs => $ut,
-                                        instrument => $inst,
-                                        telescope => $telescope,
-                                        obsid     => $obsid,
-                                      );
-  } else {
-    $obs = new OMP::Info::Obs( runnr => $runnr,
-                               startobs => $ut,
-                               instrument => $inst,
-                               telescope => $telescope,
-                               obsid     => $obsid,
-                             );
-  }
+    # Form the Info::Obs object.
+    my $obs;
+    if ($timegap) {
+        $obs = OMP::Info::Obs::TimeGap->new(
+            runnr => $runnr,
+            endobs => $ut,
+            instrument => $inst,
+            telescope => $telescope,
+            obsid => $obsid,
+        );
+    }
+    else {
+        $obs = OMP::Info::Obs->new(
+            runnr => $runnr,
+            startobs => $ut,
+            instrument => $inst,
+            telescope => $telescope,
+            obsid => $obsid,
+        );
+    }
 
-  # Comment-ise the Info::Obs object.
-  my $db = OMP::ObslogDB->new(DB => $self->database);
-  $db->updateObsComment([$obs]);
+    # Comment-ise the Info::Obs object.
+    my $db = OMP::ObslogDB->new(DB => $self->database);
+    $db->updateObsComment([$obs]);
 
-  # And return the Info::Obs object.
-  return $obs;
-
+    # And return the Info::Obs object.
+    return $obs;
 }
 
 =item B<cgi_to_obsgroup>
 
 Given a hash of information, return an C<Info::ObsGroup> object.
 
-  $obsgroup = $comp->cgi_to_obsgroup( ut => $ut, inst => $inst );
+    $obsgroup = $comp->cgi_to_obsgroup(ut => $ut, inst => $inst);
 
 In order for this method to work properly, the hash
 should have the following keys:
 
-=over 8
+=over 4
 
-=item *
+=item ut
 
-ut - In the form YYYY-MM-DD.
+In the form YYYY-MM-DD.
 
 =back
 
 Other parameters are optional and can include:
 
-=over 8
+=over 4
 
-=item *
+=item inst
 
-inst - The instrument that the observation was taken with.
+The instrument that the observation was taken with.
 
-=item *
+=item projid
 
-projid - The project ID for which observations will be returned.
+The project ID for which observations will be returned.
 
-=item *
+=item telescope
 
-telescope - The telescope that the observations were taken with.
+The telescope that the observations were taken with.
 
 =back
 
@@ -665,82 +671,90 @@ C<CGI> object.
 =cut
 
 sub cgi_to_obsgroup {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $ut = defined( $args{'ut'} ) ? $args{'ut'} : undef;
-  my $inst = defined( $args{'inst'} ) ? uc( $args{'inst'} ) : undef;
-  my $projid = defined( $args{'projid'} ) ? $args{'projid'} : undef;
-  my $telescope = defined( $args{'telescope'} ) ? uc( $args{'telescope'} ) : undef;
-  my $inccal = defined( $args{'inccal'} ) ? $args{'inccal'} : 0;
-  my $timegap = defined( $args{'timegap'} ) ? $args{'timegap'} : 1;
+    my $ut = defined($args{'ut'}) ? $args{'ut'} : undef;
+    my $inst = defined($args{'inst'}) ? uc($args{'inst'}) : undef;
+    my $projid = defined($args{'projid'}) ? $args{'projid'} : undef;
+    my $telescope = defined($args{'telescope'}) ? uc($args{'telescope'}) : undef;
+    my $inccal = defined($args{'inccal'}) ? $args{'inccal'} : 0;
+    my $timegap = defined($args{'timegap'}) ? $args{'timegap'} : 1;
 
-  my %options;
-  if( $inccal ) { $options{'inccal'} = $inccal; }
-  if( $timegap ) { $options{'timegap'} = OMP::Config->getData('timegap'); }
+    my %options;
+    $options{'inccal'} = $inccal if $inccal;
+    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
 
-  my $qv = $q->Vars;
-  $ut = ( defined( $ut ) ? $ut : $qv->{'ut'} );
-  $inst = ( defined( $inst ) ? $inst : uc( $qv->{'inst'} ) );
-  $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
-  $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
+    my $qv = $q->Vars;
+    $ut = (defined($ut) ? $ut : $qv->{'ut'});
+    $inst = (defined($inst) ? $inst : uc($qv->{'inst'}));
+    $projid = (defined($projid) ? $projid : $qv->{'projid'});
+    $telescope = (defined($telescope) ? $telescope : uc($qv->{'telescope'}));
 
-  if( !defined( $telescope ) || length( $telescope . '' ) == 0 ) {
-    if( defined( $inst ) && length( $inst . '' ) != 0) {
-      $telescope = uc( OMP::Config->inferTelescope('instruments', $inst));
-    } elsif( defined( $projid ) ) {
-      $telescope = OMP::ProjServer->getTelescope( $projid );
-    } else {
-      throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");
+    if (! defined($telescope) || length($telescope . '') == 0) {
+        if (defined($inst) && length($inst . '') != 0) {
+            $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
+        }
+        elsif (defined($projid)) {
+            $telescope = OMP::ProjServer->getTelescope($projid);
+        }
+        else {
+            throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");
+        }
     }
-  }
 
-  if( !defined( $ut ) ) {
-    throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
-  }
-
-  my $grp;
-
-  if( defined( $telescope ) ) {
-    $grp = new OMP::Info::ObsGroup( date => $ut,
-                                    telescope => $telescope,
-                                    projectid => $projid,
-                                    instrument => $inst,
-                                    ignorebad => 1,
-                                    %options,
-                                  );
-  } else {
-
-    if( defined( $projid ) ) {
-      if( defined( $inst ) ) {
-        $grp = new OMP::Info::ObsGroup( date => $ut,
-                                        instrument => $inst,
-                                        projectid => $projid,
-                                        ignorebad => 1,
-                                        %options,
-                                      );
-      } else {
-        $grp = new OMP::Info::ObsGroup( date => $ut,
-                                        projectid => $projid,
-                                        ignorebad => 1,
-                                        %options,
-                                      );
-      }
-    } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
-      $grp = new OMP::Info::ObsGroup( date => $ut,
-                                      instrument => $inst,
-                                      ignorebad => 1,
-                                      %options,
-                                    );
-    } else {
-      throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
+    unless (defined $ut) {
+        throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
     }
-  }
 
-  return $grp;
+    my $grp;
 
+    if (defined($telescope)) {
+        $grp = OMP::Info::ObsGroup->new(
+            date => $ut,
+            telescope => $telescope,
+            projectid => $projid,
+            instrument => $inst,
+            ignorebad => 1,
+            %options,
+        );
+    }
+    else {
+        if (defined($projid)) {
+            if (defined($inst)) {
+                $grp = OMP::Info::ObsGroup->new(
+                    date => $ut,
+                    instrument => $inst,
+                    projectid => $projid,
+                    ignorebad => 1,
+                    %options,
+                );
+            }
+            else {
+                $grp = OMP::Info::ObsGroup->new(
+                    date => $ut,
+                    projectid => $projid,
+                    ignorebad => 1,
+                    %options,
+                );
+            }
+        }
+        elsif (defined($inst) && length($inst . "") > 0) {
+            $grp = OMP::Info::ObsGroup->new(
+                date => $ut,
+                instrument => $inst,
+                ignorebad => 1,
+                %options,
+            );
+        }
+        else {
+            throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
+        }
+    }
+
+    return $grp;
 }
 
 =item B<_cleanse_query_value>
@@ -749,26 +763,29 @@ Returns the cleansed URL parameter value given a CGI object,
 parameter name, and a hash reference of parameter names as keys &
 compiled regexen (capturing a value to be returned) as values.
 
-  $value = $comp->_cleanse_query_value( 'number',
-                                  { 'number' => qr/^(\d+)$/a, }
-                                );
+    $value = $comp->_cleanse_query_value(
+        'number', {
+            'number' => qr/^(\d+)$/a,
+        });
 
 =cut
 
 sub _cleanse_query_value {
+    my ($self, $key, $verify) = @_;
 
-  my ( $self, $key, $verify ) = @_;
+    my $val = $self->page->decoded_url_param($key);
 
-  my $val = $self->page->decoded_url_param( $key );
+    return unless defined $val
+        && length $val;
 
-  return
-    unless defined $val
-    && length $val;
+    my $regex = $verify->{$key} or return;
 
-  my $regex = $verify->{ $key } or return;
-
-  return ( $val =~ $regex )[0];
+    return ($val =~ $regex)[0];
 }
+
+1;
+
+__END__
 
 =back
 
@@ -802,5 +819,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

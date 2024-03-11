@@ -100,7 +100,7 @@ sub log_in_oauth {
         $redirect_uri = 'cgi-bin/projecthome.pl';
     }
     else {
-        my $uri = new URI($redirect_uri);
+        my $uri = URI->new($redirect_uri);
         $duration = 'remember' if scalar $uri->query_param_delete('remember_me');
         $redirect_uri = $uri->as_string;
     }
@@ -143,7 +143,7 @@ sub _finish_oauth {
         'Error retreiving Hedwig account information: ' .$client->errstr)
         unless $token;
 
-    my $fh = new IO::File(OMP::Config->getData('auth_hedwig.oidc_pub'), 'r');
+    my $fh = IO::File->new(OMP::Config->getData('auth_hedwig.oidc_pub'), 'r');
     my $key;
     do {
         local $/ = undef;
@@ -168,7 +168,7 @@ sub _finish_oauth {
 
     my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
 
-    my $db = new OMP::UserDB(DB => new OMP::DBbackend());
+    my $db = OMP::UserDB->new(DB => OMP::DBbackend->new());
 
     my $user = $db->getUser($omp_id);
 
@@ -187,7 +187,7 @@ sub _lookup_hedwig_id {
     my $cls = shift;
     my $hedwig_id = shift;
 
-    my $db = new OMP::DBbackend::Hedwig2OMP();
+    my $db = OMP::DBbackend::Hedwig2OMP->new();
 
     my $result = $db->handle()->selectall_arrayref(
         'SELECT omp_id FROM user WHERE hedwig_id = ?', {}, $hedwig_id);
@@ -199,6 +199,10 @@ sub _lookup_hedwig_id {
 
     return $result->[0]->[0];
 }
+
+1;
+
+__END__
 
 =back
 
@@ -221,5 +225,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

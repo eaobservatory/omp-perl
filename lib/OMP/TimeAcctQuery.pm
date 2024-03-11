@@ -6,8 +6,8 @@ OMP::TimeAcctQuery - Class representing an XML OMP query of the time accouting d
 
 =head1 SYNOPSIS
 
-  $query = new OMP::TimeAcctQuery( XML => $xml );
-  $sql = $query->sql( $accttable );
+    $query = OMP::TimeAcctQuery->new(XML => $xml);
+    $sql = $query->sql($accttable);
 
 =head1 DESCRIPTION
 
@@ -22,14 +22,13 @@ use warnings;
 use Carp;
 
 # Inheritance
-use base qw/ OMP::DBQuery /;
+use base qw/OMP::DBQuery/;
 
 # Package globals
 
 our $VERSION = '2.000';
 
 =head1 METHODS
-
 
 =head2 General Methods
 
@@ -40,30 +39,31 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $accttable );
+    $sql = $query->sql($accttable);
 
 Returns undef if the query could not be formed.
 
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) ==1;
+    throw OMP::Error::DBMalformedQuery(
+        "sql method invoked with incorrect number of arguments\n")
+        unless scalar(@_) == 1;
 
-  # get the table name
-  my $accttable = shift;
+    # get the table name
+    my $accttable = shift;
 
-  # generate the WHERE clause from the query hash
-  my $subsql = $self->_qhash_tosql();
-  my $where = '';
-  $where = " WHERE $subsql " if $subsql;
+    # generate the WHERE clause from the query hash
+    my $subsql = $self->_qhash_tosql();
+    my $where = '';
+    $where = " WHERE $subsql " if $subsql;
 
-  # Now add this to the template
-  my $sql = "SELECT * FROM $accttable $where";
+    # Now add this to the template
+    my $sql = "SELECT * FROM $accttable $where";
 
-  return $sql;
+    return $sql;
 }
 
 =begin __PRIVATE__METHODS__
@@ -78,7 +78,7 @@ Returns "TimeAcctQuery" by default.
 =cut
 
 sub _root_element {
-  return "TimeAcctQuery";
+    return "TimeAcctQuery";
 }
 
 
@@ -88,28 +88,35 @@ Do table specific post processing of the query hash. For time accounting this
 mainly entails converting range hashes to C<OMP::Range> objects (via
 the base class), and upcasing some entries.
 
-  $query->_post_process_hash( \%hash );
+    $query->_post_process_hash(\%hash);
 
 =cut
 
 sub _post_process_hash {
-  my $self = shift;
-  my $href = shift;
+    my $self = shift;
+    my $href = shift;
 
-  # Do the generic pre-processing
-  $self->SUPER::_post_process_hash( $href );
+    # Do the generic pre-processing
+    $self->SUPER::_post_process_hash($href);
 
-  # Case sensitivity
-  # If we are dealing with a these we should make sure we upper
-  # case them (more efficient to upper case everything than to do a
-  # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) },
-                           [qw/ projectid /]);
+    # Case sensitivity
+    # If we are dealing with a these we should make sure we upper
+    # case them (more efficient to upper case everything than to do a
+    # query that ignores case)
+    $self->_process_elements(
+        $href,
+        sub {
+            uc(shift)
+        },
+        [qw/projectid/]);
 
-  # Remove attributes since we dont need them anymore
-  delete $href->{_attr};
-
+    # Remove attributes since we dont need them anymore
+    delete $href->{_attr};
 }
+
+1;
+
+__END__
 
 =end __PRIVATE__METHODS__
 
@@ -139,7 +146,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

@@ -123,11 +123,11 @@ sub get_schedule {
         my $datestr_next = ($date + ONE_DAY)->strftime('%Y-%m-%d');
         my $info;
         unless (exists $days{$datestr}) {
-            $info = new OMP::Info::Sched::Night(
+            $info = OMP::Info::Sched::Night->new(
                 telescope => $tel, date => $date);
         }
         else {
-            $info = new OMP::Info::Sched::Night(%{$days{$datestr}});
+            $info = OMP::Info::Sched::Night->new(%{$days{$datestr}});
             if (exists $days{$datestr_next}) {
                 $info->holiday_next($days{$datestr_next}->{'holiday'});
             }
@@ -135,7 +135,7 @@ sub get_schedule {
             if (exists $slots{$datestr}) {
                 my @slots;
                 foreach my $slot (@{$slots{$datestr}}) {
-                    push @slots, new OMP::Info::Sched::Slot(%$slot);
+                    push @slots, OMP::Info::Sched::Slot->new(%$slot);
                 }
 
                 $info->slots(\@slots);
@@ -144,7 +144,7 @@ sub get_schedule {
         push @schedule, $info;
     }
 
-    return new OMP::Info::Sched(nights => \@schedule);
+    return OMP::Info::Sched->new(nights => \@schedule);
 }
 
 =item update_schedule

@@ -2,11 +2,11 @@ package OMP::CGIComponent::IncludeFile;
 
 =head1 NAME
 
-OMP::CGIComponent::IncludeFile - Include HTML fragments into OMP pages.
+OMP::CGIComponent::IncludeFile - Include HTML fragments into OMP pages
 
 =head1 SYNOPSIS
 
-use OMP::CGIComponent::IncludeFile;
+    use OMP::CGIComponent::IncludeFile;
 
 =head1 DESCRIPTION
 
@@ -38,12 +38,11 @@ use OMP::NetTools;
 use base qw/OMP::CGIComponent/;
 
 our %mime = (
-  png  => 'image/png',
-  gif  => 'image/gif',
-  jpg  => 'image/jpeg',
-  jpeg => 'image/jpeg',
+    png => 'image/png',
+    gif => 'image/gif',
+    jpg => 'image/jpeg',
+    jpeg => 'image/jpeg',
 );
-
 
 =item B<include_file_ut>
 
@@ -64,50 +63,52 @@ that the user has permission to see the specified file.
 =cut
 
 sub include_file_ut {
-  my $self = shift;
-  my $type = shift;
-  my $utdate = shift;
-  my %opt = @_;
+    my $self = shift;
+    my $type = shift;
+    my $utdate = shift;
+    my %opt = @_;
 
-  my $projectid = (exists $opt{'projectid'}) ? $opt{'projectid'} : undef;
+    my $projectid = (exists $opt{'projectid'}) ? $opt{'projectid'} : undef;
 
-  # Determine directory to search for files.
-  my $directory = OMP::Config->getData('directory-'.$type);
+    # Determine directory to search for files.
+    my $directory = OMP::Config->getData('directory-' . $type);
 
-  # Check UT date is valid.
-  $utdate =~ s/-//g;
-  if ($utdate =~ /^([0-9]{8})$/) {
-    $utdate = $1;
-  }
-  else {
-    croak('UT date string ['.$utdate.'] is not valid.');
-  }
+    # Check UT date is valid.
+    $utdate =~ s/-//g;
+    if ($utdate =~ /^([0-9]{8})$/) {
+        $utdate = $1;
+    }
+    else {
+        croak('UT date string [' . $utdate . '] is not valid.');
+    }
 
-  # Apply default filename if not provided.
-  my $filename = (exists $opt{'filename'}) ? $opt{'filename'} : 'index.html';
+    # Apply default filename if not provided.
+    my $filename = (exists $opt{'filename'}) ? $opt{'filename'} : 'index.html';
 
-  my $pathname = join('/', $directory, $utdate, $filename);
+    my $pathname = join('/', $directory, $utdate, $filename);
 
-  # Display a text warning if we can't find the file.  This may
-  # be perfectly reasonable, so don't raise an actual error.
-  unless (-e $pathname) {
-    return '<p>No <tt>' . $type . '</tt> file is available for this date.</p>';
-  }
+    # Display a text warning if we can't find the file.  This may
+    # be perfectly reasonable, so don't raise an actual error.
+    unless (-e $pathname) {
+        return '<p>No <tt>' . $type . '</tt> file is available for this date.</p>';
+    }
 
-  my @result = ();
-  push @result, "<!-- Begin included file " . $pathname . " -->";
-  my $fh = new IO::File($pathname);
+    my @result = ();
+    push @result, "<!-- Begin included file " . $pathname . " -->";
+    my $fh = IO::File->new($pathname);
 
-  foreach (<$fh>) {
-    s/src="([^"]+)"/'src="' . _resource_url($type, $utdate, $1, $projectid) . '"'/eg;
-    push @result, $_;
-  }
+    foreach (<$fh>) {
+        s/src="([^"]+)"/'src="' . _resource_url($type, $utdate, $1, $projectid) . '"'/eg;
+        push @result, $_;
+    }
 
-  $fh->close();
-  push @result, "<!-- End included file " . $pathname . " -->";
+    $fh->close();
+    push @result, "<!-- End included file " . $pathname . " -->";
 
-  return join "\n", @result;
+    return join "\n", @result;
 }
+
+=back
 
 =head1 INTERNAL SUBROUTINES
 
@@ -119,7 +120,7 @@ Finds and prints out the contents of a file which is to be
 found in the given subdirectory.  The caller should ensure
 that the subdirectory parameter is valid.
 
-  $comp->_get_resource($type, $subdirectory, $filename)
+    $comp->_get_resource($type, $subdirectory, $filename)
 
 An HTTP header is included based on the file
 type guessed from the extension.
@@ -127,48 +128,48 @@ type guessed from the extension.
 =cut
 
 sub _get_resource {
-  my $self = shift;
-  my ($type, $subdirectory, $filename) = @_;
+    my $self = shift;
+    my ($type, $subdirectory, $filename) = @_;
 
-  # Determine directory to search for files.
-  my $directory = OMP::Config->getData('directory-'.$type);
+    # Determine directory to search for files.
+    my $directory = OMP::Config->getData('directory-' . $type);
 
-  # Check directory is valid.
-  croak('Subdirectory not defined.') unless defined $subdirectory;
-  if ($subdirectory =~ /^([-_.a-zA-Z0-9]+)$/) {
-    $subdirectory = $1;
-  }
-  else {
-    croak('Subdirectory ['.$subdirectory.'] is not valid.');
-  }
+    # Check directory is valid.
+    croak('Subdirectory not defined.') unless defined $subdirectory;
+    if ($subdirectory =~ /^([-_.a-zA-Z0-9]+)$/) {
+        $subdirectory = $1;
+    }
+    else {
+        croak('Subdirectory [' . $subdirectory . '] is not valid.');
+    }
 
-  # Check filename is valid.
-  my $extension;
-  if ($filename =~ /^([-_a-zA-Z0-9]+)\.([a-zA-Z0-9]+)$/) {
-    $filename = $1 . '.' . $2;
-    $extension = $2;
-  }
-  else {
-    croak('File name [' . $filename . '] is not valid.');
-  }
+    # Check filename is valid.
+    my $extension;
+    if ($filename =~ /^([-_a-zA-Z0-9]+)\.([a-zA-Z0-9]+)$/) {
+        $filename = $1 . '.' . $2;
+        $extension = $2;
+    }
+    else {
+        croak('File name [' . $filename . '] is not valid.');
+    }
 
-  my $pathname = join('/', $directory, $subdirectory, $filename);
+    my $pathname = join('/', $directory, $subdirectory, $filename);
 
-  return $self->page->_write_not_found() unless -e $pathname;
+    return $self->page->_write_not_found() unless -e $pathname;
 
-  print $self->cgi->header(
-      -type => exists $mime{$extension}
-          ? $mime{$extension}
-          : 'application/octet-stream',
-      -expires => '+10m',
-  );
+    print $self->cgi->header(
+        -type => exists $mime{$extension}
+            ? $mime{$extension}
+            : 'application/octet-stream',
+        -expires => '+10m',
+    );
 
-  my $fh = new IO::File($pathname);
+    my $fh = IO::File->new($pathname);
 
-  local $/ = undef;
-  print <$fh>;
+    local $/ = undef;
+    print <$fh>;
 
-  $fh->close();
+    $fh->close();
 }
 
 =item B<_resource_url>
@@ -181,15 +182,19 @@ the user has permission to see it.
 =cut
 
 sub _resource_url {
-  my ($type, $utdate, $filename, $projectid) = @_;
-  my $url = 'get_resource.pl?type=' . $type
-       . '&amp;utdate=' . $utdate
-       . '&amp;filename=' . $filename;
+    my ($type, $utdate, $filename, $projectid) = @_;
+    my $url = 'get_resource.pl?type=' . $type
+        . '&amp;utdate=' . $utdate
+        . '&amp;filename=' . $filename;
 
-  $url .= '&amp;project=' . $projectid if defined $projectid;
+    $url .= '&amp;project=' . $projectid if defined $projectid;
 
-  return $url;
+    return $url;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -218,5 +223,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

@@ -6,8 +6,8 @@ OMP::UserServer - OMP user information server class
 
 =head1 SYNOPSIS
 
-  OMP::UserServer->addUser( $user );
-  OMP::UserServer->getUser( $userid );
+    OMP::UserServer->addUser($user);
+    OMP::UserServer->getUser($userid);
 
 =head1 DESCRIPTION
 
@@ -22,13 +22,13 @@ maintained in external databases. All methods are class methods.
 use strict;
 use warnings;
 use Carp;
-use List::Util qw[ first ];
+use List::Util qw/first/;
 
 # OMP dependencies
 use OMP::UserDB;
 use OMP::User;
 use OMP::UserQuery;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -41,122 +41,110 @@ our $VERSION = '2.000';
 
 =item B<addUser>
 
-  OMP::UserServer->addUser( $user );
+    OMP::UserServer->addUser($user);
 
 For now the argument is an C<OMP::User> object.
 
 =cut
 
 sub addUser {
-  my $class = shift;
-  my $user = shift;
+    my $class = shift;
+    my $user = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::UserDB(
-                             DB => $class->dbConnection,
-                            );
+        $db->addUser($user);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->addUser($user);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
+    return;
 }
 
 =item updateUser
 
 Update user details.
 
-  OMP::UserServer->updateUser( $user );
+    OMP::UserServer->updateUser($user);
 
 For now accepts a C<OMP::User> object.
 
 =cut
 
 sub updateUser {
-  my $class = shift;
-  my $user = shift;
+    my $class = shift;
+    my $user = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::UserDB(
-                             DB => $class->dbConnection,
-                            );
+        $db->updateUser($user);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->updateUser( $user );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
+    return;
 }
 
 =item B<verifyUser>
 
 Verify the specified user exists on the system.
 
-  $isthere = OMP::UserServer->verifyUser($userid);
+    $isthere = OMP::UserServer->verifyUser($userid);
 
 =cut
 
 sub verifyUser {
-  my $class = shift;
-  my $userid = shift;
+    my $class = shift;
+    my $userid = shift;
 
-  my $status;
-  my $E;
-  try {
+    my $status;
+    my $E;
+    try {
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::UserDB(
-                             DB => $class->dbConnection,
-                            );
+        $status = $db->verifyUser($userid);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $status = $db->verifyUser($userid);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $status;
+    return $status;
 }
 
 =item B<verifyUserExpensive>
@@ -165,52 +153,49 @@ Verify the specified user exists on the system, given any one of the
 attributes to check.  If more than one attribute is given, then all of
 them will be checked independently of each other.
 
-  $isthere = OMP::UserServer
-              ->verifyUserExpensive( 'name' => 'user name',
-                                      'email' => 'email@example.org',
-                                      'userid' => 'userid'
-                                    );
+    $isthere = OMP::UserServer->verifyUserExpensive(
+        'name' => 'user name',
+        'email' => 'email@example.org',
+        'userid' => 'userid');
 
 Known attributes are: name, email, userid, alias, cadcid.
 
 =cut
 
 sub verifyUserExpensive {
+    my $class = shift;
+    my %attr = @_;
 
-  my $class = shift;
-  my %attr = @_;
+    $attr{'cadcuser'} = delete $attr{'cadc'}
+        if exists $attr{'cadc'};
 
-  $attr{'cadcuser'} = delete $attr{'cadc'}
-    if exists $attr{'cadc'};
+    my @status;
+    my $E;
+    try {
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-  my @status;
-  my $E;
-  try {
+        @status = $db->verifyUserExpensive(%attr);
+    }
+    catch OMP::Error with {
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    my $db = new OMP::UserDB( DB => $class->dbConnection );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-    @status = $db->verifyUserExpensive( %attr );
-  } catch OMP::Error with {
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return @status;
+    return @status;
 }
 
 =item B<getUser>
 
 Get the specified user information.
 
-  $user = OMP::UserServer->getUser($userid);
+    $user = OMP::UserServer->getUser($userid);
 
 This is not SOAP friendly. The user information is returned as an C<OMP::User>
 object.
@@ -218,35 +203,31 @@ object.
 =cut
 
 sub getUser {
-  my $class = shift;
-  my $userid = shift;
+    my $class = shift;
+    my $userid = shift;
 
-  my $user;
-  my $E;
-  try {
+    my $user;
+    my $E;
+    try {
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::UserDB(
-                             DB => $class->dbConnection,
-                            );
+        $user = $db->getUser($userid);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $user = $db->getUser($userid);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $user;
+    return $user;
 }
 
 =item B<getUserExpensive>
@@ -255,64 +236,59 @@ Verify the specified user exists on the system, given any one of the
 attributes to check.  If more than one attribute is given, then all of
 them will be checked independently of each other.
 
-  $isthere = OMP::UserServer
-              ->getUserExpensive( 'name' => 'user name',
-                                  'email' => 'email@example.org',
-                                  'userid' => 'userid'
-                                );
+    $isthere = OMP::UserServer->getUserExpensive(
+        'name' => 'user name',
+        'email' => 'email@example.org',
+        'userid' => 'userid');
 
 Known attributes are: name, email, userid, alias, cadcid.
 
 =cut
 
 sub getUserExpensive {
+    my $class = shift;
+    my %attr = @_;
 
-  my $class = shift;
-  my %attr = @_;
+    $attr{'cadcuser'} = delete $attr{'cadc'}
+        if exists $attr{'cadc'};
 
-  $attr{'cadcuser'} = delete $attr{'cadc'}
-    if exists $attr{'cadc'};
+    my @user;
+    my $E;
+    try {
+        my $db = OMP::UserDB->new('DB' => $class->dbConnection);
 
-  my @user;
-  my $E;
-  try {
+        @user = $db->getUserExpensive(%attr);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    my $db = OMP::UserDB->new ( 'DB' => $class->dbConnection );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-    @user = $db->getUserExpensive( %attr );
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return @user;
+    return @user;
 }
 
 =item B<queryUsers>
 
 Query the user database using an XML representation of the query.
 
-  $users = OMP::UserServer->queryUsers($userid,
-                                       $format );
+    $users = OMP::UserServer->queryUsers($userid, $format);
 
 See C<OMP::UserQuery> for more details on the format of the XML query.
 A typical query could be:
 
-  <UserQuery>
-    <userid>AJA</userid>
-    <userid>TIMJ</userid>
-  </UserQuery>
+    <UserQuery>
+        <userid>AJA</userid>
+        <userid>TIMJ</userid>
+    </UserQuery>
 
 This would return the user information for TIMJ and AJA.
 
@@ -326,41 +302,40 @@ I<Currently only "object" is implemented>.
 =cut
 
 sub queryUsers {
-  my $class = shift;
-  my $xmlquery = shift;
-  my $mode = lc( shift );
-  $mode = "object" unless $mode;
+    my $class = shift;
+    my $xmlquery = shift;
+    my $mode = lc(shift);
+    $mode = "object" unless $mode;
 
-  my @users;
-  my $E;
-  try {
+    my @users;
+    my $E;
+    try {
+        my $query = OMP::UserQuery->new(XML => $xmlquery);
 
-    my $query = new OMP::UserQuery( XML => $xmlquery );
+        my $db = OMP::UserDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::UserDB(
-                             DB => $class->dbConnection,
-                            );
+        @users = $db->queryUsers($query);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    @users = $db->queryUsers( $query );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return \@users;
+    return \@users;
 }
 
+1;
+
+__END__
 
 =back
 
@@ -388,7 +363,6 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
@@ -396,5 +370,3 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

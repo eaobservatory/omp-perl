@@ -3,7 +3,7 @@ package OMP::CGIPage::SourcePlot;
 =head1 NAME
 
 OMP::CGIPage::SourcePlot - Plot source Elevation versus Time for JCMT/UKIRT
-for objects associated with projects in the OMP DB.
+for objects associated with projects in the OMP DB
 
 =head1 DESCRIPTION
 
@@ -162,7 +162,7 @@ sub _show_plot {
         return (\@msg, undef, \%opt)
     }
 
-    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+    my $capture = OMP::CGIComponent::CaptureImage->new(page => $self);
 
     return (
         [],

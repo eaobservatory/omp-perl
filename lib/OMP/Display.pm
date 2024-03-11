@@ -6,9 +6,9 @@ OMP::Display - Prepare OMP related data for display
 
 =head1 SYNOPSIS
 
-  use OMP::Display
+    use OMP::Display
 
-  $text = OMP::Display->html2plain($html);
+    $text = OMP::Display->html2plain($html);
 
 =head1 DESCRIPTION
 
@@ -35,29 +35,31 @@ our $VERSION = '2.000';
 
 =item B<escape_entity>
 
-Replace a & > or < with the corresponding HTML entity.
+Replace a & E<gt> or E<lt> with the corresponding HTML entity.
 
-  $esc = escape_entity( $text );
+    $esc = escape_entity($text);
 
 =cut
 
 sub escape_entity {
-  my $text = shift;
+    my $text = shift;
 
-  # Escape sequence lookup table
-  my %lut = (">" => "&gt;",
-             "<" => "&lt;",
-             "&" => "&amp;",
-             '"' => "&quot;",);
+    # Escape sequence lookup table
+    my %lut = (
+        '>' => '&gt;',
+        '<' => '&lt;',
+        '&' => '&amp;',
+        '"' => '&quot;',
+    );
 
-  # Do the search and replace
-  # Make sure we replace ampersands first, otherwise we'll end
-  # up replacing the ampersands in the escape sequences
-  for ("&", ">", "<", '"') {
-    $text =~ s/$_/$lut{$_}/g;
-  }
+    # Do the search and replace
+    # Make sure we replace ampersands first, otherwise we'll end
+    # up replacing the ampersands in the escape sequences
+    for ('&', '>', '<', '"') {
+        $text =~ s/$_/$lut{$_}/g;
+    }
 
-  return $text;
+    return $text;
 }
 
 =item B<html2plain>
@@ -65,41 +67,42 @@ sub escape_entity {
 Convert a string that uses HTML formatting to a string that uses plaintext
 formatting.  This method also expands hyperlinks so that the URL is displayed.
 
-  $text = OMP::Display->html2plain($html);
+    $text = OMP::Display->html2plain($html);
 
 =cut
 
 sub html2plain {
-  my $self = shift;
-  my $text = shift;
-  my $opt = shift || {};
+    my $self = shift;
+    my $text = shift;
+    my $opt = shift || {};
 
-  # Determine margins.
-  my %margin = (
-    leftmargin => 0,
-  );
-  if (exists $opt->{'leftmargin'}) {
-    $margin{'leftmargin'} = $opt->{'leftmargin'};
-  }
-  if (exists $opt->{'rightmargin'}) {
-    $margin{'rightmargin'} = $opt->{'rightmargin'};
-  }
+    # Determine margins.
+    my %margin = (
+        leftmargin => 0,
+    );
 
-  # Expand hyperlinks
-  $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
+    if (exists $opt->{'leftmargin'}) {
+        $margin{'leftmargin'} = $opt->{'leftmargin'};
+    }
+    if (exists $opt->{'rightmargin'}) {
+        $margin{'rightmargin'} = $opt->{'rightmargin'};
+    }
 
-  # Create the HTML tree and parse it
-  require HTML::TreeBuilder;
-  my $tree = HTML::TreeBuilder->new;
-  $tree->parse($text);
-  $tree->eof;
+    # Expand hyperlinks
+    $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
 
-  # Convert the HTML to text and store it
-  require HTML::FormatText;
-  my $formatter = HTML::FormatText->new(%margin);
-  my $plaintext = $formatter->format($tree);
+    # Create the HTML tree and parse it
+    require HTML::TreeBuilder;
+    my $tree = HTML::TreeBuilder->new;
+    $tree->parse($text);
+    $tree->eof;
 
-  return $plaintext;
+    # Convert the HTML to text and store it
+    require HTML::FormatText;
+    my $formatter = HTML::FormatText->new(%margin);
+    my $plaintext = $formatter->format($tree);
+
+    return $plaintext;
 }
 
 =item B<preify_text>
@@ -107,61 +110,68 @@ sub html2plain {
 This method is used to prepare text for storage to the database so
 that when it is retrieved it can be displayed properly in HTML format.
 If the text is not HTML formatted then it goes inside PRE tags and
-HTML characters (such as <, > and &) are replaced with their
+HTML characters (such as E<lt>, E<gt> and &) are replaced with their
 associated entities.  Also strips out windows ^M characters.
 
-  $escaped = $self->preify_text($text);
+    $escaped = $self->preify_text($text);
 
 Text is considered to be HTML formatted if it begins with the string
-"<html>" (case-insensitive).  This string is stripped off if found.
+"E<lt>htmlE<gt>" (case-insensitive).  This string is stripped off if found.
 
 =cut
 
 sub preify_text {
-  my $self = shift;
-  my $string = shift;
+    my $self = shift;
+    my $string = shift;
 
-  if ($string !~ /^<html>/i) {
-    $string = escape_entity( $string );
-    $string = "<pre>$string</pre>";
-  } else {
-    $string =~ s!</*html>!!ig;
-  }
+    if ($string !~ /^<html>/i) {
+        $string = escape_entity($string);
+        $string = "<pre>$string</pre>";
+    }
+    else {
+        $string =~ s!</*html>!!ig;
+    }
 
-  # Strip ^M
-  $string =~ s/\015//g;
+    # Strip ^M
+    $string =~ s/\015//g;
 
-  return $string;
+    return $string;
 }
 
 =item B<replace_entity>
 
 Replace some HTML entity references with their associated characters.
 
-  $text = OMP::Display->replace_entity($text);
+    $text = OMP::Display->replace_entity($text);
 
 Returns an empty string if $text is undefined.
 
 =cut
 
 sub replace_entity {
-  my $self = shift;
-  my $string = shift;
-  return '' unless defined $string;
+    my $self = shift;
+    my $string = shift;
+    return '' unless defined $string;
 
-  # Escape sequence lookup table
-  my %lut = ("&gt;" => ">",
-             "&lt;" => "<",
-             "&amp;" => "&",
-             "&quot;" => '"',);
+    # Escape sequence lookup table
+    my %lut = (
+        '&gt;' => '>',
+        '&lt;' => '<',
+        '&amp;' => '&',
+        '&quot;' => '"',
+    );
 
-  # Do the search and replace
-  for (keys %lut) {
-    $string =~ s/$_/$lut{$_}/gi;
-  }
+    # Do the search and replace
+    for (keys %lut) {
+        $string =~ s/$_/$lut{$_}/gi;
+    }
 
-  return $string;
+    return $string;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -189,7 +199,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

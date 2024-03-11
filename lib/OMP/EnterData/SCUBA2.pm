@@ -14,12 +14,12 @@ use parent 'OMP::EnterData';
 
 =head1 NAME
 
-OMP::EnterData::SCUBA2 - SCUBA2 specific methods.
+OMP::EnterData::SCUBA2 - SCUBA2 specific methods
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $scuba2 = new OMP::EnterData::SCUBA2();
+    my $scuba2 = OMP::EnterData::SCUBA2->new();
 
     my $name = $scuba2->instrument_name();
 
@@ -38,7 +38,7 @@ methods.
 
 =head2 METHODS
 
-=over 2
+=over 4
 
 =cut
 
@@ -46,7 +46,7 @@ methods.
 
 Constructor, returns an I<OMP::EnterData::SCUBA2> object.
 
-    $scuba2 = new OMP::EnterData::SCUBA2();
+    $scuba2 = OMP::EnterData::SCUBA2->new();
 
 Currently, no extra arguments are handled.
 
@@ -55,7 +55,7 @@ Currently, no extra arguments are handled.
 sub new {
     my ($class, %args) = @_;
 
-    my $obj = $class->SUPER::new(%args) ;
+    my $obj = $class->SUPER::new(%args);
     return bless $obj, $class;
 }
 
@@ -355,7 +355,7 @@ sub combine_int_time {
 }
 
 BEGIN {
-  my @seq = qw/SEQSTART SEQEND/;
+    my @seq = qw/SEQSTART SEQEND/;
 
 =item B<get_end_subheaders>
 
@@ -628,7 +628,7 @@ not found.
 sub append_array_column {
     my ($self, $header, $sub) = @_;
 
-    return unless $sub->{'SUBARRAY'} ;
+    return unless $sub->{'SUBARRAY'};
 
     # Table column names suffixed by with [a-d].
     my @variation = qw/
@@ -709,13 +709,13 @@ sub fill_headers_FILES {
 
 1;
 
-=pod
+__END__
 
 =back
 
 =head1 AUTHORS
 
-=over 2
+=over 4
 
 =item *
 

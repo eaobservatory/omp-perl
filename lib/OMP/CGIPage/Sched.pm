@@ -6,7 +6,7 @@ OMP::CGIPage::Sched - Display of complete schedule web pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::Sched;
+    use OMP::CGIPage::Sched;
 
 =head1 DESCRIPTION
 
@@ -166,7 +166,7 @@ sub sched_edit {
             for my $slot_option (@{$day->slots_full()}) {
                 my $slot_queue = _str_or_undef(scalar $q->param(
                     'queue_' . $date_str . $slot_option->{'time'}->strftime('_%H-%M-%S')));
-                push @slots, new OMP::Info::Sched::Slot(
+                push @slots, OMP::Info::Sched::Slot->new(
                     telescope => $tel,
                     date => $day->date(),
                     time => $slot_option->{'time'},
@@ -333,7 +333,7 @@ sub _create_calendar {
 
     my (undef, $localhost, undef) = OMP::NetTools->determine_host(1);
 
-    my $cal = new Data::ICal(
+    my $cal = Data::ICal->new(
         calname => (sprintf 'JCMT Calendar - %s', $queryname),
         rfc_strict => 1,
     );
@@ -366,7 +366,7 @@ sub _create_calendar {
 
         if ($include_holiday) {
             if ($night->holiday) {
-                my $event = new Data::ICal::Entry::Event();
+                my $event = Data::ICal::Entry::Event->new();
 
                 $event->add_properties(
                     created => $now,
@@ -425,7 +425,7 @@ sub _create_calendar {
         }
         my $desc = join "\n", @desc;
 
-        my $event = new Data::ICal::Entry::Event();
+        my $event = Data::ICal::Entry::Event->new();
 
         $event->add_properties(
             created => $now,
@@ -476,5 +476,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

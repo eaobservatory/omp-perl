@@ -6,9 +6,8 @@ OMP::ProjQuery - Class representing an XML OMP query of the Project database
 
 =head1 SYNOPSIS
 
-  $query = new OMP::ProjQuery( XML => $xml );
-  $sql = $query->sql( $projtable, $projqueuetable, $projusertable );
-
+    $query = OMP::ProjQuery->new(XML => $xml);
+    $sql = $query->sql($projtable, $projqueuetable, $projusertable);
 
 =head1 DESCRIPTION
 
@@ -28,14 +27,13 @@ use OMP::General;
 use OMP::Range;
 
 # Inheritance
-use base qw/ OMP::DBQuery /;
+use base qw/OMP::DBQuery/;
 
 # Package globals
 
 our $VERSION = '2.000';
 
 =head1 METHODS
-
 
 =head2 General Methods
 
@@ -46,67 +44,67 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $projtable, $projqueuetable, $projusertable );
+    $sql = $query->sql($projtable, $projqueuetable, $projusertable);
 
 Returns undef if the query could not be formed.
 
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("ProjQuery: sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) == 3;
+    throw OMP::Error::DBMalformedQuery(
+        "ProjQuery: sql method invoked with incorrect number of arguments\n")
+        unless scalar(@_) == 3;
 
-  my ($projtable, $projqueuetable, $projusertable) = @_;
+    my ($projtable, $projqueuetable, $projusertable) = @_;
 
-  # Generate the WHERE clause from the query hash
-  # Note that we ignore elevation, airmass and date since
-  # these can not be dealt with in the database at the present
-  # time [they are used to calculate source availability]
-  # Disabling constraints on queries should be left to this
-  # subclass
-  my $subsql = $self->_qhash_tosql();
+    # Generate the WHERE clause from the query hash
+    # Note that we ignore elevation, airmass and date since
+    # these can not be dealt with in the database at the present
+    # time [they are used to calculate source availability]
+    # Disabling constraints on queries should be left to this
+    # subclass
+    my $subsql = $self->_qhash_tosql();
 
-  # Now need to put this SQL into the template query
-  # Only do a join if required by the CoI or Support query
-  my @join_tables;
-  my @join_sql;
-  # Note that we match multiple times but we do not reset the position
-  # this allows us to jump out eventually.
-  my %found;
-  while ($subsql =~ /\b(U\d)\.userid\b/cg ) {
-    # Keep track of the tables we have covered already
-    next if exists $found{$1};
-    $found{$1}++;
+    # Now need to put this SQL into the template query
+    # Only do a join if required by the CoI or Support query
+    my @join_tables;
+    my @join_sql;
+    # Note that we match multiple times but we do not reset the position
+    # this allows us to jump out eventually.
+    my %found;
+    while ($subsql =~ /\b(U\d)\.userid\b/cg) {
+        # Keep track of the tables we have covered already
+        next if exists $found{$1};
+        $found{$1} ++;
 
-    push(@join_tables, ", $projusertable $1");
-    push(@join_sql, " P.projectid = $1.projectid ");
-  }
+        push @join_tables, ", $projusertable $1";
+        push @join_sql, " P.projectid = $1.projectid ";
+    }
 
-  # Join with the Q table if required
-  if ($subsql =~ /\bQ\./) {
-    push(@join_tables, ", $projqueuetable Q");
-    push(@join_sql, " P.projectid = Q.projectid ");
-  }
+    # Join with the Q table if required
+    if ($subsql =~ /\bQ\./) {
+        push @join_tables, ", $projqueuetable Q";
+        push @join_sql, " P.projectid = Q.projectid ";
+    }
 
-  # Construct the the where clause. Depends on which
-  # additional queries are defined
-  my @where = grep { $_ } (@join_sql, $subsql);
-  my $where = '';
-  $where = " WHERE " . join( " AND ", @where)
-    if @where;
+    # Construct the the where clause. Depends on which
+    # additional queries are defined
+    my @where = grep {$_} (@join_sql, $subsql);
+    my $where = '';
+    $where = " WHERE " . join(" AND ", @where)
+        if @where;
 
-  # The final query
-  # Note that we are only interested in the ProjTable contents
-  # since the user information is read after the match
-  my $sql = "SELECT DISTINCT P.projectid, P.* FROM $projtable P " .
-    join(" ",@join_tables) .
-      "$where ORDER BY P.projectid";
+    # The final query
+    # Note that we are only interested in the ProjTable contents
+    # since the user information is read after the match
+    my $sql = "SELECT DISTINCT P.projectid, P.* FROM $projtable P "
+        . join(" ", @join_tables)
+        . "$where ORDER BY P.projectid";
 
-  #print "SQL: $sql\n";
-  return "$sql\n";
-
+    #print "SQL: $sql\n";
+    return "$sql\n";
 }
 
 =begin __PRIVATE__METHODS__
@@ -121,7 +119,7 @@ Returns "ProjQuery" by default.
 =cut
 
 sub _root_element {
-  return "ProjQuery";
+    return "ProjQuery";
 }
 
 =item B<_post_process_hash>
@@ -131,7 +129,7 @@ mainly entails converting range hashes to C<OMP::Range> objects (via
 the base class), upcasing some entries and converting "status" fields
 to queries on "remaining" and "pending" columns.
 
-  $query->_post_process_hash( \%hash );
+    $query->_post_process_hash(\%hash);
 
 Does not convert abbreviated project names to full form
 (this would require knowledge of a telescope).
@@ -139,126 +137,144 @@ Does not convert abbreviated project names to full form
 =cut
 
 sub _post_process_hash {
-  my $self = shift;
-  my $href = shift;
+    my $self = shift;
+    my $href = shift;
 
-  # Do the generic pre-processing
-  $self->SUPER::_post_process_hash( $href );
+    # Do the generic pre-processing
+    $self->SUPER::_post_process_hash($href);
 
-  # Loop over each key
-  for my $key (keys %$href ) {
-    # Skip private keys
-    next if $key =~ /^_/;
+    # Loop over each key
+    for my $key (keys %$href) {
+        # Skip private keys
+        next if $key =~ /^_/;
 
-    if ($key eq 'status') {
+        if ($key eq 'status') {
+            # Convert status to query on remaining-pending
+            # This is a bit of a kluge until we have a pseudo-column
+            my $new = "(remaining-pending)";
+            my $break = 0.01;
+            if ($href->{status}->[0] =~ /^active$/i) {
+                $href->{$new} = OMP::Range->new(Min => $break);
+            }
+            else {
+                $href->{$new} = OMP::Range->new(Max => $break);
+            }
 
-      # Convert status to query on remaining-pending
-      # This is a bit of a kluge until we have a pseudo-column
-      my $new = "(remaining-pending)";
-      my $break = 0.01;
-      if ($href->{status}->[0] =~ /^active$/i) {
-        $href->{$new} = new OMP::Range( Min => $break);
-      } else {
-        $href->{$new} = new OMP::Range( Max => $break);
-      }
-
-      # Remove the status column
-      delete $href->{status};
-
+            # Remove the status column
+            delete $href->{status};
+        }
     }
 
-  }
+    # Case sensitivity
+    # If we are dealing with a these we should make sure we upper
+    # case them (more efficient to upper case everything than to do a
+    # query that ignores case)
+    $self->_process_elements(
+        $href,
+        sub {uc(shift)},
+        [qw/
+            projectid telescope support coi semester person person_access pi country
+        /]
+    );
 
-  # Case sensitivity
-  # If we are dealing with a these we should make sure we upper
-  # case them (more efficient to upper case everything than to do a
-  # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) },
-                           [qw/projectid telescope support coi semester person person_access pi country/]);
-
-  # These entries are in more than one table so we have to
-  # explicitly choose the project table
-  for (qw/ projectid telescope /) {
-    if (exists $href->{$_}) {
-      my $key = "P.$_";
-      $href->{$key} = $href->{$_};
-      delete $href->{$_};
+    # These entries are in more than one table so we have to
+    # explicitly choose the project table
+    for (qw/projectid telescope/) {
+        if (exists $href->{$_}) {
+            my $key = "P.$_";
+            $href->{$key} = $href->{$_};
+            delete $href->{$_};
+        }
     }
-  }
 
-  # These entries are in the queue table [but also currently
-  # in the proj table for backwards compatibility reasons
-  for (qw/ country tagpriority /) {
-    if (exists $href->{$_}) {
-      my $key = "Q.$_";
-      $href->{$key} = $href->{$_};
-      delete $href->{$_};
+    # These entries are in the queue table [but also currently
+    # in the proj table for backwards compatibility reasons
+    for (qw/country tagpriority/) {
+        if (exists $href->{$_}) {
+            my $key = "Q.$_";
+            $href->{$key} = $href->{$_};
+            delete $href->{$_};
+        }
     }
-  }
 
+    # Need to do multiple joins each time we have a distinct query
+    # for a USER
+    my $counter = 1;
+    my $prefix = 'U';
 
-  # Need to do multiple joins each time we have a distinct query
-  # for a USER
-  my $counter = 1;
-  my $prefix = 'U';
+    # A coi query is really a query on U.userid but with capacity of COI
+    if (exists $href->{coi}) {
+        my $U = $prefix . $counter;
+        $href->{coi} = {
+            _JOIN => 'AND',
+            "$U.userid" => $href->{coi},
+            "$U.capacity" => ['COI']
+        };
+        $counter ++;
+    }
 
-  # A coi query is really a query on U.userid but with capacity of COI
-  if (exists $href->{coi}) {
-    my $U = $prefix . $counter;
-    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi},
-                     "$U.capacity" => ['COI']};
-    $counter++;
-  }
+    # Similarly for "support" query
+    if (exists $href->{support}) {
+        my $U = $prefix . $counter;
+        $href->{support} = {
+            _JOIN => 'AND',
+            "$U.userid" => $href->{support},
+            "$U.capacity" => ['SUPPORT']
+        };
+        $counter ++;
+    }
 
-  # Similarly for "support" query
-  if (exists $href->{support}) {
-    my $U = $prefix . $counter;
-    $href->{support} = { _JOIN => 'AND', "$U.userid" => $href->{support},
-                         "$U.capacity" => ['SUPPORT']};
-    $counter++;
-  }
+    # "person" means CoI or PI in ompprojuser table
+    # i.e. userid = "Y" AND capacity in ('PI', 'COI')
+    # but only if we are looking for distinct projects
 
-  # "person" means CoI or PI in ompprojuser table
-  # i.e. userid = "Y" AND capacity in ('PI', 'COI')
-  # but only if we are looking for distinct projects
+    # if someone uses <person>X</person><person>Y</person>
+    # this is deemed to be an OR and not an AND ie
+    # userid in ('X','Y') AND capacity in ('PI','COI')
+    # Also want distinct U.projectid if at all possible
+    # Note that hash refs indicate OR so we could do this as
+    # auser => { userid => 'X', userid => 'Y'},
+    # acapacity => { capacity => 'PI', capacity => 'COI' }
 
-  # if someone uses <person>X</person><person>Y</person>
-  # this is deemed to be an OR and not an AND ie
-  # userid in ('X','Y') AND capacity in ('PI','COI')
-  # Also want distinct U.projectid if at all possible
-  # Note that hash refs indicate OR so we could do this as
-  # auser => { userid => 'X', userid => 'Y'},
-  # acapacity => { capacity => 'PI', capacity => 'COI' }
+    if (exists $href->{person}) {
+        my $U = $prefix . $counter;
+        $href->{person} = {
+            _JOIN => 'AND',
+            auser => {
+                "$U.userid" => $href->{person},
+            },
+            acapacity => {
+                "$U.capacity" => ['COI', 'PI'],
+            },
+        };
+        $counter ++;
+    }
 
-  if (exists $href->{person}) {
-    my $U = $prefix . $counter;
-    $href->{person} = {
-                       _JOIN => 'AND',
-                       auser => {"$U.userid" => $href->{person}},
-                       acapacity => { "$U.capacity"=> ['COI','PI']},
-                      };
-    $counter++;
-  }
+    # "support" means
+    #  userid = 'Y' AND capacity = 'SUPPORT'
+    # but this is difficult since we have no way of grouping AND
+    # entries
+    # Maybe  support => { _JOIN => 'AND', capacity => 'SUPPORT', userid => 'Y'}
 
-  # "support" means
-  #  userid = 'Y' AND capacity = 'SUPPORT'
-  # but this is difficult since we have no way of grouping AND
-  # entries
-  # Maybe  support => { _JOIN => 'AND', capacity => 'SUPPORT', userid => 'Y'}
+    # For "person_access" query: this searches for a person in any capacity
+    # with a true value in the omp_access column of the ompprojuser table.
+    if (exists $href->{'person_access'}) {
+        my $U = $prefix . $counter;
+        $href->{'person_access'} = {
+            _JOIN => 'AND',
+            "$U.userid" => $href->{'person_access'},
+            "$U.omp_access" => OMP::DBQuery::True->new(true => 1)
+        };
+        $counter ++;
+    }
 
-  # For "person_access" query: this searches for a person in any capacity
-  # with a true value in the omp_access column of the ompprojuser table.
-  if (exists $href->{'person_access'}) {
-    my $U = $prefix . $counter;
-    $href->{'person_access'} = { _JOIN => 'AND', "$U.userid" => $href->{'person_access'},
-                         "$U.omp_access" => OMP::DBQuery::True->new(true => 1)};
-    $counter++;
-  }
-
-  # Remove attributes since we dont need them anymore
-  delete $href->{_attr};
+    # Remove attributes since we dont need them anymore
+    delete $href->{_attr};
 }
 
+1;
+
+__END__
 
 =end __PRIVATE__METHODS__
 
@@ -279,7 +295,7 @@ The top-level container element is E<lt>ProjQueryE<gt>.
 Elements that contain simply C<PCDATA> are assumed to indicate
 a required value.
 
-  <instrument>SCUBA</instrument>
+    <instrument>SCUBA</instrument>
 
 Would only match if C<instrument=SCUBA>.
 
@@ -288,12 +304,12 @@ Would only match if C<instrument=SCUBA>.
 Elements that contain elements C<max> and/or C<min> are used
 to indicate ranges.
 
-  <elevation><min>30</min></elevation>
-  <priority><max>2</max></priority>
+    <elevation><min>30</min></elevation>
+    <priority><max>2</max></priority>
 
 Why dont we just use attributes?
 
-  <priority max="2" /> ?
+    <priority max="2" /> ?
 
 Using explicit elements is probably easier to generate.
 
@@ -304,10 +320,10 @@ Ranges are inclusive.
 Elements that contain other elements are assumed to be containing
 multiple alternative matches (C<OR>ed).
 
-  <instruments>
-   <instrument>CGS4</instrument>
-   <instrument>IRCAM</instrument>
-  </isntruments>
+    <instruments>
+        <instrument>CGS4</instrument>
+        <instrument>IRCAM</instrument>
+    </isntruments>
 
 C<max> and C<min> are special cases. In general the parser will
 ignore the plural element (rather than trying to determine that
@@ -315,15 +331,15 @@ ignore the plural element (rather than trying to determine that
 dropping of plurals such that multiple occurrence of the same element
 in the query represent variants directly.
 
-  <name>Tim</name>
-  <name>Kynan</name>
+    <name>Tim</name>
+    <name>Kynan</name>
 
 would suggest that names Tim or Kynan are valid. This also means
 
-  <instrument>SCUBA</instrument>
-  <instruments>
-    <instrument>CGS4</instrument>
-  </instruments>
+    <instrument>SCUBA</instrument>
+    <instruments>
+        <instrument>CGS4</instrument>
+    </instruments>
 
 will select SCUBA or CGS4.
 
@@ -366,7 +382,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

@@ -6,7 +6,7 @@ OMP::CGIPage::IncludeFile - Include HTML fragments into OMP pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::IncludeFile;
+    use OMP::CGIPage::IncludeFile;
 
 =head1 METHODS
 
@@ -34,7 +34,7 @@ use base qw/OMP::CGIPage/;
 OMP::CGIPage handler for serving resource files generated
 offline (e.g. graphs).
 
-  $page->get_resource([$projectid]);
+    $page->get_resource([$projectid]);
 
 This is done in the OMP so that we can check that
 the user is permitted to view the resource.
@@ -60,58 +60,64 @@ Project access not currently permitted.
 =cut
 
 sub get_resource {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $comp = new OMP::CGIComponent::IncludeFile(page => $self);
+    my $comp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
-  my $type = $self->decoded_url_param('type');
-  my $utdate = $self->decoded_url_param('utdate');
-  my $faultid = $self->decoded_url_param('fault');
-  my $filename = $self->decoded_url_param('filename');
+    my $type = $self->decoded_url_param('type');
+    my $utdate = $self->decoded_url_param('utdate');
+    my $faultid = $self->decoded_url_param('fault');
+    my $filename = $self->decoded_url_param('filename');
 
-  if (defined $utdate) {
-    # Check UT date is valid.
-    $utdate =~ s/-//g;
-    if ($utdate =~ /^([0-9]{8})$/) {
-      $utdate = $1;
+    if (defined $utdate) {
+        # Check UT date is valid.
+        $utdate =~ s/-//g;
+        if ($utdate =~ /^([0-9]{8})$/) {
+            $utdate = $1;
+        }
+        else {
+            croak('UT date string [' . $utdate . '] is not valid.');
+        }
+    }
+
+    if (defined $faultid) {
+        $faultid = OMP::General->extract_faultid("[${faultid}]");
+        croak 'Invalid fault ID' unless defined $faultid;
+    }
+
+    my $subdirectory = undef;
+    if ($type eq 'dq-nightly') {
+        if (defined $projectid) {
+            croak('UT date not specified') unless defined $utdate;
+            my $observed = OMP::MSBServer->observedMSBs({
+                projectid => $projectid,
+                date => $utdate,
+                comments => 0,
+                transactions => 0,
+                format => 'data',
+            });
+
+            return $self->_write_forbidden() unless scalar @$observed;
+        }
+
+        $subdirectory = $utdate;
+    }
+    elsif ($type eq 'fault-image') {
+        return $self->_write_forbidden() if defined $projectid;
+
+        $subdirectory = $faultid;
     }
     else {
-      croak('UT date string ['.$utdate.'] is not valid.');
-    }
-  }
-
-  if (defined $faultid) {
-    $faultid = OMP::General->extract_faultid("[${faultid}]");
-    croak 'Invalid fault ID' unless defined $faultid;
-  }
-
-  my $subdirectory = undef;
-  if ($type eq 'dq-nightly') {
-    if (defined $projectid) {
-      croak('UT date not specified') unless defined $utdate;
-      my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                                   date => $utdate,
-                                                   comments => 0,
-                                                   transactions => 0,
-                                                   format => 'data',});
-
-      return $self->_write_forbidden() unless scalar @$observed;
+        croak "Resource type not recognized.";
     }
 
-    $subdirectory = $utdate;
-  }
-  elsif ($type eq 'fault-image') {
-    return $self->_write_forbidden() if defined $projectid;
-
-    $subdirectory = $faultid;
-  }
-  else {
-    croak "Resource type not recognized.";
-  }
-
-  $comp->_get_resource($type, $subdirectory, $filename);
+    $comp->_get_resource($type, $subdirectory, $filename);
 }
+
+1;
+
+__END__
 
 =back
 
@@ -136,5 +142,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

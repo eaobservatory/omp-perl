@@ -6,7 +6,7 @@ OMP::CGIPage::NightRep - Disply complete observation log web pages
 
 =head1 SYNOPSIS
 
-use OMP::CGIPage::NightRep;
+    use OMP::CGIPage::NightRep;
 
 =head1 DESCRIPTION
 
@@ -21,9 +21,9 @@ use warnings;
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
-use Net::Domain qw/ hostfqdn /;
+use Net::Domain qw/hostfqdn/;
 use Time::Piece;
-use Time::Seconds qw/ ONE_DAY /;
+use Time::Seconds qw/ONE_DAY/;
 
 use OMP::CGIComponent::NightRep;
 use OMP::CGIComponent::IncludeFile;
@@ -47,7 +47,7 @@ use OMP::PreviewQuery;
 use OMP::ProjServer;
 use OMP::BaseDB;
 use OMP::ArchiveDB;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIPage/;
 
@@ -61,7 +61,7 @@ our $VERSION = '2.000';
 
 Creates a page with a form for filing a comment.
 
-  $page->file_comment( [$projectid] );
+    $page->file_comment([$projectid]);
 
 The parameter C<$projectid> is given from C<fbobscomment.pl>
 but not C<staffobscomment.pl>.
@@ -69,41 +69,42 @@ but not C<staffobscomment.pl>.
 =cut
 
 sub file_comment {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $comp = new OMP::CGIComponent::NightRep(page => $self);
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
-  my $messages;
-  if ($q->param('submit_comment')) {
-    # Insert the comment into the database.
-    my $response = $comp->obs_add_comment();
-    $messages = $response->{'messages'};
-  }
+    my $messages;
+    if ($q->param('submit_comment')) {
+        # Insert the comment into the database.
+        my $response = $comp->obs_add_comment();
+        $messages = $response->{'messages'};
+    }
 
-  # Get the Info::Obs object
-  my $obs = $comp->cgi_to_obs();
+    # Get the Info::Obs object
+    my $obs = $comp->cgi_to_obs();
 
-  # Verify that we do have an Info::Obs object.
-  if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
-    throw OMP::Error::BadArgs("Must supply an Info::Obs object");
-  }
+    # Verify that we do have an Info::Obs object.
+    if (! UNIVERSAL::isa($obs, "OMP::Info::Obs")) {
+        throw OMP::Error::BadArgs("Must supply an Info::Obs object");
+    }
 
-  if( defined( $projectid ) &&
-      $obs->isScience && (lc( $obs->projectid ) ne lc( $projectid ) ) ) {
-    throw OMP::Error( "Observation does not match project " . $projectid );
-  }
+    if (defined($projectid)
+            && $obs->isScience
+            && (lc($obs->projectid) ne lc($projectid))) {
+        throw OMP::Error("Observation does not match project " . $projectid);
+    }
 
-  return {
-      target => $self->url_absolute(),
-      obs => $obs,
-      is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
-      status_class => \%OMP::Info::Obs::status_class,
-      messages => $messages,
-      %{$comp->obs_comment_form($obs, $projectid)},
-  };
+    return {
+        target => $self->url_absolute(),
+        obs => $obs,
+        is_time_gap => scalar eval {$obs->isa('OMP::Info::Obs::TimeGap')},
+        status_class => \%OMP::Info::Obs::status_class,
+        messages => $messages,
+        %{$comp->obs_comment_form($obs, $projectid)},
+    };
 }
 
 =item B<list_observations_txt>
@@ -113,175 +114,183 @@ Create a page containing only a text-based listing of observations.
 =cut
 
 sub list_observations_txt {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $query = $self->cgi;
-  my $qv = $query->Vars;
+    my $query = $self->cgi;
+    my $qv = $query->Vars;
 
-  my $comp = new OMP::CGIComponent::NightRep(page => $self);
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
-  print $query->header( -type => 'text/plain', -charset => 'utf-8' );
+    print $query->header(-type => 'text/plain', -charset => 'utf-8');
 
-  my $obsgroup;
-  try {
-    $obsgroup = $comp->cgi_to_obsgroup( projid => $projectid, inccal => 1, timegap => 0 );
-  }
-  catch OMP::Error with {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext\n";
-  }
-  otherwise {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext\n";
-  };
+    my $obsgroup;
+    try {
+        $obsgroup = $comp->cgi_to_obsgroup(
+            projid => $projectid,
+            inccal => 1,
+            timegap => 0,
+        );
+    }
+    catch OMP::Error with {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print "Error: $errortext\n";
+    }
+    otherwise {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print "Error: $errortext\n";
+    };
 
-  my %options;
-  $options{'showcomments'} = 1;
-  $options{'ascending'} = 1;
-  try {
-    $comp->obs_table_text( $obsgroup, %options, projectid => $projectid );
-  }
-  catch OMP::Error with {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  }
-  otherwise {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  };
-
+    my %options;
+    $options{'showcomments'} = 1;
+    $options{'ascending'} = 1;
+    try {
+        $comp->obs_table_text($obsgroup, %options, projectid => $projectid);
+    }
+    catch OMP::Error with {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print "Error: $errortext<br>\n";
+    }
+    otherwise {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print "Error: $errortext<br>\n";
+    };
 }
 
 =item B<night_report>
 
 Create a page summarizing activity for a particular night.
 
-  $page->night_report($self);
+    $page->night_report($self);
 
 =cut
 
 sub night_report {
-  my $self = shift;
-  my $q = $self->cgi();
+    my $self = shift;
+    my $q = $self->cgi();
 
-  my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
-  my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
+    my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
+    my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
-  my $delta;
-  my $utdate;
-  my $utdate_end;
-  my $start;
+    my $delta;
+    my $utdate;
+    my $utdate_end;
+    my $start;
 
-  if ($q->param('utdate_end')) {
-    # Get delta and start UT date from multi night form
-    $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate'));
-    $utdate_end = OMP::DateTools->parse_date(scalar $q->param('utdate_end'));
+    if ($q->param('utdate_end')) {
+        # Get delta and start UT date from multi night form
+        $utdate = OMP::DateTools->parse_date(scalar $q->param('utdate'));
+        $utdate_end = OMP::DateTools->parse_date(scalar $q->param('utdate_end'));
 
-    # Croak if date format is wrong
-    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if (! $utdate or ! $utdate_end);
+        # Croak if date format is wrong
+        croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+            if (! $utdate or ! $utdate_end);
 
-    # Derive delta from start and end UT dates
-    $delta = $utdate_end - $utdate;
-    $delta = $delta->days + 1;  # Need to add 1 to our delta
-                                # to include last day
-  }
-  else {
-    ($utdate, my $utdate_today) = $self->_get_utdate();
-
-    $start = substr($utdate->ymd(), 0, 8) if $utdate_today;
-
-    # Get delta from URL
-    if ($q->param('delta')) {
-      my $deltastr = $q->param('delta');
-      if ($deltastr =~ /^(\d+)$/a) {
-        $delta = $1;
-      } else {
-        croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
-      }
-
-      # We need an end date for display purposes
-      $utdate_end = $utdate;
-
-      # Subtract delta (days) from date if we have a delta
-      $utdate = $utdate_end - ($delta - 1) * ONE_DAY;
-
-      undef $start;
+        # Derive delta from start and end UT dates
+        $delta = $utdate_end - $utdate;
+        $delta = $delta->days + 1;    # Need to add 1 to our delta
+                                      # to include last day
     }
-  }
+    else {
+        ($utdate, my $utdate_today) = $self->_get_utdate();
 
-  # Get the telescope from the URL
-  my $tel = $self->_get_telescope('tel')
-    or return $self->_write_error('No telescope selected.');
+        $start = substr($utdate->ymd(), 0, 8) if $utdate_today;
 
-  # Setup our arguments for retrieving night report
-  my %args = (date => $utdate->ymd,
-              telescope => $tel,);
-  ($delta) and $args{delta_day} = $delta;
+        # Get delta from URL
+        if ($q->param('delta')) {
+            my $deltastr = $q->param('delta');
+            if ($deltastr =~ /^(\d+)$/a) {
+                $delta = $1;
+            }
+            else {
+                croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
+            }
 
-  # Get the night report
-  my $nr = new OMP::NightRep(%args);
+            # We need an end date for display purposes
+            $utdate_end = $utdate;
 
-  return $self->_write_error(
-      'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
-      unless $nr;
+            # Subtract delta (days) from date if we have a delta
+            $utdate = $utdate_end - ($delta - 1) * ONE_DAY;
 
-  if (1 == $nr->delta_day) {
-    my $pdb = OMP::PreviewDB->new(DB => $self->database);
-    $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+            undef $start;
+        }
+    }
+
+    # Get the telescope from the URL
+    my $tel = $self->_get_telescope('tel')
+        or return $self->_write_error('No telescope selected.');
+
+    # Setup our arguments for retrieving night report
+    my %args = (
+        date => $utdate->ymd,
         telescope => $tel,
-        date => {value => $utdate->ymd(), delta => 1},
-        size => 64,
-    })));
-  }
+    );
+    ($delta) and $args{delta_day} = $delta;
 
-  my ($prev, $next);
-  unless ($delta) {
-    my $epoch = $utdate->epoch();
-    ($prev, $next) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
-  }
+    # Get the night report
+    my $nr = OMP::NightRep->new(%args);
 
-  # NOTE: disabled as we currently don't have fits in the OMP.
-  # taufits: $weathercomp->tau_plot($utdate),
-  # NOTE: also currently disabled?
-  # wvm: $weathercomp->wvm_graph($utdate->ymd),
-  # zeropoint: $weathercomp->zeropoint_plot($utdate),
-  # NOTE: currently not working:
-  # ['seeing', 'UKIRT K-band seeing', $weathercomp->seeing_plot($utdate)],
-  # ['extinction', 'UKIRT extinction', $weathercomp->extinction_plot($utdate)],
+    return $self->_write_error(
+            'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
+        unless $nr;
 
-  $self->_sidebar_night($tel, $utdate) unless $delta;
+    if (1 == $nr->delta_day) {
+        my $pdb = OMP::PreviewDB->new(DB => $self->database);
+        $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+            telescope => $tel,
+            date => {value => $utdate->ymd(), delta => 1},
+            size => 64,
+        })));
+    }
 
-  return {
-      target_base => $q->url(-absolute => 1),
+    my ($prev, $next);
+    unless ($delta) {
+        my $epoch = $utdate->epoch();
+        ($prev, $next) = map {scalar gmtime($epoch + $_)} (-1 * ONE_DAY(), ONE_DAY());
+    }
 
-      telescope => $tel,
+    # NOTE: disabled as we currently don't have fits in the OMP.
+    # taufits: $weathercomp->tau_plot($utdate),
+    # NOTE: also currently disabled?
+    # wvm: $weathercomp->wvm_graph($utdate->ymd),
+    # zeropoint: $weathercomp->zeropoint_plot($utdate),
+    # NOTE: currently not working:
+    # ['seeing', 'UKIRT K-band seeing', $weathercomp->seeing_plot($utdate)],
+    # ['extinction', 'UKIRT extinction', $weathercomp->extinction_plot($utdate)],
 
-      ut_date => $utdate,
-      ut_date_end => $utdate_end,
-      ut_date_delta => $delta,
-      ut_date_prev => $prev,
-      ut_date_next => $next,
-      ut_date_start => $start,  # starting value for form
+    $self->_sidebar_night($tel, $utdate) unless $delta;
 
-      night_report => $nr,
+    return {
+        target_base => $q->url(-absolute => 1),
 
-      dq_nightly_html => ($tel ne 'JCMT' || $delta ? undef :
-          $includecomp->include_file_ut('dq-nightly', $utdate->ymd())),
+        telescope => $tel,
 
-      weather_plots => ($delta ? undef : [
-          grep {$_->[2]}
-          ['meteogram', 'EAO meteogram', $weathercomp->meteogram_plot($utdate)],
-          ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
-          ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
-          ['transparency', 'CFHT transparency', $weathercomp->transparency_plot($utdate)],
-      ]),
-  };
+        ut_date => $utdate,
+        ut_date_end => $utdate_end,
+        ut_date_delta => $delta,
+        ut_date_prev => $prev,
+        ut_date_next => $next,
+        ut_date_start => $start,    # starting value for form
+
+        night_report => $nr,
+
+        dq_nightly_html => ($tel ne 'JCMT' || $delta
+            ? undef
+            : $includecomp->include_file_ut('dq-nightly', $utdate->ymd())
+        ),
+
+        weather_plots => ($delta ? undef : [
+            grep {$_->[2]}
+            ['meteogram', 'EAO meteogram', $weathercomp->meteogram_plot($utdate)],
+            ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
+            ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
+            ['transparency', 'CFHT transparency', $weathercomp->transparency_plot($utdate)],
+        ]),
+    };
 }
 
 =item B<projlog_content>
@@ -289,141 +298,148 @@ sub night_report {
 Display information about observations for a project on a particular
 night.
 
-  $page->projlog_content($projectid);
+    $page->projlog_content($projectid);
 
 =cut
 
 sub projlog_content {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $comp = new OMP::CGIComponent::NightRep(page => $self);
-  my $msbcomp = new OMP::CGIComponent::MSB(page => $self);
-  my $shiftcomp = new OMP::CGIComponent::ShiftLog(page => $self);
-  my $weathercomp = new OMP::CGIComponent::Weather(page => $self);
-  my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
+    my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
+    my $shiftcomp = OMP::CGIComponent::ShiftLog->new(page => $self);
+    my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
+    my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
-  my $utdatestr = $self->decoded_url_param('utdate');
-  my $no_retrieve = $self->decoded_url_param('noretrv');
+    my $utdatestr = $self->decoded_url_param('utdate');
+    my $no_retrieve = $self->decoded_url_param('noretrv');
 
-  my $utdate;
+    my $utdate;
 
-  # Untaint the date string
-  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/a) {
-    $utdate = $1;
-  } else {
-    croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
-  }
-
-  # Get a project object for this project
-  my $proj;
-  try {
-    $proj = OMP::ProjServer->projectDetails($projectid, "object");
-  } otherwise {
-    my $E = shift;
-    croak "Unable to retrieve the details of this project:\n$E";
-  };
-
-  my $telescope = $proj->telescope;
-
-  # Perform any actions on the MSB.
-  my $response = $msbcomp->msb_action(projectid => $projectid);
-  my $errors = $response->{'errors'};
-  my $messages = $response->{'messages'};
-  return $self->_write_error(@$errors) if scalar @$errors;
-
-  my $comment_msb_id_fields = undef;
-
-  # Make a form for submitting MSB comments if an 'Add Comment'
-  # button was clicked
-  if ($q->param("submit_add_comment")) {
-    $comment_msb_id_fields = {
-        checksum => scalar $q->param('checksum'),
-        transaction => scalar $q->param('transaction'),
-    };
-  }
-
-  # Get code for tau plot display
-  # NOTE: disabled as we currently don't have fits in the OMP.
-  # my $plot_html = $weathercomp->tau_plot($utdate);
-
-  # Make links for retrieving data
-  # To keep people from following the links before the data are available
-  # for download gray out the links if the current UT date is the same as the
-  # UT date of the observations
-  my $today = OMP::DateTools->today(1);
-  my $retrieve_date = undef;
-  unless ($no_retrieve) {
-    if ($today->ymd =~ $utdate) {
-      $retrieve_date = $today + ONE_DAY;
+    # Untaint the date string
+    if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/a) {
+        $utdate = $1;
     }
     else {
-      $retrieve_date = 'now';
+        croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
     }
-  }
 
-  # Display MSBs observed on this date
-  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                               date => $utdate,
-                                               comments => 0,
-                                               transactions => 1,
-                                               format => 'data',});
-
-  my $sp = OMP::MSBServer->getSciProgInfo($projectid);
-  my $msb_info = $msbcomp->msb_comments($observed, $sp);
-
-  # Display observation log
-  my $obs_summary = undef;
-  try {
-    # Want to go to files on disk
-    $OMP::ArchiveDB::FallbackToFiles = 1;
-
-    my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
-                                      date => $utdate,
-                                      inccal => 1,);
-
-    if ($grp->numobs > 0) {
-      my $pdb = OMP::PreviewDB->new(DB => $self->database);
-      $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
-          telescope => $telescope,
-          date => {value => $utdate, delta => 1},
-          size => 64,
-      })));
-
-      $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
+    # Get a project object for this project
+    my $proj;
+    try {
+        $proj = OMP::ProjServer->projectDetails($projectid, 'object');
     }
-  } otherwise {
-  };
+    otherwise {
+        my $E = shift;
+        croak "Unable to retrieve the details of this project:\n$E";
+    };
 
-  return {
-      target => $self->url_absolute(),
-      project => $proj,
-      utdate => $utdate,
-      telescope => $telescope,
-      retrieve_date => $retrieve_date,
+    my $telescope = $proj->telescope;
 
-      obs_summary => $obs_summary,
+    # Perform any actions on the MSB.
+    my $response = $msbcomp->msb_action(projectid => $projectid);
+    my $errors = $response->{'errors'};
+    my $messages = $response->{'messages'};
+    return $self->_write_error(@$errors) if scalar @$errors;
 
-      shift_log_comments => $shiftcomp->get_shift_comments({
-          date => $utdate,
-          telescope => $telescope,
-          zone => "UT",
-      }),
+    my $comment_msb_id_fields = undef;
 
-      dq_nightly_html => $includecomp->include_file_ut(
-          'dq-nightly', $utdate, projectid => $projectid),
+    # Make a form for submitting MSB comments if an 'Add Comment'
+    # button was clicked
+    if ($q->param("submit_add_comment")) {
+        $comment_msb_id_fields = {
+            checksum => scalar $q->param('checksum'),
+            transaction => scalar $q->param('transaction'),
+        };
+    }
 
-      msb_info => $msb_info,
-      comment_msb_id_fields => $comment_msb_id_fields,
-      comment_msb_messages => $messages,
+    # Get code for tau plot display
+    # NOTE: disabled as we currently don't have fits in the OMP.
+    # my $plot_html = $weathercomp->tau_plot($utdate);
 
-      weather_plots => [
-          grep {$_->[2]}
-          ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
-      ],
-  }
+    # Make links for retrieving data
+    # To keep people from following the links before the data are available
+    # for download gray out the links if the current UT date is the same as the
+    # UT date of the observations
+    my $today = OMP::DateTools->today(1);
+    my $retrieve_date = undef;
+    unless ($no_retrieve) {
+        if ($today->ymd =~ $utdate) {
+            $retrieve_date = $today + ONE_DAY;
+        }
+        else {
+            $retrieve_date = 'now';
+        }
+    }
+
+    # Display MSBs observed on this date
+    my $observed = OMP::MSBServer->observedMSBs({
+            projectid => $projectid,
+            date => $utdate,
+            comments => 0,
+            transactions => 1,
+            format => 'data',
+    });
+
+    my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+    my $msb_info = $msbcomp->msb_comments($observed, $sp);
+
+    # Display observation log
+    my $obs_summary = undef;
+    try {
+        # Want to go to files on disk
+        $OMP::ArchiveDB::FallbackToFiles = 1;
+
+        my $grp = OMP::Info::ObsGroup->new(
+            projectid => $projectid,
+            date => $utdate,
+            inccal => 1,
+        );
+
+        if ($grp->numobs > 0) {
+            my $pdb = OMP::PreviewDB->new(DB => $self->database);
+            $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+                telescope => $telescope,
+                date => {value => $utdate, delta => 1},
+                size => 64,
+            })));
+
+            $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
+        }
+    }
+    otherwise {
+    };
+
+    return {
+        target => $self->url_absolute(),
+        project => $proj,
+        utdate => $utdate,
+        telescope => $telescope,
+        retrieve_date => $retrieve_date,
+
+        obs_summary => $obs_summary,
+
+        shift_log_comments => $shiftcomp->get_shift_comments({
+            date => $utdate,
+            telescope => $telescope,
+            zone => "UT",
+        }),
+
+        dq_nightly_html => $includecomp->include_file_ut(
+            'dq-nightly', $utdate, projectid => $projectid),
+
+        msb_info => $msb_info,
+        comment_msb_id_fields => $comment_msb_id_fields,
+        comment_msb_messages => $messages,
+
+        weather_plots => [
+            grep {$_->[2]}
+            ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
+        ],
+        };
 }
 
 =item B<obslog_search>
@@ -486,9 +502,11 @@ sub obslog_search {
 
             my $odb = OMP::ObslogDB->new(DB => $self->database);
             $result = $search->sort_search_results(
-                \%values, 'startobs',
+                \%values,
+                'startobs',
                 [map {
-                    $_->is_time_gap($_->status >= $min_status_timegap); $_
+                    $_->is_time_gap($_->status >= $min_status_timegap);
+                    $_
                 } $odb->queryComments($query, {allow_dateless => 1})]);
 
             $message = 'No matching observation log entries found.'
@@ -603,9 +621,10 @@ sub _get_telescope {
 
     # Untaint the telescope string
     if ($telstr) {
-        if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
+        if ($telstr =~ /^(UKIRT|JCMT)$/i) {
             return uc $1;
-        } else {
+        }
+        else {
             croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
         }
     }
@@ -644,6 +663,10 @@ sub _get_utdate {
     return ($utdate, $today);
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 SEE ALSO
@@ -677,5 +700,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

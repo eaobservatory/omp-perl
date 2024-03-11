@@ -6,9 +6,9 @@ OMP::NetTools - Methods related to networking, host, etc.
 
 =head1 SYNOPSIS
 
-  use OMP::NetTools;
+    use OMP::NetTools;
 
-  $local = OMP::NetTools->is_host_local();
+    $local = OMP::NetTools->is_host_local();
 
 =head1 DESCRIPTION
 
@@ -36,9 +36,10 @@ use warnings::register;
 if ($] >= 5.006 && $] < 5.008) {
   eval "use utf8;";
 }
+
 use Carp;
-use Net::Domain qw/ hostfqdn /;
-use Net::hostent qw/ gethost /;
+use Net::Domain qw/hostfqdn/;
+use Net::hostent qw/gethost/;
 
 our $VERSION = '2.000';
 
@@ -57,7 +58,7 @@ task. This is either determined by using the CGI environment variables
 (REMOTE_ADDR and REMOTE_USER) or, if they are not set, the current
 host running the program and the associated user name.
 
-  ($user, $host, $email) = OMP::NetTools->determine_host;
+    ($user, $host, $email) = OMP::NetTools->determine_host;
 
 The user name is not always available (especially if running from
 CGI).  The email address is simply determined as C<$user@$host> and is
@@ -67,7 +68,7 @@ An optional argument can be used to disable remote host checking
 for CGI. If true, this method will return the host on which
 the program is running rather than the remote host information.
 
-  ($user, $localhost, $email) = OMP::NetTools->determine_host(1);
+    ($user, $localhost, $email) = OMP::NetTools->determine_host(1);
 
 If the environment variable C<$OMP_NOGETHOST> is set this method will
 return a hostname of "localhost" if we are not running in a CGI
@@ -78,65 +79,65 @@ timeout from C<gethostbyname>.
 =cut
 
 sub determine_host {
-  my $class = shift;
-  my $noremote = shift;
+    my $class = shift;
+    my $noremote = shift;
 
-  # Try and work out who is making the request
-  my ($user, $addr);
+    # Try and work out who is making the request
+    my ($user, $addr);
 
-  if (!$noremote && exists $ENV{REMOTE_ADDR}) {
-    # We are being called from a CGI context
-    my $ip = $ENV{REMOTE_ADDR};
+    if (! $noremote && exists $ENV{REMOTE_ADDR}) {
+        # We are being called from a CGI context
+        my $ip = $ENV{REMOTE_ADDR};
 
-    # Try to translate number to name if we have network
-    if (!exists $ENV{OMP_NOGETHOST}) {
-      $addr = gethost( $ip );
+        # Try to translate number to name if we have network
+        if (! exists $ENV{OMP_NOGETHOST}) {
+            $addr = gethost($ip);
 
-      # if we have nothing just use the IP
-      $addr = ( (defined $addr && ref $addr) ? $addr->name : $ip );
-      $addr = $ip if !$addr;
+            # if we have nothing just use the IP
+            $addr = ((defined $addr && ref $addr) ? $addr->name : $ip);
+            $addr = $ip if ! $addr;
+        }
+        else {
+            # else default to the IP address
+            $addr = $ip;
+        }
 
-    } else {
-      # else default to the IP address
-      $addr = $ip;
+        # User name (only set if they have logged in)
+        $user = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} : '');
+    }
+    elsif (exists $ENV{OMP_NOGETHOST}) {
+        # Do not do network lookup
+        $addr = "localhost.localdomain";
+        $user = (exists $ENV{USER} ? $ENV{USER} : '');
+    }
+    else {
+        # For taint checking with Net::Domain when etc/resolv.conf
+        # has no domain
+        local $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"
+            unless ${^TAINT} == 0;
+
+        # localhost
+        $addr = hostfqdn;
+
+        # FQDN is having one at the end at least since Mar 26 2014, that results in
+        # no match being found in OMP::Config. See
+        # https://omp.eao.hawaii.edu/cgi-bin/viewfault.pl?fault=20140327.003.
+        $addr =~ s/[.]$//;
+
+        $user = (exists $ENV{USER} ? $ENV{USER} : '');
     }
 
-    # User name (only set if they have logged in)
-    $user = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} : '' );
+    # Build a pseudo email address
+    my $email = '';
+    $email = $addr if $addr;
+    $email = $user . "@" . $email if $user;
 
-  } elsif (exists $ENV{OMP_NOGETHOST}) {
-    # Do not do network lookup
-    $addr = "localhost.localdomain";
-    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
+    $email = "UNKNOWN" unless $email;
 
-  } else {
-    # For taint checking with Net::Domain when etc/resolv.conf
-    # has no domain
-    local $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"
-      unless ${^TAINT} == 0;
+    # Replace space with _
+    $email =~ s/\s+/_/g;
 
-    # localhost
-    $addr = hostfqdn;
-    # FQDN is having one at the end at least since Mar 26 2014, that results in
-    # no match being found in OMP::Config. See
-    # http://omp.eao.hawaii.edu/cgi-bin/viewfault.pl?fault=20140327.003.
-    $addr =~ s/[.]$//;
-
-    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
-
-  }
-
-  # Build a pseudo email address
-  my $email = '';
-  $email = $addr if $addr;
-  $email = $user . "@" . $email if $user;
-
-  $email = "UNKNOWN" unless $email;
-
-  # Replace space with _
-  $email =~ s/\s+/_/g;
-
-  return ($user, $addr, $email);
+    return ($user, $addr, $email);
 }
 
 =item B<is_host_local>
@@ -147,7 +148,7 @@ no dots in the domainname (eg "lapaki" or "ulu") or the domain
 includes one of the endings specified in the "localdomain" config
 setting.
 
-  print "local" if OMP::NetTools->is_host_local
+    print "local" if OMP::NetTools->is_host_local
 
 Usually only relevant for CGI scripts where REMOTE_ADDR is
 used.
@@ -155,28 +156,31 @@ used.
 =cut
 
 sub is_host_local {
-  my $class = shift;
+    my $class = shift;
 
-  my @domain = $class->determine_host();
+    my @domain = $class->determine_host();
 
-  # if no domain, assume we are really local (since only a host name)
-  return 1 unless $domain[1];
+    # if no domain, assume we are really local (since only a host name)
+    return 1 unless $domain[1];
 
-  # Also return true if the domain does not include a "."
-  return 1 if $domain[1] !~ /\./;
+    # Also return true if the domain does not include a "."
+    return 1 if $domain[1] !~ /\./;
 
-  # Now get the local definition of allowed remote hosts
-  my @local = OMP::Config->getData('localdomain');
+    # Now get the local definition of allowed remote hosts
+    my @local = OMP::Config->getData('localdomain');
 
-  # See whether anything in @local matches $domain[1]
-  if (grep { $domain[1] =~ /$_$/i } @local) {
-    return 1;
-  } else {
-    return 0;
-  }
+    # See whether anything in @local matches $domain[1]
+    if (grep {$domain[1] =~ /$_$/i} @local) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 1;
+
+__END__
 
 =back
 
@@ -205,7 +209,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-

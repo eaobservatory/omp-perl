@@ -6,8 +6,8 @@ OMP::UserQuery - Class representing an XML OMP query of the user database
 
 =head1 SYNOPSIS
 
-  $query = new OMP::UserQuery( XML => $xml );
-  $sql = $query->sql( $usertable );
+    $query = OMP::UserQuery->new(XML => $xml);
+    $sql = $query->sql($usertable);
 
 =head1 DESCRIPTION
 
@@ -27,14 +27,13 @@ use OMP::General;
 use OMP::Range;
 
 # Inheritance
-use base qw/ OMP::DBQuery /;
+use base qw/OMP::DBQuery/;
 
 # Package globals
 
 our $VERSION = '2.000';
 
 =head1 METHODS
-
 
 =head2 General Methods
 
@@ -45,7 +44,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $usertable );
+    $sql = $query->sql($usertable);
 
 Returns undef if the query could not be formed.
 
@@ -63,26 +62,26 @@ gets all the faults with that faultid]
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) ==1;
+    throw OMP::Error::DBMalformedQuery(
+        "sql method invoked with incorrect number of arguments\n")
+        unless scalar(@_) == 1;
 
-  my ($usertable) = @_;
+    my ($usertable) = @_;
 
-  # Generate the WHERE clause from the query hash
-  my $subsql = $self->_qhash_tosql();
+    # Generate the WHERE clause from the query hash
+    my $subsql = $self->_qhash_tosql();
 
-  # If the resulting query contained anything we should prepend
-  # an AND so that it fits in with the rest of the SQL. This allows
-  # an empty query to work without having a naked "WHERE".
-  $subsql = " WHERE " . $subsql if $subsql;
+    # If the resulting query contained anything we should prepend
+    # an AND so that it fits in with the rest of the SQL. This allows
+    # an empty query to work without having a naked "WHERE".
+    $subsql = " WHERE " . $subsql if $subsql;
 
-  # Now need to put this SQL into the template query
-  my $sql = " SELECT * FROM $usertable U $subsql ORDER BY userid";
+    # Now need to put this SQL into the template query
+    my $sql = " SELECT * FROM $usertable U $subsql ORDER BY userid";
 
-  return "$sql\n";
-
+    return "$sql\n";
 }
 
 =begin __PRIVATE__METHODS__
@@ -97,7 +96,7 @@ Returns "FaultQuery" by default.
 =cut
 
 sub _root_element {
-  return "UserQuery";
+    return "UserQuery";
 }
 
 =item B<_post_process_hash>
@@ -107,7 +106,7 @@ mainly entails converting range hashes to C<OMP::Range> objects (via
 the base class), upcasing some entries and converting "status" fields
 to queries on "remaining" and "pending" columns.
 
-  $query->_post_process_hash( \%hash );
+    $query->_post_process_hash(\%hash);
 
 Also converts abbreviated form of project name to the full form
 recognised by the database (this is why a telescope is required).
@@ -115,44 +114,48 @@ recognised by the database (this is why a telescope is required).
 =cut
 
 sub _post_process_hash {
-  my $self = shift;
-  my $href = shift;
+    my $self = shift;
+    my $href = shift;
 
-  # Do the generic pre-processing
-  $self->SUPER::_post_process_hash( $href );
+    # Do the generic pre-processing
+    $self->SUPER::_post_process_hash($href);
 
-  # Loop over each key
-  for my $key (keys %$href ) {
-    # Skip private keys
-    next if $key =~ /^_/;
+    # Loop over each key
+    for my $key (keys %$href) {
+        # Skip private keys
+        next if $key =~ /^_/;
 
-    # Nothing yet
-
-  }
-
-  # Case sensitivity
-  # If we are dealing with a these we should make sure we upper
-  # case them (more efficient to upper case everything than to do a
-  # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) },
-                           [qw/ userid alias /]);
-
-
-  # These entries have a different column name in the table,
-  # so replace them with the actual column name
-  for (qw/ name /) {
-    if (exists $href->{$_}) {
-      my $key = "u".$_;
-      $href->{$key} = $href->{$_};
-      delete $href->{$_};
+        # Nothing yet
     }
-  }
 
-  # Remove attributes since we dont need them anymore
-  delete $href->{_attr};
+    # Case sensitivity
+    # If we are dealing with a these we should make sure we upper
+    # case them (more efficient to upper case everything than to do a
+    # query that ignores case)
+    $self->_process_elements(
+        $href,
+        sub {
+            uc(shift)
+        },
+        [qw/userid alias/]);
 
+    # These entries have a different column name in the table,
+    # so replace them with the actual column name
+    for (qw/name/) {
+        if (exists $href->{$_}) {
+            my $key = "u" . $_;
+            $href->{$key} = $href->{$_};
+            delete $href->{$_};
+        }
+    }
+
+    # Remove attributes since we dont need them anymore
+    delete $href->{_attr};
 }
 
+1;
+
+__END__
 
 =end __PRIVATE__METHODS__
 
@@ -173,7 +176,7 @@ The top-level container element is E<lt>FaultQueryE<gt>.
 Elements that contain simply C<PCDATA> are assumed to indicate
 a required value.
 
-  <instrument>SCUBA</instrument>
+    <instrument>SCUBA</instrument>
 
 Would only match if C<instrument=SCUBA>.
 
@@ -182,12 +185,12 @@ Would only match if C<instrument=SCUBA>.
 Elements that contain elements C<max> and/or C<min> are used
 to indicate ranges.
 
-  <elevation><min>30</min></elevation>
-  <priority><max>2</max></priority>
+    <elevation><min>30</min></elevation>
+    <priority><max>2</max></priority>
 
 Why dont we just use attributes?
 
-  <priority max="2" /> ?
+    <priority max="2" /> ?
 
 Using explicit elements is probably easier to generate.
 
@@ -198,10 +201,10 @@ Ranges are inclusive.
 Elements that contain other elements are assumed to be containing
 multiple alternative matches (C<OR>ed).
 
-  <instruments>
-   <instrument>CGS4</instrument>
-   <instrument>IRCAM</instrument>
-  </isntruments>
+    <instruments>
+        <instrument>CGS4</instrument>
+        <instrument>IRCAM</instrument>
+    </isntruments>
 
 C<max> and C<min> are special cases. In general the parser will
 ignore the plural element (rather than trying to determine that
@@ -209,15 +212,15 @@ ignore the plural element (rather than trying to determine that
 dropping of plurals such that multiple occurrence of the same element
 in the query represent variants directly.
 
-  <name>Tim</name>
-  <name>Kynan</name>
+    <name>Tim</name>
+    <name>Kynan</name>
 
 would suggest that names Tim or Kynan are valid. This also means
 
-  <instrument>SCUBA</instrument>
-  <instruments>
-    <instrument>CGS4</instrument>
-  </instruments>
+    <instrument>SCUBA</instrument>
+    <instruments>
+        <instrument>CGS4</instrument>
+    </instruments>
 
 will select SCUBA or CGS4.
 
@@ -255,7 +258,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

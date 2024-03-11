@@ -1,7 +1,5 @@
 package OMP::DB::JSA::TableTransfer;
 
-=pod
-
 =head1 NAME
 
 OMP::DB::JSA::TableTransfer - Check file status, transfer files to CADC
@@ -10,14 +8,15 @@ OMP::DB::JSA::TableTransfer - Check file status, transfer files to CADC
 
 Make an object ...
 
-    $xfer = new OMP::DB::JSA::TableTransfer(db => new OMP::DB::JSA());
+    $xfer = OMP::DB::JSA::TableTransfer->new(db => OMP::DB::JSA->new());
 
 Set copied state for some files ...
 
     $xfer->put_state(
         state => 'copied',
-        files => ['a20100612_00005_01_0001.sdf',
-                  'a20100612_00006_01_0001.sdf']);
+        files => [
+            'a20100612_00005_01_0001.sdf',
+            'a20100612_00006_01_0001.sdf']);
 
 Find copied files ...
 
@@ -69,16 +68,25 @@ The state types are ...
     simulation
     final
 
-=over 2
+=over 4
 
 =item B<new> constructor
 
-Make a C<OMP::DB::JSA::TableTransfer> object.  It takes a hash of parameters ...
+Make a C<OMP::DB::JSA::TableTransfer> object.  It takes a hash of parameters:
 
-    db           - OMP::DB::JSA object, which has succesfully connected to database;
-    transactions - (optional) truth value, used when changing tables;
+=over 4
 
-    $xfer = new OMP::DB::JSA::TableTransfer(db => $jsa_db);
+=item db
+
+OMP::DB::JSA object, which has succesfully connected to database.
+
+=item transactions
+
+(Optional) truth value, used when changing tables.
+
+=back
+
+    $xfer = OMP::DB::JSA::TableTransfer->new(db => $jsa_db);
 
 Throws L<OMP::Error::BadArgs> error when database handle is invalid object.
 
@@ -163,12 +171,13 @@ sub get_found_files {
     $sql .= ' ORDER BY s.file_id, s.location ';
 
     my $dbh = $self->_dbhandle();
-    my $out = $dbh->selectcol_arrayref($sql,
-                                       # Return only file paths.
-                                       {'Columns' => [2]},
-                                       $_state{'found'},
-                                       ($pattern ? $pattern : ()))
-        or throw OMP::Error::DBError $dbh->errstr;
+    my $out = $dbh->selectcol_arrayref(
+        $sql,
+        # Return only file paths.
+        {'Columns' => [2]},
+        $_state{'found'},
+        ($pattern ? $pattern : ())
+    ) or throw OMP::Error::DBError $dbh->errstr;
 
 
     return $out;
@@ -198,11 +207,12 @@ sub add_found {
 
     my $db = $self->_jdb();
 
-    return $db->insert('table'   => $_state_table,
-                       'columns' => ['file_id', 'status', 'location'],
-                       'values'  => \@values,
-                       'on_duplicate' => 'status=status', # Should do nothing
-                       'dry_run' => $dry_run,
+    return $db->insert(
+        'table' => $_state_table,
+        'columns' => ['file_id', 'status', 'location'],
+        'values' => \@values,
+        'on_duplicate' => 'status=status',  # Should do nothing
+        'dry_run' => $dry_run,
     );
 }
 
@@ -252,11 +262,12 @@ files.
 sub get_files_not_end_state {
     my ($self, $pattern) = @_;
 
-    my @state = @_state{qw/deleted
-                           transferred
-                           simulation
-                           ignored
-                          /};
+    my @state = @_state{qw/
+        deleted
+        transferred
+        simulation
+        ignored
+    /};
 
     my $sql = sprintf
         "SELECT s.file_id, s.status, s.error, s.comment,
@@ -284,9 +295,10 @@ sub get_files_not_end_state {
     $sql .= ' ORDER BY date, file_id';
 
     my $dbh = $self->_dbhandle();
-    my $out = $dbh->selectall_hashref($sql, 'file_id', undef,
-                                      @state,
-                                      ($pattern ? $pattern : ()))
+    my $out = $dbh->selectall_hashref(
+        $sql, 'file_id', undef,
+        @state,
+        ($pattern ? $pattern : ()))
         or throw OMP::Error::DBError $dbh->errstr;
 
     return unless $out && keys %{$out};
@@ -303,7 +315,7 @@ Returns list of columns to uniquely identify a row.
 =cut
 
 sub unique_keys {
-  return qw/file_id/;
+    return qw/file_id/;
 }
 
 =item B<_dbhandle>
@@ -348,8 +360,14 @@ sub get_files {
     push @select, 'location' if $state eq 'found';
 
     if ($filter{'with_md5sum'}) {
-        @select = map {$_ ne 'file_id' ? $_ : sprintf '%s.%s AS %s', $_state_table, $_, $_} @select;
+        @select = map {
+            $_ ne 'file_id'
+                ? $_
+                : sprintf '%s.%s AS %s', $_state_table, $_, $_
+        } @select;
+
         push @select, 'md5sum';
+
         $table = sprintf '%s JOIN %s ON %s.file_id = %s.file_id',
             $table, $_files_table, $table, $_files_table;
     }
@@ -403,13 +421,12 @@ sub _translate_instrument {
 sub _check_filename_part {
     my ($part) = @_;
 
-    my $parse_date =
-        qr/ ^
-            2\d{3}
-            (?: 0[1-9] | 1[0-2] )
-            (?: 0[1-9] | [12][0-9] | 3[01] )
-            $
-          /x;
+    my $parse_date = qr/ ^
+        2\d{3}
+        (?: 0[1-9] | 1[0-2] )
+        (?: 0[1-9] | [12][0-9] | 3[01] )
+        $
+    /x;
 
     return if $part
            && length $part > 1
@@ -422,21 +439,21 @@ sub _check_filename_part {
 }
 
 {
-  my $suffix_re;
+    my $suffix_re;
 
-  sub _fix_file_name {
-      my ($file) = @_;
+    sub _fix_file_name {
+        my ($file) = @_;
 
-      # Don't try to append .sdf if it already ends in .fits.
-      return $file if $file =~ /\.fits/;
+        # Don't try to append .sdf if it already ends in .fits.
+        return $file if $file =~ /\.fits/;
 
-      my $suffix   = '.sdf';
-      $suffix_re ||= qr/$_$/ for quotemeta $suffix;
+        my $suffix   = '.sdf';
+        $suffix_re ||= qr/$_$/ for quotemeta $suffix;
 
-      return $file =~ $suffix_re
-                    ? $file
-                    : "${file}${suffix}";
-  }
+        return $file =~ $suffix_re
+            ? $file
+            : "${file}${suffix}";
+    }
 }
 
 =item B<put_state>
@@ -485,7 +502,7 @@ sub _check_state {
 
   throw OMP::Error::BadArgs
       sprintf "Unknown state type, %s, given, exiting ...\n",
-              (defined $type ? $type : 'undef');
+          (defined $type ? $type : 'undef');
 }
 
 sub _alt_state {
@@ -505,7 +522,6 @@ sub _jdb {
 
     return $self->{'db'};
 }
-
 
 1;
 

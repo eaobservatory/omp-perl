@@ -6,14 +6,14 @@ OMP::FaultDB - Fault database manipulation
 
 =head1 SYNOPSIS
 
-  use OMP::FaultDB;
-  $db = new OMP::FaultDB( DB => new OMP::DBbackend );
+    use OMP::FaultDB;
+    $db = OMP::FaultDB->new(DB => OMP::DBbackend->new);
 
-  $faultid = $db->fileFault( $fault );
-  $db->respondFault( $faultid, $response );
-  $db->closeFault( $fault );
-  $fault = $db->getFault( $faultid );
-  @faults = $db->queryFaults( $query );
+    $faultid = $db->fileFault($fault);
+    $db->respondFault($faultid, $response);
+    $db->closeFault($fault);
+    $fault = $db->getFault($faultid);
+    @faults = $db->queryFaults($query);
 
 =head1 DESCRIPTION
 
@@ -39,13 +39,13 @@ use OMP::Config;
 use Text::Wrap;
 $Text::Wrap::columns = 80;
 
-use base qw/ OMP::BaseDB /;
+use base qw/OMP::BaseDB/;
 
 our $VERSION = '2.000';
 
-our $FAULTTABLE = "ompfault";
-our $FAULTBODYTABLE = "ompfaultbody";
-our $ASSOCTABLE = "ompfaultassoc";
+our $FAULTTABLE = 'ompfault';
+our $FAULTBODYTABLE = 'ompfaultbody';
+our $ASSOCTABLE = 'ompfaultassoc';
 
 our $DEBUG = 1;
 
@@ -55,13 +55,12 @@ our $DEBUG = 1;
 
 =over 4
 
-
 =item B<fileFault>
 
 Create a new fault and return the new fault ID. The fault ID
 is unique and can be used to address the fault in future.
 
-  $id = $db->fileFault( $fault );
+    $id = $db->fileFault($fault);
 
 The details associated with the fault are supplied in the form
 of a C<OMP::Fault> object.
@@ -69,75 +68,75 @@ of a C<OMP::Fault> object.
 =cut
 
 sub fileFault {
-  my $self = shift;
-  my $fault = shift;
+    my $self = shift;
+    my $fault = shift;
 
-  # Need to lock the database since we are writing
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Need to lock the database since we are writing
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Get the next fault id based on the file date
-  my $id = $self->_get_next_faultid( $fault->filedate );
+    # Get the next fault id based on the file date
+    my $id = $self->_get_next_faultid($fault->filedate);
 
-  # Store the id in the fault object
-  $fault->id( $id );
+    # Store the id in the fault object
+    $fault->id($id);
 
-  # Now write it to the database
-  $self->_store_new_fault( $fault );
+    # Now write it to the database
+    $self->_store_new_fault($fault);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  # Mail out the fault
-  # We do this outside of our transaction since the SMTP server
-  # has been known to fail and we don't want the fault lost
-  $self->_mail_fault($fault);
+    # Mail out the fault
+    # We do this outside of our transaction since the SMTP server
+    # has been known to fail and we don't want the fault lost
+    $self->_mail_fault($fault);
 
-  # Return the id
-  return $id;
+    # Return the id
+    return $id;
 }
 
 =item B<respondFault>
 
 File a fault response for the specified fault ID.
 
-  $db->respondFault( $faultid, $response );
+    $db->respondFault($faultid, $response);
 
 The response must be a C<OMP::Fault::Response> object.
 
 =cut
 
 sub respondFault {
-  my $self = shift;
-  my $id = shift;
-  my $response = shift;
+    my $self = shift;
+    my $id = shift;
+    my $response = shift;
 
-  # Need to lock the database since we are writing
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Need to lock the database since we are writing
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # File the response
-  $self->_add_new_response( $id, $response);
+    # File the response
+    $self->_add_new_response($id, $response);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  # Mail out the response to the correct mailing list
-  # We do this outside of our transaction since the SMTP server
-  # has been known to fail and we don't want the fault lost
-  my $fault = $self->getFault($id);
+    # Mail out the response to the correct mailing list
+    # We do this outside of our transaction since the SMTP server
+    # has been known to fail and we don't want the fault lost
+    my $fault = $self->getFault($id);
 
-  $self->_mail_fault($fault);
+    $self->_mail_fault($fault);
 }
 
 =item B<closeFault>
 
 Close the supplied fault object in the database.
 
-  $db->closeFault( $fault );
-  $db->closeFault( $id );
+    $db->closeFault($fault);
+    $db->closeFault($id);
 
 The argument can be either an C<OMP::Fault> (so that the fault status
 can be changed in the object) or a fault id.
@@ -148,41 +147,40 @@ present.
 =cut
 
 sub closeFault {
-  my $self = shift;
-  my $fault = shift;
+    my $self = shift;
+    my $fault = shift;
 
-  # Need to lock the database since we are writing
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Need to lock the database since we are writing
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Determine the id
-  my $id = $fault;
-  my $isobj = 0;
-  if (UNIVERSAL::isa( $fault, "OMP::Fault")) {
-    $isobj = 1;
-    $id = $fault->id;
-  }
+    # Determine the id
+    my $id = $fault;
+    my $isobj = 0;
+    if (UNIVERSAL::isa($fault, "OMP::Fault")) {
+        $isobj = 1;
+        $id = $fault->id;
+    }
 
-  # File the response
-  $self->_close_fault( $id );
+    # File the response
+    $self->_close_fault($id);
 
-  # Send an EMAIL??
+    # Send an EMAIL??
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  # Change the object status if we have an object
-  $fault->close_fault
-    if $isobj;
-
+    # Change the object status if we have an object
+    $fault->close_fault
+        if $isobj;
 }
 
 =item B<getFault>
 
 Retrieve the specified fault from the database.
 
-  $fault = $db->getFault( $id );
+    $fault = $db->getFault($id);
 
 Returned as a C<OMP::Fault> object. Returns undef if the fault can not
 be found in the database.
@@ -190,22 +188,23 @@ be found in the database.
 =cut
 
 sub getFault {
-  my $self = shift;
-  my $id = shift;
+    my $self = shift;
+    my $id = shift;
 
-  # No transaction required
-  # Treat this as a DB query
-  my $xml = "<FaultQuery><faultid>$id</faultid></FaultQuery>";
-  my $query = new OMP::FaultQuery( XML => $xml );
+    # No transaction required
+    # Treat this as a DB query
+    my $xml = "<FaultQuery><faultid>$id</faultid></FaultQuery>";
+    my $query = OMP::FaultQuery->new(XML => $xml);
 
-  my @result = $self->queryFaults( $query );
+    my @result = $self->queryFaults($query);
 
-  if (scalar(@result) > 1) {
-    throw OMP::Error::FatalError( "Multiple faults match the supplied id [$id] - this is not possible [bizarre]");
-  }
+    if (scalar(@result) > 1) {
+        throw OMP::Error::FatalError(
+            "Multiple faults match the supplied id [$id] - this is not possible [bizarre]");
+    }
 
-  # Guaranteed to be only one match
-  return $result[0];
+    # Guaranteed to be only one match
+    return $result[0];
 }
 
 =item B<getFaultsByDate>
@@ -213,7 +212,7 @@ sub getFault {
 Retrieve faults filed on the specified UT date. Date must be in the format
 'YYYY-MM-DD'.
 
-  @faults = $db->getFaultsByDate( $ut );
+    @faults = $db->getFaultsByDate($ut);
 
 This method returns an array of C<OMP::Fault> objects, or undef if none
 can be found in the database.
@@ -224,23 +223,23 @@ CSG, UKIRT, JCMT etc).
 =cut
 
 sub getFaultsByDate {
-  my $self = shift;
-  my $date = shift;
-  my $cat = shift;
+    my $self = shift;
+    my $date = shift;
+    my $cat = shift;
 
-  # I don't know if this is the proper query to make, since there are
-  # potentially two dates associated with any given fault (date filed
-  # and date occurred). We're looking for date occurred in this instance.
-  # If this date is not 'date', then it'll have to be changed (confused?)
-  my $xml = "<FaultQuery><date delta=\"1\">$date</date>".
-    ( defined $cat ? "<category>$cat</category>" : "")
-      ."<isfault>1</isfault>"
-        ."</FaultQuery>";
-  my $query = new OMP::FaultQuery( XML => $xml );
+    # I don't know if this is the proper query to make, since there are
+    # potentially two dates associated with any given fault (date filed
+    # and date occurred). We're looking for date occurred in this instance.
+    # If this date is not 'date', then it'll have to be changed (confused?)
+    my $xml = "<FaultQuery><date delta=\"1\">$date</date>"
+        . (defined $cat ? "<category>$cat</category>" : "")
+        . "<isfault>1</isfault>"
+        . "</FaultQuery>";
+    my $query = OMP::FaultQuery->new(XML => $xml);
 
-  my @result = $self->queryFaults( $query );
+    my @result = $self->queryFaults($query);
 
-  return @result;
+    return @result;
 }
 
 =item B<queryFaults>
@@ -248,7 +247,7 @@ sub getFaultsByDate {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-  @faults = $db->queryFaults( $query, %options);
+    @faults = $db->queryFaults($query, %options);
 
 Options can be given to optimize the query strategy for the
 desired purpose:
@@ -268,11 +267,10 @@ Do not fetch the full text body of each "response" (including initial filing).
 =cut
 
 sub queryFaults {
-  my $self = shift;
-  my $query = shift;
+    my $self = shift;
+    my $query = shift;
 
-  return $self->_query_faultdb( $query, @_ );
-
+    return $self->_query_faultdb($query, @_);
 }
 
 =item B<getAssociations>
@@ -280,8 +278,8 @@ sub queryFaults {
 Retrieve the fault IDs (or optionally fault objects) associated
 with the specified project ID.
 
-  @faults = $db->getAssociations( 'm01bu52' );
-  @faultids = $db->getAssociations( 'm01bu52', 1);
+    @faults = $db->getAssociations('m01bu52');
+    @faultids = $db->getAssociations('m01bu52', 1);
 
 If the optional second argument is true only the fault IDs
 are retrieved.
@@ -291,21 +289,22 @@ Can return an empty list if there is no relevant association.
 =cut
 
 sub getAssociations {
-  my $self = shift;
-  my $projectid = shift;
-  my $idonly = shift;
+    my $self = shift;
+    my $projectid = shift;
+    my $idonly = shift;
 
-  # Cant use standard interface for ASSOCTABLE query since
-  # OMP::FaultQuery does not yet know how to query the ASSOCTABLE
-  my $ref = $self->_db_retrieve_data_ashash( "SELECT faultid FROM $ASSOCTABLE WHERE projectid = '$projectid'" );
-  my @ids = map { $_->{faultid} } @$ref;
+    # Cant use standard interface for ASSOCTABLE query since
+    # OMP::FaultQuery does not yet know how to query the ASSOCTABLE
+    my $ref = $self->_db_retrieve_data_ashash(
+        "SELECT faultid FROM $ASSOCTABLE WHERE projectid = '$projectid'");
+    my @ids = map {$_->{faultid}} @$ref;
 
-  # Now we have all the fault IDs
-  # Do we want to convert to fault object
-  @ids = map { $self->getFault( $_ ) } @ids
-    unless $idonly;
+    # Now we have all the fault IDs
+    # Do we want to convert to fault object
+    @ids = map {$self->getFault($_)} @ids
+        unless $idonly;
 
-  return @ids;
+    return @ids;
 }
 
 =item B<updateFault>
@@ -315,7 +314,7 @@ and creating a new entry with the updated details.  Second optional argument
 is the identity of the user who updated the fault (either a string
 or an C<OMP::User> object).  If this is not given no email will be sent.
 
-  $db->updateFault( $fault, $user);
+    $db->updateFault($fault, $user);
 
 Argument should be supplied as an C<OMP::Fault> object.
 This method will not update the associated responses.
@@ -323,27 +322,28 @@ This method will not update the associated responses.
 =cut
 
 sub updateFault {
-  my $self = shift;
-  my $fault = shift;
-  my $user = shift;
+    my $self = shift;
+    my $fault = shift;
+    my $user = shift;
 
-  # Get the fault from the DB so we can compare it later with our
-  # new fault and notify the "owner" of changes made
-  my $oldfault = $self->getFault($fault->id);
+    # Get the fault from the DB so we can compare it later with our
+    # new fault and notify the "owner" of changes made
+    my $oldfault = $self->getFault($fault->id);
 
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin transaction
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Do the update
-  $self->_update_fault_row( $fault );
+    # Do the update
+    $self->_update_fault_row($fault);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  # Mail notice to fault "owner"
-  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+    # Mail notice to fault "owner"
+    $self->_mail_fault_update($fault, $oldfault, $user)
+        if $user;
 }
 
 =item B<updateResponse>
@@ -351,7 +351,7 @@ sub updateFault {
 Update a fault response by deleting the response for the database and then reinserting
 it with new values.
 
-  $db->update Response( $faultid, $response );
+    $db->updateResponse($faultid, $response);
 
 The first argument should be the ID of the fault that the response is associated with.
 The second argument should be an C<OMP::Fault::Response> object.
@@ -359,20 +359,20 @@ The second argument should be an C<OMP::Fault::Response> object.
 =cut
 
 sub updateResponse {
-  my $self = shift;
-  my $faultid = shift;
-  my $response = shift;
+    my $self = shift;
+    my $faultid = shift;
+    my $response = shift;
 
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin transaction
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Do the update
-  $self->_update_response_row($faultid, $response);
+    # Do the update
+    $self->_update_response_row($faultid, $response);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =back
@@ -385,7 +385,7 @@ sub updateResponse {
 
 For the supplied date, determine the next fault id.
 
-  $newid = $db->_get_next_faultid( $date );
+    $newid = $db->_get_next_faultid($date);
 
 Fault IDs take the form C<YYYYMMDD.NNN> where NNN increases
 by one for each fault filed on day YYYYMMDD.
@@ -393,30 +393,33 @@ by one for each fault filed on day YYYYMMDD.
 =cut
 
 sub _get_next_faultid {
-  my $self = shift;
-  my $date = shift;
+    my $self = shift;
+    my $date = shift;
 
-  # First get the date (only the day, month and year)
-  my $yyyymmdd = $date->strftime("%Y%m%d");
+    # First get the date (only the day, month and year)
+    my $yyyymmdd = $date->strftime("%Y%m%d");
 
-  # Get the current highest value
-  my $max = $self->_db_findmax( $FAULTTABLE, "faultid", "floor(faultid) = $yyyymmdd");
+    # Get the current highest value
+    my $max = $self->_db_findmax(
+        $FAULTTABLE,
+        "faultid",
+        "floor(faultid) = $yyyymmdd");
 
-  # If we have zero back then this is the first fault of the day
-  $max = $yyyymmdd unless $max;
+    # If we have zero back then this is the first fault of the day
+    $max = $yyyymmdd unless $max;
 
-  # Add 0.001 to the result
-  $max += 0.001;
+    # Add 0.001 to the result
+    $max += 0.001;
 
-  # and format for rounding errors
-  return sprintf( "%.3f", $max);
+    # and format for rounding errors
+    return sprintf("%.3f", $max);
 }
 
 =item B<_store_new_fault>
 
 Store the supplied fault in the database.
 
-  $db->_store_new_fault( $fault );
+    $db->_store_new_fault($fault);
 
 Fault object must contain a pre-allocated fault ID.
 
@@ -428,45 +431,52 @@ from another system). This is supported.
 =cut
 
 sub _store_new_fault {
-  my $self = shift;
-  my $fault = shift;
+    my $self = shift;
+    my $fault = shift;
 
-  # First store the main fault information
+    # First store the main fault information
 
-  # Date must be formatted for MySQL
-  my $faultdate = $fault->faultdate;
-  $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-    if defined $faultdate;
+    # Date must be formatted for MySQL
+    my $faultdate = $fault->faultdate;
+    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
+        if defined $faultdate;
 
-  # Insert the data into the table
-  $self->_db_insert_data( $FAULTTABLE,
-                          $fault->id, $fault->category, $fault->subject,
-                          $faultdate, $fault->type, $fault->system,
-                          $fault->status, $fault->urgency,
-                          $fault->timelost, $fault->entity, $fault->condition,
-                          $fault->location, $fault->shifttype, $fault->remote
-                        );
+    # Insert the data into the table
+    $self->_db_insert_data(
+        $FAULTTABLE,
+        $fault->id,
+        $fault->category,
+        $fault->subject,
+        $faultdate,
+        $fault->type,
+        $fault->system,
+        $fault->status,
+        $fault->urgency,
+        $fault->timelost,
+        $fault->entity,
+        $fault->condition,
+        $fault->location,
+        $fault->shifttype,
+        $fault->remote,
+    );
 
-  # Insert the project association data
-  # In this case we dont need an entry if there are no projects
-  # associated with the fault since we never do a join requiring
-  # a fault id to exist.
-  $self->_insert_assoc_rows($fault->id, $fault->projects);
+    # Insert the project association data
+    # In this case we dont need an entry if there are no projects
+    # associated with the fault since we never do a join requiring
+    # a fault id to exist.
+    $self->_insert_assoc_rows($fault->id, $fault->projects);
 
-  # Now loop over responses
-  for my $resp ($fault->responses) {
-
-    $self->_add_new_response( $fault->id, $resp);
-
-  }
-
+    # Now loop over responses
+    for my $resp ($fault->responses) {
+        $self->_add_new_response($fault->id, $resp);
+    }
 }
 
 =item B<_add_new_response>
 
 Add the supplied response to the specified fault.
 
-  $db->_add_new_response( $id, $response );
+    $db->_add_new_response($id, $response);
 
 Response must be an C<OMP::Fault::Response> object.
 An exception of class C<OMP::Error::Authentication> is thrown
@@ -475,21 +485,22 @@ if the user ID associated with the response is invalid.
 =cut
 
 sub _add_new_response {
-  my $self = shift;
-  my $id = shift;
-  my $resp = shift;
+    my $self = shift;
+    my $id = shift;
+    my $resp = shift;
 
-  my $cols = $self->_prepare_response_columns($id, $resp);
+    my $cols = $self->_prepare_response_columns($id, $resp);
 
-  $self->_db_insert_data(
-    $FAULTBODYTABLE,
-    undef,
-    $id,
-    @{$cols}{qw/date author isfault text/},
-    {SQL => sprintf
-        'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
-        $FAULTBODYTABLE, $id},
-    @{$cols}{qw/flag/});
+    $self->_db_insert_data(
+        $FAULTBODYTABLE,
+        undef, $id,
+        @{$cols}{qw/date author isfault text/},
+        {
+            SQL => sprintf 'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
+            $FAULTBODYTABLE, $id
+        },
+        @{$cols}{qw/flag/}
+    );
 }
 
 =item B<_prepare_response_columns>
@@ -500,49 +511,52 @@ insert and update operations.
 =cut
 
 sub _prepare_response_columns {
-  my $self = shift;
-  my $id = shift;
-  my $resp = shift;
+    my $self = shift;
+    my $id = shift;
+    my $resp = shift;
 
-  my $author = $resp->author;
-  my $date = $resp->date;
-  my $text = $resp->text;
+    my $author = $resp->author;
+    my $date = $resp->date;
+    my $text = $resp->text;
 
-  # Verify user id is valid
-  # Create UserDB object for user determination
-  my $udb = new OMP::UserDB( DB => $self->db );
-  my $userid = $udb->verifyUser($author->userid);
+    # Verify user id is valid
+    # Create UserDB object for user determination
+    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $userid = $udb->verifyUser($author->userid);
 
-  throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]") unless ($userid);
+    throw OMP::Error::Authentication(
+        "Must supply a valid user id for the fault system ['"
+        . $author->userid . "' invalid]")
+        unless ($userid);
 
-  return {
-    date => $date->strftime("%Y-%m-%d %T"),
-    author => $userid,
-    isfault => $resp->isfault,
-    text => $text,
-    flag => $resp->flag,
-  }
+    return {
+        date => $date->strftime("%Y-%m-%d %T"),
+        author => $userid,
+        isfault => $resp->isfault,
+        text => $text,
+        flag => $resp->flag,
+    };
 }
 
 =item B<_close_fault>
 
 Close the fault with the specified fault ID.
 
-  $db->_close_fault( $id )
+    $db->_close_fault($id)
 
 =cut
 
 sub _close_fault {
-  my $self = shift;
-  my $id = shift;
-  my %status = OMP::Fault->faultStatus;
-  my $close = $status{Closed}; # Dont like bare string
+    my $self = shift;
+    my $id = shift;
+    my %status = OMP::Fault->faultStatus;
+    my $close = $status{Closed};  # Dont like bare string
 
-  # Update the status field
-  $self->_db_update_data( $FAULTTABLE,
-                          { status => $close },
-                          " faultid = $id");
-
+    # Update the status field
+    $self->_db_update_data(
+        $FAULTTABLE,
+        {status => $close},
+        " faultid = $id");
 }
 
 =item B<_query_faultdb>
@@ -550,148 +564,157 @@ sub _close_fault {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-  @faults = $db->_query_faultdb( $query, %options );
+    @faults = $db->_query_faultdb($query, %options);
 
 Faults are returned sorted by fault ID.
 
 =cut
 
 sub _query_faultdb {
-  my $self = shift;
-  my $query = shift;
-  my %opt = @_;
+    my $self = shift;
+    my $query = shift;
+    my %opt = @_;
 
-  # Get the SQL
-  my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE, no_text => $opt{'no_text'} );
+    # Get the SQL
+    my $sql = $query->sql(
+        $FAULTTABLE, $FAULTBODYTABLE,
+        no_text => $opt{'no_text'});
 
-  # Fetch the data
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+    # Fetch the data
+    my $ref = $self->_db_retrieve_data_ashash($sql);
 
-  # Create UserDB object for user determination
-  my $udb = new OMP::UserDB( DB => $self->db );
+    # Create UserDB object for user determination
+    my $udb = OMP::UserDB->new(DB => $self->db);
 
-  # Create a cache for OMP::User objects since it is likely
-  # that a single user will be involved in more than a single response
-  my $users = $udb->getUserMultiple([keys %{{map {$_->{'author'} => 1} @$ref}}]);
+    # Create a cache for OMP::User objects since it is likely
+    # that a single user will be involved in more than a single response
+    my $users = $udb->getUserMultiple([keys %{{map {$_->{'author'} => 1} @$ref}}]);
 
-  # Now loop through the faults, creating objects and
-  # matching responses.
-  # Use a hash to indicate whether we have already seen a fault
-  my %faults;
-  my @defresponse = ();
-  push @defresponse, text => 'NOT RETRIEVED' if $opt{'no_text'};
-  for my $faultref (@$ref) {
+    # Now loop through the faults, creating objects and
+    # matching responses.
+    # Use a hash to indicate whether we have already seen a fault
+    my %faults;
+    my @defresponse = ();
+    push @defresponse, text => 'NOT RETRIEVED' if $opt{'no_text'};
+    for my $faultref (@$ref) {
+        # First convert dates to date objects
+        $faultref->{date} = OMP::DateTools->parse_date($faultref->{date});
+        $faultref->{faultdate} = OMP::DateTools->parse_date($faultref->{faultdate})
+            if defined $faultref->{faultdate};
 
-    # First convert dates to date objects
-    $faultref->{date} = OMP::DateTools->parse_date( $faultref->{date} );
-    $faultref->{faultdate} = OMP::DateTools->parse_date( $faultref->{faultdate})
-      if defined $faultref->{faultdate};
+        my $userid = $faultref->{author};
 
-    my $userid = $faultref->{author};
+        # Check it
+        throw OMP::Error::FatalError(
+            "User ID retrieved from fault system [$userid] does not match a valid user id")
+            unless defined $users->{$userid};
 
-    # Check it
-    throw OMP::Error::FatalError("User ID retrieved from fault system [$userid] does not match a valid user id")
-      unless defined $users->{$userid};
+        $faultref->{author} = $users->{$userid};
 
-    $faultref->{author} = $users->{$userid};
+        # Fault's system attribute is stored in the database in column 'fsystem',
+        # so replace key 'fsystem' with 'system'
+        $faultref->{system} = $faultref->{fsystem};
+        delete $faultref->{fsystem};
 
-    # Fault's system attribute is stored in the database in column 'fsystem',
-    # so replace key 'fsystem' with 'system'
-    $faultref->{system} = $faultref->{fsystem};
-    delete $faultref->{fsystem};
+        # Determine the fault id
+        my $id = $faultref->{faultid};
 
-    # Determine the fault id
-    my $id = $faultref->{faultid};
+        # Create a new fault
+        # One problem is that a new fault *requires* an initial "response"
+        unless (exists $faults{$id}) {
+            # Get the response object
+            my $resp = OMP::Fault::Response->new(@defresponse, %$faultref);
 
-    # Create a new fault
-    # One problem is that a new fault *requires* an initial "response"
-    if (!exists $faults{$id}) {
+            # And the fault
+            $faults{$id} = OMP::Fault->new(%$faultref, fault => $resp);
 
-      # Get the response object
-      my $resp = new OMP::Fault::Response( @defresponse, %$faultref );
-
-      # And the fault
-      $faults{$id} = new OMP::Fault( %$faultref, fault => $resp);
-
-      # Now get the associated projects
-      # Note that we are not interested in generating OMP::Project objects
-      # Only want to do this once per fault
-      unless ($opt{'no_projects'}) {
-        my $assocref = $self->_db_retrieve_data_ashash( "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id" );
-        $faults{$id}->projects( map { $_->{projectid} } @$assocref);
-      }
-
-    } else {
-      # Just need the response
-      $faults{$id}->respond( new OMP::Fault::Response( @defresponse, %$faultref ) );
-
+            # Now get the associated projects
+            # Note that we are not interested in generating OMP::Project objects
+            # Only want to do this once per fault
+            unless ($opt{'no_projects'}) {
+                my $assocref = $self->_db_retrieve_data_ashash(
+                    "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id");
+                $faults{$id}->projects(map {$_->{projectid}} @$assocref);
+            }
+        }
+        else {
+            # Just need the response
+            $faults{$id}->respond(OMP::Fault::Response->new(@defresponse, %$faultref));
+        }
     }
-  }
 
-  # Sort the keys by faultid
-  # [more efficient than sorting the objects by faultid]
-  my @faults = sort { $a <=> $b } keys %faults;
+    # Sort the keys by faultid
+    # [more efficient than sorting the objects by faultid]
+    my @faults = sort {$a <=> $b} keys %faults;
 
-  # Now return the values in the hash
-  # as a hash slice
-  return @faults{@faults};
+    # Now return the values in the hash
+    # as a hash slice
+    return @faults{@faults};
 }
 
 =item B<_update_fault_row>
 
 Delete and reinsert fault values.
 
-  $db->_update_fault_row( $fault );
+    $db->_update_fault_row($fault);
 
 where C<$fault> is an object of type C<OMP::Fault>.
 
 =cut
 
 sub _update_fault_row {
-  my $self = shift;
-  my $fault = shift;
+    my $self = shift;
+    my $fault = shift;
 
-  if (UNIVERSAL::isa($fault, "OMP::Fault")) {
+    if (UNIVERSAL::isa($fault, "OMP::Fault")) {
+        # Our where clause for the delete
+        my $clause = "faultid = " . $fault->id;
 
-    # Our where clause for the delete
-    my $clause = "faultid = ". $fault->id;
+        # Delete the row for this fault
+        $self->_db_delete_data($FAULTTABLE, $clause);
 
-    # Delete the row for this fault
-    $self->_db_delete_data( $FAULTTABLE, $clause );
+        # Date must be formatted for MySQL
+        my $faultdate = $fault->faultdate;
+        $faultdate = $faultdate->strftime("%Y-%m-%d %T")
+            if defined $faultdate;
 
-    # Date must be formatted for MySQL
-    my $faultdate = $fault->faultdate;
-    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-      if defined $faultdate;
+        # Insert the new values
+        $self->_db_insert_data(
+            $FAULTTABLE,
+            $fault->id,
+            $fault->category,
+            $fault->subject,
+            $faultdate,
+            $fault->type,
+            $fault->system,
+            $fault->status,
+            $fault->urgency,
+            $fault->timelost,
+            $fault->entity,
+            $fault->condition,
+            $fault->location,
+            $fault->shifttype,
+            $fault->remote,
+        );
 
-    # Insert the new values
-    $self->_db_insert_data( $FAULTTABLE,
-                            $fault->id, $fault->category, $fault->subject,
-                            $faultdate, $fault->type, $fault->system,
-                            $fault->status, $fault->urgency,
-                            $fault->timelost, $fault->entity,
-                            $fault->condition,
-                            $fault->location,
-                            $fault->shifttype,
-                            $fault->remote,
-                          );
+        # Insert the project association data
+        # In this case we dont need an entry if there are no projects
+        # associated with the fault since we never do a join requiring
+        # a fault id to exist.
+        $self->_insert_assoc_rows($fault->id, $fault->projects);
 
-    # Insert the project association data
-    # In this case we dont need an entry if there are no projects
-    # associated with the fault since we never do a join requiring
-    # a fault id to exist.
-    $self->_insert_assoc_rows($fault->id, $fault->projects);
-
-  } else {
-    throw OMP::Error::BadArgs("Argument to _update_fault_row must be of type OMP::Fault\n");
-  }
+    }
+    else {
+        throw OMP::Error::BadArgs(
+            "Argument to _update_fault_row must be of type OMP::Fault\n");
+    }
 }
 
 =item B<_update_response_row>
 
 Delete and reinsert a fault response.
 
-  $db->_update_response_row( $faultid, $response );
+    $db->_update_response_row($faultid, $response);
 
 where C<$faultid> is the id of the fault the response should be associated with
 and C<$response> is an C<OMP::Fault::Response> object.
@@ -699,22 +722,23 @@ and C<$response> is an C<OMP::Fault::Response> object.
 =cut
 
 sub _update_response_row {
-  my $self = shift;
-  my $faultid = shift;
-  my $resp = shift;
+    my $self = shift;
+    my $faultid = shift;
+    my $resp = shift;
 
-  if (UNIVERSAL::isa($resp, "OMP::Fault::Response")) {
-    # Where clause for the update
-    my $clause = "respid = ". $resp->id;
+    if (UNIVERSAL::isa($resp, "OMP::Fault::Response")) {
+        # Where clause for the update
+        my $clause = "respid = " . $resp->id;
 
-    my $cols = $self->_prepare_response_columns($faultid, $resp);
+        my $cols = $self->_prepare_response_columns($faultid, $resp);
 
-    # Update the response
-    $self->_db_update_data( $FAULTBODYTABLE, $cols, $clause );
-
-  } else {
-    throw OMP::Error::BadArgs("Argument to _update_response_row must be of type OMP::Fault::Response\n");
-  }
+        # Update the response
+        $self->_db_update_data($FAULTBODYTABLE, $cols, $clause);
+    }
+    else {
+        throw OMP::Error::BadArgs(
+            "Argument to _update_response_row must be of type OMP::Fault::Response\n");
+    }
 }
 
 =item B<_insert_assoc_rows>
@@ -722,7 +746,7 @@ sub _update_response_row {
 Insert fault project association entries.  Do a delete first to get rid of
 any old associations.
 
-  $db->_insert_assoc_rows($faultid, @projects);
+    $db->_insert_assoc_rows($faultid, @projects);
 
 Takes a fault ID as the first argument and an array of project IDs as the
 second argument
@@ -730,20 +754,20 @@ second argument
 =cut
 
 sub _insert_assoc_rows {
-  my $self = shift;
-  my $faultid = shift;
-  my @projects = @_;
+    my $self = shift;
+    my $faultid = shift;
+    my @projects = @_;
 
-  # Delete clause
-  my $clause = "faultid = $faultid";
+    # Delete clause
+    my $clause = "faultid = $faultid";
 
-  # Do the delete
-  $self->_db_delete_data( $ASSOCTABLE, $clause );
+    # Do the delete
+    $self->_db_delete_data($ASSOCTABLE, $clause);
 
-  my @entries = map { [ $faultid, $_ ]  } @projects;
-  for my $assoc (@entries) {
-    $self->_db_insert_data( $ASSOCTABLE, undef, $assoc->[0], $assoc->[1] );
-  }
+    my @entries = map {[$faultid, $_]} @projects;
+    for my $assoc (@entries) {
+        $self->_db_insert_data($ASSOCTABLE, undef, $assoc->[0], $assoc->[1]);
+    }
 }
 
 =item B<_mail_fault>
@@ -751,76 +775,78 @@ sub _insert_assoc_rows {
 Mail a fault and its responses to the fault email list and anyone who has previously
 responded to the fault, but not to the author of the latest response.
 
-  $db->_mail_response( $fault );
+    $db->_mail_response($fault);
 
 =cut
 
 sub _mail_fault {
-  my $self = shift;
-  my $fault = shift;
+    my $self = shift;
+    my $fault = shift;
 
-  my $faultid = $fault->id;
+    my $faultid = $fault->id;
 
-  my @responses = $fault->responses;
+    my @responses = $fault->responses;
 
-  my $system = $fault->systemText;
-  my $type = $fault->typeText;
+    my $system = $fault->systemText;
+    my $type = $fault->typeText;
 
-  # The email subject
-  my $subject = "[$faultid] $system/$type - " . $fault->subject;
+    # The email subject
+    my $subject = "[$faultid] $system/$type - " . $fault->subject;
 
-  # Make it obvious in the subject if fault is urgent
-  if ($fault->isUrgent) {
-    $subject = "*** URGENT *** $subject";
-  }
+    # Make it obvious in the subject if fault is urgent
+    if ($fault->isUrgent) {
+        $subject = "*** URGENT *** $subject";
+    }
 
-  # Create a list of users to Cc (but not if they authored the latest response)
-  my %cc_seen = ($responses[-1]->author()->userid() => 1);
-  my @cc;
-  foreach my $response (@responses) {
-    my $author = $response->author();
-    next if $author->no_fault_cc();
-    next if $cc_seen{$author->userid()} ++;
-    push @cc, $author;
-  }
+   # Create a list of users to Cc (but not if they authored the latest response)
+    my %cc_seen = ($responses[-1]->author()->userid() => 1);
+    my @cc;
+    foreach my $response (@responses) {
+        my $author = $response->author();
+        next if $author->no_fault_cc();
+        next if $cc_seen{$author->userid()} ++;
+        push @cc, $author;
+    }
 
-  my @faultusers = $fault->mail_list_users;
+    my @faultusers = $fault->mail_list_users;
 
-  # If there is no email address associated with author of last response
-  # use the fault list "user" for the From header
-  my $from;
-  if ($responses[-1]->author->email) {
-    $from = $responses[-1]->author;
-  }
-  elsif (scalar @faultusers) {
-    $from = $faultusers[0];
-  }
-  else {
-    # No address to send from - do not attempt to mail the fault.
-    return;
-  }
+    # If there is no email address associated with author of last response
+    # use the fault list "user" for the From header
+    my $from;
+    if ($responses[-1]->author->email) {
+        $from = $responses[-1]->author;
+    }
+    elsif (scalar @faultusers) {
+        $from = $faultusers[0];
+    }
+    else {
+        # No address to send from - do not attempt to mail the fault.
+        return;
+    }
 
-  # If there is no list, send directly to recipients rather than using CC?
-  unless (scalar @faultusers) {
-    return unless scalar @cc;
-    @faultusers = @cc;
-    @cc = ();
-  }
+    # If there is no list, send directly to recipients rather than using CC?
+    unless (scalar @faultusers) {
+        return unless scalar @cc;
+        @faultusers = @cc;
+        @cc = ();
+    }
 
-  # Get the fault message
-  my $msg = OMP::FaultUtil->format_fault(
-    $fault, 0,
-    omp_url => OMP::Config->getData('omp-url'),
-    max_entries => 10);
+    # Get the fault message
+    my $msg = OMP::FaultUtil->format_fault(
+        $fault, 0,
+        omp_url => OMP::Config->getData('omp-url'),
+        max_entries => 10,
+    );
 
-  # Mail it off
-  $self->_mail_information(message => $msg,
-                           to => \@faultusers,
-                           cc => \@cc,
-                           from => $from,
-                           subject => $subject,
-                           reply_to_sender => 1);
-
+    # Mail it off
+    $self->_mail_information(
+        message => $msg,
+        to => \@faultusers,
+        cc => \@cc,
+        from => $from,
+        subject => $subject,
+        reply_to_sender => 1,
+    );
 }
 
 =item B<_mail_fault_update>
@@ -832,90 +858,95 @@ containing the faults properties before the update occurred.  Final argument
 is a string or C<OMP::User> object identifying the user who updated the
 fault.
 
-  $db->_mail_fault_update($currentfault, $oldfault, $user);
+    $db->_mail_fault_update($currentfault, $oldfault, $user);
 
 =cut
 
 sub _mail_fault_update {
-  my $self = shift;
-  my $fault = shift;
-  my $oldfault = shift;
-  my $user = shift;
+    my $self = shift;
+    my $fault = shift;
+    my $oldfault = shift;
+    my $user = shift;
 
-  # Convert user object to HTML string
-  if (UNIVERSAL::isa($user, "OMP::User")) {
-    $user = $user->html;
-  }
-
-  my $msg = "Fault " . $fault->id . " [" . $oldfault->subject . "] has been changed as follows by $user:<br><br>";
-
-  # Map property names to their accessor method names
-  my %property = (
-                  systemText => "System",
-                  typeText => "Type",
-                  statusText => "Status",
-                  timelost => "Time lost",
-                  faultdate => "Time of fault",
-                  subject => "Subject",
-                  category => "Category",
-                  urgency => "Urgency",
-                  condition => "Condition",
-                  projects => "Projects",
-                  shifttype => "Shift Type",
-                  remote => "Remote status",
-                 );
-
-  # Compare the fault details
-  my @details_changed = OMP::FaultUtil->compare($fault, $oldfault);
-
-  # Build up a message
-  for (@details_changed) {
-    if ($_ =~ /system/) {
-      $_ = "systemText";
-    } elsif ($_ =~ /^type/) {
-      $_ = "typeText";
-    } elsif ($_ =~ /status/) {
-      $_ = "statusText";
+    # Convert user object to HTML string
+    if (UNIVERSAL::isa($user, "OMP::User")) {
+        $user = $user->html;
     }
 
-    my $property = $property{$_};
-    my $oldfault_prop;
-    my $newfault_prop;
+    my $msg = "Fault " . $fault->id . " [" . $oldfault->subject
+        . "] has been changed as follows by $user:<br><br>";
 
-    if (ref($fault->$_) eq "ARRAY") {
-      $oldfault_prop = join(', ',@{$oldfault->$_});
-      $newfault_prop = join(', ',@{$fault->$_});
-    } else {
-      $oldfault_prop = $oldfault->$_;
-      $newfault_prop = $fault->$_;
+    # Map property names to their accessor method names
+    my %property = (
+        systemText => 'System',
+        typeText => 'Type',
+        statusText => 'Status',
+        timelost => 'Time lost',
+        faultdate => 'Time of fault',
+        subject => 'Subject',
+        category => 'Category',
+        urgency => 'Urgency',
+        condition => 'Condition',
+        projects => 'Projects',
+        shifttype => 'Shift Type',
+        remote => 'Remote status',
+    );
+
+    # Compare the fault details
+    my @details_changed = OMP::FaultUtil->compare($fault, $oldfault);
+
+    # Build up a message
+    for (@details_changed) {
+        if ($_ =~ /system/) {
+            $_ = 'systemText';
+        }
+        elsif ($_ =~ /^type/) {
+            $_ = 'typeText';
+        }
+        elsif ($_ =~ /status/) {
+            $_ = 'statusText';
+        }
+
+        my $property = $property{$_};
+        my $oldfault_prop;
+        my $newfault_prop;
+
+        if (ref($fault->$_) eq "ARRAY") {
+            $oldfault_prop = join(', ', @{$oldfault->$_});
+            $newfault_prop = join(', ', @{$fault->$_});
+        }
+        else {
+            $oldfault_prop = $oldfault->$_;
+            $newfault_prop = $fault->$_;
+        }
+
+        $msg .= "$property updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
     }
 
-    $msg .= "$property updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
-  }
+    my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+    $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?fault="
+        . $fault->id . "'>here</a>";
 
-  $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?fault=" . $fault->id ."'>here</a>";
+    my $email = $fault->author;
 
-  my $email = $fault->author;
+    my @faultusers = $fault->mail_list_users;
 
-  my @faultusers = $fault->mail_list_users;
-
-  # Don't want to attempt to mail the fault if author doesn't have an email
-  # address (or we don't have an address from which to send).
-  if ($fault->author->email and scalar @faultusers) {
-    $self->_mail_information(message => $msg,
-                             to => [ $fault->author ],
-                             from => $faultusers[0],
-                             subject => "Your fault [" . $fault->id . "] has been updated",)
-        unless $fault->author->no_fault_cc();
-  }
-
+    # Don't want to attempt to mail the fault if author doesn't have an email
+    # address (or we don't have an address from which to send).
+    if ($fault->author->email and scalar @faultusers) {
+        $self->_mail_information(
+            message => $msg,
+            to => [$fault->author],
+            from => $faultusers[0],
+            subject => "Your fault [" . $fault->id . "] has been updated",
+        ) unless $fault->author->no_fault_cc();
+    }
 }
 
-=item B<_mail_response_update>
+1;
 
-Send an email to a fault owner
+__END__
 
 =back
 
@@ -949,7 +980,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

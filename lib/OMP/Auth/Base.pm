@@ -64,6 +64,10 @@ sub log_in_userpass {
         'This authentication method can not use username and password.');
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 COPYRIGHT
@@ -85,5 +89,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

@@ -6,8 +6,8 @@ OMP::FaultServer - Fault information Server class
 
 =head1 SYNOPSIS
 
-  OMP::FaultServer->fileFault( $fault );
-  OMP::FaultServer->respondFault( $id, $reponse );
+    OMP::FaultServer->fileFault($fault);
+    OMP::FaultServer->respondFault($id, $reponse);
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ use Carp;
 use OMP::FaultDB;
 use OMP::Fault;
 use OMP::FaultQuery;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -39,42 +39,38 @@ our $VERSION = '2.000';
 
 =item B<fileFault>
 
-  $newid = OMP::FaultServer->fileFault( $fault );
+    $newid = OMP::FaultServer->fileFault($fault);
 
 For now the argument is an C<OMP::Fault> object.
 
 =cut
 
 sub fileFault {
-  my $class = shift;
-  my $fault = shift;
+    my $class = shift;
+    my $fault = shift;
 
-  my $newid;
-  my $E;
-  try {
+    my $newid;
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB(
-                             DB => $class->dbConnection,
-                            );
+        $newid = $db->fileFault($fault);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $newid = $db->fileFault($fault);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $newid;
+    return $newid;
 }
 
 =item B<respondFault>
@@ -82,7 +78,7 @@ sub fileFault {
 Given a fault ID and a response object (C<OMP::Fault::Response>),
 store the response in the database.
 
-  OMP::FaultServer->respondFault($faultid, $response);
+    OMP::FaultServer->respondFault($faultid, $response);
 
 A more SOAP friendly interface could be developed that will accept the
 fault user and fault body as separate arguments (with optional date).
@@ -90,74 +86,66 @@ fault user and fault body as separate arguments (with optional date).
 =cut
 
 sub respondFault {
-  my $class = shift;
-  my $faultid = shift;
-  my $response = shift;
+    my $class = shift;
+    my $faultid = shift;
+    my $response = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB(
-                             DB => $class->dbConnection,
-                            );
+        $db->respondFault($faultid, $response);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->respondFault($faultid, $response);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
+    return;
 }
 
 =item B<closeFault>
 
 Close the specified fault.
 
-  OMP::FaultServer->closeFault($faultid);
+    OMP::FaultServer->closeFault($faultid);
 
 =cut
 
 sub closeFault {
-  my $class = shift;
-  my $faultid = shift;
+    my $class = shift;
+    my $faultid = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB(
-                             DB => $class->dbConnection,
-                            );
+        $db->closeFault($faultid);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->closeFault($faultid);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
+    return;
 }
 
 =item B<updateFault>
@@ -166,41 +154,39 @@ Update details for a fault.  If a second argument (either an C<OMP::User>
 object or a string identifying the user who made the update) is included
 an email will be sent to the fault owner notifying them of the update.
 
-  OMP::FaultServer->updateFault($fault [, $user ]);
+    OMP::FaultServer->updateFault($fault[, $user]);
 
 Argument should be supplied as an C<OMP::Fault> object.
 
 =cut
 
 sub updateFault {
-  my $class = shift;
-  my $fault = shift;
-  my $user = shift;
+    my $class = shift;
+    my $fault = shift;
+    my $user = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB( DB => $class->dbConnection, );
+        # Let the lower level method check the argument
+        $db->updateFault($fault, $user);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    # Let the lower level method check the argument
-    $db->updateFault($fault, $user);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
-
+    return;
 }
 =item B<updateResponse>
 
@@ -208,41 +194,39 @@ Update details for a fault.  If a second argument (either an C<OMP::User>
 object or a string identifying the user who made the update) is included
 an email will be sent to the fault owner notifying them of the update.
 
-  OMP::FaultServer->updateResponse($faultid, $response);
+    OMP::FaultServer->updateResponse($faultid, $response);
 
 Argument should be supplied as an C<OMP::Fault> object.
 
 =cut
 
 sub updateResponse {
-  my $class = shift;
-  my $faultid = shift;
-  my $response = shift;
+    my $class = shift;
+    my $faultid = shift;
+    my $response = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB( DB => $class->dbConnection, );
+        # Let the lower level method check the argument
+        $db->updateResponse($faultid, $response);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    # Let the lower level method check the argument
-    $db->updateResponse($faultid, $response);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return;
-
+    return;
 }
 
 
@@ -250,7 +234,7 @@ sub updateResponse {
 
 Get the specified fault.
 
-  $fault = OMP::FaultServer->getFault($faultid);
+    $fault = OMP::FaultServer->getFault($faultid);
 
 This is not SOAP friendly. The fault is returned as an C<OMP::Fault>
 object.
@@ -258,52 +242,46 @@ object.
 =cut
 
 sub getFault {
-  my $class = shift;
-  my $faultid = shift;
+    my $class = shift;
+    my $faultid = shift;
 
-  my $fault;
-  my $E;
-  try {
+    my $fault;
+    my $E;
+    try {
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB(
-                             DB => $class->dbConnection,
-                            );
+        $fault = $db->getFault($faultid);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $fault = $db->getFault($faultid);
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $fault;
+    return $fault;
 }
 
 =item B<queryFaults>
 
 Query the fault database using an XML representation of the query.
 
-  $faults = OMP::FaultServer->queryFaults($faultid,
-                                        $format,
-                                        %options);
+    $faults = OMP::FaultServer->queryFaults($faultid, $format, %options);
 
 See C<OMP::FaultQuery> for more details on the format of the XML query.
 A typical query could be:
 
-  <FaultQuery>
-    <entity>UFTI</entity>
-    <author>AJA</author>
-  </FaultQuery>
+    <FaultQuery>
+        <entity>UFTI</entity>
+        <author>AJA</author>
+    </FaultQuery>
 
 This would return all faults involving UFTI that were filed or responded
 to by AJA.
@@ -316,46 +294,44 @@ as for C<projectDetails> except that a wrapper element of
 C<E<lt>OMPFaultsE<gt>> surrounds the core data. I<Currently only
 "object" is implemented>.
 
-
 =cut
 
 sub queryFaults {
-  my $class = shift;
-  my $xmlquery = shift;
-  my $mode = lc( shift );
-  my %opt = @_;
-  $mode = "object" unless $mode;
+    my $class = shift;
+    my $xmlquery = shift;
+    my $mode = lc(shift);
+    my %opt = @_;
+    $mode = "object" unless $mode;
 
-  my @faults;
-  my $E;
-  try {
+    my @faults;
+    my $E;
+    try {
+        my $query = OMP::FaultQuery->new(XML => $xmlquery);
 
-    my $query = new OMP::FaultQuery( XML => $xmlquery );
+        my $db = OMP::FaultDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FaultDB(
-                             DB => $class->dbConnection,
-                            );
+        @faults = $db->queryFaults($query, %opt);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    @faults = $db->queryFaults( $query, %opt );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return \@faults;
+    return \@faults;
 }
 
+1;
+
+__END__
 
 =back
 
@@ -383,11 +359,8 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

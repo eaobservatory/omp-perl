@@ -6,8 +6,8 @@ OMP::FBServer - Feedback information Server class
 
 =head1 SYNOPSIS
 
-  OMP::FBServer->addComment( $project, $commentHash );
-  OMP::FBServer->getComments( $project, $status );
+    OMP::FBServer->addComment($project, $commentHash);
+    OMP::FBServer->getComments($project, $status);
 
 =head1 DESCRIPTION
 
@@ -27,7 +27,7 @@ use Carp;
 # OMP dependencies
 use OMP::FeedbackDB;
 use OMP::Constants;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -47,7 +47,7 @@ the project.
 Does not return anything but will throw an error if the comment should fail
 to be added to the feedback database.
 
-   OMP::FBServer->addComment( $project, $commentHash );
+    OMP::FBServer->addComment($project, $commentHash);
 
 =over 4
 
@@ -78,34 +78,33 @@ The text of the comment (HTML tags are encouraged).
 =cut
 
 sub addComment {
-  my $class = shift;
-  my $projectid = shift;
-  my $comment = shift;
+    my $class = shift;
+    my $projectid = shift;
+    my $comment = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FeedbackDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection);
 
-    my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-                                  DB => $class->dbConnection, );
+        $db->addComment($comment);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->addComment( $comment );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return 1;
+    return 1;
 }
 
 
@@ -119,47 +118,46 @@ defined in C<OMP::Constants>.  Final argument is optional and should be
 either 'ascending' or 'descending' depending on the order in which you
 want the comments to come back.
 
-    OMP::FBServer->getComments( $project, \@status, [$order]);
+    OMP::FBServer->getComments($project, \@status, [$order]);
 
 =cut
 
 sub getComments {
-  my $class = shift;
-  my $projectid = shift;
-  my $status = shift;
-  my $order = shift;
+    my $class = shift;
+    my $projectid = shift;
+    my $status = shift;
+    my $order = shift;
 
-  my %args;
-  $args{status} = $status;
-  $args{order} = $order
-    if (defined $order);
+    my %args;
+    $args{status} = $status;
+    $args{order} = $order
+        if (defined $order);
 
-  my $commentref;
+    my $commentref;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FeedbackDB->new(
+            ProjectID => $projectid,
+            DB => $class->dbConnection);
 
-    my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-                                  DB => $class->dbConnection, );
+        $commentref = $db->getComments(%args);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $commentref = $db->getComments( %args );
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-  return $commentref;
+    return $commentref;
 }
 
 =item B<alterStatus>
@@ -171,39 +169,39 @@ as defined in C<OMP::Constants>.
 Does not return anything, but will throw an error if it fails to alter
 the status.
 
-  OMP::FBServer->alterStatus( $commentid, $status );
+    OMP::FBServer->alterStatus($commentid, $status);
 
 =cut
 
 sub alterStatus {
-  my $class = shift;
-  my $commentid = shift;
-  my $status = shift;
+    my $class = shift;
+    my $commentid = shift;
+    my $status = shift;
 
-  my $E;
-  try {
+    my $E;
+    try {
+        my $db = OMP::FeedbackDB->new(DB => $class->dbConnection);
 
-    my $db = new OMP::FeedbackDB( DB => $class->dbConnection, );
+        $db->alterStatus($commentid, $status);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # This is "normal" errors. At the moment treat them like any other
+        $E = shift;
+    };
 
-    $db->alterStatus( $commentid, $status );
-
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-
-  } otherwise {
-    # This is "normal" errors. At the moment treat them like any other
-    $E = shift;
-
-  };
-
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
-
-
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -231,7 +229,6 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHORS
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
@@ -239,5 +236,3 @@ Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;
