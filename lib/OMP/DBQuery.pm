@@ -61,8 +61,9 @@ returns the object.
 
 Throws DBMalformedQuery exception if the XML is not valid.
 
-As an alternative, currently intended for debugging, the
-query can be specified via a hashref "HASH" instead of XML.
+As an alternative, the query can be specified via a hashref
+"HASH" instead of XML.  Please see the C<_process_given_hash>
+description for more information about this option.
 
 =cut
 
@@ -711,9 +712,7 @@ representation as C<_convert_elem_to_perl> would do.
 
     my %query = $self->_process_given_hash($hashref);
 
-B<NOTE:> currently a placeholder implementation which promotes
-scalar values to single-element arrays.  This method should be
-developed futher to help construct more possible queries.
+This method promotes scalar values to single-element arrays.
 It ensures that there is an entry in C<_attr> for each key in
 in the given hash.  Values can be hashes including the
 following sets of keys:
