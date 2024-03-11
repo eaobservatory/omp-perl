@@ -19,8 +19,6 @@ use base qw/OMP::Info::Base/;
 
 =head1 METHODS
 
-=begin __PRIVATE__
-
 =head2 Create Accessor Methods
 
 Create the accessor methods from a signature of their contents.
@@ -32,8 +30,6 @@ __PACKAGE__->CreateAccessors(
     msb => '@OMP::Info::MSB',
     timestamp => '$',
 );
-
-=end __PRIVATE__
 
 =head2 Accessor Methods
 

@@ -82,14 +82,12 @@ sub sql {
 
 =back
 
-=begin __PRIVATE__METHODS__
-
 =over 4
 
 =item B<_root_element>
 
 Class method that returns the name of the XML root element to be
-located in the query XML. Returns "ShiftQuery" by default.
+located in the query XML. Returns "FBQuery".
 
 =cut
 
@@ -102,8 +100,6 @@ sub _root_element {
 __END__
 
 =back
-
-=end __PRIVATE__METHODS__
 
 =head1 AUTHOR
 

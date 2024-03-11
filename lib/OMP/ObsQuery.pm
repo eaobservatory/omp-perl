@@ -121,8 +121,6 @@ sub sql {
     return "$sql\n";
 }
 
-=begin __PRIVATE__METHODS__
-
 =item B<_root_element>
 
 Class method that returns the name of the XML root element to be
@@ -175,8 +173,6 @@ sub _post_process_hash {
 1;
 
 __END__
-
-=end __PRIVATE__METHODS__
 
 =back
 

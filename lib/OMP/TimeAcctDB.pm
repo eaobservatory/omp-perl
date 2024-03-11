@@ -333,8 +333,6 @@ sub incPending {
 
 =back
 
-=begin __PRIVATE_METHODS__
-
 =head2 Internal Methods
 
 =over 4
@@ -473,8 +471,6 @@ sub _insert_timeacct_entry {
 __END__
 
 =back
-
-=end __PRIVATE_METHODS__
 
 =head1 SEE ALSO
 

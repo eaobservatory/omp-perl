@@ -60,8 +60,6 @@ use overload '""' => "stringify";
 
 =back
 
-=begin __PRIVATE__
-
 =head2 Create Accessor Methods
 
 Create the accessor methods from a signature of their contents.
@@ -97,8 +95,6 @@ __PACKAGE__->CreateAccessors(
     comments => '@OMP::Info::Comment',
     approach => '$',
 );
-
-=end __PRIVATE__
 
 =head2 Accessor Methods
 
@@ -966,8 +962,6 @@ sub stringify {
 
 =back
 
-=begin __INTERNAL__
-
 =head2 Internal Methods
 
 =over 4
@@ -1112,8 +1106,6 @@ sub _process_coords {
 }
 
 =back
-
-=end __INTERNAL__
 
 =head2 Class Methods
 

@@ -882,8 +882,6 @@ sub _obfu_rot13 {
 
 =back
 
-=begin __PRIVATE__
-
 =head2 Internal functions
 
 =over 4
@@ -910,8 +908,6 @@ sub _clean_string {
 __END__
 
 =back
-
-=end __PRIVATE__
 
 =head1 AUTHOR
 

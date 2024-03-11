@@ -90,8 +90,6 @@ sub sql {
 
 =back
 
-=begin __PRIVATE__METHODS__
-
 =over 4
 
 =item B<_root_element>
@@ -135,8 +133,6 @@ __END__
 
 =back
 
-=end __PRIVATE__METHODS__
-
 =head1 AUTHOR
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
@@ -160,6 +156,5 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
-
 
 =cut

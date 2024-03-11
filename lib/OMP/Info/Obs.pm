@@ -539,8 +539,6 @@ sub hdrs_to_obs {
 
 =back
 
-=begin __PRIVATE__
-
 =head2 Create Accessor Methods
 
 Create the accessor methods from a signature of their contents.
@@ -635,9 +633,6 @@ __PACKAGE__->CreateAccessors(
     calType => '$',
     subsystem_idkey => '$',
 );
-
-
-=end __PRIVATE__
 
 =head2 Accessor Methods
 

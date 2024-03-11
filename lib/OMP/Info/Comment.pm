@@ -85,8 +85,6 @@ sub new {
 
 =back
 
-=begin __PRIVATE__
-
 =head2 Create Accessor Methods
 
 Create the accessor methods from a signature of their contents.
@@ -108,8 +106,6 @@ __PACKAGE__->CreateAccessors(
     id => '$',
     is_time_gap => '$',
 );
-
-=end __PRIVATE__
 
 =head2 Accessor methods
 
