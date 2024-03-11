@@ -28,7 +28,7 @@ use warnings;
 use Carp;
 use OMP::DateTools;
 use Time::Piece;
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
 use OMP::Display;
 use OMP::FBQuery;

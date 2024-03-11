@@ -51,7 +51,7 @@ use OMP::NetTools;
 use OMP::Password;
 use OMP::UserServer;
 
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

@@ -29,7 +29,7 @@ taken on a night, faults occuring and project accounting.
 use strict;
 use warnings;
 use Carp;
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
 use OMP::Error qw/:try/;
 use OMP::Constants;

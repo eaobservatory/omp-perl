@@ -22,7 +22,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
 use Time::Piece;
 use Time::Seconds qw/ONE_DAY/;

@@ -25,7 +25,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = qw/$REVISION$/[1];
+our $VERSION = '2.000';
 
 use Carp;
 use Term::ReadLine;

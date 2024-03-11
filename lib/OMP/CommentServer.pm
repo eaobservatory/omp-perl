@@ -28,7 +28,7 @@ use OMP::Error qw/:try/;
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
 
-our $VERSION = (qw$REVISION: $)[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 
