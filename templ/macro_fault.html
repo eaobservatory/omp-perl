@@ -130,39 +130,45 @@
                     [% END %]
                     [% FOREACH response IN fault.responses %]
                         [% SET bgcolor = response.isfault ? '#bcbce2' : '#dcdcf2' %]
-                            [% IF ! response.isfault %]
+                            [% IF response.author.userid == '_HIDDEN' %]
                                 <tr bgcolor="[% bgcolor %]">
-                                    <td>
-                                        <b>Response
-                                        <a name="response[% response.respnum %]">#[% response.respnum %]</a> by:</b>
-                                        [% render_user_name(response.author) %]
-                                    </td>
-                                    <td>
-                                        <b>Date:</b>
-                                        [% fault_info.display_date_local(response.date) | html %]
-                                        [% IF fault_info.allow_edit %]
-                                            &nbsp;&nbsp;
-                                            <form method="post" action="[% fault_info.target %]" style="display: inline;">
-                                                <input type="hidden" name="respid" value="[% response.id | html %]" />
-                                                <input type="submit" name="submit_flag_down" value="-" />
-                                                <input type="submit" name="submit_flag_up" value="+" />
-                                            </form>
-                                            &nbsp;&nbsp;
-                                            <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
-                                        [% END %]
+                                    <td colspan="2"><i>([% response.text | html %])</i></td>
+                                </tr>
+                            [% ELSE %]
+                                [% IF ! response.isfault %]
+                                   <tr bgcolor="[% bgcolor %]">
+                                        <td>
+                                            <b>Response
+                                            <a name="response[% response.respnum %]">#[% response.respnum %]</a> by:</b>
+                                            [% render_user_name(response.author) %]
+                                        </td>
+                                        <td>
+                                            <b>Date:</b>
+                                            [% fault_info.display_date_local(response.date) | html %]
+                                            [% IF fault_info.allow_edit %]
+                                                &nbsp;&nbsp;
+                                                <form method="post" action="[% fault_info.target %]" style="display: inline;">
+                                                    <input type="hidden" name="respid" value="[% response.id | html %]" />
+                                                    <input type="submit" name="submit_flag_down" value="-" />
+                                                    <input type="submit" name="submit_flag_up" value="+" />
+                                                </form>
+                                                &nbsp;&nbsp;
+                                                <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
+                                            [% END %]
+                                        </td>
+                                    </tr>
+                                [% END %]
+                                <tr bgcolor="[% bgcolor %]">
+                                    <td colspan="2">
+                                        <table border="0">
+                                            <tr>
+                                                <td><font color="[% bgcolor %]">___</font></td>
+                                                <td [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>').replace('(?<!\S)#([0-9]+)\b', '<a href="#response$1">#$1</a>') %]</td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                             [% END %]
-                            <tr bgcolor="[% bgcolor %]">
-                                <td colspan="2">
-                                    <table border="0">
-                                        <tr>
-                                            <td><font color="[% bgcolor %]">___</font></td>
-                                            <td [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% wrap(response.text, 80, '', '').replace('((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})', '<a href="/cgi-bin/viewfault.pl?fault=$1">$1</a>').replace('image:([-_.A-Za-z0-9]+)', '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=' _ uri_fault_id _ '&amp;filename=$1" alt="Image: $1"/>').replace('(?<!\S)#([0-9]+)\b', '<a href="#response$1">#$1</a>') %]</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
                         [% END %]
                     </table>
                 </td>

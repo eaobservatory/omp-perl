@@ -589,8 +589,8 @@ sub view_fault {
     return $self->_write_error("Fault [$faultid] not found.")
         unless $fault;
 
-    my $show = $self->decoded_url_param('show');
-    my $order = $self->decoded_url_param('order');
+    my $show = $self->decoded_url_param('show') // 'nonhidden';
+    my $order = $self->decoded_url_param('order') // 'asc';
     my %filter_info = (
         show => $show,
         order => $order,
@@ -735,12 +735,67 @@ sub view_fault {
         return $self->_write_redirect($redirect);
     }
     else {
-        if ($order =~ /desc/ or $show !~ /all/) {
+        if ($order !~ /asc/ or $show !~ /all/) {
             my @responses = $fault->responses;
             my $original = shift @responses;
-            @responses = grep {$_->flag != OMP__FR_HIDDEN} @responses
-                if $show !~ /all/;
+
+            if ($show =~ /nonhidden/) {
+                @responses = grep {$_->flag != OMP__FR_HIDDEN} @responses;
+            }
+            elsif ($show =~ /automatic/) {
+                my $num_start = 12;
+                my $num_end = 12;
+                my @start = ();
+                my @middle = ();
+                my @end = ();
+
+                # Look for the desired number of non-hidden responses
+                # at the end of the thread.
+                while ((scalar @responses) and ($num_end > scalar @end)) {
+                    my $response = pop @responses;
+                    push @end, $response unless $response->flag == OMP__FR_HIDDEN;
+                }
+
+                # Look for the desired number of non-hidden respones
+                # at the start of the thread.
+                while ((scalar @responses) and ($num_start > scalar @start)) {
+                    my $response = shift @responses;
+                    push @start, $response unless $response->flag == OMP__FR_HIDDEN;
+                }
+
+                # Routine to add a message saying how many messages were hidden
+                # automatically.  It is easiest if this can go into @responses so
+                # that it keeps the correct position if the ordering is reversed.
+                # However currently this means that we need an OMP::Fault::Response
+                # object -- construct one with a dummy user ID which the template
+                # can recognize.
+                my $n_hidden = 0;
+                my $show_hidden = sub {
+                    push @middle, OMP::Fault::Response->new(
+                        text => (sprintf '%d %s hidden.',
+                            $n_hidden, $n_hidden > 1 ? 'responses' : 'response'),
+                        author => OMP::User->new(userid => '_HIDDEN'),
+                    );
+                    $n_hidden = 0;
+                };
+
+                # Include any message flagged above "normal" in the middle
+                # of the thread.
+                foreach my $response (@responses) {
+                    unless ($response->flag > OMP__FR_NORMAL) {
+                        $n_hidden ++;
+                        next;
+                    }
+                    $show_hidden->() if $n_hidden;
+                    push @middle, $response;
+                }
+                $show_hidden->() if $n_hidden;
+
+                @responses = (@start, @middle, reverse @end);
+            }
+
             @responses = reverse @responses if $order =~ /desc/;
+
             $fault->responses([$original, @responses]);
         }
 
