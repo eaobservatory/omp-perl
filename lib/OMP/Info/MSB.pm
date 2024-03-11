@@ -44,7 +44,7 @@ use Time::Seconds;
 use OMP::Display;
 use OMP::General;  # For Time::Seconds::pretty_print
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 our $VERSION = '2.000';
 

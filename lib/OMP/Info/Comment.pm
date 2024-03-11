@@ -41,7 +41,7 @@ use Time::Piece qw/:override/;
 
 our $VERSION = '2.000';
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 # Overloading
 use overload '""' => "stringify";

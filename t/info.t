@@ -20,7 +20,7 @@
 
 use Test::More tests => 47;
 
-require_ok('OMP::Info::Base');
+require_ok('OMP::Info');
 require_ok('OMP::Info::Obs');
 require_ok('OMP::Info::MSB');
 require_ok('OMP::Info::Comment');
@@ -133,3 +133,23 @@ isa_ok($sciprog, 'OMP::Info::SciProg');
 is($sciprog->projectid(), 'SERV01', 'sciprog project id');
 ok($sciprog->existsMSB('ffff'), 'sciprog checksum exists');
 ok(! $sciprog->existsMSB('gggg'), 'sciprog bad checksum does not exist');
+
+package OMP::Info::Test;
+
+use warnings;
+use strict;
+use parent qw/OMP::Info/;
+
+BEGIN {
+    __PACKAGE__->CreateAccessors(
+        scalar => '$',
+        anyscalar => '$__ANY__',
+        downcase => '$__LC__',
+        upcase => '$__UC__',
+        array => '@',
+        hash => '%',
+        arrayobj => '@Blah',
+        singleobj => 'Blah2',
+        hashobj => '%Blah3',
+    );
+}

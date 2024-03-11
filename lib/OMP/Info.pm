@@ -1,12 +1,12 @@
-package OMP::Info::Base;
+package OMP::Info;
 
 =head1 NAME
 
-OMP::Info::Base - Base class for OMP::Info objects
+OMP::Info - Base class for OMP::Info objects
 
 =head1 SYNOPSIS
 
-    use OMP::Info::Base;
+    use OMP::Info;
 
 =head1 DESCRIPTION
 
@@ -125,7 +125,7 @@ sub uniqueid {
 Default initialiser for the object. Should be subclassed if
 you wish to modify defaults. Called by C<configure> method.
 
-    %defaults = OMP::Info::Base->Defaults();
+    %defaults = OMP::Info->Defaults();
 
 The base class returns an empty list.
 
@@ -140,7 +140,7 @@ sub Defaults {
 Create specific accessor methods on the basis of the supplied
 initializer.
 
-    OMP::Info::Base->CreateAccessors(%members);
+    OMP::Info->CreateAccessors(%members);
 
 An accessor method will be created for each key supplied in the
 hash. The value determines the type of accessor method.
@@ -214,7 +214,7 @@ sub CreateAccessors {
     my $footer = "\n}";
 
     my $SCALAR = q{
-#line 1 OMP::Info::Base::SCALAR
+#line 1 OMP::Info::SCALAR
         sub METHOD {
             my $self = shift;
             if (@_) {
@@ -229,7 +229,7 @@ sub CreateAccessors {
     };
 
     my $ARRAY = q{
-#line 1 OMP::Info::Base::ARRAY
+#line 1 OMP::Info::ARRAY
         sub METHOD {
             my $self = shift;
             $self->{METHOD} = [] unless $self->{METHOD};
@@ -254,7 +254,7 @@ sub CreateAccessors {
     };
 
     my $HASH = q{
-#line 1 OMP::Info::Base::HASH
+#line 1 OMP::Info::HASH
         sub METHOD {
             my $self = shift;
             $self->{METHOD} = {} unless $self->{METHOD};
@@ -292,7 +292,7 @@ sub CreateAccessors {
     };
 
     my $CLASS_CHECK = q{
-#line 1 OMP::Info::Base::class_check
+#line 1 OMP::Info::class_check
         unless (UNIVERSAL::isa($argument, 'CLASS')) {
             croak "Argument for 'METHOD' must be of class CLASS and not class '".
                 (defined $argument ? (ref($argument) ? ref($argument) : $argument) : '<undef>') ."'";
@@ -300,14 +300,14 @@ sub CreateAccessors {
     };
 
     my $ARRAY_CLASS_CHECK = q{
-#line 1 OMP::Info::Base::array_class_check
+#line 1 OMP::Info::array_class_check
         for my $argument (@new) {
             CLASS_CHECK;
         }
     };
 
     my $HASH_CLASS_CHECK = q{
-#line 1 OMP::Info::Base::hash_class_check
+#line 1 OMP::Info::hash_class_check
         for my $key (keys %new) {
             my $argument = $new{$key};
             CLASS_CHECK;
@@ -400,25 +400,6 @@ sub CreateAccessors {
         }
     }
 }
-
-# Dummy class used for test script
-package OMP::Info::Test;
-
-use warnings;
-use strict;
-our @ISA = qw/OMP::Info::Base/;
-
-__PACKAGE__->CreateAccessors(
-    scalar => '$',
-    anyscalar => '$__ANY__',
-    downcase => '$__LC__',
-    upcase => '$__UC__',
-    array => '@',
-    hash => '%',
-    arrayobj => '@Blah',
-    singleobj => 'Blah2',
-    hashobj => '%Blah3',
-);
 
 1;
 

@@ -13,7 +13,7 @@ use Carp;
 use Time::Piece;
 use Time::Seconds qw/ONE_HOUR/;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 use overload '""' => 'stringify';
 

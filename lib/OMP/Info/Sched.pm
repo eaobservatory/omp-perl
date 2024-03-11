@@ -13,7 +13,7 @@ use Carp;
 use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 use overload '""' => 'stringify';
 

@@ -9,7 +9,7 @@ OMP::Info::Preview - Preview image information
 use strict;
 use warnings;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 use overload '""' => 'stringify';
 

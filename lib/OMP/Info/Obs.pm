@@ -57,7 +57,7 @@ use File::Basename;
 # Text wrap column size.
 $Text::Wrap::columns = 72;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 our $VERSION = '2.000';
 

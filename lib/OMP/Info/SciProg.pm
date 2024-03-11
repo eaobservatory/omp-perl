@@ -15,7 +15,7 @@ use strict;
 use warnings;
 use Carp;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 =head1 METHODS
 
