@@ -31,7 +31,7 @@ use OMP::Constants qw/:fb :logging/;
 use OMP::NetTools;
 use OMP::General;
 use OMP::FeedbackDB;
-use OMP::Mail::Original;
+use OMP::Mail;
 
 =head1 METHODS
 
@@ -851,7 +851,7 @@ sub _mail_information {
     my $self = shift;
     my %args = @_;
 
-    my $mailer = OMP::Mail::Original->new();
+    my $mailer = OMP::Mail->new();
     my $mess = $mailer->build(%args);
     return $mailer->send($mess);
 }

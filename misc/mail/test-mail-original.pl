@@ -18,7 +18,7 @@ See progress ...
 =head1  DESCRIPTION
 
 It is a driver to test original mail-only functionality contained in
-L<OMP::Mail::Original>; database is not
+L<OMP::Mail>; database is not
 touched.
 
 An email message is build with L<MIME::Entity>. It is then send via its
@@ -59,7 +59,7 @@ Dumps L<MIME::Entity> object and any return value after sending the email.
 
 =item B<-debug-mail-orig> | B<-DM>
 
-Turn on debug option of L<OMP::Mail::Original>. Currently it behaves as progress
+Turn on debug option of L<OMP::Mail>. Currently it behaves as progress
 indicator.
 
 =item B<-debug-smtp> | B<-DS>
@@ -98,7 +98,7 @@ use lib OMPLIB;
 
 use OMP::User;
 use OMP::UserServer;
-use OMP::Mail::Original;
+use OMP::Mail;
 
 my $MY_NAME = (fileparse($0))[0];
 
@@ -129,11 +129,11 @@ my $from_user = defined $from
 my $to_user  = make_user($to_addr);
 my $cc_users = make_user(@cc);
 
-local $OMP::Mail::Original::DEBUG         = $debug_mail_orig;
-local $OMP::Mail::Original::DEBUG_NetSMTP = $debug_net_smtp;
+local $OMP::Mail::DEBUG         = $debug_mail_orig;
+local $OMP::Mail::DEBUG_NetSMTP = $debug_net_smtp;
 my $message = "Testing separate mailing code...\n";
 $message = "<p>$message</p>" if $html;
-my $mailer = OMP::Mail::Original->new();
+my $mailer = OMP::Mail->new();
 my $mess = $mailer->build(
     'to'      => $to_user,
     'from'    => $from_user,
@@ -176,7 +176,7 @@ __END__
 
 =over 2
 
-=item * L<OMP::BaseDB>, L<OMP::Mail::Original>
+=item * L<OMP::BaseDB>, L<OMP::Mail>
 
 =item * L<MIME::Entity>, L<Mail::Internet>, L<Net::SMTP>
 

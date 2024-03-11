@@ -1,8 +1,8 @@
-package OMP::Mail::Original;
+package OMP::Mail;
 
 =head1 NAME
 
-OMP::Mail::Original - Email functionality taken from OMP::BaseDB
+OMP::Mail - Email functionality taken from OMP::BaseDB
 
 =head1 SYNOPSIS
 
@@ -49,9 +49,9 @@ our $DEBUG_NetSMTP = 0;
 
 =item B<new>
 
-Construct L<OMP::Mail::Original> object; accepts no arguments.
+Construct L<OMP::Mail> object; accepts no arguments.
 
-    $email = OMP::Mail::Original->new();
+    $email = OMP::Mail->new();
 
 =cut
 
