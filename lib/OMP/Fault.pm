@@ -348,6 +348,7 @@ my %DATA = (
             Cryogenic => CRYOGENIC,
             "Other/Unknown" => TYPEOTHER,
             Human => HUMAN,
+            Network => NETWORK,
         },
     },
     "UKIRT" => {
