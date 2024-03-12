@@ -10,12 +10,9 @@ use strict;
 use warnings;
 
 use Astro::Coords::TLE;
-use OMP::DBbackend;
 use OMP::Error;
 
-use parent qw/Exporter/;
-
-our @EXPORT_OK = qw/standardize_tle_name tle_row_to_coord/;
+use parent qw/OMP::BaseDB/;
 
 our $TLETABLE = 'omptle';
 
@@ -31,15 +28,7 @@ Construct new OMP::TLEDB object.
 
 =cut
 
-sub new {
-    my $class = shift;
-
-    my $self = {
-        DB => OMP::DBbackend->new(),
-    };
-
-    return bless $self, (ref $class) || $class;
-}
+# Use base class version.
 
 =back
 
@@ -59,7 +48,7 @@ sub get_coord {
     my $self = shift;
     my $object = shift;
 
-    my $row = $self->{'DB'}->handle()->selectrow_hashref(
+    my $row = $self->_dbhandle()->selectrow_hashref(
         "SELECT * FROM $TLETABLE WHERE target=?",
         {},
         $object,
@@ -67,7 +56,7 @@ sub get_coord {
 
     return undef unless defined $row;
 
-    return tle_row_to_coord($row);
+    return $self->tle_row_to_coord($row);
 }
 
 =back
@@ -86,6 +75,7 @@ of them into MSBs.
 =cut
 
 sub standardize_tle_name {
+    my $cls = shift;
     my $target = shift;
 
     if ($target =~ /^\s*NORAD\s*(\d{1,5})\s*$/aai) {
@@ -108,6 +98,7 @@ name and elements el1 -- el8 to an Astro::Coords::TLE object.
 =cut
 
 sub tle_row_to_coord {
+    my $cls = shift;
     my $row = shift;
     return Astro::Coords::TLE->new(
         name => $row->{'target'},

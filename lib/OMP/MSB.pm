@@ -35,7 +35,7 @@ use OMP::Info::Obs;
 use OMP::Constants qw/:msb/;
 use OMP::SciProg;
 use OMP::SiteQuality;
-use OMP::TLEDB qw/standardize_tle_name/;
+use OMP::TLEDB;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -2405,6 +2405,7 @@ up-to-date coordinate values.  Supports the following types:
 
 sub processAutoCoords {
     my $self = shift;
+    my %args = @_;
 
     # Declare variable for OMP::TLEDB object but defer construction
     # until it is needed.
@@ -2412,7 +2413,6 @@ sub processAutoCoords {
 
     # Inspect all BASE elements.
     foreach my $base_node ($self->_tree()->findnodes('.//BASE')) {
-
         # Make a quick check for the presence TLE coordinates.  This check would
         # need to be removed if it becomes necessary to support "auto"
         # coordinates in systems other than TLE.
@@ -2425,12 +2425,13 @@ sub processAutoCoords {
             my $coord = $tcs->coords();
 
             if ($coord->type() eq 'AUTO-TLE') {
-                $tledb = OMP::TLEDB->new() unless defined $tledb;
+                $tledb = OMP::TLEDB->new(DB => $args{'DB'})
+                    unless defined $tledb;
 
                 # Need to standardize the TLE target name before looking
                 # it up in the TLE database table.  This routine raises
                 # an error if the target name is not understood.
-                my $object = standardize_tle_name($coord->name());
+                my $object = $tledb->standardize_tle_name($coord->name());
 
                 $coord = $tledb->get_coord($object);
 

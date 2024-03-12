@@ -54,7 +54,7 @@ use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
-use OMP::TLEDB qw/standardize_tle_name tle_row_to_coord/;
+use OMP::TLEDB;
 use OMP::User;
 
 use Time::Piece qw/:override/;
@@ -604,7 +604,7 @@ sub fetchMSB {
 
     # Check for "auto" coordinates which must be filled in before the MSB is
     # sent for translation.
-    $msb->processAutoCoords();
+    $msb->processAutoCoords(DB => $self->db());
 
     # To aid with the translation to a sequence we now
     # have to add checksum and projectid as explicit elements
@@ -2292,13 +2292,14 @@ sub _insert_row {
         my $coordstype = $obs->{'coords'}->type();
         my $target = $obs->{'target'};
         if ($coordstype eq 'AUTO-TLE') {
+            my $tledb = OMP::TLEDB->new(DB => $self->db());
+
             # AUTO-TLE requires standardized target names.  This subroutine
             # throws an error if the target name is invalid.
-            $target = standardize_tle_name($target);
+            $target = $tledb->standardize_tle_name($target);
 
             # Before storing the AUTO-TLE observation, check whether we already
             # have the target in the TLE database.  If so, use its elements.
-            my $tledb = OMP::TLEDB->new();
             my $autocoord = $tledb->get_coord($target);
             if (defined $autocoord) {
                 @coords = $autocoord->array();
@@ -3386,7 +3387,7 @@ sub _obs_row_to_coord {
             return undef;
         }
 
-        $coords = tle_row_to_coord($obs);
+        $coords = OMP::TLEDB->tle_row_to_coord($obs);
     }
     else {
         throw OMP::Error::FatalError('Unknown coordinate type: ' . $coordstype);
