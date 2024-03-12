@@ -654,13 +654,13 @@ sub url_absolute {
     my $q = $self->cgi;
 
     return $q->new({
-        %extra_params,
-        map {
+        (map {
             my $value = $q->url_param($_);
             $value = Encode::decode('UTF-8', $value)
                 unless Encode::is_utf8($value);
             $_ => $value
-        } $q->url_param()
+        } $q->url_param()),
+        %extra_params,
     })->url(-absolute => 1, -query => 1);
 }
 

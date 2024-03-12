@@ -549,7 +549,7 @@ sub query_fault_output {
         fault_summary => $fault_summary,
         total_loss => $total_loss,
         selected_order_by => $orderby,
-        order_bys => [map {[$_->[0], $_->[1], $comp->url_args('orderby', $_->[0])]}
+        order_bys => [map {[$_->[0], $_->[1], $self->url_absolute('orderby', $_->[0])]}
             [filedate => 'file date'],
             [faulttime => 'fault time'],
             [response => 'date of last response'],
@@ -557,7 +557,7 @@ sub query_fault_output {
             [relevance => 'relevance'],
         ],
         selected_sort_order => $sort_order,
-        sort_orders => [map {[$_->[0], $_->[1], $comp->url_args('sort_order', $_->[0])]}
+        sort_orders => [map {[$_->[0], $_->[1], $self->url_absolute('sort_order', $_->[0])]}
             [ascending => 'oldest/lowest first'],
             [descending => 'most recent/highest first'],
         ],

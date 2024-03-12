@@ -142,38 +142,6 @@ sub auth {
     return $page->auth();
 }
 
-=back
-
-=head2 General methods
-
-=over 4
-
-=item B<url_args>
-
-Alter query parameters in the current URL.  Useful for creating links to the
-same script but with different parameters.
-
-    $url = $comp->url_args($key, $newvalue);
-
-The first argument is the paramter name.
-Last argument is the new value of the paramater. All arguments
-are required.
-
-=cut
-
-sub url_args {
-    my $self = shift;
-    my $key = shift;
-    my $newvalue = shift;
-
-    # Clone the CGI object and alter the parameter.
-    my $q = $self->cgi->new;
-    $q->param($key, $newvalue);
-
-    # Create an "absolute" URL (without path).
-    return $q->url(-absolute => 1, -query => 1);
-}
-
 1;
 
 __END__
