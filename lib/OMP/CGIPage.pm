@@ -466,7 +466,7 @@ sub _write_page_context_extra {
 
     return {
         omp_title => $self->html_title,
-        omp_style => $self->_get_style,
+        omp_style => [OMP::Config->getData('www-css')],
         omp_favicon => OMP::Config->getData('www-favicon'),
         omp_theme_color => OMP::Config->getData('www-theme-color'),
         omp_javascript => $jscript_url,
@@ -689,29 +689,6 @@ sub _call_method {
     else {
         # It's a method name, run it on self.
         return $self->$method(@_);
-    }
-}
-
-=item B<_get_style>
-
-Return the URL of the style-sheet
-
-=item B<_set_style>
-
-Set the URL of the style-sheet
-
-=cut
-
-{
-    my $STYLE = [OMP::Config->getData('www-css')];
-
-    sub _get_style {
-        return $STYLE;
-    }
-
-    sub _set_style {
-        my $self = shift;
-        $STYLE = shift;
     }
 }
 
