@@ -228,6 +228,23 @@ sub replace_entity {
     return $string;
 }
 
+=item B<remove_cr>
+
+Remove carriage return characters from string.
+
+    $text = OMP::Display->remove_cr($input);
+
+=cut
+
+sub remove_cr {
+    my $self = shift;
+    my $string = shift;
+
+    $string =~ s/\015//g;
+
+    return $string;
+}
+
 1;
 
 __END__
