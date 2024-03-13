@@ -499,7 +499,7 @@ sub _add_new_response {
             SQL => sprintf 'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
             $FAULTBODYTABLE, $id
         },
-        @{$cols}{qw/flag/}
+        @{$cols}{qw/flag preformatted/}
     );
 }
 
@@ -534,6 +534,7 @@ sub _prepare_response_columns {
         author => $userid,
         isfault => $resp->isfault,
         text => $text,
+        preformatted => $resp->preformatted,
         flag => $resp->flag,
     };
 }

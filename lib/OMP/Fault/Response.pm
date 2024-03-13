@@ -76,6 +76,7 @@ sub new {
     my $resp = {
         Author => undef,
         Text => undef,
+        Preformatted => 0,
         Date => undef,
         IsFault => 0,
         RespID => undef,
@@ -126,6 +127,18 @@ sub text {
     my $self = shift;
     if (@_) {$self->{Text} = shift;}
     return $self->{Text};
+}
+
+=item B<preformatted>
+
+Has the text been pre-formatted as HTML?
+
+=cut
+
+sub preformatted {
+    my $self = shift;
+    if (@_) {$self->{Preformatted} = shift;}
+    return $self->{Preformatted};
 }
 
 =item B<author>
