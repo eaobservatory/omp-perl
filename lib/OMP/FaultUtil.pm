@@ -24,9 +24,8 @@ use warnings;
 use strict;
 use Carp;
 
-use Text::Wrap;
-
 use OMP::DateTools;
+use OMP::Display;
 use OMP::Config;
 
 =head1 METHODS
@@ -72,9 +71,6 @@ sub format_fault {
     my $max_entries = $opt{'max_entries'};
 
     my $faultid = $fault->id;
-
-    # Avoid wrapping long "words", e.g. URLs.
-    local $Text::Wrap::huge = 'overflow';
 
     # Get the fault system URL
     my $baseurl = $omp_url . OMP::Config->getData('cgidir');
@@ -177,10 +173,7 @@ sub format_fault {
             my $date = localtime($_->date->epoch);  # convert date to localtime
             $date = OMP::DateTools->display_date($date);
 
-            my $text = $_->text;
-
-            # Wrap the message text
-            $text = wrap('', '', $text);
+            my $text = OMP::Display->format_html($_->text, $_->preformatted);
 
             $text = _make_fault_id_link($baseurl, $text);
 
@@ -234,10 +227,8 @@ sub format_fault {
         # now convert date to a string for display
         $date = OMP::DateTools->display_date($date);
 
-        my $text = $responses[0]->text;
-
-        # Wrap the message text
-        $text = wrap('', '', $text);
+        my $text = OMP::Display->format_html(
+            $responses[0]->text, $responses[0]->preformatted);
 
         $text = _make_fault_id_link($baseurl, $text);
 

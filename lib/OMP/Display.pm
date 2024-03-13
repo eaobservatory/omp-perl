@@ -63,6 +63,35 @@ sub format_text {
     return wrap('', '', $text);
 }
 
+=item B<format_html>
+
+Prepare text for display in HTML format.
+
+    $html = OMP::Display->format_html($text, $preformatted);
+
+If C<$preformatted> is true, return the given HTML (wrapped
+using C<Text::Wrap>).  Otherwise the text is wrapped
+and then processed with C<preify_text>.
+
+=cut
+
+sub format_html {
+    my $self = shift;
+    my $text = shift;
+    my $preformatted = shift;
+
+    my $width = 72;
+
+    local $Text::Wrap::columns = $width;
+    local $Text::Wrap::separator = "\n";
+    local $Text::Wrap::huge = 'overflow';
+
+    return wrap('', '', $text)
+        if $preformatted;
+
+    return $self->preify_text(wrap('', '', $text));
+}
+
 =item B<escape_entity>
 
 Replace a & E<gt> or E<lt> with the corresponding HTML entity.
