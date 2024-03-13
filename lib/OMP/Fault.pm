@@ -1910,6 +1910,7 @@ sub stringify {
     my $author = $responses[0]->author;
     my $date = $responses[0]->date;
     my $firstresponse = $responses[0]->text;
+    my $firstresponsepreformatted = $responses[0]->preformatted;
     my $tlost = $self->timelost;
     my $urgcode = $self->urgency;
     my $category = $self->category;
@@ -1970,12 +1971,11 @@ sub stringify {
         . "                                Actual time of failure: $actfaultdate\n"
         . "\n";
 
-    $output .= OMP::Display->html2plain("$firstresponse") . "\n\n";
+    $output .= OMP::Display->format_text($firstresponse, $firstresponsepreformatted) . "\n\n";
 
     # Now loop over remaining responses and add them in
     for (@responses[1 .. $#responses]) {
-        my $plain = OMP::Display->html2plain("$_");
-        $output .= "$plain\n";
+        $output .= "$_\n";
     }
 
     return $output;

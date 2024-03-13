@@ -24,6 +24,7 @@ use Carp;
 use File::Spec;
 use OMP::Config;
 use OMP::Error;
+use Text::Wrap;
 
 our $VERSION = '2.000';
 
@@ -32,6 +33,35 @@ our $VERSION = '2.000';
 =head2 General Methods
 
 =over 4
+
+=item B<format_text>
+
+Prepare text for display in text format.
+
+    $formatted = OMP::Display->format_text($text, $preformatted);
+
+If C<$preformatted> is true, the given HTML will be converted to text
+using C<html2plain>.  Otherwise the text will be wrapped using
+C<Text::Wrap>.
+
+=cut
+
+sub format_text {
+    my $self = shift;
+    my $text = shift;
+    my $preformatted = shift;
+
+    my $width = 72;
+
+    return $self->html2plain($text, {rightmargin => $width})
+        if $preformatted;
+
+    local $Text::Wrap::columns = $width;
+    local $Text::Wrap::separator = "\n";
+    local $Text::Wrap::huge = 'overflow';
+
+    return wrap('', '', $text);
+}
 
 =item B<escape_entity>
 

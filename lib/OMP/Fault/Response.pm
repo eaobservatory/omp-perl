@@ -36,6 +36,8 @@ use Carp;
 
 use Time::Piece;
 
+use OMP::Display;
+
 our $VERSION = '2.000';
 
 # Overloading
@@ -285,7 +287,6 @@ stringifcation would simply be the text).
 sub stringify {
     my $self = shift;
 
-    my $text = $self->text;
     my $author = $self->author;
 
     # Get date and format it
@@ -296,7 +297,8 @@ sub stringify {
         ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
         . "    RESPONSE by : $author\n"
         . "                                      date : $date\n" . "\n"
-        . "$text\n";
+        . OMP::Display->format_text($self->text, $self->preformatted)
+        . "\n";
 
     return $string;
 }
