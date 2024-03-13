@@ -17,7 +17,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::DateTools');
@@ -81,3 +81,10 @@ my $fault4 = OMP::Fault->new(
 isa_ok($fault4, 'OMP::Fault');
 
 is_deeply([OMP::FaultUtil->compare($fault, $fault4)], ['type', 'status']);
+
+my $resp2 = OMP::Fault::Response->new(
+    author => $author,
+    text => '<pre>Preformatted text</pre>',
+    preformatted => 1);
+
+is_deeply([OMP::FaultUtil->compare($resp, $resp2)], ['text', 'preformatted']);

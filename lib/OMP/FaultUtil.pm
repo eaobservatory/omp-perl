@@ -364,7 +364,7 @@ sub compare {
     elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response")
             and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {
         # Comparing OMP::Fault::Response objects
-        @comparekeys = qw/text author/;
+        @comparekeys = qw/text author preformatted/;
     }
     else {
         throw OMP::Error::BadArgs(
