@@ -27,7 +27,6 @@ use OMP::Error;
 use OMP::UserDB;
 use OMP::ShiftQuery;
 use OMP::DateTools;
-use OMP::General;
 
 use Astro::Telescope;
 
@@ -233,6 +232,7 @@ sub _reorganize_shiftlog {
     for my $row (@$rows) {
         push @return, OMP::Info::Comment->new(
             text => $row->{text},
+            preformatted => $row->{'preformatted'},
             date => OMP::DateTools->parse_date($row->{date}),
             author => $users->{$row->{'author'}},
             relevance => $row->{'relevance'},
@@ -287,7 +287,7 @@ sub _insert_shiftlog {
     my $date = $t->strftime("%Y-%m-%d %T");
 
     my %text = (
-        "TEXT" => OMP::Display->preify_text($comment->text),
+        "TEXT" => OMP::Display->remove_cr($comment->text),
         "COLUMN" => "text",
     );
 
@@ -301,7 +301,8 @@ sub _insert_shiftlog {
         undef, $date,
         $author->userid,
         $telstring,
-        \%text);
+        \%text,
+        ($comment->preformatted ? 1 : 0));
 }
 
 =item B<_update_shiftlog>
@@ -322,8 +323,10 @@ sub _update_shiftlog {
         throw OMP::Error::BadArgs("Must supply a shiftlog ID to update");
     }
 
-    my %new;
-    $new{'text'} = OMP::General->prepare_for_insert($comment->text);
+    my %new = (
+        text => OMP::Display->remove_cr($comment->text),
+        preformatted => ($comment->preformatted ? 1 : 0),
+    );
 
     $self->_db_update_data(
         $SHIFTLOGTABLE,

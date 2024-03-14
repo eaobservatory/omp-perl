@@ -305,6 +305,7 @@ CREATE TABLE `ompshiftlog` (
   `author` varchar(32) NOT NULL,
   `telescope` varchar(32) NOT NULL,
   `text` longtext NOT NULL,
+  `preformatted` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`shiftid`),
   FULLTEXT KEY `idx_ompshiftlog_text` (`text`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
