@@ -36,7 +36,7 @@ use OMP::Info::Comment;
 use OMP::Project;
 use OMP::ProjDB;
 use OMP::User;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
@@ -582,6 +582,14 @@ sub _fetch_comments {
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
+    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $users = $udb->getUserMultiple([keys %{{map {
+        my $user = $_->{'author'};
+        (defined $user)
+            ? ($user => 1)
+            : ();
+    } @$ref}}]);
+
     my @comments;
 
     # Replace comment user IDs with OMP::User objects and
@@ -591,7 +599,7 @@ sub _fetch_comments {
         my $type = delete $_->{'msgtype'};
 
         my $user = delete $_->{'author'};
-        $user = OMP::UserServer->getUser($user)
+        $user = $users->{$user}
             if defined $user;
 
         my $date = OMP::DateTools->parse_date(delete $_->{'date'});
