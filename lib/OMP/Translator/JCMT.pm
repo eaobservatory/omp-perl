@@ -659,10 +659,10 @@ sub tcs_base {
     # check for reference position
     throw OMP::Error::TranslateFail(
         "No reference position defined for position switch observation")
-        unless exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/;
+        if $info{switching_mode} =~ /pssw/ and not exists $tags{REFERENCE};
     throw OMP::Error::TranslateFail(
         "No reference position defined for frequency switch observation (needed for CAL)")
-        unless exists $tags{REFERENCE} && $info{switching_mode} =~ /freqsw/;
+        if $info{switching_mode} =~ /freqsw/ and not exists $tags{REFERENCE};
 
     # Mandatory for scan/chop too
     throw OMP::Error::TranslateFail(
