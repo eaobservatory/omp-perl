@@ -32,7 +32,6 @@ use OMP::CGIComponent::Project;
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
 use OMP::DBServer;
-use OMP::Display;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
@@ -646,19 +645,11 @@ sub view_fault {
                 if defined $E;
         }
 
-        # The text.  Put it in <pre> tags if there isn't an <html>
-        # tag present
+        # The text.
         my $text = $q->param('text');
-        if ($text =~ /<html>/i) {
-            # Strip out the <html> and </html> tags
-            $text =~ s!</*html>!!ig;
-        }
-        else {
-            $text = OMP::Display->preify_text($text);
-        }
 
         # Strip out ^M
-        $text =~ s/\015//g;
+        $text = OMP::Display->remove_cr($text);
 
         my $E;
         try {
@@ -861,11 +852,6 @@ sub update_fault {
     # Store details in a fault response object for comparison
     my $new_r = OMP::Fault::Response->new(author => $response->author, %newdetails);
 
-    # "Preify" the text before we compare responses
-    my $newtext = $newdetails{text};
-    $newtext =~ s!</*html>!!ig;
-    $newtext = OMP::Display->preify_text($newtext);
-
     my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
 
     if ($details_changed[0] or $response_changed[0]) {
@@ -942,17 +928,8 @@ sub update_resp {
 
     my $text = $q->param('text');
 
-    # Prepare the text
-    if ($text =~ /<html>/i) {
-        # Strip out the <html> and </html> tags
-        $text =~ s!</*html>!!ig;
-    }
-    else {
-        $text = OMP::Display->preify_text($text);
-    }
-
     # Strip out ^M
-    $text =~ s/\015//g;
+    $text = OMP::Display->remove_cr($text);
 
     my $flag = undef;
     if (defined $q->param('flag')) {
@@ -966,6 +943,7 @@ sub update_resp {
 
     # Make changes to the response object
     $response->text($text);
+    $response->preformatted(0);
     $response->flag($flag) if defined $flag;
 
     # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE

@@ -326,15 +326,16 @@ sub file_fault_form {
         # Projects associated with this fault
         my @assoc = $fault->projects;
 
-        # The fault text.  Strip out <PRE> tags.  If there aren't any <PRE> tags
-        # we'll assume this fault used explicit HTML formatting so we'll add in
-        # an opening <html> tag.
+        # The fault text.  If preformatted, strip out <PRE> tags.  If there
+        # aren't any <PRE> tags assume this fault used explicit HTML formatting.
         my $message = $fault->responses->[0]->text;
-        if ($message =~ m!^<pre>(.*?)</pre>$!is) {
-            $message = OMP::Display->replace_entity($1);
-        }
-        else {
-            $message = "<html>" . $message;
+        if ($fault->responses->[0]->preformatted) {
+            if ($message =~ m!^<pre>(.*?)</pre>$!is) {
+                $message = OMP::Display->replace_entity($1);
+            }
+            else {
+                $message = OMP::Display->html2plain($message);
+            }
         }
 
         %defaults = (
@@ -458,12 +459,14 @@ sub response_form {
 
         my $text = $resp->text;
 
-        # Prepare text for editing
-        if ($text =~ m!^<pre>(.*?)</pre>$!is) {
-            $text = OMP::Display->replace_entity($1);
-        }
-        else {
-            $text = "<html>" . $text;
+        if ($resp->preformatted) {
+            # Prepare text for editing
+            if ($text =~ m!^<pre>(.*?)</pre>$!is) {
+                $text = OMP::Display->replace_entity($1);
+            }
+            else {
+                $text = OMP::Display->html2plain($text);
+            }
         }
 
         %defaults = (
@@ -745,11 +748,10 @@ sub parse_file_fault_form {
         }
     }
 
-    # The text.  Put it in <pre> tags if there isn't an <html>
-    # tag present
+    # The text.
     my $text = $q->param('message');
 
-    $parsed{text} = OMP::Display->preify_text($text);
+    $parsed{text} = OMP::Display->remove_cr($text);
 
     return %parsed;
 }
