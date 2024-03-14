@@ -69,12 +69,13 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
-use OMP::BaseDB;
 use OMP::Config;
 use OMP::Constants qw/:fb :logging/;
 use OMP::DBbackend;
+use OMP::Display;
 use OMP::FBServer;
 use OMP::DateTools;
+use OMP::Mail;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Info::ObsGroup;
@@ -279,10 +280,10 @@ for my $proj (keys %sorted) {
 
     my $omp_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-    my $jcmt_text = "<html><p>Data were obtained for your $tel project $proj on date $datestr. Please check the quality of these observations promptly and contact your Friend of Project immediately if there are any problems or if they do not meet your requirements.</p><p>You can retrieve your raw data, and calibration/pointing observations from this night, via the <a href=\"${omp_url}/projecthome.pl?project=$proj\">OMP feedback system</a> or directly from the <a href=\"https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/search/?Observation.proposal.id=$proj&Observation.collection=JCMT\">CADC JCMT Science Archive</a>.</p>\n<p>The password required for accessing the OMP is the same one you used when submitting your science program MSBs through the Observing Tool.  You also need a CADC username and password, and to have provided those to your Friend of Project.</p>\n\n<p>Pipeline processed data from this night should be available within 24 hours directly from CADC.</p>\n\n";
+    my $jcmt_text = "<p>Data were obtained for your $tel project $proj on date $datestr. Please check the quality of these observations promptly and contact your Friend of Project immediately if there are any problems or if they do not meet your requirements.</p><p>You can retrieve your raw data, and calibration/pointing observations from this night, via the <a href=\"${omp_url}/projecthome.pl?project=$proj\">OMP feedback system</a> or directly from the <a href=\"https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/search/?Observation.proposal.id=$proj&Observation.collection=JCMT\">CADC JCMT Science Archive</a>.</p>\n<p>The password required for accessing the OMP is the same one you used when submitting your science program MSBs through the Observing Tool.  You also need a CADC username and password, and to have provided those to your Friend of Project.</p>\n\n<p>Pipeline processed data from this night should be available within 24 hours directly from CADC.</p>\n\n";
 
     # UKIRT KLUGE: Provide a different message for UKIRT users
-    my $ukirt_text = "<html><p>Data were obtained for your project on date $datestr.\nFor more details log in to the <a href=\"${omp_url}/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.</p>\n\n";
+    my $ukirt_text = "<p>Data were obtained for your project on date $datestr.\nFor more details log in to the <a href=\"${omp_url}/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.</p>\n\n";
 
     # Get the appropriate text for jcmt or ukirt projects.
     my $fixed_text = $ukirt_proj ? $ukirt_text : $jcmt_text;
@@ -304,20 +305,18 @@ for my $proj (keys %sorted) {
 
         my @contacts = $proj_details->contacts;
 
-        my $basedb = OMP::BaseDB->new(DB => OMP::DBbackend->new());
         my $flexuser = OMP::User->get_flex();
-
-        # This line is copied from the FeedbackDB::addComment method.
-        my $message_formatted = OMP::Display->preify_text($fullmessage);
 
         _log_message("Sending email for $proj, $utdate");
 
-        $basedb->_mail_information(
+        my $mailer = OMP::Mail->new();
+        my $message = $mailer->build(
             to => \@contacts,
             from => $flexuser,
             subject => "[$proj] $tel data obtained for project on " . $utdate->ymd,
-            message => $message_formatted,
+            message => OMP::Display->remove_cr($fullmessage),
         );
+        $mailer->send($message);
     }
 }
 
