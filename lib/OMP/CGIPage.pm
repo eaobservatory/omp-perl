@@ -606,11 +606,15 @@ sub render_template {
             width => $width);
     });
 
-    $templatecontext->define_filter('remove_pre_tags', sub {
-        my $text = shift;
-        $text =~ s/^\s*<PRE>//i;
-        $text =~ s/<\/PRE>\s*$//i;
-        return $text;
+    $templatecontext->define_vmethod('hash', 'remove_pre_tags', sub {
+        my $object = shift;
+        if ($object->preformatted) {
+            my $text = $object->text;
+            $text =~ s/^\s*<PRE>//i;
+            $text =~ s/<\/PRE>\s*$//i;
+            return $text;
+        }
+        return OMP::Display::escape_entity($object->text);
     });
 
     my $template = Template->new({

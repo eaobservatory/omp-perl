@@ -42,7 +42,7 @@
                 [% ELSE %]
                     <a href="/cgi-bin/nightrep.pl?utdate=[% comment.startobs.strftime("%Y-%m-%d") %]&tel=[% telescope | html %]#obsid_[% comment.obsid | html %]">[% comment.startobs.strftime("%Y-%m-%d") %]  #[% comment.runnr | html %]</a>
                 [% END %]</td>
-                <td width="400">[% comment.text | remove_pre_tags %]</td>
+                <td width="400">[% comment.remove_pre_tags %]</td>
             </tr>
         [% END %]
     </table>
