@@ -106,6 +106,12 @@ __PACKAGE__->CreateAccessors(
     relevance => '$',
     id => '$',
     is_time_gap => '$',
+    entrynum => '$',
+    program => '$',
+    projectid => '$',
+    sourceinfo => '$',
+    subject => '$',
+    type => '$',
 );
 
 =head2 Accessor methods

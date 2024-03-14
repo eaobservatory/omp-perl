@@ -44,7 +44,7 @@
         <br />
         <b>Subject: [% comment.subject | html %]</b>
     </p>
-    [% comment.text | wrap(80) %]
+    [% comment.format_text(80) %]
     </pre> <!-- extra close for unterminated comments -->
 [% END %]
 

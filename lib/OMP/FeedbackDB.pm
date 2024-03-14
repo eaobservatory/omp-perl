@@ -32,6 +32,7 @@ our $VERSION = '2.000';
 
 use OMP::Display;
 use OMP::FBQuery;
+use OMP::Info::Comment;
 use OMP::Project;
 use OMP::ProjDB;
 use OMP::User;
@@ -77,7 +78,7 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =item B<getComments>
 
-Returns an array of hashes containing feedback comments. If
+Returns an array of C<OMP::Info::Comment> objects containing feedback. If
 arguments are given they should be in the form of a hash whos keys are
 any of the following:
 
@@ -153,19 +154,14 @@ sub getComments {
     # Get the comments
     my $comments = $self->_fetch_comments($query);
 
-    # Strip out the milliseconds
-    for (@$comments) {
-        $_->{date} =~ s/:000/ /g;
-    }
-
     my $sort = $args{'order'} eq 'ascending'
-        ? sub {$a->{'commid'} <=> $b->{'commid'}}
-        : sub {$b->{'commid'} <=> $a->{'commid'}};
+        ? sub {$a->id <=> $b->id}
+        : sub {$b->id <=> $a->id};
 
     # Group by project ID if we might have comments for multiple projects
     unless ($self->projectid) {
         my %project;
-        push @{$project{$_->{projectid}}}, $_ for sort $sort @$comments;
+        push @{$project{$_->projectid}}, $_ for sort $sort @$comments;
         $comments = \%project;
     }
     else {
@@ -586,21 +582,34 @@ sub _fetch_comments {
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
+    my @comments;
+
     # Replace comment user IDs with OMP::User objects and
     # dates with Time::Piece objects
     for (@$ref) {
-        my $user = $_->{author};
-        ($user) and $_->{author} = OMP::UserServer->getUser($user);
+        my $id = delete $_->{'commid'};
+        my $type = delete $_->{'msgtype'};
 
-        my $date = OMP::DateTools->parse_date($_->{date});
-        $_->{date} = $date;
+        my $user = delete $_->{'author'};
+        $user = OMP::UserServer->getUser($user)
+            if defined $user;
+
+        my $date = OMP::DateTools->parse_date(delete $_->{'date'});
+
+        push @comments, OMP::Info::Comment->new(
+            id => $id,
+            type => $type,
+            author => $user,
+            date => $date,
+            %$_,
+        );
     }
 
     if (wantarray) {
-        return @$ref;
+        return @comments;
     }
     else {
-        return $ref;
+        return \@comments;
     }
 }
 
