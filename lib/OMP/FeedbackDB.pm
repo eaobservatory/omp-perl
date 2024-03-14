@@ -249,7 +249,8 @@ sub addComment {
     }
 
     # Prepare text for storage and subsequent display
-    $comment->{text} = OMP::Display->preify_text($comment->{text});
+    $comment->{text} = OMP::Display->remove_cr($comment->{text});
+    $comment->{'preformatted'} = 0;
 
     # Must have sourceinfo if we don't have an author
     #  if (! $comment->{author} and ! $comment->{sourceinfo}) {
@@ -378,6 +379,7 @@ sub _store_comment {
         },
         $comment->{msgtype},
         $entrynum,
+        ($comment->{'preformatted'} ? 1 : 0),
     );
 }
 

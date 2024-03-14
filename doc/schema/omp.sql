@@ -68,6 +68,7 @@ CREATE TABLE `ompfeedback` (
   `text` longtext NOT NULL,
   `msgtype` int(11) DEFAULT NULL,
   `entrynum` bigint(20) DEFAULT NULL,
+  `preformatted` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`commid`),
   KEY `feedback_idx` (`projectid`),
   KEY `idx_date` (`date`)
