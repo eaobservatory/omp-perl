@@ -111,7 +111,7 @@ my @checks = (
 );
 
 my $logfile = '/tmp/omp-mailaudit.log';
-my $mail = new Mail::Audit(
+my $mail = Mail::Audit->new(
     loglevel => 4,
     log => $logfile
 );
@@ -273,11 +273,11 @@ sub accept_fault {
     my @order = qw/author text/;
     my %data = (
         author => $author,
-        text => OMP::Display->preify_text($text),
+        text => OMP::Display->remove_cr($text),
     );
 
     unless ($DRY_RUN) {
-        OMP::FaultServer->respondFault($faultid, new OMP::Fault::Response(%data));
+        OMP::FaultServer->respondFault($faultid, OMP::Fault::Response->new(%data));
     }
     else {
         show_comment('fault', $faultid, \@order, \%data);
