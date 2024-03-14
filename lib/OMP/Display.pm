@@ -79,8 +79,9 @@ sub format_html {
     my $self = shift;
     my $text = shift;
     my $preformatted = shift;
+    my %opt = @_;
 
-    my $width = 72;
+    my $width = $opt{'width'} // 72;
 
     local $Text::Wrap::columns = $width;
     local $Text::Wrap::separator = "\n";

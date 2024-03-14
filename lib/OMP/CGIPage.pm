@@ -42,6 +42,7 @@ use OMP::Config;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::DBbackend::Hedwig2OMP;
+use OMP::Display;
 use OMP::ProjDB;
 use OMP::Error qw/:try/;
 use OMP::Fault;
@@ -593,6 +594,16 @@ sub render_template {
 
     $templatecontext->define_vmethod('hash', 'json', sub {
         return encode_json($_[0]);
+    });
+
+    # Method to format as HTML text from any object with 'text' and 'preformatted'
+    # attributes. (Unfortunately can't use a filter as that would stringify first.)
+    $templatecontext->define_vmethod('hash', 'format_text', sub {
+        my $object = shift;
+        my $width = shift;
+        return OMP::Display->format_html(
+            $object->text, $object->preformatted,
+            width => $width);
     });
 
     $templatecontext->define_filter('remove_pre_tags', sub {
