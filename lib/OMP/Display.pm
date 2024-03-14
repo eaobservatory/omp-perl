@@ -167,16 +167,11 @@ sub html2plain {
 
 =item B<preify_text>
 
-This method is used to prepare text for storage to the database so
-that when it is retrieved it can be displayed properly in HTML format.
-If the text is not HTML formatted then it goes inside PRE tags and
+The text goes inside PRE tags and
 HTML characters (such as E<lt>, E<gt> and &) are replaced with their
 associated entities.  Also strips out windows ^M characters.
 
     $escaped = $self->preify_text($text);
-
-Text is considered to be HTML formatted if it begins with the string
-"E<lt>htmlE<gt>" (case-insensitive).  This string is stripped off if found.
 
 =cut
 
@@ -184,13 +179,8 @@ sub preify_text {
     my $self = shift;
     my $string = shift;
 
-    if ($string !~ /^<html>/i) {
-        $string = escape_entity($string);
-        $string = "<pre>$string</pre>";
-    }
-    else {
-        $string =~ s!</*html>!!ig;
-    }
+    $string = escape_entity($string);
+    $string = "<pre>$string</pre>";
 
     # Strip ^M
     $string =~ s/\015//g;
