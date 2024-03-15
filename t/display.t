@@ -17,8 +17,13 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 use strict;
 require_ok('OMP::Display');
 
 is(OMP::Display->remove_cr("alpha\r\nbeta\r\ngamma"), "alpha\nbeta\ngamma");
+
+# Test that our formatter subclass (OMP::HTMLFormatText) generates the intended
+# 8-character horizontal rule.
+is(OMP::Display->html2plain('<p>alpha</p><hr><p>beta</p>'),
+    "alpha\n\n--------\n\nbeta\n");

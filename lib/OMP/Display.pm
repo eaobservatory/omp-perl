@@ -55,7 +55,9 @@ sub format_text {
     my $width = $opt{'width'} // 72;
     my $indent = $opt{'indent'} // 0;
 
-    return $self->html2plain($text, {rightmargin => $width})
+    # Due to problems with html2plain's line wrapping (see e.g. fault
+    # 20181130.008), convert with a long line length and then wrap.
+    $text = $self->html2plain($text, {rightmargin => 2048})
         if $preformatted;
 
     return $self->wrap_text($text, $width, $indent);
@@ -153,8 +155,8 @@ sub html2plain {
     $tree->eof;
 
     # Convert the HTML to text and store it
-    require HTML::FormatText;
-    my $formatter = HTML::FormatText->new(%margin);
+    require OMP::HTMLFormatText;
+    my $formatter = OMP::HTMLFormatText->new(%margin);
     my $plaintext = $formatter->format($tree);
 
     return $plaintext;
