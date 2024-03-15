@@ -53,7 +53,6 @@ use OMP::CommentServer;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
 use Time::Piece qw/:override/;
-use Text::Wrap;
 use OMP::BaseDB;
 use OMP::Display;
 use OMP::User;
@@ -1204,7 +1203,6 @@ sub astext {
     $str .= "Comments\n\n";
 
     my $comments = $self->shiftComments;
-    $Text::Wrap::columns = 72;
 
     foreach my $k (sort keys %$comments) {
         foreach my $c (@{$comments->{$k}}) {
@@ -1216,13 +1214,9 @@ sub astext {
             # Get the text and format it as plain text from HTML
             my $text = $c->text;
             $text =~ s/\t/ /g;
-            # We are going to use 'wrap' to indent by 4 and then wrap
-            # to 72, so have html2plain use a smaller width to try to
-            # avoid wrapping the same text twice.
-            $text = OMP::Display->html2plain($text, {rightmargin => 64});
 
-            # Word wrap (but do not "fill")
-            $text = wrap('    ', '    ', $text);
+            $text = OMP::Display->format_text(
+                $text, $c->preformatted, width => 72, indent => 4);
 
             # Now print the timestamped comment
             $str .= "  " . $local->strftime("%H:%M:%S %Z") . ": $author\n";
