@@ -737,7 +737,11 @@ Subject of comment. (Required)
 
 =item text
 
-The comment itself (HTML). (Required)
+The comment itself. (Required)
+
+=item preformatted
+
+Whether the text is preformatted?
 
 =item status
 
@@ -783,6 +787,8 @@ sub _notify_feedback_system {
 
     $comment{status} = OMP__FB_HIDDEN unless exists $comment{status};
     $comment{msgtype} = OMP__FB_MSG_COMMENT unless exists $comment{msgtype};
+
+    $comment{'preformatted'} = !! $comment{'preformatted'} if exists $comment{'preformatted'};
 
     # Add the comment
     $fbdb->addComment({%comment});
