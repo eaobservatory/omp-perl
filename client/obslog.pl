@@ -2002,7 +2002,7 @@ sub populate_shiftlog_widget {
 
         my $date = $c->date;
         my $username = $c->author->name;
-        my $text = OMP::Display->html2plain($c->text);
+        my $text = OMP::Display->format_text($c->text, $c->preformatted);
 
         my $insertstring = $date->datetime . "UT by $username\n$text\n";
 
@@ -2238,7 +2238,7 @@ sub raise_shift_comment {
     if (defined($comment)) {
         # Insert the comment text into the box.
         $scrolledComment->insert('end',
-            OMP::Display->html2plain($comment->text));
+            OMP::Display->format_text($comment->text, $comment->preformatted));
 
         # And the comment time (which is always UT) into the box. Disable
         # the update and don't let the user update the time either.
