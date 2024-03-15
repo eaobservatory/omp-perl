@@ -202,7 +202,11 @@ The IP address of the machine comment is being submitted from.
 
 =item B<text>
 
-The text of the comment (HTML tags are encouraged).
+The text of the comment.
+
+=item B<preformatted>
+
+Whether the text is pre-formatted?
 
 =item B<status>
 
@@ -233,6 +237,7 @@ sub addComment {
         sourceinfo => 'unspecified',
         status => OMP__FB_IMPORTANT,
         msgtype => OMP__FB_MSG_COMMENT,
+        preformatted => 0,
     );
 
     # Override defaults
@@ -246,7 +251,6 @@ sub addComment {
 
     # Prepare text for storage and subsequent display
     $comment->{text} = OMP::Display->remove_cr($comment->{text});
-    $comment->{'preformatted'} = 0;
 
     # Must have sourceinfo if we don't have an author
     #  if (! $comment->{author} and ! $comment->{sourceinfo}) {

@@ -1021,8 +1021,8 @@ sub add_fb_comment {
             program => $0,
             sourceinfo => $host,
             status => OMP__FB_SUPPORT,
-            text =>
-"<html>Data have been requested $userinfo for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
+            text => "<p>Data have been requested $userinfo for project $projectid from UT $utstr</p><p>Project PI: $pi $text</p>",
+            preformatted => 1,
             msgtype => OMP__FB_MSG_DATA_REQUESTED,
         });
 }

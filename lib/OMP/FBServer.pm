@@ -71,7 +71,11 @@ The IP address of the machine comment is being submitted from.
 
 =item B<text>
 
-The text of the comment (HTML tags are encouraged).
+The text of the comment.
+
+=item B<preformatted>
+
+Whether the text is pre-formatted?
 
 =back
 
