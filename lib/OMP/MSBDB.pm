@@ -283,9 +283,10 @@ sub storeSciProg {
 
         $self->_notify_feedback_system(
             subject => "Science program submitted",
-            text => "Science program submitted for project <b>"
+            text => "<p>Science program submitted for project <b>"
                 . $self->projectid
-                . "</b> $note\n",
+                . "</b> $note\n</p>",
+            preformatted => 1,
             status => OMP__FB_HIDDEN,
             msgtype => OMP__FB_MSG_SP_SUBMITTED,
         );
@@ -384,9 +385,10 @@ sub removeSciProg {
 
     $self->_notify_feedback_system(
         subject => "Science program deleted",
-        text => "Science program for project <b>"
+        text => "<p>Science program for project <b>"
             . $self->projectid
-            . "</b> deleted\n",
+            . "</b> deleted</p>",
+        preformatted => 1,
         msgtype => OMP__FB_MSG_SP_DELETED,
     );
 
@@ -1868,9 +1870,10 @@ sub _clear_counter_add_feedback_post_fetch {
     $note = '' unless defined $note;
     $self->_notify_feedback_system(
         subject => "Science program retrieved",
-        text => "Science program retrieved for project <b>"
+        text => "<p>Science program retrieved for project <b>"
             . $self->projectid
-            . "</b> $note\n",
+            . "</b> $note</p>",
+        preformatted => 1,
         msgtype => OMP__FB_MSG_SP_RETRIEVED,
     );
 
