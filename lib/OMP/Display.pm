@@ -42,7 +42,7 @@ Prepare text for display in text format.
 
 If C<$preformatted> is true, the given HTML will be converted to text
 using C<html2plain>.  Otherwise the text will be wrapped using
-C<Text::Wrap>.
+C<wrap_text>.
 
 =cut
 
@@ -50,17 +50,15 @@ sub format_text {
     my $self = shift;
     my $text = shift;
     my $preformatted = shift;
+    my %opt = @_;
 
-    my $width = 72;
+    my $width = $opt{'width'} // 72;
+    my $indent = $opt{'indent'} // 0;
 
     return $self->html2plain($text, {rightmargin => $width})
         if $preformatted;
 
-    local $Text::Wrap::columns = $width;
-    local $Text::Wrap::separator = "\n";
-    local $Text::Wrap::huge = 'overflow';
-
-    return wrap('', '', $text);
+    return $self->wrap_text($text, $width, $indent);
 }
 
 =item B<format_html>
@@ -70,7 +68,7 @@ Prepare text for display in HTML format.
     $html = OMP::Display->format_html($text, $preformatted);
 
 If C<$preformatted> is true, return the given HTML (wrapped
-using C<Text::Wrap>).  Otherwise the text is wrapped
+using C<wrap_text>).  Otherwise the text is wrapped
 and then processed with C<preify_text>.
 
 =cut
@@ -83,14 +81,11 @@ sub format_html {
 
     my $width = $opt{'width'} // 72;
 
-    local $Text::Wrap::columns = $width;
-    local $Text::Wrap::separator = "\n";
-    local $Text::Wrap::huge = 'overflow';
+    my $wrapped = $self->wrap_text($text, $width, 0);
 
-    return wrap('', '', $text)
-        if $preformatted;
+    return $wrapped if $preformatted;
 
-    return $self->preify_text(wrap('', '', $text));
+    return $self->preify_text($wrapped);
 }
 
 =item B<escape_entity>
@@ -234,6 +229,33 @@ sub remove_cr {
     $string =~ s/\015//g;
 
     return $string;
+}
+
+=item B<wrap_text>
+
+Wrap text using C<Text::Wrap>.
+
+    $wrapped = OMP::Display->wrap_text($text, $width, $indent);
+
+Locally sets suitable C<Text::Wrap> parameters and then calls
+C<wrap>, constructing indent strings using the given number of spaces.
+
+=cut
+
+sub wrap_text {
+    my $self = shift;
+    my $text = shift;
+    my $width = shift;
+    my $indent = shift // 0;
+
+    local $Text::Wrap::columns = $width;
+    local $Text::Wrap::separator = "\n";
+    local $Text::Wrap::huge = 'overflow';
+    local $Text::Wrap::unexpand = 0;
+
+    my $indentstr = ' ' x $indent;
+
+    return wrap($indentstr, $indentstr, $text);
 }
 
 1;
