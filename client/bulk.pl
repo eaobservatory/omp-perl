@@ -6,7 +6,7 @@ bulk - Submit a feedback comment to multiple projects
 
 =head1 SYNOPSIS
 
-    bulk -comment comment.txt -projects projects.txt -userid deloreyk
+    bulk -comment comment.txt -projects projects.txt
 
 =head1 DESCRIPTION
 
@@ -36,10 +36,6 @@ the comment will be submitted.
 
 Mark comment with "support" status to limit the emails sent only to the support
 staff.
-
-=item B<-userid>
-
-Specify the user ID of the comment author.
 
 =item B<-dry-run> | B<-n>
 
@@ -99,14 +95,13 @@ use OMP::ProjServer;
 our $VERSION = '2.000';
 
 # Options
-my ($commentfile, $help, $man, $projectsfile, $author, $version, $type, $dry_run);
+my ($commentfile, $help, $man, $projectsfile, $version, $type, $dry_run);
 
 GetOptions(
     'comment=s' => \$commentfile,
     'help' => \$help,
     'man' => \$man,
     'projects=s' => \$projectsfile,
-    'userid=s' => \$author,
     'n|dry-run' => \$dry_run,
     'version' => \$version,
     'support' => sub {$type = 'support'},
@@ -123,14 +118,9 @@ if ($version) {
 }
 
 # Die if missing certain arguments
-unless (defined $commentfile and defined $projectsfile and defined $author) {
-    die "The following arguments are not optional: -comment, -projects, -userid";
+unless (defined $commentfile and defined $projectsfile) {
+    die "The following arguments are not optional: -comment, -projects";
 }
-
-# Get the author user
-my $user = OMP::UserServer->getUser($author);
-die "No such user [$author]"
-    unless ($user);
 
 # Get the projects
 my $proj_fh = IO::File->new($projectsfile, 'r')
@@ -163,9 +153,12 @@ $comment_fh->close();
 my $subject = shift @comment;
 chomp $subject;
 
+# Verify staff membership
+my $auth = OMP::Password->get_verified_auth('staff');
+
 my %comment = (
     text => (join '', @comment),
-    author => $user,
+    author => $auth->user,
     program => 'COMMENT_CLIENT',
     subject => $subject,
 );
@@ -184,9 +177,6 @@ print "Subject:\n",
     ' mode: comment ',
     ($dry_run ? 'will not' : 'will'),
     " be submitted\n\n";
-
-# Verify staff membership
-OMP::Password->get_verified_auth('staff');
 
 # Submit the comment for each project
 foreach my $projectid (@projects) {
