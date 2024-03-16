@@ -85,7 +85,6 @@ use OMP::ShiftDB;
 use OMP::ShiftQuery;
 use OMP::User;
 
-use Text::Wrap;
 use Time::Piece;
 
 # Options
@@ -211,19 +210,10 @@ for my $proj (keys %sorted) {
         @{$shiftlog{$proj_details->telescope}} = $sdb->getShiftLogs($query);
 
         _log_err($!);
-
-        # TEMPORARY FIX FOR GARBLED NIGHTREP
-        # Strip HTML from comments
-        for my $comment (@{$shiftlog{$proj_details->telescope}}) {
-            my $text = $comment->text;
-            $text =~ s!</*\w+\s*.*?>!!sg;
-            $comment->text($text);
-        }
     }
 
     $shiftlog_msg .= "\nShift Comments\n--------------\n\n";
 
-    $Text::Wrap::columns = 72;
     for my $comment (@{$shiftlog{$proj_details->telescope}}) {
         # Use local time
         my $date = $comment->date;
@@ -232,17 +222,14 @@ for my $proj (keys %sorted) {
 
         # Get the text and format it
         my $text = $comment->text;
+        $text =~ s/\t/ /g;
 
-        # Really need to convert HTML to text using general method
-        $text =~ s/\&apos\;/\'/g;
-        $text =~ s/<BR>/\n/gi;
-
-        # Word wrap
-        $text = wrap('    ', '    ', $text);
+        $text = OMP::Display->format_text(
+            $text, $comment->preformatted, width => 72, indent => 4);
 
         # Now print the comment
         $shiftlog_msg .= '  ' . $local->strftime('%H:%M %Z') . ": $author\n";
-        $shiftlog_msg .= $text . "\n\n";
+        $shiftlog_msg .= $text . "\n";
     }
 
     # Attach observation log
