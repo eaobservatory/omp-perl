@@ -95,7 +95,7 @@ my $optstatus = GetOptions(
     "man" => \$man,
     "debug" => \$debug,
     "yesterday" => \$yesterday,
-);
+) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
