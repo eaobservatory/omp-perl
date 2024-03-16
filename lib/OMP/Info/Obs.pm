@@ -51,11 +51,7 @@ use Astro::Telescope;
 use Astro::Coords;
 use Storable qw/dclone/;
 use Time::Piece;
-use Text::Wrap qw/$columns &wrap/;
 use File::Basename;
-
-# Text wrap column size.
-$Text::Wrap::columns = 72;
 
 use base qw/OMP::Info/;
 
@@ -993,7 +989,7 @@ sub summary {
                 my $tc = sprintf "%s %s UT / %s: %s\n",
                     $comment->date->ymd(), $comment->date->hms(), $name,
                     $comment->text();
-                $commentsum .= wrap(' ', ' ', $tc);
+                $commentsum .= OMP::Display->wrap_text($tc, 72, 1);
             }
         }
         if (wantarray) {
