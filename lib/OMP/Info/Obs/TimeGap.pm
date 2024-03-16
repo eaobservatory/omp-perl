@@ -29,12 +29,8 @@ use strict;
 use Carp;
 
 use OMP::Constants;
-use Text::Wrap;
 
 use base qw/OMP::Info::Obs/;
-
-# Text wrap column size.
-$Text::Wrap::columns = 72;
 
 our $VERSION = '2.000';
 
@@ -233,7 +229,7 @@ sub summary {
                     $comment->date->ymd . " " . $comment->date->hms,
                     $comment->author->name, $comment->text;
 
-                $commentsum .= wrap(' ', ' ', $tc);
+                $commentsum .= OMP::Display->wrap_text($tc, 72, 1);
             }
         }
         if (wantarray) {
