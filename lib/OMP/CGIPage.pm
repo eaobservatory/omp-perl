@@ -31,6 +31,7 @@ use JSON;
 use Template;
 use Template::Context;
 use Template::Stash;
+use Text::Wrap;
 
 BEGIN {
     use Encode;
