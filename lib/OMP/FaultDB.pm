@@ -36,8 +36,6 @@ use OMP::UserDB;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Config;
-use Text::Wrap;
-$Text::Wrap::columns = 80;
 
 use base qw/OMP::BaseDB/;
 

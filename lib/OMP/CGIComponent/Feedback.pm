@@ -22,8 +22,6 @@ use strict;
 use warnings;
 use Carp;
 
-use Text::Wrap;
-
 use OMP::Constants qw/:fb/;
 use OMP::Error qw/:try/;
 use OMP::FBServer;
