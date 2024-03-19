@@ -41,8 +41,6 @@ use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
 
-use Text::Wrap;
-
 use base qw/OMP::BaseDB/;
 
 # This is picked up by OMP::MSBDB
@@ -430,10 +428,8 @@ sub _mail_comment {
     # plaintext)
     my $msg = $args{comment}->{text};
 
-    # Word wrap the message; if long words don't fit then allow them to
-    # overflow.
-    local ($Text::Wrap::huge) = "overflow";
-    $msg = wrap('', '', $msg);
+    # Word wrap the message.
+    $msg = OMP::Display->wrap_text($msg, 72, 0);
 
     my $projectid = $self->projectid;
 
