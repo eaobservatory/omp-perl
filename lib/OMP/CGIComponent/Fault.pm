@@ -455,7 +455,7 @@ sub response_form {
     my $resp = undef;
     if ($respid) {
         # Setup defaults for response editing
-        $resp = OMP::FaultUtil->getResponse($respid, $fault);
+        $resp = $fault->getResponse($respid);
 
         my $text = $resp->text;
 

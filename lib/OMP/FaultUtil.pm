@@ -336,33 +336,6 @@ sub compare {
     return @diff;
 }
 
-=item B<getResponse>
-
-Return the response object with the given response ID.
-
-    $resp = OMP::FaultUtil->getResponse($respid, $fault);
-
-where C<$respid> is the ID of the response to be returned and C<$fault>
-is an object of type C<OMP::Fault>.
-
-=cut
-
-sub getResponse {
-    my $self = shift;
-    my $respid = shift;
-    my $fault = shift;
-
-    if (UNIVERSAL::isa($fault, "OMP::Fault")) {
-        for (@{$fault->responses}) {
-            return $_ if $_->id eq $respid;
-        }
-    }
-    else {
-        throw OMP::Error::BadArgs(
-            "Argument to getResponse must be an object of the type OMP::Fault\n");
-    }
-}
-
 {
     my $fault_id;
 

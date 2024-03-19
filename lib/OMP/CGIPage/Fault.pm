@@ -698,7 +698,7 @@ sub view_fault {
     }
     elsif ($q->param('submit_flag_up') or $q->param('submit_flag_down')) {
         my $respid = $q->param('respid');
-        my $response = OMP::FaultUtil->getResponse($respid, $fault);
+        my $response = $fault->getResponse($respid);
         my $redirect = sprintf '%s#response%i', $self->url_absolute(), $response->respnum;
 
         my $flag = $response->flag();
@@ -939,7 +939,7 @@ sub update_resp {
     }
 
     # Get the response object
-    my $response = OMP::FaultUtil->getResponse($respid, $fault);
+    my $response = $fault->getResponse($respid);
 
     # Make changes to the response object
     $response->text($text);

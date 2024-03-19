@@ -1747,6 +1747,25 @@ sub responses {
     }
 }
 
+=item B<getResponse>
+
+Return the response object with the given response ID.
+
+    $resp = $fault->getResponse($respid);
+
+where C<$respid> is the ID of the response to be returned.
+
+=cut
+
+sub getResponse {
+    my $self = shift;
+    my $respid = shift;
+
+    for (@{$self->responses}) {
+        return $_ if $_->id eq $respid;
+    }
+}
+
 =item B<author>
 
 Returns the C<OMP::User> object of the  person who initially filed the
