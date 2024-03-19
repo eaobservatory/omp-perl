@@ -1,0 +1,10 @@
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+Subject: Test message
+Date: Wed, 01 Jan 2020 00:00:00 +0000
+From: Example Person <example@example>
+To: Example Person <example@example>
+
+<p>Message with =E6=B1=89=E5=AD=97 in it.</p>
+

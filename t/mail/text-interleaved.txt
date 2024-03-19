@@ -1,0 +1,72 @@
+From: Example User <example@eaobservatory.org>
+Content-Type: multipart/mixed;
+        boundary="Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4"
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3774.500.171.1.1\))
+Subject: Plain text example
+Message-Id: <777913DB-DBBC-487E-92BE-DE260C327A76@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+X-Mailer: Apple Mail (2.3774.500.171.1.1)
+
+
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+        charset=us-ascii
+
+Paragraph 1.
+
+
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Disposition: inline;
+        filename=pixel.png
+Content-Type: image/png;
+        x-unix-mode=0644;
+        name="pixel.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnn
+AAAAAElFTkSuQmCC
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+        charset=us-ascii
+
+
+
+
+Paragraph 2.
+
+
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Disposition: inline;
+        filename=pixel2.png
+Content-Type: image/png;
+        x-unix-mode=0644;
+        name="pixel2.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12NgYGAAAAAEAAEnNCcK
+AAAAAElFTkSuQmCC
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+        charset=us-ascii
+
+
+
+
+Paragraph 3.
+
+
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4
+Content-Disposition: inline;
+        filename=pixel3.png
+Content-Type: image/png;
+        x-unix-mode=0644;
+        name="pixel3.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12Po6OgAAAM0AZkQj9/u
+AAAAAElFTkSuQmCC
+--Apple-Mail=_4DAAE5DB-E644-4994-AAF6-62F363E92AA4--
+

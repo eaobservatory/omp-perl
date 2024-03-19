@@ -1,0 +1,33 @@
+From: Example User <example@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+Subject: Pine plain text
+MIME-Version: 1.0
+Content-Type: multipart/mixed; BOUNDARY="1678384660-874503334-1710832798=:11209"
+Content-ID: <n7sn3181-7q1s-602n-ps7-ps15s6q1n325@xxx>
+
+--1678384660-874503334-1710832798=:11209
+Content-Type: text/plain; CHARSET=US-ASCII; format=flowed
+Content-ID: <3n88spn7-89n7-o584-7736-372o7n98p5r@xxx>
+
+Plain text written in Pine.
+--1678384660-874503334-1710832798=:11209
+Content-Type: image/png; NAME=pixel.png
+Content-Transfer-Encoding: BASE64
+Content-ID: <529p1p7-s995-495p-493s-6756n731qq5@xxx>
+Content-Description: 
+Content-Disposition: ATTACHMENT; FILENAME=pixel.png
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4
+//8/AAX+Av7czFnnAAAAAElFTkSuQmCC
+
+--1678384660-874503334-1710832798=:11209
+Content-Type: image/png; NAME=pixel2.png
+Content-Transfer-Encoding: BASE64
+Content-ID: <n1s92473-o9oo-ssor-ss27-89n7qn83rrqs@xxx>
+Content-Description: 
+Content-Disposition: ATTACHMENT; FILENAME=pixel2.png
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12Ng
+YGAAAAAEAAEnNCcKAAAAAElFTkSuQmCC
+
+--1678384660-874503334-1710832798=:11209--

@@ -421,9 +421,20 @@ sub _logger {
 
 =item B<extract_body_text>
 
-Return the body of an email, and a notation about any removed attachments.
+Return the body of an email with notations about any removed attachments
+and parts other than alternatives.
 
     $text = OMP::Mail->extract_body_text($entity);
+
+Recursively searches a MIME entity for suitable text parts.  In a
+multipart/alternative, prefers text/plain to text/html.  In other
+structures, either of these types is used.  Parts of other types
+are removed with a notation added.  Attachments are counted by
+type to allow a summary notation to be added.
+
+Any HTML parts processed are converted to plain text using
+C<OMP::Display-E<gt>html2plain> - see C<_extract_part_text>
+for more details of text extraction.
 
 =cut
 
@@ -433,38 +444,123 @@ sub extract_body_text {
 
     my @bodytexts = ();
 
-    my $head = $entity->head;
-    my $charset = $head->mime_attr('content-type.charset');
+    my $type = $entity->effective_type;
 
     my $num_parts = $entity->parts;
 
-    # If more than one part, call this method again.
     if ($num_parts > 0) {
-        foreach (0 .. ($num_parts - 1)) {
-            my $part = $entity->parts($_);
-            push @bodytexts, $cls->extract_body_text($part);
+        if ($type eq 'multipart/alternative') {
+            my %alternative = ();
+            my @multipart = ();
+
+            for (my $i = 0; $i < $num_parts; $i ++) {
+                my $part = $entity->parts($i);
+
+                if ($part->is_multipart) {
+                    push @multipart, $part;
+                }
+                else {
+                    $alternative{$part->effective_type} = $part;
+                }
+            }
+
+            if (exists $alternative{'text/plain'}) {
+                push @bodytexts, $cls->_extract_part_text($alternative{'text/plain'}, 0);
+            }
+            elsif (exists $alternative{'text/html'}) {
+                push @bodytexts, $cls->_extract_part_text($alternative{'text/html'}, 1);
+            }
+            elsif (@multipart) {
+                # No preferred type: search inside further multiparts.
+                # (Should select preferred alternative but for now include all
+                # or issue a notation if there were no multiparts to search.)
+                push @bodytexts, $cls->extract_body_text($_) foreach @multipart;
+            }
+            else {
+                push @bodytexts, 'No suitable alternative part found.';
+            }
+        }
+        else {
+            my %attachment = ();
+            for (my $i = 0; $i < $num_parts; $i ++) {
+                my $part = $entity->parts($i);
+                my $part_type = $part->effective_type;
+
+                my $head = $entity->head;
+                my $disposition = $part->get('Content-Disposition');
+
+                if ((defined $disposition) and $disposition =~ /^attachment/i) {
+                    # Count attachments of each type.
+                    $attachment{$part_type} ++;
+                }
+                else {
+                    # Continue processing non-attachments.
+                    push @bodytexts, $cls->extract_body_text($part);
+                }
+            }
+
+            if (scalar %attachment) {
+                push @bodytexts, join "\n", map {
+                    sprintf '%d attachment(s) of type [%s] removed.', $attachment{$_}, $_;
+                }
+                sort keys %attachment;
+            }
         }
     }
     else {
-        # If in final part, return the body if it's a text type.
-        my $mime_type = $entity->mime_type;
-
-        if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
-            my $bh = $entity->bodyhandle;
-            my $text = $bh->as_string;
-
-            if (defined $charset) {
-                $text = decode($charset, $text);
-            }
-
-            push @bodytexts, $text;
+        # There is a single part.  Extract text/plain or text/html,
+        # and issue a note for other types.
+        if ($type eq 'text/plain') {
+            push @bodytexts, $cls->_extract_part_text($entity, 0);
+        }
+        elsif ($type eq 'text/html') {
+            push @bodytexts, $cls->_extract_part_text($entity, 1);
         }
         else {
-            push @bodytexts, "One attachment of type [$mime_type] was removed.";
+            push @bodytexts, sprintf 'A part of type [%s] was removed.', $type;
         }
     }
 
     return join "\n\n", @bodytexts;
+}
+
+=item B<_extract_part_text>
+
+Extract the text from a part.  If C<$is_html> is specified, use
+C<OMP::Display-E<gt>html2plain> to convert it to plain text.
+
+=cut
+
+sub _extract_part_text {
+    my $cls = shift;
+    my $entity = shift;
+    my $is_html = shift;
+
+    my $head = $entity->head;
+    my $charset = $head->mime_attr('content-type.charset');
+
+    my $bh = $entity->bodyhandle;
+    my $text = $bh->as_string;
+
+    if (defined $charset) {
+        $text = decode($charset, $text);
+    }
+
+    # Remove "object replacement character".
+    $text =~ s/\x{FFFC}//g;
+
+    # Remove CR.
+    $text =~ s/\015//g;
+
+    if ($is_html) {
+        $text = OMP::Display->html2plain($text);
+    }
+
+    # Remove leading and trailing whitespace.
+    $text =~ s/^\s*//;
+    $text =~ s/\s*$//;
+
+    return $text;
 }
 
 1;

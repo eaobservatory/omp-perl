@@ -1,0 +1,83 @@
+Delivered-To: example@eaobservatory.org
+From: Example User <example@hotmail.com>
+To: "example@eaobservatory.org" <example@eaobservatory.org>
+Subject: Example message
+Thread-Topic: Example message
+Thread-Index: AQHaeiscaPu4bUw3iUmG7f3bCuY8dw==
+Date: Tue, 19 Mar 2024 18:29:06 +0000
+Message-ID:
+ <IA0PR12MB898454BC49C38629F4F0EEAAAB2C2@IA0PR12MB8984.namprd12.prod.outlook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: yes
+Content-Type: multipart/mixed;
+        boundary="_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_"
+MIME-Version: 1.0
+X-OriginatorOrg: sct-15-20-4755-11-msonline-outlook-5183d.templateTenant
+
+--_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: multipart/alternative;
+        boundary="_000_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_"
+
+--_000_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+Message from outlook.live.com.
+
+--_000_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: text/html; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+<html>
+<head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Diso-8859-=
+1">
+<style type=3D"text/css" style=3D"display:none;"> P {margin-top:0;margin-bo=
+ttom:0;} </style>
+</head>
+<body dir=3D"ltr">
+<div class=3D"elementToProof" style=3D"font-family: Aptos, Aptos_EmbeddedFo=
+nt, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; c=
+olor: rgb(0, 0, 0);">
+Message <b>from</b>&nbsp;outlook.live.com.</div>
+</body>
+</html>
+
+--_000_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_--
+
+--_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: image/png; name="pixel.png"
+Content-Description: pixel.png
+Content-Disposition: attachment; filename="pixel.png"; size=69;
+        creation-date="Tue, 19 Mar 2024 18:28:23 GMT";
+        modification-date="Tue, 19 Mar 2024 18:28:33 GMT"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnn
+AAAAAElFTkSuQmCC
+
+--_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: image/png; name="pixel2.png"
+Content-Description: pixel2.png
+Content-Disposition: attachment; filename="pixel2.png"; size=69;
+        creation-date="Tue, 19 Mar 2024 18:28:23 GMT";
+        modification-date="Tue, 19 Mar 2024 18:28:33 GMT"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12NgYGAAAAAEAAEnNCcK
+AAAAAElFTkSuQmCC
+
+--_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_
+Content-Type: image/png; name="pixel3.png"
+Content-Description: pixel3.png
+Content-Disposition: attachment; filename="pixel3.png"; size=69;
+        creation-date="Tue, 19 Mar 2024 18:28:24 GMT";
+        modification-date="Tue, 19 Mar 2024 18:28:33 GMT"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12Po6OgAAAM0AZkQj9/u
+AAAAAElFTkSuQmCC
+
+--_006_IA0PR12MB898454BC49C38629F4F0EEAAAB2C2IA0PR12MB8984namp_--
+

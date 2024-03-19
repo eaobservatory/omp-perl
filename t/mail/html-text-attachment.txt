@@ -1,0 +1,50 @@
+From: Example User <example@eaobservatory.org>
+Content-Type: multipart/alternative;
+        boundary="Apple-Mail=_0BCE0855-DFCD-4845-8471-EC3E753D8F9C"
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3774.500.171.1.1\))
+Subject: HTML with text attachment
+Message-Id: <6B8C3280-7AE9-426B-8CB4-9DBC35A35130@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+X-Mailer: Apple Mail (2.3774.500.171.1.1)
+
+
+--Apple-Mail=_0BCE0855-DFCD-4845-8471-EC3E753D8F9C
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain;
+        charset=utf-8
+
+This is a message with HTML formatting.
+
+=EF=BF=BC=
+
+--Apple-Mail=_0BCE0855-DFCD-4845-8471-EC3E753D8F9C
+Content-Type: multipart/mixed;
+        boundary="Apple-Mail=_621416F7-EE78-41C2-8D35-D38C0A1DB7C5"
+
+
+--Apple-Mail=_621416F7-EE78-41C2-8D35-D38C0A1DB7C5
+Content-Transfer-Encoding: 7bit
+Content-Type: text/html;
+        charset=us-ascii
+
+<html><head><meta http-equiv="content-type" content="text/html; charset=us-ascii"></head><body style="overflow-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space;">This is a <b>message</b> with <i>HTML</i> formatting.<div><br></div><div></div></body></html>
+--Apple-Mail=_621416F7-EE78-41C2-8D35-D38C0A1DB7C5
+Content-Disposition: attachment;
+        filename=file.txt
+Content-Type: text/plain;
+        x-unix-mode=0644;
+        name="file.txt"
+Content-Transfer-Encoding: 7bit
+
+This is the text in the attachment.
+
+--Apple-Mail=_621416F7-EE78-41C2-8D35-D38C0A1DB7C5
+Content-Transfer-Encoding: 7bit
+Content-Type: text/html;
+        charset=us-ascii
+
+<html><head><meta http-equiv="content-type" content="text/html; charset=us-ascii"></head><body style="overflow-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space;"><div></div></body></html>
+--Apple-Mail=_621416F7-EE78-41C2-8D35-D38C0A1DB7C5--
+
+--Apple-Mail=_0BCE0855-DFCD-4845-8471-EC3E753D8F9C--
+

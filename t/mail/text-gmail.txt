@@ -1,0 +1,30 @@
+MIME-Version: 1.0
+Message-ID: <CAFt_Gow7z3gegh6uvNfpv3TMz=gypOCjwnqrAmapkz5CUfXUZg@mail.gmail.com>
+Subject: Example message
+From: Example User <example@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+Content-Type: multipart/mixed; boundary="00000000000092ad4f0613fe8035"
+
+--00000000000092ad4f0613fe8035
+Content-Type: text/plain; charset="UTF-8"
+
+Example plain text from GMail.
+
+--00000000000092ad4f0613fe8035
+Content-Type: text/plain; charset="US-ASCII"; name="file.txt"
+Content-Disposition: attachment; filename="file.txt"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_lty26dxg0
+Content-ID: <f_lty26dxg0>
+
+VGhpcyBpcyB0aGUgdGV4dCBpbiB0aGUgYXR0YWNobWVudC4NCg==
+--00000000000092ad4f0613fe8035
+Content-Type: image/png; name="pixel.png"
+Content-Disposition: attachment; filename="pixel.png"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_lty26dy31
+Content-ID: <f_lty26dy31>
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnn
+AAAAAElFTkSuQmCC
+--00000000000092ad4f0613fe8035--
