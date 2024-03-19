@@ -33,7 +33,7 @@ use OMP::General;
 
 use DateTime;
 use Digest::MD5 qw/md5_hex/;
-use Encode qw/encode find_encoding/;
+use Encode qw/decode encode find_encoding/;
 use Mail::Internet;
 use MIME::Entity;
 use Time::HiRes qw/gettimeofday/;
@@ -417,6 +417,54 @@ sub _logger {
     OMP::General->log_message($mess, $level);
 
     return;
+}
+
+=item B<extract_body_text>
+
+Return the body of an email, and a notation about any removed attachments.
+
+    $text = OMP::Mail->extract_body_text($entity);
+
+=cut
+
+sub extract_body_text {
+    my $cls = shift;
+    my $entity = shift;
+
+    my @bodytexts = ();
+
+    my $head = $entity->head;
+    my $charset = $head->mime_attr('content-type.charset');
+
+    my $num_parts = $entity->parts;
+
+    # If more than one part, call this method again.
+    if ($num_parts > 0) {
+        foreach (0 .. ($num_parts - 1)) {
+            my $part = $entity->parts($_);
+            push @bodytexts, $cls->extract_body_text($part);
+        }
+    }
+    else {
+        # If in final part, return the body if it's a text type.
+        my $mime_type = $entity->mime_type;
+
+        if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
+            my $bh = $entity->bodyhandle;
+            my $text = $bh->as_string;
+
+            if (defined $charset) {
+                $text = decode($charset, $text);
+            }
+
+            push @bodytexts, $text;
+        }
+        else {
+            push @bodytexts, "One attachment of type [$mime_type] was removed.";
+        }
+    }
+
+    return join "\n\n", @bodytexts;
 }
 
 1;

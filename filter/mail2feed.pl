@@ -56,6 +56,7 @@ use OMP::Display;
 use OMP::Fault::Response;
 use OMP::FaultServer;
 use OMP::FBServer;
+use OMP::Mail;
 use OMP::General;
 use OMP::User;
 use OMP::UserServer;
@@ -165,7 +166,7 @@ sub accept_message {
     # Get body of email.
     my $text;
     if ($audit->is_mime) {
-        $text = extract_body($audit);
+        $text = OMP::Mail->extract_body_text($audit);
     }
     else {
         $text = join('', @{$audit->body});
@@ -302,46 +303,6 @@ sub show_comment {
             $data->{$field};
     }
 }
-
-# Return the body of an email, and a notation about any removed attachments.
-sub extract_body {
-    my $entity = shift;
-    my @bodytexts = ();
-
-    my $head = $entity->head;
-    my $charset = $head->mime_attr('content-type.charset');
-
-    my $num_parts = $entity->parts;
-
-    # If more than one part, call this routine again.
-    if ($num_parts > 0) {
-        foreach (0 .. ($num_parts - 1)) {
-            my $part = $entity->parts($_);
-            push @bodytexts, extract_body($part);
-        }
-    }
-    else {
-        # If in final part, return the body if its a text type.
-        my $mime_type = $entity->mime_type;
-
-        if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
-            my $bh = $entity->bodyhandle;
-            my $text = $bh->as_string;
-
-            if (defined $charset) {
-                $text = decode($charset, $text);
-            }
-
-            push @bodytexts, $text;
-        }
-        else {
-            push @bodytexts, "One attachment of type [$mime_type] was removed.";
-        }
-    }
-
-    return join("\n\n", @bodytexts);
-}
-
 
 # Determine the project or fault ID from the subject and
 # store it in the mail header
