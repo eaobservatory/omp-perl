@@ -140,6 +140,7 @@ my $mess = $mailer->build(
     ($cc_users ? ('cc' => $cc_users) : ()),
     'subject' => 'Test mail, ' . scalar localtime(),
     'message' => $message,
+    preformatted => $html,
     reply_to_sender => $reply_to,
 );
 

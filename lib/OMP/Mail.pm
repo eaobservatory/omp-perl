@@ -98,9 +98,23 @@ An C<OMP::User> object.
 
 Subject of the message.
 
+=item preformatted
+
+Is the message preformatted (as HTML)?  [Default: no, message is plain text.]
+
 =item message
 
-The actual mail message.
+The body text for the mail message.
+
+This will be line-wrapped using C<OMP::Display-E<gt>format_text>
+unless it is preformatted, in which case the HTML is line-wrapped
+using C<OMP::Display-E<gt>wrap_text>.
+
+=item message_plain
+
+A plain text alternative to the message.  This is only used if C<preformatted>
+is true.  If not provided, the C<message> is converted to plain text using
+C<OMP::Display-E<gt>format_text> (which in turn uses C<OMP::Display-E<gt>html2plain>).
 
 =item headers
 
@@ -146,11 +160,24 @@ sub build {
 
     my $sender = $args{'from'};
 
-    # Decide if we'll have attachments or not and set the MIME type accordingly
-    # by checking for the presence of HTML in the message
-    my $type = ($args{message} =~ m!(</|<br>|<p>)!im
-        ? "multipart/alternative"
-        : "text/plain");
+    # Decide if we'll have attachments or not and set the MIME type accordingly.
+    my ($type, $message, $message_plain);
+    my $wrap_width = 80;
+    unless ($args{'preformatted'}) {
+        $type = 'text/plain';
+        $message = OMP::Display->format_text($args{'message'}, 0, width => $wrap_width);
+    }
+    else {
+        $type = 'multipart/alternative';
+        $message = OMP::Display->wrap_text($args{'message'}, $wrap_width, 0);
+
+        if (exists $args{'message_plain'} and defined $args{'message_plain'}) {
+            $message_plain = OMP::Display->format_text($args{'message_plain'}, 0, width => $wrap_width);
+        }
+        else {
+            $message_plain = OMP::Display->format_text($args{'message'}, 1, width => $wrap_width);
+        }
+    }
 
     # Setup the message
     my $charset = 'utf-8';
@@ -175,7 +202,7 @@ sub build {
     if ($type eq "text/plain") {
         $details{'Encoding'} = 'quoted-printable';
         $details{'Charset'} = $charset;
-        $details{'Data'} = encode($charset, $args{message});
+        $details{'Data'} = encode($charset, $message);
     }
     else {
         $details{'Encoding'} = '7bit';
@@ -201,16 +228,12 @@ sub build {
     # Convert the HTML to plain text and attach it to the message if we're
     # sending a multipart/alternative message
     if ($type eq "multipart/alternative") {
-        # Convert the HTML to text and store it
-        my $text = $args{message};
-        my $plaintext = OMP::Display->html2plain($text);
-
         # Attach the plain text message
         $mess->attach(
             Charset => $charset,
             Encoding => 'quoted-printable',
             'Type' => "text/plain",
-            'Data' => encode($charset, $plaintext),
+            'Data' => encode($charset, $message_plain),
         ) or throw OMP::Error::MailError("Error attaching plain text message\n");
 
         # Now attach the original message (it should come up as the default message
@@ -219,7 +242,7 @@ sub build {
             Charset => $charset,
             Encoding => 'quoted-printable',
             'Type' => "text/html",
-            'Data' => encode($charset, $args{message}),
+            'Data' => encode($charset, $message),
         ) or throw OMP::Error::MailError("Error attaching HTML message\n");
     }
 

@@ -302,6 +302,7 @@ for my $proj (keys %sorted) {
             from => $flexuser,
             subject => "[$proj] $tel data obtained for project on " . $utdate->ymd,
             message => OMP::Display->remove_cr($fullmessage),
+            preformatted => 1,
         );
         $mailer->send($message);
     }
