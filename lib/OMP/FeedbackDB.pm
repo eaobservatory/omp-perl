@@ -420,32 +420,23 @@ sub _mail_comment {
     my $self = shift;
     my %args = @_;
 
-    # If there is HTML in the message we'll use "<br>" instead of "\n"
-    # to start a new line when adding any text to the message
-    my $newline = ($args{comment}->{text} =~ m!</!m ? "<br>" : "\n");
-
-    # Mail message (Format with HTML since the mail method will convert to
-    # plaintext)
-    my $msg = $args{comment}->{text};
-
-    # Word wrap the message.
-    $msg = OMP::Display->wrap_text($msg, 72, 0);
+    my $comment = $args{'comment'};
 
     my $projectid = $self->projectid;
 
     # Put projectid in subject header if it isn't already there
-    my $subject;
-    ($args{comment}->{subject} !~ /\[$projectid\]/i)
-        and $subject = "[$projectid] $args{comment}->{subject}"
-        or $subject = "$args{comment}->{subject}";
+    my $subject = ($comment->{'subject'} !~ /\[$projectid\]/i)
+        ? (sprintf '[%s] %s', $projectid, $comment->{'subject'})
+        : $comment->{'subject'};
 
-    my $from = defined $args{comment}->{author}
-        ? $args{comment}->{author}
+    my $from = defined $comment->{'author'}
+        ? $comment->{'author'}
         : OMP::User->get_flex();
 
     # Setup message details
     my %details = (
-        message => $msg,
+        message => $comment->{'text'},
+        preformatted => (!! $comment->{'preformatted'}),
         to => $args{to},
         from => $from,
         bcc => $args{bcc},
