@@ -49,7 +49,6 @@ use OMP::DateTools;
 use OMP::FaultDB;
 use OMP::FaultQuery;
 use OMP::FaultGroup;
-use OMP::CommentServer;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
 use Time::Piece qw/:override/;

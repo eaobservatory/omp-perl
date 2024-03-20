@@ -137,7 +137,6 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Config;
 use OMP::Error qw/:try/;
-use OMP::CommentServer;
 use OMP::FileUtils;
 
 BEGIN {
@@ -1925,8 +1924,14 @@ sub create_shiftlog_widget {
 }
 
 sub update_shiftlog_comments {
+    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+    my $query = OMP::ShiftQuery->new(HASH => {
+        date => {value => $ut, delta => 1},
+        telescope => $telescope,
+    });
+
     try {
-        @shiftcomments = OMP::CommentServer->getShiftLog($ut, $telescope);
+        @shiftcomments = $sdb->getShiftLogs($query);
     }
     catch OMP::Error with {
         my $Error = shift;
@@ -2113,7 +2118,8 @@ sub save_shift_comment {
     );
 
     # And add it to the system
-    OMP::CommentServer->addShiftLog($comment, $telescope);
+    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+    $sdb->enterShiftLog($comment, $telescope);
 }
 
 sub raise_shift_comment {
