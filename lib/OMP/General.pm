@@ -8,9 +8,6 @@ OMP::General - general purpose methods
 
     use OMP::General;
 
-    # To be saved with HTML markup.
-    $insertstring = OMP::General->prepare_for_insert($string);
-
     # Provided project id is a partial string.
     $proj = OMP::General->infer_projectid(
         projectid => $input,
