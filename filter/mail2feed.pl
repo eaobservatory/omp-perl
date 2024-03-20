@@ -52,10 +52,11 @@ use Encode qw/decode/;
 # module is installed in "site_perl".
 use Encode::HanExtra;
 
+use OMP::DBbackend;
 use OMP::Display;
 use OMP::Fault::Response;
-use OMP::FaultServer;
-use OMP::FBServer;
+use OMP::FaultDB;
+use OMP::FeedbackDB;
 use OMP::Mail;
 use OMP::General;
 use OMP::User;
@@ -156,6 +157,8 @@ sub accept_message {
     my $audit = shift;
     my $args = shift;
 
+    my $database = OMP::DBbackend->new();
+
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
     # Get the information we need
@@ -213,10 +216,10 @@ sub accept_message {
 
     # Send the message to the appropriate system.
     if (exists $args->{'projectid'}) {
-        accept_feedback($audit, $subject, $args->{'projectid'}, $author, $text, $srcip);
+        accept_feedback($database, $audit, $subject, $args->{'projectid'}, $author, $text, $srcip);
     }
     elsif (exists $args->{'faultid'}) {
-        accept_fault($audit, $subject, $args->{'faultid'}, $author, $text);
+        accept_fault($database, $audit, $subject, $args->{'faultid'}, $author, $text);
     }
     else {
         my $text = 'Sorry. Could not determine how to store message.';
@@ -234,7 +237,7 @@ sub accept_message {
 
 
 sub accept_feedback {
-    my ($audit, $subject, $project, $author, $text, $srcip) = @_;
+    my ($database, $audit, $subject, $project, $author, $text, $srcip) = @_;
 
     $audit->log(1 => "Sending to feedback system with Project $project");
 
@@ -249,7 +252,8 @@ sub accept_feedback {
     );
 
     unless ($DRY_RUN) {
-        OMP::FBServer->addComment($project, \%data);
+        my $fdb = OMP::FeedbackDB->new(ProjectID => $project, DB => $database);
+        $fdb->addComment(\%data);
         $audit->log(1 => "Sent to feedback system with Project $project");
     }
     else {
@@ -260,7 +264,7 @@ sub accept_feedback {
 
 
 sub accept_fault {
-    my ($audit, $subject, $faultid, $author, $text) = @_;
+    my ($database, $audit, $subject, $faultid, $author, $text) = @_;
 
     $audit->log(1 => "Sending to fault system for fault $faultid");
 
@@ -278,7 +282,8 @@ sub accept_fault {
     );
 
     unless ($DRY_RUN) {
-        OMP::FaultServer->respondFault($faultid, OMP::Fault::Response->new(%data));
+        my $fdb = OMP::FaultDB->new(DB => $database);
+        $fdb->respondFault($faultid, OMP::Fault::Response->new(%data));
     }
     else {
         show_comment('fault', $faultid, \@order, \%data);

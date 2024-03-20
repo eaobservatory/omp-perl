@@ -28,7 +28,7 @@ use OMP::Constants qw(:fb);
 use OMP::Config;
 use OMP::Display;
 use OMP::Error qw(:try);
-use OMP::FBServer;
+use OMP::FeedbackDB;
 use OMP::UserServer;
 use OMP::DateTools;
 use OMP::General;
@@ -288,7 +288,8 @@ sub project_home {
     };
 
     # Get the "important" feedback comments
-    my $comments = OMP::FBServer->getComments($projectid, [OMP__FB_IMPORTANT],);
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $comments = $fdb->getComments(status => [OMP__FB_IMPORTANT]);
 
     return {
         project => $project,
@@ -917,8 +918,8 @@ sub process_project_changes {
 
     # Get OMP user object
     if ($q->param('send_mail')) {
-        OMP::FBServer->addComment(
-            $project->projectid,
+        my $fdb = OMP::FeedbackDB->new(ProjectID => $project->projectid, DB => $self->database);
+        $fdb->addComment(
             {
                 author => $self->auth->user,
                 subject => 'Project details altered',

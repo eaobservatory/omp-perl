@@ -87,7 +87,8 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
-use OMP::FBServer;
+use OMP::DBbackend;
+use OMP::FeedbackDB;
 use OMP::Password;
 use OMP::UserServer;
 use OMP::ProjServer;
@@ -138,6 +139,8 @@ foreach my $id (<$proj_fh>) {
 
 close($proj_fh);
 
+my $database = OMP::DBbackend->new();
+
 # Verify that the projects exist
 foreach my $projectid (@projects) {
     die "Project does not exist [$projectid]"
@@ -187,7 +190,8 @@ foreach my $projectid (@projects) {
         next;
     }
 
-    OMP::FBServer->addComment($projectid, \%comment);
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
+    $fdb->addComment(\%comment);
     print " [DONE]\n";
 }
 

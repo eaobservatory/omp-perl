@@ -24,7 +24,7 @@ use Carp;
 
 use OMP::Constants qw/:fb/;
 use OMP::Error qw/:try/;
-use OMP::FBServer;
+use OMP::FeedbackDB;
 use OMP::NetTools;
 
 use base qw/OMP::CGIComponent/;
@@ -62,7 +62,8 @@ sub fb_entries {
 
     my $order = (scalar $q->param("order")) // 'ascending';
 
-    my $comments = OMP::FBServer->getComments($projectid, $status, $order);
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $comments = $fdb->getComments(status => $status, order => $order);
 
     return {
         comments => $comments,
@@ -90,8 +91,9 @@ sub fb_entries_count {
     my $self = shift;
     my $projectid = shift;
 
-    my $comments = OMP::FBServer->getComments(
-        $projectid, [
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $comments = $fdb->getComments(
+        status => [
             OMP__FB_IMPORTANT,
             OMP__FB_INFO,
             OMP__FB_SUPPORT,
@@ -127,9 +129,11 @@ sub submit_fb_comment {
         status => OMP__FB_IMPORTANT,
     };
 
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+
     my @messages;
     try {
-        OMP::FBServer->addComment($projectid, $comment);
+        $fdb->addComment($comment);
         push @messages, 'Your comment has been submitted.';
 
     }

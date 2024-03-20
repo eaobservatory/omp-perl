@@ -51,12 +51,13 @@ use File::Path '1.05';
 use File::Basename;
 use Cwd;
 use OMP::DateTools;
+use OMP::DBbackend;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::ProjServer;
 use OMP::Constants qw/:fb/;
-use OMP::FBServer;
+use OMP::FeedbackDB;
 use OMP::Info::ObsGroup;
 use File::Temp qw/tempdir/;
 use OMP::Config;
@@ -1013,8 +1014,9 @@ sub add_fb_comment {
     my $project = OMP::ProjServer->projectDetails($projectid, "object");
     my $pi = $project->pi;
 
-    OMP::FBServer->addComment(
-        $projectid,
+    my $database = OMP::DBbackend->new();
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
+    $fdb->addComment(
         {
             subject => "Data requested",
             author => undef,

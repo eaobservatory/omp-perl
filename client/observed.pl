@@ -73,7 +73,6 @@ use OMP::Config;
 use OMP::Constants qw/:fb :logging/;
 use OMP::DBbackend;
 use OMP::Display;
-use OMP::FBServer;
 use OMP::DateTools;
 use OMP::Mail;
 use OMP::NetTools;
