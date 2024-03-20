@@ -53,7 +53,7 @@ use OMP::CommentServer;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
 use Time::Piece qw/:override/;
-use OMP::BaseDB;
+use OMP::Mail;
 use OMP::Display;
 use OMP::User;
 
@@ -1722,12 +1722,14 @@ sub mail_report {
     }
 
     # and mail it
-    OMP::BaseDB->_mail_information(
+    my $mailer = OMP::Mail->new();
+    my $message = $mailer->build(
         to => \@mailaddr,
         from => $from,
         subject => 'OBS REPORT: ' . $self->date->ymd . ' at the ' . $self->telescope,
         message => $report,
     );
+    $mailer->send($message);
 }
 
 =back
