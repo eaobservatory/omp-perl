@@ -2,17 +2,21 @@ package OMP::Mail;
 
 =head1 NAME
 
-OMP::Mail - Email functionality taken from OMP::BaseDB
+OMP::Mail - Build and extract text from email messages
 
 =head1 SYNOPSIS
 
-...
+    my $mailer = OMP::Mail->new();
+    my $mess = $mailer->build(%args);
+    $mailer->send($mess);
+
+    $text = OMP::Mail->extract_body_text($entity);
 
 =head1 DESCRIPTION
 
-This class has the original email composition & mailing from
-OMP::BaseDB module. It does not store anything in database.
-Purpose is to test various email composition & mailing out methods.
+This class has the original email composition & mailing functionality from
+the C<OMP::BaseDB> module.  It also has (an updated version of) the body
+text extraction routine from the C<filter/mail2feed.pl> script.
 
 =cut
 
