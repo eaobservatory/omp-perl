@@ -835,6 +835,7 @@ sub _mail_fault {
     # Mail it off
     $self->_mail_information(
         message => $msg,
+        preformatted => 1,
         to => \@faultusers,
         cc => \@cc,
         from => $from,
@@ -931,6 +932,7 @@ sub _mail_fault_update {
     if ($fault->author->email and scalar @faultusers) {
         $self->_mail_information(
             message => $msg,
+            preformatted => 1,
             to => [$fault->author],
             from => $faultusers[0],
             subject => "Your fault [" . $fault->id . "] has been updated",
