@@ -39,7 +39,7 @@ use OMP::Fault;
 use OMP::FaultDB;
 use OMP::FaultUtil;
 use OMP::Display;
-use OMP::FaultServer;
+use OMP::FaultQuery;
 use OMP::Fault::Response;
 use OMP::User;
 use OMP::UserServer;
@@ -169,7 +169,8 @@ sub file_fault {
     # Submit the fault the the database
     my @message = ();
     try {
-        $faultid = OMP::FaultServer->fileFault($fault);
+        my $fdb = OMP::FaultDB->new(DB => $self->database);
+        $faultid = $fdb->fileFault($fault);
     }
     catch OMP::Error::MailError with {
         my $E = shift;
@@ -469,15 +470,16 @@ sub query_fault_output {
     my $faults;
     my $search_error = undef;
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
+    my $fdb = OMP::FaultDB->new(DB => $self->database);
     try {
-        $faults = OMP::FaultServer->queryFaults($xml, "object", %queryopt);
+        $faults = $fdb->queryFaults(OMP::FaultQuery->new(XML => $xml), %queryopt);
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
         if (! $q->param('faultsearch') and ! $faults->[0]) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-            $faults = OMP::FaultServer->queryFaults($currentxml, "object", %queryopt);
+            $faults = $fdb->queryFaults(OMP::FaultQuery->new(XML => $currentxml), %queryopt);
         }
     }
     otherwise {
@@ -584,7 +586,8 @@ sub view_fault {
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
-    my $fault = OMP::FaultServer->getFault($faultid);
+    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fault = $fdb->getFault($faultid);
     return $self->_write_error("Fault [$faultid] not found.")
         unless $fault;
 
@@ -636,7 +639,7 @@ sub view_fault {
             my $E;
             try {
                 # Resubmit fault with new status
-                OMP::FaultServer->updateFault($fault);
+                $fdb->updateFault($fault);
             }
             otherwise {
                 $E = shift;
@@ -657,7 +660,7 @@ sub view_fault {
                 author => $self->auth->user,
                 text => $text,
             );
-            OMP::FaultServer->respondFault($fault->id, $resp);
+            $fdb->respondFault($fault->id, $resp);
         }
         otherwise {
             $E = shift;
@@ -683,7 +686,7 @@ sub view_fault {
                 $fault->status(scalar $q->param('status'));
 
                 # Resubmit the fault
-                OMP::FaultServer->updateFault($fault, $self->auth->user);
+                $fdb->updateFault($fault, $self->auth->user);
             }
             otherwise {
                 $E = shift;
@@ -714,7 +717,7 @@ sub view_fault {
 
         my $E;
         try {
-            OMP::FaultServer->updateResponse($faultid, $response);
+            $fdb->updateResponse($faultid, $response);
         }
         otherwise {
             $E = shift;
@@ -825,7 +828,8 @@ sub update_fault {
         unless $faultid;
 
     # Get the fault
-    my $fault = OMP::FaultServer->getFault($faultid);
+    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fault = $fdb->getFault($faultid);
 
     unless ($q->param('submit_update')) {
         return {
@@ -865,7 +869,7 @@ sub update_fault {
                 }
 
                 # Store changes to DB
-                OMP::FaultServer->updateFault($fault, $self->auth->user);
+                $fdb->updateFault($fault, $self->auth->user);
             }
 
             if ($response_changed[0]) {
@@ -874,7 +878,7 @@ sub update_fault {
                     $response->$_($newdetails{$_});
                 }
 
-                OMP::FaultServer->updateResponse($fault->id, $response);
+                $fdb->updateResponse($fault->id, $response);
             }
         }
         otherwise {
@@ -913,8 +917,10 @@ sub update_resp {
     return $self->_write_error("A fault ID and response ID must be provided.")
         unless ($faultid and $respid);
 
+    my $fdb = OMP::FaultDB->new(DB => $self->database);
+
     # Get the fault
-    my $fault = OMP::FaultServer->getFault($faultid);
+    my $fault = $fdb->getFault($faultid);
 
     return $self->_write_error("Unable to retrieve fault with ID [$faultid]")
         unless $fault;
@@ -951,7 +957,7 @@ sub update_resp {
     # Submit the changes
     my $E;
     try {
-        OMP::FaultServer->updateResponse($faultid, $response);
+        $fdb->updateResponse($faultid, $response);
     }
     otherwise {
         $E = shift;
@@ -1074,8 +1080,10 @@ sub _write_page_extra {
         $faultid = OMP::General->extract_faultid("[${faultid}]");
         croak 'Invalid fault ID' unless defined $faultid;
 
+        my $fdb = OMP::FaultDB->new(DB => $self->database);
+
         try {
-            $fault = OMP::FaultServer->getFault($faultid);
+            $fault = $fdb->getFault($faultid);
         }
         otherwise {
             my $E = shift;

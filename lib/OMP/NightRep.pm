@@ -338,9 +338,9 @@ sub faults {
         my %results;
         for my $xmlquery (keys %xml) {
             my $query = OMP::FaultQuery->new(XML => $xml{$xmlquery});
-            my @results = $fdb->queryFaults($query);
+            my $results = $fdb->queryFaults($query);
 
-            for (@results) {
+            for (@$results) {
                 # Use fault date epoch followed by ID for key so that we can
                 # sort properly and maintain uniqueness
                 if ($xmlquery =~ /filed/) {

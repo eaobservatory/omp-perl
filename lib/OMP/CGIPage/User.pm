@@ -23,8 +23,8 @@ our $VERSION = '2.000';
 use OMP::Config;
 use OMP::Display;
 use OMP::Error qw/:try/;
+use OMP::FaultDB;
 use OMP::FaultQuery;
-use OMP::FaultServer;
 use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
@@ -140,7 +140,9 @@ sub details {
         . "</FaultQuery>";
     my $faultquery = OMP::FaultQuery->new(XML => $xml);
 
-    my $faults = OMP::FaultServer->queryFaults($faultquery, "object");
+
+    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $faults = $fdb->queryFaults($faultquery);
 
     # Sort by category
     my %faults;

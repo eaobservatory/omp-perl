@@ -31,7 +31,6 @@ use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultDB;
-use OMP::FaultServer;
 use OMP::FaultGroup;
 use OMP::FaultUtil;
 use OMP::MSBServer;

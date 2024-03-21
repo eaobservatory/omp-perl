@@ -13,7 +13,7 @@ OMP::FaultDB - Fault database manipulation
     $db->respondFault($faultid, $response);
     $db->closeFault($fault);
     $fault = $db->getFault($faultid);
-    @faults = $db->queryFaults($query);
+    $faults = $db->queryFaults($query);
 
 =head1 DESCRIPTION
 
@@ -194,15 +194,15 @@ sub getFault {
     my $xml = "<FaultQuery><faultid>$id</faultid></FaultQuery>";
     my $query = OMP::FaultQuery->new(XML => $xml);
 
-    my @result = $self->queryFaults($query);
+    my $result = $self->queryFaults($query);
 
-    if (scalar(@result) > 1) {
+    if (scalar(@$result) > 1) {
         throw OMP::Error::FatalError(
             "Multiple faults match the supplied id [$id] - this is not possible [bizarre]");
     }
 
     # Guaranteed to be only one match
-    return $result[0];
+    return $result->[0];
 }
 
 =item B<getFaultsByDate>
@@ -210,10 +210,9 @@ sub getFault {
 Retrieve faults filed on the specified UT date. Date must be in the format
 'YYYY-MM-DD'.
 
-    @faults = $db->getFaultsByDate($ut);
+    $faults = $db->getFaultsByDate($ut);
 
-This method returns an array of C<OMP::Fault> objects, or undef if none
-can be found in the database.
+This method returns a reference to an array of C<OMP::Fault> objects.
 
 An optional second argument can be used to specify the category (OMP,
 CSG, UKIRT, JCMT etc).
@@ -235,9 +234,9 @@ sub getFaultsByDate {
         . "</FaultQuery>";
     my $query = OMP::FaultQuery->new(XML => $xml);
 
-    my @result = $self->queryFaults($query);
+    my $result = $self->queryFaults($query);
 
-    return @result;
+    return $result;
 }
 
 =item B<queryFaults>
@@ -245,7 +244,7 @@ sub getFaultsByDate {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-    @faults = $db->queryFaults($query, %options);
+    $faults = $db->queryFaults($query, %options);
 
 Options can be given to optimize the query strategy for the
 desired purpose:
@@ -563,7 +562,7 @@ sub _close_fault {
 Query the fault database and retrieve the matching fault objects.
 Queries must be supplied as C<OMP::FaultQuery> objects.
 
-    @faults = $db->_query_faultdb($query, %options);
+    $faults = $db->_query_faultdb($query, %options);
 
 Faults are returned sorted by fault ID.
 
@@ -644,11 +643,7 @@ sub _query_faultdb {
 
     # Sort the keys by faultid
     # [more efficient than sorting the objects by faultid]
-    my @faults = sort {$a <=> $b} keys %faults;
-
-    # Now return the values in the hash
-    # as a hash slice
-    return @faults{@faults};
+    return [map {$faults{$_}} sort {$a <=> $b} keys %faults];
 }
 
 =item B<_update_fault_row>
