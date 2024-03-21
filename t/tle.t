@@ -4,12 +4,12 @@ use warnings;
 use Test::More tests => 7;
 
 use OMP::Error qw/:try/;
-use OMP::TLEDB qw/standardize_tle_name/;
+use OMP::TLEDB;
 
-is(standardize_tle_name('NORAD12345'), 'NORAD12345',
+is(OMP::TLEDB->standardize_tle_name('NORAD12345'), 'NORAD12345',
     'Standardize TLE name which is already OK');
 
-is(standardize_tle_name(' nOrAd 42 '), 'NORAD00042',
+is(OMP::TLEDB->standardize_tle_name(' nOrAd 42 '), 'NORAD00042',
     'Standardize TLE name which can be corrected');
 
 # Various bad names.
@@ -23,7 +23,7 @@ foreach my $target (
     my $threw = 0;
 
     try {
-        standardize_tle_name($target);
+        OMP::TLEDB->standardize_tle_name($target);
     }
     catch OMP::Error with {
         $threw = 1;

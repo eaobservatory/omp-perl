@@ -102,7 +102,7 @@ sub find_targets {
             ORDER BY Q2.target";
     }
     elsif ($opt{'ra'} and $opt{'dec'}) {
-        my $coord = new Astro::Coords(
+        my $coord = Astro::Coords->new(
             ra => $opt{'ra'},
             dec => $opt{'dec'},
             type => 'J2000',
@@ -144,7 +144,7 @@ sub find_targets {
 
     # Get the connection handle
 
-    my $dbs = new OMP::DBbackend();
+    my $dbs = OMP::DBbackend->new();
 
     my $db = $dbs->handle() || die qq {
     --------------------------------------------------------------
@@ -174,30 +174,31 @@ sub display_targets {
     my $pi = 4.0*atan(1.0);
 
     print "----------------------------------------------------------------------------\n";
-    if ($#$row_ref < 0 ) {
-      print "No targets within $dsep arcsecs from reference.\n";
-    } else {
-
-      my $n = 0;
-      my $pref = "";
-      foreach my $row (@$row_ref) {
-        $n++;
-
-        my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
-
-        if ($n == 1 || $ref ne $pref ) {
-          print "Targets within $dsep arcsecs from  ${ref}:\n";
-          $pref = $ref;
-        }
-
-        my ($sign_ra, @hh) = palDr2tf(2, $ra);
-        my ($sign,    @dd) = palDr2af(2, $dec);
-
-        printf qq{%-12s %12s %8d"  %2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d %8s\n},
-          $proj, $target, int($sep+0.5), $hh[0], $hh[1], $hh[2], $hh[3],
-                         $sign, $dd[0], $dd[1], $dd[2], $dd[3], $instr;
-      }
+    if ($#$row_ref < 0) {
+        print "No targets within $dsep arcsecs from reference.\n";
     }
+    else {
+        my $n = 0;
+        my $pref = "";
+        foreach my $row (@$row_ref) {
+            $n ++;
+
+            my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
+
+            if ($n == 1 || $ref ne $pref) {
+                print "Targets within $dsep arcsecs from  ${ref}:\n";
+                $pref = $ref;
+            }
+
+            my ($sign_ra, @hh) = palDr2tf(2, $ra);
+            my ($sign, @dd) = palDr2af(2, $dec);
+
+            printf "%-12s %12s %8d\"  %2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d %8s\n",
+                $proj, $target, int($sep + 0.5), $hh[0], $hh[1], $hh[2], $hh[3],
+                $sign, $dd[0], $dd[1], $dd[2], $dd[3], $instr;
+        }
+    }
+
     print "----------------------------------------------------------------------------\n";
 }
 

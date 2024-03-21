@@ -9,7 +9,7 @@ OMP::Info::Preview - Preview image information
 use strict;
 use warnings;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 use overload '""' => 'stringify';
 
@@ -98,3 +98,5 @@ details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
+
+=cut

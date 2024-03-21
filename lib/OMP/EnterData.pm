@@ -7,7 +7,7 @@ OMP::EnterData - Parse headers and store in database
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $enter = new OMP::EnterData::SCUBA2('dict' => '/path/to/dict');
+    my $enter = OMP::EnterData::SCUBA2->new('dict' => '/path/to/dict');
 
     # Upload metadata for Jun 25, 2008.
     $enter->prepare_and_insert(date => '20080625');
@@ -68,7 +68,7 @@ $| = 1; # Make unbuffered
 
 =head2 METHODS
 
-=over 2
+=over 4
 
 =item B<new>
 
@@ -93,7 +93,7 @@ sub new {
 
     my $dict = $args{'dict'};
     throw OMP::Error::FatalError('No valid data dictionary given')
-        unless defined $dict ;
+        unless defined $dict;
     throw OMP::Error::FatalError("Data dictionary, $dict, is not a readable file.")
         unless -f $dict && -r _;
 
@@ -279,7 +279,7 @@ sub prepare_and_insert {
     my $mdb = undef;
     if ($arg{'from_mongodb'}) {
         require OMP::DB::JSA::MongoDB;
-        $mdb = new OMP::DB::JSA::MongoDB();
+        $mdb = OMP::DB::JSA::MongoDB->new();
     }
 
     my %update_args = map {$_ => $arg{$_}} qw/
@@ -328,7 +328,7 @@ sub prepare_and_insert {
     # The %columns hash will contain a key for each table, each key's value
     # being an anonymous hash containing the column information.
 
-    my $db = new OMP::DBbackend::Archive();
+    my $db = OMP::DBbackend::Archive->new();
     my $dbh = $db->handle_checked();
 
     my %columns = map {$_ => $self->get_columns($_, $dbh)}
@@ -435,7 +435,7 @@ sub insert_observation {
                 }
                 elsif ($val =~ /should not/i) {
                     $log->debug("$_ : $val");
-                    undef $headers->{$_} if $headers->{$_} =~ /^UNDEF/ ;
+                    undef $headers->{$_} if $headers->{$_} =~ /^UNDEF/;
                 }
             }
         }
@@ -722,10 +722,10 @@ sub _get_observations {
                     # code to deal with its lack of metadata has been
                     # located in this package for now.
                     require Astro::FITS::Header::CFITSIO;
-                    my $header = new Astro::FITS::Header::CFITSIO(File => $file, ReadOnly => 1);
+                    my $header = Astro::FITS::Header::CFITSIO->new(File => $file, ReadOnly => 1);
                     my $extra = $self->read_file_extra($file);
                     $self->preprocess_header($file, $header, $extra);
-                    $obs = new OMP::Info::Obs(
+                    $obs = OMP::Info::Obs->new(
                         fits => $header, wcs => undef, %info_obs_opt);
                     $obs->filename($file);
                 }
@@ -884,16 +884,16 @@ sub is_simulation {
     my @order = ('SIMULATE', 'OBS_TYPE');
 
     foreach my $name (@order) {
-      my $val = $self->_find_header(headers => $header,
-                                    name   => $name,
-                                    test   => 'defined',
-                                    value  => 1);
+        my $val = $self->_find_header(
+            headers => $header,
+            name => $name,
+            test => 'defined',
+            value => 1);
 
-      my $test = $sim{$name};
+        my $test = $sim{$name};
 
-      return 1
-          if defined $val
-          && $val =~ $test;
+        return 1 if defined $val
+                && $val =~ $test;
     }
 
     return;
@@ -1437,7 +1437,7 @@ sub transform_value {
             }
             elsif ($column eq 'lststart' or $column eq 'lstend') {
                 # Convert LSTSTART and LSTEND to decimal hours
-                my $ha = new Astro::Coords::Angle::Hour($val, units => 'sex');
+                my $ha = Astro::Coords::Angle::Hour->new($val, units => 'sex');
                 $values->{$column} = $ha->hours;
 
                 $log->trace(sprintf
@@ -1956,10 +1956,11 @@ sub calc_radec {
     # This means we have to look at JCMTSTATE anyway (but we still ask SMURF because that
     # will save us doing coordinate conversion)
 
-    my $tracksys = $self->_find_header(headers => $headerref,
-                                       name   => 'TRACKSYS',
-                                       value  => 1,
-                                       test   => 'true');
+    my $tracksys = $self->_find_header(
+        headers => $headerref,
+        name => 'TRACKSYS',
+        value => 1,
+        test => 'true');
 
     my %state;
     unless ($tracksys) {
@@ -2160,7 +2161,7 @@ C<SUBHEADERS> are also searched along with the main header hash.
 
 Optional keys are ...
 
-=over 2
+=over 4
 
 =item I<test> "true" | "defined"
 
@@ -2290,7 +2291,7 @@ sub _verify_file_name {
     return unless $size;
 
     throw OMP::Error sprintf "Bad file name%s: %s\n",
-                             ($size > 1 ? 's' : ''), join ', ', @bad ;
+                             ($size > 1 ? 's' : ''), join ', ', @bad;
 }
 
 =item B<_get_xfer_unconnected_dbh>
@@ -2313,10 +2314,10 @@ a cached object is returned.
 
         return $xfer{$name} if exists $xfer{$name};
 
-        my $db = new OMP::DB::JSA(name => $name);
+        my $db = OMP::DB::JSA->new(name => $name);
         $db->use_transaction(0);
 
-        return $xfer{$name} = new OMP::DB::JSA::TableTransfer(
+        return $xfer{$name} = OMP::DB::JSA::TableTransfer->new(
             db => $db, transactions => 0);
     }
 }
@@ -2407,7 +2408,7 @@ sub calcbounds_files_from_db {
           AND ( c.obsra IS NULL and c.obsdec IS NULL )',
         join(',', ('?') x scalar @$obs_types));
 
-    my $jdb = new OMP::DB::JSA();
+    my $jdb = OMP::DB::JSA->new();
     my $tmp = $jdb->run_select_sql(
         sql    => $sql,
         values => [$pattern, $date, @$obs_types]);
@@ -2457,7 +2458,7 @@ sub calcbounds_update_bound_cols {
         # ";" is to indicate to Perl that "{" starts a BLOCK not an EXPR.
         map {; "obsra$_" , "obsdec$_"} ('', qw/tl bl tr br/);
 
-    my $db = new OMP::DBbackend::Archive();
+    my $db = OMP::DBbackend::Archive->new();
     my $dbh = $db->handle_checked();
 
     for my $obs (@{$obs_list}) {
@@ -2550,7 +2551,7 @@ sub calcbounds_update_bound_cols {
 
 =head2 FUNCTIONS
 
-=over 2
+=over 4
 
 =item B<calculate_release_date>
 
@@ -2574,63 +2575,66 @@ sub calculate_release_date {
     # Get date of observation
     my $obsdate = $obs->utdate;
 
-    if ( $obs->projectid =~ /^mjlsc/i && $obs->isScience) {
+    if ($obs->projectid =~ /^mjlsc/i && $obs->isScience) {
         # CLS. Should properly check the SURVEY FITS header
-        return DateTime->new(month => 3,
-                             year => 2016,
-                             day => 1,
-                             hour => 23,
-                             minute => 59,
-                             second => 59,
-                             time_zone => 'UTC');
+        return DateTime->new(
+            month => 3,
+            year => 2016,
+            day => 1,
+            hour => 23,
+            minute => 59,
+            second => 59,
+            time_zone => 'UTC');
     }
-
-    elsif ( ($obs->projectid =~ /m21bf004/ || $obs->projectid =~ /m21bf005/)
+    elsif (($obs->projectid =~ /m21bf004/ || $obs->projectid =~ /m21bf005/)
            && $obs->isScience) {
-
         # Funded projects that were allowed to remain proprietary for one year
         # after end of semester they are finished in.
-        return DateTime->new(month => 2,
-                             year => 2024,
-                             day => 1,
-                             hour => 23,
-                             minute => 59,
-                             minute=> 59,
-                             time_zone => 'UTC');
+        return DateTime->new(
+            month => 2,
+            year => 2024,
+            day => 1,
+            hour => 23,
+            minute => 59,
+            minute => 59,
+            time_zone => 'UTC');
     }
-
     elsif ($obs->projectid =~ /ec05$/i && $obs->isScience) {
         # EC05 is a public calibrator monitoring project
         return DateTime::Format::ISO8601->parse_datetime($obsdate);
-
     }
     elsif ($obs->projectid =~ /ec/i) {
         # Do not release EC data.
 
-        return DateTime->new(month => 1,
-                             year => 2031,
-                             day => 1,
-                             hour => 0,
-                             minute => 0,
-                             second => 0,
-                             time_zone => 0);
-
+        return DateTime->new(
+            month => 1,
+            year => 2031,
+            day => 1,
+            hour => 0,
+            minute => 0,
+            second => 0,
+            time_zone => 0);
     }
     elsif ($obs->isScience) {
         # semester release
-        my $semester = OMP::DateTools->determine_semester(date => $obsdate,
-                                                          tel => 'JCMT');
-        my ($sem_begin, $sem_end) =
-            OMP::DateTools->semester_boundary(semester => $semester,
-                                              tel => 'JCMT');
+        my $semester = OMP::DateTools->determine_semester(
+            date => $obsdate,
+            tel => 'JCMT');
+
+        my ($sem_begin, $sem_end) = OMP::DateTools->semester_boundary(
+            semester => $semester,
+            tel => 'JCMT');
 
         # Use DateTime so that we can have proper addition. Add 1 year 1 day because
         # sem_end refers to the UT date and doesn't specify hours/minutes/seconds
-        return DateTime->from_epoch(epoch => $sem_end->epoch,
-                                    time_zone => 'UTC')
-             + DateTime::Duration->new(years => 1, hours => 23,
-                                       minutes => 59, seconds => 59);
-
+        return DateTime->from_epoch(
+                epoch => $sem_end->epoch,
+                time_zone => 'UTC')
+            + DateTime::Duration->new(
+                years => 1,
+                hours => 23,
+                minutes => 59,
+                seconds => 59);
     }
     else {
         # immediate release
@@ -2676,7 +2680,7 @@ Skips any data files that are from simulated runs (SIMULATE=T).
 
 =head1 AUTHORS
 
-=over 2
+=over 4
 
 =item *
 

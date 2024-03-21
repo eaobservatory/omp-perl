@@ -2,7 +2,9 @@ use strict;
 
 use Test::More tests => 2;
 
-BEGIN {use_ok('OMP::DB::JSA::TableCOMMON');}
+BEGIN {
+    use_ok('OMP::DB::JSA::TableCOMMON');
+}
 
 # Check that the range end columns match the start columns
 # by applying conversions.

@@ -17,10 +17,12 @@ BEGIN {
 
 use lib OMPLIB;
 
+use OMP::DBbackend;
 use OMP::Display;
 use OMP::Fault;
+use OMP::FaultDB;
+use OMP::FaultQuery;
 use OMP::FaultUtil;
-use OMP::FaultServer;
 
 # Specify text phrases to search for.
 
@@ -108,7 +110,9 @@ sub query_to_pdf {
     my $name = shift;
     my $xml = shift;
 
-    my $faults = OMP::FaultServer->queryFaults($xml, 'object');
+    my $fdb = OMP::FaultDB->new(DB => OMP::DBbackend->new());
+    my $query = OMP::FaultQuery->new(XML => $xml);
+    my $faults = $fdb->queryFaults($query);
     my $toprint = '';
 
     foreach my $f (@$faults) {

@@ -6,9 +6,9 @@ OMP::DBServer - Base class for servers that talk to the OMP database
 
 =head1 SYNOPSIS
 
-  use base qw/ OMP::DBServer /;
+    use base qw/OMP::DBServer/;
 
-  $db = $class->dbConnection;
+    $db = $class->dbConnection;
 
 =head1 DESCRIPTION
 
@@ -43,20 +43,25 @@ Returns a connection object of type C<OMP::DBbackend>.
 =cut
 
 {
- # Hide the lexical variable
-  my $db;
+    # Hide the lexical variable
+    my $db;
 
-  sub dbConnection {
-    my $class = shift;
+    sub dbConnection {
+        my $class = shift;
 
-    if (defined $db) {
-      return $db;
-    } else {
-      $db = new OMP::DBbackend;
-      return $db;
+        if (defined $db) {
+            return $db;
+        }
+        else {
+            $db = OMP::DBbackend->new;
+            return $db;
+        }
     }
-  }
 }
+
+1;
+
+__END__
 
 =back
 
@@ -73,7 +78,7 @@ instantiated with their own DB connection object which subverts
 the caching since OMP::DBbackend is called directly. This is partly
 my fault because I did not publicise the
 
-   OMP::DBServer->dbConnection()
+    OMP::DBServer->dbConnection()
 
 interface enough and everyone used the DBbackend connection. Too
 late to change this now so OMP::DBbackend now also does connection
@@ -100,13 +105,8 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;
-
-

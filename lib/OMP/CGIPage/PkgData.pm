@@ -6,7 +6,7 @@ OMP::CGIPage::PkgData - Routines to help web serving of data packaging
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::PkgData;
+    use OMP::CGIPage::PkgData;
 
 =head1 DESCRIPTION
 
@@ -19,7 +19,7 @@ are optionally routed through CADC.
 use 5.006;
 use strict;
 use warnings;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 use File::Basename;
 our $VERSION = '0.03';
 
@@ -45,74 +45,78 @@ If inccal is not specified it defaults to true.
 =cut
 
 sub request_data {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $utdate = $q->param('utdate');
-  my $inccal = $q->param('inccal') // 1;
+    my $utdate = $q->param('utdate');
+    my $inccal = $q->param('inccal') // 1;
 
-  my %ctx = (
-      projectid => $projectid,
-      utdate => $utdate,
-      inccal => $inccal,
-  );
+    my %ctx = (
+        projectid => $projectid,
+        utdate => $utdate,
+        inccal => $inccal,
+    );
 
-  # if we have a date, package up the data
-  if ($utdate) {
-    # Need to decide whether we are using CADC or OMP for data retrieval
-    # To do that we need to know the telescope name
-    my $tel = OMP::ProjServer->getTelescope( $projectid );
+    # if we have a date, package up the data
+    if ($utdate) {
+        # Need to decide whether we are using CADC or OMP for data retrieval
+        # To do that we need to know the telescope name
+        my $tel = OMP::ProjServer->getTelescope($projectid);
 
-    return $self->_write_error(
-        "Error obtaining telescope name from project code.")
-        unless defined $tel;
+        return $self->_write_error(
+            "Error obtaining telescope name from project code.")
+            unless defined $tel;
 
-    # Now determine which retrieval scheme is in play (cadc vs omp)
-    my $retrieve_scheme;
-    try {
-      $retrieve_scheme = OMP::Config->getData( "retrieve_scheme", telescope => $tel );
-    } otherwise {
-      $retrieve_scheme = 'omp';
-    };
+        # Now determine which retrieval scheme is in play (cadc vs omp)
+        my $retrieve_scheme;
+        try {
+            $retrieve_scheme = OMP::Config->getData("retrieve_scheme", telescope => $tel);
+        }
+        otherwise {
+            $retrieve_scheme = 'omp';
+        };
 
-    # Go through the package data object so that we do not need to worry about
-    # inconsistencies with local retrieval
-    my $pkg;
-    my $error;
-    try {
-      $pkg = new OMP::PackageData( utdate => $utdate,
-                                   projectid => $projectid,
-                                   inccal => $inccal,
-                                   incjunk => 0,
-                                 );
-    } catch OMP::Error::UnknownProject with {
-      my $E = shift;
-      $error = "This project ID is not recognized by the OMP.";
-    } otherwise {
-      my $E = shift;
-      $error = "Odd data retrieval error: $E";
-    };
+        # Go through the package data object so that we do not need to worry about
+        # inconsistencies with local retrieval
+        my $pkg;
+        my $error;
+        try {
+            $pkg = OMP::PackageData->new(
+                utdate => $utdate,
+                projectid => $projectid,
+                inccal => $inccal,
+                incjunk => 0,
+            );
+        }
+        catch OMP::Error::UnknownProject with {
+            my $E = shift;
+            $error = "This project ID is not recognized by the OMP.";
+        }
+        otherwise {
+            my $E = shift;
+            $error = "Odd data retrieval error: $E";
+        };
 
-    return $self->_write_error($error)
-        if defined $error;
+        return $self->_write_error($error)
+            if defined $error;
 
-    $ctx{'messages'} = $pkg->flush_messages();
+        $ctx{'messages'} = $pkg->flush_messages();
 
-    if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i ) {
-      $ctx{'result'} = $self->_package_data_cadc($pkg);
-    } else {
-      $ctx{'result'} = $self->_package_data($pkg);
+        if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i) {
+            $ctx{'result'} = $self->_package_data_cadc($pkg);
+        }
+        else {
+            $ctx{'result'} = $self->_package_data($pkg);
+        }
+    }
+    else {
+        $ctx{'target'} = $self->url_absolute();
     }
 
-  } else {
-      $ctx{'target'} = $self->url_absolute();
-  }
-
-  return \%ctx;
+    return \%ctx;
 }
-
 
 =back
 
@@ -129,21 +133,22 @@ Write output HTML and package up the data.
 =cut
 
 sub _package_data {
-  my $self = shift;
-  my $pkg = shift;
+    my $self = shift;
+    my $pkg = shift;
 
-  try {
-    $pkg->pkgdata(user => $self->auth->user);
-  } otherwise {
-    my $E = shift;
-    $pkg->_add_message("Could not create data package(s): $E");
-  };
+    try {
+        $pkg->pkgdata(user => $self->auth->user);
+    }
+    otherwise {
+        my $E = shift;
+        $pkg->_add_message("Could not create data package(s): $E");
+    };
 
-  return {
-      method => 'omp',
-      messages => $pkg->flush_messages,
-      ftp_urls => [$pkg->ftpurl],
-  };
+    return {
+        method => 'omp',
+        messages => $pkg->flush_messages,
+        ftp_urls => [$pkg->ftpurl],
+    };
 }
 
 =item B<_package_data_cadc>
@@ -155,36 +160,40 @@ Write output HTML and special form required for CADC retrieval
 =cut
 
 sub _package_data_cadc {
-  my $self = shift;
-  my $pkg = shift;
+    my $self = shift;
+    my $pkg = shift;
 
-  # Write a feedback message even though we can not be sure the person
-  # will click on the link
-  $pkg->add_fb_comment( "(via CADC)", $self->auth->user );
+    # Write a feedback message even though we can not be sure the person
+    # will click on the link
+    $pkg->add_fb_comment("(via CADC)", $self->auth->user);
 
-  # Get the obsGrp
-  my $obsgrp = $pkg->obsGrp;
+    # Get the obsGrp
+    my $obsgrp = $pkg->obsGrp;
 
-  # get the file names and strip path information if present
-  my @obs = $obsgrp->obs();
-  my @files =
-    map { OMP::PackageData::cadc_file_uri($_) }
-    map { $_->simple_filename } @obs;
+    # get the file names and strip path information if present
+    my @obs = $obsgrp->obs();
+    my @files =
+        map {OMP::PackageData::cadc_file_uri($_)}
+        map {$_->simple_filename} @obs;
 
-  # The "runid" is to allow CADC to recognise which download requests came
-  # from the OMP rather than their own systems.  CADC have indicated that
-  # any common string will do -- and "omp" has been chosen.  We can add
-  # additional parts to the end of the string (up to 16 characters total)
-  # if we would like to add extra tracking for diagnostic purposes.  They
-  # log the value in their transfer database.
-  my $run_id = 'omp';
+    # The "runid" is to allow CADC to recognise which download requests came
+    # from the OMP rather than their own systems.  CADC have indicated that
+    # any common string will do -- and "omp" has been chosen.  We can add
+    # additional parts to the end of the string (up to 16 characters total)
+    # if we would like to add extra tracking for diagnostic purposes.  They
+    # log the value in their transfer database.
+    my $run_id = 'omp';
 
-  return {
-      method => 'cadc',
-      file_urls => \@files,
-      run_id => $run_id,
-  };
+    return {
+        method => 'cadc',
+        file_urls => \@files,
+        run_id => $run_id,
+    };
 }
+
+1;
+
+__END__
 
 =back
 
@@ -213,5 +222,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

@@ -52,10 +52,12 @@ use Encode qw/decode/;
 # module is installed in "site_perl".
 use Encode::HanExtra;
 
+use OMP::DBbackend;
 use OMP::Display;
 use OMP::Fault::Response;
-use OMP::FaultServer;
-use OMP::FBServer;
+use OMP::FaultDB;
+use OMP::FeedbackDB;
+use OMP::Mail;
 use OMP::General;
 use OMP::User;
 use OMP::UserServer;
@@ -111,7 +113,7 @@ my @checks = (
 );
 
 my $logfile = '/tmp/omp-mailaudit.log';
-my $mail = new Mail::Audit(
+my $mail = Mail::Audit->new(
     loglevel => 4,
     log => $logfile
 );
@@ -155,6 +157,8 @@ sub accept_message {
     my $audit = shift;
     my $args = shift;
 
+    my $database = OMP::DBbackend->new();
+
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
     # Get the information we need
@@ -165,7 +169,7 @@ sub accept_message {
     # Get body of email.
     my $text;
     if ($audit->is_mime) {
-        $text = extract_body($audit);
+        $text = OMP::Mail->extract_body_text($audit);
     }
     else {
         $text = join('', @{$audit->body});
@@ -212,10 +216,10 @@ sub accept_message {
 
     # Send the message to the appropriate system.
     if (exists $args->{'projectid'}) {
-        accept_feedback($audit, $subject, $args->{'projectid'}, $author, $text, $srcip);
+        accept_feedback($database, $audit, $subject, $args->{'projectid'}, $author, $text, $srcip);
     }
     elsif (exists $args->{'faultid'}) {
-        accept_fault($audit, $subject, $args->{'faultid'}, $author, $text);
+        accept_fault($database, $audit, $subject, $args->{'faultid'}, $author, $text);
     }
     else {
         my $text = 'Sorry. Could not determine how to store message.';
@@ -233,7 +237,7 @@ sub accept_message {
 
 
 sub accept_feedback {
-    my ($audit, $subject, $project, $author, $text, $srcip) = @_;
+    my ($database, $audit, $subject, $project, $author, $text, $srcip) = @_;
 
     $audit->log(1 => "Sending to feedback system with Project $project");
 
@@ -248,7 +252,8 @@ sub accept_feedback {
     );
 
     unless ($DRY_RUN) {
-        OMP::FBServer->addComment($project, \%data);
+        my $fdb = OMP::FeedbackDB->new(ProjectID => $project, DB => $database);
+        $fdb->addComment(\%data);
         $audit->log(1 => "Sent to feedback system with Project $project");
     }
     else {
@@ -259,7 +264,7 @@ sub accept_feedback {
 
 
 sub accept_fault {
-    my ($audit, $subject, $faultid, $author, $text) = @_;
+    my ($database, $audit, $subject, $faultid, $author, $text) = @_;
 
     $audit->log(1 => "Sending to fault system for fault $faultid");
 
@@ -273,11 +278,12 @@ sub accept_fault {
     my @order = qw/author text/;
     my %data = (
         author => $author,
-        text => OMP::Display->preify_text($text),
+        text => OMP::Display->remove_cr($text),
     );
 
     unless ($DRY_RUN) {
-        OMP::FaultServer->respondFault($faultid, new OMP::Fault::Response(%data));
+        my $fdb = OMP::FaultDB->new(DB => $database);
+        $fdb->respondFault($faultid, OMP::Fault::Response->new(%data));
     }
     else {
         show_comment('fault', $faultid, \@order, \%data);
@@ -302,46 +308,6 @@ sub show_comment {
             $data->{$field};
     }
 }
-
-# Return the body of an email, and a notation about any removed attachments.
-sub extract_body {
-    my $entity = shift;
-    my @bodytexts = ();
-
-    my $head = $entity->head;
-    my $charset = $head->mime_attr('content-type.charset');
-
-    my $num_parts = $entity->parts;
-
-    # If more than one part, call this routine again.
-    if ($num_parts > 0) {
-        foreach (0 .. ($num_parts - 1)) {
-            my $part = $entity->parts($_);
-            push @bodytexts, extract_body($part);
-        }
-    }
-    else {
-        # If in final part, return the body if its a text type.
-        my $mime_type = $entity->mime_type;
-
-        if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
-            my $bh = $entity->bodyhandle;
-            my $text = $bh->as_string;
-
-            if (defined $charset) {
-                $text = decode($charset, $text);
-            }
-
-            push @bodytexts, $text;
-        }
-        else {
-            push @bodytexts, "One attachment of type [$mime_type] was removed.";
-        }
-    }
-
-    return join("\n\n", @bodytexts);
-}
-
 
 # Determine the project or fault ID from the subject and
 # store it in the mail header

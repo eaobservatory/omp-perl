@@ -13,7 +13,7 @@ package OMP::GetCoords::Plot;
 use strict;
 
 use Astro::SourcePlot qw/sourceplot/;
-use Time::Piece qw/ :override /;
+use Time::Piece qw/:override/;
 
 use OMP::Config;
 use OMP::GetCoords qw/get_coords/;
@@ -87,7 +87,6 @@ A project name is required.
 
 =cut
 
-
 sub plot_sources {
     my %opt = @_;
 
@@ -124,7 +123,8 @@ sub plot_sources {
         if ($utdate !~ /^\d{8}$/a) {
             die "UTDATE '$pld' must have format YYYYMMDD";
         }
-    } else {
+    }
+    else {
         my ($us, $um, $uh, $md, $mo, $yr, $wd, $yd, $isdst) = gmtime(time);
         $yr += 1900;
         $mo += 1;
@@ -138,7 +138,8 @@ sub plot_sources {
         if ($telescope eq "") {
             die "Telescope '$tel' should be regular text string";
         }
-    } else {
+    }
+    else {
          $telescope = 'JCMT';
          $telescope = 'UKIRT' if ($projlis =~ /^u\//i);
     }
@@ -150,11 +151,11 @@ sub plot_sources {
         if ($plmode !~ /^all$/i && $plmode !~ /^active$/i && $plmode !~ /^completed$/i) {
             die "MODE must be [ all | active | completed ]";
         }
-    } else {
+    }
+    else {
         $plmode = "Active";
     }
 
-    #----------------------------------------------------------------------
     # Hash with regular sourceplot arguments being passed through directly
     my %sargs = (
         output => $output,
@@ -187,25 +188,24 @@ sub plot_sources {
     }
 
     if ($utdate =~ /^\d{8}$/a) {
-        $sargs{'start'} = Time::Piece->strptime( "${utdate}T00:00:00", "%Y%m%dT%T");
-        $sargs{'end'}   = Time::Piece->strptime( "${utdate}T23:59:59", "%Y%m%dT%T");
+        $sargs{'start'} = Time::Piece->strptime("${utdate}T00:00:00", "%Y%m%dT%T");
+        $sargs{'end'} = Time::Piece->strptime("${utdate}T23:59:59", "%Y%m%dT%T");
 
         if ($tel =~ /jcmt/i or $projlis =~ /^m\d/aai) {
             # Plot around shift change
-            $sargs{'plot_center'} = 1.5*3600.0;
+            $sargs{'plot_center'} = 1.5 * 3600.0;
         }
         if ($tel =~ /ukirt/i or $projlis =~ /^u\//i) {
             # Plot smaller time window for UKIRT
             $sargs{'plot_int'} = 7 * 3600;
             # Also stop tracks outside time window in AZEL plot
-            $sargs{'start'} = Time::Piece->strptime( "${utdate}T03:00:00", "%Y%m%dT%T");
-            $sargs{'end'}   = Time::Piece->strptime( "${utdate}T16:59:59", "%Y%m%dT%T");
+            $sargs{'start'} = Time::Piece->strptime("${utdate}T03:00:00", "%Y%m%dT%T");
+            $sargs{'end'} = Time::Piece->strptime("${utdate}T16:59:59", "%Y%m%dT%T");
         }
     }
     else {
         die "Invalid UTDATE: '$utdate'";
     }
-
 
     # Project array
     my @projids = split( /\@/, $projlis );
@@ -213,25 +213,22 @@ sub plot_sources {
     # Array of hashes
     my @objects;
     if ( $objlis ne "" ) {
-
-        my @solar = ('mars', 'jupiter', 'saturn', 'uranus', 'neptune',
-                     'mercury', 'venus', 'sun', 'moon');
+        my @solar = (
+            'mars', 'jupiter', 'saturn', 'uranus', 'neptune',
+            'mercury', 'venus', 'sun', 'moon'
+        );
 
         foreach my $obj (split( /\@/, $objlis )){
-
-            if ( $obj ne "planets" && $obj ne "5planets" &&
-                 $obj ne "solar" ) {
-
+            if ($obj ne "planets" && $obj ne "5planets" && $obj ne "solar" ) {
                 my %ref;
                 $ref{'name'} = "$obj";
                 push @objects, \%ref;
-
-            } else {
-
+            }
+            else {
                 my $nrplanets = 7;
                 $nrplanets = 9 if ($obj eq "solar");
                 $nrplanets = 5 if ($obj eq "5planets");
-                for (my $i = 0; $i < $nrplanets; $i++) {
+                for (my $i = 0; $i < $nrplanets; $i ++) {
                     my %ref;
                     $ref{'name'} = $solar[$i];
                     push @objects, \%ref;
@@ -243,23 +240,24 @@ sub plot_sources {
     $sargs{'telescope'} = $telescope;
     $sargs{'msbmode'} = $plmode;
 
-    print "Projid: $projlis $utdate $telescope $plmode $output $hdevice\n" if ($debug);
+    print "Projid: $projlis $utdate $telescope $plmode $output $hdevice\n"
+        if ($debug);
 
-    my @coords = get_coords( 'omp', \@projids, \@objects, %sargs );
-    printf "Nr of objects found: %d\n", $#coords+1 if ($debug);
+    my @coords = get_coords('omp', \@projids, \@objects, %sargs);
+    printf "Nr of objects found: %d\n", $#coords + 1 if ($debug);
 
     # Call plot subtroutine
     my $plot;
 
     if ($#coords >= 0) {
-      print "Calling sourceplot...\n" if ($debug);
-      $plot = sourceplot( coords => \@coords, %sargs );
-      print "Output saved to: ${plot}\n" if ($debug and $hdevice ne "xw");
-    } else {
-      die "No objects found";
+        print "Calling sourceplot...\n" if ($debug);
+        $plot = sourceplot(coords => \@coords, %sargs);
+        print "Output saved to: ${plot}\n" if ($debug and $hdevice ne "xw");
+    }
+    else {
+        die "No objects found";
     }
 }
-
 
 1;
 

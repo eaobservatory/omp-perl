@@ -26,8 +26,8 @@ use File::Spec;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;

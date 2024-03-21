@@ -10,157 +10,139 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::UserServer;
 
-my $SEP_IN  = q/[;,]+/ ;
-my $SEP_OUT = q/ ; / ;
+my $SEP_IN = '[;,]+';
+my $SEP_OUT = ' ; ';
 
-my $INDENT   = join '' , (' ') x2;
-my $INDENT_2 = join '' , (' ') x4;
-my $INDENT_3 = join '' , (' ') x6;
+my $INDENT = join '', (' ') x 2;
+my $INDENT_2 = join '', (' ') x 4;
+my $INDENT_3 = join '', (' ') x 6;
 
 my @file = @ARGV
-  or die qq[Give user data in a CSV file to be verified.\n];
+    or die qq[Give user data in a CSV file to be verified.\n];
 
-for my $file ( @file ) {
+for my $file (@file) {
+    print "Processing $file ...\n";
+    my @user = parse_file($file) or next;
 
-  print "Processing $file ...\n";
-  my @user = parse_file( $file ) or next;
+    for my $user (@user) {
+        my ($userid, $name, $addr) = decompose_user($user);
 
-  for my $user ( @user ) {
+        printf "${INDENT}%s\n", join $SEP_OUT, $userid, $name, $addr;
 
-    my ( $userid , $name , $addr ) = decompose_user( $user );
+        my @exist = verify($name, $userid, $addr);
+        unless (scalar @exist) {
+            print "${INDENT_2}O K to add\n";
+            next;
+        }
 
-    printf "${INDENT}%s\n" , join $SEP_OUT , $userid , $name , $addr ;
-
-    my @exist = verify( $name , $userid , $addr );
-    unless ( scalar @exist ) {
-
-      print "${INDENT_2}O K to add\n";
-      next;
+        print "${INDENT_2}already E X I S T S ...\n";
+        for my $rec (@exist) {
+            printf "${INDENT_3}%s\n",
+                join $SEP_OUT, map {$rec->$_() // '<undef>'} qw/userid name email/;
+        }
     }
-
-    print qq[${INDENT_2}already E X I S T S ...\n];
-    for my $rec ( @exist ) {
-
-      printf qq[${INDENT_3}%s\n] ,
-        join $SEP_OUT , map { $rec->$_() // '<undef>' } qw[ userid name email ] ;
+    continue {
+        print "\n";
     }
-  }
-  continue { print "\n"; }
 }
 
 exit;
 
 sub decompose_user {
+    my ($user, $fill_in) = @_;
 
-  my ( $user , $fill_in) = @_;
-
-  return map
-        { my $x = $user->{ $_ };
-          ! $fill_in
-          ? $x
-          : $x // '<undef>'
-          ;
-        }
-        qw[ userid name email ];
+    return map {
+        my $x = $user->{$_};
+        ! $fill_in
+            ? $x
+            : $x // '<undef>';
+    } qw/userid name email/;
 }
 
 sub verify {
+    my ($name, $id, $email) = @_;
 
-  my ( $name, $id, $email ) = @_;
-
-  return
-    OMP::UserServer->getUserExpensive(  'name'   => $name,
-                                        'email'  => $email,
-                                        'userid' => $id
-                                      ) ;
+    return OMP::UserServer->getUserExpensive(
+        'name' => $name,
+        'email' => $email,
+        'userid' => $id,
+    );
 }
 
 sub parse_file {
-  my ( $file ) = @_;
+    my ($file) = @_;
 
-  my $fh;
-  if ( $file eq '-' ) {
-
-    open $fh, '<-' or die "Cannot open '$file' to read: $!\n";
-  }
-  else {
-
-    open $fh, '<', $file or die "Cannot open '$file' to read: $!\n";
-  }
-
-  my @user;
-
-  while ( my $line = <$fh> ) {
-
-    next
-      if $line =~ /^\s*#/
-      or $line =~ /^\s*$/;
-
-    for ( $line ) {
-
-      s/\#.*$//;
-      s/^\s+//;
-      s/\s+$//;
+    my $fh;
+    if ($file eq '-') {
+        open $fh, '<-' or die "Cannot open '$file' to read: $!\n";
     }
-    next unless $line;
+    else {
+        open $fh, '<', $file or die "Cannot open '$file' to read: $!\n";
+    }
 
-    push @user, parse_line( $line );
-  }
+    my @user;
 
-  close $fh or die "Cannot close '$file': $!\n";
+    while (my $line = <$fh>) {
+        next if $line =~ /^\s*#/
+            or $line =~ /^\s*$/;
 
-  return @user;
+        for ($line) {
+            s/\#.*$//;
+            s/^\s+//;
+            s/\s+$//;
+        }
+
+        next unless $line;
+
+        push @user, parse_line($line);
+    }
+
+    close $fh or die "Cannot close '$file': $!\n";
+
+    return @user;
 }
 
 sub parse_line {
+    my ($line) = @_;
 
-  my ( $line ) = @_;
+    my ($id, $name, $email);
+    my @in = split /\s*${SEP_IN}\s*/, $line;
 
-  my ( $id, $name, $email );
-  my @in = split /\s*${SEP_IN}\s*/, $line;
+    if (scalar @in == 3) {
+        ($id, $name, $email) = @in;
+    }
+    elsif (scalar @in == 2) {
+        ($name, $email) = @in;
+    }
+    else {
+        $name = $in[0];
+    }
 
-  if ( scalar @in == 3 ) {
+    for ($id, $name) {
+        next unless defined;
+        s/^\s+//;
+        s/\s+$//;
+    }
 
-    ( $id, $name, $email ) = @in;
-  }
-  elsif ( scalar @in == 2 ) {
+    unless (defined $id && length $id) {
+        $id = OMP::User->infer_userid($name);
+        printf "User ID generated for %s: %s\n", $name, $id;
+    }
 
-    ( $name, $email ) = @in;
-  }
-  else {
+    if (defined $email) {
+        $email =~ s/\s+//g;
+        $email = undef unless $email =~ /\@/;
+    }
 
-    $name = $in[0];
-  }
-
-  for ( $id, $name ) {
-
-    next unless defined;
-    s/^\s+//;
-    s/\s+$//;
-  }
-
-  unless ( defined $id && length $id ) {
-
-    $id = OMP::User->infer_userid( $name );
-    printf "User ID generated for %s: %s\n" , $name , $id;
-  }
-
-  if ( defined $email ) {
-
-    $email =~ s/\s+//g;
-    $email = undef unless $email =~ /\@/;
-  }
-
-  return
-    { 'name'   => $name,
-      'userid' => $id,
-      'email'  => $email
+    return {
+        'name' => $name,
+        'userid' => $id,
+        'email' => $email,
     };
 }
-

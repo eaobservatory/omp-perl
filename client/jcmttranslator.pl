@@ -6,9 +6,9 @@ jcmttranslator - translate science program XML to ODFs
 
 =head1 SYNOPSIS
 
-  cat sp.xml | jcmttranslator > outfile
+    cat sp.xml | jcmttranslator > outfile
 
-  jcmttranslator -sim msb.xml
+    jcmttranslator -sim msb.xml
 
 =head1 DESCRIPTION
 
@@ -97,13 +97,13 @@ use Getopt::Long;
 
 # run relative to the client directory. Also set config directory.
 use FindBin;
-use constant OMPLIB => File::Spec->catdir("$FindBin::RealBin",
-                                          File::Spec->updir, 'lib' );
+use constant OMPLIB => File::Spec->catdir(
+    "$FindBin::RealBin", File::Spec->updir, 'lib');
 use lib OMPLIB;
 
 BEGIN {
-    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
-      unless exists $ENV{'OMP_CFG_DIR'};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 
@@ -116,23 +116,24 @@ use OMP::TransServer;
 
 # Need config system
 use OMP::Config;
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
 # Options
-my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose,
-   $version, $log);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "debug" => \$debug,
-                        "cwd" => \$cwd,
-                        "sim" => \$sim,
-                        "old" => \$old,
-                        "tempdir" => \$tempdir,
-                        "transdir=s" => \$transdir,
-                        "verbose" => \$verbose,
-                        "version" => \$version,
-                        "log" => \$log,
-                       );
+my ($help, $man, $debug, $cwd, $tempdir, $old,
+    $sim, $transdir, $verbose, $version, $log);
+my $status = GetOptions(
+    'help' => \$help,
+    'man' => \$man,
+    'debug' => \$debug,
+    'cwd' => \$cwd,
+    'sim' => \$sim,
+    'old' => \$old,
+    'tempdir' => \$tempdir,
+    'transdir=s' => \$transdir,
+    'verbose' => \$verbose,
+    'version' => \$version,
+    'log' => \$log,
+);
 
 pod2usage(1) if !$status;
 
@@ -140,9 +141,9 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "jcmttranslator - Translate Science Program MSBs to OCS configs\n";
-  print "Version: ", $OMP::Translator::VERSION, "\n";
-  exit;
+    print "jcmttranslator - Translate Science Program MSBs to OCS configs\n";
+    print "Version: ", $OMP::Translator::VERSION, "\n";
+    exit;
 }
 
 
@@ -150,71 +151,81 @@ if ($version) {
 $OMP::Translator::DEBUG = $debug;
 
 # verbose
-$OMP::Translator::VERBOSE = $verbose;;
+$OMP::Translator::VERBOSE = $verbose;
 
 # Translation directory override
 if ($transdir) {
-  print "Overriding output directory. Using '$transdir'\n" if $verbose;
-  OMP::Translator->outputdir($transdir);
-} elsif ($cwd || $tempdir) {
-  if ($cwd && $tempdir) {
-    die "The -cwd and -tempdir options can not be used together.\n";
-  }
-  if ($cwd) {
-    print "Overriding output directory. Using current directory\n" if $verbose;
-    OMP::Translator->outputdir(File::Spec->curdir);
-  } elsif ($tempdir) {
-    # this should fail if no temp dir is defined
-    my $tmp = OMP::Config->getData( "jcmt_translator.temptransdir" );
-    if ($tmp) {
-      print "Overriding output directory. Using '$tmp'\n" if $verbose;
-      OMP::Translator->outputdir( $tmp );
-    } else {
-      die "No temporary translator directly defined.";
+    print "Overriding output directory. Using '$transdir'\n" if $verbose;
+    OMP::Translator->outputdir($transdir);
+}
+elsif ($cwd || $tempdir) {
+    if ($cwd && $tempdir) {
+        die "The -cwd and -tempdir options can not be used together.\n";
     }
-  }
+    if ($cwd) {
+        print "Overriding output directory. Using current directory\n"
+            if $verbose;
+        OMP::Translator->outputdir(File::Spec->curdir);
+    }
+    elsif ($tempdir) {
+        # this should fail if no temp dir is defined
+        my $tmp = OMP::Config->getData("jcmt_translator.temptransdir");
+        if ($tmp) {
+            print "Overriding output directory. Using '$tmp'\n" if $verbose;
+            OMP::Translator->outputdir($tmp);
+        }
+        else {
+            die "No temporary translator directly defined.";
+        }
+    }
 }
 
-
 # Configure translation mode
-OMP::Translator->backwards_compatibility_mode( 1 ) if $old;
+OMP::Translator->backwards_compatibility_mode(1) if $old;
 
 # Now for the action
 # Read from standard input or from the command line.
 my $xml;
 {
-  # Can not let this localization propoagate to the OMP classes
-  # since this affects the srccatalog parsing
-  local $/ = undef;
+    # Can not let this localization propagate to the OMP classes
+    # since this affects the srccatalog parsing
+    local $/ = undef;
 
-  if (@ARGV) {
-    my $file = shift(@ARGV);
-    open my $fh, '<', $file or die "Error reading input science program from file $file: $!";
-    $xml = <$fh>;
-  } else {
-    # Stdin should be readable
-    my $rin = '';
-    vec($rin,fileno(STDIN),1) = 1;
-    my $nfound = select($rin,undef,undef,0.1);
-
-    if ($nfound) {
-      $xml = <>;
-    } else {
-      die "No filename specified for science program and nothing appearing from pipe on STDIN\n";
+    if (@ARGV) {
+        my $file = shift(@ARGV);
+        open my $fh, '<', $file
+            or die "Error reading input science program from file $file: $!";
+        $xml = <$fh>;
     }
+    else {
+        # Stdin should be readable
+        my $rin = '';
+        vec($rin, fileno(STDIN), 1) = 1;
+        my $nfound = select($rin, undef, undef, 0.1);
 
-  }
+        if ($nfound) {
+            $xml = <>;
+        }
+        else {
+            die "No filename specified for science program and nothing appearing from pipe on STDIN\n";
+        }
+
+    }
 
 }
 
-my $filename = OMP::TransServer->translate( $xml, { simulate => $sim,
-                                                    log => $log});
+my $filename = OMP::TransServer->translate($xml, {
+    simulate => $sim,
+    log => $log,
+});
 
 die "Nothing was translated. Was the science program empty?"
-  unless $filename;
+    unless $filename;
 
 # convert the filename to an absolute path
-print File::Spec->rel2abs($filename) ."\n";
+print File::Spec->rel2abs($filename) . "\n";
+
+__END__
 
 =head1 AUTHOR
 
@@ -239,4 +250,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-

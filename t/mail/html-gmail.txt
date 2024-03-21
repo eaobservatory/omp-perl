@@ -1,0 +1,40 @@
+MIME-Version: 1.0
+Message-ID: <CAFt_Gow7j3fBfCciWGNWVj5BvT+ivYLBGOt791sVDsbPyZkLEA@mail.gmail.com>
+Subject: Example HTML message
+From: Example User <example@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+Content-Type: multipart/mixed; boundary="0000000000008f035d0613fe8a56"
+
+--0000000000008f035d0613fe8a56
+Content-Type: multipart/alternative; boundary="0000000000008f035c0613fe8a54"
+
+--0000000000008f035c0613fe8a54
+Content-Type: text/plain; charset="UTF-8"
+
+An *HTML* message from *GMail.*
+
+--0000000000008f035c0613fe8a54
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">An <b>HTML</b>=C2=A0message from <i>GMail.</i></div>
+
+--0000000000008f035c0613fe8a54--
+--0000000000008f035d0613fe8a56
+Content-Type: text/plain; charset="US-ASCII"; name="file.txt"
+Content-Disposition: attachment; filename="file.txt"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_lty27rpg0
+Content-ID: <f_lty27rpg0>
+
+VGhpcyBpcyB0aGUgdGV4dCBpbiB0aGUgYXR0YWNobWVudC4NCg==
+--0000000000008f035d0613fe8a56
+Content-Type: image/png; name="pixel.png"
+Content-Disposition: attachment; filename="pixel.png"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_lty27rpp1
+Content-ID: <f_lty27rpp1>
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnn
+AAAAAElFTkSuQmCC
+--0000000000008f035d0613fe8a56--

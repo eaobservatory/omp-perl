@@ -47,7 +47,7 @@ sub log_in_userpass {
     my $username = shift;
     my $token = shift;
 
-    my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
+    my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
 
     my $user = $db->verify_token($token);
 
@@ -60,6 +60,10 @@ sub log_in_userpass {
 
     return {user => $user};
 }
+
+1;
+
+__END__
 
 =back
 
@@ -82,5 +86,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

@@ -6,14 +6,14 @@ OMP::Fault - A software bug or system fault object
 
 =head1 SYNOPSIS
 
-  use OMP::Fault;
+    use OMP::Fault;
 
-  $fault = new OMP::Fault( %details  );
-  $fault->respond( OMP::Fault::Response->new(author => $user,
-                                             text => $text) );
+    $fault = OMP::Fault->new(%details);
 
-  $fault->close_fault();
-
+    $fault->respond(
+        OMP::Fault::Response->new(
+            author => $user,
+            text => $text));
 
 =head1 DESCRIPTION
 
@@ -33,14 +33,13 @@ use Time::Seconds;
 
 use OMP::Config;
 use OMP::Display;
-use OMP::Error qw[ :try ];
+use OMP::Error qw/:try/;
 use OMP::User;
 
 our $VERSION = '2.000';
 
 # Overloading
 use overload '""' => "stringify";
-
 
 # Lookup tables for fault categories, systems and types
 use constant TYPEOTHER => -1;
@@ -130,99 +129,98 @@ use constant JSA_CADC => 1070;
 
 # FRONT_END_HARP is 2001.
 use constant {
-  FTS2     => FRONT_END_HARP +  1,
-  OCS_JOS  => FRONT_END_HARP +  2,
-  POINTING => FRONT_END_HARP +  3,
-  POL2     => FRONT_END_HARP +  4,
-  ROVER    => FRONT_END_HARP +  5,
-  SMU_TMU  => FRONT_END_HARP +  6,
-  NAMAKANUI=> FRONT_END_HARP +  7,
-  WX_STATN => FRONT_END_HARP +  8,
+    FTS2     => FRONT_END_HARP +  1,
+    OCS_JOS  => FRONT_END_HARP +  2,
+    POINTING => FRONT_END_HARP +  3,
+    POL2     => FRONT_END_HARP +  4,
+    ROVER    => FRONT_END_HARP +  5,
+    SMU_TMU  => FRONT_END_HARP +  6,
+    NAMAKANUI=> FRONT_END_HARP +  7,
+    WX_STATN => FRONT_END_HARP +  8,
 };
 
 # Safety - severity.
 use constant SAFETY_CLARAFICATION_SEVERITY => 3000;
 use constant {
-  EQUIP_DAMAGE => SAFETY_CLARAFICATION_SEVERITY + 1,
-  MINOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 2,
-  MAJOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 3,
-  INJURY_DEATH => SAFETY_CLARAFICATION_SEVERITY + 4,
-  ENV_ISSUE    => SAFETY_CLARAFICATION_SEVERITY + 5,
-  ENV_INCIDENT => SAFETY_CLARAFICATION_SEVERITY + 6,
+    EQUIP_DAMAGE => SAFETY_CLARAFICATION_SEVERITY + 1,
+    MINOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 2,
+    MAJOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 3,
+    INJURY_DEATH => SAFETY_CLARAFICATION_SEVERITY + 4,
+    ENV_ISSUE    => SAFETY_CLARAFICATION_SEVERITY + 5,
+    ENV_INCIDENT => SAFETY_CLARAFICATION_SEVERITY + 6,
 };
 
 # Safety - type.
 use constant SAFETY_CLARAFICATION_TYPE => 3010;
 use constant {
-  SAFETY_CONCERN => SAFETY_CLARAFICATION_TYPE + 1,
-  NEAR_MISS      => SAFETY_CLARAFICATION_TYPE + 2,
-  INCIDENT       => SAFETY_CLARAFICATION_TYPE + 3,
-  ENVIRONMENT    => SAFETY_CLARAFICATION_TYPE + 4,
+    SAFETY_CONCERN => SAFETY_CLARAFICATION_TYPE + 1,
+    NEAR_MISS      => SAFETY_CLARAFICATION_TYPE + 2,
+    INCIDENT       => SAFETY_CLARAFICATION_TYPE + 3,
+    ENVIRONMENT    => SAFETY_CLARAFICATION_TYPE + 4,
 };
 
 # Safety - action/status.
 use constant NO_ACTION => 3020;
 use constant {
-  IMMEDIATE_ACTION          => NO_ACTION + 1,
-  FOLLOW_UP                 => NO_ACTION + 2,
-  REFER_TO_SAFETY_COMMITTEE => NO_ACTION + 3,
+    IMMEDIATE_ACTION          => NO_ACTION + 1,
+    FOLLOW_UP                 => NO_ACTION + 2,
+    REFER_TO_SAFETY_COMMITTEE => NO_ACTION + 3,
 };
 
 #  Places.
 use constant IN_TRANSIT => 4000;
 use constant {
-  JAC    => IN_TRANSIT + 1,
-  HP     => IN_TRANSIT + 2,
-  JCMT   => IN_TRANSIT + 3,
-  UKIRT  => IN_TRANSIT + 4,
-  EAO    => IN_TRANSIT + 5,
+    JAC    => IN_TRANSIT + 1,
+    HP     => IN_TRANSIT + 2,
+    JCMT   => IN_TRANSIT + 3,
+    UKIRT  => IN_TRANSIT + 4,
+    EAO    => IN_TRANSIT + 5,
 };
 
 # Facility - system.
 use constant TOILET => 5000;
 use constant {
-  OFFICE       => TOILET + 1,
-  LIBRARY      => TOILET + 2,
-  COMP_ROOM    => TOILET + 3,
-  MEETING_ROOM => TOILET + 4,
-  LAB          => TOILET + 5,
-  WORKSHOP     => TOILET + 6,
-  VEHICLE_BAY  => TOILET + 7,
-  CAR_PARK     => TOILET + 8,
+    OFFICE       => TOILET + 1,
+    LIBRARY      => TOILET + 2,
+    COMP_ROOM    => TOILET + 3,
+    MEETING_ROOM => TOILET + 4,
+    LAB          => TOILET + 5,
+    WORKSHOP     => TOILET + 6,
+    VEHICLE_BAY  => TOILET + 7,
+    CAR_PARK     => TOILET + 8,
 };
 
 # Facility - type.
 use constant INSECT => 5020;
 use constant {
-  LEAK            => INSECT + 1,
-  PLUMBING        => INSECT + 2,
-  AC_DEHUMIDIFIER => INSECT + 3,
-  ALARM_SYS       => INSECT + 4,
-  ELECTRICAL      => INSECT + 5,
+    LEAK            => INSECT + 1,
+    PLUMBING        => INSECT + 2,
+    AC_DEHUMIDIFIER => INSECT + 3,
+    ALARM_SYS       => INSECT + 4,
+    ELECTRICAL      => INSECT + 5,
 };
 
 # Even log - system.
 use constant JCMT_EVENTS => 6000;
 use constant {
+    # Already set elsewhere.
+    #ACSIS - Back end ACSIS.
+    #COMPUTER
+    #FTS2
+    #HARP, RXA, RXW - Front end HARP, RX[AW].
+    #OCS/JOS - OCS_JOS
+    #POINTING
+    #POL2
+    #ROVER
+    #SCUBA-2 - SCUBA2
+    #SMU_TMU
+    #TELESCOPE
+    #WMV (Water Vapor Monitor) - Water vapor rad(iometer)
 
-  # Already set elsewhere.
-  #ACSIS - Back end ACSIS.
-  #COMPUTER
-  #FTS2
-  #HARP, RXA, RXW - Front end HARP, RX[AW].
-  #OCS/JOS - OCS_JOS
-  #POINTING
-  #POL2
-  #ROVER
-  #SCUBA-2 - SCUBA2
-  #SMU_TMU
-  #TELESCOPE
-  #WMV (Water Vapor Monitor) - Water vapor rad(iometer)
-
-  # Per Jessica D's email, keep RxH3 & Surface as one type; Software-DR includes
-  # more than just ORAC-DR.
-  RXH3_SURFACE => JCMT_EVENTS + 1,
-  SOFTWARE_DR  => JCMT_EVENTS + 2,
+    # Per Jessica D's email, keep RxH3 & Surface as one type; Software-DR includes
+    # more than just ORAC-DR.
+    RXH3_SURFACE => JCMT_EVENTS + 1,
+    SOFTWARE_DR  => JCMT_EVENTS + 2,
 };
 
 # JCMT Event log - type.
@@ -232,310 +230,310 @@ use constant {
 
 # JCMT Event log - status.
 use constant {
-  COMMISSIONING => JCMT_EVENTS + 10,
-  ONGOING       => JCMT_EVENTS + 11,
-  COMPLETE      => JCMT_EVENTS + 12,
+    COMMISSIONING => JCMT_EVENTS + 10,
+    ONGOING       => JCMT_EVENTS + 11,
+    COMPLETE      => JCMT_EVENTS + 12,
 };
 
 # Vehicle Incident Reporting (VIR) - System aka Vehicle.
 use constant VEHICLE_I_R => 6500;
 use constant {
-
-  VEHICLE_01 => VEHICLE_I_R() +  1,
-  VEHICLE_02 => VEHICLE_I_R() +  2,
-  VEHICLE_03 => VEHICLE_I_R() +  3,
-  VEHICLE_04 => VEHICLE_I_R() +  4,
-  VEHICLE_05 => VEHICLE_I_R() +  5,
-  VEHICLE_06 => VEHICLE_I_R() +  6,
-  VEHICLE_07 => VEHICLE_I_R() +  7,
-  VEHICLE_08 => VEHICLE_I_R() +  8,
-  VEHICLE_09 => VEHICLE_I_R() +  9,
-  VEHICLE_10 => VEHICLE_I_R() + 10,
-  VEHICLE_11 => VEHICLE_I_R() + 11,
-  VEHICLE_12 => VEHICLE_I_R() + 12,
-  VEHICLE_13 => VEHICLE_I_R() + 13,
-  VEHICLE_14 => VEHICLE_I_R() + 14,
+    VEHICLE_01 => VEHICLE_I_R() +  1,
+    VEHICLE_02 => VEHICLE_I_R() +  2,
+    VEHICLE_03 => VEHICLE_I_R() +  3,
+    VEHICLE_04 => VEHICLE_I_R() +  4,
+    VEHICLE_05 => VEHICLE_I_R() +  5,
+    VEHICLE_06 => VEHICLE_I_R() +  6,
+    VEHICLE_07 => VEHICLE_I_R() +  7,
+    VEHICLE_08 => VEHICLE_I_R() +  8,
+    VEHICLE_09 => VEHICLE_I_R() +  9,
+    VEHICLE_10 => VEHICLE_I_R() + 10,
+    VEHICLE_11 => VEHICLE_I_R() + 11,
+    VEHICLE_12 => VEHICLE_I_R() + 12,
+    VEHICLE_13 => VEHICLE_I_R() + 13,
+    VEHICLE_14 => VEHICLE_I_R() + 14,
 };
 
 # VIR Type.
 use constant {
-
-  ENGINE         => VEHICLE_I_R() + 30,
-  TIRES          => VEHICLE_I_R() + 31,
-  VEHICHLE_LIGHTS => VEHICLE_I_R() + 32,
-  VEHICLE_WARNING_LIGHTS  => VEHICLE_I_R() + 33,
-  # OTHER is covered by TYPEOTHER() set elsewhere.
+    ENGINE         => VEHICLE_I_R() + 30,
+    TIRES          => VEHICLE_I_R() + 31,
+    VEHICHLE_LIGHTS => VEHICLE_I_R() + 32,
+    VEHICLE_WARNING_LIGHTS  => VEHICLE_I_R() + 33,
+    # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
 # Mailing list
-my @list_name =
-  ( 'CSG'  ,
-    'JCMT' ,
-    'JCMT_EVENTS' ,
-    'UKIRT' ,
-    'OMP'   ,
-    'DR'    ,
-    'SAFETY'   ,
-    'FACILITY' ,
-    'VEHICLE_INCIDENT' ,
-  );
+my @list_name = (
+    'CSG',
+    'JCMT',
+    'JCMT_EVENTS',
+    'UKIRT',
+    'OMP',
+    'DR',
+    'SAFETY',
+    'FACILITY',
+    'VEHICLE_INCIDENT',
+);
 
 my %MAILLIST;
 
 my $config = OMP::Config->new();
 for my $name (@list_name) {
     $MAILLIST{$name} = [
-        grep {$_} map {s/^ +//; s/ +$//; $_}
+        grep {$_}
+        map {s/^ +//; s/ +$//; $_}
         $config->getData('email-address.' . lc $name)];
 }
 
 my %DATA = (
-             "CSG" => {
-                       SYSTEM => {
-                                  "Sun/Solaris" => SUN_SOLARIS,
-                                  "Alpha/OSF"   => ALPHA_OSF,
-                                  "PC/Windows"  => PC_WINDOWS,
-                                  "VAX/VMS"     => VAX_VMS,
-                                  "PC/Linux"    => PC_LINUX,
-                                  "Other/Unknown"=> SYSTEMOTHER,
-                                 },
-                       TYPE => {
-                                Other    => TYPEOTHER,
-                                Human    => HUMAN,
-                                Hardware => HARDWARE,
-                                Software => SOFTWARE,
-                                Network  => NETWORK,
-                                Printer  => PRINTER,
-                               },
-                      },
-             "JCMT" => {
-                        SYSTEM => {
-                                   Telescope => TELESCOPE,
-                                   "Back End - DAS" => BACK_END_DAS,
-                                   "Back End - ACSIS" => BACK_END_ACSIS,
-                                   "Back End - CBE" => BACK_END_CBE,
-                                   "Back End - IFD" => BACK_END_IFD,
-                                   "Front End - HARP" => FRONT_END_HARP,
-                                   "Front End - Namakanui" => NAMAKANUI,
-                                   "Front End - RxA" => FRONT_END_RXA,
-                                   "Front End - RxB" => FRONT_END_RXB,
-                                   "Front End - RxW" => FRONT_END_RXW,
-                                   "Front End - RxH3" => FRONT_END_RXH3,
-                                   Surface => SURFACE,
-                                   SCUBA   => SCUBA,
-                                   'SCUBA-2' => SCUBA2,
-                                   IFS => IFS,
-                                   "Water Vapor Rad." => WATER_VAPOR_RAD,
-                                   "Weather Station" => WX_STATN,
-                                   "Visitor Instruments" => INSTRUMENT_VISITOR,
-                                   Instrument => INSTRUMENT_OTHER_UNKNOWN,
-                                   Computer => COMPUTER,
-                                   Carousel => CAROUSEL,
-                                   "Other/Unknown" => SYSTEMOTHER,
-                                  },
-                        SYSTEM_HIDDEN => {
-                            BACK_END_DAS() => 1,
-                            BACK_END_CBE() => 1,
-                            BACK_END_IFD() => 1,
-                            FRONT_END_RXB() => 1,
-                            FRONT_END_RXW() => 1,
-                            SCUBA() => 1,
-                        },
-                        TYPE => {
-                                 Mechanical => MECHANICAL,
-                                 Electronic => ELECTRONIC,
-                                 Hardware => HARDWARE,
-                                 Software => SOFTWARE,
-                                 Cryogenic => CRYOGENIC,
-                                 "Other/Unknown" => TYPEOTHER,
-                                 Human => HUMAN,
-                                },
-                       },
-             "UKIRT" => {
-                         SYSTEM => {
-                                    Telescope => TELESCOPE,
-                                    "Computer" => COMPUTER,
-                                    OT => OT,
-                                    "OT Libraries" => OT_LIBRARIES,
-                                    "ORAC-DR" => ORAC_DR,
-                                    "Query Tool" => QUERYTOOL,
-                                    "Sequence Console" => SEQUENCER_QUEUE,
-                                    Translator => TRANSLATOR,
-                                    "Observing Database" => DBSERVER,
-                                    "Web feedback system" => OMP_FEEDBACK_SYSTEM,
-                                    Dome => DOME,
-                                    Ancillaries => ANCILLARIES,
-                                    "Instrument - CGS4" => INSTRUMENT_CGS4,
-                                    "Instrument - UFTI" => INSTRUMENT_UFTI,
-                                    "Instrument - UIST" => INSTRUMENT_UIST,
-                                    "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
-                                    "Instrument - WFCAM" => INSTRUMENT_WFCAM,
-                                    "Instrument - WFS" => INSTRUMENT_WFS,
-                                    "Instrument - Visitor" => INSTRUMENT_VISITOR,
-                                    "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
-                                    "Other/Unknown" => SYSTEMOTHER,
-                                   },
-                         TYPE => {
-                                  Mechanical => MECHANICAL,
-                                  Electronic => ELECTRONIC,
-                                  Hardware => HARDWARE,
-                                  "Software" => SOFTWARE,
-                                  Network => NETWORK,
-                                  Cryogenic => CRYOGENIC,
-                                  "Remote Operations" => REMOTE_OP,
-                                  "Other/Unknown" => TYPEOTHER,
-                                  Human => HUMAN,
-                                 },
-                        },
-             "OMP"   => {
-                         SYSTEM => {
-                                    "Feedback/Web" => FEEDBACK_WEB,
-                                    DBServer => DBSERVER,
-                                    ObservingTool => OBSERVINGTOOL,
-                                    QueryTool => QUERYTOOL,
-                                    "Sequencer/Queue" => SEQUENCER_QUEUE,
-                                    Translator => TRANSLATOR,
-                                    "Monitor/Console" => MONITOR_CONSOLE,
-                                    "Hedwig" => HEDWIG,
-                                    "JSA/CADC" => JSA_CADC,
-                                    "Other/Unknown" => SYSTEMOTHER,
-                                   },
-                         TYPE => {
-                                  GUI => GUI,
-                                  Exception => EXCEPTION,
-                                  Scheduling => SCHEDULING,
-                                  Bug => BUG,
-                                  "Feature Request"=> FEATURE_REQUEST,
-                                  Other => TYPEOTHER,
-                                  Human => HUMAN,
-                                 },
-                        },
-            "DR"     => {
-                         SYSTEM => {
-                                    "JCMT-DR" => JCMT_DR,
-                                    SPECX => SPECX,
-                                    "AIPS++" => AIPSPLUSPLUS,
-                                    SURF => SURF,
-                                    STARLINK => STARLINK,
-                                    "ORAC-DR/PICARD" => ORAC_DR,
-                                    SMURF => SMURF,
-                                    OTHER => SYSTEMOTHER,
-                                    "JSA Processing" => JSAPROC,
-                                   },
-                         TYPE => {
-                                  Bug => BUG,
-                                  "Feature Request" => FEATURE_REQUEST,
-                                  Human => HUMAN,
-                                  Other => TYPEOTHER,
-                                 },
-                        },
-            'SAFETY' => {
-                          'SEVERITY' => {
-                                          'Severe injury or death' => INJURY_DEATH,
-                                          'Major injury' => MAJOR_INJURY,
-                                          'Minor injury' => MINOR_INJURY,
-                                          'Equipment damage' => EQUIP_DAMAGE,
-                                          'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
-                                          'Environmental issue' => ENV_ISSUE,
-                                          'Environmental incident' => ENV_INCIDENT,
-                                        },
-                           'TYPE' => {
-                                        'Incident' => INCIDENT,
-                                        'Near miss' => NEAR_MISS,
-                                        'Safety concern' => SAFETY_CONCERN,
-                                        'Safety clarification' => SAFETY_CLARAFICATION_TYPE,
-                                        'Environment' => ENVIRONMENT,
-                                      },
-                        },
-            'FACILITY' => {
-                            'SYSTEM' => {
-                                          'JCMT'          => JCMT         ,
-                                          'UKIRT'         => UKIRT        ,
-                                          'HP'            => HP           ,
-                                          'Toilet'        => TOILET       ,
-                                          'Office'        => OFFICE       ,
-                                          'Library'       => LIBRARY      ,
-                                          'Computer Room' => COMP_ROOM    ,
-                                          'Meeting Room'  => MEETING_ROOM ,
-                                          'Laboratory'    => LAB          ,
-                                          'Workshop'      => WORKSHOP     ,
-                                          'Vehicle Bay'   => VEHICLE_BAY  ,
-                                          'Car Park'      => CAR_PARK     ,
-                                          'Other'         => SYSTEMOTHER  ,
-                                        },
-                            'TYPE' => {
-                                        'Insect'              => INSECT          ,
-                                        'Leak'                => LEAK            ,
-                                        'Plumbing'            => PLUMBING        ,
-                                        'A/C or dehumidifier' => AC_DEHUMIDIFIER ,
-                                        'Alarm system'        => ALARM_SYS       ,
-                                        'Electrical'          => ELECTRICAL      ,
-                                        'Network'             => NETWORK         ,
-                                        'Computer'            => COMPUTER        ,
-                                        'Other'               => TYPEOTHER       ,
-                                      },
-                          },
-                'JCMT_EVENTS' => {
-                      'SYSTEM' => {
-                                    'ACSIS'         =>  BACK_END_ACSIS ,
-                                    'Computer'      =>  COMPUTER       ,
-                                    'FTS2'          =>  FTS2           ,
-                                    'HARP'          =>  FRONT_END_HARP ,
-                                    'OCS/JOS'       =>  OCS_JOS        ,
-                                    'Pointing'      =>  POINTING       ,
-                                    'POL2'          =>  POL2           ,
-                                    'Rover'         =>  ROVER          ,
-                                    'Namakanui'     =>  NAMAKANUI,
-                                    'RxA'           =>  FRONT_END_RXA  ,
-                                    'RxW'           =>  FRONT_END_RXW  ,
-                                    'RxH3/Surface'  =>  RXH3_SURFACE   ,
-                                    'SCUBA-2'       =>  SCUBA2         ,
-                                    'SMU/TMU'       =>  SMU_TMU        ,
-                                    'Software-DR'   =>  SOFTWARE_DR    ,
-                                    'Telescope'     =>  TELESCOPE      ,
-                                    'Water Vapor Monitor' => WATER_VAPOR_RAD ,
-                                    'Weather Station' => WX_STATN,
-                                    'Other'         =>  SYSTEMOTHER,
-                                  },
-                      'TYPE' => {
-                                  'Hardware' =>  HARDWARE ,
-                                  'Software' =>  SOFTWARE ,
-                                },
-                  },
-            'VEHICLE_INCIDENT' => {
-                            # 'VEHICLE' is same as 'SYSTEM'.
-                            'VEHICLE' => {
-                                            '1'  => VEHICLE_01(),
-                                            '2'  => VEHICLE_02(),
-                                            '3'  => VEHICLE_03(),
-                                            '4'  => VEHICLE_04(),
-                                            '5'  => VEHICLE_05(),
-                                            '6'  => VEHICLE_06(),
-                                            '7'  => VEHICLE_07(),
-                                            '9'  => VEHICLE_09(),
-                                            '10' => VEHICLE_10(),
-                                            '11' => VEHICLE_11(),
-                                            '13' => VEHICLE_13(),
-                                            '14' => VEHICLE_14(),
-                                          },
-                            'TYPE' => {
-                                          'Engine' => ENGINE(),
-                                          'Tires' => TIRES(),
-                                          'Lights' => VEHICHLE_LIGHTS(),
-                                          'Warning lights' => VEHICLE_WARNING_LIGHTS(),
-                                          'Other' => TYPEOTHER(),
-                                        },
-                        },
-            );
+    "CSG" => {
+        SYSTEM => {
+            "Sun/Solaris" => SUN_SOLARIS,
+            "Alpha/OSF" => ALPHA_OSF,
+            "PC/Windows" => PC_WINDOWS,
+            "VAX/VMS" => VAX_VMS,
+            "PC/Linux" => PC_LINUX,
+            "Other/Unknown" => SYSTEMOTHER,
+        },
+        TYPE => {
+            Other => TYPEOTHER,
+            Human => HUMAN,
+            Hardware => HARDWARE,
+            Software => SOFTWARE,
+            Network => NETWORK,
+            Printer => PRINTER,
+        },
+    },
+    "JCMT" => {
+        SYSTEM => {
+            Telescope => TELESCOPE,
+            "Back End - DAS" => BACK_END_DAS,
+            "Back End - ACSIS" => BACK_END_ACSIS,
+            "Back End - CBE" => BACK_END_CBE,
+            "Back End - IFD" => BACK_END_IFD,
+            "Front End - HARP" => FRONT_END_HARP,
+            "Front End - Namakanui" => NAMAKANUI,
+            "Front End - RxA" => FRONT_END_RXA,
+            "Front End - RxB" => FRONT_END_RXB,
+            "Front End - RxW" => FRONT_END_RXW,
+            "Front End - RxH3" => FRONT_END_RXH3,
+            Surface => SURFACE,
+            SCUBA => SCUBA,
+            'SCUBA-2' => SCUBA2,
+            IFS => IFS,
+            "Water Vapor Rad." => WATER_VAPOR_RAD,
+            "Weather Station" => WX_STATN,
+            "Visitor Instruments" => INSTRUMENT_VISITOR,
+            Instrument => INSTRUMENT_OTHER_UNKNOWN,
+            Computer => COMPUTER,
+            Carousel => CAROUSEL,
+            "Other/Unknown" => SYSTEMOTHER,
+        },
+        SYSTEM_HIDDEN => {
+            BACK_END_DAS() => 1,
+            BACK_END_CBE() => 1,
+            BACK_END_IFD() => 1,
+            FRONT_END_RXB() => 1,
+            FRONT_END_RXW() => 1,
+            SCUBA() => 1,
+        },
+        TYPE => {
+            Mechanical => MECHANICAL,
+            Electronic => ELECTRONIC,
+            Hardware => HARDWARE,
+            Software => SOFTWARE,
+            Cryogenic => CRYOGENIC,
+            "Other/Unknown" => TYPEOTHER,
+            Human => HUMAN,
+            Network => NETWORK,
+        },
+    },
+    "UKIRT" => {
+        SYSTEM => {
+            Telescope => TELESCOPE,
+            "Computer" => COMPUTER,
+            OT => OT,
+            "OT Libraries" => OT_LIBRARIES,
+            "ORAC-DR" => ORAC_DR,
+            "Query Tool" => QUERYTOOL,
+            "Sequence Console" => SEQUENCER_QUEUE,
+            Translator => TRANSLATOR,
+            "Observing Database" => DBSERVER,
+            "Web feedback system" => OMP_FEEDBACK_SYSTEM,
+            Dome => DOME,
+            Ancillaries => ANCILLARIES,
+            "Instrument - CGS4" => INSTRUMENT_CGS4,
+            "Instrument - UFTI" => INSTRUMENT_UFTI,
+            "Instrument - UIST" => INSTRUMENT_UIST,
+            "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
+            "Instrument - WFCAM" => INSTRUMENT_WFCAM,
+            "Instrument - WFS" => INSTRUMENT_WFS,
+            "Instrument - Visitor" => INSTRUMENT_VISITOR,
+            "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
+            "Other/Unknown" => SYSTEMOTHER,
+        },
+        TYPE => {
+            Mechanical => MECHANICAL,
+            Electronic => ELECTRONIC,
+            Hardware => HARDWARE,
+            "Software" => SOFTWARE,
+            Network => NETWORK,
+            Cryogenic => CRYOGENIC,
+            "Remote Operations" => REMOTE_OP,
+            "Other/Unknown" => TYPEOTHER,
+            Human => HUMAN,
+        },
+    },
+    "OMP" => {
+        SYSTEM => {
+            "Feedback/Web" => FEEDBACK_WEB,
+            DBServer => DBSERVER,
+            ObservingTool => OBSERVINGTOOL,
+            QueryTool => QUERYTOOL,
+            "Sequencer/Queue" => SEQUENCER_QUEUE,
+            Translator => TRANSLATOR,
+            "Monitor/Console" => MONITOR_CONSOLE,
+            "Hedwig" => HEDWIG,
+            "JSA/CADC" => JSA_CADC,
+            "Other/Unknown" => SYSTEMOTHER,
+        },
+        TYPE => {
+            GUI => GUI,
+            Exception => EXCEPTION,
+            Scheduling => SCHEDULING,
+            Bug => BUG,
+            "Feature Request" => FEATURE_REQUEST,
+            Other => TYPEOTHER,
+            Human => HUMAN,
+        },
+    },
+    "DR" => {
+        SYSTEM => {
+            "JCMT-DR" => JCMT_DR,
+            SPECX => SPECX,
+            "AIPS++" => AIPSPLUSPLUS,
+            SURF => SURF,
+            STARLINK => STARLINK,
+            "ORAC-DR/PICARD" => ORAC_DR,
+            SMURF => SMURF,
+            OTHER => SYSTEMOTHER,
+            "JSA Processing" => JSAPROC,
+        },
+        TYPE => {
+            Bug => BUG,
+            "Feature Request" => FEATURE_REQUEST,
+            Human => HUMAN,
+            Other => TYPEOTHER,
+        },
+    },
+    'SAFETY' => {
+        'SEVERITY' => {
+            'Severe injury or death' => INJURY_DEATH,
+            'Major injury' => MAJOR_INJURY,
+            'Minor injury' => MINOR_INJURY,
+            'Equipment damage' => EQUIP_DAMAGE,
+            'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
+            'Environmental issue' => ENV_ISSUE,
+            'Environmental incident' => ENV_INCIDENT,
+        },
+        'TYPE' => {
+            'Incident' => INCIDENT,
+            'Near miss' => NEAR_MISS,
+            'Safety concern' => SAFETY_CONCERN,
+            'Safety clarification' => SAFETY_CLARAFICATION_TYPE,
+            'Environment' => ENVIRONMENT,
+        },
+    },
+    'FACILITY' => {
+        'SYSTEM' => {
+            'JCMT' => JCMT,
+            'UKIRT' => UKIRT,
+            'HP' => HP,
+            'Toilet' => TOILET,
+            'Office' => OFFICE,
+            'Library' => LIBRARY,
+            'Computer Room' => COMP_ROOM,
+            'Meeting Room' => MEETING_ROOM,
+            'Laboratory' => LAB,
+            'Workshop' => WORKSHOP,
+            'Vehicle Bay' => VEHICLE_BAY,
+            'Car Park' => CAR_PARK,
+            'Other' => SYSTEMOTHER,
+        },
+        'TYPE' => {
+            'Insect' => INSECT,
+            'Leak' => LEAK,
+            'Plumbing' => PLUMBING,
+            'A/C or dehumidifier' => AC_DEHUMIDIFIER,
+            'Alarm system' => ALARM_SYS,
+            'Electrical' => ELECTRICAL,
+            'Network' => NETWORK,
+            'Computer' => COMPUTER,
+            'Other' => TYPEOTHER,
+        },
+    },
+    'JCMT_EVENTS' => {
+        'SYSTEM' => {
+            'ACSIS' => BACK_END_ACSIS,
+            'Computer' => COMPUTER,
+            'FTS2' => FTS2,
+            'HARP' => FRONT_END_HARP,
+            'OCS/JOS' => OCS_JOS,
+            'Pointing' => POINTING,
+            'POL2' => POL2,
+            'Rover' => ROVER,
+            'Namakanui' => NAMAKANUI,
+            'RxA' => FRONT_END_RXA,
+            'RxW' => FRONT_END_RXW,
+            'RxH3/Surface' => RXH3_SURFACE,
+            'SCUBA-2' => SCUBA2,
+            'SMU/TMU' => SMU_TMU,
+            'Software-DR' => SOFTWARE_DR,
+            'Telescope' => TELESCOPE,
+            'Water Vapor Monitor' => WATER_VAPOR_RAD,
+            'Weather Station' => WX_STATN,
+            'Other' => SYSTEMOTHER,
+        },
+        'TYPE' => {
+            'Hardware' => HARDWARE,
+            'Software' => SOFTWARE,
+        },
+    },
+    'VEHICLE_INCIDENT' => {
+        # 'VEHICLE' is same as 'SYSTEM'.
+        'VEHICLE' => {
+            '1' => VEHICLE_01(),
+            '2' => VEHICLE_02(),
+            '3' => VEHICLE_03(),
+            '4' => VEHICLE_04(),
+            '5' => VEHICLE_05(),
+            '6' => VEHICLE_06(),
+            '7' => VEHICLE_07(),
+            '9' => VEHICLE_09(),
+            '10' => VEHICLE_10(),
+            '11' => VEHICLE_11(),
+            '13' => VEHICLE_13(),
+            '14' => VEHICLE_14(),
+        },
+        'TYPE' => {
+            'Engine' => ENGINE(),
+            'Tires' => TIRES(),
+            'Lights' => VEHICHLE_LIGHTS(),
+            'Warning lights' => VEHICLE_WARNING_LIGHTS(),
+            'Other' => TYPEOTHER(),
+        },
+    },
+);
 
 my %LOCATION = (
-                  'UKIRT' => UKIRT,
-                  'JCMT' => JCMT,
-                  'HP' => HP,
-                  'JAC' => JAC,
-                  'EAO' => EAO,
-                  'In transit' => IN_TRANSIT
-                );
+    'UKIRT' => UKIRT,
+    'JCMT' => JCMT,
+    'HP' => HP,
+    'JAC' => JAC,
+    'EAO' => EAO,
+    'In transit' => IN_TRANSIT
+);
 
 my %LOCATION_HIDDEN = (
     JAC() => 1,
@@ -543,162 +541,158 @@ my %LOCATION_HIDDEN = (
 
 # Miscellaneous options for each category
 my %OPTIONS = (
-               CSG => {
-                       CAN_LOSE_TIME => 0,
-                       CAN_ASSOC_PROJECTS => 0,
-                       IS_TELESCOPE => 0,
-                      },
-               JCMT => {
-                        CAN_LOSE_TIME => 1,
-                        CAN_ASSOC_PROJECTS => 1,
-                        IS_TELESCOPE => 1,
-                       },
-               OMP => {
-                       CAN_LOSE_TIME => 0,
-                       CAN_ASSOC_PROJECTS => 0,
-                       IS_TELESCOPE => 0,
-                      },
-               UKIRT => {
-                         CAN_LOSE_TIME => 1,
-                         CAN_ASSOC_PROJECTS => 1,
-                         IS_TELESCOPE => 1,
-                        },
-               DR => {
-                      CAN_LOSE_TIME => 0,
-                      CAN_ASSOC_PROJECTS => 0,
-                      IS_TELESCOPE => 0,
-                     },
-               'SAFETY' => {
-                              CAN_LOSE_TIME => 0,
-                              CAN_ASSOC_PROJECTS => 0,
-                              IS_TELESCOPE => 0,
-                            },
-              );
+    CSG => {
+        CAN_LOSE_TIME => 0,
+        CAN_ASSOC_PROJECTS => 0,
+        IS_TELESCOPE => 0,
+    },
+    JCMT => {
+        CAN_LOSE_TIME => 1,
+        CAN_ASSOC_PROJECTS => 1,
+        IS_TELESCOPE => 1,
+    },
+    OMP => {
+        CAN_LOSE_TIME => 0,
+        CAN_ASSOC_PROJECTS => 0,
+        IS_TELESCOPE => 0,
+    },
+    UKIRT => {
+        CAN_LOSE_TIME => 1,
+        CAN_ASSOC_PROJECTS => 1,
+        IS_TELESCOPE => 1,
+    },
+    DR => {
+        CAN_LOSE_TIME => 0,
+        CAN_ASSOC_PROJECTS => 0,
+        IS_TELESCOPE => 0,
+    },
+    'SAFETY' => {
+        CAN_LOSE_TIME => 0,
+        CAN_ASSOC_PROJECTS => 0,
+        IS_TELESCOPE => 0,
+    },
+);
 
-$OPTIONS{'VEHICLE_INCIDENT'} =
-$OPTIONS{'JCMT_EVENTS'} =
-  { %{ $OPTIONS{'SAFETY'} } };
+$OPTIONS{'VEHICLE_INCIDENT'}
+    = $OPTIONS{'JCMT_EVENTS'}
+    = {%{$OPTIONS{'SAFETY'}}};
 
 # Urgency
 my %URGENCY = (
-               Urgent => 0,
-               Normal => 1,
-               Info   => 2,
-              );
+    Urgent => 0,
+    Normal => 1,
+    Info => 2,
+);
 
 my %CONDITION = (
-                 Chronic => 0,
-                 Normal  => 1,
-                );
+    Chronic => 0,
+    Normal => 1,
+);
 
 my %STATUS_OPEN = (
-                   Open                   => OPEN,
-                   "Open - Will be fixed" => WILL_BE_FIXED,
-                   'Suspended'            => SUSPENDED,
-                  );
+    Open => OPEN,
+    'Open - Will be fixed' => WILL_BE_FIXED,
+    'Suspended' => SUSPENDED,
+);
 
 my %STATUS_CLOSED = (
-                     Closed           => CLOSED,
-                     "Works for me"   => WORKS_FOR_ME,
-                     "Not a fault"    => NOT_A_FAULT,
-                     "Won't be fixed" => WON_T_BE_FIXED,
-                     Duplicate        => DUPLICATE,
-                    );
+    Closed => CLOSED,
+    "Works for me" => WORKS_FOR_ME,
+    "Not a fault" => NOT_A_FAULT,
+    "Won't be fixed" => WON_T_BE_FIXED,
+    Duplicate => DUPLICATE,
+);
 
 my %SAFETY_STATUS_OPEN = (
-                            'Immediate action required' => IMMEDIATE_ACTION,
-                            'Follow up required' => FOLLOW_UP,
-                            'Refer to safety commitee' => REFER_TO_SAFETY_COMMITTEE,
-                          );
+    'Immediate action required' => IMMEDIATE_ACTION,
+    'Follow up required' => FOLLOW_UP,
+    'Refer to safety commitee' => REFER_TO_SAFETY_COMMITTEE,
+);
 
 my %SAFETY_STATUS_CLOSED = (
-                              'No further action' => NO_ACTION,
-                              'Closed' => $STATUS_CLOSED{'Closed'}
-                            );
+    'No further action' => NO_ACTION,
+    'Closed' => $STATUS_CLOSED{'Closed'}
+);
 
-my %STATUS = ( %STATUS_OPEN, %STATUS_CLOSED );
+my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
 
-my %SAFETY_STATUS = ( %SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED );
+my %SAFETY_STATUS = (%SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED);
 
-my %JCMT_EVENTS_STATUS_OPEN = ( 'Commissioning' => COMMISSIONING,
-                           'Ongoing' => ONGOING,
-                          );
+my %JCMT_EVENTS_STATUS_OPEN = (
+    'Commissioning' => COMMISSIONING,
+    'Ongoing' => ONGOING,
+);
 
-my %JCMT_EVENTS_STATUS_CLOSED = ( 'Complete' => COMPLETE,
-                            );
+my %JCMT_EVENTS_STATUS_CLOSED = (
+    'Complete' => COMPLETE,
+);
 
-my %JCMT_EVENTS_STATUS = ( %JCMT_EVENTS_STATUS_OPEN, %JCMT_EVENTS_STATUS_CLOSED );
+my %JCMT_EVENTS_STATUS = (
+    %JCMT_EVENTS_STATUS_OPEN,
+    %JCMT_EVENTS_STATUS_CLOSED);
 
-my %VEHICLE_INCIDENT_STATUS_OPEN =
-  ( 'Open' => OPEN(),
+my %VEHICLE_INCIDENT_STATUS_OPEN = (
+    'Open' => OPEN(),
     'Open - Will be fixed' => WILL_BE_FIXED(),
     'Known fault' => KNOWN_FAULT(),
-  );
+);
 
-my %VEHICLE_INCIDENT_STATUS_CLOSED =
-  (
-    'Duplicate'      => DUPLICATE(),
-    'Closed'         => CLOSED(),
+my %VEHICLE_INCIDENT_STATUS_CLOSED = (
+    'Duplicate' => DUPLICATE(),
+    'Closed' => CLOSED(),
     "Won't be fixed" => WON_T_BE_FIXED(),
-  );
+);
 
-my %VEHICLE_INCIDENT_STATUS =
-  ( %VEHICLE_INCIDENT_STATUS_OPEN,
-    %VEHICLE_INCIDENT_STATUS_CLOSED
-  );
+my %VEHICLE_INCIDENT_STATUS = (
+    %VEHICLE_INCIDENT_STATUS_OPEN,
+    %VEHICLE_INCIDENT_STATUS_CLOSED);
 
 # Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
-  $INVERSE_URGENCY{ $URGENCY{$_} } = $_;
+    $INVERSE_URGENCY{$URGENCY{$_}} = $_;
 }
 
 my %INVERSE_CONDITION;
 for (keys %CONDITION) {
-  $INVERSE_CONDITION{ $CONDITION{$_} } = $_;
+    $INVERSE_CONDITION{$CONDITION{$_}} = $_;
 }
 
 my %INVERSE_STATUS;
 for (keys %STATUS) {
-  $INVERSE_STATUS{ $STATUS{$_} } = $_;
+    $INVERSE_STATUS{$STATUS{$_}} = $_;
 }
 
-for (keys %SAFETY_STATUS ) {
-  $INVERSE_STATUS{ $SAFETY_STATUS{$_} } = $_;
+for (keys %SAFETY_STATUS) {
+    $INVERSE_STATUS{$SAFETY_STATUS{$_}} = $_;
 }
 
-for (keys %JCMT_EVENTS_STATUS ) {
-  $INVERSE_STATUS{ $JCMT_EVENTS_STATUS{$_} } = $_;
+for (keys %JCMT_EVENTS_STATUS) {
+    $INVERSE_STATUS{$JCMT_EVENTS_STATUS{$_}} = $_;
 }
 
-for (keys %VEHICLE_INCIDENT_STATUS ) {
-  $INVERSE_STATUS{ $VEHICLE_INCIDENT_STATUS{$_} } = $_;
+for (keys %VEHICLE_INCIDENT_STATUS) {
+    $INVERSE_STATUS{$VEHICLE_INCIDENT_STATUS{$_}} = $_;
 }
 
 my %INVERSE_PLACE;
-$INVERSE_PLACE{ $LOCATION{ $_ } } = $_
-  for keys %LOCATION;
-
+$INVERSE_PLACE{$LOCATION{$_}} = $_
+    for keys %LOCATION;
 
 # Loop over categories
 my %INVERSE;
-for my $cat ( keys %DATA) {
+for my $cat (keys %DATA) {
+    # Crate new hash for categories
+    $INVERSE{$cat} = {};
 
-  # Crate new hash for categories
-  $INVERSE{$cat} = {};
-
-  # Loop over systems and types
-  for my $sys ( keys %{ $DATA{$cat} } ) {
-
-    # Create new hash for systems and types
-    $INVERSE{$cat}{$sys} = {};
-
-    for my $strings ( keys %{ $DATA{$cat}{$sys} } ) {
-      $INVERSE{$cat}{$sys}{ $DATA{$cat}{$sys}{$strings} } = $strings;
+    # Loop over systems and types
+    for my $sys (keys %{$DATA{$cat}}) {
+        # Create new hash for systems and types
+        $INVERSE{$cat}{$sys} = {};
+        for my $strings (keys %{$DATA{$cat}{$sys}}) {
+            $INVERSE{$cat}{$sys}{$DATA{$cat}{$sys}{$strings}} = $strings;
+        }
     }
-
-  }
-
 }
 
 =head1 METHODS
@@ -716,14 +710,13 @@ Return the different global fault categories available to this system.
 This returns a list of supported categories (eg JCMT and UKIRT). The
 subsystems and fault types change depending on global fault category.
 
-  @categories = OMP::Fault->faultCategories();
+    @categories = OMP::Fault->faultCategories();
 
 =cut
 
 sub faultCategories {
-  return keys %DATA;
+    return keys %DATA;
 }
-
 
 =item B<faultSystems>
 
@@ -731,41 +724,41 @@ For a specific fault category (eg JCMT or UKIRT) return a hash
 containing the allowed fault systems (as keys) and the constants
 required to identify those systems in the database.
 
-  %systems = OMP::Fault->faultSystems( "JCMT" );
+    %systems = OMP::Fault->faultSystems("JCMT");
 
 Returns empty list if the fault category is not recognized.
 
 =cut
 
 sub faultSystems {
-  my $class = shift;
-  my $category = uc(shift);
-  my %opt = @_;
+    my $class = shift;
+    my $category = uc(shift);
+    my %opt = @_;
 
-  return unless exists $DATA{$category};
+    return unless exists $DATA{$category};
 
-  my %cat_section = (
-    SAFETY => 'SEVERITY',
-    VEHICLE_INCIDENT => 'VEHICLE',
-  );
+    my %cat_section = (
+        SAFETY => 'SEVERITY',
+        VEHICLE_INCIDENT => 'VEHICLE',
+    );
 
-  my $section = $cat_section{$category} // 'SYSTEM';
+    my $section = $cat_section{$category} // 'SYSTEM';
 
-  my $systems = $DATA{$category}{$section};
+    my $systems = $DATA{$category}{$section};
 
-  return $systems if $opt{'include_hidden'};
+    return $systems if $opt{'include_hidden'};
 
-  my $hidden = $DATA{$category}{$section . '_HIDDEN'};
+    my $hidden = $DATA{$category}{$section . '_HIDDEN'};
 
-  return $systems unless defined $hidden;
+    return $systems unless defined $hidden;
 
-  my %non_hidden = ();
+    my %non_hidden = ();
 
-  while (my ($name, $code) = each %$systems) {
-      $non_hidden{$name} = $code unless $hidden->{$code};
-  }
+    while (my ($name, $code) = each %$systems) {
+        $non_hidden{$name} = $code unless $hidden->{$code};
+    }
 
-  return \%non_hidden;
+    return \%non_hidden;
 }
 
 =item B<faultTypes>
@@ -774,74 +767,81 @@ For a specific fault category (eg JCMT or UKIRT) return a hash
 containing the allowed fault types (as keys) and the constants
 required to identify those types in the database.
 
-  %types = OMP::Fault->faultTypes( "JCMT" );
+    %types = OMP::Fault->faultTypes("JCMT");
 
 Returns empty list if the fault category is not recognized.
 
 =cut
 
 sub faultTypes {
-  my $class = shift;
-  my $category = uc(shift);
+    my $class = shift;
+    my $category = uc(shift);
 
-  if (exists $DATA{$category}) {
-    return $DATA{$category}{TYPE};
-  } else {
-    return ();
-
-  }
+    if (exists $DATA{$category}) {
+        return $DATA{$category}{TYPE};
+    }
+    else {
+        return ();
+    }
 }
 
 =item B<shiftTypes>
 For a specific fault category (eg JCMT or UKIRT) return a list of the allowed shift types.
 
-    %shifttypes = OMP::Fault->shiftTypes( "JCMT");
+    %shifttypes = OMP::Fault->shiftTypes("JCMT");
 
 Returns empty list if the fault category is not recognized or has no allowed shifts.
 =cut
 
-my %JCMTSHIFTTYPES = ( NIGHT => "NIGHT",
-		       EO => "EO",
-		       DAY => "DAY",
-		       OTHER => "OTHER",
-    );
-my %UKIRTSHIFTTYPES = ( NIGHT => "NIGHT" );
+my %JCMTSHIFTTYPES = (
+    NIGHT => "NIGHT",
+    EO => "EO",
+    DAY => "DAY",
+    OTHER => "OTHER",
+);
+
+my %UKIRTSHIFTTYPES = (
+    NIGHT => "NIGHT",
+);
 
 sub shiftTypes {
     my $class = shift;
     my $category = uc(shift);
 
     if ($category eq 'JCMT') {
-	return %JCMTSHIFTTYPES;
-    } elsif ($category eq 'UKIRT') {
-	return %UKIRTSHIFTTYPES;
-    } else {
-	return ();
+        return %JCMTSHIFTTYPES;
+    }
+    elsif ($category eq 'UKIRT') {
+        return %UKIRTSHIFTTYPES;
+    }
+    else {
+        return ();
     }
 }
-
 
 =item B<remoteTypes>
 For a specific fault category (eg JCMT or UKIRT) return a list of the allowed remote types.
 
-    %remotetypes = OMP::Fault->remoteTypes( "JCMT");
+    %remotetypes = OMP::Fault->remoteTypes("JCMT");
 
 Returns empty list if the fault category is not recognized or has no allowed remote types.
 =cut
 
-my %JCMTREMOTETYPES = ( LOCAL => "LOCAL",
-		       REMOTE => "REMOTE",
-		       UNKNOWN => "UNKNOWN",
-    );
+my %JCMTREMOTETYPES = (
+    LOCAL => "LOCAL",
+    REMOTE => "REMOTE",
+    UNKNOWN => "UNKNOWN",
+);
 
 sub remoteTypes {
     my $class = shift;
     my $category = uc(shift);
 
     if ($category eq 'JCMT') {
-	return %JCMTREMOTETYPES;
-    } else {
-	return ();
+        return %JCMTREMOTETYPES;
+    }
+    else {
+        return ();
     }
 }
 
@@ -850,13 +850,13 @@ sub remoteTypes {
 Return a hash containing the different types of urgency that can
 be associated with fixing a particular fault.
 
-  %urgency = OMP::Fault->faultUrgency();
+    %urgency = OMP::Fault->faultUrgency();
 
 =cut
 
 sub faultUrgency {
-  my $class = shift;
-  return %URGENCY;
+    my $class = shift;
+    return %URGENCY;
 }
 
 =item B<faultCondition>
@@ -864,13 +864,13 @@ sub faultUrgency {
 Return a hash containing the different types of condition that can
 be associated with a particular fault.
 
-  %condition = OMP::Fault->faultCondition();
+    %condition = OMP::Fault->faultCondition();
 
 =cut
 
 sub faultCondition {
-  my $class = shift;
-  return %CONDITION;
+    my $class = shift;
+    return %CONDITION;
 }
 
 =item B<faultStatus>
@@ -878,26 +878,26 @@ sub faultCondition {
 Return a hash containing the different statuses that can be associated
 with a fault.
 
-  %status = OMP::Fault->faultStatus();
+    %status = OMP::Fault->faultStatus();
 
 =cut
 
 sub faultStatus {
-  my $class = shift;
-  return %STATUS;
+    my $class = shift;
+    return %STATUS;
 }
 
 =item B<faultStatusOpen>
 
 Return a hash containing the statuses that can represent an open fault.
 
-  %status = OMP::Fault->faultStatusOpen();
+    %status = OMP::Fault->faultStatusOpen();
 
 =cut
 
 sub faultStatusOpen {
-  my $class = shift;
-  return %STATUS_OPEN;
+    my $class = shift;
+    return %STATUS_OPEN;
 }
 
 
@@ -905,80 +905,73 @@ sub faultStatusOpen {
 
 Return a hash containing the statuses that can represent a closed fault.
 
-  %status = OMP::Fault->faultStatusClosed();
+    %status = OMP::Fault->faultStatusClosed();
 
 =cut
 
 sub faultStatusClosed {
-  my $class = shift;
-  return %STATUS_CLOSED;
+    my $class = shift;
+    return %STATUS_CLOSED;
 }
 
 sub faultStatus_Safety {
-  my $class = shift;
-  return %SAFETY_STATUS;
+    my $class = shift;
+    return %SAFETY_STATUS;
 }
 
 sub faultStatusOpen_Safety {
-
-  my $class = shift;
-  return %SAFETY_STATUS_OPEN;
+    my $class = shift;
+    return %SAFETY_STATUS_OPEN;
 }
 
 sub faultStatusClosed_Safety {
-
-  my $class = shift;
-  return %SAFETY_STATUS_CLOSED;
+    my $class = shift;
+    return %SAFETY_STATUS_CLOSED;
 }
 
 sub faultLocation_Safety {
+    my $class = shift;
+    my %opt = @_;
 
-  my $class = shift;
-  my %opt = @_;
+    return %LOCATION if $opt{'include_hidden'};
 
-  return %LOCATION if $opt{'include_hidden'};
+    my %non_hidden;
 
-  my %non_hidden;
+    while (my ($name, $code) = each %LOCATION) {
+        $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
+    }
 
-  while (my ($name, $code) = each %LOCATION) {
-      $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
-  }
-
-  return %non_hidden;
+    return %non_hidden;
 }
 
 sub faultStatus_JCMTEvents {
-  my $class = shift;
-  return %JCMT_EVENTS_STATUS;
+    my $class = shift;
+    return %JCMT_EVENTS_STATUS;
 }
 
 sub faultStatusOpen_JCMTEvents {
-
-  my $class = shift;
-  return %JCMT_EVENTS_STATUS_OPEN;
+    my $class = shift;
+    return %JCMT_EVENTS_STATUS_OPEN;
 }
 
 sub faultStatusClosed_JCMTEvents {
-
-  my $class = shift;
-  return %JCMT_EVENTS_STATUS_CLOSED;
+    my $class = shift;
+    return %JCMT_EVENTS_STATUS_CLOSED;
 }
 
 sub faultStatus_VehicleIncident {
-  my $class = shift;
-  return %VEHICLE_INCIDENT_STATUS;
+    my $class = shift;
+    return %VEHICLE_INCIDENT_STATUS;
 }
 
 sub faultStatusOpen_VehicleIncident {
-
-  my $class = shift;
-  return %VEHICLE_INCIDENT_STATUS_OPEN;
+    my $class = shift;
+    return %VEHICLE_INCIDENT_STATUS_OPEN;
 }
 
 sub faultStatusClosed_VehicleIncident {
-
-  my $class = shift;
-  return %VEHICLE_INCIDENT_STATUS_CLOSED;
+    my $class = shift;
+    return %VEHICLE_INCIDENT_STATUS_CLOSED;
 }
 
 =item B<faultCanAssocProjects>
@@ -986,19 +979,20 @@ sub faultStatusClosed_VehicleIncident {
 Given a fault category, this badly named method will return true if faults for that
 category can be associated with projects.
 
-  $canAssoc = OMP::Fault->faultCanAssocProjects( $category );
+    $canAssoc = OMP::Fault->faultCanAssocProjects($category);
 
 =cut
 
 sub faultCanAssocProjects {
-  my $class = shift;
-  my $category = uc(shift);
+    my $class = shift;
+    my $category = uc(shift);
 
-  if (exists $OPTIONS{$category}{CAN_ASSOC_PROJECTS}) {
-    return $OPTIONS{$category}{CAN_ASSOC_PROJECTS};
-  } else {
-    return 0;
-  }
+    if (exists $OPTIONS{$category}{CAN_ASSOC_PROJECTS}) {
+        return $OPTIONS{$category}{CAN_ASSOC_PROJECTS};
+    }
+    else {
+        return 0;
+    }
 }
 
 =item B<faultCanLoseTime>
@@ -1006,19 +1000,20 @@ sub faultCanAssocProjects {
 Given a fault category, this method will return true if a time lost can value can be specified
 for a fault in that category.
 
-  $canLoseTime = OMP::Fault->faultCanLoseTime( $category );
+    $canLoseTime = OMP::Fault->faultCanLoseTime($category);
 
 =cut
 
 sub faultCanLoseTime {
-  my $class = shift;
-  my $category = uc(shift);
+    my $class = shift;
+    my $category = uc(shift);
 
-  if (exists $OPTIONS{$category}{CAN_LOSE_TIME}) {
-    return $OPTIONS{$category}{CAN_LOSE_TIME};
-  } else {
-    return 0;
-  }
+    if (exists $OPTIONS{$category}{CAN_LOSE_TIME}) {
+        return $OPTIONS{$category}{CAN_LOSE_TIME};
+    }
+    else {
+        return 0;
+    }
 }
 
 =item B<faultIsTelescope>
@@ -1028,14 +1023,15 @@ Given a fault category, this method will return true if the category is associat
 =cut
 
 sub faultIsTelescope {
-  my $class = shift;
-  my $category = uc(shift);
+    my $class = shift;
+    my $category = uc(shift);
 
-  if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
-    return $OPTIONS{$category}{CAN_LOSE_TIME};
-  } else {
-    return 0;
-  }
+    if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
+        return $OPTIONS{$category}{CAN_LOSE_TIME};
+    }
+    else {
+        return 0;
+    }
 }
 
 =back
@@ -1048,18 +1044,18 @@ sub faultIsTelescope {
 
 Fault constructor. A fault must be created with the following information:
 
-  category  - fault category: UKIRT, JCMT, CSG or OMP [string]
-  subject     - short summary of the fault            [string]
-  faultdate - date the fault occurred                 [date]
-  timelost  - time lost to the fault (hours)        [float]
-  system    - fault category                        [integer]
-  type      - fault type                            [integer]
-  urgency   - how urgent is the fault?              [integer]
-  entity    - specific thing (eg instrument or computer name) [string]
-  status    - is the fault OPEN or CLOSED [integer]
-  shifttype - what type of shift was this [string]
-  remote    - remote or not [integer]
-  fault     - a fault "response" object
+    category  - fault category: UKIRT, JCMT, CSG or OMP [string]
+    subject     - short summary of the fault            [string]
+    faultdate - date the fault occurred                 [date]
+    timelost  - time lost to the fault (hours)        [float]
+    system    - fault category                        [integer]
+    type      - fault type                            [integer]
+    urgency   - how urgent is the fault?              [integer]
+    entity    - specific thing (eg instrument or computer name) [string]
+    status    - is the fault OPEN or CLOSED [integer]
+    shifttype - what type of shift was this [string]
+    remote    - remote or not [integer]
+    fault     - a fault "response" object
 
 The fault message (which includes the submitting user id) must be
 supplied as a C<OMP::Fault::Response> object.
@@ -1068,7 +1064,7 @@ The values for type, urgency, system and status can be obtained by
 using the C<faultTypes>, C<faultUrgency>, C<faultSystems> and
 C<faultStatus> methods. These values should be supplied as a hash:
 
-  my $fault = new OMP::Fault( %details );
+    my $fault = OMP::Fault->new(%details);
 
 Optional keys are: "timelost" (assumes 0hrs), "faultdate" (assumes
 unknown), "urgency" (assumes not urgent - "normal"), "entity" (assumes
@@ -1084,64 +1080,62 @@ seeing which other faults have been filed.
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  # Read the arguments
-  my %args = @_;
+    # Read the arguments
+    my %args = @_;
 
-  # Special case - change "fault" to "responses" so that
-  # it matches the methods. This allows use to use something
-  # that sounds more obvious for an initial fault than a response
-  if (exists $args{fault}) {
-    $args{responses} = $args{fault};
-    delete $args{fault};
-  }
-
-  # Create the object with default state
-  my $fault = bless {
-                     FaultID => undef,
-                     Type => TYPEOTHER,
-                     System => SYSTEMOTHER,
-                     TimeLost => 0,
-                     Severity => undef,
-                     Location => undef,
-                     Vehicle => undef,
-                     FaultDate => undef,
-                     Urgency => $URGENCY{Normal},
-                     Condition => $CONDITION{Normal},
-                     Entity => undef,
-                     Category => undef,
-                     Responses => [],
-                     Projects => [],
-                     Status => OPEN,
-                     ShiftType => undef,
-                     Remote => undef,
-                     Subject => undef,
-                     Relevance => undef,
-                    }, $class;
-
-
-  # Go through the input args invoking relevant methods
-  for my $key (sort map { lc } keys %args) {
-    my $method = $key;
-
-    if ($fault->can($method)) {
-      $fault->$method( $args{$key});
+    # Special case - change "fault" to "responses" so that
+    # it matches the methods. This allows use to use something
+    # that sounds more obvious for an initial fault than a response
+    if (exists $args{fault}) {
+        $args{responses} = $args{fault};
+        delete $args{fault};
     }
-  }
 
+    # Create the object with default state
+    my $fault = bless {
+        FaultID => undef,
+        Type => TYPEOTHER,
+        System => SYSTEMOTHER,
+        TimeLost => 0,
+        Severity => undef,
+        Location => undef,
+        Vehicle => undef,
+        FaultDate => undef,
+        Urgency => $URGENCY{Normal},
+        Condition => $CONDITION{Normal},
+        Entity => undef,
+        Category => undef,
+        Responses => [],
+        Projects => [],
+        Status => OPEN,
+        ShiftType => undef,
+        Remote => undef,
+        Subject => undef,
+        Relevance => undef,
+    }, $class;
 
-  # Cause some trouble if there is no category
-  croak "Must supply a fault category (eg UKIRT or JCMT)"
-    unless defined $fault->category;
+    # Go through the input args invoking relevant methods
+    for my $key (sort map {lc} keys %args) {
+        my $method = $key;
 
-  # Really need to check that someone has supplied
-  # a fault body
-  croak "Must supply an initial fault body"
-    unless scalar(@{ $fault->responses });
+        if ($fault->can($method)) {
+            $fault->$method($args{$key});
+        }
+    }
 
-  return $fault;
+    # Cause some trouble if there is no category
+    croak "Must supply a fault category (eg UKIRT or JCMT)"
+        unless defined $fault->category;
+
+    # Really need to check that someone has supplied
+    # a fault body
+    croak "Must supply an initial fault body"
+        unless scalar(@{$fault->responses});
+
+    return $fault;
 }
 
 =back
@@ -1156,8 +1150,8 @@ Retrieve of store the fault ID. The fault ID can only be determined
 from using the context of an associated fault database (since it
 depends on previous faults).
 
-  $id = $fault->id();
-  $fault->id( $id  );
+    $id = $fault->id();
+    $fault->id($id);
 
 In general the fault ID is the same as that used in C<perlbug>. That
 is C<YYYYMMDD.NNN> where the numbers before the decimal point are the
@@ -1172,9 +1166,9 @@ if warranted (since the fault id 20020105.01 will not have the right amount of p
 =cut
 
 sub id {
-  my $self = shift;
-  if (@_) { $self->{FaultID} = sprintf("%12.3f", shift); }
-  return $self->{FaultID};
+    my $self = shift;
+    if (@_) {$self->{FaultID} = sprintf("%12.3f", shift);}
+    return $self->{FaultID};
 }
 
 =item B<faultid>
@@ -1184,95 +1178,93 @@ Synonym for C<id>
 =cut
 
 sub faultid {
-  my $self = shift;
-  return $self->id(@_);
+    my $self = shift;
+    return $self->id(@_);
 }
 
 =item B<type>
 
 Fault type (supplied as an integer - see C<faultTypes>).
 
-  $type = $fault->type();
-  $fault->type( $type  );
+    $type = $fault->type();
+    $fault->type($type);
 
 =cut
 
 sub type {
-  my $self = shift;
-  if (@_) { $self->{Type} = shift; }
-  return $self->{Type};
+    my $self = shift;
+    if (@_) {$self->{Type} = shift;}
+    return $self->{Type};
 }
-
 
 =item B<shifttype>
 
-ShiftType  (supplied as a string).
+ShiftType (supplied as a string).
 
-  $shifttype = $fault->shifttype();
-  $fault->shifttype( $shifttype  );
+    $shifttype = $fault->shifttype();
+    $fault->shifttype($shifttype);
 
 =cut
 
 sub shifttype {
-  my $self = shift;
-  if (@_) {
-      my $shifttype = shift;
-      if (! defined $shifttype || $shifttype eq '') {
-          $shifttype = undef;
-      }
-      $self->{ShiftType} = $shifttype; }
-  return $self->{ShiftType};
+    my $self = shift;
+    if (@_) {
+        my $shifttype = shift;
+        if (! defined $shifttype || $shifttype eq '') {
+            $shifttype = undef;
+        }
+        $self->{ShiftType} = $shifttype;
+    }
+    return $self->{ShiftType};
 }
 
 
 =item B<remote>
 
-Remote  (supplied as an integer).
+Remote (supplied as an integer).
 
-  $remote = $fault->remote();
-  $fault->remote( $remote  );
+    $remote = $fault->remote();
+    $fault->remote($remote);
 
 =cut
 
 sub remote {
-  my $self = shift;
-  if (@_) {
-      my $remote = shift;
-      if (! defined $remote || $remote eq '') {
-          $remote = undef;
-      }
-      $self->{Remote} = $remote; }
-  return $self->{Remote};
-
+    my $self = shift;
+    if (@_) {
+        my $remote = shift;
+        if (! defined $remote || $remote eq '') {
+            $remote = undef;
+        }
+        $self->{Remote} = $remote;
+    }
+    return $self->{Remote};
 }
 
 =item B<system>
 
 Fault system (supplied as an integer - see C<faultSystems>).
 
-  $sys = $fault->system();
-  $fault->system( $sys  );
+    $sys = $fault->system();
+    $fault->system($sys);
 
 =cut
 
 BEGIN {
+    sub system {
+        my $self = shift;
 
-  sub system {
-    my $self = shift;
+        if (@_) {
+            $self->{Vehicle}
+                = $self->{Severity}
+                = $self->{System}
+                = shift @_;
+        }
 
-    if ( @_ ) {
-
-      $self->{Vehicle} =
-      $self->{Severity} =
-      $self->{System} =
-        shift @_ ;
+        return $self->{System};
     }
 
-    return $self->{System};
-  }
-
-  *severity = \&system;
-  *vehicle = \&system;
+    *severity = \&system;
+    *vehicle = \&system;
 }
 
 =item B<typeText>
@@ -1280,13 +1272,13 @@ BEGIN {
 Return the textual description of the current fault type.
 A fault can not be modified using this method.
 
-  $type = $fault->typeText();
+    $type = $fault->typeText();
 
 =cut
 
 sub typeText {
-  my $self = shift;
-  return $INVERSE{$self->category}{TYPE}{$self->type};
+    my $self = shift;
+    return $INVERSE{$self->category}{TYPE}{$self->type};
 }
 
 =item B<systemText>
@@ -1294,46 +1286,43 @@ sub typeText {
 Return the textual description of the current fault system.
 A fault can not be modified using this method.
 
-  $system = $fault->systemText();
+    $system = $fault->systemText();
 
 =cut
 
 sub systemText {
-  my $self = shift;
+    my $self = shift;
 
-  return $self->severityText
-    if $self->isSafety;
+    return $self->severityText
+        if $self->isSafety;
 
-  return $self->vehicleIncidentText
-    if $self->isVehicleIncident;
+    return $self->vehicleIncidentText
+        if $self->isVehicleIncident;
 
-  return $INVERSE{$self->category}{SYSTEM}{$self->system};
+    return $INVERSE{$self->category}{SYSTEM}{$self->system};
 }
 
 sub severityText {
-
-  my $self = shift;
-  return $INVERSE{$self->category}{'SEVERITY'}{$self->severity};
+    my $self = shift;
+    return $INVERSE{$self->category}{'SEVERITY'}{$self->severity};
 }
 
 sub location {
+    my $self = shift;
 
-  my $self = shift;
+    if (@_) {$self->{'Location'} = shift;}
 
-  if (@_) { $self->{'Location'} = shift; }
-  return $self->{'Location'};
+    return $self->{'Location'};
 }
 
 sub locationText {
-
-  my $self = shift;
-  return $INVERSE_PLACE{ $self->location };
+    my $self = shift;
+    return $INVERSE_PLACE{$self->location};
 }
 
 sub vehicleIncidentText {
-
-  my $self = shift;
-  return $INVERSE{$self->category}{'VEHICLE'}{$self->vehicle};
+    my $self = shift;
+    return $INVERSE{$self->category}{'VEHICLE'}{$self->vehicle};
 }
 
 =item B<statusText>
@@ -1341,13 +1330,13 @@ sub vehicleIncidentText {
 Return the textual description of the current fault status.
 A fault can not be modified using this method.
 
-  $status = $fault->statusText();
+    $status = $fault->statusText();
 
 =cut
 
 sub statusText {
-  my $self = shift;
-  return $INVERSE_STATUS{$self->status};
+    my $self = shift;
+    return $INVERSE_STATUS{$self->status};
 }
 
 =item B<urgencyText>
@@ -1355,8 +1344,8 @@ sub statusText {
 =cut
 
 sub urgencyText {
-  my $self = shift;
-  return $INVERSE_URGENCY{$self->urgency};
+    my $self = shift;
+    return $INVERSE_URGENCY{$self->urgency};
 }
 
 =item B<conditionText>
@@ -1364,22 +1353,22 @@ sub urgencyText {
 =cut
 
 sub conditionText {
-  my $self = shift;
-  return $INVERSE_CONDITION{$self->condition};
+    my $self = shift;
+    return $INVERSE_CONDITION{$self->condition};
 }
 
 =item B<isUrgent>
 
 True if the fault is urgent.
 
-  $isurgent = $fault->isUrgent();
+    $isurgent = $fault->isUrgent();
 
 =cut
 
 sub isUrgent {
-  my $self = shift;
-  my $urgcode = $self->urgency;
-  return ( $urgcode == $URGENCY{Urgent} ? 1 : 0);
+    my $self = shift;
+    my $urgcode = $self->urgency;
+    return ($urgcode == $URGENCY{Urgent} ? 1 : 0);
 }
 
 
@@ -1387,14 +1376,14 @@ sub isUrgent {
 
 True if the fault is chronic
 
-  $ischronic = $fault->isChronic();
+    $ischronic = $fault->isChronic();
 
 =cut
 
 sub isChronic {
-  my $self = shift;
-  my $concode = $self->condition;
-  return ( $concode == $CONDITION{Chronic} ? 1 : 0);
+    my $self = shift;
+    my $concode = $self->condition;
+    return ($concode == $CONDITION{Chronic} ? 1 : 0);
 }
 
 =item B<isOpen>
@@ -1404,21 +1393,20 @@ Is the fault open or closed?
 =cut
 
 sub isOpen {
-  my $self = shift;
-  my $status = $self->status;
+    my $self = shift;
+    my $status = $self->status;
 
-  return
-    scalar
-      grep
-        { $status == $_ }
-        ( OPEN(),
-          WILL_BE_FIXED(),
-          FOLLOW_UP(),
-          IMMEDIATE_ACTION(),
-          REFER_TO_SAFETY_COMMITTEE(),
-          COMMISSIONING(),
-          ONGOING(),
-        ) ;
+    return scalar grep {
+        $status == $_
+    } (
+        OPEN(),
+        WILL_BE_FIXED(),
+        FOLLOW_UP(),
+        IMMEDIATE_ACTION(),
+        REFER_TO_SAFETY_COMMITTEE(),
+        COMMISSIONING(),
+        ONGOING(),
+    );
 }
 
 =item B<isNew>
@@ -1428,45 +1416,41 @@ Is the fault new (36 hours old or less)?
 =cut
 
 sub isNew {
-  my $self = shift;
-  my $status = $self->status;
-  my $date = $self->date;
-  my $t = localtime;
+    my $self = shift;
+    my $status = $self->status;
+    my $date = $self->date;
+    my $t = localtime;
 
-  $t -= 129600; # 36 hours ago
-  return ( $date >= $t ? 1 : 0 );
+    $t -= 129600;  # 36 hours ago
+    return ($date >= $t ? 1 : 0);
 }
 
 sub isSafety {
-
-  my ( $self ) = @_;
-  return 'safety' eq lc $self->category;
+    my ($self) = @_;
+    return 'safety' eq lc $self->category;
 }
 
 sub isNotSafety {
-
-  my ( $self ) = @_;
-  return ! $self->isSafety;
+    my ($self) = @_;
+    return ! $self->isSafety;
 }
 
 sub isJCMTEvents {
-
-  my ( $self ) = @_;
-  return 'jcmt_events' eq lc $self->category;
+    my ($self) = @_;
+    return 'jcmt_events' eq lc $self->category;
 }
 
 sub isVehicleIncident {
-
-  my ( $self ) = @_;
-  return 'vehicle_incident' eq lc $self->category;
+    my ($self) = @_;
+    return 'vehicle_incident' eq lc $self->category;
 }
 
 sub isSCUBA2Fault {
+    my ($self) = @_;
 
-  my ( $self ) = @_;
+    my $sys = $self->system();
 
-  my $sys = $self->system();
-  return $sys && $sys == $DATA{'JCMT'}->{'SYSTEM'}{'SCUBA-2'};
+    return $sys && $sys == $DATA{'JCMT'}->{'SYSTEM'}{'SCUBA-2'};
 }
 
 =item B<subject>
@@ -1474,15 +1458,15 @@ sub isSCUBA2Fault {
 Short description of the fault that can be easily displayed
 in summary tables and in email responses.
 
-  $subj = $fault->subject();
-  $fault->subject( $subj  );
+    $subj = $fault->subject();
+    $fault->subject($subj);
 
 =cut
 
 sub subject {
-  my $self = shift;
-  if (@_) { $self->{Subject} = shift; }
-  return $self->{Subject};
+    my $self = shift;
+    if (@_) {$self->{Subject} = shift;}
+    return $self->{Subject};
 }
 
 =item B<status>
@@ -1490,33 +1474,34 @@ sub subject {
 Fault status (supplied as an integer - see C<faultStatus>).
 Indicates whether the fault is "open" or "closed".
 
-  $status = $fault->status();
-  $fault->status( $status  );
+    $status = $fault->status();
+    $fault->status($status);
 
 =cut
 
 sub status {
-  my $self = shift;
-  if (@_) { $self->{Status} = shift; }
-  return $self->{Status};
+    my $self = shift;
+    if (@_) {$self->{Status} = shift;}
+    return $self->{Status};
 }
 
 =item B<timelost>
 
 Time lost to the fault in hours.
 
-  $tl = $fault->timelost();
-  $fault->timelost( $tl  );
+    $tl = $fault->timelost();
+    $fault->timelost($tl);
 
 =cut
 
 sub timelost {
-  my $self = shift;
-  if (@_) {
-    my $tl = shift;
-    # Dont need more than 2 decimal places
-    $self->{TimeLost} = sprintf("%.2f", $tl); }
-  return $self->{TimeLost};
+    my $self = shift;
+    if (@_) {
+        my $tl = shift;
+        # Dont need more than 2 decimal places
+        $self->{TimeLost} = sprintf("%.2f", $tl);
+    }
+    return $self->{TimeLost};
 }
 
 =item B<faultdate>
@@ -1526,44 +1511,43 @@ it was filed. Not required (default is that the date it was
 filed is good enough). Must be a C<Time::Piece> object
 (or undef).
 
-  $date = $fault->faultdate();
-  $fault->faultdate( $date  );
+    $date = $fault->faultdate();
+    $fault->faultdate($date);
 
 =cut
 
 sub faultdate {
-  my $self = shift;
-  if (@_) {
-    my $date = shift;
-    croak "Date must be supplied as Time::Piece object"
-      if (defined $date && ! UNIVERSAL::isa( $date, "Time::Piece" ));
-    $self->{FaultDate} = $date;
-  }
-  return $self->{FaultDate};
+    my $self = shift;
+    if (@_) {
+        my $date = shift;
+        croak "Date must be supplied as Time::Piece object"
+            if (defined $date && !UNIVERSAL::isa($date, "Time::Piece"));
+        $self->{FaultDate} = $date;
+    }
+    return $self->{FaultDate};
 }
 
 =item B<filedate>
 
 Date the fault was initially filed. Returned as a C<Time::Piece> object.
 
-  $date = $fault->filedate();
+    $date = $fault->filedate();
 
 Can not be set (it is derived from the first response).
 
 =cut
 
 sub filedate {
-  my $self = shift;
+    my $self = shift;
 
-  # Look at the first response
-  my $firstresp = $self->responses->[0];
+    # Look at the first response
+    my $firstresp = $self->responses->[0];
 
-  throw OMP::Error::FatalError("No fault body! Should not happen.")
-    unless $firstresp;
+    throw OMP::Error::FatalError("No fault body! Should not happen.")
+        unless $firstresp;
 
-  return $firstresp->date;
+    return $firstresp->date;
 }
-
 
 =item B<urgency>
 
@@ -1572,17 +1556,17 @@ and "info" (the latter is used for informational faults that
 require no response). See C<faultUrgencies> for the associated
 integer codes that must be supplied.
 
-  $urgency = $fault->urgency();
-  $fault->urgency( $urgency  );
+    $urgency = $fault->urgency();
+    $fault->urgency($urgency);
 
 Still need to decide whether to use integers or strings.
 
 =cut
 
 sub urgency {
-  my $self = shift;
-  if (@_) { $self->{Urgency} = shift; }
-  return $self->{Urgency};
+    my $self = shift;
+    if (@_) {$self->{Urgency} = shift;}
+    return $self->{Urgency};
 }
 
 =item B<condition>
@@ -1591,25 +1575,25 @@ Condition associated with the fault. Options are "chronic" and "normal".
 See C<faultConditions> for the associated integer codes that must
 be supplied.
 
-  $condition = $fault->condition();
-  $fault->condition( $condition  );
+    $condition = $fault->condition();
+    $fault->condition($condition);
 
 =cut
 
 sub condition {
-  my $self = shift;
-  if (@_) { $self->{Condition} = shift; }
-  return $self->{Condition};
+    my $self = shift;
+    if (@_) {$self->{Condition} = shift;}
+    return $self->{Condition};
 }
 
 =item B<projects>
 
 Array of projects associated with this fault.
 
- $fault->projects(@projects);
- $fault->projects(\@projects);
- $projref  = $fault->projects();
- @projects = $fault->projects();
+    $fault->projects(@projects);
+    $fault->projects(\@projects);
+    $projref = $fault->projects();
+    @projects = $fault->projects();
 
 The project IDs themselves are I<not> verified to ensure that
 they refer to real projects. Can be empty.
@@ -1617,16 +1601,17 @@ they refer to real projects. Can be empty.
 =cut
 
 sub projects {
-  my $self = shift;
-  if (@_) {
-    my @new = ( ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
-    @{$self->{Projects}} = @new;
-  }
-  if (wantarray()) {
-    return @{ $self->{Projects}};
-  } else {
-    return $self->{Projects};
-  }
+    my $self = shift;
+    if (@_) {
+        my @new = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
+        @{$self->{Projects}} = @new;
+    }
+    if (wantarray()) {
+        return @{$self->{Projects}};
+    }
+    else {
+        return $self->{Projects};
+    }
 }
 
 =item B<entity>
@@ -1635,15 +1620,15 @@ Context sensitive information that should be associated with the
 fault. In general this is an instrument name or a computer
 name. Can be left empty.
 
-  $thing = $fault->entity();
-  $fault->entity( $thing  );
+    $thing = $fault->entity();
+    $fault->entity($thing);
 
 =cut
 
 sub entity {
-  my $self = shift;
-  if (@_) { $self->{Entity} = shift; }
-  return $self->{Entity};
+    my $self = shift;
+    if (@_) {$self->{Entity} = shift;}
+    return $self->{Entity};
 }
 
 =item B<category>
@@ -1652,17 +1637,17 @@ The main fault category that defines the entire system. This
 defines what the type and system translations are. Examples
 are "UKIRT", "JCMT" or "OMP".
 
-  $category = $fault->category();
-  $fault->category( $cat  );
+    $category = $fault->category();
+    $fault->category($cat);
 
 Must be provided.
 
 =cut
 
-sub category{
-  my $self = shift;
-  if (@_) { $self->{Category} = uc(shift); }
-  return $self->{Category};
+sub category {
+    my $self = shift;
+    if (@_) {$self->{Category} = uc(shift);}
+    return $self->{Category};
 }
 
 =item B<responses>
@@ -1675,12 +1660,12 @@ in which the fault responses were filed.
 If arguments are supplied it is assumed that they should
 be pushed on to the response array.
 
-  $fault->responses( @responses );
+    $fault->responses(@responses);
 
 If the first argument is a reference to an array it is assumed
 that all the existing responses are to be replaced.
 
-  $fault->responses( \@responses );
+    $fault->responses(\@responses);
 
 All arguments are checked to make sure that they are
 C<OMP::Fault::Response> objects (even if contained within an
@@ -1692,8 +1677,8 @@ are cleared.
 In a scalar context returns a reference to an array (a copy of the
 actual array). In list context returns the response objects as a list.
 
-  @responses = $fault->responses();
-  $responses = $fault->responses;
+    @responses = $fault->responses();
+    $responses = $fault->responses;
 
 When new responses are stored the first response object has its
 isfault flag set to "true" and all other responses have their isfault
@@ -1704,57 +1689,79 @@ See also C<respond> method.
 =cut
 
 sub responses {
-  my $self = shift;
-  if (@_) {
+    my $self = shift;
 
-    # If we have an array ref we are replacing
-    my $replace = 0;
-    my @input;
-    if ( ref($_[0]) eq "ARRAY") {
-      # We are replacing current entries
-      $replace = 1;
-      @input = @{ $_[0] };
-    } elsif ( ! defined $_[0] ) {
-      # Replace with empty
-      $replace = 1;
-    } else {
-      @input = @_;
+    if (@_) {
+        # If we have an array ref we are replacing
+        my $replace = 0;
+        my @input;
+        if (ref($_[0]) eq "ARRAY") {
+            # We are replacing current entries
+            $replace = 1;
+            @input = @{$_[0]};
+        }
+        elsif (! defined $_[0]) {
+            # Replace with empty
+            $replace = 1;
+        }
+        else {
+            @input = @_;
+        }
+
+        # Check they are the right class
+        for (@input) {
+            croak "Responses must be in class OMP::Fault::Response"
+                unless UNIVERSAL::isa($_, "OMP::Fault::Response");
+        }
+
+        # Now store or overwrite
+        if ($replace) {
+            $self->{Responses} = \@input;
+        }
+        else {
+            push(@{$self->{Responses}}, @input);
+        }
+
+        # Now modify the isfault flags
+        my $i = 0;
+        for (@{$self->{Responses}}) {
+            my $isfault = ($i == 0 ? 1 : 0);
+            $_->isfault($isfault);
+            $i ++;
+        }
     }
 
-    # Check they are the right class
-    for (@input) {
-      croak "Responses must be in class OMP::Fault::Response"
-        unless UNIVERSAL::isa( $_, "OMP::Fault::Response");
+    # See if we are in void context
+    my $want = wantarray;
+    return unless defined $want;
+
+    # Else return list or reference
+    if (wantarray) {
+        return @{$self->{Responses}};
     }
-
-    # Now store or overwrite
-    if ($replace) {
-      $self->{Responses} = \@input;
-    } else {
-      push(@{$self->{Responses}}, @input);
+    else {
+        my @copy = @{$self->{Responses}};
+        return \@copy;
     }
+}
 
-    # Now modify the isfault flags
-    my $i = 0;
-    for (@{ $self->{Responses} }) {
-      my $isfault = ($i == 0 ? 1 : 0);
-      $_->isfault( $isfault );
-      $i++;
+=item B<getResponse>
+
+Return the response object with the given response ID.
+
+    $resp = $fault->getResponse($respid);
+
+where C<$respid> is the ID of the response to be returned.
+
+=cut
+
+sub getResponse {
+    my $self = shift;
+    my $respid = shift;
+
+    for (@{$self->responses}) {
+        return $_ if $_->id eq $respid;
     }
-
-  }
-
-  # See if we are in void context
-  my $want = wantarray;
-  return unless defined $want;
-
-  # Else return list or reference
-  if (wantarray) {
-    return @{ $self->{Responses} };
-  } else {
-    my @copy = @{ $self->{Responses} };
-    return \@copy;
-  }
 }
 
 =item B<author>
@@ -1762,7 +1769,7 @@ sub responses {
 Returns the C<OMP::User> object of the  person who initially filed the
 fault.
 
-  $author = $fault->author();
+    $author = $fault->author();
 
 This information is retrieved from the first response object.
 
@@ -1771,13 +1778,13 @@ Returns immediately if called in void context.
 =cut
 
 sub author {
-  my $self = shift;
-  return unless defined wantarray;
-  my $firstresp = $self->responses->[0];
-  throw OMP::Error::FatalError("No fault body! Should not happen.")
-    unless $firstresp;
+    my $self = shift;
+    return unless defined wantarray;
+    my $firstresp = $self->responses->[0];
+    throw OMP::Error::FatalError("No fault body! Should not happen.")
+        unless $firstresp;
 
-  return $firstresp->author;
+    return $firstresp->author;
 }
 
 =item B<date>
@@ -1786,7 +1793,7 @@ Date associated with the initial filing of the fault. If the time of
 the fault has not been specified (ie C<faultdate> is undefined) the
 time the fault response was filed will be used instead.
 
-  $date = $fault->date;
+    $date = $fault->date;
 
 Throws an C<OMP::Error::FatalError> if no response is attached.
 
@@ -1795,16 +1802,16 @@ In void context returns nothing.
 =cut
 
 sub date {
-  my $self = shift;
+    my $self = shift;
 
-  return unless defined wantarray;
+    return unless defined wantarray;
 
-  # Look at the fault date
-  my $faultdate = $self->faultdate;
-  return $faultdate if $faultdate;
+    # Look at the fault date
+    my $faultdate = $self->faultdate;
+    return $faultdate if $faultdate;
 
-  # Else return the file date
-  return $self->filedate;
+    # Else return the file date
+    return $self->filedate;
 }
 
 =item B<relevance>
@@ -1812,14 +1819,14 @@ sub date {
 Relevance score, if this fault was retrieved from the database
 using a "full text" search.
 
-  $score = $fault->relevance();
+    $score = $fault->relevance();
 
 =cut
 
 sub relevance {
-  my $self = shift;
-  $self->{Relevance} = shift if @_;
-  return $self->{Relevance};
+    my $self = shift;
+    $self->{Relevance} = shift if @_;
+    return $self->{Relevance};
 }
 
 =back
@@ -1833,7 +1840,7 @@ sub relevance {
 Mailing lists associated with the fault category, as an array
 reference.
 
-  \@lists = $fault->mail_list;
+    \@lists = $fault->mail_list;
 
 Note: this is taken from the C<email-address> section of the
 OMP configuration file.
@@ -1841,9 +1848,9 @@ OMP configuration file.
 =cut
 
 sub mail_list {
-  my $self = shift;
-  my $cat = $self->category;
-  return $MAILLIST{$cat};
+    my $self = shift;
+    my $cat = $self->category;
+    return $MAILLIST{$cat};
 }
 
 =item B<mail_list_users>
@@ -1869,22 +1876,11 @@ sub mail_list_users {
     } @{$self->mail_list};
 }
 
-=item B<close_fault>
-
-Change the status of the fault to "CLOSED".
-
-=cut
-
-sub close_fault {
-  my $self = shift;
-  $self->status( CLOSED );
-}
-
 =item B<respond>
 
 Add a fault response.
 
-  $fault->respond( $response );
+    $fault->respond($response);
 
 A convenience wrapper around the C<responses> method.
 (effectively a synonym).
@@ -1892,9 +1888,9 @@ A convenience wrapper around the C<responses> method.
 =cut
 
 sub respond {
-  my $self = shift;
-  my $response = shift;
-  $self->responses( $response );
+    my $self = shift;
+    my $response = shift;
+    $self->responses($response);
 }
 
 =item B<stringify>
@@ -1908,92 +1904,92 @@ and returns strings in the JAC fault style.
 =cut
 
 sub stringify {
-  my $self = shift;
+    my $self = shift;
 
-  # Get the responses
-  my @responses = $self->responses;
+    # Get the responses
+    my @responses = $self->responses;
 
-  # If there is not even one response return empty string
-  return '' unless @responses;
+    # If there is not even one response return empty string
+    return '' unless @responses;
 
-  # Get the main descriptive information for the top
-  my $author = $responses[0]->author;
-  my $date = $responses[0]->date;
-  my $firstresponse = $responses[0]->text;
-  my $tlost = $self->timelost;
-  my $urgcode  = $self->urgency;
-  my $category = $self->category;
-  my $faultdate = $self->faultdate;
-  my $entity = $self->entity;
+    # Get the main descriptive information for the top
+    my $author = $responses[0]->author;
+    my $date = $responses[0]->date;
+    my $firstresponse = $responses[0]->text;
+    my $firstresponsepreformatted = $responses[0]->preformatted;
+    my $tlost = $self->timelost;
+    my $urgcode = $self->urgency;
+    my $category = $self->category;
+    my $faultdate = $self->faultdate;
+    my $entity = $self->entity;
 
-  # Get the time and date as separate things
-  my $time = $date->strftime("%H:%M");
-  my $day  = $date->strftime("%Y-%m-%d");
+    # Get the time and date as separate things
+    my $time = $date->strftime("%H:%M");
+    my $day = $date->strftime("%Y-%m-%d");
 
-  # Actual time of fault as string
-  my $actfaultdate;
-  if (defined $faultdate) {
-    $actfaultdate = $faultdate->strftime("%H:%M") . "UT";
-  } else {
-    $actfaultdate = "UNKNOWN";
-  }
+    # Actual time of fault as string
+    my $actfaultdate;
+    if (defined $faultdate) {
+        $actfaultdate = $faultdate->strftime("%H:%M") . "UT";
+    }
+    else {
+        $actfaultdate = "UNKNOWN";
+    }
 
-  # Convert system, type and status codes to a string.
-  my $system = $self->systemText;
-  my $type = $self->typeText;
-  my $status = $self->statusText;
+    # Convert system, type and status codes to a string.
+    my $system = $self->systemText;
+    my $type = $self->typeText;
+    my $status = $self->statusText;
 
-  # Only want to say something about urgency if it is urgent
-  my $urgency = '';
-  $urgency = "                     ***** Fault is URGENT ****\n"
-    if $self->isUrgent;
+    # Only want to say something about urgency if it is urgent
+    my $urgency = '';
+    $urgency = "                     ***** Fault is URGENT ****\n"
+        if $self->isUrgent;
 
-  # Get email address
-  my $email = join ', ', @{$self->mail_list};
-  $email = "UNKNOWN" unless $email;
+    # Get email address
+    my $email = join ', ', @{$self->mail_list};
+    $email = "UNKNOWN" unless $email;
 
-  # Entity has a special meaning if the system is Instrument
-  # or we have CSG. Ignore that for now
+    # Entity has a special meaning if the system is Instrument
+    # or we have CSG. Ignore that for now
 
-  # Now build up the message
-  my $output =
-"--------------------------------------------------------------------------------\n".
-"    Report by     :  $author\n".
-"                                         date: $day\n".
+    # Now build up the message
+    my $output =
+        "--------------------------------------------------------------------------------\n"
+        . "    Report by     :  $author\n"
+        . "                                         date: $day\n"
+        .
+        ($self->isNotSafety
+            ? '    System'
+            : '    Severity')
+        . " is     :  $system\n"
+        . "                                         time: $time\n"
+        . "    Fault type is :  $type\n"
+        .
+        ($self->isNotSafety
+            ? ''
+            : sprintf "    Location is   :  %s\n", $self->location)
+        . "                                         loss: $tlost hrs\n"
+        . "    Status        :  $status\n" . "\n"
+        . "    Notice will be sent to: $email\n" . "\n"
+        . "$urgency"
+        . "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+        . "                                Actual time of failure: $actfaultdate\n"
+        . "\n";
 
-( $self->isNotSafety
-  ? '    System'
-  : '    Severity'
-) .  " is     :  $system\n" .
+    $output .= OMP::Display->format_text($firstresponse, $firstresponsepreformatted) . "\n\n";
 
-"                                         time: $time\n".
-"    Fault type is :  $type\n".
+    # Now loop over remaining responses and add them in
+    for (@responses[1 .. $#responses]) {
+        $output .= "$_\n";
+    }
 
-( $self->isNotSafety
-  ? ''
-  : sprintf "    Location is   :  %s\n" , $self->location
-) .
-
-"                                         loss: $tlost hrs\n".
-"    Status        :  $status\n".
-"\n".
-"    Notice will be sent to: $email\n".
-"\n".
-"$urgency".
-"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".
-"                                Actual time of failure: $actfaultdate\n".
-"\n";
-
-  $output .= OMP::Display->html2plain("$firstresponse")."\n\n";
-
-  # Now loop over remaining responses and add them in
-  for (@responses[1..$#responses]) {
-    my $plain = OMP::Display->html2plain( "$_" );
-    $output .= "$plain\n";
-  }
-
-  return $output;
+    return $output;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -2026,7 +2022,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

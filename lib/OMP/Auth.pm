@@ -62,7 +62,7 @@ sub log_in {
     my %opt = @_;
 
     my $q = $page->cgi;
-    my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
+    my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
 
     my $user = undef;
     my $token = undef;
@@ -196,7 +196,7 @@ sub log_out {
     my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
 
     if (exists $cookie{'token'}) {
-        my $db = new OMP::AuthDB(DB => new OMP::DBbackend());
+        my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
         $db->remove_token($cookie{'token'});
 
         return $cls->new(cookie => $cls->_make_cookie($q, '-1d'));
@@ -215,7 +215,7 @@ sub log_out {
 
 Construct a new OMP::Auth object.
 
-    my $auth = new OMP::Auth();
+    my $auth = OMP::Auth->new();
 
 =cut
 
@@ -419,9 +419,9 @@ sub _fetch_projects {
     throw OMP::Error('OMP::Auth cannot fetch projects: user object has no userid')
         unless defined $userid;
 
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
+    my $db = OMP::ProjDB->new(DB => OMP::DBbackend->new());
 
-    my @projects = $db->listProjects(new OMP::ProjQuery(
+    my @projects = $db->listProjects(OMP::ProjQuery->new(
         XML => '<ProjQuery><person_access>' . $userid . '</person_access></ProjQuery>'));
 
     return [map {$_->projectid} @projects];
@@ -471,6 +471,10 @@ sub _get_provider {
     return $provider_class;
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 COPYRIGHT
@@ -492,5 +496,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

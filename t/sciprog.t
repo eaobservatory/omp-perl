@@ -24,14 +24,14 @@ use strict;
 use Test::More tests => 297;
 use Data::Dumper;
 
-require_ok( 'OMP::SciProg' );
+require_ok('OMP::SciProg');
 
 # The MSB summary is indexed by checksum
 # This information needs to change if the Science program
 # is modified by dumping a new data structure.
 
 # Read the data hash
-use vars qw/ $VAR1 /;
+our $VAR1;
 $/ = undef;
 my $text = <DATA>;
 eval "$text";
@@ -41,103 +41,104 @@ my %results = %$VAR1;
 
 
 # Filename - use the test XML that covers all the bases
-my $file = "t/data/test.xml";
+my $file = 't/data/test.xml';
 
-my $obj = new OMP::SciProg( FILE => $file );
+my $obj = OMP::SciProg->new(FILE => $file);
 
-ok($obj,"We got an object");
-isa_ok( $obj, "OMP::SciProg");
+ok($obj, 'We got an object');
+isa_ok($obj, 'OMP::SciProg');
 
 # Check the project ID, etc.
-is($obj->projectID, "TJ01", "Verify projectid");
-is($obj->telescope, "UKIRT", "Verify telescope");
-is($obj->ot_version, "20240101", "Verify OT version");
+is($obj->projectID, 'TJ01', 'Verify projectid');
+is($obj->telescope, 'UKIRT', 'Verify telescope');
+is($obj->ot_version, '20240101', 'Verify OT version');
 
 # Now count the number of MSBs
 # Should be 11
 my @msbs = $obj->msb;
-is(scalar(@msbs), 11, "Count number of MSBs");
+is(scalar(@msbs), 11, 'Count number of MSBs');
 
 # check each msb
 for (@msbs) {
-  isa_ok($_, "OMP::MSB");
+    isa_ok($_, 'OMP::MSB');
 }
 
 # Check that an MSB exists
-ok( $obj->existsMSB( $msbs[10]->checksum),"verify MSB existence");
+ok($obj->existsMSB($msbs[10]->checksum), 'verify MSB existence');
 # or not
-ok( ! $obj->existsMSB( "blahblah" ), "Check nonexistence");
-
+ok(! $obj->existsMSB('blahblah'), 'Check nonexistence');
 
 # Go through the MSBs to see what we can find out about them
 for my $msb ($obj->msb) {
-  SKIP: {
-    if (exists $results{$msb->checksum}) {
-      ok(1, "MSB exists");
-    }
-    else {
-      ok(0);
-      # skip the next few tests
-      skip("Pointless testing MSB when checksum does not match [".
-           $msb->checksum. "] [title=".$msb->msbtitle."]",1);
-    }
-
-    my %cmp = %{ $results{ $msb->checksum} };
-    my $info = $msb->info;
-    my %msbsum = $info->summary('hashlong');
-    $msbsum{obscount} = $info->obscount;
-
-    for my $key (keys %cmp) {
-
-      # Special case for the observations array
-      # Really need a recursive comparator
-      if ($key eq 'observations') {
-
-        foreach my $i (0..$#{$cmp{$key}}) {
-          my %obs = %{$msbsum{$key}[$i]};
-          my %cmpobs = %{$cmp{$key}[$i]};
-
-          # If we have waveband, generate a wavelength
-          if (!exists $obs{wavelength}) {
-            $obs{wavelength} = $obs{waveband}->wavelength
-              if $obs{waveband};
-          }
-          if (!exists $cmpobs{wavelength}) {
-            $cmpobs{wavelength} = $cmpobs{waveband}->wavelength
-              if $cmpobs{waveband};
-          }
-
-          # Coords type
-          if (!exists $obs{coordstype}) {
-            $obs{coordstype} = $obs{coords}->type
-              if $obs{coords};
-          }
-          if (!exists $cmpobs{coordstype}) {
-            $cmpobs{coordstype} = $cmpobs{coords}->type
-              if $cmpobs{coords};
-          }
-
-          foreach my $obskey (keys %cmpobs) {
-            # Skipping refs prevents comparison of coordinates
-            next if ref($cmpobs{$obskey});
-            next if ref($obs{$obskey});
-
-            is($obs{$obskey}, $cmpobs{$obskey}, "Comparing obs: $obskey");
-          }
+    SKIP: {
+        if (exists $results{$msb->checksum}) {
+            ok(1, "MSB exists");
+        }
+        else {
+            ok(0);
+            # skip the next few tests
+            skip("Pointless testing MSB when checksum does not match ["
+                . $msb->checksum . "] [title=" . $msb->msbtitle . "]",
+                1);
         }
 
-      }
-      elsif (UNIVERSAL::isa($cmp{$key}, 'OMP::Range')) {
-        ok($cmp{$key}->equate($msbsum{$key}), 'Comparing range ' . $key
-          #. ' expected ' . $cmp{$key}->stringify() . ' got ' .$msbsum{$key}->stringify());
-          . ' expected ' . Dumper($cmp{$key}) . ' got ' . Dumper($msbsum{$key}));
-      }
-      else {
-        next if ref( $cmp{$key});
-        is( $msbsum{$key}, $cmp{$key}, "Comparing $key");
-      }
+        my %cmp = %{$results{$msb->checksum}};
+        my $info = $msb->info;
+        my %msbsum = $info->summary('hashlong');
+        $msbsum{obscount} = $info->obscount;
+
+        for my $key (keys %cmp) {
+            # Special case for the observations array
+            # Really need a recursive comparator
+            if ($key eq 'observations') {
+                foreach my $i (0 .. $#{$cmp{$key}}) {
+                    my %obs = %{$msbsum{$key}[$i]};
+                    my %cmpobs = %{$cmp{$key}[$i]};
+
+                    # If we have waveband, generate a wavelength
+                    unless (exists $obs{wavelength}) {
+                        $obs{wavelength} = $obs{waveband}->wavelength
+                            if $obs{waveband};
+                    }
+                    unless (exists $cmpobs{wavelength}) {
+                        $cmpobs{wavelength} = $cmpobs{waveband}->wavelength
+                            if $cmpobs{waveband};
+                    }
+
+                    # Coords type
+                    unless (exists $obs{coordstype}) {
+                        $obs{coordstype} = $obs{coords}->type
+                            if $obs{coords};
+                    }
+                    unless (exists $cmpobs{coordstype}) {
+                        $cmpobs{coordstype} = $cmpobs{coords}->type
+                            if $cmpobs{coords};
+                    }
+
+                    foreach my $obskey (keys %cmpobs) {
+                        # Skipping refs prevents comparison of coordinates
+                        next if ref($cmpobs{$obskey});
+                        next if ref($obs{$obskey});
+
+                        is($obs{$obskey},
+                            $cmpobs{$obskey},
+                            "Comparing obs: $obskey");
+                    }
+                }
+
+            }
+            elsif (UNIVERSAL::isa($cmp{$key}, 'OMP::Range')) {
+                ok($cmp{$key}->equate($msbsum{$key}),
+                    'Comparing range ' . $key
+                        #. ' expected ' . $cmp{$key}->stringify() . ' got ' .$msbsum{$key}->stringify());
+                        . ' expected ' . Dumper($cmp{$key}) . ' got ' . Dumper($msbsum{$key}));
+            }
+            else {
+                next if ref($cmp{$key});
+                is($msbsum{$key}, $cmp{$key}, "Comparing $key");
+            }
+        }
     }
-  }
 }
 
 # Generate a summary
@@ -145,36 +146,34 @@ my @summary = $obj->summary;
 
 # make sure the number of summaries matches the number of msbs
 # + header
-is( scalar(@summary), 1+scalar(@msbs), "Count MSBs");
+is(scalar(@summary), 1 + scalar(@msbs), 'Count MSBs');
 
 # For information print them all out
 # Need to include the "#"
-print map { "#$_\n" } @summary;
+print map {"#$_\n"} @summary;
 
 # Print out in a form that will let us simply cut and paste
 # this information to the top of the page for comparison
 exit;
 if (1) {
-  my %summary;
-  for my $msb ($obj->msb) {
-    my %msbsum = $msb->info->summary('hashlong');
+    my %summary;
+    for my $msb ($obj->msb) {
+        my %msbsum = $msb->info->summary('hashlong');
 
-    # Remove stuff we aren't interested in
-    delete $msbsum{checksum};
-    delete $msbsum{summary};
-    delete $msbsum{_obssum};
-    delete $msbsum{datemin};
-    delete $msbsum{datemax};
+        # Remove stuff we aren't interested in
+        delete $msbsum{'checksum'};
+        delete $msbsum{'summary'};
+        delete $msbsum{'_obssum'};
+        delete $msbsum{'datemin'};
+        delete $msbsum{'datemax'};
 
-    # Store it
-    $summary{ $msb->checksum } = \%msbsum;
-  }
+        # Store it
+        $summary{$msb->checksum} = \%msbsum;
+    }
 
-  # Now print the result
-  print Dumper(\%summary);
-
+    # Now print the result
+    print Dumper(\%summary);
 }
-
 
 exit;
 

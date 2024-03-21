@@ -6,9 +6,9 @@ listtargs - List targets from a science programme
 
 =head1 SYNOPSIS
 
-  listtargs -h
-  listtargs U/06A/H32
-  listtargs h32.xml
+    listtargs -h
+    listtargs U/06A/H32
+    listtargs h32.xml
 
 =head1 DESCRIPTION
 
@@ -121,30 +121,32 @@ our $VERSION = '2.000';
 
 # Options
 my ($format, $mode_type, $plotting_method, $plotting_system,
-    $help, $man, $version, $mode_region, $mode_plot, $plotting_bounds,
-    $moc_order, $region_output)
-  = (undef, undef, 'cmpregion', 'fk5');
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "region" => \$mode_region,
-                        "plot" => \$mode_plot,
-                        'format=s' => \$format,
-                        'output=s' => \$region_output,
-                        'mocorder=i' => \$moc_order,
-                        'type=s' => \$mode_type,
-                        'plottingmethod=s' => \$plotting_method,
-                        'plottingsystem=s' => \$plotting_system,
-                        'plottingbounds=s' => \$plotting_bounds,
-                       );
+    $help, $man, $version, $mode_region,
+    $mode_plot, $plotting_bounds, $moc_order, $region_output)
+= (undef, undef, 'cmpregion', 'fk5');
+
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "region" => \$mode_region,
+    "plot" => \$mode_plot,
+    'format=s' => \$format,
+    'output=s' => \$region_output,
+    'mocorder=i' => \$moc_order,
+    'type=s' => \$mode_type,
+    'plottingmethod=s' => \$plotting_method,
+    'plottingsystem=s' => \$plotting_system,
+    'plottingbounds=s' => \$plotting_bounds,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "omplisttargs - List targets found in science programme\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "omplisttargs - List targets found in science programme\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 # Read the science program in
@@ -152,151 +154,164 @@ my $file = shift(@ARGV);
 
 my $sp;
 if (-e $file) {
-  # looks to be a filename
-  $sp = new OMP::SciProg( FILE => $file);
-} elsif ( OMP::ProjServer->verifyProject( $file ) ) {
-  # we have a project ID - we need to get permission
-  print STDERR "Retrieving science programme $file\n";
-  ($sp) = OMP::SpServer->fetchProgram( $file, OMP::Password->get_userpass(), "OBJECT" );
-
-} else {
-  die "Supplied argument ($file) is neither a file nor a project ID\n";
+    # looks to be a filename
+    $sp = OMP::SciProg->new(FILE => $file);
 }
+elsif (OMP::ProjServer->verifyProject($file)) {
+    # we have a project ID - we need to get permission
+    print STDERR "Retrieving science programme $file\n";
+    ($sp) =
+        OMP::SpServer->fetchProgram($file, OMP::Password->get_userpass(),
+        "OBJECT");
 
+}
+else {
+    die "Supplied argument ($file) is neither a file nor a project ID\n";
+}
 
 # Reference time
 my $dt = DateTime->now;
 
 # Determine which type of report is required.
-if ($mode_region || $mode_plot) {region_report($sp); exit(0);}
+if ($mode_region || $mode_plot) {
+    region_report($sp);
+    exit(0);
+}
+
 # Otherwise fall through to default report type.
 
 my %targets;
 my @targnames;
 
-for my $msb ( $sp->msb ) {
-  my $info = $msb->info;
-  my @obs = $info->observations;
+for my $msb ($sp->msb) {
+    my $info = $msb->info;
+    my @obs = $info->observations;
 
-  for my $o (@obs) {
-    my $c = $o->coords;
-    $c->datetime( $dt );
-    next if $c->type eq 'CAL';
-    if (exists $targets{$c->name}) {
-      # exists so compare
-      my $dist = $c->distance( $targets{$c->name}->[0] );
-      if ($dist->arcsec > 1) {
-        print "-->>>> Target " .$c->name ." duplicated but with coordinates that differ by ". sprintf("%.1f",$dist->arcsec) ." arcsec\n";
-        push(@{ $targets{$c->name} }, $c);
-      }
-    } else {
-      push(@targnames, $c->name);
-      $targets{$c->name} = [ $c ];
+    for my $o (@obs) {
+        my $c = $o->coords;
+        $c->datetime($dt);
+        next if $c->type eq 'CAL';
+
+        if (exists $targets{$c->name}) {
+            # exists so compare
+            my $dist = $c->distance($targets{$c->name}->[0]);
+            if ($dist->arcsec > 1) {
+                print "-->>>> Target "
+                    . $c->name
+                    . " duplicated but with coordinates that differ by "
+                    . sprintf("%.1f", $dist->arcsec)
+                    . " arcsec\n";
+                push(@{$targets{$c->name}}, $c);
+            }
+        }
+        else {
+            push(@targnames, $c->name);
+            $targets{$c->name} = [$c];
+        }
     }
-  }
 
 }
 
 # Now dump the current values
 print("Target                RA(J2000)   Dec(J2000)    Airmass   Type\n");
 for my $n (@targnames) {
-  for my $c (@{$targets{$n}}) {
-    my ($ra,$dec) = $c->radec;
-    printf("%-20s %s  %s   %6.3f   %s\n",
-           $n,
-           $ra, $dec,
-           $c->airmass,
-           $c->type);
-  }
+    for my $c (@{$targets{$n}}) {
+        my ($ra, $dec) = $c->radec;
+        printf("%-20s %s  %s   %6.3f   %s\n",
+            $n, $ra, $dec, $c->airmass, $c->type);
+    }
 }
 
 
 # Subroutine to produce the region report type.
-
 sub region_report {
-  my $sp = shift;
+    my $sp = shift;
 
-  my $region = new OMP::SpRegion($sp);
-  unless (defined $region) {
-    print STDERR "No regions found\n";
-    exit(0);
-  }
-
-  if ($mode_region) {
-    if (defined $format) {
-        $format = lc $format;
+    my $region = OMP::SpRegion->new($sp);
+    unless (defined $region) {
+        print STDERR "No regions found\n";
+        exit(0);
     }
-    else {
-        if ((not defined $region_output) or ($region_output =~ /\.stcs/)) {
-            $format = 'stcs';
-        }
-        elsif ($region_output =~ /\.ast/) {
-            $format = 'ast';
-        }
-        elsif ($region_output =~ /\.json/) {
-            $format = 'moc-json';
-        }
-        elsif ($region_output =~ /\.txt/) {
-            $format = 'moc-text';
-        }
-        elsif ($region_output =~ /\.fits/) {
-            $format = 'moc-fits';
+
+    if ($mode_region) {
+        if (defined $format) {
+            $format = lc $format;
         }
         else {
-            die 'Region output format not specified';
+            if ((not defined $region_output) or ($region_output =~ /\.stcs/)) {
+                $format = 'stcs';
+            }
+            elsif ($region_output =~ /\.ast/) {
+                $format = 'ast';
+            }
+            elsif ($region_output =~ /\.json/) {
+                $format = 'moc-json';
+            }
+            elsif ($region_output =~ /\.txt/) {
+                $format = 'moc-text';
+            }
+            elsif ($region_output =~ /\.fits/) {
+                $format = 'moc-fits';
+            }
+            else {
+                die 'Region output format not specified';
+            }
         }
-    }
 
-    if ($format eq 'stcs') {
-      $region->write_stcs(type => $mode_type, filename => $region_output);
-    }
-    elsif ($format eq 'ast') {
-      $region->write_ast(type => $mode_type, filename => $region_output);
-    }
-    elsif ($format =~ /^moc-/i) {
-      my %moc_opts = (type => $mode_type, order => $moc_order);
-      my $moc = $region->get_moc(%moc_opts);
+        if ($format eq 'stcs') {
+            $region->write_stcs(type => $mode_type, filename => $region_output);
+        }
+        elsif ($format eq 'ast') {
+            $region->write_ast(type => $mode_type, filename => $region_output);
+        }
+        elsif ($format =~ /^moc-/i) {
+            my %moc_opts = (type => $mode_type, order => $moc_order);
+            my $moc = $region->get_moc(%moc_opts);
 
-      if (($format eq 'moc-json') or ($format eq 'moc-text')) {
-        unless (defined $region_output) {
-            print $moc->GetMocString(($format eq 'moc-json') ? 1 : 0);
+            if (($format eq 'moc-json') or ($format eq 'moc-text')) {
+                unless (defined $region_output) {
+                    print $moc->GetMocString(($format eq 'moc-json') ? 1 : 0);
+                }
+                else {
+                    my $fh = IO::File->new($region_output, 'w');
+                    die 'Could not open output file' unless defined $fh;
+                    print $fh $moc->GetMocString(
+                        ($format eq 'moc-json') ? 1 : 0);
+                    $fh->close();
+                }
+            }
+            elsif ($format eq 'moc-fits') {
+                write_moc_fits($moc, ($region_output // '-'));
+            }
+            else {
+                die 'Unknown MOC format ' . $format;
+            }
         }
         else {
-            my $fh = IO::File->new($region_output, 'w');
-            die 'Could not open output file' unless defined $fh;
-            print $fh $moc->GetMocString(($format eq 'moc-json') ? 1 : 0);
-            $fh->close();
+            die 'Unknown region output format ' . $format;
         }
-      }
-      elsif ($format eq 'moc-fits') {
-        write_moc_fits($moc, ($region_output // '-'));
-      }
-      else {
-        die 'Unknown MOC format ' . $format;
-      }
     }
-    else {
-      die 'Unknown region output format ' . $format;
+
+    if ($mode_plot) {
+        require PGPLOT;
+        require Starlink::AST::PGPLOT;
+
+        my $pgdev = PGPLOT::pgopen('/xserve');
+        PGPLOT::pgwnad(0, 1, 0, 1);
+        PGPLOT::pgqwin(my $x1, my $y1, my $x2, my $y2);
+
+        $region->plot_pgplot(
+            type => $mode_type,
+            method => $plotting_method,
+            system => $plotting_system,
+            bounds => $plotting_bounds
+        );
+
+        PGPLOT::pgend();
     }
-  }
-
-  if ($mode_plot) {
-    require PGPLOT;
-    require Starlink::AST::PGPLOT;
-
-    my $pgdev = PGPLOT::pgopen('/xserve');
-    PGPLOT::pgwnad(0, 1, 0, 1);
-    PGPLOT::pgqwin(my $x1, my $y1, my $x2, my $y2);
-
-    $region->plot_pgplot(type => $mode_type,
-                         method => $plotting_method,
-                         system => $plotting_system,
-                         bounds => $plotting_bounds);
-
-    PGPLOT::pgend();
-  }
 }
 
+__END__
 
 =head1 AUTHOR
 

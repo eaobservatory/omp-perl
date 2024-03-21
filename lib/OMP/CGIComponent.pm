@@ -6,8 +6,8 @@ OMP::CGIComponent - Components for OMP web pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent;
-  $comp = new OMP::CGIComponent(page => $cgipage);
+    use OMP::CGIComponent;
+    $comp = OMP::CGIComponent->new(page => $cgipage);
 
 =head1 DESCRIPTION
 
@@ -20,7 +20,7 @@ forms displayed on the pages.
 use 5.006;
 use strict;
 use warnings;
-use CGI::Carp qw(fatalsToBrowser);
+use CGI::Carp qw/fatalsToBrowser/;
 
 use OMP::Error;
 
@@ -34,29 +34,29 @@ use OMP::Error;
 
 Create a new instance of an C<OMP::CGIComponent> object.
 
-  $comp = new OMP::CGIComponent(page => $cgipage);
+    $comp = OMP::CGIComponent->new(page => $cgipage);
 
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  my %args;
-  %args = @_ if @_;
+    my %args;
+    %args = @_ if @_;
 
-  my $c = {
-           page => undef,
-          };
+    my $c = {
+        page => undef,
+    };
 
-  my $object = bless $c, $class;
+    my $object = bless $c, $class;
 
-  # Populate object
-  for my $key (keys %args) {
-    $object->$key($args{$key});
-  }
+    # Populate object
+    for my $key (keys %args) {
+        $object->$key($args{$key});
+    }
 
-  return $object;
+    return $object;
 }
 
 =back
@@ -69,41 +69,57 @@ sub new {
 
 The OMP::CGIPage object.
 
-  $page = $comp->page;
+    $page = $comp->page;
 
 Argument is an object of the class C<OMP::CGIPage>.
 
 =cut
 
 sub page {
-  my $self = shift;
-  if (@_) {
-    my $page = shift;
-    throw OMP::Error::BadArgs("Object must be of class OMP::CGIPage")
-      unless (UNIVERSAL::isa($page, 'OMP::CGIPage'));
-    $self->{'page'} = $page;
-  }
-  return $self->{'page'};
+    my $self = shift;
+    if (@_) {
+        my $page = shift;
+        throw OMP::Error::BadArgs("Object must be of class OMP::CGIPage")
+            unless (UNIVERSAL::isa($page, 'OMP::CGIPage'));
+        $self->{'page'} = $page;
+    }
+    return $self->{'page'};
 }
 
 =item B<cgi>
 
 Obtain the parent CGIPage's CGI object.
 
-  $q = $comp->cgi;
+    $q = $comp->cgi;
 
 The return value is an object of the class C<CGI>.
 
 =cut
 
 sub cgi {
-  my $self = shift;
+    my $self = shift;
 
-  my $page = $self->page();
-  throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
-    unless defined $page;
+    my $page = $self->page();
+    throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
+        unless defined $page;
 
-  return $page->cgi();
+    return $page->cgi();
+}
+
+=item B<database>
+
+Obtain the parent CGIPage's database backend object.
+
+=cut
+
+sub database {
+    my $self = shift;
+
+    my $page = $self->page();
+    throw OMP::Error::BadArgs('OMP::CGIComponent has no parent OMP::CGIPage')
+        unless defined $page;
+
+    return $page->database();
 }
 
 =item B<auth>
@@ -117,46 +133,18 @@ The return value is an object of the class C<OMP::Auth>.
 =cut
 
 sub auth {
-  my $self = shift;
+    my $self = shift;
 
-  my $page = $self->page();
-  throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
-    unless defined $page;
+    my $page = $self->page();
+    throw OMP::Error::BadArgs("OMP::CGIComponent has no parent OMP::CGIPage")
+        unless defined $page;
 
-  return $page->auth();
+    return $page->auth();
 }
 
-=back
+1;
 
-=head2 General methods
-
-=over 4
-
-=item B<url_args>
-
-Alter query parameters in the current URL.  Useful for creating links to the
-same script but with different parameters.
-
-  $url = $comp->url_args($key, $newvalue);
-
-The first argument is the paramter name.
-Last argument is the new value of the paramater. All arguments
-are required.
-
-=cut
-
-sub url_args {
-  my $self = shift;
-  my $key = shift;
-  my $newvalue = shift;
-
-  # Clone the CGI object and alter the parameter.
-  my $q = $self->cgi->new;
-  $q->param($key, $newvalue);
-
-  # Create an "absolute" URL (without path).
-  return $q->url(-absolute => 1, -query => 1);
-}
+__END__
 
 =back
 
@@ -185,5 +173,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

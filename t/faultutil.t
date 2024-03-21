@@ -17,7 +17,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::DateTools');
@@ -25,12 +25,12 @@ require_ok('OMP::Fault');
 require_ok('OMP::FaultUtil');
 require_ok('OMP::Fault::Response');
 
-my $author = new OMP::User(
+my $author = OMP::User->new(
     userid => 'TEST',
     name => 'Test User',
 );
 
-my $resp = new OMP::Fault::Response(
+my $resp = OMP::Fault::Response->new(
     author => $author,
     text => 'This is a test of OMP::FaultUtil',
 );
@@ -48,13 +48,13 @@ my %details = (
     remote => 1,
 );
 
-my $fault = new OMP::Fault(
+my $fault = OMP::Fault->new(
     %details,
 );
 
 isa_ok($fault, 'OMP::Fault');
 
-my $fault2 = new OMP::Fault(
+my $fault2 = OMP::Fault->new(
     %details,
     subject => 'Another fault',
 );
@@ -63,7 +63,7 @@ isa_ok($fault2, 'OMP::Fault');
 
 is_deeply([OMP::FaultUtil->compare($fault, $fault2)], ['subject']);
 
-my $fault3 = new OMP::Fault(
+my $fault3 = OMP::Fault->new(
     %details,
     shifttype => 'EO',
 );
@@ -72,7 +72,7 @@ isa_ok($fault3, 'OMP::Fault');
 
 is_deeply([OMP::FaultUtil->compare($fault, $fault3)], ['shifttype']);
 
-my $fault4 = new OMP::Fault(
+my $fault4 = OMP::Fault->new(
     %details,
     type => OMP::Fault->faultTypes('JCMT')->{'Software'},
     status => {OMP::Fault->faultStatus()}->{'Closed'},
@@ -81,3 +81,10 @@ my $fault4 = new OMP::Fault(
 isa_ok($fault4, 'OMP::Fault');
 
 is_deeply([OMP::FaultUtil->compare($fault, $fault4)], ['type', 'status']);
+
+my $resp2 = OMP::Fault::Response->new(
+    author => $author,
+    text => '<pre>Preformatted text</pre>',
+    preformatted => 1);
+
+is_deeply([OMP::FaultUtil->compare($resp, $resp2)], ['text', 'preformatted']);

@@ -6,12 +6,12 @@ updateuser - Update user DB information
 
 =head1 SYNOPSIS
 
-  echo USERID,NEWNAME,NEWEMAIL | updateuser
+    echo USERID,NEWNAME,NEWEMAIL | updateuser
 
-  cat updatefile | updateuser
+    cat updatefile | updateuser
 
-  echo USERID,,NEWEMAIL | updateuser
-  echo USERID,NEWNAME,  | updateuser
+    echo USERID,,NEWEMAIL | updateuser
+    echo USERID,NEWNAME,  | updateuser
 
 =head1 DESCRIPTION
 
@@ -32,45 +32,44 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::User;
 use OMP::UserServer;
 
 foreach my $line (<>) {
-  # Skip blank lines
-  next unless $line =~ /\w/;
-  next unless $line =~ /,/;
-  next if $line =~ /^\#/;
-  chomp($line);
+    # Skip blank lines
+    next unless $line =~ /\w/;
+    next unless $line =~ /,/;
+    next if $line =~ /^\#/;
+    chomp($line);
 
-  # Extract information
-  my ($user, $newname, $newemail) = split(/,/, $line);
+    # Extract information
+    my ($user, $newname, $newemail) = split(/,/, $line);
 
-  print "USERID: $user\n";
-  my $user = OMP::UserServer->getUser( $user );
+    print "USERID: $user\n";
+    my $user = OMP::UserServer->getUser($user);
 
-  if (!defined $user) {
-    print "********* NOT IN DATABASE ********\n";
-    next;
-  }
+    unless (defined $user) {
+        print "********* NOT IN DATABASE ********\n";
+        next;
+    }
 
-  # Before
-  print "\t" . $user->as_email_hdr ."\n";
+    # Before
+    print "\t" . $user->as_email_hdr . "\n";
 
-  # Update email and name as required
-  $user->email($newemail) if $newemail =~ /\w/;
-  $user->name($newname) if $newname =~ /\w/;
+    # Update email and name as required
+    $user->email($newemail) if $newemail =~ /\w/;
+    $user->name($newname) if $newname =~ /\w/;
 
-  # Update the information
-  print "Update:\t".$user->as_email_hdr."\n\n";
-  OMP::UserServer->updateUser( $user );
+    # Update the information
+    print "Update:\t" . $user->as_email_hdr . "\n\n";
+    OMP::UserServer->updateUser($user);
 }
 
 __END__
-
 
 =head1 AUTHOR
 

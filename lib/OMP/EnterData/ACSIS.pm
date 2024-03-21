@@ -11,7 +11,7 @@ use Log::Log4perl;
 
 =head1 NAME
 
-OMP::EnterData::ACSIS - ACSIS specific methods.
+OMP::EnterData::ACSIS - ACSIS specific methods
 
 =head1 SYNOPSIS
 
@@ -21,7 +21,7 @@ OMP::EnterData::ACSIS - ACSIS specific methods.
     my $name = $enter->instrument_name();
 
     my @cmd = $enter->get_bound_check_command;
-    system( @cmd ) == 0
+    system(@cmd) == 0
         or die "Problem with running bound check command for $name.";
 
     # Use table in a SQL later.
@@ -35,7 +35,7 @@ specific methods.
 
 =head2 METHODS
 
-=over 2
+=over 4
 
 =cut
 
@@ -43,7 +43,7 @@ specific methods.
 
 Constructor, returns an I<OMP::EnterData::ACSIS> object.
 
-    $enter = new OMP::EnterData::ACSIS();
+    $enter = OMP::EnterData::ACSIS->new();
 
 Currently, no extra arguments are handled.
 
@@ -226,6 +226,7 @@ Calculate frequency properties, updates given hash reference.
     OMP::EnterData->calc_freq($obs, $headerref, \%wcs_by_basename);
 
 It Calculates:
+
     zsource, restfreq
     freq_sig_lower, freq_sig_upper : BARYCENTRIC Frequency GHz
     freq_img_lower, freq_img_upper : BARYCENTRIC Frequency Image Sideband GHz
@@ -245,9 +246,10 @@ sub calc_freq {
         unless defined $wcs;
 
     # Change to BARYCENTRIC, GHz
-    $wcs->Set('system(1)' => 'FREQ',
-              'unit(1)' => 'GHz',
-              stdofrest => 'BARY');
+    $wcs->Set(
+        'system(1)' => 'FREQ',
+        'unit(1)' => 'GHz',
+        stdofrest => 'BARY');
 
     # Rest Frequency
     $headerref->{restfreq} = $wcs->Get("restfreq");
@@ -292,13 +294,13 @@ sub calc_freq {
 
 1;
 
-=pod
+__END__
 
 =back
 
 =head1 AUTHORS
 
-=over 2
+=over 4
 
 =item *
 

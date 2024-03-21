@@ -6,19 +6,22 @@ OMP::Info::Comment - a comment
 
 =head1 SYNOPSIS
 
-  use OMP::Info::Comment;
+    use OMP::Info::Comment;
 
-  $resp = new OMP::Info::Comment( author => $user,
-                                  text => $text,
-                                  date => $date );
-  $resp = new OMP::Info::Comment( author => $user,
-                                  text => $text,
-                                  status => OMP__DONE_DONE );
+    $resp = OMP::Info::Comment->new(
+        author => $user,
+        text => $text,
+        date => $date);
 
-  $body = $resp->text;
-  $user = $resp->author;
+    $resp = OMP::Info::Comment->new(
+        author => $user,
+        text => $text,
+        status => OMP__DONE_DONE);
 
-  $tid = $resp->tid;
+    $body = $resp->text;
+    $user = $resp->author;
+
+    $tid = $resp->tid;
 
 =head1 DESCRIPTION
 
@@ -34,15 +37,14 @@ use Carp;
 
 use OMP::Display;
 use OMP::Error;
-use Time::Piece qw/ :override /;
+use Time::Piece qw/:override/;
 
 our $VERSION = '2.000';
 
-use base qw/ OMP::Info::Base /;
+use base qw/OMP::Info/;
 
 # Overloading
 use overload '""' => "stringify";
-
 
 =head1 METHODS
 
@@ -57,9 +59,11 @@ The comment must ideally be supplied in the constructor but this is
 not enforced. "author", "status", "tid" and "date" are optional.
 
 
-  $resp = new OMP::Info::Comment( author => $author,
-                                  text => $text,
-                                  status => 1 );
+    $resp = OMP::Info::Comment->new(
+        author => $author,
+        text => $text,
+        status => 1,
+    );
 
 If it is not specified the current date will be used. The date must be
 supplied as a C<Time::Piece> object and is assumed to be UT. The tid can
@@ -68,20 +72,18 @@ be undefined.
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  my $comm = $class->SUPER::new( @_ );
+    my $comm = $class->SUPER::new(@_);
 
-#  $comm->_populate();
+    # $comm->_populate();
 
-  # Return the object
-  return $comm;
+    # Return the object
+    return $comm;
 }
 
 =back
-
-=begin __PRIVATE__
 
 =head2 Create Accessor Methods
 
@@ -89,22 +91,28 @@ Create the accessor methods from a signature of their contents.
 
 =cut
 
-__PACKAGE__->CreateAccessors( _text => '$',
-                              author => 'OMP::User',
-                              _date => 'Time::Piece',
-                              status => '$',
-                              runnr => '$',
-                              tid => '$',
-                              instrument => '$',
-                              telescope => '$',
-                              startobs => 'Time::Piece',
-                              obsid => '$',
-                              relevance => '$',
-                              id => '$',
-                              is_time_gap => '$',
-                            );
-
-=end __PRIVATE__
+__PACKAGE__->CreateAccessors(
+    _text => '$',
+    author => 'OMP::User',
+    _date => 'Time::Piece',
+    preformatted => '$',
+    status => '$',
+    runnr => '$',
+    tid => '$',
+    instrument => '$',
+    telescope => '$',
+    startobs => 'Time::Piece',
+    obsid => '$',
+    relevance => '$',
+    id => '$',
+    is_time_gap => '$',
+    entrynum => '$',
+    program => '$',
+    projectid => '$',
+    sourceinfo => '$',
+    subject => '$',
+    type => '$',
+);
 
 =head2 Accessor methods
 
@@ -114,8 +122,8 @@ __PACKAGE__->CreateAccessors( _text => '$',
 
 Text content forming the comment. Should be in plain text.
 
-  $text = $comm->text;
-  $comm->text( $text );
+    $text = $comm->text;
+    $comm->text($text);
 
 Returns empty string if text has not been set. Strips whitespace
 from beginning and end of text when used as a constructor.
@@ -123,25 +131,25 @@ from beginning and end of text when used as a constructor.
 =cut
 
 sub text {
-  my $self = shift;
-  if (@_) {
-    my $text = shift;
-    if (defined $text) {
-      $text =~ s/^\s+//s;
-      $text =~ s/\s+$//s;
+    my $self = shift;
+    if (@_) {
+        my $text = shift;
+        if (defined $text) {
+            $text =~ s/^\s+//s;
+            $text =~ s/\s+$//s;
+        }
+        $self->_text($text);
     }
-    $self->_text( $text );
-  }
 
-  return ( defined $self->_text ? $self->_text : '' );
+    return (defined $self->_text ? $self->_text : '');
 }
 
 =item B<date>
 
 Date the comment was filed. Must be a Time::Piece object.
 
-  $date = $comm->date;
-  $comm->date( $date );
+    $date = $comm->date;
+    $comm->date($date);
 
 If the date is not defined when the C<Info::Comment> object
 is created, it will default to the current time.
@@ -149,25 +157,27 @@ is created, it will default to the current time.
 =cut
 
 sub date {
-  my $self = shift;
-  if (@_) {
-    my $date = shift;
-    $self->_date( $date );
-  }
+    my $self = shift;
+    if (@_) {
+        my $date = shift;
+        $self->_date($date);
+    }
 
-  if( ! defined( $self->_date ) ) {
-    my $new = gmtime();
-    $self->_date( $new );
-  }
+    unless (defined($self->_date)) {
+        my $new = gmtime();
+        $self->_date($new);
+    }
 
-  return $self->_date;
+    return $self->_date;
 }
+
+=back
 
 =head2 General Methods
 
 =over 4
 
-=item <stringify>
+=item B<stringify>
 
 Convert comment to plain text for quick display.
 This is the default stringification overload.
@@ -177,61 +187,67 @@ Just returns the comment text.
 =cut
 
 sub stringify {
-  my $self = shift;
-  return $self->text;
+    my $self = shift;
+    return $self->text;
 }
 
 =item B<summary>
 
 Summary of the object in different formats (XML, text, hash).
 
-  $xml = $comm->summary( 'xml' );
+    $xml = $comm->summary('xml');
 
 =cut
 
 sub summary {
-  my $self = shift;
-  my $format = lc(shift);
+    my $self = shift;
+    my $format = lc(shift);
 
-  $format = 'xml' unless $format;
+    $format = 'xml' unless $format;
 
-  my @order = qw/ status date author tid text /;
-  # Create hash
-  my %summary;
-  for ( @order ) {
-    $summary{$_} = $self->$_();
-  }
-
-  if ($format eq 'hash') {
-    return (wantarray ? %summary : \%summary );
-  }
-
-  if ( $format eq 'text' ) {
-
-    my $out = '';
-    for ( @order ) {
-
-      $out .= sprintf "%7s: %s\n" , $_ , $summary{ $_ };
+    my @order = qw/status date author tid text/;
+    # Create hash
+    my %summary;
+    for (@order) {
+        $summary{$_} = $self->$_();
     }
-    return $out;
-  }
 
-  if ($format eq 'xml') {
-    my $xml = "<SpComment>\n";
-    for my $key (keys %summary) {
-      next if $key =~ /^_/;
-      next unless defined $summary{$key};
-      $xml .= sprintf "<$key>%s</$key>\n",
-          OMP::Display::escape_entity($summary{$key});
+    if ($format eq 'hash') {
+        return (wantarray ? %summary : \%summary);
     }
-    $xml .= "</SpComment>\n";
-    return $xml;
 
-  } else {
-    throw OMP::Error::FatalError("Unknown format: $format");
-  }
+    if ($format eq 'text') {
+        my $out = '';
 
+        for (@order) {
+            $out .= sprintf "%7s: %s\n", $_, $summary{$_};
+        }
+
+        return $out;
+    }
+
+    if ($format eq 'xml') {
+        my $xml = "<SpComment>\n";
+
+        for my $key (keys %summary) {
+            next if $key =~ /^_/;
+            next unless defined $summary{$key};
+
+            $xml .= sprintf "<$key>%s</$key>\n", OMP::Display::escape_entity($summary{$key});
+        }
+
+        $xml .= "</SpComment>\n";
+
+        return $xml;
+    }
+    else {
+        throw OMP::Error::FatalError("Unknown format: $format");
+    }
 }
+
+1;
+
+__END__
 
 =back
 
@@ -266,5 +282,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

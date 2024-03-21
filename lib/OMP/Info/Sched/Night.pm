@@ -15,7 +15,7 @@ use Time::Seconds qw/ONE_DAY ONE_HOUR/;
 
 use OMP::Info::Sched::Slot;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 our $TIME_START = Time::Piece->strptime('05:00', '%H:%M');
 our $TIME_END = Time::Piece->strptime('16:00', '%H:%M');

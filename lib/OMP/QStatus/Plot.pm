@@ -95,7 +95,6 @@ sub create_queue_status_plot {
     );
 }
 
-
 1;
 
 __END__

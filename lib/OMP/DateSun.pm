@@ -2,15 +2,14 @@ package OMP::DateSun;
 
 =head1 NAME
 
-OMP::DateSun - Date related methods based on sunrise, sunset.
+OMP::DateSun - Date related methods based on sunrise, sunset
 
 =head1 SYNOPSIS
 
-  use OMP::DateSun;
+    use OMP::DateSun;
 
-  $length =
-    OMP::DateSun->determine_night_length( date => $date,
-                                          tel => 'JCMT' );
+    $length = OMP::DateSun->determine_night_length(
+        date => $date, tel => 'JCMT');
 
 =head1 DESCRIPTION
 
@@ -18,7 +17,6 @@ DateSun purpose routines that are not associated with any particular
 class but that are useful in more than one class.
 
 For example, date parsing is required in the MSB class and in the query class.
-
 
 =cut
 
@@ -69,8 +67,9 @@ Given the start and end times for the night defined in the "freetimeut"
 config parameter, return the nominal length of the night as a
 Time::Seconds object.
 
-  $length = OMP::DateSun->determine_night_length( date => $date,
-                                                  tel => 'JCMT' );
+    $length = OMP::DateSun->determine_night_length(
+        date => $date,
+        tel => 'JCMT');
 
 Both arguments are mandatory. The date object is used for sunset/sunrise
 times if required.
@@ -78,20 +77,20 @@ times if required.
 =cut
 
 sub determine_night_length {
-  my $class = shift;
-  my %args = @_;
+    my $class = shift;
+    my %args = @_;
 
-  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times")
-    unless exists $args{tel};
+    throw OMP::Error::BadArgs(
+        "A telescope must be supplied else we can not determine the valid observing times")
+        unless exists $args{tel};
 
-  # key is different in api
-  $args{start} = $args{date};
+    # key is different in api
+    $args{start} = $args{date};
 
-  # Get the range for this date
-  my ($min, $max) = $class->_get_freeut_range( %args );
+    # Get the range for this date
+    my ($min, $max) = $class->_get_freeut_range(%args);
 
-  return scalar ($max - $min );
-
+    return scalar($max - $min);
 }
 
 =item B<determine_extended>
@@ -100,22 +99,23 @@ Given a start and end time, or a start time and duration, return
 the time that should be charged to a project and the time that
 should be treated as EXTENDED time.
 
-  ($project, $extended) =
-    OMP::DateSun->determine_extended(start => $start,
-                                      end => $end,
-                                      tel => 'JCMT',
-                                    );
+    ($project, $extended) = OMP::DateSun->determine_extended(
+        start => $start,
+        end => $end,
+        tel => 'JCMT',
+    );
 
-  ($project, $extended) =
-    OMP::DateSun->determine_extended(start => $start,
-                                      tel => 'UKIRT',
-                                      duration => $duration);
+    ($project, $extended) = OMP::DateSun->determine_extended(
+        start => $start,
+        tel => 'UKIRT',
+        duration => $duration,
+    );
 
-($project, $extended) =
-  OMP::DateSun->determine_extended(duration => $duration,
-                                    tel => 'UKIRT',
-                                    end => $end);
-
+    ($project, $extended) = OMP::DateSun->determine_extended(
+        duration => $duration,
+        tel => 'UKIRT',
+        end => $end,
+    );
 
 Telescope is mandatory, as are two of "start", "end" and "duration".
 Input times are Time::Piece objects (for start and end) and Time::Seconds
@@ -128,99 +128,103 @@ into objects if scalars are detected. Returns Time::Seconds objects.
 # a config file
 
 sub determine_extended {
-  my $class = shift;
-  my %args = @_;
+    my $class = shift;
+    my %args = @_;
 
-  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times")
-    unless exists $args{tel};
+    throw OMP::Error::BadArgs(
+        "A telescope must be supplied else we can not determine the valid observing times")
+        unless exists $args{tel};
 
-  # Convert duration as number into duration as Time::Seconds
-  if (exists $args{duration} && defined $args{duration} && not ref $args{duration}) {
-    $args{duration} = new Time::Seconds( $args{duration});
-  }
-
-  for my $key (qw/ start end /) {
-    if (exists $args{$key} && defined $args{$key} && not ref $args{$key}) {
-      $args{$key} = OMP::DateTools->parse_date( $args{$key} );
-    }
-  }
-
-  # Try to get the start time and the end time from the hash
-  if (exists $args{start} && defined $args{start}) {
-
-    if (exists $args{end} && defined $args{end}) {
-      # We have start and end time already
-      if (! exists $args{duration} || ! defined $args{duration}) {
-        $args{duration} = $args{end} - $args{start};
-      }
-    } elsif (exists $args{duration} && defined $args{duration}) {
-      # Get the end from the start and duration
-      $args{end} = $args{start} + $args{duration}->seconds;
+    # Convert duration as number into duration as Time::Seconds
+    if (exists $args{duration}
+            && defined $args{duration}
+            && not ref $args{duration}) {
+        $args{duration} = Time::Seconds->new($args{duration});
     }
 
-  } elsif (exists $args{end} && defined $args{end}) {
-    if (exists $args{duration} && defined $args{duration}) {
-      $args{start} = $args{end} - $args{duration};
-    }
-  }
-
-  # Check that we now have start, end and duration
-  throw OMP::Error::BadArgs("Must supply 2 of start, end or duration")
-    unless exists $args{start} && defined $args{start} &&
-      exists $args{end} && defined $args{end} &&
-        exists $args{duration} && defined $args{duration};
-
-
-  # Check whether "free time" is currently disabled.  If so, return all
-  # the time as "time spent" with zero extended time.
-
-  my $freetime_disable = OMP::Config->getData('freetimedisable',
-                                              telescope => $args{'tel'});
-
-  if ($freetime_disable) {
-    return ($args{'end'} - $args{'start'}, new Time::Seconds(0));
-  }
-
-
-  # Now we need to get the valid ranges
-  my ($min, $max) = $class->_get_freeut_range( %args );
-
-  throw OMP::Error::BadArgs("Error parsing the extended boundary string")
-    unless defined $min && defined $max;
-
-  # Now work out the extended time and project time
-  # If the startobs is earlier than min time we need to check endobs
-  my $extended = Time::Seconds->new(0);
-  my $timespent;
-  if ($args{start} < $min) {
-    if ($args{end} < $min) {
-      # This is entirely extended time
-      $extended = $args{end} - $args{start};
-      $timespent = new Time::Seconds(0);
-    } else {
-      # Split over shift boundary
-      $timespent = $args{end} - $min;
-      $extended = $min - $args{start};
+    for my $key (qw/start end/) {
+        if (exists $args{$key} && defined $args{$key} && not ref $args{$key}) {
+            $args{$key} = OMP::DateTools->parse_date($args{$key});
+        }
     }
 
-  } elsif ($args{end} > $max) {
-    if ($args{start} > $max) {
-      # Entirely extended time
-      $timespent = new Time::Seconds(0);
-      $extended = $args{end} - $args{start};
-    } else {
-      # Split over end of night boundary
-      $timespent = $max - $args{start};
-      $extended = $args{end} - $max;
+    # Try to get the start time and the end time from the hash
+    if (exists $args{start} && defined $args{start}) {
+        if (exists $args{end} && defined $args{end}) {
+            # We have start and end time already
+            if (! exists $args{duration} || ! defined $args{duration}) {
+                $args{duration} = $args{end} - $args{start};
+            }
+        }
+        elsif (exists $args{duration} && defined $args{duration}) {
+            # Get the end from the start and duration
+            $args{end} = $args{start} + $args{duration}->seconds;
+        }
+    }
+    elsif (exists $args{end} && defined $args{end}) {
+        if (exists $args{duration} && defined $args{duration}) {
+            $args{start} = $args{end} - $args{duration};
+        }
     }
 
-  } else {
-    # Duration is simply the full range
-    $timespent = $args{end} - $args{start};
-  }
+    # Check that we now have start, end and duration
+    throw OMP::Error::BadArgs("Must supply 2 of start, end or duration")
+        unless exists $args{start}
+        && defined $args{start}
+        && exists $args{end}
+        && defined $args{end}
+        && exists $args{duration}
+        && defined $args{duration};
 
-  return ($timespent, $extended);
+    # Check whether "free time" is currently disabled.  If so, return all
+    # the time as "time spent" with zero extended time.
 
+    my $freetime_disable = OMP::Config->getData('freetimedisable', telescope => $args{'tel'});
+
+    if ($freetime_disable) {
+        return ($args{'end'} - $args{'start'}, Time::Seconds->new(0));
+    }
+
+    # Now we need to get the valid ranges
+    my ($min, $max) = $class->_get_freeut_range(%args);
+
+    throw OMP::Error::BadArgs("Error parsing the extended boundary string")
+        unless defined $min && defined $max;
+
+    # Now work out the extended time and project time
+    # If the startobs is earlier than min time we need to check endobs
+    my $extended = Time::Seconds->new(0);
+    my $timespent;
+    if ($args{start} < $min) {
+        if ($args{end} < $min) {
+            # This is entirely extended time
+            $extended = $args{end} - $args{start};
+            $timespent = Time::Seconds->new(0);
+        }
+        else {
+            # Split over shift boundary
+            $timespent = $args{end} - $min;
+            $extended = $min - $args{start};
+        }
+    }
+    elsif ($args{end} > $max) {
+        if ($args{start} > $max) {
+            # Entirely extended time
+            $timespent = Time::Seconds->new(0);
+            $extended = $args{end} - $args{start};
+        }
+        else {
+            # Split over end of night boundary
+            $timespent = $max - $args{start};
+            $extended = $args{end} - $max;
+        }
+    }
+    else {
+        # Duration is simply the full range
+        $timespent = $args{end} - $args{start};
+    }
+
+    return ($timespent, $extended);
 }
 
 # Work out what the range should be based.
@@ -228,23 +232,27 @@ sub determine_extended {
 # an override values "freetimeut".
 
 sub _get_freeut_range {
-  my $class = shift;
-  my %args = @_;
+    my $class = shift;
+    my %args = @_;
 
-  # We assume that the UT date matches that of the start and end times
-  # For testing we allow an override so that we do not have to test
-  # the Config system as well as this method
-  my @range;
-  if (exists $args{freetimeut} && defined $args{freetimeut}) {
-    @range = @{ $args{freetimeut} };
-  } else {
-    @range = OMP::Config->getData('freetimeut',telescope=>$args{tel});
-  }
+    # We assume that the UT date matches that of the start and end times
+    # For testing we allow an override so that we do not have to test
+    # the Config system as well as this method
+    my @range;
+    if (exists $args{freetimeut} && defined $args{freetimeut}) {
+        @range = @{$args{freetimeut}};
+    }
+    else {
+        @range = OMP::Config->getData('freetimeut', telescope => $args{tel});
+    }
 
-  # Now convert to Time::Piece object
-  my ($min, $max) = $class->_process_freeut_range( $args{tel}, $args{start}, @range );
-  print "Min = $min  Max = $max  duration = ".(($max-$min)/3600)."\n" if $DEBUG;
-return ($min, $max);
+    # Now convert to Time::Piece object
+    my ($min, $max) = $class->_process_freeut_range($args{tel}, $args{start}, @range);
+
+    print "Min = $min  Max = $max  duration = " . (($max - $min) / 3600) . "\n"
+        if $DEBUG;
+
+    return ($min, $max);
 }
 
 # Convert a range parameter as provided in the config file, to a date object.
@@ -256,85 +264,98 @@ return ($min, $max);
 my %SUN_CACHE;
 
 sub _process_freeut_range {
-  my $class = shift;
-  my ($telescope, $refdate, @ranges) = @_;
+    my $class = shift;
+    my ($telescope, $refdate, @ranges) = @_;
 
-  throw OMP::Error::BadArgs("Must supply two values for the range argument of process_freeut_range")
-    if (@ranges != 2 || !defined $ranges[0] || !defined $ranges[1]);
+    throw OMP::Error::BadArgs(
+        "Must supply two values for the range argument of process_freeut_range")
+        if (@ranges != 2 || ! defined $ranges[0] || ! defined $ranges[1]);
 
-  # A cache of the Sun coordinate object if needed.
-  my $Sun;
+    # A cache of the Sun coordinate object if needed.
+    my $Sun;
 
-  my @processed;
-  for my $r (@ranges) {
-    my $out;
-    if ($r =~ /^\s*\d\d:\d\d\s*$/a) {
-      # HH:MM
-      $out = OMP::DateTools->parse_date($refdate->ymd . "T$r");
-    } elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/a) {
-      require Astro::Coords;
-      my $mode = $1;
-      my $offset = $2;
-      if (!defined $Sun) {
-        # need to create an Astro::Coords object for the sun
-        $Sun = Astro::Coords->new( planet => 'sun');
-        my $tel = Astro::Telescope->new( $telescope );
-        $Sun->telescope( $tel );
-        $Sun->datetime( $refdate );
+    my @processed;
+    for my $r (@ranges) {
+        my $out;
+        if ($r =~ /^\s*\d\d:\d\d\s*$/a) {
+            # HH:MM
+            $out = OMP::DateTools->parse_date($refdate->ymd . "T$r");
+        }
+        elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/a) {
+            require Astro::Coords;
+            my $mode = $1;
+            my $offset = $2;
+            unless (defined $Sun) {
+                # need to create an Astro::Coords object for the sun
+                $Sun = Astro::Coords->new(planet => 'sun');
+                my $tel = Astro::Telescope->new($telescope);
+                $Sun->telescope($tel);
+                $Sun->datetime($refdate);
 
-        # assume that all observations are during the night not during the day(!) - probably bad
-        # Get previous midday and then add 12 hours so that we can refer to next and previous
-        # for sunset, sunrise.
-        my $midday = $Sun->meridian_time( event => -1 );
+                # assume that all observations are during the night not during the day(!) - probably bad
+                # Get previous midday and then add 12 hours so that we can refer to next and previous
+                # for sunset, sunrise.
+                my $midday = $Sun->meridian_time(event => -1);
 
-        throw OMP::Error::FatalError("Error calculating transit time of Sun!")
-          unless defined $midday;
+                throw OMP::Error::FatalError(
+                    "Error calculating transit time of Sun!")
+                    unless defined $midday;
 
-        # now add 12 hours to get us roughly in the middle of the night
-        $midday += 12 * 60 * 60;
+                # now add 12 hours to get us roughly in the middle of the night
+                $midday += 12 * 60 * 60;
 
-        # and update that as the reference time
-        $Sun->datetime( $midday );
-      }
+                # and update that as the reference time
+                $Sun->datetime($midday);
+            }
 
-      my $cacheKey = $Sun->datetime->datetime;
+            my $cacheKey = $Sun->datetime->datetime;
 
-      my $sundef = Astro::Coords::SUN_RISE_SET();
-      my $event;
-      my $eventKey;
-      my $method;
-      if ($mode =~ /rise$/) {
-        $event = 1;
-        $eventKey = "RISE";
-        $method = "rise_time";
-      } elsif ($mode =~ /set$/) {
-        $event = -1;
-        $eventKey = "SET";
-        $method = "set_time";
-      } else {
-        throw OMP::Error::FatalError("Odd programming error");
-      }
+            my $sundef = Astro::Coords::SUN_RISE_SET();
+            my $event;
+            my $eventKey;
+            my $method;
+            if ($mode =~ /rise$/) {
+                $event = 1;
+                $eventKey = "RISE";
+                $method = "rise_time";
+            }
+            elsif ($mode =~ /set$/) {
+                $event = -1;
+                $eventKey = "SET";
+                $method = "set_time";
+            }
+            else {
+                throw OMP::Error::FatalError("Odd programming error");
+            }
 
-      if (exists $SUN_CACHE{$cacheKey}{$eventKey}) {
-        $out = $SUN_CACHE{$cacheKey}{$eventKey};
-      } else {
-        $out = $Sun->$method( event => $event, horizon => $sundef );
-        $SUN_CACHE{$cacheKey}{$eventKey} = $out;
-      }
+            if (exists $SUN_CACHE{$cacheKey}{$eventKey}) {
+                $out = $SUN_CACHE{$cacheKey}{$eventKey};
+            }
+            else {
+                $out = $Sun->$method(event => $event, horizon => $sundef);
+                $SUN_CACHE{$cacheKey}{$eventKey} = $out;
+            }
 
-      # and add on the offset (convert to seconds)
-      $out += $offset * 60;
+            # and add on the offset (convert to seconds)
+            $out += $offset * 60;
+        }
+        else {
+            throw OMP::Error::BadArgs(
+                "Error parsing the extended boundary string of '$r' (expect HH:MM or sunxxx+/-NNN");
+        }
 
-    } else {
-      throw OMP::Error::BadArgs("Error parsing the extended boundary string of '$r' (expect HH:MM or sunxxx+/-NNN");
+        throw OMP::Error::BadArgs("Error processing boundary event '$r'")
+            unless defined $out;
+
+        push @processed, $out;
     }
 
-    throw OMP::Error::BadArgs("Error processing boundary event '$r'")
-      unless defined $out;
-    push(@processed, $out);
-  }
-  return @processed;
+    return @processed;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -363,8 +384,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;
-

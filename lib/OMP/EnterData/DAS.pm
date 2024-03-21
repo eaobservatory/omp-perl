@@ -7,12 +7,12 @@ use parent 'OMP::EnterData::ACSIS';
 
 =head1 NAME
 
-OMP::EnterData::DAS - DAS specific methods.
+OMP::EnterData::DAS - DAS specific methods
 
 =head1 SYNOPSIS
 
     # Create new object, with specific header dictionary.
-    my $enter = new OMP::EnterData::DAS();
+    my $enter = OMP::EnterData::DAS->new();
 
     my $name = $enter->instrument_name();
 
@@ -33,7 +33,7 @@ It inherits from L<OMP::EnterData::ACSIS>.
 
 =head2 METHODS
 
-=over 2
+=over 4
 
 =cut
 
@@ -41,7 +41,7 @@ It inherits from L<OMP::EnterData::ACSIS>.
 
 Constructor, returns an I<OMP::EnterData::DAS> object.
 
-    $enter = new OMP::EnterData::DAS();
+    $enter = OMP::EnterData::DAS->new();
 
 Currently, no extra arguments are handled.
 
@@ -96,10 +96,9 @@ sub raw_basename_regex {
           }x;
 }
 
-
 1;
 
-=pod
+__END__
 
 =back
 

@@ -6,7 +6,7 @@ check_expiry - Update projects with defined expiration dates
 
 =head1 SYNOPSIS
 
-  check_expiry [--dry-run] --tel JCMT|UKIRT
+    check_expiry [--dry-run] --tel JCMT|UKIRT
 
 =head1 DESCRIPTION
 
@@ -39,8 +39,8 @@ use Pod::Usage;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -68,10 +68,10 @@ sub check_project_expiry {
     my $dt = DateTime->now(time_zone => 'UTC');
     my $semester = OMP::DateTools->determine_semester(date => $dt, tel => $tel);
 
-    my $db = new OMP::ProjDB(DB => OMP::DBServer->dbConnection());
+    my $db = OMP::ProjDB->new(DB => OMP::DBServer->dbConnection());
 
     # Check for expired projects.
-    foreach my $project ($db->listProjects(new OMP::ProjQuery(XML => '<ProjQuery>' .
+    foreach my $project ($db->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
                 '<telescope>' . $tel . '</telescope>'.
                 '<state>1</state>' .
                 '<expirydate><max>' . $dt->strftime('%F %T') . '</max></expirydate>' .
@@ -85,7 +85,7 @@ sub check_project_expiry {
 
 
     # Check for projects to advance to the current semester.
-    foreach my $project ($db->listProjects(new OMP::ProjQuery(XML => '<ProjQuery>' .
+    foreach my $project ($db->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
             '<telescope>' . $tel . '</telescope>'.
             '<not><semester>' . $semester . '</semester></not>'.
             '<state>1</state>' .

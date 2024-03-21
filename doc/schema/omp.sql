@@ -51,6 +51,7 @@ CREATE TABLE `ompfaultbody` (
   `text` longtext NOT NULL,
   `respnum` int(11) NOT NULL DEFAULT 0,
   `flag` int(11) NOT NULL DEFAULT 0,
+  `preformatted` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`respid`),
   KEY `idx_ompfaultbody_1` (`faultid`),
   FULLTEXT KEY `idx_ompfaultbody_text` (`text`)
@@ -67,6 +68,7 @@ CREATE TABLE `ompfeedback` (
   `text` longtext NOT NULL,
   `msgtype` int(11) DEFAULT NULL,
   `entrynum` bigint(20) DEFAULT NULL,
+  `preformatted` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`commid`),
   KEY `feedback_idx` (`projectid`),
   KEY `idx_date` (`date`)
@@ -304,6 +306,7 @@ CREATE TABLE `ompshiftlog` (
   `author` varchar(32) NOT NULL,
   `telescope` varchar(32) NOT NULL,
   `text` longtext NOT NULL,
+  `preformatted` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`shiftid`),
   FULLTEXT KEY `idx_ompshiftlog_text` (`text`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

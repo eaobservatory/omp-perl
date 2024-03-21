@@ -61,8 +61,8 @@ use Time::Piece;
 use Time::Seconds qw/ONE_DAY/;
 
 BEGIN {
-  use constant OMPLIB => "$FindBin::RealBin/../lib";
-  use lib OMPLIB;
+    use constant OMPLIB => "$FindBin::RealBin/../lib";
+    use lib OMPLIB;
 }
 
 use OMP::SchedDB;
@@ -124,7 +124,7 @@ foreach my $fields (@{Text::CSV::csv(in => $ARGV[0])}) {
 
     my $date_ut = Time::Piece->strptime("$year $month $day", '%Y %B %d') + ONE_DAY;
 
-    push @sched, new OMP::Info::Sched::Night(
+    push @sched, OMP::Info::Sched::Night->new(
         telescope => $tel,
         date => $date_ut,
         holiday => $holiday,
@@ -146,13 +146,13 @@ foreach my $day (@sched) {
 print "\nSemester(s): " . join(', ', sort {$a cmp $b} keys %semesters) . "\n\n";
 
 unless ($dry_run) {
-    my $term = new Term::ReadLine('ompscheduleimport');
+    my $term = Term::ReadLine->new('ompscheduleimport');
     my $confirm = $term->readline('Import schedule? [y/N] ');
 
     if ($confirm =~ /^[yY]/) {
         print "\nImporting...";
 
-        my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+        my $db = OMP::SchedDB->new(DB => OMP::DBbackend->new());
         $db->update_schedule(\@sched);
 
         print " [DONE]\n";
@@ -164,6 +164,7 @@ sub _str_or_undef {
     return undef if $value eq '';
     return $value;
 }
+
 __END__
 
 =head1 COPYRIGHT

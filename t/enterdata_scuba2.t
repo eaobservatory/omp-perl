@@ -8,7 +8,7 @@ use OMP::EnterData::SCUBA2;
 
 my $dict = './cfg/jcmt/data.dictionary';
 
-my $enter = new OMP::EnterData::SCUBA2(dict => $dict);
+my $enter = OMP::EnterData::SCUBA2->new(dict => $dict);
 
 isa_ok($enter, 'OMP::EnterData::SCUBA2');
 

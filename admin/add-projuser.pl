@@ -22,157 +22,141 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
-use Carp qw/ carp /;
+use Carp qw/carp/;
 
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::UserServer;
 
 #  Known user roles for a project.
-my @roles = map { uc $_ } qw/ coi pi support /;
+my @roles = map {uc $_} qw/coi pi support/;
 
-my $projdb = OMP::ProjDB->new( 'DB' => OMP::DBServer->dbConnection );
+my $projdb = OMP::ProjDB->new('DB' => OMP::DBServer->dbConnection);
 
-for my $file ( @ARGV ) {
+for my $file (@ARGV) {
+    my %file = process_file($file);
 
-  my %file = process_file( $file );
+    $projdb->_db_begin_trans;
+    my $err;
+    try {
+        #  Sort by line number.
+        for my $line (sort {$a <=> $b} keys %file) {
+            add_user($file{$line})
+                or warn "Due to errors, skipped line $line in file $file\n";
+        }
 
-  $projdb->_db_begin_trans;
-  my $err;
-  try {
-
-    #  Sort by line number.
-    for my $line ( sort { $a <=> $b } keys %file ) {
-
-      add_user( $file{ $line } )
-        or warn "Due to errors, skipped line $line in file $file\n";
+        $projdb->_db_commit_trans;
     }
+    catch OMP::Error with {
+        $err = shift;
+    };
 
-    $projdb->_db_commit_trans;
-  }
-  catch OMP::Error with {
-
-    $err = shift;
-  };
-
-  if ( $err ) {
-
-    warn qq/Rolling back changes due to error while processing file '$file':\n  $err/;
-    $projdb->_db_rollback_trans;
-  }
+    if ($err) {
+        warn "Rolling back changes due to error while processing file '$file':\n  $err";
+        $projdb->_db_rollback_trans;
+    }
 }
 
 sub add_user {
+    my ($proj, $input) = @_;
 
-  my ( $proj, $input ) = @_;
+    return unless verify_record($proj);
 
-  return unless verify_record( $proj );
+    my ($projid, $role) = @{$proj}{qw/projectid role/};
 
-  my ( $projid, $role ) = @{ $proj }{qw/ projectid role /};
+    printf "Adding %s as %s with project %s\n", $proj->{'userid'}, $role, $projid;
 
-  printf "Adding %s as %s with project %s\n", $proj->{'userid'}, $role, $projid;
+    $proj->{'capacity_order'} = 1 + $projdb->_get_max_role_order($projid, $role);
 
-  $proj->{'capacity_order'} =
-    1 + $projdb->_get_max_role_order( $projid, $role );
-
-  $projdb->_insert_project_user( %{ $proj } );
-  return 1;
+    $projdb->_insert_project_user(%{$proj});
+    return 1;
 }
 
 sub verify_record {
+    my ($proj) = @_;
 
-  my ( $proj ) = @_;
+    my $err = '';
+    unless (verify_role($proj->{'role'})) {
+        $err ++;
+        warn 'Unknown role ', $proj->{'role'}, "\n";
+    }
 
-  my $err = '';
-  unless ( verify_role( $proj->{'role'} ) ) {
+    unless (verify_user($proj->{'userid'})) {
+        $err ++;
+        warn 'Unknown user ', $proj->{'userid'}, "\n";
+    }
 
-    $err++;
-    warn 'Unknown role ', $proj->{'role'}, "\n";
-  }
+    unless (OMP::ProjServer->verifyProject($proj->{'projectid'})) {
+        $err ++;
+        warn 'Cannot verify project ', $proj->{'projectid'}, "\n";
+    }
 
-  unless ( verify_user( $proj->{'userid'} ) ) {
-
-    $err++;
-    warn 'Unknown user ', $proj->{'userid'}, "\n";
-  }
-
-  unless ( OMP::ProjServer->verifyProject( $proj->{'projectid'} ) ) {
-
-    $err++;
-    warn 'Cannot verify project ', $proj->{'projectid'}, "\n";
-  }
-
-  return ! $err;
+    return ! $err;
 }
 
-#  Return a truth value indicating if the given userid is known to OMP.
+# Return a truth value indicating if the given userid is known to OMP.
 sub verify_user {
+    my ($user) = @_;
 
-  my ( $user ) = @_;
+    my $ok;
+    try {
+        $ok = OMP::UserServer->verifyUser($user);
+    }
+    catch OMP::Error with {
+        my $err = shift;
+        carp "Error when verifying '$user' userid: $err";
+    };
 
-  my $ok;
-  try {
-     $ok =  OMP::UserServer->verifyUser( $user );
-  }
-  catch OMP::Error with {
-
-    my $err = shift;
-    carp "Error when verifying '$user' userid: $err";
-  };
-
-  return $ok;
+    return $ok;
 }
 
-#  Returns a truth value indicating if the given role is ok.
+# Returns a truth value indicating if the given role is ok.
 sub verify_role {
+    my ($role) = @_;
 
-  my ( $role ) = @_;
-
-  return unless $role;
-  return scalar grep { $role eq $_ } @roles;
+    return unless $role;
+    return scalar grep {$role eq $_} @roles;
 }
 
 sub process_file {
+    my ($file) = @_;
 
-  my ( $file ) = @_;
+    open my $fh, '<', $file or carp "Cannot open '$file' to read: $!";
 
-  open my $fh , '<', $file or carp "Cannot open '$file' to read: $!";
+    my %prop;
+    while (my $line = <$fh>) {
+        next if $line =~ /^\s*#/
+            or $line =~ /^\s*$/;
 
-  my %prop;
-  while ( my $line = <$fh> ) {
+        $prop{$.} = parse($line);
+    }
 
-    next if $line =~ /^\s*#/
-          or $line =~ /^\s*$/;
+    close $fh or die "Cannot close '$file': $!";
 
-    $prop{ $. } = parse( $line );
-  }
-
-  close $fh or die "Cannot close '$file': $!";
-
-  return %prop ;
+    return %prop;
 }
 
-#  Given a line (or, record) as described above, returns a hash reference of
-#  project id, user id, role, and contactable status.
+# Given a line (or, record) as described above, returns a hash reference of
+# project id, user id, role, and contactable status.
 sub parse {
+    my ($line) = @_;
 
-  my ( $line ) = @_;
+    my $sep = '\s*,\s*';
+    my ($proj, $user, $role, $contact) = map {
+        s/^\s+//; s/\s+$//;
+        uc $_;
+    } split /$sep/, $line, 4;
 
-  my $sep = '\s*,\s*';
-  my ( $proj, $user, $role, $contact ) =
-    map { s/^\s+//; s/\s+$//; uc $_ } split /$sep/, $line, 4;
-
-  #  Keys are same as expected by OMP::ProjDB->_insert_project_user().
-  return
-    { 'projectid' => $proj,
-      'userid' => $user,
-      'role' => $role,
-      'contactable' => $contact ? 1 : 0,
+    # Keys are same as expected by OMP::ProjDB->_insert_project_user().
+    return {
+        'projectid' => $proj,
+        'userid' => $user,
+        'role' => $role,
+        'contactable' => $contact ? 1 : 0,
     };
 }
-

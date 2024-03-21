@@ -98,6 +98,8 @@ else {
     write_moc_fits($combined, $filename);
 }
 
+__END__
+
 =head1 COPYRIGHT
 
 Copyright (C) 2023 East Asian Observatory

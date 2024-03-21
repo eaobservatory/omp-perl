@@ -1,23 +1,19 @@
 package OMP::Password;
 
-=pod
-
 =head1 NAME
 
-OMP::Password - Password related things.
+OMP::Password - Password related things
 
 =head1 SYNOPSIS
 
-  use OMP::Password;
-  use OMP::Error qw/ :try /;
-  use OMP::Constants qw /:status/;
+    use OMP::Password;
+    use OMP::Error qw/:try/;
+    use OMP::Constants qw /:status/;
 
-  #  Single try.
-  my $pass =
-    OMP::Password->get_password({
-      'prompt' => 'Enter password: '
+    #  Single try.
+    my $pass = OMP::Password->get_password({
+        'prompt' => 'Enter password: ',
     });
-
 
 =head1 DESCRIPTION
 
@@ -29,17 +25,15 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = qw/$REVISION$/[1];
+our $VERSION = '2.000';
 
 use Carp;
 use Term::ReadLine;
 
-use OMP::Error qw/ :try /;
-use OMP::Constants qw/ :status /;
+use OMP::Error qw/:try/;
+use OMP::Constants qw/:status/;
 use OMP::Config;
 use OMP::Auth;
-
-=pod
 
 =head1 METHODS
 
@@ -53,19 +47,22 @@ There are no instance methods, only class (static) methods.
 
 Attempt to get an OMP::Auth provider name, username and password.
 
-  my ($provider, $username, $password) = OMP::Password->get_userpass();
+    my ($provider, $username, $password) = OMP::Password->get_userpass();
 
 Currently assumes provider 'staff'.
 
 =cut
 
 sub get_userpass {
-  my $cls = shift;
-  my $provider = 'staff';
-  my $username = $cls->get_username();
-  my $password = $cls->get_password({
-    prompt => 'Please enter your password: '});
-  return $provider, $username, $password;
+    my $cls = shift;
+
+    my $provider = 'staff';
+    my $username = $cls->get_username();
+    my $password = $cls->get_password({
+        prompt => 'Please enter your password: ',
+    });
+
+    return $provider, $username, $password;
 }
 
 =item B<get_username>
@@ -76,19 +73,19 @@ or if it is a shared account, prompt for the username.
 =cut
 
 sub get_username {
-  my $cls = shift;
+    my $cls = shift;
 
-  my %shared = map {$_ => 1} OMP::Config->getData('shared-account');
+    my %shared = map {$_ => 1} OMP::Config->getData('shared-account');
 
-  if ((exists $ENV{'USER'})
-        and (defined $ENV{'USER'})
-        and (not $shared{$ENV{'USER'}})) {
-    return $ENV{'USER'};
-  }
+    if ((exists $ENV{'USER'})
+            and (defined $ENV{'USER'})
+            and (not $shared{$ENV{'USER'}})) {
+        return $ENV{'USER'};
+    }
 
-  my $term = Term::ReadLine->new('Username Entry', *STDERR, *STDERR);
+    my $term = Term::ReadLine->new('Username Entry', *STDERR, *STDERR);
 
-  return $term->readline('Please enter your username: ');
+    return $term->readline('Please enter your username: ');
 }
 
 =item B<get_password>
@@ -117,44 +114,40 @@ Default is "Incorrect password, enter again: ".
 
 =back
 
-=back
-
 =cut
 
 sub get_password {
+    my ($self, $opt) = @_;
 
-  my ( $self, $opt ) = @_;
+    my $config = _default_password_prompt();
+    _copy_new_hash_values($config, $opt);
 
-  my $config = _default_password_prompt();
-  _copy_new_hash_values( $config, $opt );
+    my $term = Term::ReadLine->new('Password Entry', *STDERR, *STDERR);
 
-  my $term = Term::ReadLine->new( 'Password Entry', *STDERR, *STDERR );
+    # Needs Term::ReadLine::Gnu.
+    my $attribs = $term->Attribs;
+    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+    my $password = $term->readline($config->{'prompt'});
+    $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
-  # Needs Term::ReadLine::Gnu.
-  my $attribs = $term->Attribs;
-  $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-  my $password = $term->readline( $config->{'prompt'} );
-  $attribs->{redisplay_function} = $attribs->{rl_redisplay};
-
-  return $password;
+    return $password;
 }
 
 sub _default_password_prompt {
-
-  return {
-    'prompt' => q/Enter password: /,
-    'err-prompt' => q/Incorrect password, enter again: /,
-  };
+    return {
+        'prompt' => 'Enter password: ',
+        'err-prompt' => 'Incorrect password, enter again: ',
+    };
 }
 
 sub _copy_new_hash_values {
+    my ($orig, $opt) = @_;
 
-  my ( $orig, $opt ) = @_;
-  for my $k ( keys %{ $orig } ) {
+    for my $k (keys %{$orig}) {
+        $orig->{$k} = $opt->{$k} if exists $opt->{$k};
+    }
 
-    $orig->{ $k } = $opt->{ $k } if exists $opt->{ $k };
-  }
-  return;
+    return;
 }
 
 =item B<get_verified_auth>
@@ -163,31 +156,37 @@ Prompt the user for their username (if necessary) and password
 using C<get_userpass> and then log in with C<log_in_userpass>
 and check the resultant C<OMP::Auth> for the specified type.
 
-  my $auth = OMP::Password->get_verified_auth('staff');
+    my $auth = OMP::Password->get_verified_auth('staff');
 
 =cut
 
 sub get_verified_auth {
-  my $cls = shift;
-  my $auth_type = shift;
+    my $cls = shift;
+    my $auth_type = shift;
 
-  croak 'No auth_type specified' unless defined $auth_type;
+    croak 'No auth_type specified' unless defined $auth_type;
 
-  my $auth = OMP::Auth->log_in_userpass($cls->get_userpass);
+    my $auth = OMP::Auth->log_in_userpass($cls->get_userpass);
 
-  throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
-    unless defined $auth->user;
+    throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
+        unless defined $auth->user;
 
-  if ($auth_type eq 'staff') {
-    throw OMP::Error::Authentication('Permission denied.')
-      unless $auth->is_staff;
-  }
-  else {
-      croak 'Unrecognized auth_type value';
-  }
+    if ($auth_type eq 'staff') {
+        throw OMP::Error::Authentication('Permission denied.')
+            unless $auth->is_staff;
+    }
+    else {
+        croak 'Unrecognized auth_type value';
+    }
 
-  return $auth;
+    return $auth;
 }
+
+1;
+
+__END__
+
+=back
 
 =head1 AUTHORS
 
@@ -216,5 +215,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

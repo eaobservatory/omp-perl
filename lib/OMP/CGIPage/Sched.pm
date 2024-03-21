@@ -6,7 +6,7 @@ OMP::CGIPage::Sched - Display of complete schedule web pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::Sched;
+    use OMP::CGIPage::Sched;
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,6 @@ use Time::Seconds qw/ONE_DAY ONE_HOUR/;
 
 use OMP::Error qw/:try/;
 use OMP::DateTools;
-use OMP::DBbackend;
 use OMP::NetTools;
 use OMP::SchedDB;
 use OMP::Info::Sched::Night;
@@ -85,7 +84,7 @@ sub _sched_view {
         }
     }
 
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+    my $db = OMP::SchedDB->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
@@ -140,7 +139,7 @@ sub sched_edit {
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
 
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+    my $db = OMP::SchedDB->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
 
@@ -167,7 +166,7 @@ sub sched_edit {
             for my $slot_option (@{$day->slots_full()}) {
                 my $slot_queue = _str_or_undef(scalar $q->param(
                     'queue_' . $date_str . $slot_option->{'time'}->strftime('_%H-%M-%S')));
-                push @slots, new OMP::Info::Sched::Slot(
+                push @slots, OMP::Info::Sched::Slot->new(
                     telescope => $tel,
                     date => $day->date(),
                     time => $slot_option->{'time'},
@@ -199,7 +198,7 @@ sub sched_view_queue_stats {
     my $self = shift;
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+    my $db = OMP::SchedDB->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
@@ -256,7 +255,7 @@ sub sched_cal_list {
     my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+    my $db = OMP::SchedDB->new(DB => $self->database);
 
     my $cal_list = $db->list_schedule_calendars(tel => $tel);
 
@@ -276,7 +275,7 @@ sub sched_cal_view {
     my $token = $self->decoded_url_param('token')
         or die 'Access token not specified';
 
-    my $db = new OMP::SchedDB(DB => new OMP::DBbackend());
+    my $db = OMP::SchedDB->new(DB => $self->database);
 
     my $cal_info = $db->get_schedule_calendar($token);
 
@@ -334,7 +333,7 @@ sub _create_calendar {
 
     my (undef, $localhost, undef) = OMP::NetTools->determine_host(1);
 
-    my $cal = new Data::ICal(
+    my $cal = Data::ICal->new(
         calname => (sprintf 'JCMT Calendar - %s', $queryname),
         rfc_strict => 1,
     );
@@ -367,7 +366,7 @@ sub _create_calendar {
 
         if ($include_holiday) {
             if ($night->holiday) {
-                my $event = new Data::ICal::Entry::Event();
+                my $event = Data::ICal::Entry::Event->new();
 
                 $event->add_properties(
                     created => $now,
@@ -426,7 +425,7 @@ sub _create_calendar {
         }
         my $desc = join "\n", @desc;
 
-        my $event = new Data::ICal::Entry::Event();
+        my $event = Data::ICal::Entry::Event->new();
 
         $event->add_properties(
             created => $now,
@@ -477,5 +476,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

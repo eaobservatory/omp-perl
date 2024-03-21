@@ -2,7 +2,7 @@ package OMP::Error;
 
 =head1 NAME
 
-OMP::Error - Exception handling in an object orientated manner.
+OMP::Error - Exception handling in an object orientated manner
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ OMP::Error - Exception handling in an object orientated manner.
 
     # try and catch blocks
     try {
-       stuff();
+        stuff();
     }
     catch OMP::Error::FatalError with
     {
@@ -113,10 +113,10 @@ initialized with the arguments that are passed to it's
 constructor. The elements that are used by, or are retrievable by the
 C<OMP::Error> class are listed below, other classes may add to these.
 
-        -file
-        -line
-        -text
-        -value
+    -file
+    -line
+    -text
+    -value
 
 If C<-file> or C<-line> are not specified in the constructor arguments
 then these will be initialized with the file name and line number
@@ -127,7 +127,7 @@ the last error associated with a package.
 
 =over 4
 
-=item throw ( [ ARGS ] )
+=item throw([ARGS])
 
 Create a new C<OMP::Error> object and throw an error, which will be
 caught by a surrounding C<try> block, if there is one. Otherwise it
@@ -135,19 +135,19 @@ will cause the program to exit.
 
 C<throw> may also be called on an existing error to re-throw it.
 
-=item with ( [ ARGS ] )
+=item with([ARGS])
 
 Create a new C<OMP::Error> object and returns it. This is defined for
 syntactic sugar, eg
 
-    die with OMP::Error::FatalError ( $message, OMP__FATAL );
+    die with OMP::Error::FatalError($message, OMP__FATAL);
 
-=item record ( [ ARGS ] )
+=item record([ARGS])
 
 Create a new C<OMP::Error> object and returns it. This is defined for
 syntactic sugar, eg
 
-    record OMP::Error::AuthenticationFail ( $message, OMP__ABORT )
+    record OMP::Error::AuthenticationFail($message, OMP__ABORT)
         and return;
 
 =back
@@ -156,13 +156,12 @@ syntactic sugar, eg
 
 =over 4
 
-=item prior ( [ PACKAGE ] )
+=item prior([PACKAGE])
 
 Return the last error created, or the last error associated with
 C<PACKAGE>
 
     my $Error = OMP::Error->prior;
-
 
 =back
 
@@ -320,8 +319,6 @@ Error occurred during translation.
 
 The specified project is not known to the OMP.
 
-
-
 =back
 
 =head1 KNOWN PROBLEMS
@@ -358,7 +355,6 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
 
 use Error;
@@ -368,97 +364,96 @@ use strict;
 our $VERSION = '2.000';
 
 # flush method added to the base class
-use base qw/ Error::Simple /;
+use base qw/Error::Simple/;
 
 package OMP::Error::Authentication;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::BadArgs;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::BadCfgKey;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::CacheFailure;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DataRead;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DBConnection;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DBError;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DBLocked;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DBMalformedQuery;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::DirectoryNotFound;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::FatalError;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::FileNotFound;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::FileUseless;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::InvalidUser;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MSBBadConstraint;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MSBMalformedQuery;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MSBMissing;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MSBMissingObserve;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MSBMissingTID;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::ObsRead;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::ProjectExists;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpBadStructure;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpChangedOnDisk;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpEmpty;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpRetrieveFail;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpStoreFail;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::SpTruncated;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::TranslateFail;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::UnknownProject;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 package OMP::Error::MailError;
-use base qw/ OMP::Error /;
+use base qw/OMP::Error/;
 
 1;
-

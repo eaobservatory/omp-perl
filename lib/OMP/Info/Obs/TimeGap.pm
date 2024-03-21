@@ -6,13 +6,13 @@ OMP::Info::Obs::TimeGap - Observation sequence timegap information
 
 =head1 SYNOPSIS
 
-use OMP::Info::Obs::TimeGap;
+    use OMP::Info::Obs::TimeGap;
 
-$timegap = new OMP::Info::Obs::TimeGap( %hash );
+    $timegap = OMP::Info::Obs::TimeGap->new(%hash);
 
-@comments = $timegap->comments;
+    @comments = $timegap->comments;
 
-%nightlog = $timegap->nightlog;
+    %nightlog = $timegap->nightlog;
 
 =head1 DESCRIPTION
 
@@ -29,12 +29,8 @@ use strict;
 use Carp;
 
 use OMP::Constants;
-use Text::Wrap;
 
-use base qw/ OMP::Info::Obs /;
-
-# Text wrap column size.
-$Text::Wrap::columns = 72;
+use base qw/OMP::Info::Obs/;
 
 our $VERSION = '2.000';
 
@@ -48,7 +44,7 @@ our $VERSION = '2.000';
 
 Retrieve the project ID.
 
-  $id = $timegap->projectid;
+    $id = $timegap->projectid;
 
 The project ID for C<OMP::Info::Obs::TimeGap> objects will always
 be TIMEGAP.
@@ -56,43 +52,44 @@ be TIMEGAP.
 =cut
 
 sub projectid {
-  return 'TIMEGAP';
+    return 'TIMEGAP';
 }
 
 =item B<status>
 
 Retrieve or store the status of the timegap.
 
-  $status = $timegap->status;
-  $timegap->status( $status );
+    $status = $timegap->status;
+    $timegap->status($status);
 
-See C<Obs::Constants> for the valid statuses. I
+See C<Obs::Constants> for the valid statuses.
 
 =cut
 
 sub status {
-  my $self = shift;
-  if( @_ ) {
-    my $status = shift;
-    $self->{status} = $status;
+    my $self = shift;
+    if (@_) {
+        my $status = shift;
+        $self->{status} = $status;
 
-    my @comments = $self->comments;
-    if( defined( $comments[0] ) ) {
-      $comments[0]->status( $status );
-      $self->comments( \@comments );
+        my @comments = $self->comments;
+        if (defined($comments[0])) {
+            $comments[0]->status($status);
+            $self->comments(\@comments);
+        }
     }
-  }
 
-  if( !exists( $self->{status} ) ) {
-    my @comments = $self->comments;
-    if( defined( $comments[0] ) ) {
-      $self->{status} = $comments[$#comments]->status;
-    } else {
-      $self->{status} = OMP__TIMEGAP_UNKNOWN;
+    if (! exists($self->{status})) {
+        my @comments = $self->comments;
+        if (defined($comments[0])) {
+            $self->{status} = $comments[$#comments]->status;
+        }
+        else {
+            $self->{status} = OMP__TIMEGAP_UNKNOWN;
+        }
     }
-  }
 
-  return $self->{status};
+    return $self->{status};
 }
 
 =back
@@ -106,7 +103,7 @@ sub status {
 Returns a hash containing two strings used to summarize an
 C<Obs::TimeGap> object.
 
-  %nightlog = $timegap->nightlog;
+    %nightlog = $timegap->nightlog;
 
 The hash contains {_STRING => string} and {_STRING_LONG} key-value
 pairs that give a summary of the time gap, including any comments
@@ -115,121 +112,144 @@ that may be associated with that time gap.
 =cut
 
 sub nightlog {
-  my $self = shift;
+    my $self = shift;
 
-  my %return;
+    my %return;
 
-  $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'UT'} = defined($self->startobs) ? $self->startobs->hms : '';
 
-  $return{'_STRING'} = $return{'_STRING_LONG'} = "Time gap: ";
+    $return{'_STRING'} = $return{'_STRING_LONG'} = "Time gap: ";
 
-  if( $self->status == OMP__TIMEGAP_INSTRUMENT ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "INSTRUMENT";
-  } elsif( $self->status == OMP__TIMEGAP_WEATHER ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "WEATHER";
-  } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "FAULT";
-  } elsif( $self->status == OMP__TIMEGAP_NEXT_PROJECT ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "NEXT PROJECT";
-  } elsif( $self->status == OMP__TIMEGAP_PREV_PROJECT ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "LAST PROJECT";
-  } elsif( $self->status == OMP__TIMEGAP_NOT_DRIVER ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "OBSERVER NOT A DRIVER";
-  } elsif( $self->status == OMP__TIMEGAP_SCHEDULED ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "SCHEDULED DOWNTIME";
-  } elsif( $self->status == OMP__TIMEGAP_QUEUE_OVERHEAD ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "QUEUE OVERHEAD";
-  } elsif( $self->status == OMP__TIMEGAP_LOGISTICS ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "LOGISTICS";
-  } else {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
-  }
-
-  my $length = $self->endobs - $self->startobs + 1;
-  $return{'_STRING'} = $return{'_STRING_LONG'} .= sprintf("  Length: %s", $length->pretty_print);
-
-  foreach my $comment ($self->comments) {
-    if(defined($comment)) {
-      if( exists( $return{'_STRING'} ) ) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %s: %-50s",
-                                      $comment->date->ymd . ' ' . $comment->date->hms,
-                                      $comment->author->name,
-                                      $comment->text
-                                     );
-      }
-      if( exists( $return{'_STRING_LONG'} ) ) {
-        $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %s: %-50s",
-                                           $comment->date->ymd . ' ' . $comment->date->hms,
-                                           $comment->author->name,
-                                           $comment->text
-                                          );
-      }
+    if ($self->status == OMP__TIMEGAP_INSTRUMENT) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "INSTRUMENT";
     }
-  }
+    elsif ($self->status == OMP__TIMEGAP_WEATHER) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "WEATHER";
+    }
+    elsif ($self->status == OMP__TIMEGAP_FAULT) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "FAULT";
+    }
+    elsif ($self->status == OMP__TIMEGAP_NEXT_PROJECT) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "NEXT PROJECT";
+    }
+    elsif ($self->status == OMP__TIMEGAP_PREV_PROJECT) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "LAST PROJECT";
+    }
+    elsif ($self->status == OMP__TIMEGAP_NOT_DRIVER) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "OBSERVER NOT A DRIVER";
+    }
+    elsif ($self->status == OMP__TIMEGAP_SCHEDULED) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "SCHEDULED DOWNTIME";
+    }
+    elsif ($self->status == OMP__TIMEGAP_QUEUE_OVERHEAD) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "QUEUE OVERHEAD";
+    }
+    elsif ($self->status == OMP__TIMEGAP_LOGISTICS) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "LOGISTICS";
+    }
+    else {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
+    }
 
-  return %return;
+    my $length = $self->endobs - $self->startobs + 1;
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= sprintf("  Length: %s", $length->pretty_print);
 
+    foreach my $comment ($self->comments) {
+        if (defined $comment) {
+            if (exists $return{'_STRING'}) {
+                $return{'_STRING'} .= sprintf "\n %19s UT / %s: %-50s",
+                    $comment->date->ymd . ' ' . $comment->date->hms,
+                    $comment->author->name,
+                    $comment->text;
+            }
+            if (exists $return{'_STRING_LONG'}) {
+                $return{'_STRING_LONG'} .= sprintf "\n %19s UT / %s: %-50s",
+                    $comment->date->ymd . ' ' . $comment->date->hms,
+                    $comment->author->name,
+                    $comment->text;
+            }
+        }
+    }
+
+    return %return;
 }
 
 =item B<summary>
 
 Summarize the object in a variety of formats.
 
-  $summary = $timegap->summary( '80col' );
+    $summary = $timegap->summary('80col');
 
 Allowed formats are:
 
-  '72col' - 72-column summary, with comments.
+=over 4
+
+=item 72col
+
+72-column summary, with comments.
+
+=back
 
 =cut
 
 sub summary {
-  my $self = shift;
+    my $self = shift;
 
-  my $format = lc(shift);
+    my $format = lc shift;
 
-  if( ( $format eq '72col' ) or ( $format eq 'text' ) ) {
-    my $obssum = "Time gap: ";
+    if (($format eq '72col') or ($format eq 'text')) {
+        my $obssum = "Time gap: ";
 
-    if( $self->status == OMP__TIMEGAP_INSTRUMENT ) {
-      $obssum .= "INSTRUMENT";
-    } elsif( $self->status == OMP__TIMEGAP_WEATHER ) {
-      $obssum .= "WEATHER";
-    } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
-      $obssum .= "FAULT";
-    } elsif( $self->status == OMP__TIMEGAP_NEXT_PROJECT ) {
-      $obssum .= "NEXT PROJECT";
-    } elsif( $self->status == OMP__TIMEGAP_PREV_PROJECT ) {
-      $obssum .= "LAST PROJECT";
-    } else {
-      $obssum .= "UNKNOWN";
+        if ($self->status == OMP__TIMEGAP_INSTRUMENT) {
+            $obssum .= "INSTRUMENT";
+        }
+        elsif ($self->status == OMP__TIMEGAP_WEATHER) {
+            $obssum .= "WEATHER";
+        }
+        elsif ($self->status == OMP__TIMEGAP_FAULT) {
+            $obssum .= "FAULT";
+        }
+        elsif ($self->status == OMP__TIMEGAP_NEXT_PROJECT) {
+            $obssum .= "NEXT PROJECT";
+        }
+        elsif ($self->status == OMP__TIMEGAP_PREV_PROJECT) {
+            $obssum .= "LAST PROJECT";
+        }
+        else {
+            $obssum .= "UNKNOWN";
+        }
+
+        my $length = $self->endobs - $self->startobs;
+        $obssum .= sprintf "  Length: %s\n", $length->pretty_print;
+
+        my $commentsum;
+        foreach my $comment ($self->comments) {
+            if (defined($comment)) {
+                my $tc = sprintf "%19s UT / %s: %s\n",
+                    $comment->date->ymd . " " . $comment->date->hms,
+                    $comment->author->name, $comment->text;
+
+                $commentsum .= OMP::Display->wrap_text($tc, 72, 1);
+            }
+        }
+        if (wantarray) {
+            return ($obssum, $commentsum);
+        }
+        else {
+            return $obssum . $commentsum;
+        }
     }
-
-    my $length = $self->endobs - $self->startobs;
-    $obssum .= sprintf("  Length: %s\n", $length->pretty_print);
-
-    my $commentsum;
-    foreach my $comment ( $self->comments ) {
-      if(defined($comment)) {
-        my $tc = sprintf("%19s UT / %s: %s\n", $comment->date->ymd . " " . $comment->date->hms, $comment->author->name, $comment->text);
-        $commentsum .= wrap(' ',' ',$tc)
-      }
+    else {
+        throw OMP::Error::BadArgs(
+            "Format $format not yet implemented for Info::Obs::TimeGap objects");
     }
-    if (wantarray) {
-      return ($obssum, $commentsum);
-    } else {
-      return $obssum . $commentsum;
-    }
-  } else {
-    throw OMP::Error::BadArgs("Format $format not yet implemented for Info::Obs::TimeGap objects");
-  }
 }
 
 =item B<uniqueid>
 
 Returns a unique ID for the object.
 
-  $id = $object->uniqueid;
+    $id = $object->uniqueid;
 
 This method is subclassed for the C<OMP::Info::Obs::TimeGap> class because
 TimeGap dates are stored in the database using (endobs - 1), versus
@@ -238,16 +258,25 @@ startobs for regular C<OMP::Info::Obs> objects.
 =cut
 
 sub uniqueid {
-  my $self = shift;
+    my $self = shift;
 
-  return if ( ! defined( $self->runnr ) ||
-              ! defined( $self->instrument ) ||
-              ! defined( $self->telescope ) ||
-              ! defined( $self->endobs ) );
+    return if ! defined($self->runnr)
+        || ! defined($self->instrument)
+        || ! defined($self->telescope)
+        || ! defined($self->endobs);
 
-  return $self->runnr . $self->instrument . $self->telescope . $self->endobs->ymd . sprintf("%02d",$self->endobs->hour) . ":" . sprintf("%02d",$self->endobs->minute) . ":" . sprintf("%02d", ( $self->endobs->second - 1 ));
+    return $self->runnr
+        . $self->instrument
+        . $self->telescope
+        . $self->endobs->ymd
+        . sprintf('%02d', $self->endobs->hour) . ':'
+        . sprintf('%02d', $self->endobs->minute) . ':'
+        . sprintf('%02d', ($self->endobs->second - 1));
 }
 
+1;
+
+__END__
 
 =back
 
@@ -265,5 +294,3 @@ Copyright (C) 2002 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
-
-1;

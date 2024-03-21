@@ -6,15 +6,15 @@ OMP::Project::TimeAcct - Time spent observing a project for a given UT date
 
 =head1 SYNOPSIS
 
-  use OMP::Project::TimeAcct;
+    use OMP::Project::TimeAcct;
 
-  $t = new OMP::Project::TimeAcct(
-                         projectid => 'm02bu104',
-                         date    => OMP::DateTools->parse_date('2002-08-15'),
-                         timespent => new Time::Seconds(3600),
-                         confirmed => 1,
-                         shifttype => 'NIGHT',
-                         remote => 0 );
+    $t = OMP::Project::TimeAcct->new(
+        projectid => 'm02bu104',
+        date => OMP::DateTools->parse_date('2002-08-15'),
+        timespent => Time::Seconds->new(3600),
+        confirmed => 1,
+        shifttype => 'NIGHT',
+        remote => 0);
 
 =head1 DESCRIPTION
 
@@ -27,12 +27,24 @@ people to view their project history in more detail).
 The project ID does not necessarily have to match a valid OMP project
 ID. Special exceptions to this rule for time allocation purposes are:
 
-   FAULT    - time lost in a night to faults
-   WEATHER  - time lost to bad weather [ie no observing possible]
-   OTHER    - time spent doing other things. If observations are carried
-              out outside of the OMP then this could simply be time
-              spent doing other observations or it could be genuine
-              overhead.
+=over 4
+
+=item FAULT
+
+Time lost in a night to faults.
+
+=item WEATHER
+
+Time lost to bad weather [ie no observing possible].
+
+=item OTHER
+
+Time spent doing other things. If observations are carried
+out outside of the OMP then this could simply be time
+spent doing other observations or it could be genuine
+overhead.
+
+=back
 
 Time spent doing EXTENDED observing should be associated with
 a real science project if possible even if it is not charged to the
@@ -63,41 +75,42 @@ be used to prepopulate the object. The key names must match the names
 of the accessor methods (ignoring case). If they do not match they are
 ignored (for now).
 
-  $t = new OMP::Project::TimeAcct( %args );
+    $t = OMP::Project::TimeAcct->new(%args);
 
 Arguments are optional.
 
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  my $t = bless {
-                 Date => undef,
-                 TimeSpent => undef,
-                 ProjectID => undef,
-                 Confirmed => 0,
-                 ShiftType => undef,
-                 Remote => undef,
-                 Comment => undef,
-                }, $class;
+    my $t = bless {
+        Date => undef,
+        TimeSpent => undef,
+        ProjectID => undef,
+        Confirmed => 0,
+        ShiftType => undef,
+        Remote => undef,
+        Comment => undef,
+    }, $class;
 
-  # Deal with arguments
-  if (@_) {
-    my %args = @_;
+    # Deal with arguments
+    if (@_) {
+        my %args = @_;
 
-    # rather than populate hash directly use the accessor methods
-    # allow for upper cased variants of keys
-    for my $key (keys %args) {
-      my $method = lc($key);
-      if ($t->can($method)) {
-        $t->$method( $args{$key} );
-      }
+        # rather than populate hash directly use the accessor methods
+        # allow for upper cased variants of keys
+        for my $key (keys %args) {
+            my $method = lc($key);
+            if ($t->can($method)) {
+                $t->$method($args{$key});
+            }
+        }
+
     }
 
-  }
-  return $t;
+    return $t;
 }
 
 =back
@@ -120,14 +133,14 @@ offsets for queries]
 =cut
 
 sub date {
-  my $self = shift;
-  if (@_) {
-    my $date = shift;
-    croak "Date must be supplied as Time::Piece object"
-      if (defined $date && ! UNIVERSAL::isa( $date, "Time::Piece" ));
-    $self->{Date} = $date;
-  }
-  return $self->{Date};
+    my $self = shift;
+    if (@_) {
+        my $date = shift;
+        croak "Date must be supplied as Time::Piece object"
+            if defined $date && !UNIVERSAL::isa($date, "Time::Piece");
+        $self->{Date} = $date;
+    }
+    return $self->{Date};
 }
 
 =item B<timespent>
@@ -135,21 +148,21 @@ sub date {
 Time spent observing this project on the specified UT date.
 The time is represented by a a Time::Seconds object.
 
- $time = $t->timespent;
- $t->timespent( new Time::Seconds(7200));
+    $time = $t->timespent;
+    $t->timespent(Time::Seconds->new(7200));
 
 =cut
 
 sub timespent {
-  my $self = shift;
-  if (@_) {
-    # if we have a Time::Seconds object just store it. Else create one.
-    my $time = shift;
-    $time = new Time::Seconds( $time )
-      unless UNIVERSAL::isa($time, "Time::Seconds");
-    $self->{TimeSpent} = $time;
-  }
-  return $self->{TimeSpent};
+    my $self = shift;
+    if (@_) {
+        # if we have a Time::Seconds object just store it. Else create one.
+        my $time = shift;
+        $time = Time::Seconds->new($time)
+            unless UNIVERSAL::isa($time, "Time::Seconds");
+        $self->{TimeSpent} = $time;
+    }
+    return $self->{TimeSpent};
 }
 
 =item B<projectid>
@@ -162,12 +175,12 @@ OTHER or EXTENDED.
 =cut
 
 sub projectid {
-  my $self = shift;
-  if (@_) {
-    # no verification yet
-    $self->{ProjectID} = uc(shift);
-  }
-  return $self->{ProjectID};
+    my $self = shift;
+    if (@_) {
+        # no verification yet
+        $self->{ProjectID} = uc(shift);
+    }
+    return $self->{ProjectID};
 }
 
 =item B<confirmed>
@@ -175,63 +188,65 @@ sub projectid {
 Boolean indicating whether the time spent has been officially
 confirmed or whether it is still treated as provisional.
 
-  $confirmed = $t->confirmed();
-  $t->confirmed(1);
+    $confirmed = $t->confirmed();
+    $t->confirmed(1);
 
 Defaults to provisional.
 
 =cut
 
 sub confirmed {
-  my $self = shift;
-  if (@_) {
-    # no verification yet
-    $self->{Confirmed} = shift;
-  }
-  return $self->{Confirmed};
+    my $self = shift;
+    if (@_) {
+        # no verification yet
+        $self->{Confirmed} = shift;
+    }
+    return $self->{Confirmed};
 }
 
 =item B<shifttype>
 
 String indicating the type of shift (e.g. NIGHT, DAY, EO).
 
-  $shifttype = $t->shifttype();
-  $t->shifttype("DAY");
+    $shifttype = $t->shifttype();
+    $t->shifttype("DAY");
 
 Defaults to undef.
 
 =cut
 
 sub shifttype {
-  my $self = shift;
-  if (@_) {
-      my $shifttype = shift;
-      if (! defined $shifttype || $shifttype eq '') {
-          $shifttype = 'UNKNOWN';
-      }
-      $self->{ShiftType} = $shifttype; }
-  return $self->{ShiftType};
+    my $self = shift;
+    if (@_) {
+        my $shifttype = shift;
+        if (! defined $shifttype || $shifttype eq '') {
+            $shifttype = 'UNKNOWN';
+        }
+        $self->{ShiftType} = $shifttype;
+    }
+    return $self->{ShiftType};
 }
+
 =item B<comment>
 
 Optional string commenting on the time accounting value.
 
 Expected to be used when the saved value differs from the autogenerated vaue.
 
-  $comment = $t->comment();
-  $t->comment("Half time charged due to bad weather (OMPID)");
+    $comment = $t->comment();
+    $t->comment("Half time charged due to bad weather (OMPID)");
 
 Defaults to undef.
 
 =cut
 
 sub comment {
-  my $self = shift;
-  if (@_) {
-      my $comment = shift;
-      $self->{Comment} = $comment;
-      }
-  return $self->{Comment};
+    my $self = shift;
+    if (@_) {
+        my $comment = shift;
+        $self->{Comment} = $comment;
+    }
+    return $self->{Comment};
 }
 
 
@@ -239,20 +254,20 @@ sub comment {
 
 Integer indicating if shift was  remote (1) or non-remote (0)
 
-  $remote = $t->remote();
-  $t->remote(0);
+    $remote = $t->remote();
+    $t->remote(0);
 
 Defaults to undef.
 
 =cut
 
 sub remote {
-  my $self = shift;
-  if (@_) {
-    # no verification yet
-    $self->{Remote} = shift;
-  }
-  return $self->{Remote};
+    my $self = shift;
+    if (@_) {
+        # no verification yet
+        $self->{Remote} = shift;
+    }
+    return $self->{Remote};
 }
 
 =back
@@ -265,7 +280,7 @@ sub remote {
 
 Increment the time spent by the specified amount.
 
-  $t->incTime( 55.0 );
+    $t->incTime(55.0);
 
 Units are in seconds. The time can be specified as either
 a straight number, a Time::Seconds object I<or> a
@@ -274,36 +289,39 @@ C<OMP::Project::TimeAcct> object.
 =cut
 
 sub incTime {
-  my $self = shift;
-  my $inc = shift;
+    my $self = shift;
+    my $inc = shift;
 
-  # try to work out what we have as input
-  my $time;
-  if (not ref($inc)) {
-    $time = $inc;
-  } elsif (UNIVERSAL::isa($inc,"Time::Seconds")) {
-    $time = $inc->seconds;
-  } elsif (UNIVERSAL::isa($inc,"OMP::Project::TimeAcct")) {
-    $time = $inc->timespent;
-  } else {
-    # hope that it numifies
-    $time = $inc + 0;
-  }
+    # try to work out what we have as input
+    my $time;
+    if (not ref($inc)) {
+        $time = $inc;
+    }
+    elsif (UNIVERSAL::isa($inc, "Time::Seconds")) {
+        $time = $inc->seconds;
+    }
+    elsif (UNIVERSAL::isa($inc, "OMP::Project::TimeAcct")) {
+        $time = $inc->timespent;
+    }
+    else {
+        # hope that it numifies
+        $time = $inc + 0;
+    }
 
-  my $cur = $self->timespent;
-  $cur = 0 unless defined $cur;
-  #print "************************CUR IS $cur\n";
-  $cur += $time;
-  #print "INCTIME: Inc is $inc and CUR is now $cur and time is $time\n";
-  $self->timespent( $cur );
-  return;
+    my $cur = $self->timespent;
+    $cur = 0 unless defined $cur;
+    #print "************************CUR IS $cur\n";
+    $cur += $time;
+    #print "INCTIME: Inc is $inc and CUR is now $cur and time is $time\n";
+    $self->timespent($cur);
+    return;
 }
 
 =item B<isEqual>
 
 Compare two C<OMP::Project::TimeAcct> objects for equality.
 
-  $t->isEqual($acct1, $acct2);
+    $t->isEqual($acct1, $acct2);
 
 This method is invoked by a comparison overload.  Returns
 true if the objects are determined to be equal.
@@ -311,18 +329,21 @@ true if the objects are determined to be equal.
 =cut
 
 sub isEqual {
-  my $acct_a = shift;
-  my $acct_b = shift;
+    my $acct_a = shift;
+    my $acct_b = shift;
 
-  if ($acct_a->projectid ne $acct_b->projectid) {
-    return 0;
-  } elsif ($acct_a->date->epoch != $acct_b->date->epoch) {
-    return 0;
-  } elsif ($acct_a->timespent->seconds != $acct_b->timespent->seconds) {
-    return 0;
-  } else {
-    return 1;
-  }
+    if ($acct_a->projectid ne $acct_b->projectid) {
+        return 0;
+    }
+    elsif ($acct_a->date->epoch != $acct_b->date->epoch) {
+        return 0;
+    }
+    elsif ($acct_a->timespent->seconds != $acct_b->timespent->seconds) {
+        return 0;
+    }
+    else {
+        return 1;
+    }
 }
 
 =back
@@ -336,33 +357,49 @@ sub isEqual {
 Given an array of C<OMP::Project::TimeAcct> objects, summarize their
 contents.
 
-  %summary = OMP::Project::TimeAcct->summarizeTimeAcct( $format, @acct );
+    %summary = OMP::Project::TimeAcct->summarizeTimeAcct($format, @acct);
 
 where C<$format> controls the contents of the hash returned
 to the user. Valid formats are:
 
-  'all' - return a hash with keys "total", "confirmed", "pending"
-          regardless of the mix of projects or dates
+=over 4
 
-  'bydate' - hash includes primary keys of UT date (YYYY-MM-DD)
-             where each sub-hash contains keys as for "all"
+=item all
 
-  'byproject' - hash includes primary keys of project ID where
-                where each sub-hash contains keys as for "all"
+Return a hash with keys "total", "confirmed", "pending"
+regardless of the mix of projects or dates.
 
-  'byprojdate' - hash includes primary keys of project and each
-                 project hash contains keys of UT date. The corresponding
-                 sub-hash contains keys as for "all".
+=item bydate
 
-  'byshftprj' - hash includes primary keys of $shifttype", and each
-                sub-hash contains keys of project. Their sub-hashes
-                have keys of UT date, and theirs have keys as for
-                "all"
+Hash includes primary keys of UT date (YYYY-MM-DD)
+where each sub-hash contains keys as for "all".
 
-  'byshftremprj' - hash includes primary keys made by combining
-                  ShiftType and Remote stauts, and each sub-hash
-                  contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
-                  as for "all"
+=item byproject
+
+Hash includes primary keys of project ID where
+where each sub-hash contains keys as for "all".
+
+=item byprojdate
+
+Hash includes primary keys of project and each
+project hash contains keys of UT date. The corresponding
+sub-hash contains keys as for "all".
+
+=item byshftprj
+
+Hash includes primary keys of $shifttype", and each
+sub-hash contains keys of project. Their sub-hashes
+have keys of UT date, and theirs have keys as for
+"all".
+
+=item byshftremprj
+
+Hash includes primary keys made by combining
+ShiftType and Remote stauts, and each sub-hash
+contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
+as for "all".
+
+=back
 
 The UT hash key is of the form "YYYY-MM-DD". Project ID is upper cased.
 
@@ -371,90 +408,97 @@ ShiftType-Remote hash key is always a combination of UPPERCASED "$shifttype_$rem
 =cut
 
 sub summarizeTimeAcct {
-  my $class = shift;
-  my $format = lc(shift);
-  my @acct = @_;
+    my $class = shift;
+    my $format = lc(shift);
+    my @acct = @_;
 
-  #use Data::Dumper;
-  #print Dumper(\@acct);
+    #use Data::Dumper;
+    #print Dumper(\@acct);
 
-  # loop over each object populating a results hash
-  my %results;
-  for my $acct (@acct) {
-
-    # extract the information
-    my $p = $acct->projectid;
-    my $t = $acct->timespent;
-    my $ut= $acct->date->strftime('%Y-%m-%d');
-    my $c = $acct->confirmed;
-    my $shft = $acct->shifttype;
-    $shft = 'UNKNOWN' unless defined $shft;
-    my $rem = $acct->remote;
-    if (! defined $rem) {
-        $rem = "UNKNOWN";
-    }
-    my $shftrem = "$shft" . "_" . "$rem";
-
-    # big switch statement
-    my $ref;
-    if ($format eq 'all') {
-      # top level hash
-      $ref = \%results;
-    } elsif ($format eq 'bydate') {
-      # store using UT date
-      if (! exists $results{$ut}) {
-        $results{$ut} = {};
-      }
-      $ref = $results{$ut};
-    } elsif ($format eq 'byproject') {
-      # store using project ID
-      if (! exists $results{$p}) {
-        $results{$p} = {};
-      }
-      $ref = $results{$p};
-    } elsif ($format eq 'byprojdate') {
-      # store using project ID AND ut date
-      if (! exists $results{$p}{$ut}) {
-        $results{$p}{$ut} = {};
-      }
-      $ref = $results{$p}{$ut};
-
-    } elsif ($format eq 'byshftprj') {
-        # store using shifttype AND  projectID
-        if (! exists $results{$shft}{$p}) {
-            $results{$shft}{$p} = {};
+    # loop over each object populating a results hash
+    my %results;
+    for my $acct (@acct) {
+        # extract the information
+        my $p = $acct->projectid;
+        my $t = $acct->timespent;
+        my $ut = $acct->date->strftime('%Y-%m-%d');
+        my $c = $acct->confirmed;
+        my $shft = $acct->shifttype;
+        $shft = 'UNKNOWN' unless defined $shft;
+        my $rem = $acct->remote;
+        unless (defined $rem) {
+            $rem = "UNKNOWN";
         }
-        $ref = $results{$shft}{$p};
+        my $shftrem = "$shft" . "_" . "$rem";
 
-    } elsif ($format eq 'byshftremprj') {
-        if (! exists $results{$shftrem}{$p}) {
-            $results{$shftrem}{$p} = {};
+        # big switch statement
+        my $ref;
+        if ($format eq 'all') {
+            # top level hash
+            $ref = \%results;
         }
-        $ref = $results{$shftrem}{$p};
+        elsif ($format eq 'bydate') {
+            # store using UT date
+            unless (exists $results{$ut}) {
+                $results{$ut} = {};
+            }
+            $ref = $results{$ut};
+        }
+        elsif ($format eq 'byproject') {
+            # store using project ID
+            unless (exists $results{$p}) {
+                $results{$p} = {};
+            }
+            $ref = $results{$p};
+        }
+        elsif ($format eq 'byprojdate') {
+            # store using project ID AND ut date
+            unless (exists $results{$p}{$ut}) {
+                $results{$p}{$ut} = {};
+            }
+            $ref = $results{$p}{$ut};
+        }
+        elsif ($format eq 'byshftprj') {
+            # store using shifttype AND  projectID
+            unless (exists $results{$shft}{$p}) {
+                $results{$shft}{$p} = {};
+            }
+            $ref = $results{$shft}{$p};
 
-    } else {
-      throw OMP::Error::FatalError("Unknown format for TimeAcct summarizing: $format");
+        }
+        elsif ($format eq 'byshftremprj') {
+            unless (exists $results{$shftrem}{$p}) {
+                $results{$shftrem}{$p} = {};
+            }
+            $ref = $results{$shftrem}{$p};
+        }
+        else {
+            throw OMP::Error::FatalError(
+                "Unknown format for TimeAcct summarizing: $format");
+        }
+
+        # overcome -w problem with Time::Seconds->add
+        # when an undef is encountered
+        $ref->{pending} += 0 unless defined $ref->{pending};
+        $ref->{confirmed} += 0 unless defined $ref->{confirmed};
+        $ref->{total} += 0 unless defined $ref->{total};
+
+        # now store/increment the time
+        if ($c) {
+            $ref->{confirmed} += $t;
+        }
+        else {
+            $ref->{pending} += $t;
+        }
+        $ref->{total} += $t;
     }
 
-    # overcome -w problem with Time::Seconds->add
-    # when an undef is encountered
-    $ref->{pending} += 0 unless defined $ref->{pending};
-    $ref->{confirmed} += 0 unless defined $ref->{confirmed};
-    $ref->{total} += 0 unless defined $ref->{total};
-
-    # now store/increment the time
-    if ($c) {
-      $ref->{confirmed} += $t;
-    } else {
-      $ref->{pending} += $t;
-    }
-    $ref->{total} += $t;
-
-  }
-
-  return %results;
-
+    return %results;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -483,5 +527,3 @@ Boston, MA  02111-1307  USA
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

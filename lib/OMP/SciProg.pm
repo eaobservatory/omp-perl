@@ -6,9 +6,8 @@ OMP::SciProg - Class representing an OMP Science Program
 
 =head1 SYNOPSIS
 
-  $sp = new OMP::SciProg( XML => $xml );
-  @msbs = $sp->msb;
-
+    $sp = OMP::SciProg->new(XML => $xml);
+    @msbs = $sp->msb;
 
 =head1 DESCRIPTION
 
@@ -24,16 +23,15 @@ use Carp;
 # External modules
 use File::Spec;
 use Proc::SafeExec;
-use XML::LibXML; # Our standard parser
+use XML::LibXML;  # Our standard parser
 use OMP::Config;
-use OMP::MSB;    # Standard MSB organization
+use OMP::MSB;  # Standard MSB organization
 use OMP::Error;
 
 our $VERSION = '2.000';
 
 # Overloading
 use overload '""' => "stringify";
-
 
 =head1 METHODS
 
@@ -46,9 +44,9 @@ use overload '""' => "stringify";
 The constructor takes an XML representation of the science
 program as argument and returns a new object.
 
-                $sp = new OMP::SciProg( XML => $xml );
+    $sp = OMP::SciProg->new(XML => $xml);
 
-                $sp = new OMP::SciProg( FILE => $xmlfile );
+    $sp = OMP::SciProg->new(FILE => $xmlfile);
 
 The argument hash can either refer to an XML string or
 an XML file. If neither is supplied no object will be
@@ -62,75 +60,87 @@ program is neither valid nor well-formed.
 =cut
 
 sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
 
-  throw OMP::Error::BadArgs('Usage : OMP::SciProg->new(XML => $xml, FILE => $file)') unless @_;
+    throw OMP::Error::BadArgs(
+        'Usage : OMP::SciProg->new(XML => $xml, FILE => $file)')
+        unless @_;
 
-  my %args = @_;
+    my %args = @_;
 
-  my $xml;
-  if (exists $args{XML}) {
-    $xml = $args{XML};
-  } elsif (exists $args{FILE}) {
-    # Dont check for existence - the open will do that for me
-    open my $fh, '<', $args{FILE} or return undef;
-    local $/ = undef; # slurp whole file
-    $xml = <$fh>;
-  } else {
-    # Nothing of use
-    return undef;
-  }
+    my $xml;
+    if (exists $args{XML}) {
+        $xml = $args{XML};
+    }
+    elsif (exists $args{FILE}) {
+        # Dont check for existence - the open will do that for me
+        open my $fh, '<', $args{FILE}
+            or return undef;
 
-  # ************** KLUGE **********************
-  # Namespace issues with XML::LibXML libxml2 2.5.11. If it finds
-  # xmlns="" it does not import into the default namespace (seemingly)
-  # unless written as xmlns:="". This may be a problem with my
-  # understanding of the problem. Should test with v2.6 when supported.
-  # For now kluge it by putting in the colon
-  #$xml =~ s/xmlns=/xmlns:=/;
-  # Unfortunately this does not work with older versions of libxml2
-  # so until we upgrade mauiola we need to remove the line completely
-  # Use non-greedy match
-  $xml =~ s/xmlns=\"https?:\/\/(.*?)\"//;
+        local $/ = undef;    # slurp whole file
 
-  # Now convert XML to parse tree
-  my $parser = new XML::LibXML;
-  $parser->validation(0); # switch off validation
-  my $tree = eval { $parser->parse_string( $xml ) };
-  if ($@) {
-    throw OMP::Error::SpBadStructure("Error whilst parsing science program: $@\n");
-  }
+        $xml = <$fh>;
+    }
+    else {
+        # Nothing of use
+        return undef;
+    }
 
-  # Look for a SpProg
-  my ($root) = $tree->findnodes('.//SpProg');
+    # ************** KLUGE **********************
+    # Namespace issues with XML::LibXML libxml2 2.5.11. If it finds
+    # xmlns="" it does not import into the default namespace (seemingly)
+    # unless written as xmlns:="". This may be a problem with my
+    # understanding of the problem. Should test with v2.6 when supported.
+    # For now kluge it by putting in the colon
+    #$xml =~ s/xmlns=/xmlns:=/;
+    # Unfortunately this does not work with older versions of libxml2
+    # so until we upgrade mauiola we need to remove the line completely
+    # Use non-greedy match
+    $xml =~ s/xmlns=\"https?:\/\/(.*?)\"//;
 
-  # Panic - look for an SpObs. If we fine one we have to accept that
-  ($root) = $tree->findnodes('.//SpObs') unless defined $root;
+    # Now convert XML to parse tree
+    my $parser = XML::LibXML->new();
+    $parser->validation(0); # switch off validation
 
-  # Abort if we have no root node at all
-  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor")
-    unless defined $root;
+    my $tree = eval {
+        $parser->parse_string($xml);
+    };
+    if ($@) {
+        throw OMP::Error::SpBadStructure(
+            "Error whilst parsing science program: $@\n");
+    }
 
-  # Now create our Science Program hash
-  my $sp = {
-            Parser => $parser,
-            Tree => $tree,
-            MSBS => [],
-            REFS => {},
-           };
+    # Look for a SpProg
+    my ($root) = $tree->findnodes('.//SpProg');
 
-  # and create the object
-  bless $sp, $class;
+    # Panic - look for an SpObs. If we fine one we have to accept that
+    ($root) = $tree->findnodes('.//SpObs') unless defined $root;
 
-  # Since it is possible for some one to attempt to write this
-  # science program to disk without needing the MSBs and since
-  # the MSB finding can change the form of the Science Program
-  # by consolidating identical MSBs to a single MSB we need to make
-  # sure that the consolidation is triggered immediately
-  $sp->msb;
+    # Abort if we have no root node at all
+    throw OMP::Error::SpBadStructure(
+        "Error obtaining SpProg root node in constructor")
+        unless defined $root;
 
-  return $sp;
+    # Now create our Science Program hash
+    my $sp = {
+        Parser => $parser,
+        Tree => $tree,
+        MSBS => [],
+        REFS => {},
+    };
+
+    # and create the object
+    bless $sp, $class;
+
+    # Since it is possible for some one to attempt to write this
+    # science program to disk without needing the MSBs and since
+    # the MSB finding can change the form of the Science Program
+    # by consolidating identical MSBs to a single MSB we need to make
+    # sure that the consolidation is triggered immediately
+    $sp->msb;
+
+    return $sp;
 }
 
 =back
@@ -146,7 +156,7 @@ are deemed to be private and do not form part of the publi interface.
 
 Returns the project ID associated with this science program.
 
-  $projectid = $sp->projectID;
+    $projectid = $sp->projectID;
 
 Modifying the project ID, modifies the underlying DOM tree
 but only the 'projectID' tag in the document root. If no
@@ -155,49 +165,52 @@ but only the 'projectID' tag in the document root. If no
 =cut
 
 sub projectID {
-  my $self = shift;
-  if (@_) {
-    $self->{ProjectID} = uc(shift);
+    my $self = shift;
+    if (@_) {
+        $self->{ProjectID} = uc(shift);
 
-    # Fix the DOM tree.
-    # Need to rationalise this so that we have a method for getting
-    # an element from the node tree and a method for setting a value
-    # and retrieving a value. Too much repeated code otherwise
-    # This code is shared with find_projectid
-    my ($el) = $self->_tree->findnodes( './/projectID[1]');
+        # Fix the DOM tree.
+        # Need to rationalise this so that we have a method for getting
+        # an element from the node tree and a method for setting a value
+        # and retrieving a value. Too much repeated code otherwise
+        # This code is shared with find_projectid
+        my ($el) = $self->_tree->findnodes('.//projectID[1]');
 
-    # Note that we do not look for 'project' in an SpMSB.
-    # If we have no element, need to make one
-    if (! defined $el) {
-      # Look up the root and create a new element
-      my ($root) = $self->_tree->findnodes('.//SpProg');
-      my $nodename = 'projectID';
+        # Note that we do not look for 'project' in an SpMSB.
+        # If we have no element, need to make one
+        unless (defined $el) {
+            # Look up the root and create a new element
+            my ($root) = $self->_tree->findnodes('.//SpProg');
+            my $nodename = 'projectID';
 
-      # There is a chance that we have simply a bare SpObs
-      unless (defined $root) {
-        ($root) = $self->_tree->findnodes('.//SpObs');
-        # So that we do not have trouble later on we do not want to insert
-        # a 'projectID' node into the SpObs since that matches a method name
-        # in the recursive node traversal
-        $nodename = 'project';
-      }
+            # There is a chance that we have simply a bare SpObs
+            unless (defined $root) {
+                ($root) = $self->_tree->findnodes('.//SpObs');
+                # So that we do not have trouble later on we do not want to insert
+                # a 'projectID' node into the SpObs since that matches a method name
+                # in the recursive node traversal
+                $nodename = 'project';
+            }
 
-      throw OMP::Error::SpBadStructure("Error obtaining root node in projectID discovery")
-        unless defined $root;
+            throw OMP::Error::SpBadStructure(
+                "Error obtaining root node in projectID discovery")
+                unless defined $root;
 
-      $el = new XML::LibXML::Element( $nodename );
-      $root->appendChild( $el );
-      $el->appendText( $self->{ProjectID});
-    } else {
-      # Now set the value of the node
-      my $child = $el->firstChild();
-      $child->setData( $self->{ProjectID} );
+            $el = XML::LibXML::Element->new($nodename);
+            $root->appendChild($el);
+            $el->appendText($self->{ProjectID});
+        }
+        else {
+            # Now set the value of the node
+            my $child = $el->firstChild();
+            $child->setData($self->{ProjectID});
+        }
+    }
+    else {
+        $self->find_projectid unless defined $self->{ProjectID};
     }
 
-  } else {
-    $self->find_projectid unless defined $self->{ProjectID};
-  }
-  return $self->{ProjectID};
+    return $self->{ProjectID};
 }
 
 =item B<ot_version>
@@ -209,17 +222,19 @@ Read-only. Returns C<undef> if no version is available.
 =cut
 
 sub ot_version {
-  my $self = shift;
-  my @nodes = $self->_tree->findnodes('.//ot_version');
-  if (defined $nodes[-1]) {
-    my $ver = $nodes[-1]->textContent;
-    # Clean it.
-    $ver =~ s/-//g;
+    my $self = shift;
+    my @nodes = $self->_tree->findnodes('.//ot_version');
+    if (defined $nodes[-1]) {
+        my $ver = $nodes[-1]->textContent;
 
-    return $ver;
-  }
-  # return explicit undef rather than empty list
-  return undef;
+        # Clean it.
+        $ver =~ s/-//g;
+
+        return $ver;
+    }
+
+    # return explicit undef rather than empty list
+    return undef;
 }
 
 =item B<telescope>
@@ -233,26 +248,29 @@ This is a read-only parameter.
 =cut
 
 sub telescope {
-  my $self = shift;
-  my @nodes = $self->_tree->findnodes('.//telescope');
-  if (defined $nodes[-1]) {
-    # loop until we get a child
-    for my $n (@nodes) {
-      my $child = $n->getFirstChild;
-      next unless defined $child;
-      my $tel = uc $n->textContent;
-      return $tel;
+    my $self = shift;
+    my @nodes = $self->_tree->findnodes('.//telescope');
+    if (defined $nodes[-1]) {
+        # loop until we get a child
+        for my $n (@nodes) {
+            my $child = $n->getFirstChild;
+            next unless defined $child;
+
+            my $tel = uc $n->textContent;
+
+            return $tel;
+        }
     }
-  }
-  # return explicit undef rather than empty list
-  return undef;
+
+    # return explicit undef rather than empty list
+    return undef;
 }
 
 =item B<msb>
 
 Return the C<OMP::MSB> objects associated with this science program.
 
-  @msbs = $sp->msb;
+    @msbs = $sp->msb;
 
 If no MSBs are stored we automatically go and look for them using
 C<locate_msbs()>.
@@ -260,16 +278,17 @@ C<locate_msbs()>.
 =cut
 
 sub msb {
-  my $self = shift;
-  if (@_) {
-    @{ $self->{MSBS} } = @_;
-  } else {
-    # check to see if we have something
-    unless (@{$self->{MSBS}}) {
-      $self->locate_msbs;
+    my $self = shift;
+    if (@_) {
+        @{$self->{MSBS}} = @_;
     }
-  }
-  return @{ $self->{MSBS} };
+    else {
+        # check to see if we have something
+        unless (@{$self->{MSBS}}) {
+            $self->locate_msbs;
+        }
+    }
+    return @{$self->{MSBS}};
 }
 
 =item B<refs>
@@ -279,13 +298,13 @@ have ID tags. The hash keys are the ID attribute values (since these
 are unique for a given science program). The XML is represented
 by parse trees.
 
-  $hashref = $sp->refs;
-  %refs = $sp->refs;
+    $hashref = $sp->refs;
+    %refs = $sp->refs;
 
 Returns a hash reference in scalar context, a hash in list context.
 The object can be populated by using a hash argument.
 
-  $sp->refs( %refs );
+    $sp->refs(%refs);
 
 The values in the hash are not checked (so we do not enforce
 object type).
@@ -295,24 +314,26 @@ If no keys are stored we automatically run C<locate_refs>.
 =cut
 
 sub refs {
-  my $self = shift;
-  if (@_) {
-    %{ $self->{REFS} } = @_;
-  } else {
-    # If people are asking for the refs we want to find them
-    # if we havent already got them.
-    unless (keys %{$self->{REFS}}) {
-      # Only do this if we havent got anything in the hash
-      $self->locate_refs;
+    my $self = shift;
+    if (@_) {
+        %{$self->{REFS}} = @_;
     }
-  }
+    else {
+        # If people are asking for the refs we want to find them
+        # if we havent already got them.
+        unless (keys %{$self->{REFS}}) {
+            # Only do this if we havent got anything in the hash
+            $self->locate_refs;
+        }
+    }
 
-  # Return the correct thing for the context
-  if (wantarray() ) {
-    return %{ $self->{REFS} };
-  } else {
-    return $self->{REFS};
-  }
+    # Return the correct thing for the context
+    if (wantarray()) {
+        return %{$self->{REFS}};
+    }
+    else {
+        return $self->{REFS};
+    }
 }
 
 =item B<_parser>
@@ -322,11 +343,12 @@ Retrieves or sets the underlying XML parser object.
 =cut
 
 sub _parser {
-  my $self = shift;
-  if (@_) { $self->{Parser} = shift; }
-  return $self->{Parser};
+    my $self = shift;
+    if (@_) {
+        $self->{Parser} = shift;
+    }
+    return $self->{Parser};
 }
-
 
 =item B<_tree>
 
@@ -338,9 +360,11 @@ since that relies on the choice of XML parser.
 =cut
 
 sub _tree {
-  my $self = shift;
-  if (@_) { $self->{Tree} = shift; }
-  return $self->{Tree};
+    my $self = shift;
+    if (@_) {
+        $self->{Tree} = shift;
+    }
+    return $self->{Tree};
 }
 
 =item B<timestamp>
@@ -355,12 +379,12 @@ Returns undef if the science program has never been stored.
 =cut
 
 sub timestamp {
-  my $self = shift;
-  if (@_) {
-    my $timestamp = shift;
-    $self->_tree->documentElement->setAttribute( "timestamp", $timestamp );
-  }
-  return $self->_tree->documentElement->getAttribute( "timestamp" );
+    my $self = shift;
+    if (@_) {
+        my $timestamp = shift;
+        $self->_tree->documentElement->setAttribute("timestamp", $timestamp);
+    }
+    return $self->_tree->documentElement->getAttribute("timestamp");
 }
 
 =back
@@ -379,195 +403,221 @@ as an array of text where each line is an ASCII summary of each MSB
 An optional argument can be used to switch modes explicitly and to access
 different forms of summaries. Allowed values are:
 
-  'xml'         XML summary (equivalent to default scalar context)
-  'html'        HTML summary of program
-  'asciiarray'  Array of MSB summaries in plain text (default in list context)
-  'data'        Perl data structure containing an array of hashes.
-                One for each MSB. Additionally, observation information
-                is in another array of hashes within each MSB hash.
-                Respects calling context returning a ref in scalar context.
-  'objects'     Returns MSBs as array of OMP::Info::MSB objects
-  'ascii'       Plain text summary of the Science Program.
-                Returns a list of lines in list context. A block of text
-                in scalar context.
+=over 4
+
+=item xml
+
+XML summary (equivalent to default scalar context).
+
+=item html
+
+HTML summary of program.
+
+=item asciiarray
+
+Array of MSB summaries in plain text (default in list context).
+
+=item data
+
+Perl data structure containing an array of hashes.
+One for each MSB. Additionally, observation information
+is in another array of hashes within each MSB hash.
+Respects calling context returning a ref in scalar context.
+
+=item objects
+
+Returns MSBs as array of C<OMP::Info::MSB> objects.
+
+=item ascii
+
+Plain text summary of the Science Program.
+Returns a list of lines in list context. A block of text
+in scalar context.
+
+=back
 
 The 'asciiarray' mode, which is the default, will not return any
 information that requires astrometry to be performed.
 
-The XML summary is of the form
+The XML summary is of the form:
 
-  <SpProgSummary timestamp="9999999" projectid="M01BXXX">
-    <SpMSBSummary>
-      ...
-    </SpMSBSummary>
-    <SpMSBSummary>
-      ...
-    </SpMSBSummary>
-
-  </SpProgSummary>
+    <SpProgSummary timestamp="9999999" projectid="M01BXXX">
+        <SpMSBSummary>
+            ...
+        </SpMSBSummary>
+        <SpMSBSummary>
+            ...
+        </SpMSBSummary>
+    </SpProgSummary>
 
 where the SpMSBSummary element is defined in L<OMP::MSB>.
 
 =cut
 
 sub summary {
-  my $self = shift;
+    my $self = shift;
 
-  # Determine the mode of summary
-  my $mode;
-  if (@_ && defined $_[0]) {
-    $mode = lc(shift);
-  } elsif (wantarray()) {
-    # Guess
-    $mode = 'asciiarray';
-  } else {
-    # Guess again
-    $mode = 'xml';
-  }
-
-  # General sci prog infomation
-  my $time = $self->timestamp;
-  $time ||= '';
-  my $utc = ( $time ? gmtime($time) ." UTC" : "UNKNOWN");
-
-  my $proj = $self->projectID;
-
-  # Retrieve the msbs
-  my @msbs = $self->msb;
-
-  # It would be nice to work out how many we have yet to observe
-  # even though this really should happen as part of our loop through
-  # the msbs themselves. Either I splice in the result later or
-  # do it now. .... Do it now - cant use grep because -999 is
-  # a magic value to indicate "removed"
-  my $active = 0;
-  for (@msbs) {
-    $active++ if $_->remaining > 0;
-  }
-
-
-  # Now switch on mode
-  if ($mode eq 'asciiarray') {
-    # Plain text
-    my @strings;
-    for my $msb ($self->msb) {
-      my %summary = $msb->info->summary('hashlong_noast');
-      # The title
-      push(@strings, $msb->info->summary('textshorthdr_noast') ) unless @strings;
-      # The contents
-      push(@strings,  $msb->info->summary('textshort_noast') );
+    # Determine the mode of summary
+    my $mode;
+    if (@_ && defined $_[0]) {
+        $mode = lc(shift);
+    }
+    elsif (wantarray()) {
+        # Guess
+        $mode = 'asciiarray';
+    }
+    else {
+        # Guess again
+        $mode = 'xml';
     }
 
-    return @strings;
+    # General sci prog infomation
+    my $time = $self->timestamp;
+    $time ||= '';
+    my $utc = ($time ? gmtime($time) . " UTC" : "UNKNOWN");
 
-  } elsif ($mode eq 'xml') {
-    # XML version
-    my $xml = "<SpProgSummary timestamp=\"$time\" projectid=\"$proj\">\n";
+    my $proj = $self->projectID;
 
-    for my $msb (@msbs) {
-      $xml .= $msb->info->summary('xmlshort');
-    }
-    $xml .= "</SpProgSummary>\n";
+    # Retrieve the msbs
+    my @msbs = $self->msb;
 
-    return $xml;
-
-  } elsif ($mode eq 'data') {
-    # Return an array of hashes (as array ref)
-    # Loop over each msb in the science program
-    @msbs = map { {$_->info->summary('hashlong') } } @msbs;
-
-    if (wantarray) {
-      return @msbs;
-    } else {
-      return \@msbs;
+    # It would be nice to work out how many we have yet to observe
+    # even though this really should happen as part of our loop through
+    # the msbs themselves. Either I splice in the result later or
+    # do it now. .... Do it now - cant use grep because -999 is
+    # a magic value to indicate "removed"
+    my $active = 0;
+    for (@msbs) {
+        $active ++ if $_->remaining > 0;
     }
 
-  } elsif ($mode eq 'objects') {
-    # Return the MSB info object
-    @msbs = map { $_->info } @msbs;
+    # Now switch on mode
+    if ($mode eq 'asciiarray') {
+        # Plain text
+        my @strings;
+        for my $msb ($self->msb) {
+            my %summary = $msb->info->summary('hashlong_noast');
 
-    if (wantarray) {
-      return @msbs;
-    } else {
-      return \@msbs;
+            # The title
+            push @strings, $msb->info->summary('textshorthdr_noast')
+                unless @strings;
+
+            # The contents
+            push @strings, $msb->info->summary('textshort_noast');
+        }
+
+        return @strings;
     }
+    elsif ($mode eq 'xml') {
+        # XML version
+        my $xml = "<SpProgSummary timestamp=\"$time\" projectid=\"$proj\">\n";
 
+        for my $msb (@msbs) {
+            $xml .= $msb->info->summary('xmlshort');
+        }
 
-  } elsif ($mode eq 'html') {
-    my @lines;
+        $xml .= "</SpProgSummary>\n";
 
-    push(@lines,"<TABLE border='0'>");
-    push(@lines, "<tr><td>Project ID:</td><td><b>".uc($proj)."</b></td></tr>");
-
-    # Submission time
-    push(@lines, "<tr><td>Time Submitted:</td><td><b>$utc</b></td></tr>");
-
-    # MSB Count
-    push(@lines, "<tr><td>Number of MSBs:</td><td><b>".scalar(@msbs)."<b></td></tr>");
-    push(@lines, "<tr><td>Active MSBs:</td><td><b>$active</b></td></tr>");
-    push(@lines, "</TABLE>");
-
-    # Now process each MSB - This is a clone of "ascii"
-    # Must be a better way
-    # Must also be a method of OMP::MSB rather than being
-    # used directly
-    my $count;
-    for my $msb (@msbs) {
-      $count++;
-      my $info = $msb->info;
-      push(@lines, $info->summary($mode));
+        return $xml;
     }
+    elsif ($mode eq 'data') {
+        # Return an array of hashes (as array ref)
+        # Loop over each msb in the science program
+        @msbs = map {
+            {$_->info->summary('hashlong')}
+        } @msbs;
 
-    # Return a list or a string
-    if (wantarray) {
-      return @lines;
-    } else {
-      return join("\n", @lines) . "\n";
+        if (wantarray) {
+            return @msbs;
+        }
+        else {
+            return \@msbs;
+        }
     }
+    elsif ($mode eq 'objects') {
+        # Return the MSB info object
+        @msbs = map {$_->info} @msbs;
 
-
-
-  } elsif ($mode eq 'ascii') {
-    # Plain text
-    my @lines;
-
-    # First the project stuff
-    push(@lines, "Project ID:\t$proj");
-
-    # Convert the timestamp back into a real time (assuming it is
-    # possible). The time stamp is in UTC.
-    push(@lines, "Time submitted:\t$utc");
-
-    # Number of MSBs (total and active)
-    push(@lines, "Number of MSBs:\t" . scalar(@msbs));
-    push(@lines,"Active MSBs:\t$active");
-
-
-    # Now process each MSB
-    # We probably should put this in the OMP::MSB::summary method
-    # but there is no obvious way of passing options to that
-    # method.
-    my $count;
-    for my $msb (@msbs) {
-      $count++;
-      my $info = $msb->info;
-      push(@lines, $info->summary('textlong'));
+        if (wantarray) {
+            return @msbs;
+        }
+        else {
+            return \@msbs;
+        }
     }
+    elsif ($mode eq 'html') {
+        my @lines;
 
-    # Return a list or a string
-    if (wantarray) {
-      return @lines;
-    } else {
-      return join("\n", @lines) . "\n";
-     }
-  } else {
-    # Unknown mode
-    throw OMP::Error::BadArgs("Unknown mode ($mode) specified for SciProg summary");
-  }
+        push @lines, "<TABLE border='0'>";
+        push @lines, "<tr><td>Project ID:</td><td><b>" . uc($proj) . "</b></td></tr>";
 
+        # Submission time
+        push @lines, "<tr><td>Time Submitted:</td><td><b>$utc</b></td></tr>";
 
+        # MSB Count
+        push @lines, "<tr><td>Number of MSBs:</td><td><b>" . scalar(@msbs) . "<b></td></tr>";
+        push @lines, "<tr><td>Active MSBs:</td><td><b>$active</b></td></tr>";
+        push @lines, "</TABLE>";
+
+        # Now process each MSB - This is a clone of "ascii"
+        # Must be a better way
+        # Must also be a method of OMP::MSB rather than being
+        # used directly
+        my $count;
+        for my $msb (@msbs) {
+            $count ++;
+            my $info = $msb->info;
+            push @lines, $info->summary($mode);
+        }
+
+        # Return a list or a string
+        if (wantarray) {
+            return @lines;
+        }
+        else {
+            return join("\n", @lines) . "\n";
+        }
+    }
+    elsif ($mode eq 'ascii') {
+        # Plain text
+        my @lines;
+
+        # First the project stuff
+        push @lines, "Project ID:\t$proj";
+
+        # Convert the timestamp back into a real time (assuming it is
+        # possible). The time stamp is in UTC.
+        push @lines, "Time submitted:\t$utc";
+
+        # Number of MSBs (total and active)
+        push @lines, "Number of MSBs:\t" . scalar(@msbs);
+        push @lines, "Active MSBs:\t$active";
+
+        # Now process each MSB
+        # We probably should put this in the OMP::MSB::summary method
+        # but there is no obvious way of passing options to that
+        # method.
+        my $count;
+        for my $msb (@msbs) {
+            $count ++;
+            my $info = $msb->info;
+            push @lines, $info->summary('textlong');
+        }
+
+        # Return a list or a string
+        if (wantarray) {
+            return @lines;
+        }
+        else {
+            return join("\n", @lines) . "\n";
+        }
+    }
+    else {
+        # Unknown mode
+        throw OMP::Error::BadArgs(
+            "Unknown mode ($mode) specified for SciProg summary");
+    }
 }
-
 
 =item B<find_projectid>
 
@@ -592,29 +642,29 @@ to be written to the DOM tree itself in the correct place
 =cut
 
 sub find_projectid {
-  my $self = shift;
+    my $self = shift;
 
-  my ($element) = $self->_tree->findnodes('.//projectID[1]');
+    my ($element) = $self->_tree->findnodes('.//projectID[1]');
 
-  # projectID element contains PCData that is the actual project ID
-  if (defined $element) {
-    # This forces the dom tree to be modified to include an
-    # uppercased version
-    $self->projectID( $element->textContent );
-  } else {
-    # Could not find projectID so look for a "project" element
-    # which has been added automatically by the OMP
-    my ($element2) = $self->_tree->findnodes('.//project[1]');
-
-    if (defined $element2) {
-      $self->projectID( $element2->textContent );
-    } else {
-      #    throw OMP::Error::UnknownProject("The Science Program does not contain a
-      #project identifier");
-      $self->projectID( "UNKNOWN" );
+    # projectID element contains PCData that is the actual project ID
+    if (defined $element) {
+        # This forces the dom tree to be modified to include an
+        # uppercased version
+        $self->projectID($element->textContent);
     }
-  }
+    else {
+        # Could not find projectID so look for a "project" element
+        # which has been added automatically by the OMP
+        my ($element2) = $self->_tree->findnodes('.//project[1]');
 
+        if (defined $element2) {
+            $self->projectID($element2->textContent);
+        }
+        else {
+            # throw OMP::Error::UnknownProject("The Science Program does not contain a project identifier");
+            $self->projectID("UNKNOWN");
+        }
+    }
 }
 
 =item B<fetchMSB>
@@ -622,24 +672,24 @@ sub find_projectid {
 Given a checksum, search through the science program for a matching
 MSB.
 
-  $msb = $sp->fetchMSB( $checksum );
+    $msb = $sp->fetchMSB($checksum);
 
 The MSB is returned as an OMP::MSB object. Returns C<undef> on error.
 
 =cut
 
 sub fetchMSB {
-  my $self = shift;
-  my $checksum = shift;
+    my $self = shift;
+    my $checksum = shift;
 
-  my $found;
-  for my $msb ($self->msb) {
-    if ($checksum eq $msb->checksum) {
-      $found = $msb;
-      last;
+    my $found;
+    for my $msb ($self->msb) {
+        if ($checksum eq $msb->checksum) {
+            $found = $msb;
+            last;
+        }
     }
-  }
-  return $found;
+    return $found;
 }
 
 =item B<existsMSB>
@@ -647,25 +697,25 @@ sub fetchMSB {
 Given a checksum, determine whether that MSB is present in the science program.
 Returns a boolean.
 
-  if ($sp->existsMSB( $checksum )) {
-     ...
-  }
+    if ($sp->existsMSB($checksum)) {
+        ...
+    }
 
 =cut
 
 sub existsMSB {
-  my $self = shift;
-  my $checksum = shift;
+    my $self = shift;
+    my $checksum = shift;
 
-  # This should be optimized by creating a hash
-  # and simply using exist rather than stepping through the
-  # science program each time.
-  for my $msb ($self->msb) {
-    if ($checksum eq $msb->checksum) {
-      return 1;
+    # This should be optimized by creating a hash
+    # and simply using exist rather than stepping through the
+    # science program each time.
+    for my $msb ($self->msb) {
+        if ($checksum eq $msb->checksum) {
+            return 1;
+        }
     }
-  }
-  return 0;
+    return 0;
 }
 
 =item B<locate_msbs>
@@ -673,7 +723,7 @@ sub existsMSB {
 Find the MSBs within a science program and store references
 to them.
 
-  $sp->locate_msbs
+    $sp->locate_msbs;
 
 Usually called during object initialisation. Use the C<msb()> method
 to retrieve the MSB objects
@@ -687,139 +737,146 @@ all but the first MSB from the tree.
 =cut
 
 sub locate_msbs {
-  my $self = shift;
+    my $self = shift;
 
-  # Prepare the static arguments for the MSB constuctor
-  my %EXTRAS = (
-                PARSER => $self->_parser,
-                OTVERSION => $self->ot_version,
-                PROJECTID => $self->projectID,
-                REFS => scalar $self->refs,
-               );
+    # Prepare the static arguments for the MSB constuctor
+    my %EXTRAS = (
+        PARSER => $self->_parser,
+        OTVERSION => $self->ot_version,
+        PROJECTID => $self->projectID,
+        REFS => scalar $self->refs,
+    );
 
-  # Only have a telescope entry if we know the telescope
-  my $tel = $self->telescope;
-  $EXTRAS{TELESCOPE} = $tel if defined $tel;
+    # Only have a telescope entry if we know the telescope
+    my $tel = $self->telescope;
+    $EXTRAS{TELESCOPE} = $tel if defined $tel;
 
-  my @objs = _get_msbs_within_node($self->_tree(), \%EXTRAS);
+    my @objs = _get_msbs_within_node($self->_tree(), \%EXTRAS);
 
-  # Remove duplicates
-  # Build up a hash keyed by checksum
-  my %unique;
-  my @unique; # to preserve order
-  my $unbound = 0;
-  for my $msb (@objs) {
-    my $checksum = $msb->checksum;
-    if (exists $unique{$checksum}) {
-      # Increment the first MSB by the amount remaining in the current MSB
-      my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
-      $unique{$checksum}->remaining($newtotal);
+    # Remove duplicates
+    # Build up a hash keyed by checksum
+    my %unique;
+    my @unique;  # to preserve order
+    my $unbound = 0;
 
-      # Remove the current msb object from the science program tree
-      # unless this MSB is derived from a target override survey
-      # container (we can not delete the MSB xml without removing all
-      # the related MSBs)
-      if (!$msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
-        $msb->_tree->unbindNode();
-        $unbound = 1;
-      }
-    } else {
-      $unique{$checksum} = $msb;
+    for my $msb (@objs) {
+        my $checksum = $msb->checksum;
 
-      # A hash will not preserve MSB order. To preserve it
-      # we store the first occurrence of each MSB in an array
-      push(@unique, $msb);
+        if (exists $unique{$checksum}) {
+            # Increment the first MSB by the amount remaining in the current MSB
+            my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
+            $unique{$checksum}->remaining($newtotal);
 
+            # Remove the current msb object from the science program tree
+            # unless this MSB is derived from a target override survey
+            # container (we can not delete the MSB xml without removing all
+            # the related MSBs)
+            unless ($msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
+                $msb->_tree->unbindNode();
+                $unbound = 1;
+            }
+        }
+        else {
+            $unique{$checksum} = $msb;
+
+            # A hash will not preserve MSB order. To preserve it
+            # we store the first occurrence of each MSB in an array
+            push @unique, $msb;
+        }
     }
-  }
 
-  # If we've deleted some msbs from the tree we need to rescan
-  # the internal idrefs to make sure that we are no longer holding
-  # references to objects that are not in the tree
-  # Note that since we store a hash reference in the MSB objects
-  # we can just update the hash itself. If OMP::MSB copies the hash
-  # we are in trouble.
-  # if we dont do this we are bound to get a core dump at some point
-  # it is quicker to use a variable to indicate that we had
-  # duplicates rather than compare the contents of @objs with the
-  # contents of @unique
-  $self->locate_refs if $unbound;
+    # If we've deleted some msbs from the tree we need to rescan
+    # the internal idrefs to make sure that we are no longer holding
+    # references to objects that are not in the tree
+    # Note that since we store a hash reference in the MSB objects
+    # we can just update the hash itself. If OMP::MSB copies the hash
+    # we are in trouble.
+    # if we dont do this we are bound to get a core dump at some point
+    # it is quicker to use a variable to indicate that we had
+    # duplicates rather than compare the contents of @objs with the
+    # contents of @unique
+    $self->locate_refs if $unbound;
 
-  # Copy the list of unique objects, preserving the order
-  @objs = @unique;
+    # Copy the list of unique objects, preserving the order
+    @objs = @unique;
 
-  # And store them (if we found anything - otherwise
-  # we hit infinite recursion)
-  $self->msb(@objs)
-    if @objs;
-
+    # And store them (if we found anything - otherwise
+    # we hit infinite recursion)
+    $self->msb(@objs)
+        if @objs;
 }
 
 =item B<_get_msbs_within_node>
 
 Find and return the MSBs within a given node of the science program.
 
-  my @msbs = _get_msbs_within_node($node, \%msb_extra);
+    my @msbs = _get_msbs_within_node($node, \%msb_extra);
 
 This is a helper routine for C<locate_msbs>.
 
 =cut
 
 sub _get_msbs_within_node {
-  my $node = shift;
-  my $msb_extra = shift;
+    my $node = shift;
+    my $msb_extra = shift;
 
-  # Find all the SpMSB elements
-  my @spmsb = $node->findnodes(".//SpMSB");
+    # Find all the SpMSB elements
+    my @spmsb = $node->findnodes(".//SpMSB");
 
-  # Find all the SpObs elements that are not in SpMSB
-  # We believe the MSB attribute
-  my @spobs = $node->findnodes('.//SpObs[@msb="true"]');
+    # Find all the SpObs elements that are not in SpMSB
+    # We believe the MSB attribute
+    my @spobs = $node->findnodes('.//SpObs[@msb="true"]');
 
-  # occassionally we get some spurious hits here (have not found
-  # out why) so go through and remove spobs that have an SpMSB
-  # parent [this is the safest way if we do not trust the msb attribute
-  # - it may be that we should never trust the attribute and always
-  # get every SpObs and then remove spurious ones.
-  for (@spobs) {
-    my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
-    push(@spmsb, $_) unless $parent;
-  }
+    # occassionally we get some spurious hits here (have not found
+    # out why) so go through and remove spobs that have an SpMSB
+    # parent [this is the safest way if we do not trust the msb attribute
+    # - it may be that we should never trust the attribute and always
+    # get every SpObs and then remove spurious ones.
+    for (@spobs) {
+        my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
 
-  # Loop over each MSB creating the MSB objects.
-  # Trick here is that for MSBs that are within Survey containers
-  # we need to create multiple MSB objects
-  # This means we will not be using a simple map
-  my @objs;
-  for my $msbnode (@spmsb) {
-    # Look for a survey container ancestor
-    my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
-    if ($sc) {
-      # We need to extract the TargetList information from the survey
-      # container and iterate over the target information
-      my ($tl) = $sc->findnodes('.//TargetList');
-      throw OMP::Error::SpBadStructure("No Target List specified for Survey container") unless defined $tl;
-
-      # parse the target list
-      my %results = OMP::MSB->TargetList( $tl );
-
-      # "targets" contains the array of targets that we have found
-      for my $targ (@{ $results{targets} } ) {
-        push(@objs, new OMP::MSB( TREE => $msbnode,
-                                  %$msb_extra,
-                                  OVERRIDE => $targ,
-                                )
-            );
-      }
-
-    } else {
-      # Not a survey, just create the object and store it
-      push(@objs, new OMP::MSB( TREE => $msbnode,
-                                %$msb_extra ));
+        push @spmsb, $_ unless $parent;
     }
-  }
 
-  return @objs;
+    # Loop over each MSB creating the MSB objects.
+    # Trick here is that for MSBs that are within Survey containers
+    # we need to create multiple MSB objects
+    # This means we will not be using a simple map
+    my @objs;
+    for my $msbnode (@spmsb) {
+        # Look for a survey container ancestor
+        my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
+
+        if ($sc) {
+            # We need to extract the TargetList information from the survey
+            # container and iterate over the target information
+            my ($tl) = $sc->findnodes('.//TargetList');
+            throw OMP::Error::SpBadStructure(
+                "No Target List specified for Survey container")
+                unless defined $tl;
+
+            # parse the target list
+            my %results = OMP::MSB->TargetList($tl);
+
+            # "targets" contains the array of targets that we have found
+            for my $targ (@{$results{targets}}) {
+                push @objs, OMP::MSB->new(
+                    TREE => $msbnode,
+                    %$msb_extra,
+                    OVERRIDE => $targ,
+                );
+            }
+        }
+        else {
+            # Not a survey, just create the object and store it
+            push @objs, OMP::MSB->new(
+                TREE => $msbnode,
+                %$msb_extra,
+            );
+        }
+    }
+
+    return @objs;
 }
 
 =item B<locate_refs>
@@ -833,32 +890,31 @@ retrieval (caching).
 =cut
 
 sub locate_refs {
-  my $self = shift;
+    my $self = shift;
 
-  # Find all the elements with IDs
-  # This returns the actual attribute objects
-  my @refs = $self->_tree->findnodes('//@id');
+    # Find all the elements with IDs
+    # This returns the actual attribute objects
+    my @refs = $self->_tree->findnodes('//@id');
 
-  # Now for each of these determine the ID
-  # and store it in a hash
-  my %refs;
-  for my $el (@refs) {
-    my $key = $el->getValue();
-    # and store the parent
-    $refs{$key} = $el->ownerElement;
-  }
+    # Now for each of these determine the ID
+    # and store it in a hash
+    my %refs;
+    for my $el (@refs) {
+        my $key = $el->getValue();
+        # and store the parent
+        $refs{$key} = $el->ownerElement;
+    }
 
-  # Just to make sure we have something in the hash we make something
-  # up here so that the refs() method can tell the difference between
-  # no references (but we were invoked) and no references (bur we haven't
-  # been invoked yet). Thus avoiding the additional overhead of scanning
-  # the science program multiple times even though we know there are no
-  # refs
-  $refs{__Been_here_already} = undef;
+    # Just to make sure we have something in the hash we make something
+    # up here so that the refs() method can tell the difference between
+    # no references (but we were invoked) and no references (bur we haven't
+    # been invoked yet). Thus avoiding the additional overhead of scanning
+    # the science program multiple times even though we know there are no
+    # refs
+    $refs{__Been_here_already} = undef;
 
-  # Store it in the object
-  $self->refs( %refs );
-
+    # Store it in the object
+    $self->refs(%refs);
 }
 
 
@@ -866,17 +922,17 @@ sub locate_refs {
 
 Convert the Science Program object into XML.
 
-  $xml = $sp->stringify;
+    $xml = $sp->stringify;
 
 This method is also invoked via a stringification overload.
 
-  print "$sp";
+    print "$sp";
 
 =cut
 
 sub stringify {
-  my $self = shift;
-  $self->_tree->toString;
+    my $self = shift;
+    $self->_tree->toString;
 }
 
 =item B<verifyMSBs>
@@ -886,13 +942,25 @@ by the C<verifyMSB> method in C<OMP::MSB> class).
 
 Returns a status and a string describing any problems.
 
-  ($status, $reason) = $msb->verifyMSBs;
+    ($status, $reason) = $msb->verifyMSBs;
 
 Allowed status values are:
 
-  0 - everything okay
-  1 - some warnings were raised
-  2 - fatal error
+=over 4
+
+=item 0
+
+Everything okay.
+
+=item 1
+
+Some warnings were raised.
+
+=item 2
+
+Fatal error.
+
+=back
 
 Note that fatal errors will probably have been caught during the
 initial pass. This method does not attempt to check instrumental
@@ -904,28 +972,27 @@ an explicit exception.
 =cut
 
 sub verifyMSBs {
-  my $self = shift;
+    my $self = shift;
 
-  # Assume good status
-  my $status = 0;
+    # Assume good status
+    my $status = 0;
 
-  # Loop over the MSBs
-  my $count = 0;
-  my $string = '';
-  for my $msb ($self->msb) {
-    $count++;
-    my ($msbstatus, $msbstring) = $msb->verifyMSB;
-    next if $msbstatus == 0;
+    # Loop over the MSBs
+    my $count = 0;
+    my $string = '';
+    for my $msb ($self->msb) {
+        $count ++;
+        my ($msbstatus, $msbstring) = $msb->verifyMSB;
+        next if $msbstatus == 0;
 
-    # Raise status if required
-    $status = $msbstatus if $status < $msbstatus;
+        # Raise status if required
+        $status = $msbstatus if $status < $msbstatus;
 
-    # Cache the string and indicate the MSB number
-    $string .= "MSB $count: $msbstring\n";
+        # Cache the string and indicate the MSB number
+        $string .= "MSB $count: $msbstring\n";
+    }
 
-  }
-
-  return ($status, $string);
+    return ($status, $string);
 }
 
 =item B<dupMSB>
@@ -934,7 +1001,7 @@ Duplicate the supplied MSB (that must be present in the science program),
 and insert it into the science program whilst retaining the original
 MSB. Returns the duplicated MSB.
 
-  $new = $sp->cloneMSB( $old );
+    $new = $sp->cloneMSB($old);
 
 No template replacement is used. The title of the MSB will be modified
 in order to differentiate it from the original.
@@ -945,47 +1012,50 @@ object will no longer be valid either).
 =cut
 
 sub dupMSB {
-  my $self = shift;
-  my $msb = shift;
+    my $self = shift;
+    my $msb = shift;
 
-  return unless defined $msb;
+    return unless defined $msb;
 
-  # Clone this MSB
-  my $new = $msb->clone;
-  $new->_tree->unbindNode;
+    # Clone this MSB
+    my $new = $msb->clone;
+    $new->_tree->unbindNode;
 
-  # Set the new title
-  my $title = $msb->msbtitle;
+    # Set the new title
+    my $title = $msb->msbtitle;
 
-  # make sure we get something new so that we can guarantee a unique checksum
-  my %titles;
-  for my $m ($self->msb) {
-    $titles{$m->msbtitle}++;
-  }
-  my $tc = 1;
-  my $newtitle = $title;
-  while ( exists $titles{$newtitle} ) {
-    $newtitle = "Copy $tc of $title";
-    $tc++;
-  }
-  $new->msbtitle( $newtitle );
+    # make sure we get something new so that we can guarantee a unique checksum
+    my %titles;
+    for my $m ($self->msb) {
+        $titles{$m->msbtitle} ++;
+    }
 
-  # Find the checksum
-  my $checksum = $new->checksum;
+    my $tc = 1;
+    my $newtitle = $title;
+    while (exists $titles{$newtitle}) {
+        $newtitle = "Copy $tc of $title";
+        $tc ++;
+    }
 
-  # Insert it into the science program after the original
-  $msb->_tree->parentNode->insertAfter($new->_tree, $msb->_tree);
+    $new->msbtitle($newtitle);
 
-  # Update the science program
-  $self->locate_msbs;
+    # Find the checksum
+    my $checksum = $new->checksum;
 
-  # Now look for the new MSB
-  my @newmsbs = $self->msb;
+    # Insert it into the science program after the original
+    $msb->_tree->parentNode->insertAfter($new->_tree, $msb->_tree);
 
-  for my $m ($self->msb) {
-    return $m if $m->checksum eq $checksum;
-  }
-  return;
+    # Update the science program
+    $self->locate_msbs;
+
+    # Now look for the new MSB
+    my @newmsbs = $self->msb;
+
+    for my $m ($self->msb) {
+        return $m if $m->checksum eq $checksum;
+    }
+
+    return;
 }
 
 =item B<removeMSB>
@@ -994,7 +1064,7 @@ Remove the supplied MSB (as a C<OMP::MSB> object, previously returned
 by the C<msb()> method) from the current science program. The MSBs
 within the science program are recalculated.
 
-  $sp->removeMSB( $msb );
+    $sp->removeMSB($msb);
 
 Any previously cached MSB objects should be retrieved again from the
 science program after executing this command.
@@ -1005,18 +1075,21 @@ container.
 =cut
 
 sub removeMSB {
-  my $self = shift;
-  my $msb = shift;
+    my $self = shift;
+    my $msb = shift;
 
-  if (UNIVERSAL::isa( $msb, "OMP::MSB")) {
-    # remove it
-    my $tree = $msb->_tree;
-    return 0 unless defined $tree;
-    $tree->unbindNode;
-    $self->locate_msbs;
-    return 1;
-  }
-  return 0;
+    if (UNIVERSAL::isa($msb, "OMP::MSB")) {
+        # remove it
+        my $tree = $msb->_tree;
+        return 0 unless defined $tree;
+
+        $tree->unbindNode;
+        $self->locate_msbs;
+
+        return 1;
+    }
+
+    return 0;
 }
 
 =item B<cloneMSBs>
@@ -1024,7 +1097,7 @@ sub removeMSB {
 Go through the science program and for each MSB containing a blank
 science target, clone it using the supplied coordinate objects.
 
-  @messages = $sp->cloneMSBs( @coords );
+    @messages = $sp->cloneMSBs(@coords);
 
 Currently can not handle coordinate types that are not RADEC.
 Non-RADEC coordinates are ignored silently. Returns an array
@@ -1038,84 +1111,88 @@ and must be retrieved from the science program object again.
 =cut
 
 sub cloneMSBs {
-  my $self = shift;
-  my @sources = @_;
+    my $self = shift;
+    my @sources = @_;
 
-  # Remove any targets that are not RADEC
-  @sources = grep { $_->type eq 'RADEC'  } @sources;
-  return ("No targets supplied for cloning") unless scalar(@sources);
+    # Remove any targets that are not RADEC
+    @sources = grep {$_->type eq 'RADEC'} @sources;
+    return ("No targets supplied for cloning")
+        unless scalar(@sources);
 
-  # Informational messages
-  my @info;
+    # Informational messages
+    my @info;
 
-  # Loop over each MSB
-  my $ncloned = 0;
-  for my $msb ($self->msb) {
+    # Loop over each MSB
+    my $ncloned = 0;
+    for my $msb ($self->msb) {
+        # Count the number of useful blank target components
+        # Ignoring inheritance
+        my $blanks = $msb->hasBlankTargets(0);
+        next unless $blanks > 0;
 
-    # Count the number of useful blank target components
-    # Ignoring inheritance
-    my $blanks = $msb->hasBlankTargets(0);
-    next unless $blanks > 0;
+        # Warn if we do not have an exact match
+        push @info,
+            "Number of blank targets in MSB '"
+                . $msb->msbtitle
+                . "' is not divisible into the number of targets supplied.",
+            "Some targets will be missing."
+            if scalar(@sources) % $blanks != 0;
 
-    # Warn if we do not have an exact match
-    push(@info,
-         "Number of blank targets in MSB '".$msb->msbtitle.
-         "' is not divisible into the number of targets supplied.",
-         "Some targets will be missing.")
-      if scalar(@sources) % $blanks != 0;
+        # Calculate the max number we can support [as an index]
+        my $max = int(($#sources + 1) / $blanks) * $blanks - 1;
 
-    # Calculate the max number we can support [as an index]
-    my $max = int(($#sources+1) / $blanks) * $blanks - 1;
+        # Now loop over the source list
+        # It is probably more efficent to generate the XML of the clone
+        # and then do all the replacements on the XML before parsing
+        # it and inserting it back into the tree. For now, do the
+        # long hand approach
+        my $nrepeats = 0;
 
-    # Now loop over the source list
-    # It is probably more efficent to generate the XML of the clone
-    # and then do all the replacements on the XML before parsing
-    # it and inserting it back into the tree. For now, do the
-    # long hand approach
-    my $nrepeats = 0;
-    for (my $i = 0; ($i+$blanks-1) <= $max; $i+= $blanks) {
+        for (my $i = 0; ($i + $blanks - 1) <= $max; $i += $blanks) {
+            # Clone the MSB
+            my $clone = $msb->clone();
 
-      # Clone the MSB
-      my $clone = $msb->clone();
+            # Now replace the targets from the subset of the list
+            my $c = $clone->fill_template(
+                coords => [@sources[$i .. ($i + $blanks)]]);
 
-      # Now replace the targets from the subset of the list
-      my $c = $clone->fill_template( coords => [ @sources[$i..($i+$blanks)] ]);
+            # Make sure we replaced the correct number
+            throw OMP::Error::FatalError(
+                "Internal error: We found fewer blank telescope components than expected!!!\n")
+                unless $c == $blanks;
 
-      # Make sure we replaced the correct number
-      throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
-        unless $c == $blanks;
+            # Insert the clone node in the correct place
+            $msb->_tree->parentNode->insertAfter($clone->_tree, $msb->_tree);
 
-      # Insert the clone node in the correct place
-      $msb->_tree->parentNode->insertAfter($clone->_tree, $msb->_tree);
+            # Keep track of the repeat count for this msb for the error message
+            $nrepeats ++;
+        }
 
-      # Keep track of the repeat count for this msb for the error message
-      $nrepeats++;
+        # And remove the template node
+        $msb->_tree->unbindNode;
+        $ncloned ++;
+
+        #  info message
+        my $pluraltarg = ($blanks == 1 ? '' : 's');
+        my $pluralrep = ($nrepeats == 1 ? '' : 's');
+
+        push @info,
+            "Cloned MSB with title '" . $msb->msbtitle
+            . "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.";
 
     }
 
-    # And remove the template node
-    $msb->_tree->unbindNode;
-    $ncloned++;
+    # Once we have done this we need to recreate the
+    # MSB objects because they will be pointing to invalid nodes
+    if ($ncloned > 0) {
+        $self->locate_msbs;
+    }
+    else {
+        push @info, "No MSBs contained blank target components. No change.";
+    }
 
-    #  info message
-    my $pluraltarg = ($blanks == 1 ? '' : 's');
-    my $pluralrep  = ($nrepeats == 1 ? '' : 's');
-    push(@info,"Cloned MSB with title '" . $msb->msbtitle .
-         "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
-
-
-  }
-
-  # Once we have done this we need to recreate the
-  # MSB objects because they will be pointing to invalid nodes
-  if ($ncloned > 0) {
-    $self->locate_msbs;
-  } else {
-    push(@info, "No MSBs contained blank target components. No change.");
-  }
-  # Return the informational messages
-  return @info;
-
+    # Return the informational messages
+    return @info;
 }
 
 =item B<apply_xslt>
@@ -1163,6 +1240,10 @@ sub apply_xslt {
     $command->wait();
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 AUTHORS
@@ -1189,10 +1270,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-
-
-1;
-

@@ -6,7 +6,7 @@ setaffiliation - Set affiliation for projects
 
 =head1 SYNOPSIS
 
-  perl admin/setaffiliation.pl < affiliation.txt
+    perl admin/setaffiliation.pl < affiliation.txt
 
 =head1 DESCRIPTION
 
@@ -27,14 +27,14 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 use OMP::DBServer;
 use OMP::ProjAffiliationDB;
 
-my $affiliation_db = new OMP::ProjAffiliationDB(
+my $affiliation_db = OMP::ProjAffiliationDB->new(
     DB => OMP::DBServer->dbConnection());
 
 my %projects;

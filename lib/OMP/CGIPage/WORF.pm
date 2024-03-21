@@ -24,7 +24,6 @@ use Digest::MD5 qw/md5_hex/;
 use File::Spec;
 
 use OMP::Config;
-use OMP::DBbackend;
 use OMP::CGIComponent::NightRep;
 use OMP::DateTools;
 use OMP::Error qw/:try/;
@@ -90,7 +89,7 @@ sub display_page {
     my $grp = OMP::Info::ObsGroup->new(obs => [$obs]);
     $grp->commentScan;
 
-    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $pdb = OMP::PreviewDB->new(DB => $self->database);
     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
         telescope => $telescope,
         instrument => $inst,
@@ -150,7 +149,7 @@ sub thumbnails_page {
     return $self->_write_error('No observations for this project and night')
         if (defined $projectid) and not $grp->numobs;
 
-    my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $pdb = OMP::PreviewDB->new(DB => $self->database);
     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
         telescope => $telescope,
         size => 64,
@@ -203,7 +202,7 @@ sub display_graphic {
     #         projectid => $projectid,
     #         inccal => 1,
     #     );
-    #     my $pdb = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    #     my $pdb = OMP::PreviewDB->new(DB => $self->database);
     #     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
     #         telescope => $telescope,
     #         date => {value => $utdate->ymd(), delta => 1},

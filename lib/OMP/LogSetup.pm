@@ -1,7 +1,5 @@
 package OMP::LogSetup;
 
-=pod
-
 =head1 NAME
 
 OMP::LogSetup - Setup a default log configuration for Log::Log4perl
@@ -22,8 +20,6 @@ will not be reflected back when I<&get_config> is called again.
 
     # See Log::Log4perl for details.
     $log->error('Oops,', ' an error happened: ', $error_text);
-
-
 
 =head1 DESCRIPTION
 
@@ -91,7 +87,7 @@ my %_config = (
 
 set_default_format();
 
-=over 2
+=over 4
 
 =item B<get_config>
 
@@ -160,7 +156,6 @@ Returns code reference which would call &L<Data::Dumper>::Dumper,
 passing it given list of elements.
 
     print get_dumper([2, 3], [4, 6])->();
-
 
 Note the following variables are set before I<&Dumper> is called ...
 
@@ -240,7 +235,7 @@ writable>.
 
 Optional hash key-values are ...
 
-=over 2
+=over 4
 
 =item I<add-dir> => truth value
 
@@ -367,9 +362,10 @@ sub _make_per_day_logfile {
     my ($y, $m, $d) = map {sprintf '%02d', $date->$_()} ('year', 'month', 'day');
 
     # Directory tree is something like /parent/201201/12 for date of Jan 12, 2012.
-    my $dir = File::Spec->catfile($parent_dir,
-                                  join('', $y, $m),
-                                  $d);
+    my $dir = File::Spec->catfile(
+        $parent_dir,
+        join('', $y, $m),
+        $d);
 
     # umask is take into account for the final permissions.
     File::Path::make_path($dir, {
@@ -421,7 +417,7 @@ __END__
 
 =head1  SEE ALSO
 
-=over 2
+=over 4
 
 =item *
 

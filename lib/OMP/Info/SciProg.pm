@@ -15,11 +15,9 @@ use strict;
 use warnings;
 use Carp;
 
-use base qw/OMP::Info::Base/;
+use base qw/OMP::Info/;
 
 =head1 METHODS
-
-=begin __PRIVATE__
 
 =head2 Create Accessor Methods
 
@@ -32,8 +30,6 @@ __PACKAGE__->CreateAccessors(
     msb => '@OMP::Info::MSB',
     timestamp => '$',
 );
-
-=end __PRIVATE__
 
 =head2 Accessor Methods
 
@@ -116,6 +112,10 @@ sub getMSBCountActive {
     return $num;
 }
 
+1;
+
+__END__
+
 =back
 
 =head1 SEE ALSO
@@ -141,5 +141,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

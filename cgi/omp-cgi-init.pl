@@ -10,20 +10,20 @@
 # This file must be in the same directory as your CGI program.
 # It can be loaded using
 
-#   do "./cgi-init.pl";
+#     do './cgi-init.pl';
 
 BEGIN {
-  # For taint checking, restrict our path
-  $ENV{PATH} = "/bin:/usr/bin";
+    # For taint checking, restrict our path
+    $ENV{PATH} = "/bin:/usr/bin";
 
-  # Global OMP location
-  use constant OMPLIB => "/jac_sw/omp/msbserver/lib";
-  use File::Spec;
+    # Global OMP location
+    use constant OMPLIB => '/jac_sw/omp/msbserver/lib';
+    use File::Spec;
 
-  # Set the configuration directory, unless we have an override
-  # from the environment
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
+    # Set the configuration directory, unless we have an override
+    # from the environment
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 # Make sure that all modules configure CGI::Carp the same way
@@ -39,4 +39,3 @@ $| = 1;
 
 # Return value from script
 1;
-

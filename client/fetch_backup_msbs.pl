@@ -6,7 +6,7 @@ fetch_backup_msbs - Retrieve a selection of MSBs for offline observation
 
 =head1 SYNOPSIS
 
-   fetch_backup_msbs.pl --directory /export/data/scratch/backup_msbs
+    fetch_backup_msbs.pl --directory /export/data/scratch/backup_msbs
 
 =head1 DESCRIPTION
 
@@ -142,9 +142,9 @@ my ($date_start, $date_end) = map {
     $dt;
 } OMP::Config->getData('freetimeut', telescope => $telescope);
 
-my $date_step = new DateTime::Duration(minutes => 30);
+my $date_step = DateTime::Duration->new(minutes => 30);
 
-my $backend = new OMP::DBbackend;
+my $backend = OMP::DBbackend->new();
 
 my $utdate = $date_start->ymd('-');
 my %msb_filename = ();
@@ -166,8 +166,10 @@ do {
             "<disableconstraint>zoa</disableconstraint>\n " .
             "</MSBQuery>\n";
 
-        my $db = new OMP::MSBDB(DB => $backend);
-        my @results = $db->queryMSB(new OMP::MSBQuery(XML => $qxml, MaxCount => 10000), 'object');
+        my $db = OMP::MSBDB->new(DB => $backend);
+        my @results = $db->queryMSB(
+            OMP::MSBQuery->new(XML => $qxml, MaxCount => 10000),
+            'object');
 
         next unless scalar @results;
 
@@ -204,13 +206,13 @@ do {
 
             print "Writing: $pathname\n";
             make_path($directory);
-            my $fh = new IO::File($pathname, 'w');
+            my $fh = IO::File->new($pathname, 'w');
             $fh->binmode(':utf8');
             print $fh msb_to_xml($result->projectid, $msb);
             $fh->close();
 
             # Write the MSB information to another file.
-            my $fh = new IO::File($pathnameinfo, 'w');
+            my $fh = IO::File->new($pathnameinfo, 'w');
             $fh->binmode(':utf8');
             print $fh $result->summary('xmlshort');
             $fh->close();
@@ -241,9 +243,10 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     "$countrysemester\n".
                     "</MSBQuery>\n";
 
-                my $db = new OMP::MSBDB(DB => $backend);
-                my @results = $db->queryMSB(new OMP::MSBQuery(XML => $qxml),
-                                            'object');
+                my $db = OMP::MSBDB->new(DB => $backend);
+                my @results = $db->queryMSB(
+                    OMP::MSBQuery->new(XML => $qxml),
+                    'object');
 
                 next unless scalar @results;
 
@@ -304,7 +307,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                         print "Writing: $pathname\n";
 
                         make_path($directory);
-                        my $fh = new IO::File($pathname, 'w');
+                        my $fh = IO::File->new($pathname, 'w');
                         $fh->binmode(':utf8');
                         print $fh msb_to_xml($result->projectid, $msb);
                         $fh->close();
@@ -318,7 +321,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     # Write the MSB information to another file, and do this
                     # even if linking the MSB itself as other parameters such
                     # as elevation may have changed.
-                    my $fh = new IO::File($pathnameinfo, 'w');
+                    my $fh = IO::File->new($pathnameinfo, 'w');
                     $fh->binmode(':utf8');
                     print $fh $result->summary('xmlshort');
                     $fh->close();
@@ -339,7 +342,7 @@ sub fetch_msb_object {
 
     # The OMP::MSBDB seems to burn in the project ID after
     # fetching so we need a new one every time!
-    my $db = new OMP::MSBDB(DB => $backend);
+    my $db = OMP::MSBDB->new(DB => $backend);
 
     my $msb = eval {$db->fetchMSB(msbid => $msbid)};
     unless (defined $msb) {

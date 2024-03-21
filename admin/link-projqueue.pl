@@ -8,10 +8,10 @@ link-projqueue.pl - Make one project queue to appear in other queues
 
 To have "projectid" appear in "projectid-1" & "projectid-2" queues ...
 
-  link-projqueue.pl   \
-    [ -verbose ]      \
-    -push projectid   \
-    projectid-1 projectid-2
+    link-projqueue.pl    \
+        [ -verbose ]     \
+        -push projectid  \
+        projectid-1 projectid-2
 
 =head1 DESCRIPTION
 
@@ -43,22 +43,22 @@ This option is B<required>.
 Say M10BU08 need to show up in M10BC07 queue; the project queue table
 has ...
 
-  projectid   country   tagpriority isprimary tagadj
-  ----------- --------- ----------- --------- -----------
-  M10BC07     CA                364         1           0
-  M10BU08     UK                244         1           0
+    projectid   country   tagpriority isprimary tagadj
+    ----------- --------- ----------- --------- -----------
+    M10BC07     CA                364         1           0
+    M10BU08     UK                244         1           0
 
 To have M10BU08 project appear in M10BC07 queue ...
 
-  link-project.pl -push M10BU08  M10BC07
+    link-project.pl -push M10BU08  M10BC07
 
 ... afterword the table entries would be ...
 
-  projectid   country   tagpriority isprimary tagadj
-  ----------- --------- ----------- --------- -----------
-  M10BC07     CA                364         1           0
-  M10BU08     UK                244         1           0
-  M10BU08     CA                364         0           0
+    projectid   country   tagpriority isprimary tagadj
+    ----------- --------- ----------- --------- -----------
+    M10BC07     CA                364         1           0
+    M10BU08     UK                244         1           0
+    M10BU08     CA                364         0           0
 
 =cut
 
@@ -71,15 +71,15 @@ use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
+}
 
-use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
+use Getopt::Long qw/:config gnu_compat no_ignore_case no_debug/;
 use Pod::Usage;
-use List::MoreUtils qw[ uniq ];
+use List::MoreUtils qw/uniq/;
 
-use OMP::Error qw[ :try ];
+use OMP::Error qw/:try/;
 use OMP::DBbackend;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -87,161 +87,151 @@ use OMP::ProjServer;
 # Increase in the number increases the verbose output.
 my $VERBOSE = 0;
 
-my ( $push, $help, @other );
-GetOptions( 'help' => \$help,
+my ($push, $help, @other);
+GetOptions(
+    'help' => \$help,
 
-            'push=s'   => \$push,
-            'verbose+' => \$VERBOSE,
-          )
-    or die pod2usage( '-exitval' => 2, '-verbose' => 1 );
+    'push=s' => \$push,
+    'verbose+' => \$VERBOSE,
+) or die pod2usage('-exitval' => 2, '-verbose' => 1);
 
-$help and pod2usage( '-exitval' => 1, '-verbose' => 2 );
+pod2usage('-exitval' => 1, '-verbose' => 2) if $help;
 
-( $push, @other ) = uniq( map { $_ ? uc : () } $push, @ARGV );
+($push, @other) = uniq(map {$_ ? uc : ()} $push, @ARGV);
 
 $push && 0 < scalar @other
-  or die <<_NO_DATA_;
+    or die <<_NO_DATA_;
 Need both a project id in "-push" option and at least one another project id.
 Please run with -help option for details.
 _NO_DATA_
 
-process( $push, @other );
+process($push, @other);
 
-$VERBOSE > 2 and make_noise( "d o n e\n" );
+make_noise("d o n e\n") if $VERBOSE > 2;
+
 exit;
 
 sub process {
+    my ($push, @other) = @_;
 
-  my ( $push, @other ) = @_;
+    return
+        unless $push && 0 < scalar @other;
 
-  return
-    unless $push && 0 < scalar @other;
+    my $db = OMP::DBbackend->new;
 
-  my $db = OMP::DBbackend->new;
+    add_link($db, $push, @other)
+        or print "All the projects might not have been linked.\n";
 
-  add_link( $db, $push, @other )
-    or print "All the projects might not have been linked.\n";
+    make_noise("Disconnecting with database\n");
 
-  make_noise( "Disconnecting with database\n" );
-
-  my $dbh = $db->handle;
-  $dbh->disconnect if $dbh;
+    my $dbh = $db->handle;
+    $dbh->disconnect if $dbh;
 }
 
 sub add_link {
+    my ($db, $push, @other) = @_;
 
-  my ( $db, $push, @other ) = @_;
+    make_noise('Projects to be linked: ', join(', ', $push, @other), "\n");
 
-  make_noise( 'Projects to be linked: ', join( ', ', $push, @other ), "\n" );
+    my @valid = verify_projid($push, @other);
 
-  my @valid = verify_projid( $push, @other );
+    make_noise('Validated projects: ', join(', ', @valid), "\n");
 
-  make_noise( 'Validated projects: ', join( ', ', @valid ), "\n" );
-
-  unless ( $push eq $valid[0] ) {
-
-    warn "Replacement project id, '$push', could not be validated; skipping\n";
-    return;
-  }
-
-  return if 2 > scalar @valid;
-
-  ( $push, @other ) = @valid;
-
-  # Sybase component (or DBD::Sybase) does not allow place holder for a
-  # value|column name in SELECT clause.
-  my $sql = <<'_ADD_LINK_';
-    INSERT %s
-    ( projectid, isprimary, country, tagpriority, tagadj )
-    ( SELECT '%s' , 0, country, tagpriority, tagadj
-      FROM %s
-      WHERE projectid = ? AND isprimary = 1
-    )
-_ADD_LINK_
-
-  $sql = sprintf $sql,
-            $OMP::ProjDB::PROJQUEUETABLE,
-            $push,
-            $OMP::ProjDB::PROJQUEUETABLE ;
-
-  my $err;
-  try {
-
-    my $dbh = $db->handle;
-    $db->begin_trans;
-
-    for ( @other ) {
-
-      make_noise( "Linking $push with $_:\n" );
-
-      $dbh->do( $sql, undef, $_ )
-        or $err++, warn join ' ', make_lineno( __LINE__, $VERBOSE ), $dbh->errstr;
+    unless ($push eq $valid[0]) {
+        warn "Replacement project id, '$push', could not be validated; skipping\n";
+        return;
     }
 
-    $db->commit_trans;
-  }
-  catch OMP::Error with {
+    return if 2 > scalar @valid;
 
-    $err = join ' ', make_lineno( __LINE__, $VERBOSE ), shift;
+    ($push, @other) = @valid;
 
-    warn "Rolling back transaction:\n$err";
-    $db->rollback_trans;
-    return;
-  }
-  otherwise {
+    # Sybase component (or DBD::Sybase) does not allow place holder for a
+    # value|column name in SELECT clause.
+    my $sql = <<'_ADD_LINK_';
+        INSERT %s
+        ( projectid, isprimary, country, tagpriority, tagadj )
+        ( SELECT '%s' , 0, country, tagpriority, tagadj
+          FROM %s
+          WHERE projectid = ? AND isprimary = 1
+        )
+_ADD_LINK_
 
-    $err = join ' ', make_lineno( __LINE__, $VERBOSE ), shift;
-    warn $err if $err;
-  } ;
+    $sql = sprintf $sql,
+        $OMP::ProjDB::PROJQUEUETABLE,
+        $push,
+        $OMP::ProjDB::PROJQUEUETABLE;
 
-  return if $err;
-  return 1;
+    my $err;
+    try {
+        my $dbh = $db->handle;
+        $db->begin_trans;
+
+        for (@other) {
+            make_noise("Linking $push with $_:\n");
+
+            $dbh->do($sql, undef, $_)
+                or $err ++, warn join ' ', make_lineno(__LINE__, $VERBOSE), $dbh->errstr;
+        }
+
+        $db->commit_trans;
+    }
+    catch OMP::Error with {
+        $err = join ' ', make_lineno(__LINE__, $VERBOSE), shift;
+
+        warn "Rolling back transaction:\n$err";
+        $db->rollback_trans;
+        return;
+    }
+    otherwise {
+        $err = join ' ', make_lineno(__LINE__, $VERBOSE), shift;
+        warn $err if $err;
+    };
+
+    return if $err;
+    return 1;
 }
 
 {
-  my ( %valid, %invalid );
-  sub verify_projid {
+    my (%valid, %invalid);
 
-    my ( @projid ) = @_;
+    sub verify_projid {
+        my (@projid) = @_;
 
-    my ( @valid );
-    for ( @projid ) {
+        my (@valid);
+        for (@projid) {
+            next if exists $invalid{$_};
 
-      next if exists $invalid{ $_ };
+            if (exists $valid{$_} || OMP::ProjServer->verifyProject($_)) {
+                make_noise("$_ is ok\n") if $VERBOSE > 1;
 
-      if ( exists $valid{ $_ } || OMP::ProjServer->verifyProject( $_ )) {
+                $valid{$_} ++;
+                push @valid, $_;
+                next;
+            }
 
-        $VERBOSE > 1 and make_noise( "$_ is ok\n" );
+            $invalid{$_}++;
+            warn "'$_' is not a valid project id, will be skipped\n";
+        }
 
-        $valid{ $_ }++;
-        push @valid, $_;
-        next;
-      }
-
-      $invalid{ $_ }++;
-      warn "'$_' is not a valid project id, will be skipped\n";
+        return @valid;
     }
-
-    return @valid;
-  }
 }
 
 sub make_lineno {
+    my ($n, $verbose) = @_;
 
-  my ( $n, $verbose ) = @_;
+    $n = "(line $n)" if defined $n;
 
-  $n = "(line $n)" if defined $n;
-
-  return $n if $verbose or 2 > scalar @_;
-  return;
+    return $n if $verbose or 2 > scalar @_;
+    return;
 }
 
 sub make_noise {
+    return unless $VERBOSE;
 
-  return unless $VERBOSE;
-
-  print $_ for @_;
-  return;
+    print $_ for @_;
+    return;
 }
 
 __END__

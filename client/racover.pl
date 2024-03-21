@@ -6,8 +6,8 @@ racover - Present source coverage for the semester
 
 =head1 SYNOPSIS
 
-  racover -tel jcmt -semester 04B
-  racover -tel ukirt -country uk -instrument ufti
+    racover -tel jcmt -semester 04B
+    racover -tel ukirt -country uk -instrument ufti
 
 =head1 DESCRIPTION
 
@@ -67,10 +67,10 @@ This manual page.
 =cut
 
 BEGIN {
-  # command line tools probably do not want full logging enabled
-  # unless they are asking for it
-  $ENV{OMP_LOG_LEVEL} = 'IMPORTANT'
-    unless exists $ENV{OMP_LOG_LEVEL};
+    # command line tools probably do not want full logging enabled
+    # unless they are asking for it
+    $ENV{'OMP_LOG_LEVEL'} = 'IMPORTANT'
+        unless exists $ENV{'OMP_LOG_LEVEL'};
 }
 
 use 5.006;
@@ -79,14 +79,14 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use List::Util qw/ max /;
+use List::Util qw/max/;
 
 # Locate the OMP software through guess work
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Password;
@@ -99,124 +99,131 @@ our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        "semester=s" => \$semester,
-                        "instrument=s" => \$instrument,
-                        "country=s" => \$country,
-                        "project=s" => \@projects,
-                        "tel=s" => \$tel,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "semester=s" => \$semester,
+    "instrument=s" => \$instrument,
+    "country=s" => \$country,
+    "project=s" => \@projects,
+    "tel=s" => \$tel,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  print "ompracover - Display RA coverage for a semester\n";
-  print "Version: ", $VERSION, "\n";
-  exit;
+    print "ompracover - Display RA coverage for a semester\n";
+    print "Version: ", $VERSION, "\n";
+    exit;
 }
 
 my ($provider, $username, $password) = OMP::Password->get_userpass();
-
 
 # Form instrument string
 $instrument = uc($instrument) if defined $instrument;
 my $inststr = (defined $instrument ? "Instrument $instrument" : '');
 
 # Look for projects
-@projects = split(/,/,join(',',@projects));
+@projects = split /,/, join(',', @projects);
 
 my $sublabel = '';
 
 # We either have projects or we need to look for them
 if (@projects) {
-  print scalar(@projects) . " project". (@projects > 1 ? "s" : '')
-    ." provided on the command line\n";
+    print scalar(@projects) . " project" . (@projects > 1 ? "s" : '')
+        . " provided on the command line\n";
 
-  if (@projects == 1) {
-    $sublabel = "Project $projects[0] $inststr";
-  } else {
-    $sublabel = scalar(@projects) . " projects $inststr";
-  }
+    if (@projects == 1) {
+        $sublabel = "Project $projects[0] $inststr";
+    }
+    else {
+        $sublabel = scalar(@projects) . " projects $inststr";
+    }
 
-  # Convert to project objects (needs password)
-  @projects = map { OMP::ProjServer->projectDetails( $_, "object" ); } @projects;
+    # Convert to project objects (needs password)
+    @projects = map {
+        OMP::ProjServer->projectDetails($_, 'object');
+    } @projects;
+}
+else {
+    # We do not have projects, so use the country/semester/telescope search
 
-} else {
-  # We do not have projects, so use the country/semester/telescope search
+    # Telescope
+    my $telescope;
+    if (defined $tel) {
+        $telescope = uc $tel;
+    }
+    else {
+        # Should be able to pass in a readline object if Tk not desired
+        $telescope = OMP::General->determine_tel();
+        die "Unable to determine telescope. Exiting.\n"
+            unless defined $telescope;
+        die "Unable to determine telescope [too many choices]. Exiting.\n"
+            if ref $telescope;
+    }
 
-  # Telescope
-  my $telescope;
-  if(defined($tel)) {
-    $telescope = uc($tel);
-  } else {
-    # Should be able to pass in a readline object if Tk not desired
-    $telescope = OMP::General->determine_tel();
-    die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
-    die "Unable to determine telescope [too many choices]. Exiting.\n"
-      if ref $telescope;
-  }
+    # Default the semester if necessary
+    $semester = OMP::DateTools->determine_semester(tel => $telescope)
+        unless defined $semester;
 
-  # Default the semester if necessary
-  $semester = OMP::DateTools->determine_semester( tel => $telescope )
-    unless defined $semester;
+    # Form the country part of the query [and a useful string for later]
+    my $ctryxml = (defined $country ? "<country>$country</country>" : "");
+    my $ctrystr = (defined $country ? "Country " . uc($country) : '');
 
-  # Form the country part of the query [and a useful string for later]
-  my $ctryxml = (defined $country ? "<country>$country</country>" : "");
-  my $ctrystr = (defined $country ? "Country ".uc($country) : '');
+    $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
 
-  $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
+    # Form the query string for the projects
+    my $query = "<ProjQuery><telescope>$telescope</telescope><semester>$semester</semester>$ctryxml<state>1</state></ProjQuery>";
 
-  # Form the query string for the projects
-  my $query = "<ProjQuery><telescope>$telescope</telescope><semester>$semester</semester>$ctryxml<state>1</state></ProjQuery>";
+    print "Querying database for project details...\n";
+    my $projects = OMP::ProjServer->listProjects($query, "object");
 
-  print "Querying database for project details...\n";
-  my $projects = OMP::ProjServer->listProjects( $query, "object" );
+    print "Located " . scalar(@$projects) . " active projects in Semester $semester\n";
 
-  print "Located " . scalar(@$projects). " active projects in Semester $semester\n";
-
-  # Copy results
-  @projects = @$projects;
+    # Copy results
+    @projects = @$projects;
 }
 
 print "Obtaining MSB information. Please wait\n";
 
 # Make an array indexed by integer RA
-my @rahist = map { 0 } (0..23);
+my @rahist = map {0} (0 .. 23);
 
 # print header
-printf "RA: ".("%02d "x scalar(@rahist))."\n", (0..$#rahist);
+printf 'RA: ' . ('%02d ' x scalar(@rahist)) . "\n", (0 .. $#rahist);
 
 # Loop over all the projects and retrieve the science program
 my $i = 0;
 for my $proj (@projects) {
-  print $proj->projectid ."\n";
-  if ($proj->percentComplete > 99.9) {
-    print "No time remaining on project. Skipping\n";
-    next;
-  }
+    print $proj->projectid . "\n";
+    if ($proj->percentComplete > 99.9) {
+        print "No time remaining on project. Skipping\n";
+        next;
+    }
 
-  my $sp;
-  try {
-    ($sp) = OMP::SpServer->fetchProgram($proj->projectid, $provider, $username, $password, "OBJECT");
-  } catch OMP::Error::UnknownProject with {
-    print "Unable to retrieve science programme. Skipping\n";
-  };
-  next unless defined $sp;
+    my $sp;
+    try {
+        ($sp) = OMP::SpServer->fetchProgram(
+            $proj->projectid, $provider, $username, $password, 'OBJECT');
+    }
+    catch OMP::Error::UnknownProject with {
+        print "Unable to retrieve science programme. Skipping\n";
+    };
+    next unless defined $sp;
 
-  # Get the histogram for this program
-  my @local = $sp->ra_coverage( instrument => $instrument );
+    # Get the histogram for this program
+    my @local = $sp->ra_coverage(instrument => $instrument);
 
-  # And increment the global sum
-  @rahist = map { $rahist[$_] + $local[$_] } (0..$#rahist);
+    # And increment the global sum
+    @rahist = map {$rahist[$_] + $local[$_]} (0 .. $#rahist);
 
-  # print the result
-  print_hist(@local);
-#  $i++;
-# last if $i > 5;
+    # print the result
+    print_hist(@local);
 
+    #  $i ++;
+    # last if $i > 5;
 }
 
 print "Complete results:\n";
@@ -225,13 +232,13 @@ print_hist(@rahist);
 # Now plot the results
 
 eval {
-  require Graphics::PLplot;
+    require Graphics::PLplot;
 };
 if ($@) {
-  die "Plotting of results unavailable: $@\n";
+    die "Plotting of results unavailable: $@\n";
 }
 
-Graphics::PLplot::plsdev( "xwin" );
+Graphics::PLplot::plsdev('xwin');
 Graphics::PLplot::plinit();
 Graphics::PLplot::pladv(0);
 
@@ -243,44 +250,49 @@ $ymax = 1.01 if $ymax < 1;
 
 Graphics::PLplot::plvsta();
 Graphics::PLplot::plwind($xmin, $xmax, $ymin, $ymax);
-Graphics::PLplot::plbox("bc", 1.0, 0, "bcnv", 0.5, 0);
+Graphics::PLplot::plbox('bc', 1.0, 0, 'bcnv', 0.5, 0);
 Graphics::PLplot::plcol0(2);
-Graphics::PLplot::pllab("RA / hrs", "Estimated Duration / hrs", $sublabel );
+Graphics::PLplot::pllab('RA / hrs', 'Estimated Duration / hrs', $sublabel);
 
-my $binsz = 1/scalar(@rahist);
+my $binsz = 1 / scalar(@rahist);
 
 my $cnum = 1;
-for my $i (0..$#rahist) {
-  $cnum++;
-  $cnum = 2 if $cnum > 15;
-  Graphics::PLplot::plcol0( $cnum);
-  Graphics::PLplot::plpsty(0);
-  plfbox( ( $xmin + $i ), $rahist[$i]);
+for my $i (0 .. $#rahist) {
+    $cnum ++;
+    $cnum = 2 if $cnum > 15;
+    Graphics::PLplot::plcol0($cnum);
+    Graphics::PLplot::plpsty(0);
+    plfbox(($xmin + $i), $rahist[$i]);
 
-  my $text;
-  if ($rahist[$i] == 0) {
-    $text = '0';
-  } elsif (int($rahist[$i]) == $rahist[$i]) {
-    # an integer
-    $text = int($rahist[$i]);
-  } elsif ( $rahist[$i] > 9.5 ) {
-    # nearest int if > 10
-    $text = int($rahist[$i]+0.5);
-  } else {
-    # 1 d.p.
-    $text = sprintf("%.1f",$rahist[$i]);
-  }
+    my $text;
+    if ($rahist[$i] == 0) {
+        $text = '0';
+    }
+    elsif (int($rahist[$i]) == $rahist[$i]) {
+        # an integer
+        $text = int($rahist[$i]);
+    }
+    elsif ($rahist[$i] > 9.5) {
+        # nearest int if > 10
+        $text = int($rahist[$i] + 0.5);
+    }
+    else {
+        # 1 d.p.
+        $text = sprintf '%.1f', $rahist[$i];
+    }
 
-  Graphics::PLplot::plptex( ( $xmin + $i + 0.5), ($rahist[$i]+(0.01*$ymax)),
-          1, 0.0, 0.5, $text);
+    Graphics::PLplot::plptex(
+        ($xmin + $i + 0.5),
+        ($rahist[$i] + (0.01 * $ymax)),
+        1, 0.0, 0.5, $text
+    );
 
-  # Annotate every other
-  Graphics::PLplot::plmtex("b",1,(($i+1) * ($binsz) - (0.5*$binsz)), 0.5, ($xmin+$i))
-    if $i % 2;
-
+    # Annotate every other
+    Graphics::PLplot::plmtex('b', 1, (($i + 1) * ($binsz) - (0.5 * $binsz)), 0.5, ($xmin + $i))
+        if $i % 2;
 }
 
-my $outfile = "ra_coverage.eps";
+my $outfile = 'ra_coverage.eps';
 save_plot($outfile);
 print "Histogram written to file $outfile\n";
 
@@ -290,45 +302,47 @@ exit;
 # Taken from x12.t. It is amazing that PLplot does not have
 # a bar chart command
 sub plfbox {
-  my ($x0, $y0) = @_;
-  my @x = ( $x0, $x0, $x0+1, $x0+1);
-  my @y = ( 0, $y0, $y0, 0);
+    my ($x0, $y0) = @_;
+    my @x = ($x0, $x0, $x0 + 1, $x0 + 1);
+    my @y = (0, $y0, $y0, 0);
 
-  Graphics::PLplot::plfill(\@x, \@y);
-  Graphics::PLplot::plcol0(1);
-  Graphics::PLplot::pllsty(1);
-  Graphics::PLplot::plline(\@x, \@y);
+    Graphics::PLplot::plfill(\@x, \@y);
+    Graphics::PLplot::plcol0(1);
+    Graphics::PLplot::pllsty(1);
+    Graphics::PLplot::plline(\@x, \@y);
 }
 
 # Taken from x20.t
 
 sub save_plot {
-  my $fname = shift;
+    my $fname = shift;
 
-  my $cur_strm = Graphics::PLplot::plgstrm();
-  my $new_strm = Graphics::PLplot::plmkstrm();
+    my $cur_strm = Graphics::PLplot::plgstrm();
+    my $new_strm = Graphics::PLplot::plmkstrm();
 
-  # Need a white background so drop colour for now
-  Graphics::PLplot::plsdev("ps");
-  Graphics::PLplot::plsfnam($fname);
+    # Need a white background so drop colour for now
+    Graphics::PLplot::plsdev('ps');
+    Graphics::PLplot::plsfnam($fname);
 
-  Graphics::PLplot::plcpstrm($cur_strm, 0);
-  Graphics::PLplot::plreplot();
-  Graphics::PLplot::plend1();
+    Graphics::PLplot::plcpstrm($cur_strm, 0);
+    Graphics::PLplot::plreplot();
+    Graphics::PLplot::plend1();
 
-  Graphics::PLplot::plsstrm( $cur_strm );
-
+    Graphics::PLplot::plsstrm($cur_strm);
 }
 
 # print the text histogram
 sub print_hist {
-  my @hist = @_;
-  # print stats for this project. Make sure that if there is *anything* in a bin
-  # we indicate that there is something there so that if the value is less than 0.5 we
-  # force 1
-  printf "    ". ("%02d "x scalar(@hist))."\n", map {(($_ < 0.5 && $_ > 0) ? 1 : $_+0.5)} @hist;
+    my @hist = @_;
+
+    # print stats for this project. Make sure that if there is *anything* in a bin
+    # we indicate that there is something there so that if the value is less than 0.5 we
+    # force 1
+    printf '    ' . ('%02d ' x scalar(@hist)) . "\n",
+        map {(($_ < 0.5 && $_ > 0) ? 1 : $_ + 0.5)} @hist;
 }
 
+__END__
 
 =head1 AUTHOR
 

@@ -6,12 +6,12 @@ OMP::DBbackend::Archive - Database connection to JAC data archives
 
 =head1 SYNOPSIS
 
-  use OMP::DBbackend::Archive;
+    use OMP::DBbackend::Archive;
 
-  $connection = new OMP::DBbackend::Archive;
+    $connection = OMP::DBbackend::Archive->new();
 
-  $connection->begin_trans();
-  $connection->commit_trans();
+    $connection->begin_trans();
+    $connection->commit_trans();
 
 =head1 DESCRIPTION
 
@@ -27,10 +27,9 @@ use 5.006;
 use strict;
 use warnings;
 
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 
-use base qw/ OMP::DBbackend /;
-
+use base qw/OMP::DBbackend/;
 
 our $VERSION = '2.000';
 
@@ -46,46 +45,67 @@ This class method returns the information required to connect to the
 database. The details are returned in a hash with the following
 keys:
 
-  server  =>  Database server (e.g. omp4)
-  database=>  The database to use for the transaction
-  user    =>  database login name
-  password=>  password for user
+=over 4
+
+=item server
+
+Database server (e.g. omp4).
+
+=item database
+
+The database to use for the transaction.
+
+=item user
+
+Database login name.
+
+=item password
+
+Password for user.
+
+=back
 
 This is a class method so that it can easily be subclassed.
 
-  %details = OMP::DBbackend->loginhash;
+    %details = OMP::DBbackend->loginhash;
 
 The following environment variables are recognised to override
 these values:
 
-  OMP_ARCDBSERVER - the server to use
+=over 4
 
-In the future this method may well read the details from a config
-file rather than hard-wiring the values in the module.
+=item OMP_ARCDBSERVER
+
+The server to use.
+
+=back
 
 =cut
 
 sub loginhash {
-  my $self = shift;
+    my $self = shift;
 
-  # Uses a dummy value for database since the query class
-  # will choose the correct one.
+    # Uses a dummy value for database since the query class
+    # will choose the correct one.
 
-  my %details = (
-                 driver   => OMP::Config->getData("hdr_database.driver"),
-                 server   => OMP::Config->getData("hdr_database.server"),
-                 database => OMP::Config->getData("hdr_database.database"),
-                 user     => OMP::Config->getData("hdr_database.user"),
-                 password => OMP::Config->getData("hdr_database.password"),
-                );
+    my %details = (
+        driver => OMP::Config->getData('hdr_database.driver'),
+        server => OMP::Config->getData('hdr_database.server'),
+        database => OMP::Config->getData('hdr_database.database'),
+        user => OMP::Config->getData('hdr_database.user'),
+        password => OMP::Config->getData('hdr_database.password'),
+    );
 
-  # possible override
-  $details{server} = $ENV{OMP_ARCDBSERVER}
-    if (exists $ENV{OMP_ARCDBSERVER} and defined $ENV{OMP_ARCDBSERVER});
+    # possible override
+    $details{'server'} = $ENV{'OMP_ARCDBSERVER'}
+        if exists $ENV{'OMP_ARCDBSERVER'} and defined $ENV{'OMP_ARCDBSERVER'};
 
-  return %details;
-
+    return %details;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -114,7 +134,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;
-
-

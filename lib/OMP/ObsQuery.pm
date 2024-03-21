@@ -6,8 +6,8 @@ OMP::ObsQuery - Class representing an XML OMP query of the Observation table
 
 =head1 SYNOPSIS
 
-  $query = new OMP::ObsQuery( XML => $xml );
-  $sql = $query->sql( $obslogtable );
+    $query = OMP::ObsQuery->new(XML => $xml);
+    $sql = $query->sql($obslogtable);
 
 =head1 DESCRIPTION
 
@@ -27,7 +27,7 @@ use OMP::General;
 use OMP::Range;
 
 # Inheritance
-use base qw/ OMP::DBQuery /;
+use base qw/OMP::DBQuery/;
 
 # Package globals
 
@@ -43,22 +43,21 @@ our $VERSION = '2.000';
 
 Returns any checksums specified in the query.
 
- @checksums = $q->checksums;
+    @checksums = $q->checksums;
 
 =cut
 
 sub checksums {
-  my $self = shift;
-  my $qhash = $self->query_hash();
+    my $self = shift;
+    my $qhash = $self->query_hash();
 
-  if (exists $qhash->{checksum}) {
-    return @{ $qhash->{checksum} };
-  } else {
-    return ();
-  }
+    if (exists $qhash->{checksum}) {
+        return @{$qhash->{checksum}};
+    }
+    else {
+        return ();
+    }
 }
-
-
 
 =back
 
@@ -71,7 +70,7 @@ sub checksums {
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $obslogtable );
+    $sql = $query->sql($obslogtable);
 
 Returns undef if the query could not be formed.
 
@@ -89,40 +88,38 @@ indexed by single MSB IDs with multiple comments.
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
-    unless scalar(@_) == 1;
+    throw OMP::Error::DBMalformedQuery(
+        "sql method invoked with incorrect number of arguments\n")
+        unless scalar(@_) == 1;
 
-  my ($table) = @_;
+    my ($table) = @_;
 
-  # Generate the WHERE clause from the query hash
-  # Note that we ignore elevation, airmass and date since
-  # these can not be dealt with in the database at the present
-  # time [they are used to calculate source availability]
-  # Disabling constraints on queries should be left to this
-  # subclass
-  my $subsql = $self->_qhash_tosql();
+    # Generate the WHERE clause from the query hash
+    # Note that we ignore elevation, airmass and date since
+    # these can not be dealt with in the database at the present
+    # time [they are used to calculate source availability]
+    # Disabling constraints on queries should be left to this
+    # subclass
+    my $subsql = $self->_qhash_tosql();
 
-  # Construct the the where clause. Depends on which
-  # additional queries are defined
-  my @where = grep { $_ } ( $subsql);
-  my $where = '';
-  $where = " WHERE " . join( " AND ", @where)
-    if @where;
+    # Construct the the where clause. Depends on which
+    # additional queries are defined
+    my @where = grep {$_} ($subsql);
+    my $where = '';
+    $where = " WHERE " . join(" AND ", @where)
+        if @where;
 
-  # Prepare relevance expression if doing a fulltext index search.
-  my @rel = $self->_qhash_relevance();
-  my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
+    # Prepare relevance expression if doing a fulltext index search.
+    my @rel = $self->_qhash_relevance();
+    my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
 
-  # Now need to put this SQL into the template query
-  my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
+    # Now need to put this SQL into the template query
+    my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
 
-  return "$sql\n";
-
+    return "$sql\n";
 }
-
-=begin __PRIVATE__METHODS__
 
 =item B<_root_element>
 
@@ -134,7 +131,7 @@ Returns "ObsQuery" by default.
 =cut
 
 sub _root_element {
-  return "ObsQuery";
+    return "ObsQuery";
 }
 
 =item B<_post_process_hash>
@@ -144,7 +141,7 @@ mainly entails converting range hashes to C<OMP::Range> objects (via
 the base class), upcasing some entries and converting "status" fields
 to queries on "remaining" and "pending" columns.
 
-  $query->_post_process_hash( \%hash );
+    $query->_post_process_hash(\%hash);
 
 Also converts abbreviated form of project name to the full form
 recognised by the database (this is why a telescope is required).
@@ -152,27 +149,30 @@ recognised by the database (this is why a telescope is required).
 =cut
 
 sub _post_process_hash {
-  my $self = shift;
-  my $href = shift;
+    my $self = shift;
+    my $href = shift;
 
-  # Do the generic pre-processing
-  $self->SUPER::_post_process_hash( $href );
+    # Do the generic pre-processing
+    $self->SUPER::_post_process_hash($href);
 
-  if (exists $href->{'text'}) {
-    my $prefix = 'TEXTFIELD__';
-    $prefix .= 'BOOLEAN__' if exists $href->{'_attr'}->{'text'}
-      and exists $href->{'_attr'}->{'text'}->{'mode'}
-      and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
-    $href->{$prefix . 'commenttext'} = delete $href->{'text'};
-  }
+    if (exists $href->{'text'}) {
+        my $prefix = 'TEXTFIELD__';
 
-  # Remove attributes since we dont need them anymore
-  delete $href->{_attr};
+        $prefix .= 'BOOLEAN__'
+            if exists $href->{'_attr'}->{'text'}
+            and exists $href->{'_attr'}->{'text'}->{'mode'}
+            and $href->{'_attr'}->{'text'}->{'mode'} eq 'boolean';
 
+        $href->{$prefix . 'commenttext'} = delete $href->{'text'};
+    }
+
+    # Remove attributes since we dont need them anymore
+    delete $href->{_attr};
 }
 
+1;
 
-=end __PRIVATE__METHODS__
+__END__
 
 =back
 
@@ -191,7 +191,7 @@ The top-level container element is E<lt>ObsQueryE<gt>.
 Elements that contain simply C<PCDATA> are assumed to indicate
 a required value.
 
-  <instrument>SCUBA</instrument>
+    <instrument>SCUBA</instrument>
 
 Would only match if C<instrument=SCUBA>.
 
@@ -200,12 +200,12 @@ Would only match if C<instrument=SCUBA>.
 Elements that contain elements C<max> and/or C<min> are used
 to indicate ranges.
 
-  <elevation><min>30</min></elevation>
-  <priority><max>2</max></priority>
+    <elevation><min>30</min></elevation>
+    <priority><max>2</max></priority>
 
 Why dont we just use attributes?
 
-  <priority max="2" /> ?
+    <priority max="2" /> ?
 
 Using explicit elements is probably easier to generate.
 
@@ -216,10 +216,10 @@ Ranges are inclusive.
 Elements that contain other elements are assumed to be containing
 multiple alternative matches (C<OR>ed).
 
-  <instruments>
-   <instrument>CGS4</instrument>
-   <instrument>IRCAM</instrument>
-  </isntruments>
+    <instruments>
+        <instrument>CGS4</instrument>
+        <instrument>IRCAM</instrument>
+    </isntruments>
 
 C<max> and C<min> are special cases. In general the parser will
 ignore the plural element (rather than trying to determine that
@@ -227,16 +227,16 @@ ignore the plural element (rather than trying to determine that
 dropping of plurals such that multiple occurrence of the same element
 in the query represent variants directly.
 
-  <name>Tim</name>
-  <name>Kynan</name>
+    <name>Tim</name>
+    <name>Kynan</name>
 
 would suggest that names Tim or Kynan are valid (but Brad and Frossie
 aren't, alas). This also means
 
-  <instrument>SCUBA</instrument>
-  <instruments>
-    <instrument>CGS4</instrument>
-  </instruments>
+    <instrument>SCUBA</instrument>
+    <instruments>
+        <instrument>CGS4</instrument>
+    </instruments>
 
 will select SCUBA or CGS4.
 
@@ -275,7 +275,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

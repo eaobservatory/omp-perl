@@ -14,7 +14,6 @@ use CGI::Carp qw/fatalsToBrowser/;
 use List::MoreUtils qw/uniq/;
 
 use OMP::CGIComponent::CaptureImage;
-use OMP::DBbackend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
@@ -42,7 +41,7 @@ sub view_queue_status {
     my $self = shift;
 
     my $q = $self->cgi;
-    my $capture = new OMP::CGIComponent::CaptureImage(page => $self);
+    my $capture = OMP::CGIComponent::CaptureImage->new(page => $self);
 
     return $self->_show_input_page({})
         unless $q->param('submit_plot');
@@ -183,7 +182,7 @@ sub _show_input_page {
 
     my $q = $self->cgi;
 
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
+    my $db = OMP::ProjDB->new(DB => $self->database);
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
     push @semesters, $semester unless grep {$_ eq $semester} @semesters;
@@ -272,3 +271,5 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
+
+=cut

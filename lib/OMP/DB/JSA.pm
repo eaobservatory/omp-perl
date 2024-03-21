@@ -1,7 +1,5 @@
 package OMP::DB::JSA;
 
-=pod
-
 =head1 NAME
 
 OMP::DB::JSA - Arranges for database handle given a configuration
@@ -14,7 +12,7 @@ Make an object ...
 
 Pass jcmt database handle already being used if desired ...
 
-    $jdb->dbhandle( $dbh );
+    $jdb->dbhandle($dbh);
 
 =head1 DESCRIPTION
 
@@ -23,7 +21,8 @@ configuration with "database" section.  See L<OMP::Config> for details.
 
 =cut
 
-use strict; use warnings;
+use strict;
+use warnings;
 
 use Data::Dumper;
 use List::Util qw/sum max/;
@@ -48,20 +47,28 @@ my %_config = (
 
 =head1 METHODS
 
-=over 2
+=over 4
 
 =item B<new> constructor
 
 Make a C<OMP::DB::JSA> object.  It takes a hash of parameters ...
 
-    db-config - pass file name with database log in information in "ini" format;
-                default is /jac_sw/etc/enterdata/enterdata.cfg;
+=over 4
 
-    name      - (optional) pass a string to differentiate db connections
-                with same log in configuration; default is 'OMP::DB::JSA'.
+=item db-config
+
+Pass file name with database log in information in "ini" format;
+default is /jac_sw/etc/enterdata/enterdata.cfg.
+
+=item name
+
+(Optional) pass a string to differentiate db connections
+with same log in configuration; default is 'OMP::DB::JSA'.
+
+=back
 
     $jdb = OMP::DB::JSA->new(
-        'name'      => 'OMP::DB::JSA'
+        'name' => 'OMP::DB::JSA'
         'db-config' => '/jac_sw/etc/enterdata/enterdata.cfg');
 
 Transactions are set to be used (see C<use_transaction> method).
@@ -177,7 +184,9 @@ Database handles are released at the end of the program via C<END>.
     }
 }
 
-END {_release_dbh();}
+END {
+    _release_dbh();
+}
 
 =item B<use_transaction>
 
@@ -218,19 +227,19 @@ references, each array reference is used per SELECT in WHERE clause.
 
 Returns an array reference of hash references of selected columns.
 
-    $result =
-      $jdb->select_loop('table'   => 'the_table',
-                        'columns' => [ 'a', 'b' ],
-                        'where'   => [ a = ? AND b = ? ],
-                        'values'  => [[ 1, 2 ], [3, 4]]);
+    $result = $jdb->select_loop(
+        'table' => 'the_table',
+        'columns' => ['a', 'b'],
+        'where' => [a = ? AND b = ?],
+        'values' => [[1, 2], [3, 4]]);
 
 Optional hash pairs are "order" & "group" respectively for C<ORDER BY>
 and C<GROUP BY> clauses ...
 
-    $result =
-      $jdb->select_loop('table'   => 'the_table',
-                         ...
-                         'order' => [ 'b' , 'a' ]);
+    $result = $jdb->select_loop(
+        'table' => 'the_table',
+        ...
+        'order' => ['b', 'a']);
 
 On database related errors, throws L<OMP::Error::DBError> type of
 exceptions.
@@ -251,8 +260,8 @@ sub select_loop {
     );
 
     my $sql = sprintf 'SELECT %s FROM %s WHERE %s',
-                      (map {_to_string($_)} @arg{qw/columns table/}),
-                      _where_string($arg{'where'});
+        (map {_to_string($_)} @arg{qw/columns table/}),
+        _where_string($arg{'where'});
 
     foreach my $opt (qw/order group/) {
         next unless exists $arg{$opt};
@@ -305,9 +314,9 @@ value is value) given a hash of SQL and bind values.
 
 Returns nothing if nothing is found.
 
-    $result =
-      $jdb->run_select_sql('sql' => q[SELECT ... WHERE a = ? AND b = ?],
-                           'values' => [1, 2]);
+    $result = $jdb->run_select_sql(
+        'sql' => 'SELECT ... WHERE a = ? AND b = ?',
+        'values' => [1, 2]);
 
 On database error, throws C<OMP::Error::DBError>.
 
@@ -338,12 +347,12 @@ inserted.
 
 Returns number of affected rows if any.
 
-    $affected =
-      $jdb->insert('table'   => 'the_table',
-                   'columns' => ['a', 'b'],
-                   'values'  => [[1, 2], [4, 6]],
-                   'on_duplicate' => 'col="val"',
-                   'dry_run' => $dry_run);
+    $affected = $jdb->insert(
+        'table' => 'the_table',
+        'columns' => ['a', 'b'],
+        'values' => [[1, 2], [4, 6]],
+        'on_duplicate' => 'col="val"',
+        'dry_run' => $dry_run);
 
 On database error, rollbacks the transaction, errors are passed up.
 
@@ -382,8 +391,9 @@ sub insert {
         return 0;
     }
 
-    return $self->_run_change_loop('sql'    => $sql,
-                                   'values' => $values);
+    return $self->_run_change_loop(
+        'sql' => $sql,
+        'values' => $values);
 }
 
 =item B<update>
@@ -396,11 +406,11 @@ Returns number of affected rows if any.
 
     # Changes columns 'a' & 'b' of rows
     # where a is 1 & b is 2, or a is 4 & b is 6.
-    $affected =
-      $jdb->update('table'  => 'the_table',
-                   'set'    => ['a = 4', 'b = b +1'],
-                   'where'  => 'a = ? AND b = ?',
-                   'values' => [[1, 2], [4, 6]]);
+    $affected = $jdb->update(
+        'table' => 'the_table',
+        'set' => ['a = 4', 'b = b +1'],
+        'where' => 'a = ? AND b = ?',
+        'values' => [[1, 2], [4, 6]]);
 
 On database error, transaction is undone, errors are passed up.
 
@@ -420,12 +430,13 @@ sub update {
     );
 
     my $sql = sprintf 'UPDATE %s SET %s WHERE %s',
-                      $arg{'table'},
-                      _to_string($arg{'set'}),
-                      _where_string($arg{'where'});
+        $arg{'table'},
+        _to_string($arg{'set'}),
+        _where_string($arg{'where'});
 
-    return $self->_run_change_loop('sql'    => $sql,
-                                   'values' => $arg{'values'});
+    return $self->_run_change_loop(
+        'sql' => $sql,
+        'values' => $arg{'values'});
 }
 
 =item B<delete>
@@ -436,10 +447,10 @@ and array reference of array references of values for WHERE clause.
 Returns number of affected rows if any.
 
     # Deletes rows where a is 1, b is 2 OR a is 4 & b is 6.
-    $affected =
-      $jdb->delete('table'  => 'the_table',
-                   'where'  => 'a = ? AND b = ?' ,
-                   'values' => [[1, 2], [4, 6]]);
+    $affected = $jdb->delete(
+        'table' => 'the_table',
+        'where' => 'a = ? AND b = ?',
+        'values' => [[1, 2], [4, 6]]);
 
 On database error, transaction is undone, errors are passed up.
 
@@ -458,39 +469,51 @@ sub delete {
     );
 
     my $sql = sprintf 'DELETE %s WHERE %s',
-                      $arg{'table'},
-                      _where_string($arg{'where'});
+        $arg{'table'},
+        _where_string($arg{'where'});
 
-    return $self->_run_change_loop('sql'    => $sql,
-                                   'values' => $arg{'values'});
+    return $self->_run_change_loop(
+        'sql' => $sql,
+        'values' => $arg{'values'});
 }
 
 =item B<update_or_insert>
 
 Accepts the following arguments:
 
-    table   - table name in question;
+=over 4
 
-    keys    - sub set of column names to search for for UPDATE;
+=item table
 
-    columns - array reference of column names to be UPDATEd and/or
-              INSERTed;
+Table name in question.
 
-    values  - array reference of array references of values to be
-              UPDATEd and/or INSERTed (see update() & insert() method).
+=item keys
 
-    $db->update_or_insert(table   => $name,
-                          # For UPDATE.
-                          keys    => ['a', 'b'],
-                          # For UPDATE & INSERT.
-                          columns => ['a', 'b', 'c'],
-                          values  => [[1, 2, 3], [4, 6, 7]]);
+Sub set of column names to search for for UPDATE.
+
+=item columns
+
+Array reference of column names to be UPDATEd and/or
+INSERTed.
+
+=item values
+
+Array reference of array references of values to be
+UPDATEd and/or INSERTed (see update() & insert() method).
+
+=back
+
+    $db->update_or_insert(
+        table => $name,
+        # For UPDATE.
+        keys => ['a', 'b'],
+        # For UPDATE & INSERT.
+        columns => ['a', 'b', 'c'],
+        values => [[1, 2, 3], [4, 6, 7]]);
 
 Note: this method uses an "INSERT ... ON DUPLICATE KEY UPDATE ..." statement,
 so it should not be used on tables with multiple unique indexes.  (See the
 MySQL documentation for this statement for details.)
-
-=back
 
 =cut
 
@@ -544,9 +567,11 @@ sub update_or_insert {
     return;
 }
 
+=back
+
 =head2 INTERNAL METHODS
 
-=over 2
+=over 4
 
 =item B<_run_change_loop>
 
@@ -556,10 +581,9 @@ level references will affect multiple rows).
 
 Returns number of affected rows if any.
 
-    $affected =
-      $jdb->_run_change_loop('sql'    => 'UPDATE ...',
-                             'values' => [@bind]);
-
+    $affected = $jdb->_run_change_loop(
+        'sql' => 'UPDATE ...',
+        'values' => [@bind]);
 
 On database error, transaction is undone, errors are passed up.
 
@@ -603,9 +627,7 @@ Executes a given SQL query string with given list of bind values.
 
 Returns number of affected rows if any.
 
-    $affected =
-      $jdb->_run_change_sql('UPDATE ...', @bind);
-
+    $affected = $jdb->_run_change_sql('UPDATE ...', @bind);
 
 On database error, rollbacks the transaction & throws
 C<OMP::Error::DBError>.
@@ -653,7 +675,7 @@ Given a database handle, starts a transaction; returns nothing.
           #$dbh->begin_work();
         }
 
-        $trans++;
+        $trans ++;
         return;
     }
 
@@ -713,21 +735,22 @@ identified by key C<_check_>.
 
 Throws C<OMP::Error::BadArgs> if criteria are not met.
 
-    _check_input('table' => 'the_table',
-                 'where' => 'a = ? AND b = ?'.
-                 'values' => [ ... ],
+    _check_input(
+        'table' => 'the_table',
+        'where' => 'a = ? AND b = ?',
+        'values' => [...],
 
-                 '_check_' =>
-                   { # these two need to be simply truth
-                     # values.
-                     'table'  => 0,
-                     'where'  => 0,
+        '_check_' => {
+            # these two need to be simply truth
+            # values.
+            'table' => 0,
+            'where' => 0,
 
-                     # 'values' value has to be an array
-                     # reference.
-                     'values' => 1,
-                   }
-                );
+            # 'values' value has to be an array
+            # reference.
+            'values' => 1,
+        }
+    );
 
 =cut
 
@@ -797,7 +820,7 @@ sub _where_string {
 Returns a string joined by a separator given a plain scalar or an
 array reference.  Default separator is comma.
 
-    $string = _to_string( $list, ':' );
+    $string = _to_string($list, ':');
 
 =cut
 
@@ -814,10 +837,7 @@ sub _to_string {
 
 1;
 
-
 __END__
-
-=pod
 
 =back
 

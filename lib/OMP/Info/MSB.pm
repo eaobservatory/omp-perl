@@ -6,19 +6,19 @@ OMP::Info::MSB - MSB information
 
 =head1 SYNOPSIS
 
-  use OMP::Info::MSB;
+    use OMP::Info::MSB;
 
-  $msb = new OMP::Info::MSB( %hash );
+    $msb = OMP::Info::MSB->new(%hash);
 
-  $checksum = $msb->checksum;
-  $projectid = $msb->projectid;
+    $checksum = $msb->checksum;
+    $projectid = $msb->projectid;
 
-  @observations = $msb->observations;
-  @comments = $msb->comments;
+    @observations = $msb->observations;
+    @comments = $msb->comments;
 
-  $xml = $msb->summary('xml');
-  $html = $msb->summary('html');
-  $text = "$msb";
+    $xml = $msb->summary('xml');
+    $html = $msb->summary('html');
+    $text = "$msb";
 
 =head1 DESCRIPTION
 
@@ -39,13 +39,12 @@ use Carp;
 use List::MoreUtils qw/any/;
 use OMP::Range;
 use OMP::Error;
-use OMP::Constants qw/ :msb /;
+use OMP::Constants qw/:msb/;
 use Time::Seconds;
 use OMP::Display;
-use OMP::General; # For Time::Seconds::pretty_print
+use OMP::General;  # For Time::Seconds::pretty_print
 
-
-use base qw/ OMP::Info::Base /;
+use base qw/OMP::Info/;
 
 our $VERSION = '2.000';
 
@@ -61,45 +60,41 @@ use overload '""' => "stringify";
 
 =back
 
-=begin __PRIVATE__
-
 =head2 Create Accessor Methods
 
 Create the accessor methods from a signature of their contents.
 
 =cut
 
-__PACKAGE__->CreateAccessors( projectid => '$__UC__',
-                              msbid => '$',
-                              tau => 'OMP::Range',
-                              checksum => '$',
-                              seeing => 'OMP::Range',
-                              priority => '$',
-                              schedpri => '$',
-                              affiliation => '$',
-                              moon =>  'OMP::Range',
-                              sky => 'OMP::Range',
-                              timeest => '$',
-                              title => '$',
-                              datemin => 'Time::Piece',
-                              datemax => 'Time::Piece',
-                              telescope => '$',
-                              cloud => 'OMP::Range',
-                              observations => '@OMP::Info::Obs',
-                              _wavebands => '@Astro::WaveBand',
-                              targets => '$',
-                              instruments => '$',
-                              coordstypes => '$',
-                              nrepeats => '$',
-                              elevation => 'OMP::Range',
-                              remaining => '$',
-                              completion => '$',
-                              comments => '@OMP::Info::Comment',
-                              approach => '$',
-                             );
-#' for the emacs color coding
-
-=end __PRIVATE__
+__PACKAGE__->CreateAccessors(
+    projectid => '$__UC__',
+    msbid => '$',
+    tau => 'OMP::Range',
+    checksum => '$',
+    seeing => 'OMP::Range',
+    priority => '$',
+    schedpri => '$',
+    affiliation => '$',
+    moon => 'OMP::Range',
+    sky => 'OMP::Range',
+    timeest => '$',
+    title => '$',
+    datemin => 'Time::Piece',
+    datemax => 'Time::Piece',
+    telescope => '$',
+    cloud => 'OMP::Range',
+    observations => '@OMP::Info::Obs',
+    _wavebands => '@Astro::WaveBand',
+    targets => '$',
+    instruments => '$',
+    coordstypes => '$',
+    nrepeats => '$',
+    elevation => 'OMP::Range',
+    remaining => '$',
+    completion => '$',
+    comments => '@OMP::Info::Comment',
+    approach => '$',
+);
 
 =head2 Accessor Methods
 
@@ -215,7 +210,7 @@ Construct a waveband summary of the MSB. This retrieves the waveband
 from each observation and returns a single string. Duplicate wavebands
 are ignored.
 
-  $wb = $msb->waveband();
+    $wb = $msb->waveband();
 
 If an array of Astro::WaveBand objects has been stored in C<wavebands()> that
 will be used in preference to looking for constituent observations.
@@ -226,38 +221,39 @@ and is passed on to the C<wavebands> method.
 =cut
 
 sub waveband {
-  my $self = shift;
-  if (@_) {
-    my $wb = shift;
-    return $self->wavebands([$wb]);
-  } else {
-    # Construct string concatenated representation to retain original
-    # behavior for use where a plain string is needed.
-    my $wbs = $self->wavebands;
-    return join '/', map {$_->natural} @$wbs;
-  }
+    my $self = shift;
+    if (@_) {
+        my $wb = shift;
+        return $self->wavebands([$wb]);
+    }
+    else {
+        # Construct string concatenated representation to retain original
+        # behavior for use where a plain string is needed.
+        my $wbs = $self->wavebands;
+        return join '/', map {$_->natural} @$wbs;
+    }
 }
 
 sub wavebands {
-  my $self = shift;
+    my $self = shift;
 
-  # Use basic accessor when setting the waveband list.
-  return $self->_wavebands(@_) if scalar @_;
+    # Use basic accessor when setting the waveband list.
+    return $self->_wavebands(@_) if scalar @_;
 
-  # Return the stored list if it is set.
-  my $result = $self->_wavebands();
-  return $result if defined $result and scalar @$result;
+    # Return the stored list if it is set.
+    my $result = $self->_wavebands();
+    return $result if defined $result and scalar @$result;
 
-  # Otherwise get waveband objects from the observations.  Filter for
-  # uniqueness using Astro::WaveBand's overloaded '==' operator.
-  # (Note: this may unforunately let through multiple values
-  # which will look the same once formatted.)
-  my @wbs = ();
-  foreach my $wb (map {$_->waveband} $self->observations) {
-    next unless defined $wb;
-    push @wbs, $wb unless any {$wb == $_} @wbs;
-  }
-  return \@wbs;
+    # Otherwise get waveband objects from the observations.  Filter for
+    # uniqueness using Astro::WaveBand's overloaded '==' operator.
+    # (Note: this may unforunately let through multiple values
+    # which will look the same once formatted.)
+    my @wbs = ();
+    foreach my $wb (map {$_->waveband} $self->observations) {
+        next unless defined $wb;
+        push @wbs, $wb unless any {$wb == $_} @wbs;
+    }
+    return \@wbs;
 }
 
 =item B<instrument>
@@ -266,7 +262,7 @@ Construct a instrument summary of the MSB. This retrieves the instrument
 from each observation and returns a single string. Duplicate instruments
 are ignored.
 
-  $targ = $msb->instrument();
+    $targ = $msb->instrument();
 
 If a instruments string has been stored in C<instruments()> that value
 will be used in preference to looking for constituent observations.
@@ -276,45 +272,47 @@ If a value is supplied it is passed onto the C<instruments> method.
 =cut
 
 sub instrument {
-  my $self = shift;
-  if (@_) {
-    my $i = shift;
-    return $self->instruments( $i );
-  } else {
-    my $cache = $self->instruments;
-    if ($cache) {
-      return $cache;
-    } else {
-      # Ask the observations
-      return scalar($self->_process_obs("instrument",1));
+    my $self = shift;
+    if (@_) {
+        my $i = shift;
+        return $self->instruments($i);
     }
-  }
-
+    else {
+        my $cache = $self->instruments;
+        if ($cache) {
+            return $cache;
+        }
+        else {
+            # Ask the observations
+            return scalar($self->_process_obs("instrument", 1));
+        }
+    }
 }
 
 =item B<msbtid>
 
 Return a list of MSB transaction ids associated with this MSB object.
 
- @msbtids = $msb->msbtid;
+    @msbtids = $msb->msbtid;
 
 If a transaction ID is supplied as an argument, returns the comment objects
 associated with that specific transaction.
 
- @comments = $msb->msbtid( $msbtid );
+    @comments = $msb->msbtid($msbtid);
 
 =cut
 
 sub msbtid {
-  my $self = shift;
-  my @comments = $self->comments;
+    my $self = shift;
+    my @comments = $self->comments;
 
-  if (@_) {
-    my $msbtid = shift;
-    return grep { defined $_->tid && $_->tid eq $msbtid } @comments;
-  } else {
-    return map { $_->tid } grep { defined $_->tid } @comments;
-  }
+    if (@_) {
+        my $msbtid = shift;
+        return grep {defined $_->tid && $_->tid eq $msbtid} @comments;
+    }
+    else {
+        return map {$_->tid} grep {defined $_->tid} @comments;
+    }
 }
 
 =item B<target>
@@ -323,7 +321,7 @@ Construct a target summary of the MSB. This retrieves the target
 from each observation and returns a single string. Duplicate targets
 are ignored.
 
-  $targ = $msb->target();
+    $targ = $msb->target();
 
 If a targets string has been stored in C<targets()> that value
 will be used in preference to looking for constituent observations.
@@ -333,20 +331,21 @@ If a value is supplied it is passed onto the C<targets> method.
 =cut
 
 sub target {
-  my $self = shift;
-  if (@_) {
-    my $t = shift;
-    return $self->targets( $t );
-  } else {
-    my $cache = $self->targets;
-    if ($cache) {
-      return $cache;
-    } else {
-      # Ask the observations
-      return scalar($self->_process_obs("target",1));
+    my $self = shift;
+    if (@_) {
+        my $t = shift;
+        return $self->targets($t);
     }
-  }
-
+    else {
+        my $cache = $self->targets;
+        if ($cache) {
+            return $cache;
+        }
+        else {
+            # Ask the observations
+            return scalar($self->_process_obs("target", 1));
+        }
+    }
 }
 
 =item B<ha>
@@ -356,22 +355,22 @@ targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $ha = $msb->ha;
+    $ha = $msb->ha;
 
 Takes no arguments.
 
 =cut
 
 sub ha {
-  my $self = shift;
-  # Ask the observations
-  my @ha = $self->_process_coords( sub {
-                                     my $c = shift;
-                                     return sprintf("%.1f",
-                                                    $c->ha( format => "h",
-                                                           normalize => 1));
-                                   });
-  return join("/",@ha);
+    my $self = shift;
+    # Ask the observations
+    my @ha = $self->_process_coords(
+        sub {
+            my $c = shift;
+            return sprintf '%.1f', $c->ha(format => 'h', normalize => 1);
+        }
+    );
+    return join '/', @ha;
 }
 
 =item B<airmass>
@@ -381,21 +380,22 @@ targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $ha = $msb->airmass;
+    $ha = $msb->airmass;
 
 Takes no arguments.
 
 =cut
 
 sub airmass {
-  my $self = shift;
-  # Ask the observations
-  my @am = $self->_process_coords( sub {
-                                     my $c = shift;
-                                     return sprintf("%.3f",
-                                                    $c->airmass);
-                                   });
-  return join("/",@am);
+    my $self = shift;
+    # Ask the observations
+    my @am = $self->_process_coords(
+        sub {
+            my $c = shift;
+            return sprintf '%.3f', $c->airmass;
+        }
+    );
+    return join '/', @am;
 }
 
 =item B<ra>
@@ -405,22 +405,22 @@ targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $ra = $msb->ra;
+    $ra = $msb->ra;
 
 Takes no arguments.
 
 =cut
 
 sub ra {
-  my $self = shift;
-  # Ask the observations
-  my @ra = $self->_process_coords( sub {
-                                     my $c = shift;
-                                     return sprintf("%.1f",
-                                                    $c->ra_app( format => "h",
-                                                               normalize => 1));
-                                   });
-  return join("/",@ra);
+    my $self = shift;
+    # Ask the observations
+    my @ra = $self->_process_coords(
+        sub {
+            my $c = shift;
+            return sprintf '%.1f', $c->ra_app(format => 'h', normalize => 1);
+        }
+    );
+    return join '/', @ra;
 }
 
 =item B<dec>
@@ -430,21 +430,22 @@ targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $dec = $msb->dec;
+    $dec = $msb->dec;
 
 Takes no arguments.
 
 =cut
 
 sub dec {
-  my $self = shift;
-  # Ask the observations
-  my @dec = $self->_process_coords( sub {
-                                     my $c = shift;
-                                     return sprintf("%.1f",
-                                                    $c->dec_app( format => "d")),
-                                   });
-  return join("/",@dec);
+    my $self = shift;
+    # Ask the observations
+    my @dec = $self->_process_coords(
+        sub {
+            my $c = shift;
+            return sprintf '%.1f', $c->dec_app(format => 'd');
+        }
+    );
+    return join '/', @dec;
 }
 
 =item B<az>
@@ -454,23 +455,23 @@ targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $az = $msb->az;
+    $az = $msb->az;
 
 Takes no arguments.
 
 =cut
 
 sub az {
-  my $self = shift;
-  # Ask the observations
-  my @az = $self->_process_coords( sub {
-                                     my $c = shift;
-                                     return sprintf("%.0f",
-                                                    $c->az( format => "d")),
-                                   });
-  return join("/",@az);
+    my $self = shift;
+    # Ask the observations
+    my @az = $self->_process_coords(
+        sub {
+            my $c = shift;
+            return sprintf '%.0f', $c->az(format => 'd');
+        }
+    );
+    return join '/', @az;
 }
-
 
 =item B<coordstype>
 
@@ -478,7 +479,7 @@ Construct a coordinate type summary of the MSB. This retrieves the
 type from each observation and returns a single string. Duplicate
 types are ignored.
 
-  $types = $msb->coordstype();
+    $types = $msb->coordstype();
 
 If a type string has been stored in C<coordstypes()> that value
 will be used in preference to looking for constituent observations.
@@ -488,59 +489,60 @@ If a value is supplied it is passed onto the C<coordstypes> method.
 =cut
 
 sub coordstype {
-  my $self = shift;
-  if (@_) {
-    my $t = shift;
-    return $self->coordstypes( $t );
-  } else {
-    my $cache = $self->coordstypes;
-    if ($cache) {
-      return $cache;
-    } else {
-      # Ask the observations
-      my @types = map { $_->coords->type }
-        grep { defined $_->coords }
-          $self->observations;
-      @types = $self->_compress_array( @types );
-      return join("/", @types);
+    my $self = shift;
+    if (@_) {
+        my $t = shift;
+        return $self->coordstypes($t);
     }
-  }
-
+    else {
+        my $cache = $self->coordstypes;
+        if ($cache) {
+            return $cache;
+        }
+        else {
+            # Ask the observations
+            my @types = map {$_->coords->type}
+                grep {defined $_->coords}
+                $self->observations;
+            @types = $self->_compress_array(@types);
+            return join '/', @types;
+        }
+    }
 }
 
 =item B<obscount>
 
 Returns the number of observations stored in the MSB.
 
-  $nobs = $msb->obscount;
+    $nobs = $msb->obscount;
 
 =cut
 
 sub obscount {
-  my $self = shift;
-  return scalar(@{ $self->observations });
+    my $self = shift;
+    return scalar(@{$self->observations});
 }
 
 =item B<addComment>
 
 Push a comment onto the stack.
 
-  $msb->addComment;
+    $msb->addComment;
 
 The comment must be of class C<OMP::Info::Comment>.
 
 =cut
 
 sub addComment {
-  my $self = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $comment = shift;
 
-  # Go verbose in order for the observations() method
-  # to check class. Alternative is to check class here
-  # and then use the array reference
-  my @comments = $self->comments;
-  push(@comments, $comment);
-  $self->comments( \@comments );
+    # Go verbose in order for the observations() method
+    # to check class. Alternative is to check class here
+    # and then use the array reference
+    my @comments = $self->comments;
+    push(@comments, $comment);
+    $self->comments(\@comments);
 }
 
 =item B<isRemoved>
@@ -551,33 +553,63 @@ scheduling consideration or if the remaining field is not defined.
 =cut
 
 sub isRemoved {
-  my $self = shift;
-  return 1 if !defined $self->remaining;
-  return 1 if $self->remaining == OMP__MSB_REMOVED;
-  return ($self->remaining < 0 ? 1 : 0 );
+    my $self = shift;
+    return 1 if ! defined $self->remaining;
+    return 1 if $self->remaining == OMP__MSB_REMOVED;
+    return ($self->remaining < 0 ? 1 : 0);
 }
 
 =item B<summary>
 
 Return a summary of this object in the requested format.
 
-  $summary = $msb->summary( 'xml' );
+    $summary = $msb->summary('xml');
 
 If called in a list context default result is 'hash'. In scalar
 context default result if 'xml'.
 
 Allowed formats are:
 
- 'textshort' - short text summary (one line)
- 'textshorthdr' - header for short text summary
- 'textlong'  - long text summary
- 'xmlshort' - XML summary where observations are compressed
- 'xml' - XML summary where Observations are explicitly separate
- 'htmlshort' - short HTML summary
- 'html' - longer HTML summary
- 'hashshort' - returns hash representation of MSB where Observations
-               are retained as objects
- 'hashlong'  - hash rep. of MSB where Observations are array of hashes
+=over 4
+
+=item textshort
+
+Short text summary (one line).
+
+=item textshorthdr
+
+Header for short text summary.
+
+=item textlong
+
+Long text summary.
+
+=item xmlshort
+
+XML summary where observations are compressed.
+
+=item xml
+
+XML summary where Observations are explicitly separate.
+
+=item htmlshort
+
+Short HTML summary.
+
+=item html
+
+Longer HTML summary.
+
+=item hashshort
+
+Returns hash representation of MSB where Observations
+are retained as objects.
+
+=item hashlong
+
+Hash rep. of MSB where Observations are array of hashes.
+
+=back
 
 If the string '_noast' is appended to any format (resulting in,
 for example, 'textlong_noast'), no information that requires
@@ -590,12 +622,12 @@ the setting of "magic" (non-integer) remaining counter values.
 
 The XML short format will be something like the following:
 
- <SpMSBSummary id="string">
-    <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
-    <remaining>2</remaining>
-     ...
-    <instruments>CGS4/IRCAM</instruments>
-  </SpMSBSummary>
+    <SpMSBSummary id="string">
+        <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
+        <remaining>2</remaining>
+        ...
+        <instruments>CGS4/IRCAM</instruments>
+    </SpMSBSummary>
 
 where the elements match the key names in the hash. An C<msbid> key
 is treated specially. When present this id is used in the SpMSBSummary
@@ -603,19 +635,19 @@ element directly.
 
 The long XML format includes explicit observations.
 
- <SpMSBSummary id="string">
-    <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
-    <remaining>2</remaining>
-     ...
-    <SpObsSummary>
-      <instrument>IRCAM</instrument>
-       ...
-    </SpObsSummary>
-    <SpObsSummary>
-      <instrument>CGS4</instrument>
-       ...
-    </SpObsSummary>
-  </SpMSBSummary>
+    <SpMSBSummary id="string">
+        <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
+        <remaining>2</remaining>
+        ...
+        <SpObsSummary>
+            <instrument>IRCAM</instrument>
+            ...
+        </SpObsSummary>
+        <SpObsSummary>
+            <instrument>CGS4</instrument>
+            ...
+        </SpObsSummary>
+    </SpMSBSummary>
 
 The XML representation includes the hour angle, elevation
 and airmass (using the C<Astro::Coords> objects stored in the
@@ -624,296 +656,295 @@ observations if present).
 =cut
 
 sub summary {
-  my $self = shift;
+    my $self = shift;
 
-  # Calculate default formatting
-  my $format = (wantarray() ? 'hash' : 'xml');
+    # Calculate default formatting
+    my $format = (wantarray() ? 'hash' : 'xml');
 
-  # Read the actual value
-  $format = lc(shift);
+    # Read the actual value
+    $format = lc(shift);
 
-  # If '_norem' as appended to the format, remove it and disable
-  # "magic" values of the remaining counter (such as "REM").
-  my $norem = 0;
-  if ($format =~ /_norem$/) {
-    $format =~ s/_norem$//;
-    $norem = 1;
-  }
-
-  # If 'noast' is appended to format value, do not include elements
-  # in the summary that require astrometry to be performed
-  my $noast;
-  if ($format =~ /_noast$/) {
-
-    # Get rid of the _noast portion
-    $format =~ s/_noast$//;
-
-    # Set the 'noast' option to true
-    $noast = 1;
-  }
-
-  # Field widths for short text summary. Do this early
-  # so that we can process textshorthdr without querying
-  # the object
-  my @keys = qw/projectid title remaining obscount tau seeing
-    pol type instrument waveband target coordstype timeest /;
-
-  # Field widths %s does not substr a string - real pain
-  # Therefore need to substr ourselves
-  my @width = qw/ 11 10 3 3 9 8 3 3 20 20 20 6 8 /;
-  throw OMP::Error::FatalError("Bizarre problem in OMP::Info::MSB::summary ")
-    unless @width == @keys;
-  my $textformat = join(" ",map { "%-$_"."s" } @width);
-
-  # Generate the header
-  if ($format eq 'textshorthdr') {
-    my @head = map {
-      substr(ucfirst($keys[$_]),0,$width[$_])
-    } 0..$#width;
-    return sprintf $textformat, @head;
-  }
-
-  # First build up a hash from the object
-  my %summary;
-
-  # These are the scalar/objects
-  my @elements = qw/ projectid checksum tau seeing priority moon timeest title
-                     elevation datemin datemax telescope cloud sky remaining
-                     msbid approach schedpri completion affiliation /;
-
-  # Include astrometry elements unless 'noast' option is being used
-  push @elements, qw/ ra airmass ha dec az /
-    unless ($noast);
-
-  for (@elements) {
-    $summary{$_} = $self->$_();
-  }
-
-  # Convert to Time::Seconds and pretty print
-  # unless we are asking for hashlong. Need to do this until
-  # we can fix the DB writing code since MSBDB uses hashlong to generate
-  # the summary and can not then write the time estimates to the
-  # database table.
-  unless ($format eq 'hashlong') {
-    $summary{timeest} = new Time::Seconds( $summary{timeest} )->pretty_print;
-  }
-
-  # obscount
-  $summary{obscount} = $self->obscount;
-
-  # Now get a long text form for the remaining number
-  my $remstatus;
-  unless ($norem) {
-    if (!defined $summary{remaining}) {
-      $remstatus = "Remaining count unknown";
-      $summary{remaining} = "N/A";
-    } elsif ($self->isRemoved) {
-      $remstatus = "REMOVED from consideration";
-      $summary{remaining} = "REM"; # Magic value
-    } elsif ($summary{remaining} == 0) {
-      $remstatus = "COMPLETE";
-    } else {
-      $remstatus = "$summary{remaining} remaining to be observed";
-    }
-  }
-
-  # Get the observations but retain them as objects for now
-  my @obs = $self->observations;
-
-  # For hash mode we just return what we have
-  if ($format =~ /^hash/) {
-    if ($format eq 'hashlong') {
-      $summary{observations} = [ map { scalar($_->summary('hash')) } @obs  ];
-    } else {
-      $summary{observations} = \@obs;
-    }
-    if (wantarray) {
-      return %summary;
-    } else {
-      return \%summary;
-    }
-  };
-
-  # The other modes may require text representation of
-  # the observations so generate those
-  for (qw/ waveband instrument target disperser coordstype pol type /) {
-    # If we have the method in this class call it
-    if ($self->can($_)) {
-      $summary{$_} = $self->$_;
-    } else {
-      # we dont know how to do this so ask the objects
-      $summary{$_} = $self->_process_obs( $_, 1 );
-    }
-  }
-
-  # Fill in some unknowns
-  for (qw/ timeest priority title seeing tau cloud sky affiliation /) {
-    $summary{$_} = "??" unless defined $summary{$_};
-  }
-
-
-  # Text summary
-  if ($format eq 'textshort' ) {
-
-    # Substr each string using the supplied widths.
-    my @sub = map {
-      my $key;
-      if (exists $summary{$keys[$_]} && defined $summary{$keys[$_]}) {
-        $key = $summary{$keys[$_]};
-      } else {
-        $key = '';
-      }
-      substr($key,0,$width[$_])
-    } 0..$#width;
-
-    return sprintf $textformat, @sub;
-
-  } elsif ($format eq 'textlong') {
-
-    # Long and verbose ASCII
-    my @text;
-    push(@text, "\tTitle:    $summary{title} [$remstatus]");
-    push(@text, "\tDuration: $summary{timeest} sec");
-    push(@text, "\tPriority: $summary{priority}\tSeeing: $summary{seeing}\tTau: $summary{tau}");
-
-    push(@text, "\tObservations:");
-
-    # Now go through the observations
-    my $obscount = 0;
-    for my $obs (@obs) {
-      $obscount++;
-      my $string = "\t $obscount - ";
-      $string .= "Inst:".$obs->instrument if $obs->instrument;
-      $string .= "Target:".$obs->target if $obs->target;
-      $string .= "Coords:".$obs->coords if $obs->coords;
-      $string .= "Waveband:".$obs->waveband if $obs->waveband;
-      push(@text, $string );
+    # If '_norem' as appended to the format, remove it and disable
+    # "magic" values of the remaining counter (such as "REM").
+    my $norem = 0;
+    if ($format =~ /_norem$/) {
+        $format =~ s/_norem$//;
+        $norem = 1;
     }
 
-    # Return a list or a string
-    if (wantarray) {
-      return @text;
-    } else {
-      return join("\n", @text) . "\n";
+    # If 'noast' is appended to format value, do not include elements
+    # in the summary that require astrometry to be performed
+    my $noast;
+    if ($format =~ /_noast$/) {
+        # Get rid of the _noast portion
+        $format =~ s/_noast$//;
+
+        # Set the 'noast' option to true
+        $noast = 1;
     }
 
-  } elsif ($format =~ /^html/) {
+    # Field widths for short text summary. Do this early
+    # so that we can process textshorthdr without querying
+    # the object
+    my @keys = qw/
+        projectid title remaining obscount tau seeing
+        pol type instrument waveband target coordstype timeest
+    /;
 
-    # Fix up HTML escapes
-    for (qw/ title tau seeing /) {
-      my $string = $summary{$_};
-      # Should use real HTML escape class from CPAN
-      $string =~ s/</\&lt\;/g;
-      $string =~ s/>/\&gt\;/g;
-      $string =~ s/\"/\&quot\;/g;
+    # Field widths %s does not substr a string - real pain
+    # Therefore need to substr ourselves
+    my @width = qw/ 11 10 3 3 9 8 3 3 20 20 20 6 8 /;
+    throw OMP::Error::FatalError("Bizarre problem in OMP::Info::MSB::summary ")
+        unless @width == @keys;
+    my $textformat = join(" ", map {"%-$_" . "s"} @width);
 
-      $summary{$_} = $string;
+    # Generate the header
+    if ($format eq 'textshorthdr') {
+        my @head = map {substr(ucfirst($keys[$_]), 0, $width[$_])} 0 .. $#width;
+        return sprintf $textformat, @head;
     }
 
+    # First build up a hash from the object
+    my %summary;
 
-    my @text;
-    push(@text, "<h3>$summary{title} (<em>$remstatus</em>)</h3>");
+    # These are the scalar/objects
+    my @elements = qw/
+        projectid checksum tau seeing priority moon timeest title
+        elevation datemin datemax telescope cloud sky remaining
+        msbid approach schedpri completion affiliation
+    /;
 
-    push(@text, "<TABLE border='0'>");
-    push(@text, "<tr><td>Duration:</td><td><b>$summary{timeest} sec</b></td>");
-    push(@text, "<td>Priority:</td><td><b>$summary{priority}</b></td></tr>");
-    push(@text, "<tr><td>Seeing:</td><td><b>$summary{seeing}</b></td>");
-    push(@text, "<td>Tau:</td><td><b>$summary{tau}</b></td></tr>");
-    push(@text, "</TABLE>");
+    # Include astrometry elements unless 'noast' option is being used
+    push @elements, qw/ra airmass ha dec az/
+        unless ($noast);
 
-    push(@text,"<TABLE  border='1'>");
-    push(@text,"<TR bgcolor='#7979aa'>");
-    push(@text,"<td>#</td><TD>Instrument</td><td>Target</td><td>Coords</td><td>Waveband</td></tr>");
-
-    # Now go through the observations
-    my $obscount = 0;
-    for my $obs (@obs) {
-      $obscount++;
-      push(@text,
-           "<TR bgcolor='#7979aa'>","<td>$obscount</td>",
-           map { "<td>" . $obs->$_() . "</td>"
-               } (qw/ instrument target coords waveband/));
+    for (@elements) {
+        $summary{$_} = $self->$_();
     }
 
-    push(@text, "</TABLE>");
-
-    # Return a list or a string
-    if (wantarray) {
-      return @text;
-    } else {
-      return join("\n", @text) . "\n";
+    # Convert to Time::Seconds and pretty print
+    # unless we are asking for hashlong. Need to do this until
+    # we can fix the DB writing code since MSBDB uses hashlong to generate
+    # the summary and can not then write the time estimates to the
+    # database table.
+    unless ($format eq 'hashlong') {
+        $summary{timeest} = Time::Seconds->new($summary{timeest})->pretty_print;
     }
 
-  } elsif ($format =~ /^xml/) {
+    # obscount
+    $summary{obscount} = $self->obscount;
 
-    # First the MSB things that are not dependent on
-    # observations [this may include some information
-    # summaries such as waveband and target]
-
-    # Add ha, airmass and ra
-    #
-    # These should already be present?  Therefore adding a check
-    # to avoid evaluating them again.
-    for my $method (qw/ ha airmass ra dec az /) {
-      $summary{$method} = $self->$method()
-        unless exists $summary{$method};
+    # Now get a long text form for the remaining number
+    my $remstatus;
+    unless ($norem) {
+        unless (defined $summary{remaining}) {
+            $remstatus = "Remaining count unknown";
+            $summary{remaining} = "N/A";
+        }
+        elsif ($self->isRemoved) {
+            $remstatus = "REMOVED from consideration";
+            $summary{remaining} = "REM";  # Magic value
+        }
+        elsif ($summary{remaining} == 0) {
+            $remstatus = "COMPLETE";
+        }
+        else {
+            $remstatus = "$summary{remaining} remaining to be observed";
+        }
     }
 
-    # XML version
-    my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{msbid}\""
-      if exists $summary{msbid} and defined $summary{msbid};
-    $xml .= ">\n";
+    # Get the observations but retain them as objects for now
+    my @obs = $self->observations;
 
-    # force key order
-    for my $key ($self->getResultColumns($summary{telescope})) {
-      # Special case the summary and ID keys
-      next if $key eq "summary";
-      next if $key =~ /^_/;
-      next unless defined $summary{$key};
-
-      # Allow OMP::Range objects to stringify in the summary
-      if (ref($summary{$key})) {
-        next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
-      }
-
-      # Currently Matt needs the msbid to be included
-      # in the XML elements as well as an attribute
-      # next if $key eq "msbid";
-
-      # Create XML segment
-      # Now we know we have to escape the > and < and &
-      $xml .= sprintf "  <$key>%s</$key>\n",
-          OMP::Display::escape_entity($summary{$key});
+    # For hash mode we just return what we have
+    if ($format =~ /^hash/) {
+        if ($format eq 'hashlong') {
+            $summary{observations} = [map {scalar($_->summary('hash'))} @obs];
+        }
+        else {
+            $summary{observations} = \@obs;
+        }
+        if (wantarray) {
+            return %summary;
+        }
+        else {
+            return \%summary;
+        }
     }
 
-    # Now add in the observations if we are doing the long version
-    if ($format !~ /short/) {
-      for (@obs) {
-        $xml .= '    '.$_->summary("xml");
-      }
+    # The other modes may require text representation of
+    # the observations so generate those
+    for (qw/waveband instrument target disperser coordstype pol type/) {
+        # If we have the method in this class call it
+        if ($self->can($_)) {
+            $summary{$_} = $self->$_;
+        }
+        else {
+            # we dont know how to do this so ask the objects
+            $summary{$_} = $self->_process_obs($_, 1);
+        }
     }
 
-    # And the comments
-    if ($format !~ /short/) {
-      for ($self->comments) {
-        $xml .= '     '.$_->summary('xml');
-      }
+    # Fill in some unknowns
+    for (qw/timeest priority title seeing tau cloud sky affiliation/) {
+        $summary{$_} = "??" unless defined $summary{$_};
     }
 
-    $xml .= "</SpMSBSummary>\n";
+    # Text summary
+    if ($format eq 'textshort') {
+        # Substr each string using the supplied widths.
+        my @sub = map {
+            my $key;
+            if (exists $summary{$keys[$_]} && defined $summary{$keys[$_]}) {
+                $key = $summary{$keys[$_]};
+            }
+            else {
+                $key = '';
+            }
+            substr($key, 0, $width[$_])
+        } 0 .. $#width;
 
-    return $xml;
+        return sprintf $textformat, @sub;
+    }
+    elsif ($format eq 'textlong') {
+        # Long and verbose ASCII
+        my @text;
+        push @text, "\tTitle:    $summary{title} [$remstatus]";
+        push @text, "\tDuration: $summary{timeest} sec";
+        push @text, "\tPriority: $summary{priority}\tSeeing: $summary{seeing}\tTau: $summary{tau}";
 
+        push @text, "\tObservations:";
 
+        # Now go through the observations
+        my $obscount = 0;
+        for my $obs (@obs) {
+            $obscount ++;
+            my $string = "\t $obscount - ";
+            $string .= "Inst:" . $obs->instrument if $obs->instrument;
+            $string .= "Target:" . $obs->target if $obs->target;
+            $string .= "Coords:" . $obs->coords if $obs->coords;
+            $string .= "Waveband:" . $obs->waveband if $obs->waveband;
+            push @text, $string;
+        }
 
-  } else {
-    throw OMP::Error::BadArgs("Unknown output format: $format\n");
-  }
+        # Return a list or a string
+        if (wantarray) {
+            return @text;
+        }
+        else {
+            return join("\n", @text) . "\n";
+        }
+    }
+    elsif ($format =~ /^html/) {
+        # Fix up HTML escapes
+        for (qw/title tau seeing/) {
+            my $string = $summary{$_};
+            # Should use real HTML escape class from CPAN
+            $string =~ s/</\&lt\;/g;
+            $string =~ s/>/\&gt\;/g;
+            $string =~ s/\"/\&quot\;/g;
 
+            $summary{$_} = $string;
+        }
 
+        my @text;
+        push @text, "<h3>$summary{title} (<em>$remstatus</em>)</h3>";
 
+        push @text, '<TABLE border="0">';
+        push @text, "<tr><td>Duration:</td><td><b>$summary{timeest} sec</b></td>";
+        push @text, "<td>Priority:</td><td><b>$summary{priority}</b></td></tr>";
+        push @text, "<tr><td>Seeing:</td><td><b>$summary{seeing}</b></td>";
+        push @text, "<td>Tau:</td><td><b>$summary{tau}</b></td></tr>";
+        push @text, "</TABLE>";
 
+        push @text, '<TABLE  border="1">';
+        push @text, '<TR bgcolor="#7979aa">';
+        push @text, "<td>#</td><TD>Instrument</td><td>Target</td><td>Coords</td><td>Waveband</td></tr>";
+
+        # Now go through the observations
+        my $obscount = 0;
+        for my $obs (@obs) {
+            $obscount ++;
+            push @text, '<TR bgcolor="#7979aa">',
+                "<td>$obscount</td>",
+                map {
+                    "<td>" . $obs->$_() . "</td>"
+                } qw/instrument target coords waveband/;
+        }
+
+        push @text, '</TABLE>';
+
+        # Return a list or a string
+        if (wantarray) {
+            return @text;
+        }
+        else {
+            return join("\n", @text) . "\n";
+        }
+    }
+    elsif ($format =~ /^xml/) {
+        # First the MSB things that are not dependent on
+        # observations [this may include some information
+        # summaries such as waveband and target]
+
+        # Add ha, airmass and ra
+        #
+        # These should already be present?  Therefore adding a check
+        # to avoid evaluating them again.
+        for my $method (qw/ha airmass ra dec az/) {
+            $summary{$method} = $self->$method()
+                unless exists $summary{$method};
+        }
+
+        # XML version
+        my $xml = "<SpMSBSummary ";
+        $xml .= "id=\"$summary{msbid}\""
+            if exists $summary{msbid} and defined $summary{msbid};
+        $xml .= ">\n";
+
+        # force key order
+        for my $key ($self->getResultColumns($summary{telescope})) {
+            # Special case the summary and ID keys
+            next if $key eq "summary";
+            next if $key =~ /^_/;
+            next unless defined $summary{$key};
+
+            # Allow OMP::Range objects to stringify in the summary
+            if (ref($summary{$key})) {
+                next unless UNIVERSAL::isa($summary{$key}, "OMP::Range");
+            }
+
+            # Currently Matt needs the msbid to be included
+            # in the XML elements as well as an attribute
+            # next if $key eq "msbid";
+
+            # Create XML segment
+            # Now we know we have to escape the > and < and &
+            $xml .= sprintf "  <$key>%s</$key>\n",
+                OMP::Display::escape_entity($summary{$key});
+        }
+
+        # Now add in the observations if we are doing the long version
+        if ($format !~ /short/) {
+            for (@obs) {
+                $xml .= '    ' . $_->summary("xml");
+            }
+        }
+
+        # And the comments
+        if ($format !~ /short/) {
+            for ($self->comments) {
+                $xml .= '     ' . $_->summary('xml');
+            }
+        }
+
+        $xml .= "</SpMSBSummary>\n";
+
+        return $xml;
+    }
+    else {
+        throw OMP::Error::BadArgs("Unknown output format: $format\n");
+    }
 }
 
 =item B<stringify>
@@ -924,14 +955,12 @@ C<summary()> method with a value of "textlong".
 =cut
 
 sub stringify {
-  my $self = shift;
-  my $string = $self->summary("textlong") ."\n";
-  return $string;
+    my $self = shift;
+    my $string = $self->summary("textlong") . "\n";
+    return $string;
 }
 
 =back
-
-=begin __INTERNAL__
 
 =head2 Internal Methods
 
@@ -942,8 +971,8 @@ sub stringify {
 For each observation, run the specified method and either return the
 results as a list or join them together as a single delimited string.
 
-  @wavebands = $msb->_process_obs( "waveband" );
-  $wavebands = $msb->_process_obs( "waveband" );
+    @wavebands = $msb->_process_obs("waveband");
+    $wavebands = $msb->_process_obs("waveband");
 
 In some cases it is desirable to remove duplicated entries. An optional
 second argument can be used to specify that repeated entries are
@@ -951,8 +980,8 @@ removed from the array/string. For example if the instruments used
 by the MSB are listed as "IRCAM", "CGS4" and "IRCAM", with compression
 turned on this method will return just "IRCAM" and "CGS4".
 
-  @wavebands = $msb->_process_obs( "waveband", 1 );
-  $wavebands = $msb->_process_obs( "waveband", 1 );
+    @wavebands = $msb->_process_obs("waveband", 1);
+    $wavebands = $msb->_process_obs("waveband", 1);
 
 If the method is "pol" the return value in scalar context is
 treated as the OR of all the booleans. (ie pol is true if
@@ -961,30 +990,32 @@ any one of the observations uses the polarimeter).
 =cut
 
 sub _process_obs {
-  my $self = shift;
-  my $method = shift;
-  my $compress = shift;
+    my $self = shift;
+    my $method = shift;
+    my $compress = shift;
 
-  # Loop through each observation running the method
-  my @results = map { $_->$method() }
-    grep { $_->can($method) }
-      $self->observations;
+    # Loop through each observation running the method
+    my @results = map {$_->$method()}
+        grep {$_->can($method)}
+        $self->observations;
 
-  # Compress if required
-  @results = $self->_compress_array( @results )
-    if $compress;
+    # Compress if required
+    @results = $self->_compress_array(@results)
+        if $compress;
 
-  # Return string or array
-  if (wantarray) {
-    return @results;
-  } else {
-    if ($method eq 'pol') {
-      my $count = grep { $_ } @results;
-      return ( $count ? 1 : 0 );
-    } else {
-      return join("/", @results);
+    # Return string or array
+    if (wantarray) {
+        return @results;
     }
-  }
+    else {
+        if ($method eq 'pol') {
+            my $count = grep {$_} @results;
+            return ($count ? 1 : 0);
+        }
+        else {
+            return join '/', @results;
+        }
+    }
 }
 
 =item B<_compress_array>
@@ -992,41 +1023,39 @@ sub _process_obs {
 Helper method to compress an array so that only the first occurrence
 of a particular element remains (but the order is not changed).
 
-  @compressed = $msb->_compress_array( @array );
+    @compressed = $msb->_compress_array(@array);
 
 For example
 
-  CGS4, UKIRT, CGS4
+    CGS4, UKIRT, CGS4
 
 is returned as
 
-  CGS4, UKIRT
+    CGS4, UKIRT
 
 undefined values are by default converted to empty strings.
 
 =cut
 
 sub _compress_array {
-  my $self = shift;
-  my @array = @_;
+    my $self = shift;
+    my @array = @_;
 
-  my (%unique, @unique);
-  for (@array) {
+    my (%unique, @unique);
+    for (@array) {
+        my $value = (defined $_ ? $_ : "");
 
-    my $value = ( defined $_ ? $_ : "" );
+        # If it is in our hash skip to the next one
+        next if exists $unique{$value};
 
-    # If it is in our hash skip to the next one
-    next if exists $unique{ $value };
+        # Store it in our hash
+        $unique{$value} = undef;
 
-    # Store it in our hash
-    $unique{$value} = undef;
+        # And push on the value
+        push(@unique, $value);
+    }
 
-    # And push on the value
-    push(@unique, $value);
-
-  }
-
-  return @unique;
+    return @unique;
 }
 
 =item B<_process_coords>
@@ -1040,7 +1069,7 @@ complete.
 
 The callback is passed the calibration object.
 
-  @ha = $msb->_process_coords( sub { my $c = shift; return $c->ha} );
+    @ha = $msb->_process_coords(sub {my $c = shift; return $c->ha});
 
 If any type other than CAL exists the CAL is removed in order to
 give more space to the more important information.
@@ -1048,35 +1077,35 @@ give more space to the more important information.
 =cut
 
 sub _process_coords {
-  my $self = shift;
-  my $cb = shift;
-  my @results;
-  for my $obs ($self->observations ) {
-    my $coords = $obs->coords;
-    next unless defined $coords;
-    my $type = $coords->type;
-    if ($type eq "CAL") {
-      push(@results, "CAL");
-    } elsif ($type eq 'AUTO-TLE') {
-      push(@results, 'TLE');
-    } else {
-      push(@results, $cb->($coords));
+    my $self = shift;
+    my $cb = shift;
+    my @results;
+    for my $obs ($self->observations) {
+        my $coords = $obs->coords;
+        next unless defined $coords;
+        my $type = $coords->type;
+        if ($type eq "CAL") {
+            push @results, "CAL";
+        }
+        elsif ($type eq 'AUTO-TLE') {
+            push @results, 'TLE';
+        }
+        else {
+            push @results, $cb->($coords);
+        }
     }
-  }
 
-  # remove CAL if we have more than one result
-  if (scalar(@results) > 1 ) {
-    # look for CAL
-    @results = grep { $_ !~ /^CAL$/ } @results;
-  }
+    # remove CAL if we have more than one result
+    if (scalar(@results) > 1) {
+        # look for CAL
+        @results = grep {$_ !~ /^CAL$/} @results;
+    }
 
-  @results = $self->_compress_array( @results );
-  return @results;
+    @results = $self->_compress_array(@results);
+    return @results;
 }
 
 =back
-
-=end __INTERNAL__
 
 =head2 Class Methods
 
@@ -1088,7 +1117,7 @@ Returns the data columns (ie XML element names for
 XML summary) that are of interest for a particular telescope.
 Returns a list in the order that they should be displayed.
 
- @columns = OMP::Info::MSB->getResultsColumns( $telescope );
+    @columns = OMP::Info::MSB->getResultsColumns($telescope);
 
 Accepts a telescope name as argument. Default columns are returned
 if the telescope can not be determined.
@@ -1096,32 +1125,40 @@ if the telescope can not be determined.
 =cut
 
 sub getResultColumns {
-  my $class = shift;
-  my $tel = shift;
-  $tel = '' unless $tel;
-  $tel = uc($tel);
+    my $class = shift;
+    my $tel = shift;
+    $tel = '' unless $tel;
+    $tel = uc($tel);
 
-  # The order must be forced
-  my @order;
-  if ($tel eq 'JCMT') {
-    @order = qw/ projectid priority schedpri affiliation completion instrument waveband title target
-                 ra dec coordstype ha az airmass tau pol type
-                 timeest remaining obscount
-                 checksum msbid /;
-  } elsif ($tel eq 'UKIRT') {
-    @order = qw/ projectid priority schedpri completion instrument waveband title target
-                 ra dec coordstype ha airmass tau seeing cloud moon sky pol type
-                 timeest remaining obscount disperser
-                 checksum msbid /;
-  } else {
-    # Generic order
-    @order = qw/ projectid priority schedpri completion instrument waveband title target
-                 ra dec coordstype ha airmass tau seeing pol type
-                 timeest remaining obscount
-                 checksum msbid /;
-  }
+    # The order must be forced
+    my @order;
+    if ($tel eq 'JCMT') {
+        @order = qw/
+            projectid priority schedpri affiliation completion instrument waveband title target
+            ra dec coordstype ha az airmass tau pol type
+            timeest remaining obscount
+            checksum msbid
+        /;
+    }
+    elsif ($tel eq 'UKIRT') {
+        @order = qw/
+            projectid priority schedpri completion instrument waveband title target
+            ra dec coordstype ha airmass tau seeing cloud moon sky pol type
+            timeest remaining obscount disperser
+            checksum msbid
+        /;
+    }
+    else {
+        # Generic order
+        @order = qw/
+            projectid priority schedpri completion instrument waveband title target
+            ra dec coordstype ha airmass tau seeing pol type
+            timeest remaining obscount
+            checksum msbid
+        /;
+    }
 
-  return @order;
+    return @order;
 }
 
 =item B<getTypeColumns>
@@ -1130,7 +1167,7 @@ Retrieves an array of data types associated with each column
 returned using an XML summary format. The order matches the
 order returned by C<getResultColumns>
 
-  @types = OMP::Info::MSB->getTypeColumns( $tel );
+    @types = OMP::Info::MSB->getTypeColumns($tel);
 
 Uses a telescope name to control the column information.
 
@@ -1138,56 +1175,61 @@ Uses a telescope name to control the column information.
 
 # best to use a single data structure for this
 my %coltypes = (
-                schedpri => 'Float',
-                affiliation => 'String',
-                remaining => 'Integer',
-                projectid => 'String',
-                priority => 'Float',
-                instrument => 'String',
-                waveband => 'String',
-                title => 'String',
-                target => 'String',
-                ra => 'String',
-                ha => 'String',
-                dec => 'String',
-                az => 'String',
-                el => 'String',
-                airmass => 'String',
-                pol => 'Boolean',  # Boolean?
-                type => 'String',
-                coordstype => 'String',
-                timeest => 'String',  # can keep this as hours?
-                obscount => 'Integer',
-                checksum => 'String',
-                msbid => 'Integer',
-                moon => 'String',
-                tau => 'String',
-                cloud => 'String',
-                sky => 'String',
-                seeing => 'String',
-                disperser => 'String',
-                completion => 'Float',
-               );
+    schedpri => 'Float',
+    affiliation => 'String',
+    remaining => 'Integer',
+    projectid => 'String',
+    priority => 'Float',
+    instrument => 'String',
+    waveband => 'String',
+    title => 'String',
+    target => 'String',
+    ra => 'String',
+    ha => 'String',
+    dec => 'String',
+    az => 'String',
+    el => 'String',
+    airmass => 'String',
+    pol => 'Boolean',  # Boolean?
+    type => 'String',
+    coordstype => 'String',
+    timeest => 'String',  # can keep this as hours?
+    obscount => 'Integer',
+    checksum => 'String',
+    msbid => 'Integer',
+    moon => 'String',
+    tau => 'String',
+    cloud => 'String',
+    sky => 'String',
+    seeing => 'String',
+    disperser => 'String',
+    completion => 'Float',
+);
 
 sub getTypeColumns {
-  my $class = shift;
-  my $tel = shift;
-  $tel = '' unless $tel;
-  $tel = uc($tel);
+    my $class = shift;
+    my $tel = shift;
+    $tel = '' unless $tel;
+    $tel = uc($tel);
 
-  my @order = $class->getResultColumns($tel);
+    my @order = $class->getResultColumns($tel);
 
-  my @types;
-  for my $col (@order) {
-    if (exists $coltypes{$col}) {
-      push(@types, $coltypes{$col});
-    } else {
-      throw OMP::Error::FatalError("Error determining type of column $col");
+    my @types;
+    for my $col (@order) {
+        if (exists $coltypes{$col}) {
+            push(@types, $coltypes{$col});
+        }
+        else {
+            throw OMP::Error::FatalError("Error determining type of column $col");
+        }
     }
-  }
-  return @types;
 
+    return @types;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -1220,5 +1262,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-
-1;

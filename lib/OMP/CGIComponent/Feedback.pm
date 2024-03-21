@@ -6,9 +6,9 @@ OMP::CGIComponent::Feedback - Web display of feedback system comments
 
 =head1 SYNOPSIS
 
-  use OMP::CGIComponent::Feedback;
+    use OMP::CGIComponent::Feedback;
 
-  $entries = OMP::CGIComponent::Feedback::fb_entries;
+    $entries = OMP::CGIComponent::Feedback::fb_entries;
 
 =head1 DESCRIPTION
 
@@ -22,11 +22,9 @@ use strict;
 use warnings;
 use Carp;
 
-use Text::Wrap;
-
-use OMP::Constants qw(:fb);
-use OMP::Error qw(:try);
-use OMP::FBServer;
+use OMP::Constants qw/:fb/;
+use OMP::Error qw/:try/;
+use OMP::FeedbackDB;
 use OMP::NetTools;
 
 use base qw/OMP::CGIComponent/;
@@ -39,46 +37,46 @@ use base qw/OMP::CGIComponent/;
 
 Display feedback comments
 
-  $comp->fb_entries($projectid);
+    $comp->fb_entries($projectid);
 
 =cut
 
 sub fb_entries {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $status = [OMP__FB_IMPORTANT];
+    my $status = [OMP__FB_IMPORTANT];
 
-  my $selected_status = $q->param("status");
-  if (defined $selected_status) {
-    my %status;
-    $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
-    $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
-    $status{&OMP__FB_SUPPORT} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT];
-    $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
+    my $selected_status = $q->param("status");
+    if (defined $selected_status) {
+        my %status;
+        $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
+        $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
+        $status{&OMP__FB_SUPPORT} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT];
+        $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
 
-    $status = $status{$selected_status};
-  }
+        $status = $status{$selected_status};
+    }
 
-  my $order = (scalar $q->param("order"))  // 'ascending';
+    my $order = (scalar $q->param("order")) // 'ascending';
 
-  my $comments = OMP::FBServer->getComments( $projectid,
-                                             $status, $order);
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $comments = $fdb->getComments(status => $status, order => $order);
 
-  return {
-    comments => $comments,
-    orders => [qw/ascending descending/],
-    statuses => [
-        [OMP__FB_IMPORTANT() => 'important'],
-        [OMP__FB_INFO()      => 'info'],
-        [OMP__FB_SUPPORT()   => 'support'],
-        [OMP__FB_HIDDEN()    => 'hidden'],
-    ],
-    selected_status => $selected_status,
-    selected_order => $order,
-  }
+    return {
+        comments => $comments,
+        orders => [qw/ascending descending/],
+        statuses => [
+            [OMP__FB_IMPORTANT() => 'important'],
+            [OMP__FB_INFO() => 'info'],
+            [OMP__FB_SUPPORT() => 'support'],
+            [OMP__FB_HIDDEN() => 'hidden'],
+        ],
+        selected_status => $selected_status,
+        selected_order => $order,
+        };
 }
 
 =item B<fb_entries_count>
@@ -90,60 +88,70 @@ Return the number of comments.
 =cut
 
 sub fb_entries_count {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $comments = OMP::FBServer->getComments($projectid,
-                                            [ OMP__FB_IMPORTANT,
-                                              OMP__FB_INFO,
-                                              OMP__FB_SUPPORT,
-                                              OMP__FB_HIDDEN
-                                            ],
-                                            );
-  return scalar @$comments;
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $comments = $fdb->getComments(
+        status => [
+            OMP__FB_IMPORTANT,
+            OMP__FB_INFO,
+            OMP__FB_SUPPORT,
+            OMP__FB_HIDDEN,
+    ]);
+    return scalar @$comments;
 }
 
 =item B<submit_fb_comment>
 
 Submit a feedback comment
 
-  $comp->submit_fb_comment($projectid);
+    $comp->submit_fb_comment($projectid);
 
 =cut
 
 sub submit_fb_comment {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  # Get the address of the machine remotely running this cgi script to be given
-  # to the addComment method as the sourceinfo param
-  (undef, my $host, undef) = OMP::NetTools->determine_host;
+   # Get the address of the machine remotely running this cgi script to be given
+    # to the addComment method as the sourceinfo param
+    (undef, my $host, undef) = OMP::NetTools->determine_host;
 
-  my $comment = { author => $self->auth->user,
-                  subject => scalar $q->param('subject'),
-                  sourceinfo => $host,
-                  text => scalar $q->param('text'),
-                  program => $q->url(-relative=>1), # the name of the cgi script
-                  status => OMP__FB_IMPORTANT, };
+    my $comment = {
+        author => $self->auth->user,
+        subject => scalar $q->param('subject'),
+        sourceinfo => $host,
+        text => scalar $q->param('text'),
+        program => $q->url(-relative => 1),    # the name of the cgi script
+        status => OMP__FB_IMPORTANT,
+    };
 
-  my @messages;
-  try {
-    OMP::FBServer->addComment( $projectid, $comment );
-    push @messages,'Your comment has been submitted.';
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
 
-  } otherwise {
-    my $E = shift;
-    push @messages,
-        'An error has prevented your comment from being submitted:',
-        "$E";
-  };
+    my @messages;
+    try {
+        $fdb->addComment($comment);
+        push @messages, 'Your comment has been submitted.';
 
-  return {
-      messages => \@messages,
-  }
+    }
+    otherwise {
+        my $E = shift;
+        push @messages,
+            'An error has prevented your comment from being submitted:',
+            "$E";
+    };
+
+    return {
+        messages => \@messages,
+    };
 }
+
+1;
+
+__END__
 
 =back
 
@@ -176,5 +184,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

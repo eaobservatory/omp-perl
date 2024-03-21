@@ -6,20 +6,19 @@ OMP::FeedbackDB - Manipulate the feedback database
 
 =head1 SYNOPSIS
 
-  $db = new OMP::FeedbackDB( ProjectID => $projectid,
-                             DB => $dbconnection );
+    $db = OMP::FeedbackDB->new(
+        ProjectID => $projectid,
+        DB => $dbconnection);
 
-  $db->addComment( $comment );
-  $db->getComments( \@status );
-  $db->alterStatus( $commentid, $status );
-
+    $db->addComment($comment);
+    $db->getComments(\@status);
+    $db->alterStatus($commentid, $status);
 
 =head1 DESCRIPTION
 
 This class manipulates information in the feedback table.  It is the
 only interface to the database tables. The table should not be
 accessed directly to avoid loss of data integrity.
-
 
 =cut
 
@@ -29,24 +28,23 @@ use warnings;
 use Carp;
 use OMP::DateTools;
 use Time::Piece;
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
 use OMP::Display;
 use OMP::FBQuery;
+use OMP::Info::Comment;
 use OMP::Project;
 use OMP::ProjDB;
 use OMP::User;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
 
-use Text::Wrap;
-
-use base qw/ OMP::BaseDB /;
+use base qw/OMP::BaseDB/;
 
 # This is picked up by OMP::MSBDB
-our $FBTABLE = "ompfeedback";
+our $FBTABLE = 'ompfeedback';
 
 =head1 METHODS
 
@@ -58,8 +56,9 @@ our $FBTABLE = "ompfeedback";
 
 Create a new instance of an C<OMP::FeedbackDB> object.
 
-  $db = new OMP::FeedbackDB( ProjectID => $project,
-                             DB => $connection );
+    $db = OMP::FeedbackDB->new(
+        ProjectID => $project,
+        DB => $connection);
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -77,21 +76,33 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =item B<getComments>
 
-Returns an array of hashes containing feedback comments. If
+Returns an array of C<OMP::Info::Comment> objects containing feedback. If
 arguments are given they should be in the form of a hash whos keys are
 any of the following:
 
-  B<status>  - An array reference containing status types for
-               the desired comments.  Status types are defined
-               in C<OMP::Constants>.  Example: OMP__FB_INFO.
-               Provide undef value for status in order for
-               this criteria to be ignored.
-  B<order>   - Either 'descending' or 'ascending'.
-  B<msgtype> - An array reference containing message types for
-               the desired comments.  Message types are defined
-               in C<OMP::Constants>.  Example:
-               OMP__FB_MSG_COMMENT.  By default this criteria is
-               ignored.
+=over 4
+
+=item B<status>
+
+An array reference containing status types for
+the desired comments.  Status types are defined
+in C<OMP::Constants>.  Example: OMP__FB_INFO.
+Provide undef value for status in order for
+this criteria to be ignored.
+
+=item B<order>
+
+Either 'descending' or 'ascending'.
+
+=item B<msgtype>
+
+An array reference containing message types for
+the desired comments.  Message types are defined
+in C<OMP::Constants>.  Example:
+OMP__FB_MSG_COMMENT.  By default this criteria is
+ignored.
+
+=back
 
 Defaults to returning comments with a status of B<OMP__FB_IMPORTANT>
 or B<OMP__FB_INFO>, and sorts the comments in ascending order.
@@ -99,61 +110,64 @@ Results are returned as a reference to a hash of hashes if there might
 be comments for more than one project, otherwise results are returned
 as a reference to an array.
 
-  @status = ( qw/OMP__FB_IMPORTANT OMP__FB_INFO/ );
-  $comm = $db->getComments( status => \@status,
-                            order => 'descending',
-                            msgtype => OMP__FB_MSG_COMMENT );
+    @status = qw/OMP__FB_IMPORTANT OMP__FB_INFO/;
+    $comm = $db->getComments(
+        status => \@status,
+        order => 'descending',
+        msgtype => OMP__FB_MSG_COMMENT);
 
 =cut
 
 sub getComments {
-  my $self = shift;
+    my $self = shift;
 
-  my %defaults = (status => [OMP__FB_IMPORTANT, OMP__FB_INFO,],
-                  msgtype => undef,
-                  order => 'ascending',);
+    my %defaults = (
+        status => [OMP__FB_IMPORTANT, OMP__FB_INFO,],
+        msgtype => undef,
+        order => 'ascending',
+    );
 
-  my %args = (%defaults, @_);
+    my %args = (%defaults, @_);
 
-  # Form status and msgtype portions of XML query
-  my %xmlpart;
-  for my $part (qw/status msgtype/) {
-    $xmlpart{$part} = join("", map {"<$part>" . $_ . "</$part>"} @{$args{$part}})
-      if (defined ($args{$part}));
-  }
+    # Form status and msgtype portions of XML query
+    my %xmlpart;
+    for my $part (qw/status msgtype/) {
+        $xmlpart{$part} = join '', map {
+                "<$part>" . $_ . "</$part>"
+            } @{$args{$part}}
+            if defined($args{$part});
+    }
 
-  # Form complete XML Query
-  my $xml = "<FBQuery>".
-    ($self->projectid ? "<projectid>". $self->projectid ."</projectid>" : "").
-      join("", map {$xmlpart{$_}} keys %xmlpart).
-        "</FBQuery>";
+    # Form complete XML Query
+    my $xml = "<FBQuery>"
+        . ($self->projectid
+            ? "<projectid>" . $self->projectid . "</projectid>"
+            : "")
+        . join("", map {$xmlpart{$_}} keys %xmlpart)
+        . "</FBQuery>";
 
-  # Create the query object
-  my $query = new OMP::FBQuery( XML => $xml );
+    # Create the query object
+    my $query = OMP::FBQuery->new(XML => $xml);
 
-  # Get the comments
-  my $comments = $self->_fetch_comments( $query );
+    # Get the comments
+    my $comments = $self->_fetch_comments($query);
 
-  # Strip out the milliseconds
-  for (@$comments) {
-    $_->{date} =~ s/:000/ /g;
-  }
+    my $sort = $args{'order'} eq 'ascending'
+        ? sub {$a->id <=> $b->id}
+        : sub {$b->id <=> $a->id};
 
-  my $sort =
-    $args{'order'} eq 'ascending' ? sub { $a->{'commid'} <=> $b->{'commid'} }
-      : sub { $b->{'commid'} <=> $a->{'commid'} }
-      ;
-  # Group by project ID if we might have comments for multiple projects
-  if (! $self->projectid) {
-    my %project;
-    push @{$project{$_->{projectid}}}, $_ for sort $sort @$comments;
-    $comments = \%project;
-  } else {
-    # Just order comments by comment ID if only returning results for a single project
-    $comments = [ sort $sort @$comments ];
-  }
+    # Group by project ID if we might have comments for multiple projects
+    unless ($self->projectid) {
+        my %project;
+        push @{$project{$_->projectid}}, $_ for sort $sort @$comments;
+        $comments = \%project;
+    }
+    else {
+        # Just order comments by comment ID if only returning results for a single project
+        $comments = [sort $sort @$comments];
+    }
 
-  return $comments;
+    return $comments;
 }
 
 =item B<addComment>
@@ -162,7 +176,7 @@ Adds a comment to the database.  Takes a hash reference containing the
 comment and all of its details.  This method also mails the comment
 depending on its status.
 
-  $db->addComment( $comment );
+    $db->addComment($comment);
 
 =over 4
 
@@ -186,7 +200,11 @@ The IP address of the machine comment is being submitted from.
 
 =item B<text>
 
-The text of the comment (HTML tags are encouraged).
+The text of the comment.
+
+=item B<preformatted>
+
+Whether the text is pre-formatted?
 
 =item B<status>
 
@@ -200,107 +218,110 @@ Defaults to B<OMP__FB_MSG_COMMENT>.
 
 =back
 
-
 =cut
 
 sub addComment {
-  my $self = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $comment = shift;
 
-  throw OMP::Error::BadArgs( "Comment was not a hash reference" )
-    unless UNIVERSAL::isa($comment, "HASH");
+    throw OMP::Error::BadArgs("Comment was not a hash reference")
+        unless UNIVERSAL::isa($comment, "HASH");
 
-  my $t = gmtime;
-  my %defaults = ( subject => 'none',
-                   date => $t->strftime("%Y-%m-%d %T"),
-                   program => 'unspecified',
-                   sourceinfo => 'unspecified',
-                   status => OMP__FB_IMPORTANT,
-                   msgtype => OMP__FB_MSG_COMMENT, );
+    my $t = gmtime;
+    my %defaults = (
+        subject => 'none',
+        date => $t->strftime("%Y-%m-%d %T"),
+        program => 'unspecified',
+        sourceinfo => 'unspecified',
+        status => OMP__FB_IMPORTANT,
+        msgtype => OMP__FB_MSG_COMMENT,
+        preformatted => 0,
+    );
 
-  # Override defaults
-  $comment = {%defaults, %$comment};
+    # Override defaults
+    $comment = {%defaults, %$comment};
 
-  # Check for required fields
-  for (qw/ text /) {
-    throw OMP::Error::BadArgs("$_ must be specified")
-      unless $comment->{$_};
-  }
+    # Check for required fields
+    for (qw/text/) {
+        throw OMP::Error::BadArgs("$_ must be specified")
+            unless $comment->{$_};
+    }
 
-  # Prepare text for storage and subsequent display
-  $comment->{text} = OMP::Display->preify_text($comment->{text});
+    # Prepare text for storage and subsequent display
+    $comment->{text} = OMP::Display->remove_cr($comment->{text});
 
-  # Must have sourceinfo if we don't have an author
-  #  if (! $comment->{author} and ! $comment->{sourceinfo}) {
-  #    throw OMP::Error::BadArgs("Sourceinfo must be specified if author is not given");
-  #  }
+    # Must have sourceinfo if we don't have an author
+    #  if (! $comment->{author} and ! $comment->{sourceinfo}) {
+    #    throw OMP::Error::BadArgs("Sourceinfo must be specified if author is not given");
+    #  }
 
-  # Make sure author is an OMP::User object
-  if (defined $comment->{author}) {
-    throw OMP::Error::BadArgs("Author must be supplied as an OMP::User object")
-      unless UNIVERSAL::isa( $comment->{author}, "OMP::User" );
-  }
+    # Make sure author is an OMP::User object
+    if (defined $comment->{author}) {
+        throw OMP::Error::BadArgs(
+            "Author must be supplied as an OMP::User object")
+            unless UNIVERSAL::isa($comment->{author}, "OMP::User");
+    }
 
-  # Check that the project actually exists
-  my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
-                                DB => $self->db, );
+    # Check that the project actually exists
+    my $projdb = OMP::ProjDB->new(
+        ProjectID => $self->projectid,
+        DB => $self->db,
+    );
 
-  $projdb->verifyProject()
-    or throw OMP::Error::UnknownProject("Project " .$self->projectid. " not known.");
+    $projdb->verifyProject()
+        or throw OMP::Error::UnknownProject("Project " . $self->projectid . " not known.");
 
-  # We need to think carefully about transaction management
+    # We need to think carefully about transaction management
 
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin transaction
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Store comment in the database
-  $self->_store_comment( $comment );
+    # Store comment in the database
+    $self->_store_comment($comment);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  # Mail the comment to interested parties
-  ($comment->{status} == OMP__FB_IMPORTANT) and
-    $self->_mail_comment_important( $self->projectid, $comment );
+    # Mail the comment to interested parties
+    ($comment->{status} == OMP__FB_IMPORTANT)
+        and $self->_mail_comment_important($self->projectid, $comment);
 
-  ($comment->{status} == OMP__FB_INFO) and
-    $self->_mail_comment_info( $self->projectid, $comment );
+    ($comment->{status} == OMP__FB_INFO)
+        and $self->_mail_comment_info($self->projectid, $comment);
 
-  ($comment->{status} == OMP__FB_SUPPORT) and
-    $self->_mail_comment_support( $self->projectid, $comment );
+    ($comment->{status} == OMP__FB_SUPPORT)
+        and $self->_mail_comment_support($self->projectid, $comment);
 
-  return;
+    return;
 }
 
 =item B<alterStatus>
 
 Alters the status of a comment.
 
-  $db->alterStatus( $commentid, $status);
+    $db->alterStatus($commentid, $status);
 
 Last argument should be a feedback constant as defined in C<OMP::Constants>.
 
 =cut
 
 sub alterStatus {
-  my $self = shift;
-  my $commentid = shift;
-  my $status = shift;
+    my $self = shift;
+    my $commentid = shift;
+    my $status = shift;
 
-  # Begin trans
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin trans
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Alter comment status
-  $self->_alter_status( $commentid, $status );
+    # Alter comment status
+    $self->_alter_status($commentid, $status);
 
-  # End trans
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
-
+    # End trans
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =back
@@ -313,198 +334,217 @@ sub alterStatus {
 
 Stores a comment in the database.
 
-  $db->_store_comment($comment);
+    $db->_store_comment($comment);
 
 =cut
 
 sub _store_comment {
-  my $self = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $comment = shift;
 
-  my $projectid = $self->projectid;
+    my $projectid = $self->projectid;
 
-  # Create the comment entry number [SQL prefers single quotes]
-  my $clause = "projectid = '$projectid'";
-  my $entrynum = $self->_db_findmax( $FBTABLE, "entrynum", $clause);
-  (defined $entrynum) and $entrynum++
-    or $entrynum = 1;
+    # Create the comment entry number [SQL prefers single quotes]
+    my $clause = "projectid = '$projectid'";
+    my $entrynum = $self->_db_findmax($FBTABLE, "entrynum", $clause);
 
-  # Store the data
-  $self->_db_insert_data( $FBTABLE,
-                          { COLUMN => 'projectid',
-                            QUOTE => 1,
-                            POSN => 0 },
-                          undef,
-                          $projectid,
-                          (defined $comment->{author} ?
-                           $comment->{author}->userid : undef),
-                          @$comment{ 'date',
-                                     'subject',
-                                     'program',
-                                     'sourceinfo',
-                                     'status',
-                                   },
-                          {
-                           TEXT => $comment->{text},
-                           COLUMN => 'text',
-                          },
-                          $comment->{msgtype},
-                          $entrynum,
-                        );
+    (defined $entrynum) and $entrynum ++
+        or $entrynum = 1;
 
+    # Store the data
+    $self->_db_insert_data(
+        $FBTABLE,
+        {
+            COLUMN => 'projectid',
+            QUOTE => 1,
+            POSN => 0
+        },
+        undef,
+        $projectid,
+        (defined $comment->{author}
+            ? $comment->{author}->userid
+            : undef),
+        @$comment{
+            'date',
+            'subject',
+            'program',
+            'sourceinfo',
+            'status',
+        },
+        {
+            TEXT => $comment->{text},
+            COLUMN => 'text',
+        },
+        $comment->{msgtype},
+        $entrynum,
+        ($comment->{'preformatted'} ? 1 : 0),
+    );
 }
 
 =item B<_mail_comment>
 
 Mail the comment to the specified users.
 
-  $db->_mail_comment( comment => $comment,
-                      to => \@to,
-                      cc => \@cc,
-                      bcc => \@bcc, );
+    $db->_mail_comment(
+        comment => $comment,
+        to => \@to,
+        cc => \@cc,
+        bcc => \@bcc,
+    );
 
 Arguments should be provided in the form of a hash with the following keys:
- comment - a hash reference containing comment details
- to      - array reference containing C<OMP::User> objects
- cc      - array reference containing C<OMP::User> objects
- bcc     - array reference containing C<OMP::User> objects
+
+=over 4
+
+=item comment
+
+A hash reference containing comment details.
+
+=item to
+
+Array reference containing C<OMP::User> objects.
+
+=item cc
+
+Array reference containing C<OMP::User> objects.
+
+=item bcc
+
+Array reference containing C<OMP::User> objects.
+
+=back
 
 =cut
 
 sub _mail_comment {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  # If there is HTML in the message we'll use "<br>" instead of "\n"
-  # to start a new line when adding any text to the message
-  my $newline = ($args{comment}->{text} =~ m!</!m ? "<br>" : "\n");
+    my $comment = $args{'comment'};
 
-  # Mail message (Format with HTML since the mail method will convert to
-  # plaintext)
-  my $msg = $args{comment}->{text};
+    my $projectid = $self->projectid;
 
-  # Word wrap the message; if long words don't fit then allow them to
-  # overflow.
-  local($Text::Wrap::huge) = "overflow";
-  $msg = wrap('', '', $msg);
+    # Put projectid in subject header if it isn't already there
+    my $subject = ($comment->{'subject'} !~ /\[$projectid\]/i)
+        ? (sprintf '[%s] %s', $projectid, $comment->{'subject'})
+        : $comment->{'subject'};
 
-  my $projectid = $self->projectid;
+    my $from = defined $comment->{'author'}
+        ? $comment->{'author'}
+        : OMP::User->get_flex();
 
-  # Put projectid in subject header if it isn't already there
-  my $subject;
-  ($args{comment}->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $args{comment}->{subject}"
-    or $subject = "$args{comment}->{subject}";
+    # Setup message details
+    my %details = (
+        message => $comment->{'text'},
+        preformatted => (!! $comment->{'preformatted'}),
+        to => $args{to},
+        from => $from,
+        bcc => $args{bcc},
+        subject => $subject,
+    );
 
-  my $from = (defined $args{comment}->{author} ?
-              $args{comment}->{author} : OMP::User->get_flex());
+    if ($args{cc}) {
+        $details{cc} = $args{cc};
+    }
 
-  # Setup message details
-  my %details = ( message => $msg,
-                  to => $args{to},
-                  from => $from,
-                  bcc => $args{bcc},
-                  subject => $subject,
-  );
-
-  if ($args{cc}) {
-    $details{cc} = $args{cc};
-  }
-
-  $self->_mail_information(%details);
+    $self->_mail_information(%details);
 }
 
 =item B<_mail_comment_important>
 
 Will send the email to PI, COI and support emails.
 
-  $db->_mail_comment_important( $projectid, $comment );
+    $db->_mail_comment_important($projectid, $comment);
 
 =cut
 
 sub _mail_comment_important {
-  my $self = shift;
-  my $projectid = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $projectid = shift;
+    my $comment = shift;
 
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => $self->db,
-                              );
+    my $projdb = OMP::ProjDB->new(
+        ProjectID => $projectid,
+        DB => $self->db);
 
-  my $proj = $projdb->_get_project_row;
+    my $proj = $projdb->_get_project_row;
 
-  my @to = $proj->contacts;
+    my @to = $proj->contacts;
 
-  my @cc;
-  if (defined $comment->{author}) {
-    push (@cc, $comment->{author});
-  }
+    my @cc;
+    if (defined $comment->{author}) {
+        push(@cc, $comment->{author});
+    }
 
-  # Bcc the OMP contact person(s)
-  my @ompcontacts = OMP::Config->getData('omp-bcc');
-  my @bcc;
-  for (@ompcontacts) {
-    my $user = OMP::User->new(email=>$_);
-    push(@bcc, $user);
-  }
+    # Bcc the OMP contact person(s)
+    my @ompcontacts = OMP::Config->getData('omp-bcc');
+    my @bcc;
+    for (@ompcontacts) {
+        my $user = OMP::User->new(email => $_);
+        push(@bcc, $user);
+    }
 
-  $self->_mail_comment( comment => $comment,
-                        to => \@to,
-                        cc => \@cc,
-                        bcc => \@bcc, );
+    $self->_mail_comment(
+        comment => $comment,
+        to => \@to,
+        cc => \@cc,
+        bcc => \@bcc,
+    );
 }
 
 =item B<_mail_comment_support>
 
 Send the email to support only.
 
-  $db->_mail_comment_support( $projectid, $comment );
+    $db->_mail_comment_support($projectid, $comment);
 
 =cut
 
 sub _mail_comment_support {
-  my $self = shift;
-  my $projectid = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $projectid = shift;
+    my $comment = shift;
 
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => $self->db,);
+    my $projdb = OMP::ProjDB->new(
+        ProjectID => $projectid,
+        DB => $self->db);
 
-  my $project = $projdb->_get_project_row;
+    my $project = $projdb->_get_project_row;
 
-  my @to = $project->support;
+    my @to = $project->support;
 
-  # Only mail if there is a support address
-  $self->_mail_comment( comment => $comment, to => \@to )
-    if ($to[0]);
+    # Only mail if there is a support address
+    $self->_mail_comment(comment => $comment, to => \@to)
+        if ($to[0]);
 }
 
 =item B<_mail_comment_info>
 
 Will send the message to PI only.
 
-  $db->_mail_comment_info( $projectid, $comment );
+    $db->_mail_comment_info($projectid, $comment);
 
 =cut
 
 sub _mail_comment_info {
-  my $self = shift;
-  my $projectid = shift;
-  my $comment = shift;
+    my $self = shift;
+    my $projectid = shift;
+    my $comment = shift;
 
-  # Get a ProjDB object so we can get info from the database
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => $self->db,
-                              );
+    # Get a ProjDB object so we can get info from the database
+    my $projdb = OMP::ProjDB->new(
+        ProjectID => $projectid,
+        DB => $self->db);
 
-  # This is an internal method that removes password
-  # verification. Since comments are not meant to need password
-  # to be added we can not use $projdb->projectDetails [unless
-  # we specfy the administrator password here]
-  my $proj = $projdb->_get_project_row;
+    # This is an internal method that removes password
+    # verification. Since comments are not meant to need password
+    # to be added we can not use $projdb->projectDetails [unless
+    # we specfy the administrator password here]
+    my $proj = $projdb->_get_project_row;
 
-  my @to = ($proj->pi);
+    my @to = ($proj->pi);
 
-  $self->_mail_comment( comment => $comment, to => \@to );
+    $self->_mail_comment(comment => $comment, to => \@to);
 }
 
 =item B<_fetch_comments>
@@ -517,57 +557,84 @@ status of comments to be retrieved.
 Only argument is a query represented in the form of an C<OMP::FBQuery>
 object.
 
-  $db->_fetch_comments( $query );
+    $db->_fetch_comments($query);
 
 Returns either a reference or a list depending on the calling context.
 
 =cut
 
 sub _fetch_comments {
-  my $self = shift;
-  my $query = shift;
+    my $self = shift;
+    my $query = shift;
 
-  # Generate the SQL query
-  my $sql = $query->sql( $FBTABLE );
+    # Generate the SQL query
+    my $sql = $query->sql($FBTABLE);
 
-  # Run the query
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+    # Run the query
+    my $ref = $self->_db_retrieve_data_ashash($sql);
 
-  # Replace comment user IDs with OMP::User objects and
-  # dates with Time::Piece objects
-  for (@$ref) {
-    my $user = $_->{author};
-    ($user) and $_->{author} = OMP::UserServer->getUser($user);
+    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $users = $udb->getUserMultiple([keys %{{map {
+        my $user = $_->{'author'};
+        (defined $user)
+            ? ($user => 1)
+            : ();
+    } @$ref}}]);
 
-    my $date = OMP::DateTools->parse_date($_->{date});
-    $_->{date} = $date;
-  }
+    my @comments;
 
-  if (wantarray) {
-    return @$ref;
-  } else {
-    return $ref;
-  }
+    # Replace comment user IDs with OMP::User objects and
+    # dates with Time::Piece objects
+    for (@$ref) {
+        my $id = delete $_->{'commid'};
+        my $type = delete $_->{'msgtype'};
+
+        my $user = delete $_->{'author'};
+        $user = $users->{$user}
+            if defined $user;
+
+        my $date = OMP::DateTools->parse_date(delete $_->{'date'});
+
+        push @comments, OMP::Info::Comment->new(
+            id => $id,
+            type => $type,
+            author => $user,
+            date => $date,
+            %$_,
+        );
+    }
+
+    if (wantarray) {
+        return @comments;
+    }
+    else {
+        return \@comments;
+    }
 }
 
 =item B<_alter_status>
 
 Update the status field of an entry.
 
-  _alter_status( $commentid, $status );
+    _alter_status($commentid, $status);
 
 =cut
 
 sub _alter_status {
-  my $self = shift;
-  my $commid = shift;
-  my $status = shift;
+    my $self = shift;
+    my $commid = shift;
+    my $status = shift;
 
-  $self->_db_update_data( $FBTABLE,
-                          { status => $status },
-                          " commid = $commid ");
-
+    $self->_db_update_data(
+        $FBTABLE, {
+            status => $status,
+        },
+        " commid = $commid ");
 }
+
+1;
+
+__END__
 
 =back
 
@@ -597,12 +664,9 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHORS
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

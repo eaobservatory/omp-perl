@@ -6,7 +6,7 @@ bulk - Submit a feedback comment to multiple projects
 
 =head1 SYNOPSIS
 
-    bulk -comment comment.txt -projects projects.txt -userid deloreyk
+    bulk -comment comment.txt -projects projects.txt
 
 =head1 DESCRIPTION
 
@@ -36,10 +36,6 @@ the comment will be submitted.
 
 Mark comment with "support" status to limit the emails sent only to the support
 staff.
-
-=item B<-userid>
-
-Specify the user ID of the comment author.
 
 =item B<-dry-run> | B<-n>
 
@@ -91,7 +87,8 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
-use OMP::FBServer;
+use OMP::DBbackend;
+use OMP::FeedbackDB;
 use OMP::Password;
 use OMP::UserServer;
 use OMP::ProjServer;
@@ -99,14 +96,13 @@ use OMP::ProjServer;
 our $VERSION = '2.000';
 
 # Options
-my ($commentfile, $help, $man, $projectsfile, $author, $version, $type, $dry_run);
+my ($commentfile, $help, $man, $projectsfile, $version, $type, $dry_run);
 
 GetOptions(
     'comment=s' => \$commentfile,
     'help' => \$help,
     'man' => \$man,
     'projects=s' => \$projectsfile,
-    'userid=s' => \$author,
     'n|dry-run' => \$dry_run,
     'version' => \$version,
     'support' => sub {$type = 'support'},
@@ -123,31 +119,27 @@ if ($version) {
 }
 
 # Die if missing certain arguments
-unless (defined $commentfile and defined $projectsfile and defined $author) {
-    die "The following arguments are not optional: -comment, -projects, -userid";
+unless (defined $commentfile and defined $projectsfile) {
+    die "The following arguments are not optional: -comment, -projects";
 }
 
-# Get the author user
-my $user = OMP::UserServer->getUser($author);
-die "No such user [$author]"
-    unless ($user);
-
 # Get the projects
-my $proj_fh = new IO::File($projectsfile, 'r')
+my $proj_fh = IO::File->new($projectsfile, 'r')
     or die "Couldn't open file [$projectsfile]: $!";
 
 my @projects;
 foreach my $id (<$proj_fh>) {
     chomp $id;
 
-    next
-        if $id =~ m/^\s*#/
+    next if $id =~ m/^\s*#/
         or $id =~ m/^\s*$/;
 
     push @projects, $id;
 }
 
 close($proj_fh);
+
+my $database = OMP::DBbackend->new();
 
 # Verify that the projects exist
 foreach my $projectid (@projects) {
@@ -156,17 +148,20 @@ foreach my $projectid (@projects) {
 }
 
 # Create the comment
-my $comment_fh = new IO::File($commentfile, 'r')
+my $comment_fh = IO::File->new($commentfile, 'r')
     or die "Couldn't open file [$commentfile]: $!";
 my @comment = <$comment_fh>;
-close($comment_fh);
+$comment_fh->close();
 
 my $subject = shift @comment;
 chomp $subject;
 
+# Verify staff membership
+my $auth = OMP::Password->get_verified_auth('staff');
+
 my %comment = (
-    text => join("", @comment),
-    author => $user,
+    text => (join '', @comment),
+    author => $auth->user,
     program => 'COMMENT_CLIENT',
     subject => $subject,
 );
@@ -174,8 +169,7 @@ my %comment = (
 $comment{'status'} = OMP__FB_SUPPORT
     if defined $type && $type eq 'support';
 
-print
-    "Subject:\n",
+print "Subject:\n",
     $comment{'subject'}, "\n\n",
     "Text:\n",
     $comment{'text'}, "\n",
@@ -187,9 +181,6 @@ print
     ($dry_run ? 'will not' : 'will'),
     " be submitted\n\n";
 
-# Verify staff membership
-OMP::Password->get_verified_auth('staff');
-
 # Submit the comment for each project
 foreach my $projectid (@projects) {
     print "Submitting the comment for project [$projectid] ...";
@@ -199,7 +190,8 @@ foreach my $projectid (@projects) {
         next;
     }
 
-    OMP::FBServer->addComment($projectid, \%comment);
+    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
+    $fdb->addComment(\%comment);
     print " [DONE]\n";
 }
 

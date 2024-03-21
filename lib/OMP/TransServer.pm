@@ -6,9 +6,9 @@ OMP::TransServer - Sp translator server
 
 =head1 SYNOPSIS
 
-  use OMP::TransServer;
+    use OMP::TransServer;
 
-  $odf = OMP::TransServer->translate( $xml );
+    $odf = OMP::TransServer->translate($xml);
 
 =head1 DESCRIPTION
 
@@ -21,15 +21,14 @@ use 5.006;
 use strict;
 use warnings;
 
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 use OMP::SciProg;
 use OMP::Translator;
 
 # Inherit server specific class
-use base qw/ OMP::SOAPServer /;
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = '2.000';
-
 
 =head1 METHODS
 
@@ -40,7 +39,7 @@ our $VERSION = '2.000';
 Translate the specified Science Program into a form understandable by
 the observing system.
 
-  $translation = OMP::TransServer->translate( $xml, \%options );
+    $translation = OMP::TransServer->translate($xml, \%options);
 
 Returns a filename suitable for passing to the queue or the Query Tool,
 not the translated configurations themselves.
@@ -53,54 +52,65 @@ configured via SOAP for security reasons.
 
 Supported options are:
 
-  simulate : Run the translator for simulated configurations
+=over 4
+
+=item simulate
+
+Run the translator for simulated configurations
+
+=back
 
 Note that a reference to a hash is used to simplify the SOAP interface.
 
 =cut
 
 sub translate {
-  my $class = shift;
-  my $xml = shift;
-  my $opts = shift;
+    my $class = shift;
+    my $xml = shift;
+    my $opts = shift;
 
-  # in some cases the msb attribute of SpObs is incorrect from the QT
-  # so we need to fudge it here if we have no SpMSB
-  if ($xml !~ /<SpMSB>/) {
-    my $old = 'msb="false"';
-    my $new = 'msb="true"';
-    $xml =~ s/$old/$new/;
-  }
-
-  my $E;
-  my $result;
-  try {
-    # expand options
-    my %options;
-    %options = %$opts if (defined $opts && ref($opts) eq 'HASH');
-
-    # Convert to science program
-    my $sp = new OMP::SciProg( XML => $xml );
-    $result = OMP::Translator->translate( $sp, %options );
-  } catch OMP::Error with {
-    # Just catch OMP::Error exceptions
-    # Server infrastructure should catch everything else
-    $E = shift;
-  } otherwise {
-    # Check if we have an XML::LibXML::Error and if so, convert to our class.
-    $E = shift;
-    if (UNIVERSAL::isa($E, 'XML::LibXML::Error')) {
-      $E = new OMP::Error($E->as_string());
+    # in some cases the msb attribute of SpObs is incorrect from the QT
+    # so we need to fudge it here if we have no SpMSB
+    if ($xml !~ /<SpMSB>/) {
+        my $old = 'msb="false"';
+        my $new = 'msb="true"';
+        $xml =~ s/$old/$new/;
     }
-  };
 
-  # This has to be outside the catch block else we get
-  # a problem where we cant use die (it becomes throw)
-  $class->throwException( $E ) if defined $E;
+    my $E;
+    my $result;
+    try {
+        # expand options
+        my %options;
+        %options = %$opts if (defined $opts && ref($opts) eq 'HASH');
 
-  return $result;
+        # Convert to science program
+        my $sp = OMP::SciProg->new(XML => $xml);
+        $result = OMP::Translator->translate($sp, %options);
+    }
+    catch OMP::Error with {
+        # Just catch OMP::Error exceptions
+        # Server infrastructure should catch everything else
+        $E = shift;
+    }
+    otherwise {
+        # Check if we have an XML::LibXML::Error and if so, convert to our class.
+        $E = shift;
+        if (UNIVERSAL::isa($E, 'XML::LibXML::Error')) {
+            $E = OMP::Error->new($E->as_string());
+        }
+    };
+
+    # This has to be outside the catch block else we get
+    # a problem where we cant use die (it becomes throw)
+    $class->throwException($E) if defined $E;
+
+    return $result;
 }
 
+1;
+
+__END__
 
 =back
 
@@ -124,11 +134,8 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

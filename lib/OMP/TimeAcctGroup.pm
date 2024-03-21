@@ -6,11 +6,11 @@ OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
 
 =head1 SYNOPSIS
 
-  use OMP::TimeAcctGroup;
+    use OMP::TimeAcctGroup;
 
-  $tg = new OMP::TimeAcctGroup( accounts => \@accounts );
+    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
 
-  @stats = $tg->timeLostStats();
+    @stats = $tg->timeLostStats();
 
 =head1 DESCRIPTION
 
@@ -29,7 +29,7 @@ our $VERSION = '2.000';
 
 use OMP::Config;
 use OMP::DBbackend;
-use OMP::Error qw(:try);
+use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
@@ -54,40 +54,40 @@ Object constructor. Takes a hash as an argument, the keys of which can
 be used to populate the object.  The keys must match the names of the
 accessor methods (ignoring case).
 
-  $tg = new OMP::TimeAcctGroup( accounts => \@accounts );
+    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
 
 Arguments are optional.
 
 =cut
 
 sub new {
-  my $proto = shift;
-  my %args = @_;
-  my $class = ref($proto) || $proto;
+    my $proto = shift;
+    my %args = @_;
+    my $class = ref($proto) || $proto;
 
-  my $tg = bless {
-                  Accounts => [],
-                  TotalTime => undef,
-                  TotalTimeNonExt => undef,
-                  CalTime => undef,
-                  ClearTime => undef,
-                  ConfirmedTime => undef,
-                  ECTime => undef,
-                  ExtTime => undef,
-                  FaultLoss => undef,
-                  ObservedTime => undef,
-                  OtherTime => undef,
-                  ScienceTime => undef,
-                  ShutdownTime => undef,
-                  Telescope => undef,
-                  WeatherLoss => undef,
-                 }, $class;
+    my $tg = bless {
+        Accounts => [],
+        TotalTime => undef,
+        TotalTimeNonExt => undef,
+        CalTime => undef,
+        ClearTime => undef,
+        ConfirmedTime => undef,
+        ECTime => undef,
+        ExtTime => undef,
+        FaultLoss => undef,
+        ObservedTime => undef,
+        OtherTime => undef,
+        ScienceTime => undef,
+        ShutdownTime => undef,
+        Telescope => undef,
+        WeatherLoss => undef,
+    }, $class;
 
-  if (@_) {
-    $tg->populate( %args );
-  }
+    if (@_) {
+        $tg->populate(%args);
+    }
 
-  return $tg;
+    return $tg;
 }
 
 =back
@@ -100,10 +100,10 @@ sub new {
 
 Retrieve (or specify) the group of accounts.
 
-  @accounts = $tg->accounts;
-  $accountref = $tg->accounts;
-  $tg->accounts(@accounts);
-  $tg->accounts(\@accounts);
+    @accounts = $tg->accounts;
+    $accountref = $tg->accounts;
+    $tg->accounts(@accounts);
+    $tg->accounts(\@accounts);
 
 All previous accounts are removed when new accounts are stored.
 Takes either an array, or reference to an array, of
@@ -112,48 +112,55 @@ C<OMP::Project::TimeAcct> objects.
 =cut
 
 sub accounts {
-  my $self = shift;
+    my $self = shift;
 
-  if (@_) {
-    # Store new accounts
-    my @accounts;
-    if (ref($_[0]) eq 'ARRAY') {
-      @accounts = @{$_[0]};
-    } else {
-      @accounts = @_;
+    if (@_) {
+        # Store new accounts
+        my @accounts;
+        if (ref($_[0]) eq 'ARRAY') {
+            @accounts = @{$_[0]};
+        }
+        else {
+            @accounts = @_;
+        }
+
+        # Make sure these are OMP::Project::TimeAcct objects
+        # with a defined epoch
+        for (@accounts) {
+            throw OMP::Error::BadArgs(
+                "Account must be an object of class OMP::Project::TimeAcct")
+                unless UNIVERSAL::isa($_, "OMP::Project::TimeAcct");
+
+            throw OMP::Error::BadArgs(
+                "Account must have a valid date, not undef")
+                unless defined $_->date;
+        }
+
+        # Store accounts, sorted
+        @{$self->{Accounts}} = sort {
+            $a->date->epoch <=> $b->date->epoch
+        } @accounts;
+
+        # Clear cached values
+        $self->totaltime(undef);
+        $self->totaltime_non_ext(undef);
+        $self->cal_time(undef);
+        $self->clear_time(undef);
+        $self->ext_time(undef);
+        $self->fault_loss(undef);
+        $self->observed_time(undef);
+        $self->other_time(undef);
+        $self->weather_loss(undef);
+        $self->science_time(undef);
+        $self->ec_time(undef);
     }
 
-    # Make sure these are OMP::Project::TimeAcct objects
-    # with a defined epoch
-    for (@accounts) {
-      throw OMP::Error::BadArgs("Account must be an object of class OMP::Project::TimeAcct")
-        unless UNIVERSAL::isa($_, "OMP::Project::TimeAcct");
-      throw OMP::Error::BadArgs("Account must have a valid date, not undef")
-        unless defined $_->date;
+    if (wantarray) {
+        return @{$self->{Accounts}};
     }
-
-    # Store accounts, sorted
-    @{$self->{Accounts}} = sort {$a->date->epoch <=> $b->date->epoch} @accounts;
-
-    # Clear cached values
-    $self->totaltime(undef);
-    $self->totaltime_non_ext(undef);
-    $self->cal_time(undef);
-    $self->clear_time(undef);
-    $self->ext_time(undef);
-    $self->fault_loss(undef);
-    $self->observed_time(undef);
-    $self->other_time(undef);
-    $self->weather_loss(undef);
-    $self->science_time(undef);
-    $self->ec_time(undef);
-  }
-
-  if (wantarray) {
-    return @{$self->{Accounts}};
-  } else {
-    return $self->{Accounts};
-  }
+    else {
+        return $self->{Accounts};
+    }
 }
 
 =item B<totaltime>
@@ -162,8 +169,8 @@ The total time spent according to all accounts (this includes
 weather loss, other time, faults, and extended time).This
 value is represented by a C<Time::Seconds> object.
 
-  $time = $tg->totaltime();
-  $tg->totaltime($time);
+    $time = $tg->totaltime();
+    $tg->totaltime($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -173,24 +180,27 @@ of 0 seconds if undefined.
 =cut
 
 sub totaltime {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('TotalTime',$_[0]);
-  } elsif (! defined $self->{TotalTime}) {
-    # Calculate total time since it isn't cached
-    my @accounts = $self->accounts;
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@accounts) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('TotalTime', $_[0]);
     }
-    # Store total
-    $self->{TotalTime} = $timespent;
-  }
-  if (! defined $self->{TotalTime}) {
-    return Time::Seconds->new(0);
-  } else {
-    return $self->{TotalTime};
-  }
+    elsif (! defined $self->{TotalTime}) {
+        # Calculate total time since it isn't cached
+        my @accounts = $self->accounts;
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@accounts) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{TotalTime} = $timespent;
+    }
+
+    unless (defined $self->{TotalTime}) {
+        return Time::Seconds->new(0);
+    }
+    else {
+        return $self->{TotalTime};
+    }
 }
 
 =item B<totaltime_non_ext>
@@ -198,8 +208,8 @@ sub totaltime {
 The total time spent, except for extended time.  This
 value is represented by a C<Time::Seconds> object.
 
-  $time = $tg->totaltime_non_ext();
-  $tg->totaltime_non_ext($time);
+    $time = $tg->totaltime_non_ext();
+    $tg->totaltime_non_ext($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -208,21 +218,23 @@ this value.
 =cut
 
 sub totaltime_non_ext {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('TotalTimeNonExt',$_[0]);
-  } elsif (! defined $self->{TotalTimeNonExt}) {
-    # Get total and extended time
-    my $total = $self->totaltime;
-    my $extended = $self->ext_time;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('TotalTimeNonExt', $_[0]);
+    }
+    elsif (! defined $self->{TotalTimeNonExt}) {
+        # Get total and extended time
+        my $total = $self->totaltime;
+        my $extended = $self->ext_time;
 
-    # Subtract extended time
-    my $nonext = $total - $extended;
+        # Subtract extended time
+        my $nonext = $total - $extended;
 
-    # Store to cache
-    $self->{TotalTimeNonExt} = $nonext;
-  }
-  return $self->{TotalTimeNonExt};
+        # Store to cache
+        $self->{TotalTimeNonExt} = $nonext;
+    }
+
+    return $self->{TotalTimeNonExt};
 }
 
 =item B<cal_time>
@@ -230,8 +242,8 @@ sub totaltime_non_ext {
 The total time spent on calibrations.  This value is represented by a
 C<Time::Seconds> object.
 
-  $time = $tg->cal_time();
-  $tg->cal_time($time);
+    $time = $tg->cal_time();
+    $tg->cal_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -240,23 +252,25 @@ this value.
 =cut
 
 sub cal_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('CalTime',$_[0]);
-  } elsif (! defined $self->{CalTime}) {
-    # Calculate CAL time since it isn't cached
-
-    # Get just CAL accounts
-    my @accounts = $self->_get_special_accts("CAL");
-
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@accounts) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('CalTime', $_[0]);
     }
-    # Store total
-    $self->{CalTime} = $timespent;
-  }
-  return $self->{CalTime};
+    elsif (! defined $self->{CalTime}) {
+        # Calculate CAL time since it isn't cached
+
+        # Get just CAL accounts
+        my @accounts = $self->_get_special_accts("CAL");
+
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@accounts) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{CalTime} = $timespent;
+    }
+
+    return $self->{CalTime};
 }
 
 =item B<clear_time>
@@ -265,8 +279,8 @@ The amount of time where conditions were observable (everything
 but weather loss and extended time).  This value is represented
 by a C<Time::Seconds> object.
 
-  $time = $tg->clear_time();
-  $tg->clear_time($time);
+    $time = $tg->clear_time();
+    $tg->clear_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -275,20 +289,22 @@ this value.
 =cut
 
 sub clear_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ClearTime',$_[0]);
-  } elsif (! defined $self->{ClearTime}) {
-    # Get total non-extended and weather time
-    my $nonext = $self->totaltime_non_ext;
-    my $weather = $self->weather_loss;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ClearTime', $_[0]);
+    }
+    elsif (! defined $self->{ClearTime}) {
+        # Get total non-extended and weather time
+        my $nonext = $self->totaltime_non_ext;
+        my $weather = $self->weather_loss;
 
-    my $clear = $nonext - $weather;
+        my $clear = $nonext - $weather;
 
-    # Store to cache
-    $self->{ClearTime} = $clear
-  }
-  return $self->{ClearTime};
+        # Store to cache
+        $self->{ClearTime} = $clear;
+    }
+
+    return $self->{ClearTime};
 }
 
 =item B<ec_time>
@@ -296,8 +312,8 @@ sub clear_time {
 Non-extended Time spent observing projects that are associated
 with the E&C queue.
 
-  $time = $tg->ec_time();
-  $tg->ec_time($time);
+    $time = $tg->ec_time();
+    $tg->ec_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -306,23 +322,25 @@ this value.  Returns 0 seconds if undefined.
 =cut
 
 sub ec_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ECTime',$_[0]);
-  } elsif (! defined $self->{ECTime}) {
-    # Get EC accounts
-    my @acct = $self->_get_accts('eng');
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ECTime', $_[0]);
+    }
+    elsif (! defined $self->{ECTime}) {
+        # Get EC accounts
+        my @acct = $self->_get_accts('eng');
 
-    # Add it up
-    my $ectime = Time::Seconds->new(0);
-    for my $acct (@acct) {
-      $ectime += $acct->timespent;
+        # Add it up
+        my $ectime = Time::Seconds->new(0);
+        for my $acct (@acct) {
+            $ectime += $acct->timespent;
+        }
+
+        # Store to cache
+        $self->{ECTime} = $ectime;
     }
 
-    # Store to cache
-    $self->{ECTime} = $ectime;
-  }
-  return $self->{ECTime};
+    return $self->{ECTime};
 }
 
 =item B<ext_time>
@@ -330,8 +348,8 @@ sub ec_time {
 The total extended time spent.  This value is represented by a
 C<Time::Seconds> object.
 
-  $time = $tg->ext_time();
-  $tg->ext_time($time);
+    $time = $tg->ext_time();
+    $tg->ext_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -340,23 +358,25 @@ this value.
 =cut
 
 sub ext_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ExtTime',$_[0]);
-  } elsif (! defined $self->{ExtTime}) {
-    # Calculate extended time since it isn't cached
-
-    # Get just EXTENDED accounts
-    my @accounts = $self->_get_special_accts("EXTENDED");
-
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@accounts) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ExtTime', $_[0]);
     }
-    # Store total
-    $self->{ExtTime} = $timespent;
-  }
-  return $self->{ExtTime};
+    elsif (! defined $self->{ExtTime}) {
+        # Calculate extended time since it isn't cached
+
+        # Get just EXTENDED accounts
+        my @accounts = $self->_get_special_accts("EXTENDED");
+
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@accounts) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{ExtTime} = $timespent;
+    }
+
+    return $self->{ExtTime};
 }
 
 =item B<fault_loss>
@@ -364,8 +384,8 @@ sub ext_time {
 The total time lost to faults.  This value is represented by a
 C<Time::Seconds> object.
 
-  $time = $tg->fault_loss();
-  $tg->fault_loss($time);
+    $time = $tg->fault_loss();
+    $tg->fault_loss($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -374,24 +394,25 @@ this value.  Returns 0 seconds if the value is undefined.
 =cut
 
 sub fault_loss {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('FaultLoss',$_[0]);
-  } elsif (! defined $self->{FaultLoss}) {
-    # Calculate fault loss time since it isn't cached
-
-    # Get just the fault accounts
-    my @acct = grep {$_->projectid eq '__FAULT__'} $self->accounts;
-
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@acct) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('FaultLoss', $_[0]);
     }
-    # Store total
-    $self->{FaultLoss} = $timespent;
-  }
+    elsif (! defined $self->{FaultLoss}) {
+        # Calculate fault loss time since it isn't cached
 
-  return $self->{FaultLoss};
+        # Get just the fault accounts
+        my @acct = grep {$_->projectid eq '__FAULT__'} $self->accounts;
+
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@acct) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{FaultLoss} = $timespent;
+    }
+
+    return $self->{FaultLoss};
 }
 
 =item B<observed_time>
@@ -400,8 +421,8 @@ The amount of time spent observing (everything but time lost to
 weather and time spent doing "OTHER" things).  This value is
 represented by a C<Time::Seconds> object.
 
-  $time = $tg->observed_time();
-  $tg->observed_time($time);
+    $time = $tg->observed_time();
+    $tg->observed_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -411,26 +432,29 @@ of 0 seconds if undefined.
 =cut
 
 sub observed_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ObservedTime',$_[0]);
-  } elsif (! defined $self->{ObservedTime}) {
-    # Get total, other, and weather time
-    my $total = $self->totaltime;
-    my $other = $self->other_time;
-    my $weather = $self->weather_loss;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ObservedTime', $_[0]);
+    }
+    elsif (! defined $self->{ObservedTime}) {
+        # Get total, other, and weather time
+        my $total = $self->totaltime;
+        my $other = $self->other_time;
+        my $weather = $self->weather_loss;
 
-    # Subtract weather and other from total
-    my $observed = $total - $weather - $other;
+        # Subtract weather and other from total
+        my $observed = $total - $weather - $other;
 
-    # Store to cache
-    $self->{ObservedTime} = $observed;
-  }
-  if (! defined $self->{ObservedTime}) {
-    return Time::Seconds->new(0);
-  } else {
-    return $self->{ObservedTime};
-  }
+        # Store to cache
+        $self->{ObservedTime} = $observed;
+    }
+
+    unless (defined $self->{ObservedTime}) {
+        return Time::Seconds->new(0);
+    }
+    else {
+        return $self->{ObservedTime};
+    }
 }
 
 =item B<other_time>
@@ -438,8 +462,8 @@ sub observed_time {
 The total time spent doing other things.  This value is represented by a
 C<Time::Seconds> object.
 
-  $time = $tg->other_time();
-  $tg->other_time($time);
+    $time = $tg->other_time();
+    $tg->other_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -448,22 +472,24 @@ this value.
 =cut
 
 sub other_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('OtherTime',$_[0]);
-  } elsif (! defined $self->{OtherTime}) {
-    # Calculate other time since it isn't cached
-
-    # Get just OTHER accounts
-    my @accounts = $self->_get_special_accts("OTHER");
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@accounts) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('OtherTime', $_[0]);
     }
-    # Store total
-    $self->{OtherTime} = $timespent;
-  }
-  return $self->{OtherTime};
+    elsif (! defined $self->{OtherTime}) {
+        # Calculate other time since it isn't cached
+
+        # Get just OTHER accounts
+        my @accounts = $self->_get_special_accts("OTHER");
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@accounts) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{OtherTime} = $timespent;
+    }
+
+    return $self->{OtherTime};
 }
 
 =item B<science_time>
@@ -471,8 +497,8 @@ sub other_time {
 Non-extended Time spent observing projects not associated
 with the E&C queue.
 
-  $time = $tg->science_time();
-  $tg->science_time($time);
+    $time = $tg->science_time();
+    $tg->science_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -481,32 +507,33 @@ this value.  Returns 0 seconds if undefined.
 =cut
 
 sub science_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ScienceTime',$_[0]);
-  } elsif (! defined $self->{ScienceTime}) {
-    # Get non-EC accounts
-    my @acct = $self->_get_accts('sci');
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ScienceTime', $_[0]);
+    }
+    elsif (! defined $self->{ScienceTime}) {
+        # Get non-EC accounts
+        my @acct = $self->_get_accts('sci');
 
-    # Add it up
-    my $scitime = Time::Seconds->new(0);
-    for my $acct (@acct) {
-      $scitime += $acct->timespent;
+        # Add it up
+        my $scitime = Time::Seconds->new(0);
+        for my $acct (@acct) {
+            $scitime += $acct->timespent;
+        }
+
+        # Store to cache
+        $self->{ScienceTime} = $scitime;
     }
 
-    # Store to cache
-    $self->{ScienceTime} = $scitime;
-  }
-
-  return $self->{ScienceTime};
+    return $self->{ScienceTime};
 }
 
 =item B<shutdown_time>
 
 Time spent on a planned shutdown.
 
-  $time = $tg->shutdown_time();
-  $tg->shutdown_time($time);
+    $time = $tg->shutdown_time();
+    $tg->shutdown_time($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -515,24 +542,25 @@ this value.  Returns 0 seconds if undefined.
 =cut
 
 sub shutdown_time {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('ShutdownTime',$_[0]);
-  } elsif (! defined $self->{ShutdownTime}) {
-    # Get SHUTDOWN accounts
-    my @accts = $self->_get_special_accts('_SHUTDOWN');
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ShutdownTime', $_[0]);
+    }
+    elsif (! defined $self->{ShutdownTime}) {
+        # Get SHUTDOWN accounts
+        my @accts = $self->_get_special_accts('_SHUTDOWN');
 
-    # Add it up
-    my $shuttime = Time::Seconds->new(0);
-    for my $acct (@accts) {
-      $shuttime += $acct->timespent;
+        # Add it up
+        my $shuttime = Time::Seconds->new(0);
+        for my $acct (@accts) {
+            $shuttime += $acct->timespent;
+        }
+
+        # Store to cache
+        $self->{ShutdownTime} = $shuttime;
     }
 
-    # Store to cache
-    $self->{ShutdownTime} = $shuttime;
-  }
-
-  return $self->{ShutdownTime};
+    return $self->{ShutdownTime};
 }
 
 =item B<weather_loss>
@@ -540,8 +568,8 @@ sub shutdown_time {
 The total time lost to weather.  This value is represented by a
 C<Time::Seconds> object.
 
-  $time = $tg->weather_loss();
-  $tg->weather_loss($time);
+    $time = $tg->weather_loss();
+    $tg->weather_loss($time);
 
 Call with a either a number of seconds or a C<Time::Seconds>
 object to set this value.  Call with an undef value to unset
@@ -550,31 +578,33 @@ this value.  Returns 0 seconds if the value is undefined.
 =cut
 
 sub weather_loss {
-  my $self = shift;
-  if (@_) {
-    $self->_mutate_time('WeatherLoss',$_[0]);
-  } elsif (! defined $self->{WeatherLoss}) {
-    # Calculate weather time since it isn't cached
-
-    # Get just the weather accounts
-    my @accounts = $self->_get_special_accts("WEATHER");
-
-    my $timespent = Time::Seconds->new(0);
-    for my $acct (@accounts) {
-      $timespent += $acct->timespent;
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('WeatherLoss', $_[0]);
     }
-    # Store total
-    $self->{WeatherLoss} = $timespent;
-  }
-  return $self->{WeatherLoss};
+    elsif (! defined $self->{WeatherLoss}) {
+        # Calculate weather time since it isn't cached
+
+        # Get just the weather accounts
+        my @accounts = $self->_get_special_accts("WEATHER");
+
+        my $timespent = Time::Seconds->new(0);
+        for my $acct (@accounts) {
+            $timespent += $acct->timespent;
+        }
+        # Store total
+        $self->{WeatherLoss} = $timespent;
+    }
+
+    return $self->{WeatherLoss};
 }
 
 =item B<telescope>
 
 The telescope that the time accounts are associated with.
 
-  $tel = $tg->telescope();
-  $tg->telescope($tel);
+    $tel = $tg->telescope();
+    $tg->telescope($tel);
 
 Returns a string. If a telescope is requested but has not been defined,
 an attempt will be made to derive it from the first science project ID
@@ -583,38 +613,43 @@ in the group.
 =cut
 
 sub telescope {
-  my $self = shift;
-  if (@_) {
-    my $tel = shift;
-    $self->{Telescope} = uc($tel);
-  } else {
-    # we have a request
-    if (!defined $self->{Telescope}) {
-      $self->{Telescope} = $self->_get_telescope();
+    my $self = shift;
+    if (@_) {
+        my $tel = shift;
+        $self->{Telescope} = uc($tel);
     }
-  }
-  return $self->{Telescope};
+    else {
+        # we have a request
+        if (! defined $self->{Telescope}) {
+            $self->{Telescope} = $self->_get_telescope();
+        }
+    }
+
+    return $self->{Telescope};
 }
 
 =item B<shifttypes>
 
 The shifttype that the time accounts are associated with.
 
-  $shifttypes = $tg->shifttypes;
+    $shifttypes = $tg->shifttypes;
 
 Returns an array
 
 =cut
+
 sub shifttypes {
     my $self = shift;
     my @accts = $self->accounts;
 
     my %shifthash;
-    for my $acct ( @accts ) {
+    for my $acct (@accts) {
         my $shifttype = $acct->shifttype;
         $shifthash{$shifttype} = 1;
     }
-    my @shifttypes = ( keys %shifthash );
+
+    my @shifttypes = (keys %shifthash);
+
     return @shifttypes;
 }
 
@@ -624,18 +659,20 @@ sub shifttypes {
 A shared database connection (an C<OMP::DBbackend> object). The first
 time this is called, triggers a database connection.
 
-  $db = $tg->db;
+    $db = $tg->db;
 
 Takes no arguments.
 
 =cut
 
 sub db {
-  my $self = shift;
-  if (!defined $self->{DB}) {
-    $self->{DB} = new OMP::DBbackend;
-  }
-  return $self->{DB};
+    my $self = shift;
+
+    unless (defined $self->{DB}) {
+        $self->{DB} = OMP::DBbackend->new;
+    }
+
+    return $self->{DB};
 }
 
 =back
@@ -648,118 +685,141 @@ sub db {
 
 Produce statistics suitable for use in a time-series plot.
 
-  %stats = $tg->completion_stats;
+    %stats = $tg->completion_stats;
 
 Returns a hash containing the following keys:
 
-  science - contains an array reference of coordinates where
-            X is an integer MJD date and Y is the completion
-            percentage on that date.  No binning is done on
-            these values.
+=over 4
 
-  weather - contains an array reference of coordinates where
-            X is a modified Julian date and Y is the hours lost
-            to weather on that date. These values are binned up
-            by 7 day periods.
+=item science
 
-  ec      - contains an array reference of coordinates where
-            X is a modified Julian date and Y is the hours spent
-            on E&C projects on that date. These values are binned
-            up by 7 day periods
+Contains an array reference of coordinates where
+X is an integer MJD date and Y is the completion
+percentage on that date.  No binning is done on
+these values.
 
-  fault   - contains an array reference of coordinates where
-            X is a modified Julian date and Y is the hours lost
-            to faults on that date. These values are binned up
-            by 7 day periods.
+=item weather
 
-  __ALLOC__  - contains the total time allocated to projects
-               during the semesters spanned by the accounts in
-               this group.  Value is represented by an
-               C<OMP::Seconds> object.
-  __OFFSET__ - contains the total time spent during previous
-               semesters on projects associated with the accounts
-               in this group.  Value is represented by an
-               C<OMP::Seconds> object.
+Contains an array reference of coordinates where
+X is a modified Julian date and Y is the hours lost
+to weather on that date. These values are binned up
+by 7 day periods.
+
+=item ec
+
+Contains an array reference of coordinates where
+X is a modified Julian date and Y is the hours spent
+on E&C projects on that date. These values are binned
+up by 7 day periods
+
+=item fault
+
+Contains an array reference of coordinates where
+X is a modified Julian date and Y is the hours lost
+to faults on that date. These values are binned up
+by 7 day periods.
+
+=item __ALLOC__
+
+Contains the total time allocated to projects
+during the semesters spanned by the accounts in
+this group.  Value is represented by an
+C<OMP::Seconds> object.
+
+=item __OFFSET__
+
+Contains the total time spent during previous
+semesters on projects associated with the accounts
+in this group.  Value is represented by an
+C<OMP::Seconds> object.
+
+=back
 
 =cut
 
 sub completion_stats {
-  my $self = shift;
+    my $self = shift;
 
-  my $telescope = $self->_get_telescope();
-  my @semesters = $self->_get_semesters();
-  my $lowdate = $self->_get_low_date();
+    my $telescope = $self->_get_telescope();
+    my @semesters = $self->_get_semesters();
+    my $lowdate = $self->_get_low_date();
 
-  # Get total TAG allocation for semesters
-  my $projdb = new OMP::ProjDB(DB=>$self->db);
-  my $alloc = 0;
-  for my $sem (@semesters) {
-    $alloc += $projdb->getTotalAlloc($telescope, $sem);
-  };
+    # Get total TAG allocation for semesters
+    my $projdb = OMP::ProjDB->new(DB => $self->db);
+    my $alloc = 0;
+    for my $sem (@semesters) {
+        $alloc += $projdb->getTotalAlloc($telescope, $sem);
+    }
 
-  # DEBUG
-  printf "\nTotal allocation: [%.1f] hours\n", $alloc->hours;
+    # DEBUG
+    printf "\nTotal allocation: [%.1f] hours\n", $alloc->hours;
 
-  # Offset correction: get total time spent on the projects
-  # we have accounts for, prior to date of the first account.
-  # Subtract this number from the total allocation.
-  # Do not bother if no low date, implying no science projects
-  my $offset = Time::Seconds->new(0);
-  if (defined $lowdate) {
-    $lowdate -= 1; # Yesterday
-    my @accts = $self->_get_non_special_accts();
-    my %projectids = map {$_->projectid, undef} @accts;
-    my $tdb = new OMP::TimeAcctDB(DB=>$self->db);
-    my $xml = "<TimeAcctQuery>".
-      "<date><max>".$lowdate->datetime."</max></date>".
-        join("",map {"<projectid>$_</projectid>"} keys %projectids).
-          "</TimeAcctQuery>";
-    my $query = new OMP::TimeAcctQuery(XML=>$xml);
-    my @offset_accts = $tdb->queryTimeSpent( $query );
-    my $offset_grp = $self->new(accounts=>\@offset_accts);
+    # Offset correction: get total time spent on the projects
+    # we have accounts for, prior to date of the first account.
+    # Subtract this number from the total allocation.
+    # Do not bother if no low date, implying no science projects
+    my $offset = Time::Seconds->new(0);
+    if (defined $lowdate) {
+        $lowdate -= 1;  # Yesterday
+        my @accts = $self->_get_non_special_accts();
+        my %projectids = map {$_->projectid, undef} @accts;
+        my $tdb = OMP::TimeAcctDB->new(DB => $self->db);
+        my $xml = "<TimeAcctQuery>"
+            . "<date><max>" . $lowdate->datetime
+            . "</max></date>"
+            . join('', map {"<projectid>$_</projectid>"} keys %projectids)
+            . "</TimeAcctQuery>";
+        my $query = OMP::TimeAcctQuery->new(XML => $xml);
+        my @offset_accts = $tdb->queryTimeSpent($query);
+        my $offset_grp = $self->new(accounts => \@offset_accts);
+
+        #DEBUG
+        printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n",
+            $offset_grp->science_time->hours;
+
+        $offset = $offset_grp->science_time;
+    }
+
+    my $final_alloc = $alloc - $offset;
 
     #DEBUG
-    printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n", $offset_grp->science_time->hours;
-    $offset = $offset_grp->science_time;
-  }
-  my $final_alloc = $alloc - $offset;
+    printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
 
-  #DEBUG
-  printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
+    # Get all accounts grouped by UT date
+    my %groups = $self->group_by_ut(1);
 
-  # Get all accounts grouped by UT date
-  my %groups = $self->group_by_ut(1);
+    # Map Y values to X (date)
+    my $sci_total = 0;
+    my (@sci_cumul, @fault, @weather, @ec);
+    for my $x (sort keys %groups) {
+        $sci_total += $groups{$x}->science_time;
 
-  # Map Y values to X (date)
-  my $sci_total = 0;
-  my (@sci_cumul, @fault, @weather, @ec);
-  for my $x (sort keys %groups) {
-    $sci_total += $groups{$x}->science_time;
-    push @sci_cumul, [$x, $sci_total / $final_alloc * 100];
-    push @weather, [$x, $groups{$x}->weather_loss->hours];
-    push @ec, [$x, $groups{$x}->ec_time->hours];
-    push @fault, [$x, $groups{$x}->fault_loss->hours];
-  }
+        push @sci_cumul, [$x, $sci_total / $final_alloc * 100];
+        push @weather, [$x, $groups{$x}->weather_loss->hours];
+        push @ec, [$x, $groups{$x}->ec_time->hours];
+        push @fault, [$x, $groups{$x}->fault_loss->hours];
+    }
 
-  my %returnhash = (
-                    science => \@sci_cumul,
-                    fault => \@fault,
-                    ec => \@ec,
-                    weather => \@weather,
-                    __ALLOC__ => $alloc,
-                    __OFFSET__ => $offset,
-                   );
+    my %returnhash = (
+        science => \@sci_cumul,
+        fault => \@fault,
+        ec => \@ec,
+        weather => \@weather,
+        __ALLOC__ => $alloc,
+        __OFFSET__ => $offset,
+    );
 
-  for my $stat (keys %returnhash) {
-    next if $stat eq 'science' or $stat =~ /^__/;
-    @{$returnhash{$stat}} = OMP::PlotHelper->bin_up(size => 7,
-                                                    method => 'sum',
-                                                    values => $returnhash{$stat});
-  }
+    for my $stat (keys %returnhash) {
+        next if $stat eq 'science' or $stat =~ /^__/;
+        @{$returnhash{$stat}} = OMP::PlotHelper->bin_up(
+            size => 7,
+            method => 'sum',
+            values => $returnhash{$stat}
+        );
+    }
 
-  return %returnhash;
+    return %returnhash;
 }
-
 
 =item B<group_by_ut>
 
@@ -767,7 +827,7 @@ Group all the C<OMP::Project::TimeAcct> objects by UT date.  Store
 each group in an C<OMP::TimeAcctGroup> object.  Return a hash indexed
 by UT date where each key points to an C<OMP::TimeAcctGroup> object.
 
-  %groups = $tg->group_by_ut(1);
+    %groups = $tg->group_by_ut(1);
 
 If the optional argument is true, The returned hash is indexed by
 an integer modified Julian date.
@@ -775,34 +835,35 @@ an integer modified Julian date.
 =cut
 
 sub group_by_ut {
-  my $self = shift;
-  my $mjd = shift;
-  my @acct = $self->accounts;
+    my $self = shift;
+    my $mjd = shift;
+    my @acct = $self->accounts;
 
-  my $method = ($mjd ? "mjd" : "strftime('%Y%m%d')");
-  # Group by UT date
-  my %accts;
-  for my $acct (@acct) {
-    push @{$accts{$acct->date->$method}}, $acct;
-  }
+    my $method = ($mjd ? "mjd" : "strftime('%Y%m%d')");
+    # Group by UT date
+    my %accts;
+    for my $acct (@acct) {
+        push @{$accts{$acct->date->$method}}, $acct;
+    }
 
-  # Convert each group into an OMP::TimeAcctGroup object
-  for my $ut (keys %accts) {
-    $accts{$ut} = $self->new(accounts=>$accts{$ut},
-                             telescope => $self->telescope);
-  }
+    # Convert each group into an OMP::TimeAcctGroup object
+    for my $ut (keys %accts) {
+        $accts{$ut} = $self->new(
+            accounts => $accts{$ut},
+            telescope => $self->telescope
+        );
+    }
 
-  return %accts;
+    return %accts;
 }
 
 =item B<populate>
 
 Populate the object.
 
-  $tg->populate(
-                accounts => \@accounts,
-                telescope => $tel,
-              );
+    $tg->populate(
+        accounts => \@accounts,
+        telescope => $tel);
 
 Arguments are to be given in hash form, with the keys being the names
 of the accessor methods.
@@ -810,23 +871,23 @@ of the accessor methods.
 =cut
 
 sub populate {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  for my $key (keys %args) {
-    my $method = lc($key);
-    if ($self->can($method)) {
-      $self->$method( $args{$key} );
+    for my $key (keys %args) {
+        my $method = lc($key);
+        if ($self->can($method)) {
+            $self->$method($args{$key});
+        }
     }
-  }
-};
+}
 
 =item B<pushacct>
 
 Add more accounts to the group.
 
-  $tg->pushacct(@acct);
-  $tg->pushacct(\@acct);
+    $tg->pushacct(@acct);
+    $tg->pushacct(\@acct);
 
 Takes either an array or a reference to an array of C<OMP::Project::TimeAcct>
 objects.  Returns true on success.
@@ -834,40 +895,40 @@ objects.  Returns true on success.
 =cut
 
 sub pushacct {
-  my $self = shift;
-  my @addacct = @_;
-  my @currentacct = $self->accounts;
-  $self->accounts([@currentacct,@addacct]);
-  return 1;
+    my $self = shift;
+    my @addacct = @_;
+    my @currentacct = $self->accounts;
+    $self->accounts([@currentacct, @addacct]);
+    return 1;
 }
 
 =item B<remdupe>
 
 Remove duplicate accounts from the group.
 
-  $tg->remdupe();
+    $tg->remdupe();
 
 =cut
 
 sub remdupe {
-  my $self = shift;
-  my @acct = $self->accounts;
+    my $self = shift;
+    my @acct = $self->accounts;
 
-  my @unique_acct;
-  for my $old (@acct) {
-    my $exists = 0;
-    for my $unique (@unique_acct) {
-      if ($old == $unique) {
-        $exists = 1;
-      }
+    my @unique_acct;
+    for my $old (@acct) {
+        my $exists = 0;
+        for my $unique (@unique_acct) {
+            if ($old == $unique) {
+                $exists = 1;
+            }
+        }
+        push @unique_acct, $old
+            unless ($exists);
     }
-    push @unique_acct, $old
-      unless ($exists);
-  }
 
-  $self->accounts(@unique_acct);
+    $self->accounts(@unique_acct);
 
-  return 1;
+    return 1;
 }
 
 =back
@@ -880,28 +941,29 @@ sub remdupe {
 
 Return only non-special accounts.
 
-  @accts = $self->_get_non_special_accts();
+    @accts = $self->_get_non_special_accts();
 
 =cut
 
 sub _get_non_special_accts {
-  my $self = shift;
+    my $self = shift;
 
-  # Create regexp to filter out special projects
-  my $telpart = join('|', OMP::Config->getData('defaulttel'));
-  my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER/);
-  my $regexp = qr/^(${telpart})(${specpart})$/;
+    # Create regexp to filter out special projects
+    my $telpart = join('|', OMP::Config->getData('defaulttel'));
+    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER/);
+    my $regexp = qr/^(${telpart})(${specpart})$/;
 
-  # Filter out "__FAULT__" accounts and accounts that are named
-  # something like TELESCOPECAL, etc.
-  my @acct = grep {$_->projectid !~ $regexp and $_->projectid ne '__FAULT__'}
-    $self->accounts;
+    # Filter out "__FAULT__" accounts and accounts that are named
+    # something like TELESCOPECAL, etc.
+    my @acct = grep {$_->projectid !~ $regexp and $_->projectid ne '__FAULT__'}
+        $self->accounts;
 
-  if (wantarray) {
-    return @acct;
-  } else {
-    return \@acct;
-  }
+    if (wantarray) {
+        return @acct;
+    }
+    else {
+        return \@acct;
+    }
 }
 
 =item B<_get_accts>
@@ -910,7 +972,7 @@ Return either science accounts (accounts that are not associated with
 projects in the E&C queue) or E&C.  Special
 accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, __FAULT__).
 
-  @accts = $self->_get_accts('sci'|'eng');
+    @accts = $self->_get_accts('sci'|'eng');
 
 Argument is a string that is either 'sci' or 'eng'.  Returns either
 an array or an array reference.  Returns an empty list if no accounts
@@ -919,53 +981,57 @@ could be returned.
 =cut
 
 sub _get_accts {
-  my $self = shift;
-  my $arg = shift;
+    my $self = shift;
+    my $arg = shift;
 
-  throw OMP::Error::BadArg("Argument must be either 'sci' or 'eng'")
-    unless ($arg eq 'sci' or $arg eq 'eng');
+    throw OMP::Error::BadArg("Argument must be either 'sci' or 'eng'")
+        unless ($arg eq 'sci' or $arg eq 'eng');
 
-  # Get the regular accounts
-  my @acct = $self->_get_non_special_accts;
+    # Get the regular accounts
+    my @acct = $self->_get_non_special_accts;
 
-  # Return immediately if we didn't get any accounts back
-  return
-    unless (defined $acct[0]);
+    # Return immediately if we didn't get any accounts back
+    return unless defined $acct[0];
 
-  # Get project objects, using a different query depending on whether
-  # we are returning science or engineering accounts
-  my $db = new OMP::ProjDB(DB => $self->db,);
-  my $tel_xml = "<telescope>". $self->_get_telescope ."</telescope>";
-  my $query_xml;
-  if ($arg eq 'sci') {
-    # Get all the projects in the semesters that we have time
-    # accounts for.
-    my $sem_xml = join ("", map {"<semester>$_</semester>"} $self->_get_semesters());
-    $query_xml = "<ProjQuery>${sem_xml}${tel_xml}</ProjQuery>";
-  } else {
-    # Get projects in the EC queue
-    $query_xml = "<ProjQuery><country>EC</country><isprimary>1</isprimary>${tel_xml}</ProjQuery>";
-  }
+    # Get project objects, using a different query depending on whether
+    # we are returning science or engineering accounts
+    my $db = OMP::ProjDB->new(DB => $self->db);
+    my $tel_xml = "<telescope>" . $self->_get_telescope . "</telescope>";
+    my $query_xml;
+    if ($arg eq 'sci') {
+        # Get all the projects in the semesters that we have time
+        # accounts for.
+        my $sem_xml = join("", map {"<semester>$_</semester>"} $self->_get_semesters());
 
-  my $query = new OMP::ProjQuery(XML=>$query_xml);
-  my @projects = $db->listProjects($query);
-  my %projects = map {$_->projectid, $_} @projects;
+        $query_xml = "<ProjQuery>${sem_xml}${tel_xml}</ProjQuery>";
+    }
+    else {
+        # Get projects in the EC queue
+        $query_xml = "<ProjQuery><country>EC</country><isprimary>1</isprimary>${tel_xml}</ProjQuery>";
+    }
 
-  if ($arg eq 'sci') {
-    # Only keep non-EC projects
-    @acct = grep {
-      exists $projects{$_->projectid} and $projects{$_->projectid}->isScience
-    } @acct;
-  } else {
-    # Only keep EC projects
-    @acct = grep { exists $projects{$_->projectid} } @acct;
-  }
+    my $query = OMP::ProjQuery->new(XML => $query_xml);
+    my @projects = $db->listProjects($query);
+    my %projects = map {$_->projectid, $_} @projects;
 
-  if (wantarray) {
-    return @acct;
-  } else {
-    return \@acct;
-  }
+    if ($arg eq 'sci') {
+        # Only keep non-EC projects
+        @acct = grep {
+            exists $projects{$_->projectid}
+                and $projects{$_->projectid}->isScience
+        } @acct;
+    }
+    else {
+        # Only keep EC projects
+        @acct = grep {exists $projects{$_->projectid}} @acct;
+    }
+
+    if (wantarray) {
+        return @acct;
+    }
+    else {
+        return \@acct;
+    }
 }
 
 =item B<_get_special_accts>
@@ -974,122 +1040,132 @@ Return only accounts with project IDs that begin with a telescope
 name and end with the given string.  Does not return the special
 accounts with the project ID '__FAULT__'.
 
-  @accts = $self->_get_special_accts("CAL");
+    @accts = $self->_get_special_accts("CAL");
 
 If a telescope can not be determined, returns no accounts.
 
 =cut
 
 sub _get_special_accts {
-  my $self = shift;
-  my $proj = shift;
+    my $self = shift;
+    my $proj = shift;
 
-  my @accounts = $self->accounts;
-  my $regexpart = $self->telescope;
+    my @accounts = $self->accounts;
+    my $regexpart = $self->telescope;
 
-  # if telescope is not defined that means there were no science
-  # accounts (else _get_telescope would have worked something out)
-  # and we were not told the telescope explicitly at construction
-  if (!defined $regexpart) {
-    return ();
-  }
+    # if telescope is not defined that means there were no science
+    # accounts (else _get_telescope would have worked something out)
+    # and we were not told the telescope explicitly at construction
+    if (! defined $regexpart) {
+        return ();
+    }
 
-  # Now look for matching projects
-  @accounts = grep {$_->projectid =~ /^(${regexpart})${proj}$/} @accounts;
-  if (wantarray) {
-    return @accounts;
-  } else {
-    return \@accounts;
-  }
+    # Now look for matching projects
+    @accounts = grep {$_->projectid =~ /^(${regexpart})${proj}$/} @accounts;
+    if (wantarray) {
+        return @accounts;
+    }
+    else {
+        return \@accounts;
+    }
 }
 
 =item B<_get_low_date>
 
 Retrieve the date of the first non-special account object.
 
-  $date = $self->_get_low_date();
+    $date = $self->_get_low_date();
 
 Returns undef if all accounts are special.
 
 =cut
 
 sub _get_low_date {
-  my $self = shift;
-  my @accts = $self->_get_non_special_accts;
-  if (@accts) {
-    return $accts[0]->date;
-  }
-  return undef;
+    my $self = shift;
+    my @accts = $self->_get_non_special_accts;
+    if (@accts) {
+        return $accts[0]->date;
+    }
+    return undef;
 }
 
 =item B<_get_semesters>
 
 Retrieve the list of semesters that the science time accounts span.
 
-  @sems = $self->_get_semesters();
+    @sems = $self->_get_semesters();
 
 Returns a list, or reference to a list.
 
 =cut
 
 sub _get_semesters {
-  my $self = shift;
-  my @accts = $self->_get_non_special_accts;
-  my $tel = $self->_get_telescope;
-  my %sem = map {
-    OMP::DateTools->determine_semester(date => $_->date, tel => $tel), undef
+    my $self = shift;
+    my @accts = $self->_get_non_special_accts;
+    my $tel = $self->_get_telescope;
+    my %sem = map {
+        OMP::DateTools->determine_semester(date => $_->date, tel => $tel),
+            undef
     } @accts;
 
-  if (wantarray) {
-    return keys %sem;
-  } else {
-    return [keys %sem];
-  }
+    if (wantarray) {
+        return keys %sem;
+    }
+    else {
+        return [keys %sem];
+    }
 }
 
 =item B<_get_telescope>
 
 Retrieve the telescope name associated with the first time account object.
 
-  $tel = $self->_get_telescope();
+    $tel = $self->_get_telescope();
 
 =cut
 
 sub _get_telescope {
-  my $self = shift;
-  my @accts = $self->_get_non_special_accts;
-  if (@accts) {
-    my $db = new OMP::ProjDB(DB=>$self->db,
-                             ProjectID=>$accts[0]->projectid,
-                            );
-    return $db->getTelescope();
-  }
-  return undef;
+    my $self = shift;
+    my @accts = $self->_get_non_special_accts;
+    if (@accts) {
+        my $db = OMP::ProjDB->new(
+            DB => $self->db,
+            ProjectID => $accts[0]->projectid);
+
+        return $db->getTelescope();
+    }
+    return undef;
 }
 
 =item B<_mutate_time>
 
 Reset the time or store a new time for one of the object properties.
 
-  $self->_mutate_time("WeatherLoss", 32000);
+    $self->_mutate_time("WeatherLoss", 32000);
 
 =cut
 
 sub _mutate_time {
-  my $self = shift;
-  my $key = shift;
-  my $value = shift;
+    my $self = shift;
+    my $key = shift;
+    my $value = shift;
 
-  if (! defined $value) {
-    $self->{$key} = undef;
-  } else {
-    # Set the new value
-    my $time = shift;
-    $time = new Time::Seconds( $time )
-      unless UNIVERSAL::isa($time, "Time::Seconds");
-    $self->{$key} = $time;
-  }
+    unless (defined $value) {
+        $self->{$key} = undef;
+    }
+    else {
+        # Set the new value
+        my $time = shift;
+        $time = Time::Seconds->new($time)
+            unless UNIVERSAL::isa($time, "Time::Seconds");
+
+        $self->{$key} = $time;
+    }
 }
+
+1;
+
+__END__
 
 =back
 
@@ -1117,7 +1193,4 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =cut
-
-1;

@@ -23,8 +23,8 @@ use Pod::Usage;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -52,7 +52,7 @@ foreach my $project (@ARGV) {
     }
     elsif (-e $project) {
         print STDERR 'Reading file ', $project, "\n" if $verbose;
-        $sp = new OMP::SciProg(FILE => $project)
+        $sp = OMP::SciProg->new(FILE => $project);
     }
     else {
         print STDERR 'Invalid project / not a file: ', $project, "\n";

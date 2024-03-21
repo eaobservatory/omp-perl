@@ -2,11 +2,11 @@ package OMP::CGIPage::Feedback;
 
 =head1 NAME
 
-OMP::CGIPage::Feedback - Web display of complete feedback pages.
+OMP::CGIPage::Feedback - Web display of complete feedback pages
 
 =head1 SYNOPSIS
 
-  use OMP::CGIPage::Feedback;
+    use OMP::CGIPage::Feedback;
 
 =head1 DESCRIPTION
 
@@ -39,80 +39,85 @@ $| = 1;
 Creates a page with a comment form, or submits comment and creates
 a page saying it has done so.
 
-  $page->add_comment($projectid);
+    $page->add_comment($projectid);
 
 =cut
 
 sub add_comment {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  my $comp = new OMP::CGIComponent::Feedback(page => $self);
+    my $comp = OMP::CGIComponent::Feedback->new(page => $self);
 
-  if ($q->param('submit_add')) {
+    if ($q->param('submit_add')) {
+        return {
+            project => OMP::ProjServer->projectDetails($projectid, 'object'),
+            target => undef,
+            %{$comp->submit_fb_comment($projectid)},
+            num_comments => $comp->fb_entries_count($projectid),
+        };
+    }
+
     return {
-      project => OMP::ProjServer->projectDetails($projectid, 'object'),
-      target => undef,
-      %{$comp->submit_fb_comment($projectid)},
-      num_comments => $comp->fb_entries_count($projectid),
+        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        target => $self->url_absolute(),
+        values => {
+            # We don't re-display the form, but some pages link here with
+            # a pre-prepared subject in a query parameter.
+            subject => (scalar $q->param('subject')),
+        },
+        messages => [],
+        num_comments => $comp->fb_entries_count($projectid),
     };
-  }
-
-  return {
-    project => OMP::ProjServer->projectDetails($projectid, 'object'),
-    target => $self->url_absolute(),
-    values => {
-        # We don't re-display the form, but some pages link here with
-        # a pre-prepared subject in a query parameter.
-        subject => (scalar $q->param('subject')),
-    },
-    messages => [],
-    num_comments => $comp->fb_entries_count($projectid),
-  };
 }
 
 =item B<fb_logout>
 
-Gives the user a cookie with an expiration date in the past, effectively deleting the cookie.
+Gives the user a cookie with an expiration date in the past,
+effectively deleting the cookie.
 
-  $page->fb_logout();
+    $page->fb_logout();
 
 =cut
 
 sub fb_logout {
-  my $self = shift;
+    my $self = shift;
 
-  return {
-    message => "You are now logged out of the feedback system.",
-  };
+    return {
+        message => "You are now logged out of the feedback system.",
+    };
 }
 
 =item B<fb_output>
 
 Creates the page showing feedback entries.
 
-  $page->fb_output($projectid);
+    $page->fb_output($projectid);
 
 =cut
 
 sub fb_output {
-  my $self = shift;
-  my $projectid = shift;
+    my $self = shift;
+    my $projectid = shift;
 
-  my $q = $self->cgi;
+    my $q = $self->cgi;
 
-  return {
-    target => $self->url_absolute(),
-    project => OMP::ProjServer->projectDetails($projectid, 'object'),
-    num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
-    feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
-    display_date => sub {
-        return OMP::DateTools->display_date($_[0]);
-    },
-  };
+    return {
+        target => $self->url_absolute(),
+        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
+        feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
+        display_date => sub {
+            return OMP::DateTools->display_date($_[0]);
+        },
+    };
 }
+
+1;
+
+__END__
 
 =back
 
@@ -146,5 +151,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-1;

@@ -54,14 +54,14 @@ sub log_in_userpass {
     my $sleep = OMP::Config->getData('auth_ldap.sleep');
     sleep $sleep if $sleep;
 
-    my $ldap = new Net::LDAP($ldap_url);
+    my $ldap = Net::LDAP->new($ldap_url);
     my $mess = $ldap->bind($dn, password => $password);
 
     throw OMP::Error::Authentication('Username or password not recognized.')
         if $mess->code;
 
-    my $db = new OMP::UserDB(DB => new OMP::DBbackend());
-    my @result = $db->queryUsers(new OMP::UserQuery(
+    my $db = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my @result = $db->queryUsers(OMP::UserQuery->new(
         XML => '<UserQuery><alias>' . $username . '</alias><obfuscated>0</obfuscated></UserQuery>'));
 
     throw OMP::Error::Authentication('Could not find an OMP alias associated with your account.')
@@ -74,6 +74,10 @@ sub log_in_userpass {
     $result->is_staff(1);
     return {user => $result};
 }
+
+1;
+
+__END__
 
 =back
 
@@ -96,5 +100,3 @@ this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 =cut
-
-1;

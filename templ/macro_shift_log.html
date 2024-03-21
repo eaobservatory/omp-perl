@@ -16,7 +16,7 @@
                     <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
                     <td class="[% timecellclass _ '_' _ bgcolor %]">
                         [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
-                    <td class="subject">[% comment.text | remove_pre_tags %]</td>
+                    <td class="subject">[% comment.remove_pre_tags %]</td>
                 </tr>
                 [% SET bgcolor = ((bgcolor == 'a') ? 'b' : 'a') %]
             [% END %]

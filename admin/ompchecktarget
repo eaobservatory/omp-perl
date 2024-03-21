@@ -8,12 +8,12 @@ ompchecktarget - checks observed targets against targets proposed for the
 
 =head1 SYNOPSIS
 
- ompchecktarget
- ompchecktarget -ut 20080208  -utstop 20080826 -max 3d -all -targetdir DIR
- ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000" -targetdir DIR
- ompchecktarget -proj m08bu01 -cat -targetdir DIR > m08bu01.cat
- ompchecktarget -man | -help | -version
- ompchecktarget -scheduled -utdate 20120824 -utstop 1 -targetdir DIR
+    ompchecktarget
+    ompchecktarget -ut 20080208  -utstop 20080826 -max 3d -all -targetdir DIR
+    ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000" -targetdir DIR
+    ompchecktarget -proj m08bu01 -cat -targetdir DIR > m08bu01.cat
+    ompchecktarget -man | -help | -version
+    ompchecktarget -scheduled -utdate 20120824 -utstop 1 -targetdir DIR
 
 =head1 DESCRIPTION
 
@@ -95,7 +95,8 @@ back-slashed: \*
 Extract proposed targets and print their position
 in a JAC-style catalog format. It requires -project to be specified as
 well, all other command-line settings are ignored. E.g.
-   ompchecktarget -proj M08BN\* -cat
+
+    ompchecktarget -proj M08BN\* -cat
 
 =item B<-co(ords)>
 
@@ -103,11 +104,13 @@ Coordinates to check against proposed sources: instead of obtaining
 observed targets from the OMP DB, these user specified coordinates
 are used. The coordinate string has to be enclosed within single or
 double quotes: 'long lat [type] [format]'
+
      long, lat: coordinates
      type:     J2000, B1950, galactic, supergalactic.
                Default: J2000
      units:    deg(grees), rad(ians), sex(agesimal).
                Default: "sexagesimal" i.e. colon separated strings.
+
 If coordinates are specified, -all is assumed and -ut, -utstop settings
 will be ignored.
 
@@ -146,16 +149,14 @@ Specify the directory from which to load target files as exported
 from Hedwig using the hedwig2omp utility.  All files named *.json
 in this directory will be loaded.
 
-=back
-
 =item B<-fop>
 
 Only look at projects where the given username is set as FOP. The FOP
 must be given as the OMP username (e.g. PARSONSH)
 
-=cut
+=back
 
-# ----------------------------------------------------------------------
+=cut
 
 use warnings;
 use strict;
@@ -165,8 +166,8 @@ use FindBin;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
 
 use lib OMPLIB;
@@ -189,9 +190,6 @@ use OMP::DBbackend::Archive;
 use OMP::MSBDB;
 
 my $HPI = pi/2;
-
-# ----------------------------------------------------------------------
-# Global variables
 
 # Unbuffer output
 $| = 1;
@@ -218,38 +216,35 @@ my %results;       # Set up a hash with the printed line as key and the
 
 my $targetdir = undef;
 
-# ----------------------------------------------------------------------
-# Command-line parameters
-#
 my ($help, $man, $version, $dbg);
 my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $scheduled, $fop);
 
-my $status = GetOptions("ut=s"       => \$utd,
-                        "utstop=s"   => \$uts,
-                        "maxdist=s"  => \$max,
-                        "project=s"  => \$prjs,
-                        "cat"        => \$cat,
-                        "coords=s"   => \$crds,
-                        "tel=s"      => \$tel,
-                        "all"        => \$all,
-                        "help"       => \$help,
-                        "man"        => \$man,
-                        "version"    => \$version,
-                        "debug"      => \$dbg,
-                        "scheduled"  => \$scheduled,
-                        'targetdir=s' => \$targetdir,
-                        'fop=s'      => \$fop,
+my $status = GetOptions(
+    "ut=s" => \$utd,
+    "utstop=s" => \$uts,
+    "maxdist=s" => \$max,
+    "project=s" => \$prjs,
+    "cat" => \$cat,
+    "coords=s" => \$crds,
+    "tel=s" => \$tel,
+    "all" => \$all,
+    "help" => \$help,
+    "man" => \$man,
+    "version" => \$version,
+    "debug" => \$dbg,
+    "scheduled" => \$scheduled,
+    'targetdir=s' => \$targetdir,
+    'fop=s' => \$fop,
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
-if( $version ) {
-  print "${prog} - Check observed targets versus proposed targets\n";
-  print "\tversion 1.0 2008-08-29 rpt - Joint Astronomy Centre\n";
-  exit;
+if ($version) {
+    print "${prog} - Check observed targets versus proposed targets\n";
+    print "\tversion 1.0 2008-08-29 rpt - Joint Astronomy Centre\n";
+    exit;
 }
-
 
 # Switch debug output to STDERR on (1; else 0)
 my $debug = 0;
@@ -260,11 +255,10 @@ $debug = 1 if (defined $dbg);
 # is defined rather than reading this string!
 my $mode = defined $scheduled ? 'scheduled' : 'observed';
 
-
 # Telescope (currently hard-wired to JCMT)
 my $telescope = 'JCMT';
-#$telescope = uc $tel if (defined $tel);
 
+#$telescope = uc $tel if (defined $tel);
 
 # Project(s)
 my $projects = '';
@@ -275,17 +269,14 @@ die "*ERROR* Need to also specify a project with user-specified coordinates"
 # FOP
 $fop = uc $fop if (defined $fop);
 
-
 # Just print catalog of proposed targets?
 if (defined $cat) {
-  print_cat ( $telescope, "$projects" );
-  exit;
+    print_cat($telescope, "$projects");
+    exit;
 }
-
 
 # User specified coordinates (parse below)
 my $coords = $crds if (defined $crds);
-
 
 # Show all?
 my $show_all = 0;
@@ -297,154 +288,155 @@ my $utstart = gmtime->ymd;
 $utstart = $utd if (defined $utd and not defined $crds);
 $utstart =~ s/\-//g;
 die "*Error* '-utd $utd' not a valid date yyyymmd or yyyy-mm-dd\n"
-    if ( $utstart !~ /^\d{8}$/a );
+    if ($utstart !~ /^\d{8}$/a);
 
-my $utstop  = $utstart;
+my $utstop = $utstart;
 $utstop = $uts if (defined $uts and not defined $crds);
 $utstop =~ s/\-//g;
 die "*Error* '-uts $uts' not a valid date yyyymmd or yyyy-mm-dd\n"
-    if ( $utstop !~ /^\d{1,8}$/a );
+    if ($utstop !~ /^\d{1,8}$/a);
 
 # If small number interpret as interval rather than date
 if ($utstop < 367) {
-  my $t = new Time::Piece->strptime( "$utstart","%Y%m%d" );
-  $utstop--;        # SQL 'between' is inclusive boundaries
-  $t += (24*3600*$utstop);
-  $utstop = $t->ymd;
-  $utstop =~ s/\-//g;
+    my $t = Time::Piece->new->strptime("$utstart", '%Y%m%d');
+    $utstop--;    # SQL 'between' is inclusive boundaries
+    $t += (24 * 3600 * $utstop);
+    $utstop = $t->ymd;
+    $utstop =~ s/\-//g;
 }
 
 
 # Maximum distance allowed
-my $maxdist = 2.5*3600.0;
+my $maxdist = 2.5 * 3600.0;
 if (defined $max) {
-  my $unit = 's';  # default unit, append to max to have at least 1 char.
-  "${max}${unit}" =~ /(\d+\.?\d*)([a-z]?)/aai && do {$maxdist = $1; $unit = $2};
+    my $unit = 's';  # default unit, append to max to have at least 1 char.
+    "${max}${unit}" =~ /(\d+\.?\d*)([a-z]?)/aai
+        && do {$maxdist = $1; $unit = $2};
 
-  die "*Error* '-max $max' unit not recognized.\nUse 'm' for arcmins and 'd' for degrees. Nothing or 's' for arcsecs.\n"  if ($unit !~ /(s|m|d)/i);
+    die "*Error* '-max $max' unit not recognized.\nUse 'm' for arcmins and 'd' for degrees. Nothing or 's' for arcsecs.\n"
+        if ($unit !~ /(s|m|d)/i);
 
-  $maxdist *= 60 if ($unit eq 'm');
-  $maxdist *= 3600 if ($unit eq 'd');
+    $maxdist *= 60 if ($unit eq 'm');
+    $maxdist *= 3600 if ($unit eq 'd');
 }
 
 my $prtdist = $maxdist;
 my $unit = "arcsecs";
-if ( $prtdist >= 60.0 and $prtdist < 3600 ) {
-  $prtdist /= 60.0;
-  $unit = "arcmins";
-} elsif ( $maxdist >= 3600.0) {
-  $prtdist /= 3600.0;
-  $unit = "degrees";
+if ($prtdist >= 60.0 and $prtdist < 3600) {
+    $prtdist /= 60.0;
+    $unit = "arcmins";
+}
+elsif ($maxdist >= 3600.0) {
+    $prtdist /= 3600.0;
+    $unit = "degrees";
 }
 
-
-#----------------------------------------------------------------------
-# Print header
 
 print "\n---------------------------------------------------------------------------\n";
+
 unless (defined $crds) {
-  print "$telescope ${prog} results for UT date";
-  if ($utstart == $utstop) {
-    print " $utstart.\n";
-  } else {
-    print "s $utstart - $utstop.\n";
-  }
-} else {
-  print "$telescope ${prog} results for user specified coordinates\n";
+    print "$telescope ${prog} results for UT date";
+    if ($utstart == $utstop) {
+        print " $utstart.\n";
+    }
+    else {
+        print "s $utstart - $utstop.\n";
+    }
 }
-printf
-  "Max distance allowed between $mode and proposed targets: %5.2f %s\n",
-  $prtdist, $unit;
+else {
+    print "$telescope ${prog} results for user specified coordinates\n";
+}
+printf "Max distance allowed between $mode and proposed targets: %5.2f %s\n",
+    $prtdist, $unit;
 
 print "\n";
 
 
-#----------------------------------------------------------------------
-# Here we go...
-
 # Get observed targets
 unless ($coords) {
-
-  unless ($scheduled) {
-    # from COMMON table in JCMT DB sorted by project.
-    $observed = &get_observed_targets( $utstart, $utstop,
-                                        "$projects", $telescope, $fop );
-  }
-  else {
-    $observed = get_scheduled_targets($utstart, $utstop, $fop);
-  }
-} else {
-  # or for user-specified coordinates
-  $observed = &get_user_target( "$projects", $telescope, $coords );
+    unless ($scheduled) {
+        # from COMMON table in JCMT DB sorted by project.
+        $observed = get_observed_targets($utstart, $utstop,
+            "$projects", $telescope, $fop);
+    }
+    else {
+        $observed = get_scheduled_targets($utstart, $utstop, $fop);
+    }
+}
+else {
+    # or for user-specified coordinates
+    $observed = get_user_target("$projects", $telescope, $coords);
 }
 
 # Get proposed targets for observed projects.
-$proposed = &get_proposed_targets( $telescope, $observed );
+$proposed = get_proposed_targets($telescope, $observed);
 
 print "---------------------------------------------------------------------------\n";
 
 # Compare observed targets to proposed ones.
 foreach my $obs (@$observed) {
 
-  my $utdate = $obs->{'utdate'};
+    my $utdate = $obs->{'utdate'};
 
-  # Give warning if coordinates not recognized.
-  unless ( defined $obs->{'ra'} and defined $obs->{'dec'}
-           and $obs->{'ra'} ne "" and $obs->{'dec'} ne "" ) {
-    my $msg = sprintf
-      "[%s] target '%s' (obs %i): No %s coordinates in %s DB",
-      $obs->{'project'}, $obs->{'name'}, $obs->{'obsnum'}, $mode,
-      ($mode eq 'scheduled' ? 'OMP' : 'JCMT');
-    unless (exists $results{ "$msg" } ) {
-      $results{ "$msg" } = "$utdate";
-    } else {
-      $results{ "$msg" } .= " $utdate";
+    # Give warning if coordinates not recognized.
+    unless (defined $obs->{'ra'}
+            and defined $obs->{'dec'}
+            and $obs->{'ra'} ne ""
+            and $obs->{'dec'} ne "") {
+        my $msg = sprintf
+            "[%s] target '%s' (obs %i): No %s coordinates in %s DB",
+            $obs->{'project'}, $obs->{'name'}, $obs->{'obsnum'}, $mode,
+            ($mode eq 'scheduled' ? 'OMP' : 'JCMT');
+        unless (exists $results{"$msg"}) {
+            $results{"$msg"} = "$utdate";
+        }
+        else {
+            $results{"$msg"} .= " $utdate";
+        }
+        next;
     }
-    next;
-  }
 
-  printf STDERR ucfirst($mode).": %-16s %12s %12s J2000\n",
-       $obs->{'coords'}->{'name'},
-       $obs->{'coords'}->ra2000( format => 'sex' ),
-       $obs->{'coords'}->dec2000( format => 'sex' ),
-       if ($debug);
+    printf STDERR ucfirst($mode) . ": %-16s %12s %12s J2000\n",
+        $obs->{'coords'}->{'name'},
+        $obs->{'coords'}->ra2000(format => 'sex'),
+        $obs->{'coords'}->dec2000(format => 'sex'),
+        if ($debug);
 
-  # Find nearest target for current project
-  my $msg = &find_nearest( $obs, $proposed );
+    # Find nearest target for current project
+    my $msg = find_nearest($obs, $proposed);
 
-  # Just append utdate to 'value' string if message already
-  # exists (i.e. same results was found for a different date
-  if ( $msg ne "" ) {
-    unless (exists $results{ "$msg" } ) {
-      $results{ "$msg" } = "$utdate";
-    } else {
-      $results{ "$msg" } .= " $utdate";
+    # Just append utdate to 'value' string if message already
+    # exists (i.e. same results was found for a different date
+    if ($msg ne "") {
+        unless (exists $results{"$msg"}) {
+            $results{"$msg"} = "$utdate";
+        }
+        else {
+            $results{"$msg"} .= " $utdate";
+        }
     }
-  }
-
 }
 
-print "\n".ucfirst($mode)." targets sorted by project, ";
+print "\n" . ucfirst($mode) . " targets sorted by project, ";
 unless (defined $crds) {
-  if ($show_all) {
-    print "results include matching targets:\n";
-  } else {
-    print "non-matching targets only:\n";
-  }
+    if ($show_all) {
+        print "results include matching targets:\n";
+    }
+    else {
+        print "non-matching targets only:\n";
+    }
 }
 print "\n";
 
-if ( scalar(keys %results) > 0 ) {
-  foreach my $key (sort (keys(%results))) {
-    print "$key\n\tDate(s): $results{$key}\n\n";
-  }
-} else {
+if (scalar(keys %results) > 0) {
+    foreach my $key (sort (keys(%results))) {
+        print "$key\n\tDate(s): $results{$key}\n\n";
+    }
+}
+else {
     print "No non-matching targets found\n\n";
 }
 
-#----------------------------------------------------------------------
-
-sub get_observed_targets {
 
 # Get the observed targets from the COMMON table in JCMT Archive.
 # Would have like to use OMP::ObsGroups but, due to a bug, it does
@@ -466,95 +458,90 @@ sub get_observed_targets {
 #       To facilitate easy coordinate conversions, this information
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
+sub get_observed_targets {
+    my ($utstart, $utstop, $projids, $telescope, $fop) = @_;
 
-  my ($utstart, $utstop, $projids, $telescope, $fop) = @_;
-
-  my $prjclause = "";
-  if ($projects ne "") {
-    $prjclause = qq{AND project LIKE "$projids"};
-    $prjclause =~ s/\*/\%/g;
-  }
-
-  my $fopwhereclause = "";
-  my $fopjoinclause = "";
-  if (defined($fop) && $fop ne "") {
-      $fopwhereclause = qq{ AND userid = "$fop"  AND capacity="SUPPORT"};
-      $fopjoinclause = qq{ JOIN omp.ompprojuser AS op ON jcmt.COMMON.project = op.projectid };
-  }
-  # Connect to the database.
-  print STDERR "# Connecting to OMP server...";
-  my $dbbackend = new OMP::DBbackend::Archive();
-  my $dbh = $dbbackend->handle();
-  print STDERR "done\n";
-
-  # Now retrieve data from the table.
-  my $sql = qq{
-    SELECT distinct project, utdate, object as name, obsra as ra, obsdec as `dec`, obsnum
-    FROM jcmt.COMMON  $fopjoinclause
-    WHERE
-    utdate BETWEEN $utstart AND $utstop
-    $prjclause
-    $fopwhereclause
-    AND telescop="$telescope"
-    ORDER BY project, utdate
-    };
-
-  print 'Running query: ', $sql, "\n" if $debug;
-  my $sth = $dbh->prepare($sql);
-  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
-
-  my @observed;
-  while (my $ref = $sth->fetchrow_hashref()) {
-
-    next unless ( $ref->{'project'} =~ /^M\d\d(A|B)/aai and
-                  $ref->{'project'} !~ /^M\d\d(A|B)EC/aai );
-
-    printf STDERR "[%s] ".ucfirst($mode).": %-16s", $ref->{'project'}, $ref->{'name'}
-          if $debug;
-
-    $ref->{'type'}    = 'j2000';
-    $ref->{'units'}   = 'deg';
-    if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
-
-      printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
-          if $debug;
-
-      my $ocoords = new Astro::Coords(  name  => $ref->{'name'},
-                                        ra    => $ref->{'ra'},
-                                        dec   => $ref->{'dec'},
-                                        type  => $ref->{'type'},
-                                        units => $ref->{'units'}
-                                     );
-      $ocoords->telescope( new Astro::Telescope( $telescope ));
-
-      $ref->{'coords'}   = $ocoords;
-
+    my $prjclause = '';
+    if ($projects ne '') {
+        $prjclause = "AND project LIKE \"$projids\"";
+        $prjclause =~ s/\*/\%/g;
     }
-    print STDERR "\n" if $debug;
 
-    push @observed, $ref;
-  }
+    my $fopwhereclause = '';
+    my $fopjoinclause = '';
+    if (defined($fop) && $fop ne '') {
+        $fopwhereclause = " AND userid = \"$fop\"  AND capacity=\"SUPPORT\"";
+        $fopjoinclause = " JOIN omp.ompprojuser AS op ON jcmt.COMMON.project = op.projectid ";
+    }
 
-  $sth->finish();
+    # Connect to the database.
+    print STDERR "# Connecting to OMP server...";
+    my $dbbackend = OMP::DBbackend::Archive->new();
+    my $dbh = $dbbackend->handle();
+    print STDERR "done\n";
 
-  # Disconnect from the database.
-  $dbbackend->disconnect();
-  undef $dbh;
+    # Now retrieve data from the table.
+    my $sql = "
+        SELECT distinct project, utdate, object as name, obsra as ra, obsdec as `dec`, obsnum
+        FROM jcmt.COMMON  $fopjoinclause
+        WHERE
+        utdate BETWEEN $utstart AND $utstop
+        $prjclause
+        $fopwhereclause
+        AND telescop=\"$telescope\"
+        ORDER BY project, utdate";
 
-  if (@observed > 0) {
-    printf STDERR "# Fetched %d observed targets\n", $#observed+1;
-  } else {
-    print STDERR "No observed targets found\nFinished\n";
-    exit;
-  }
+    print 'Running query: ', $sql, "\n" if $debug;
+    my $sth = $dbh->prepare($sql);
+    $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
-  return \@observed;
+    my @observed;
+    while (my $ref = $sth->fetchrow_hashref()) {
+        next unless ($ref->{'project'} =~ /^M\d\d(A|B)/aai
+            and $ref->{'project'} !~ /^M\d\d(A|B)EC/aai);
 
+        printf STDERR "[%s] " . ucfirst($mode) . ": %-16s", $ref->{'project'}, $ref->{'name'}
+            if $debug;
+
+        $ref->{'type'} = 'j2000';
+        $ref->{'units'} = 'deg';
+        if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
+            printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
+                if $debug;
+
+            my $ocoords = Astro::Coords->new(
+                name => $ref->{'name'},
+                ra => $ref->{'ra'},
+                dec => $ref->{'dec'},
+                type => $ref->{'type'},
+                units => $ref->{'units'}
+            );
+            $ocoords->telescope(Astro::Telescope->new($telescope));
+
+            $ref->{'coords'} = $ocoords;
+        }
+        print STDERR "\n" if $debug;
+
+        push @observed, $ref;
+    }
+
+    $sth->finish();
+
+    # Disconnect from the database.
+    $dbbackend->disconnect();
+    undef $dbh;
+
+    if (@observed > 0) {
+        printf STDERR "# Fetched %d observed targets\n", $#observed + 1;
+    }
+    else {
+        print STDERR "No observed targets found\nFinished\n";
+        exit;
+    }
+
+    return \@observed;
 }
 
-#----------------------------------------------------------------------
-
-sub get_scheduled_targets {
 
 # Get the scheduled targets from the ompobs table in OMP database.
 #
@@ -571,99 +558,90 @@ sub get_scheduled_targets {
 #       To facilitate easy coordinate conversions, this information
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
+sub get_scheduled_targets {
+    my ($utstart, $utstop) = @_;
 
-  my ($utstart, $utstop) = @_;
+    # This strptime function appears to assume UT, so we can
+    # use the specified dates directly to get the timestamps.
+    $utstart = Time::Piece->new->strptime("$utstart", '%Y%m%d')->epoch();
+    $utstop = Time::Piece->new->strptime("$utstop 23:59:59", '%Y%m%d %H:%M:%S')->epoch();
 
-  # This strptime function appears to assume UT, so we can
-  # use the specified dates directly to get the timestamps.
-  $utstart = new Time::Piece->strptime("$utstart", "%Y%m%d")->epoch();
-  $utstop  = new Time::Piece->strptime("$utstop 23:59:59", "%Y%m%d %H:%M:%S")->epoch();
-
-
-  my $fopclause = "";
-  if (defined($fop) && $fop ne "") {
-      $fopclause = qq{
-AND Q.projectid IN
-    (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid="$fop" AND capacity="SUPPORT")}
-  }
-  # Connect to the database.
-  print STDERR "# Connecting to OMP server...";
-  my $dbbackend = new OMP::DBbackend();
-  my $dbh = $dbbackend->handle();
-  print STDERR "done\n";
-
-  # Now retrieve data from the table.
-  my $sql = qq{
-    SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
-    FROM $OMP::MSBDB::OBSTABLE AS Q
-        JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
-        JOIN $OMP::ProjDB::PROJTABLE AS P ON Q.projectid = P.projectid
-    WHERE
-    P.telescope = "JCMT"
-    AND timestamp BETWEEN $utstart AND $utstop
-    AND Q.projectid NOT IN (
-        SELECT projectid FROM $OMP::ProjDB::PROJQUEUETABLE WHERE country IN ("EC", "JAC", "EAO"))
-    $fopclause
-    ORDER BY project, name
-    };
-  print 'Running query: ', $sql, "\n" if $debug;
-  my $sth = $dbh->prepare($sql);
-  $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
-
-  my @observed;
-  while (my $ref = $sth->fetchrow_hashref()) {
-
-    next unless ( $ref->{'project'} !~ /^M\d\d(A|B)EC/aai );
-
-    printf STDERR "[%s] Scheduled: %-16s", $ref->{'project'}, $ref->{'name'}
-          if $debug;
-
-    $ref->{'type'}    = 'j2000';
-    $ref->{'units'}   = 'rad';
-    $ref->{'utdate'}  = new Time::Piece->strptime($ref->{'timestamp'}, '%s')->ymd('');
-    $ref->{'obsnum'}  = 0;
-    if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
-
-      printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
-          if $debug;
-
-      my $ocoords = new Astro::Coords(  name  => $ref->{'name'},
-                                        ra    => $ref->{'ra'},
-                                        dec   => $ref->{'dec'},
-                                        type  => $ref->{'type'},
-                                        units => $ref->{'units'}
-                                     );
-      $ocoords->telescope( new Astro::Telescope( 'JCMT' ));
-
-      $ref->{'coords'}   = $ocoords;
-
+    my $fopclause = '';
+    if (defined($fop) && $fop ne '') {
+        $fopclause = " AND Q.projectid IN
+            (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid=\"$fop\" AND capacity=\"SUPPORT\")";
     }
-    print STDERR "\n" if $debug;
 
-    push @observed, $ref;
-  }
+    # Connect to the database.
+    print STDERR "# Connecting to OMP server...";
+    my $dbbackend = OMP::DBbackend->new();
+    my $dbh = $dbbackend->handle();
+    print STDERR "done\n";
 
-  $sth->finish();
+    # Now retrieve data from the table.
+    my $sql = "SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
+        FROM $OMP::MSBDB::OBSTABLE AS Q
+            JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
+            JOIN $OMP::ProjDB::PROJTABLE AS P ON Q.projectid = P.projectid
+        WHERE
+        P.telescope = \"JCMT\"
+        AND timestamp BETWEEN $utstart AND $utstop
+        AND Q.projectid NOT IN (
+            SELECT projectid FROM $OMP::ProjDB::PROJQUEUETABLE WHERE country IN (\"EC\", \"JAC\", \"EAO\"))
+        $fopclause
+        ORDER BY project, name";
+    print 'Running query: ', $sql, "\n" if $debug;
+    my $sth = $dbh->prepare($sql);
+    $sth->execute() or die 'Could not execute query: ' . $sth->errstr();
 
-  # Disconnect from the database.
-  $dbbackend->disconnect();
-  undef $dbh;
+    my @observed;
+    while (my $ref = $sth->fetchrow_hashref()) {
+        next unless ($ref->{'project'} !~ /^M\d\d(A|B)EC/aai);
 
-  if (@observed > 0) {
-    printf STDERR "# Fetched %d scheduled targets\n", $#observed+1;
-  } else {
-    print STDERR "No scheduled targets found\nFinished\n";
-    exit;
-  }
+        printf STDERR "[%s] Scheduled: %-16s", $ref->{'project'}, $ref->{'name'}
+            if $debug;
 
-  return \@observed;
+        $ref->{'type'} = 'j2000';
+        $ref->{'units'} = 'rad';
+        $ref->{'utdate'} = Time::Piece->new->strptime($ref->{'timestamp'}, '%s')->ymd('');
+        $ref->{'obsnum'} = 0;
+        if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
+            printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
+                if $debug;
 
+            my $ocoords = Astro::Coords->new(
+                name => $ref->{'name'},
+                ra => $ref->{'ra'},
+                dec => $ref->{'dec'},
+                type => $ref->{'type'},
+                units => $ref->{'units'}
+            );
+            $ocoords->telescope(Astro::Telescope->new('JCMT'));
+
+            $ref->{'coords'} = $ocoords;
+        }
+        print STDERR "\n" if $debug;
+
+        push @observed, $ref;
+    }
+
+    $sth->finish();
+
+    # Disconnect from the database.
+    $dbbackend->disconnect();
+    undef $dbh;
+
+    if (@observed > 0) {
+        printf STDERR "# Fetched %d scheduled targets\n", $#observed + 1;
+    }
+    else {
+        print STDERR "No scheduled targets found\nFinished\n";
+        exit;
+    }
+
+    return \@observed;
 }
 
-
-#----------------------------------------------------------------------
-
-sub get_proposed_targets {
 
 # Get the proposed sources from files exported from Hedwig.
 #
@@ -683,88 +661,86 @@ sub get_proposed_targets {
 #    Ref to array of hashes with observed targets, keys:
 #         'project' (string), 'name' and an Astro::Coords object
 #         as hash key 'coords'.
+sub get_proposed_targets {
+    my ($telescope, $observed) = @_;
 
-  my ($telescope, $observed) = @_;
+    # Array of hashes for results
+    my @proposed;
 
-  # Array of hashes for results
-  my @proposed;
+    # Create hash of project identifiers.
+    my %observed = map {$_->{'project'} => 1} @$observed;
 
-  # Create hash of project identifiers.
-  my %observed = map {$_->{'project'} => 1} @$observed;
+    # Iterate over files in the target files directory.
+    die 'Target files directory (-targetdir) not specified'
+        unless defined $targetdir;
 
-  # Iterate over files in the target files directory.
-  die 'Target files directory (-targetdir) not specified'
-    unless defined $targetdir;
+    for my $filename (<$targetdir/*.json>) {
+        print STDERR "Obtaining proposed targets from file " . $filename . "\n"
+            if ($debug);
+        local $/;
+        my $fh = IO::File->new($filename, 'r');
+        my $projects = decode_json(<$fh>);
+        $fh->close();
 
-  for my $filename (<$targetdir/*.json>) {
-    print STDERR "Obtaining proposed targets from file " . $filename
-        . "\n" if ($debug);
-    local $/;
-    my $fh = new IO::File($filename, 'r');
-    my $projects = decode_json(<$fh>);
-    $fh->close();
+        while (my ($proposed_project, $proposed_targets) = each %$projects) {
+            next unless exists $observed{$proposed_project};
 
-    while (my ($proposed_project, $proposed_targets) = each %$projects) {
-      next unless exists $observed{$proposed_project};
+            foreach my $proposed_target (@$proposed_targets) {
+                my $ref = {
+                    project => $proposed_project,
+                    name => $proposed_target->{'name'},
+                };
 
-      foreach my $proposed_target (@$proposed_targets) {
-        my $ref = {
-            project => $proposed_project,
-            name => $proposed_target->{'name'},
-        };
+                printf STDERR "Proposed: [%s] %-16s", $ref->{'project'}, $ref->{'name'}
+                    if ($debug);
 
-        printf STDERR "Proposed: [%s] %-16s", $ref->{'project'},
-            $ref->{'name'} if ($debug);
+                if ($proposed_target->{'system'} eq 'ICRS') {
+                    $ref->{'coords'} = Astro::Coords->new(
+                        name => $proposed_target->{'name'},
+                        ra => $proposed_target->{'x'},
+                        dec => $proposed_target->{'y'},
+                        type => 'J2000',
+                        units => 'degrees'
+                    );
+                }
+                elsif ($proposed_target->{'system'} eq 'Galactic') {
+                    $ref->{'coords'} = Astro::Coords->new(
+                        name => $proposed_target->{'name'},
+                        long => $proposed_target->{'x'},
+                        lat => $proposed_target->{'y'},
+                        type => 'galactic',
+                        units => 'degrees'
+                    );
+                }
+                else {
+                    print STDERR ' Unknown coordinate system: '
+                        . $proposed_target->{'system'} . "\n"
+                        if $debug;
+                    next;
+                }
 
-        if ($proposed_target->{'system'} eq 'ICRS') {
-          $ref->{'coords'} = new Astro::Coords(
-              name  => $proposed_target->{'name'},
-              ra    => $proposed_target->{'x'},
-              dec   => $proposed_target->{'y'},
-              type  => 'J2000',
-              units => 'degrees');
+                $ref->{'coords'}->telescope(Astro::Telescope->new($telescope));
+
+                printf STDERR " %12s %12s J2000\n",
+                    $ref->{'coords'}->ra2000(format => 'sex'),
+                    $ref->{'coords'}->dec2000(format => 'sex')
+                    if $debug;
+
+                push @proposed, $ref;
+            }
         }
-        elsif ($proposed_target->{'system'} eq 'Galactic') {
-          $ref->{'coords'} = new Astro::Coords(
-              name  => $proposed_target->{'name'},
-              long  => $proposed_target->{'x'},
-              lat   => $proposed_target->{'y'},
-              type  => 'galactic',
-              units => 'degrees');
-        }
-        else {
-          print STDERR ' Unknown coordinate system: '
-              . $proposed_target->{'system'} . "\n" if $debug;
-          next;
-        }
-
-        $ref->{'coords'}->telescope(new Astro::Telescope($telescope));
-
-        printf STDERR " %12s %12s J2000\n",
-            $ref->{'coords'}->ra2000(format => 'sex'),
-            $ref->{'coords'}->dec2000(format => 'sex')
-            if $debug;
-
-        push @proposed, $ref;
-      }
     }
-  }
 
+    if (@proposed > 0) {
+        printf STDERR "# Fetched %d proposed targets\n", $#proposed + 1;
+    }
+    else {
+        print STDERR "No proposed targets found\n";
+    }
 
-  if (@proposed > 0) {
-    printf STDERR "# Fetched %d proposed targets\n", $#proposed+1;
-  } else {
-    print STDERR "No proposed targets found\n";
-  }
-
-  return \@proposed;
-
+    return \@proposed;
 }
 
-
-#----------------------------------------------------------------------
-
-sub find_nearest {
 
 # For an observed source find the nearest proposed source in the
 # associated project(s).
@@ -782,113 +758,101 @@ sub find_nearest {
 # $proposed: Array of hashes with proposed targets, as above.
 #
 # Returned: String with result of search
-#
+sub find_nearest {
+    my ($obs, $proposed) = @_;
 
-  my ( $obs, $proposed ) = @_;
+    my $mindist = 1e+12;
+    my $idxmin = -1;
+    my $idx = -1;
 
-  my $mindist = 1e+12;
-  my $idxmin = -1;
-  my $idx = -1;
+    # Find closest proposed target
+    my $ora = $obs->{'coords'}->ra2000(format => 'rad');
+    my $odec = $obs->{'coords'}->dec2000(format => 'rad');
 
-  # Find closest proposed target
-  my $ora =  $obs->{'coords'}->ra2000( format => 'rad' );
-  my $odec = $obs->{'coords'}->dec2000( format => 'rad' );
+    # Translate observed project for perl =~
+    my $oproject = $obs->{'project'};
+    $oproject =~ s/\*/\.\*/g;
 
-  # Translate observed project for perl =~
-  my $oproject = $obs->{'project'};
-  $oproject =~ s/\*/\.\*/g;
+    foreach my $prop (@$proposed) {
+        $idx ++;
 
-  foreach my $prop (@$proposed) {
+        # Skip if not the same project
+        next if $prop->{'project'} !~ /$oproject/i;
 
-    $idx++;
+        my $pra = $prop->{'coords'}->ra2000(format => 'rad');
+        my $pdec = $prop->{'coords'}->dec2000(format => 'rad');
 
-    # Skip if not the same project
-    next if ( $prop->{'project'} !~ /$oproject/i );
+        # Astro::Coords-> distance uses tangent plane which is not
+        # appropriate here. Calculate from ra,dec.
+        my $distance = 3600.0 * rad2deg(abs(acos(
+            cos($HPI - $odec) * cos($HPI - $pdec)
+            + sin($HPI - $odec) * sin($HPI - $pdec) * cos($ora - $pra)
+        )));
 
-    my $pra =  $prop->{'coords'}->ra2000( format => 'rad' );
-    my $pdec = $prop->{'coords'}->dec2000( format => 'rad' );
+        printf STDERR "%-16s <--> %-16s distance: %12.2f arcsec\n",
+            $obs->{'coords'}->name, $prop->{'coords'}->name, $distance
+            if ($debug);
 
-    # Astro::Coords-> distance uses tangent plane which is not
-    # appropriate here. Calculate from ra,dec.
-    my $distance = 3600.0*rad2deg(abs(acos(
-                          cos($HPI-$odec)*cos($HPI-$pdec)+
-                          sin($HPI-$odec)*sin($HPI-$pdec)*
-                          cos($ora-$pra) )));
-
-    printf STDERR "%-16s <--> %-16s distance: %12.2f arcsec\n",
-         $obs->{'coords'}->name, $prop->{'coords'}->name,
-         $distance if ($debug);
-
-    if ( $distance < $mindist ) {
-      $idxmin = $idx;
-      $mindist = $distance;
+        if ($distance < $mindist) {
+            $idxmin = $idx;
+            $mindist = $distance;
+        }
     }
 
-  }
+    my $msg = "";
 
-  my $msg = "";
+    # Project not in files exported from Hedwig
+    if ($idxmin < 0) {
+        $msg = sprintf "[%s] target %-16s: project *NOT* in Hedwig exported files",
+            $obs->{'project'}, $obs->{'coords'}->name;
+        return $msg;
+    }
 
-  # Project not in files exported from Hedwig
-  if ( $idxmin < 0 ) {
-    $msg = sprintf "[%s] target %-16s: project *NOT* in Hedwig exported files",
-      $obs->{'project'}, $obs->{'coords'}->name;
+    my $unit = "arcsecs";
+    my $prtdist = $mindist;
+    if ($prtdist >= 60.0 and $prtdist < 3600) {
+        $prtdist /= 60.0;
+        $unit = "arcmins";
+    }
+    elsif ($prtdist >= 3600.0 and $prtdist != 1e+12) {
+        $prtdist /= 3600.0;
+        $unit = "degrees";
+    }
+
+    if ($mindist <= $maxdist) {
+        # Target found
+        $msg = sprintf "[%s] target %-16s found\nas proposed target [%s] %s at %5.2f $unit",
+            $obs->{'project'}, $obs->{'coords'}->name,
+            $$proposed[$idxmin]->{'project'},
+            $$proposed[$idxmin]->{'coords'}->name, $prtdist
+            if $show_all;
+    }
+    else {
+        # Target not found
+        $msg = sprintf "[%s] target %-16s is *NOT* found in Hedwig exported files!\n",
+            $obs->{'project'}, $obs->{'coords'}->name;
+        $msg .= sprintf ucfirst($mode) . " position: %12s %12s J2000\n",
+            $obs->{'coords'}->ra2000(format => 'sex'),
+            $obs->{'coords'}->dec2000(format => 'sex')
+            if ($obs->{'coords'}->name !~ /user defined\:/);
+        if ($mindist != 1e+12) {
+            $msg .= sprintf "Closest proposed:%s%12s %12s\n%s             [%s] %-16s at %5.2f $unit",
+                (' ' x (length($mode) - 6)),
+                $$proposed[$idxmin]->{'coords'}->ra2000(format => 'sex'),
+                $$proposed[$idxmin]->{'coords'}->dec2000(format => 'sex'),
+                (' ' x length($mode)),
+                uc($$proposed[$idxmin]->{'project'}),
+                $$proposed[$idxmin]->{'coords'}->name,
+                $prtdist;
+        }
+        else {
+            $msg .= "No close proposed targets";
+        }
+    }
+
     return $msg;
-  }
-
-
-  my $unit = "arcsecs";
-  my $prtdist = $mindist;
-  if ( $prtdist >= 60.0 and $prtdist < 3600 ) {
-    $prtdist /= 60.0;
-    $unit = "arcmins";
-  } elsif ( $prtdist >= 3600.0 and $prtdist != 1e+12 ) {
-    $prtdist /= 3600.0;
-    $unit = "degrees";
-  }
-
-  if ( $mindist <= $maxdist ) {
-
-    # Target found
-    $msg = sprintf
-      "[%s] target %-16s found\nas proposed target [%s] %s at %5.2f $unit",
-      $obs->{'project'}, $obs->{'coords'}->name,
-      $$proposed[$idxmin]->{'project'},
-      $$proposed[$idxmin]->{'coords'}->name, $prtdist
-      if $show_all;
-
-  } else {
-
-    # Target not found
-    $msg = sprintf
-        "[%s] target %-16s is *NOT* found in Hedwig exported files!\n",
-        $obs->{'project'}, $obs->{'coords'}->name;
-    $msg .= sprintf ucfirst($mode)." position: %12s %12s J2000\n",
-        $obs->{'coords'}->ra2000( format => 'sex' ),
-        $obs->{'coords'}->dec2000(format => 'sex')
-        if ( $obs->{'coords'}->name !~ /user defined\:/ );
-    if ($mindist != 1e+12) {
-      $msg .= sprintf "Closest proposed:%s%12s %12s\n%s             [%s] %-16s at %5.2f $unit",
-        (' ' x (length($mode) - 6)),
-        $$proposed[$idxmin]->{'coords'}->ra2000( format => 'sex' ),
-        $$proposed[$idxmin]->{'coords'}->dec2000( format => 'sex' ),
-        (' ' x length($mode)),
-        uc($$proposed[$idxmin]->{'project'}),
-        $$proposed[$idxmin]->{'coords'}->name,
-        $prtdist;
-    } else {
-      $msg .= "No close proposed targets";
-    }
-
-  }
-
-  return $msg;
-
 }
 
-
-# ----------------------------------------------------------------------
-
-sub get_user_target {
 
 # Convert user specified coordinates in @observe hash (see above)
 #
@@ -900,50 +864,46 @@ sub get_user_target {
 #     long, lat: coordinates
 #     type:     J2000, B1950, galactic, supergalactic.
 #     units:    deg(grees), rad(ians), sex(agesimal).
-#
+sub get_user_target {
+    my ($projects, $telescope, $coords) = @_;
 
-  my ( $projects, $telescope, $coords ) = @_;
+    $coords =~ s/^\s+//;
+    my ($long, $lat, $type, $units) = split /\s+/, $coords;
+    $type = 'j2000' unless (defined $type and $type ne '');
+    $units = 'sex' unless (defined $units and $units ne '');
+    $type = lc $type;
+    $units = lc $units;
+    if ($type =~ /^deg|rad|sex/) {
+        $units = lc $type;
+        $type = "j2000";
+    }
 
-  $coords =~ s/^\s+//;
-  my ($long, $lat, $type, $units) = split /\s+/, $coords;
-  $type = 'j2000' unless (defined $type and $type ne '');
-  $units = 'sex' unless (defined $units and $units ne '');
-  $type = lc $type;
-  $units = lc $units;
-  if ($type =~ /^deg|rad|sex/) {
-    $units = lc $type;
-    $type = "j2000";
-  }
+    my $href = {};
+    $href->{'utdate'} = "n/a";
+    $href->{'project'} = "$projects";
+    $href->{'name'} = "'user defined: $coords'";
+    $href->{'ra'} = "$long";
+    $href->{'dec'} = "$lat";
+    $href->{'type'} = "$type";
+    $href->{'units'} = "$units";
 
-  my $href = {};
-  $href->{'utdate'}  = "n/a";
-  $href->{'project'} = "$projects";
-  $href->{'name'}    = "'user defined: $coords'";
-  $href->{'ra'}      = "$long";
-  $href->{'dec'}     = "$lat";
-  $href->{'type'}    = "$type";
-  $href->{'units'}   = "$units";
+    my $ocoord = Astro::Coords->new(
+        name => $href->{'name'},
+        ra => $href->{'ra'},
+        dec => $href->{'dec'},
+        type => $href->{'type'},
+        units => $href->{'units'}
+    );
+    $ocoord->telescope(Astro::Telescope->new($telescope));
 
-  my $ocoord = new Astro::Coords(  name  => $href->{'name'},
-                                   ra    => $href->{'ra'},
-                                   dec   => $href->{'dec'},
-                                   type  => $href->{'type'},
-                                   units => $href->{'units'} );
-  $ocoord->telescope( new Astro::Telescope( $telescope ));
+    $href->{'coords'} = $ocoord;
 
-  $href->{'coords'} = $ocoord;
+    my @observed;
+    push @observed, $href;
 
-  my @observed;
-  push @observed, $href;
-
-  return \@observed;
-
+    return \@observed;
 }
 
-
-# ----------------------------------------------------------------------
-
-sub print_cat {
 
 # Retrieve project targets as exported from Hedwig and print JAC-style catalog
 #
@@ -951,36 +911,33 @@ sub print_cat {
 #
 # $projects:  (string) Project string (can contain wildcards)
 # $telescope: (string)
+sub print_cat {
+    my ($telescope, $project) = @_;
 
-  my ($telescope, $project) = @_;
+    # See $observed and $proposed at top code
+    my @observed;
+    push @observed, {'project' => "$project"};
 
-  # See $observed and $proposed at top code
-  my @observed;
-  push @observed, { 'project' => "$project" };
+    my $proposed = [];
 
-  my $proposed = [];
+    $proposed = get_proposed_targets($telescope, \@observed);
 
-  $proposed = &get_proposed_targets( $telescope, \@observed );
+    # print catalog
+    foreach my $p (@$proposed) {
+        $p->{'name'} =~ s/\s+/\_/g;
+        my $line = sprintf "%-16s %12s &%12s RJ [%s]",
+            $p->{'coords'}->{'name'},
+            $p->{'coords'}->ra2000(format => 'sex'),
+            $p->{'coords'}->dec2000(format => 'sex'),
+            $p->{'project'};
 
-  # print catalog
-  foreach my $p ( @$proposed ) {
+        # Space separated coordinates
+        $line =~ s/\:/\ /g;
 
-    $p->{'name'} =~ s/\s+/\_/g;
-    my $line = sprintf "%-16s %12s &%12s RJ [%s]",
-      $p->{'coords'}->{'name'},
-      $p->{'coords'}->ra2000( format => 'sex' ),
-      $p->{'coords'}->dec2000( format => 'sex' ),
-      $p->{'project'};
+        # Separate - sign on Dec and add + if necessary
+        $line =~ s/\&\-/\-\ /g;
+        $line =~ s/\&/\+/g;
 
-    # Space separated coordinates
-    $line =~ s/\:/\ /g;
-
-    # Separate - sign on Dec and add + if necessary
-    $line =~ s/\&\-/\-\ /g;
-    $line =~ s/\&/\+/g;
-
-    print "$line\n";
-
-  }
-
+        print "$line\n";
+    }
 }

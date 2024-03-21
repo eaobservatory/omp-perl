@@ -19,7 +19,7 @@ use Starlink::AST;
 
 =head1 NAME
 
-OMP::EnterData::RxH3 - RxH3 specific enter-data methods.
+OMP::EnterData::RxH3 - RxH3 specific enter-data methods
 
 =head1 METHODS
 
@@ -134,57 +134,57 @@ sub construct_missing_headers {
     my $semester = OMP::DateTools->determine_semester(
         date => $date, tel => 'JCMT');
 
-    my $missing = new Astro::FITS::Header(Cards => [
-        new Astro::FITS::Header::Item(
+    my $missing = Astro::FITS::Header->new(Cards => [
+        Astro::FITS::Header::Item->new(
             Keyword => 'INSTRUME',
             Value => uc($self->instrument_name()),
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'MSBID',
             Value => 'CAL',
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'OBS_TYPE',
             Value => 'holography',
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'OBSID',
             Value => $obsid,
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'OBSIDSS',
             Value => $obsidss,
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'ORIGIN',
             Value => ($date < DateTime->new(year => 2015, month => 3, day => 20)
                 ? 'Joint Astronomy Centre, Hilo'
                 : 'East Asian Observatory'),
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'PROJECT',
             Value => 'M' . $semester . 'EC09',
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'TELESCOP',
             Value => 'JCMT',
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'UTDATE',
             Value => 0 + $date->ymd(''),
             Type => 'INT'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'NSUBSCAN',
             Value => 1,
             Type => 'INT'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'STATUS',
             Value => 1 ? 'NORMAL' : 'ABORTED',  # TODO: determine how to set this
             Type => 'STRING'),
     ]);
 
     unless ($has_date_obs) {
-        $missing->insert(0, new Astro::FITS::Header::Item(
+        $missing->insert(0, Astro::FITS::Header::Item->new(
             Keyword => 'DATE-OBS',
             Value => $date_str,
             Type => 'STRING'));
@@ -209,12 +209,12 @@ sub read_file_extra {
     # See which number file this is for the night.
     my $index = $self->_get_file_index_number($filename);
 
-    return new Astro::FITS::Header(Cards => [
-        new Astro::FITS::Header::Item(
+    return Astro::FITS::Header->new(Cards => [
+        Astro::FITS::Header::Item->new(
             Keyword => 'DATE-END',
             Value => $date_end->iso8601(),
             Type => 'STRING'),
-        new Astro::FITS::Header::Item(
+        Astro::FITS::Header::Item->new(
             Keyword => 'OBSNUM',
             Value => 1 + $index,
             Type => 'INT'),
@@ -279,7 +279,7 @@ sub _mjd_to_datetime {
     die 'MJD value is null' unless defined $mjd;
 
     # This logic is based on that in SMURF's jcmtstate2cat.
-    my $frame = new Starlink::AST::TimeFrame('TimeScale=TAI');
+    my $frame = Starlink::AST::TimeFrame->new('TimeScale=TAI');
     $frame->SetD('TimeOrigin', $mjd);
     $frame->SetC('TimeScale', 'UTC');
     my $utc = $frame->GetD('TimeOrigin');
@@ -300,8 +300,8 @@ sub _get_file_index_number {
     # of the night, others in the directory of the UT date, so check both,
     # but only include files which match the UT date of interest.
     my @files = ();
-    foreach my $date ($ut, $ut - new DateTime::Duration(days => 1)) {
-        my $dir = new IO::Dir(File::Spec->catdir(
+    foreach my $date ($ut, $ut - DateTime::Duration->new(days => 1)) {
+        my $dir = IO::Dir->new(File::Spec->catdir(
             $dir, File::Spec->updir(), $date->ymd('')));
         next unless defined $dir;
         while (defined (my $entry = $dir->read())) {
@@ -377,6 +377,8 @@ sub fill_headers_FILES {
 }
 
 1;
+
+__END__
 
 =back
 

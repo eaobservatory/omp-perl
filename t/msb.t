@@ -20,31 +20,30 @@
 
 use Test::More tests => 9;
 
-use_ok( "OMP::SciProg" );
-use_ok( "OMP::MSB" );
+use_ok('OMP::SciProg');
+use_ok('OMP::MSB');
 
+my $sp = OMP::SciProg->new(XML => join("\n", <DATA>));
 
-my $sp = new OMP::SciProg( XML => join("\n", <DATA>) );
+my $msb = ($sp->msb)[0];
 
-my $msb = ( $sp->msb )[0];
+is($msb->remaining, 2, 'Test initial count');
 
-is($msb->remaining, 2, "Test initial count");
-
-ok(!$msb->isRemoved, "MSB is active");
+ok(! $msb->isRemoved, 'MSB is active');
 $msb->msbRemove;
-ok($msb->isRemoved, "MSB is removed");
+ok($msb->isRemoved, 'MSB is removed');
 
 $msb->unRemove;
-is($msb->remaining, 2, "Active again");
+is($msb->remaining, 2, 'Active again');
 
 $msb->remaining_inc(2);
-is($msb->remaining, 4, "Inc by 2");
+is($msb->remaining, 4, 'Inc by 2');
 
-$msb->remaining( -1 );
-is($msb->remaining, 3, "dec by 1");
+$msb->remaining(-1);
+is($msb->remaining, 3, 'dec by 1');
 
 $msb->hasBeenObserved;
-is($msb->remaining, 2, "has been observed");
+is($msb->remaining, 2, 'has been observed');
 
 
 __DATA__

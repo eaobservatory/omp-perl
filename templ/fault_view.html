@@ -9,12 +9,13 @@
 <form method="get" action="[% target_base %]">
     <p>
         <select name="order">
-            <option value="">Ascending</option>
+            <option [% IF filter_info.order == "asc" %]selected="selected"[% END %] value="asc">Ascending</option>
             <option [% IF filter_info.order == "desc" %]selected="selected"[% END %] value="desc">Descending</option>
         </select>
         <select name="show">
-            <option value="">Non-hidden</option>
-            <option [% IF filter_info.show == "all" %]selected="selected"[% END %]value="all">All</option>
+            <option [% IF filter_info.show == "automatic" %]selected="selected"[% END %]value="automatic">Automatic</option>
+            <option [% IF filter_info.show == "nonhidden" %]selected="selected"[% END %]value="nonhidden">Non-hidden</option>
+            <option [% IF filter_info.show == "all" %]selected="selected"[% END %] value="all">All</option>
         </select>
         <input type="submit" name="" value="Filter" />
         <input type="hidden" name="fault" value="[% fault_info.fault.id %]" />

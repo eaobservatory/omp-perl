@@ -6,8 +6,8 @@ submitted - Contact support for projects which have submitted science programs
 
 =head1 SYNOPSIS
 
-  support [YYYYMMDD YYYYMMDD]
-  support --debug
+    support [YYYYMMDD YYYYMMDD]
+    support --debug
 
 =head1 DESCRIPTION
 
@@ -69,7 +69,7 @@ use MIME::Lite;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
-use OMP::Constants qw(:fb);
+use OMP::Constants qw/:fb/;
 use OMP::DBbackend;
 use OMP::FBQuery;
 use OMP::FeedbackDB;
@@ -78,10 +78,11 @@ use OMP::ProjQuery;
 
 # Options
 my ($help, $man, $debug);
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "debug" => \$debug,
-                       );
+my $status = GetOptions(
+    "help" => \$help,
+    "man" => \$man,
+    "debug" => \$debug,
+);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -92,39 +93,41 @@ my $maxdate = shift(@ARGV);
 
 # Use defaults for arguments that weren't supplied
 if ($maxdate) {
-  $maxdate = Time::Piece->strptime($maxdate, "%Y%m%d");
-} else {
-  $maxdate = localtime;
+    $maxdate = Time::Piece->strptime($maxdate, '%Y%m%d');
+}
+else {
+    $maxdate = localtime;
 }
 
 if ($mindate) {
-  $mindate = Time::Piece->strptime($mindate, "%Y%m%d");
-} else {
-  $mindate = $maxdate - 86400 # 24 hours ago
+    $mindate = Time::Piece->strptime($mindate, '%Y%m%d');
+}
+else {
+    $mindate = $maxdate - 86400;  # 24 hours ago
 }
 
 # Get our database connection
-my $dbconnection = new OMP::DBbackend;
+my $dbconnection = OMP::DBbackend->new();
 
 # Instantiate a new FeedbackDB object
-my $db = new OMP::FeedbackDB( DB => $dbconnection );
+my $db = OMP::FeedbackDB->new(DB => $dbconnection);
 
 # Create our query
-my $fbxml = "<FBQuery>".
-  "<date><min>".$mindate->ymd."</min><max>".$maxdate->ymd."</max></date>".
-  "<msgtype>".OMP__FB_MSG_SP_SUBMITTED."</msgtype>".
-  "</FBQuery>";
+my $fbxml = '<FBQuery>'
+    . '<date><min>' . $mindate->ymd . '</min><max>' . $maxdate->ymd . '</max></date>'
+    . '<msgtype>' . OMP__FB_MSG_SP_SUBMITTED . '</msgtype>'
+    . '</FBQuery>';
 
-my $fbquery = new OMP::FBQuery( XML => $fbxml, );
+my $fbquery = OMP::FBQuery->new(XML => $fbxml);
 
 # Run our query to retrieve comments
-my $comments = $db->_fetch_comments( $fbquery );
+my $comments = $db->_fetch_comments($fbquery);
 
-if (! scalar grep { defined $_ } @$comments) {
-  if ($debug) {
-    print "No comments returned by query.\n";
-  }
-  exit;
+unless (scalar grep {defined $_} @$comments) {
+    if ($debug) {
+        print "No comments returned by query.\n";
+    }
+    exit;
 }
 
 # Get project IDs for all comments returned.
@@ -132,18 +135,18 @@ my %projects = map {$_->{projectid}, undef} @$comments;
 
 # Instantiate a new ProjDB object.  We'll need this
 # to get support details for each project returned
-my $projdb = new OMP::ProjDB( DB => $dbconnection );
+my $projdb = OMP::ProjDB->new(DB => $dbconnection);
 
 # XML Query on all project IDs returned
-my $projxml = "<ProjQuery>".
-  join("",map{"<projectid>$_</projectid>"} keys %projects).
-  "</ProjQuery>";
+my $projxml = '<ProjQuery>'
+    . (join '', map {"<projectid>$_</projectid>"} keys %projects)
+    . '</ProjQuery>';
 
 # Instantiate actual ProjQuery object
-my $projquery = new OMP::ProjQuery( XML => $projxml );
+my $projquery = OMP::ProjQuery->new(XML => $projxml);
 
 # Retrieve details for all projects returned
-my @projects = $projdb->listProjects( $projquery );
+my @projects = $projdb->listProjects($projquery);
 
 # Find out which of the projects is a new submission.
 # Probably easiest just to have the database do the hard work
@@ -156,87 +159,92 @@ my $mindate_str = $mindate->ymd('');
 my %new_submission = ();
 my $dbh = $dbconnection->handle();
 my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
-                       . $OMP::FeedbackDB::FBTABLE
-                       . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
-                       . ' GROUP BY projectid');
+        . $OMP::FeedbackDB::FBTABLE
+        . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
+        . ' GROUP BY projectid');
 die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
 $sth->execute();
 die 'Error executing minimum date query: ' . $DBI::errstr if $DBI::err;
+
 while (my ($proj, $first) = $sth->fetchrow_array()) {
-  die 'Did not understand date' unless $first =~ /^(\d\d\d\d)-(\d\d)-(\d\d) /a;
-  $first = "$1$2$3";
-  $new_submission{$proj} = ($first ge $mindate_str);
+    die 'Did not understand date'
+        unless $first =~ /^(\d\d\d\d)-(\d\d)-(\d\d) /a;
+    $first = "$1$2$3";
+    $new_submission{$proj} = ($first ge $mindate_str);
 }
 
 # Sort projects according to support person
 my %proj_by_support;
 for my $project (@projects) {
-  for my $support ($project->support) {
-    push @{$proj_by_support{$support->email}}, $project;
-  }
+    for my $support ($project->support) {
+        push @{$proj_by_support{$support->email}}, $project;
+    }
 }
 
 if ($debug) {
-  for (keys %proj_by_support) {
-    print "$_:\n";
-    for (@{$proj_by_support{$_}}) {
-      print "\t\t" . ($new_submission{$_->projectid} ? 'New' : 'Resub.')
-          . "\t" . $_->projectid
-          . "\n";
+    for (keys %proj_by_support) {
+        print "$_:\n";
+        for (@{$proj_by_support{$_}}) {
+            print "\t\t" . ($new_submission{$_->projectid} ? 'New' : 'Resub.')
+                . "\t" . $_->projectid
+                . "\n";
+        }
     }
-  }
-} else {
-  # Send out emails
-  for my $support (keys %proj_by_support) {
-    my $projects = $proj_by_support{$support};
+}
+else {
+    # Send out emails
+    for my $support (keys %proj_by_support) {
+        my $projects = $proj_by_support{$support};
 
-    # Construct the message
-    my $anyNew = 0;
-    my $text = join("\n",
-      'Science programs have been submitted for the following projects:',
-      '',
-      map {
-        my $projectid = $_->projectid;
-        my $isNew = $new_submission{$projectid};
-        $anyNew ||= $isNew;
-        ($isNew ? 'NEW ' : '    ') . $projectid . ' [' . $_->pi . ']'
-      } @{$projects});
+        # Construct the message
+        my $anyNew = 0;
+        my $text = join "\n",
+            'Science programs have been submitted for the following projects:',
+            '',
+            map {
+                my $projectid = $_->projectid;
+                my $isNew = $new_submission{$projectid};
+                $anyNew ||= $isNew;
+                ($isNew ? 'NEW ' : '    ') . $projectid . ' [' . $_->pi . ']'
+            } @{$projects};
 
-    my $subject = 'Science program submissions'
-                . ($anyNew
-                  ? ' [NEW]'
-                  : ' [resubmission]');
+        my $subject = 'Science program submissions'
+            .  $anyNew ? ' [NEW]' : ' [resubmission]';
 
-#print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
+        #print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
-    my $msg = MIME::Lite->new( From => OMP::User->get_flex()->as_email_hdr(),
-                               To => $support,
-                               Subject => $subject,
-                               Data => $text, );
+        my $msg = MIME::Lite->new(
+            From => OMP::User->get_flex()->as_email_hdr(),
+            To => $support,
+            Subject => $subject,
+            Data => $text,
+        );
 
-    MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
+        MIME::Lite->send('smtp', 'malama.eao.hawaii.edu', Timeout => 30);
 
-    # Send the message
-    $msg->send
-      or die "Error sending message: $!\n";
-  }
+        # Send the message
+        $msg->send
+            or die "Error sending message: $!\n";
+    }
 }
 
 # Subroutine to generate the project information snippet
 # Takes a project object and the submitter's hostname as
 # arguments.
 sub proj_info {
-  my $project = shift;
-  my $host = shift;
+    my $project = shift;
+    my $host = shift;
 
-  my $text;
-  my $offset = 78 - length( $project->id );
+    my $text;
+    my $offset = 78 - length($project->id);
 
-  $text = sprintf("%s%${offset}s", "[". $project->id ."]", "submitted by: $host\n");
-  $text .= "Title: ". $project->title ."\n";
-  $text .= "PI: ". $project->pi ."\n";
-  $text .= "CoI(s): ". $project->coi ."\n";
+    $text = sprintf "%s%${offset}s", '[' . $project->id . ']', "submitted by: $host\n";
+    $text .= 'Title: ' . $project->title . "\n";
+    $text .= 'PI: ' . $project->pi . "\n";
+    $text .= 'CoI(s): ' . $project->coi . "\n";
 }
+
+__END__
 
 =head1 AUTHOR
 
@@ -261,5 +269,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-
-

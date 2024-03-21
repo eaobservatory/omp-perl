@@ -6,10 +6,11 @@ OMP::ProjDB - Manipulate the project database
 
 =head1 SYNOPSIS
 
-  $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                             DB => $dbconnection );
+    $projdb = OMP::ProjDB->new(
+        ProjectID => $projectid,
+        DB => $dbconnection);
 
-  $projdb->verifyProject();
+    $projdb->verifyProject();
 
 =head1 DESCRIPTION
 
@@ -17,20 +18,19 @@ This class manipulates information in the project database.  It is the
 only interface to the database tables. The tables should not be
 accessed directly to avoid loss of data integrity.
 
-
 =cut
 
 use 5.006;
 use strict;
 use warnings;
 use Carp;
-our $VERSION = (qw$ Revision: 1.2 $ )[1];
+our $VERSION = '2.000';
 
-use OMP::Error qw/ :try /;
+use OMP::Error qw/:try/;
 use OMP::Project;
 use OMP::FeedbackDB;
 use OMP::ProjQuery;
-use OMP::Constants qw/ :fb /;
+use OMP::Constants qw/:fb/;
 use OMP::User;
 use OMP::UserDB;
 use OMP::NetTools;
@@ -40,12 +40,12 @@ use OMP::SiteQuality;
 
 use Time::Seconds;
 
-use base qw/ OMP::BaseDB /;
+use base qw/OMP::BaseDB/;
 
 # This is picked up by OMP::MSBDB
-our $PROJTABLE = "ompproj";
-our $PROJUSERTABLE = "ompprojuser";
-our $PROJQUEUETABLE = "ompprojqueue";
+our $PROJTABLE = 'ompproj';
+our $PROJUSERTABLE = 'ompprojuser';
+our $PROJQUEUETABLE = 'ompprojqueue';
 
 =head1 METHODS
 
@@ -57,8 +57,9 @@ our $PROJQUEUETABLE = "ompprojqueue";
 
 Create a new instance of an C<OMP::ProjDB> object.
 
-  $db = new OMP::ProjDB( ProjectID => $project,
-                         DB => $connection);
+    $db = OMP::ProjDB->new(
+        ProjectID => $project,
+        DB => $connection);
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -81,7 +82,7 @@ Inherits from C<OMP::BaseDB>.
 Add a new project to the database or replace an existing entry in the
 database.
 
-  $db->addProject( $project );
+    $db->addProject($project);
 
 The argument is of class C<OMP::Project>.
 
@@ -90,7 +91,7 @@ in the database (this is for safety reasons). An optional second
 argument can control whether the project should always force
 overwrite. If this is true the old project details will be removed.
 
-  $db->addProject( $project, $force );
+    $db->addProject($project, $force);
 
 Throws an exception of type C<OMP::Error::ProjectExists> if the
 project exists and force is not set to true.
@@ -98,25 +99,25 @@ project exists and force is not set to true.
 =cut
 
 sub addProject {
-  my $self = shift;
-  my $project = shift;
-  my $force = shift;
+    my $self = shift;
+    my $project = shift;
+    my $force = shift;
 
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin transaction
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # See if we have the project already if we are not forcing
-  throw OMP::Error::ProjectExists("This project already exists in the database and you are not forcing overwrite")
-    if !$force && $self->verifyProject;
+    # See if we have the project already if we are not forcing
+    throw OMP::Error::ProjectExists(
+        "This project already exists in the database and you are not forcing overwrite")
+        if ! $force && $self->verifyProject;
 
-  # Rely on the update method to check the argument
-  $self->_update_project_row( $project );
+    # Rely on the update method to check the argument
+    $self->_update_project_row($project);
 
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =item B<verifyProject>
@@ -124,26 +125,27 @@ sub addProject {
 Verify that the current project is valid (i.e. it has active entries
 in the database tables).
 
-  $exists = $db->verifyProject();
+    $exists = $db->verifyProject();
 
 Returns true if the project exists or false if it does not.
 
 =cut
 
 sub verifyProject {
-  my $self = shift;
+    my $self = shift;
 
-  # Use a try block since we know that _get_project_row raises
-  # an exception
-  my $there;
-  try {
-    $self->_get_project_row();
-    $there = 1;
-  } catch OMP::Error::UnknownProject with {
-    $there = 0;
-  };
+    # Use a try block since we know that _get_project_row raises
+    # an exception
+    my $there;
+    try {
+        $self->_get_project_row();
+        $there = 1;
+    }
+    catch OMP::Error::UnknownProject with {
+        $there = 0;
+    };
 
-  return $there
+    return $there;
 }
 
 =item B<getTelescope>
@@ -152,37 +154,39 @@ Simplified access to the telescope related to the specified
 project. Returns the telescope
 name or undef if the project does not exist.
 
-  $tel = $proj->getTelescope();
+    $tel = $proj->getTelescope();
 
 =cut
 
 {
-  # Cache project -> telescope mappings
-  my %PROJTELESCOPE;
+    # Cache project -> telescope mappings
+    my %PROJTELESCOPE;
 
-  sub getTelescope {
-    my $self = shift;
+    sub getTelescope {
+        my $self = shift;
 
-    my $tel;
-    # Try to get the value from our cache, otherwise go
-    # to the database
-    if (exists $PROJTELESCOPE{$self->projectid}) {
-      $tel = $PROJTELESCOPE{$self->projectid};
-    } else {
-      # Use a try block since we know that _get_project_row raises
-      # an exception
-      try {
-        my $p = $self->_get_project_row();
-        $tel = uc($p->telescope);
+        my $tel;
+        # Try to get the value from our cache, otherwise go
+        # to the database
+        if (exists $PROJTELESCOPE{$self->projectid}) {
+            $tel = $PROJTELESCOPE{$self->projectid};
+        }
+        else {
+            # Use a try block since we know that _get_project_row raises
+            # an exception
+            try {
+                my $p = $self->_get_project_row();
+                $tel = uc($p->telescope);
 
-        # Cache result
-        $PROJTELESCOPE{$p->projectid} = $tel;
-      } catch OMP::Error::UnknownProject with {
-        $tel = undef;
-      };
+                # Cache result
+                $PROJTELESCOPE{$p->projectid} = $tel;
+            }
+            catch OMP::Error::UnknownProject with {
+                $tel = undef;
+            };
+        }
+        return $tel;
     }
-    return $tel;
-  }
 }
 
 =item B<verifyTelescope>
@@ -195,7 +199,7 @@ For "special" projects generated by the time accounting system,
 a project that contains a matching telescope prefix (eg JCMTCAL)
 matches without querying the database.
 
- $telmatches = $db->verifyTelescope( $tel );
+    $telmatches = $db->verifyTelescope($tel);
 
 Essentially a small wrapper around C<getTelescope>. Returns false
 if the project does not exist.
@@ -203,23 +207,24 @@ if the project does not exist.
 =cut
 
 sub verifyTelescope {
-  my $self = shift;
-  my $tel = uc(shift);
+    my $self = shift;
+    my $tel = uc(shift);
 
-  my $projectid = $self->projectid;
+    my $projectid = $self->projectid;
 
-  if ($projectid =~ /^$tel/) {
-    # Project ID starts with the supplied telescope string
-    return 1;
-  } else {
-    # -w protection
-    my $projtel = $self->getTelescope;
-    if (defined $projtel && $tel eq $projtel) {
-      # Have a real telescope and it matches
-      return 1;
+    if ($projectid =~ /^$tel/) {
+        # Project ID starts with the supplied telescope string
+        return 1;
     }
-    return 0;
-  }
+    else {
+        # -w protection
+        my $projtel = $self->getTelescope;
+        if (defined $projtel && $tel eq $projtel) {
+            # Have a real telescope and it matches
+            return 1;
+        }
+        return 0;
+    }
 }
 
 =item B<disableProject>
@@ -227,39 +232,39 @@ sub verifyTelescope {
 Remove the project from future queries by setting the project
 state to 0 (disabled).
 
-  $db->disableProject();
+    $db->disableProject();
 
 =cut
 
 sub disableProject {
-  my $self = shift;
+    my $self = shift;
 
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
+    # First thing to do is to retrieve the table row
+    # for this project
+    my $project = $self->_get_project_row;
 
-  # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Transaction start
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Modify the project
-  $project->state( 0 );
+    # Modify the project
+    $project->state(0);
 
-  # Update the contents in the table
-  $self->_update_project_row( $project );
+    # Update the contents in the table
+    $self->_update_project_row($project);
 
-  # Notify the feedback system
-  my $projectid = $self->projectid;
-  $self->_notify_feedback_system(
-                                 subject => "[$projectid] Project disabled",
-                                 text => "<html>project <b>$projectid</b> disabled",
-                                 msgtype => OMP__FB_MSG_PROJECT_DISABLED,
-                                );
+    # Notify the feedback system
+    my $projectid = $self->projectid;
+    $self->_notify_feedback_system(
+        subject => "[$projectid] Project disabled",
+        text => "<p>Project <b>$projectid</b> disabled</p>",
+        preformatted => 1,
+        msgtype => OMP__FB_MSG_PROJECT_DISABLED,
+    );
 
-  # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
+    # Transaction end
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =item B<enableProject>
@@ -267,39 +272,39 @@ sub disableProject {
 Re-enable a project so that it will show up in from future queries by
 setting the project state to 1 (enabled).
 
-  $db->enableProject();
+    $db->enableProject();
 
 =cut
 
 sub enableProject {
-  my $self = shift;
+    my $self = shift;
 
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
+    # First thing to do is to retrieve the table row
+    # for this project
+    my $project = $self->_get_project_row;
 
-  # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Transaction start
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  # Modify the project
-  $project->state( 1 );
+    # Modify the project
+    $project->state(1);
 
-  # Update the contents in the table
-  $self->_update_project_row( $project );
+    # Update the contents in the table
+    $self->_update_project_row($project);
 
-  # Notify the feedback system
-  my $projectid = $self->projectid;
-  $self->_notify_feedback_system(
-                                 subject => "[$projectid] Project enabled",
-                                 text => "<html>project <b>$projectid</b> enabled",
-                                 msgtype => OMP__FB_MSG_PROJECT_ENABLED,
-                                );
+    # Notify the feedback system
+    my $projectid = $self->projectid;
+    $self->_notify_feedback_system(
+        subject => "[$projectid] Project enabled",
+        text => "<p>Project <b>$projectid</b> enabled</p>",
+        preformatted => 1,
+        msgtype => OMP__FB_MSG_PROJECT_ENABLED,
+    );
 
-  # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
+    # Transaction end
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =item B<projectDetails>
@@ -308,10 +313,10 @@ Retrieve a summary of the current project. This is returned in either
 XML format, as a reference to a hash, as an C<OMP::Project> object or
 as a hash and is specified using the optional argument.
 
-  $xml = $proj->projectDetails( 'xml' );
-  $href = $proj->projectDetails( 'data' );
-  $obj  = $proj->projectDetails( 'object' );
-  %hash = $proj->projectDetails;
+    $xml = $proj->projectDetails('xml');
+    $href = $proj->projectDetails('data');
+    $obj = $proj->projectDetails('object');
+    %hash = $proj->projectDetails;
 
 The XML is in the format described in C<OMP::Project>.
 
@@ -321,75 +326,82 @@ a hash (not a reference) is returned in list context.
 =cut
 
 sub projectDetails {
-  my $self = shift;
-  my $mode = lc(shift);
+    my $self = shift;
+    my $mode = lc(shift);
 
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
+    # First thing to do is to retrieve the table row
+    # for this project
+    my $project = $self->_get_project_row;
 
-  if (wantarray) {
-    $mode ||= "xml";
-  } else {
-    # An internal mode
-    $mode ||= "hash";
-  }
+    if (wantarray) {
+        $mode ||= "xml";
+    }
+    else {
+        # An internal mode
+        $mode ||= "hash";
+    }
 
-  if ($mode eq 'xml') {
-    my $xml = $project->summary;
-    return $xml;
-  } elsif ($mode eq 'object') {
-    return $project;
-  } elsif ($mode eq 'data') {
-    my %hash = $project->summary;
-    return \%hash;
-  } elsif ($mode eq 'hash') {
-    my %hash = $project->summary;
-    return \%hash;
-  } else {
-    throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
-  }
+    if ($mode eq 'xml') {
+        my $xml = $project->summary;
+        return $xml;
+    }
+    elsif ($mode eq 'object') {
+        return $project;
+    }
+    elsif ($mode eq 'data') {
+        my %hash = $project->summary;
+        return \%hash;
+    }
+    elsif ($mode eq 'hash') {
+        my %hash = $project->summary;
+        return \%hash;
+    }
+    else {
+        throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
+    }
 }
 
 =item B<enqueueProject>
 
 Given a C<OMP::Project> object, add it to the queue.
 
-  $db->enqueueProject( $project );
+    $db->enqueueProject($project);
 
 =cut
 
 sub enqueueProject {
-  my $self = shift;
-  my $proj = shift;
+    my $self = shift;
+    my $proj = shift;
 
-  # pick a random queue as primary if we do not have one
-  my %queue = $proj->queue;
-  my $primary = $proj->primaryqueue;
-  $primary = (values %queue)[0] unless defined $primary;
+    # pick a random queue as primary if we do not have one
+    my %queue = $proj->queue;
+    my $primary = $proj->primaryqueue;
+    $primary = (values %queue)[0] unless defined $primary;
 
-  for my $c (keys %queue) {
+    for my $c (keys %queue) {
+        # The TAG priority is the queue value - the adjustment
+        my $adj = $proj->tagadjustment($c);
+        my $prim = ($primary eq uc($c) ? 1 : 0);
 
-    # The TAG priority is the queue value - the adjustment
-    my $adj = $proj->tagadjustment( $c );
-    my $prim = ($primary eq uc($c) ? 1 : 0);
+        $self->_db_insert_data(
+            $PROJQUEUETABLE,
+            undef,
+            $proj->projectid,
+            uc($c),
+            ($queue{$c} - $adj),
+            $prim,
+            $adj,
+        );
+    }
 
-    $self->_db_insert_data( $PROJQUEUETABLE,
-                            undef,
-                            $proj->projectid,
-                            uc($c), ($queue{$c} - $adj),
-                            $prim, $adj,
-                          );
-  }
-
-  return;
+    return;
 }
 
 =item B<listProjects>
 
 Return all the projects for the given query.
 
-  @projects = $db->listProjects( $query );
+    @projects = $db->listProjects($query);
 
 The query is specified as a C<OMP::ProjQuery> object.
 
@@ -398,58 +410,54 @@ Returned as a list of C<OMP::Project> objects.
 =cut
 
 sub listProjects {
-  my $self = shift;
+    my $self = shift;
 
-  # Silly to have nothing in here other than a method call
-  return $self->_get_projects( @_ );
-
+    # Silly to have nothing in here other than a method call
+    return $self->_get_projects(@_);
 }
-
 
 =item B<listSemesters>
 
 Retrieve all the semesters associated with projects in the database.
 
-  @sem = $projdb->listSemesters()
+    @sem = $projdb->listSemesters();
 
 =cut
 
 sub listSemesters {
-  my $self = shift;
-  my %opts = @_;
+    my $self = shift;
+    my %opts = @_;
 
-  # Kluge. We should not be doing SQL at this level
-  my $query = "SELECT DISTINCT semester FROM $PROJTABLE";
-  my @params = ();
-  if (defined $opts{'telescope'}) {
-    $query .= ' WHERE telescope = ?';
-    push @params, $opts{'telescope'};
-  }
+    # Kluge. We should not be doing SQL at this level
+    my $query = "SELECT DISTINCT semester FROM $PROJTABLE";
+    my @params = ();
+    if (defined $opts{'telescope'}) {
+        $query .= ' WHERE telescope = ?';
+        push @params, $opts{'telescope'};
+    }
 
-  my $semref = $self->_db_retrieve_data_ashash($query, @params);
-  return sort map { $_->{semester} } @$semref
-
+    my $semref = $self->_db_retrieve_data_ashash($query, @params);
+    return sort map {$_->{semester}} @$semref
 }
 
 =item B<listTelescopes>
 
 Retrieve all the telescopes associated with projects in the database.
 
-  @tel = $projdb->listTelescopes()
+    @tel = $projdb->listTelescopes();
 
 =cut
 
 sub listTelescopes {
-  my $self = shift;
+    my $self = shift;
 
-  # Kluge. We should not be doing SQL at this level
-  # Note that current project table does not know which telescope
-  # it belongs to!
-  my $telref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT telescope FROM $PROJTABLE" );
-  return sort map { $_->{telescope} } @$telref
-
+    # Kluge. We should not be doing SQL at this level
+    # Note that current project table does not know which telescope
+    # it belongs to!
+    my $telref = $self->_db_retrieve_data_ashash(
+        "SELECT DISTINCT telescope FROM $PROJTABLE");
+    return sort map {$_->{telescope}} @$telref
 }
-
 
 =item B<listSupport>
 
@@ -457,8 +465,9 @@ Retrieve all the support scientists (as a list of C<OMP::User> objects)
 associated with projects in the specified semesters and for the specified
 telescope.
 
-  @support = $projdb->listSupport( telescope => $tel,
-                                   semester => \@semesters );
+    @support = $projdb->listSupport(
+        telescope => $tel,
+        semester => \@semesters);
 
 Neither C<telescope> nor C<semesters> are mandatory keys.
 
@@ -470,23 +479,22 @@ Users whose OMP data have been obfuscated are not included.
 =cut
 
 sub listSupport {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  # User table
-  my $utable = $OMP::UserDB::USERTABLE;
+    # User table
+    my $utable = $OMP::UserDB::USERTABLE;
 
-  # Kluge. We should not be doing SQL at this level
-  # Note that current project table does not know which telescope
-  # it belongs to!
-  my $supref = $self->_db_retrieve_data_ashash( <<"USER_SQL" );
+    # Kluge. We should not be doing SQL at this level
+    # Note that current project table does not know which telescope
+    # it belongs to!
+    my $supref = $self->_db_retrieve_data_ashash( <<"USER_SQL" );
     SELECT DISTINCT S.userid, email, uname as 'name'
     FROM $PROJUSERTABLE S, $utable U
     WHERE S.userid = U.userid AND capacity = 'SUPPORT' AND U.obfuscated=0
 USER_SQL
 
-  map { new OMP::User( %$_ ) } @$supref
-
+    map {OMP::User->new(%$_)} @$supref
 }
 
 =item B<listCountries>
@@ -494,8 +502,9 @@ USER_SQL
 Retrieve all the countries associated with projects in the specified
 semesters and for the specified telescope.
 
-  @countries = $projdb->listSupport( telescope => $tel,
-                                     semester => \@semesters );
+    @countries = $projdb->listSupport(
+        telescope => $tel,
+        semester => \@semesters);
 
 Neither C<telescope> nor C<semesters> are mandatory keys.
 
@@ -505,25 +514,27 @@ ONLY.
 =cut
 
 sub listCountries {
-  my $self = shift;
-  my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-  # Kluge. We should not be doing SQL at this level
-  my $query = "SELECT DISTINCT country FROM $PROJQUEUETABLE";
-  my @params = ();
-  if (defined $args{'telescope'}) {
-    $query .= " JOIN $PROJTABLE ON $PROJTABLE.projectid=$PROJQUEUETABLE.projectid WHERE telescope = ?";
-    push @params, $args{'telescope'};
-  }
-  my $cref = $self->_db_retrieve_data_ashash($query, @params);
-  return map { $_->{country} } @$cref;
+    # Kluge. We should not be doing SQL at this level
+    my $query = "SELECT DISTINCT country FROM $PROJQUEUETABLE";
+    my @params = ();
+    if (defined $args{'telescope'}) {
+        $query .= " JOIN $PROJTABLE ON $PROJTABLE.projectid=$PROJQUEUETABLE.projectid WHERE telescope = ?";
+        push @params, $args{'telescope'};
+    }
+
+    my $cref = $self->_db_retrieve_data_ashash($query, @params);
+
+    return map {$_->{country}} @$cref;
 }
 
 =item B<getTotalAlloc>
 
 Return the total TAG allocation for all projects in a given telescope and semester.
 
-  $total = $projdb->getTotalAlloc( $telescope, $semester );
+    $total = $projdb->getTotalAlloc($telescope, $semester);
 
 The first argument is a telescope name.  The second argument is a semester name.
 Returned as a C<Time::Seconds> object.
@@ -531,14 +542,12 @@ Returned as a C<Time::Seconds> object.
 =cut
 
 sub getTotalAlloc {
-  my $self = shift;
-  my $telescope = shift;
-  my $semester = shift;
+    my $self = shift;
+    my $telescope = shift;
+    my $semester = shift;
 
-  return Time::Seconds->new( $self->_get_total_alloc($telescope, $semester) );
+    return Time::Seconds->new($self->_get_total_alloc($telescope, $semester));
 }
-
-=pod
 
 =item B<updateContactability>
 
@@ -546,13 +555,13 @@ Given a hash reference of user id as keys and and contact-ability
 (truth values) as values, updates user & contactabiliy in the database.
 It will update only those records which are actually changed.
 
-  $db->updateContactability({ 'USR1' => 1, 'USR2' => 0 });
+    $db->updateContactability({'USR1' => 1, 'USR2' => 0});
 
 =cut
 
 sub updateContactability {
-  my $self = shift;
-  return $self->_updateUserFlag('contactable', @_);
+    my $self = shift;
+    return $self->_updateUserFlag('contactable', @_);
 }
 
 =item B<updateOMPAccess>
@@ -562,46 +571,46 @@ Updates project user OMP access in the same way as C<updateContactability>.
 =cut
 
 sub updateOMPAccess {
-  my $self = shift;
-  return $self->_updateUserFlag('omp_access', @_);
+    my $self = shift;
+    return $self->_updateUserFlag('omp_access', @_);
 }
 
-
 sub _updateUserFlag {
-  my $self = shift;
-  my $flag = shift;
-  my $users = shift;
+    my $self = shift;
+    my $flag = shift;
+    my $users = shift;
 
-  throw OMP::Error::FatalError( q/Need a hash of user ids as keys and /
-                                . q/truth values to update a user's flags./
-                              )
-    unless OMP::General->hashref_keys_size( $users )
-    and ! scalar grep { ! defined $_ } keys %{ $users } ;
+    throw OMP::Error::FatalError(
+        'Need a hash of user ids as keys and '
+        . 'truth values to update a user\'s flags.')
+        unless OMP::General->hashref_keys_size($users)
+        and ! scalar grep {! defined $_} keys %{$users};
 
-  # Rely on _get_project_row() to validate a project; may throw exceptions.
-  my $proj = $self->_get_project_row;
+    # Rely on _get_project_row() to validate a project; may throw exceptions.
+    my $proj = $self->_get_project_row;
 
-  my %users = $self->_remove_unchanged_flag( $proj, $flag, $users );
-  # No change in any user flags.
-  return unless scalar %users;
+    my %users = $self->_remove_unchanged_flag($proj, $flag, $users);
+    # No change in any user flags.
+    return unless scalar %users;
 
-  # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+    # Begin transaction
+    $self->_db_begin_trans;
+    $self->_dblock;
 
-  my $id = $proj->projectid;
-  for my $user ( keys %users ) {
+    my $id = $proj->projectid;
+    for my $user (keys %users) {
+        $self->_db_update_data(
+            $PROJUSERTABLE,
+            {$flag => $users{$user} ? 1 : 0},
+            "projectid = '$id' AND userid = '$user'"
+        );
+    }
 
-    $self->_db_update_data( $PROJUSERTABLE,
-                            { $flag => $users{ $user } ? 1 : 0 },
-                              "projectid = '$id' AND userid = '$user'"
-                          ) ;
-  }
-  # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+    # End transaction
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 
-  return;
+    return;
 }
 
 =back
@@ -615,45 +624,46 @@ sub _updateUserFlag {
 Retrieve the total TAG allocation for all projects in a given semester not
 in the E & C queue.
 
-  $total = $projdb->_get_total_alloc( $telescope, $semester );
+    $total = $projdb->_get_total_alloc($telescope, $semester);
 
 First argument is a telescope name, second is a semester name.
 
 =cut
 
 sub _get_total_alloc {
-  my $self = shift;
-  my $telescope = shift;
-  my $semester = shift;
+    my $self = shift;
+    my $telescope = shift;
+    my $semester = shift;
 
-  throw OMP::Error::BadArgs("No telescope defined")
-    unless (defined $telescope);
+    throw OMP::Error::BadArgs("No telescope defined")
+        unless (defined $telescope);
 
-  throw OMP::Error::BadArgs("No semester defined")
-    unless (defined $semester);
+    throw OMP::Error::BadArgs("No semester defined")
+        unless (defined $semester);
 
-  $telescope = uc($telescope);
-  $semester = uc($semester);
+    $telescope = uc($telescope);
+    $semester = uc($semester);
 
-  # The SQL query
-  my $sql = "SELECT sum(P.allocated)".
-    " FROM $PROJTABLE P, $PROJQUEUETABLE Q".
-      " WHERE P.projectid = Q.projectid".
-        " AND semester = \"$semester\" AND telescope = \"$telescope\"".
-          " AND country != \"EC\"";
+    # The SQL query
+    my $sql = "SELECT sum(P.allocated)"
+        . " FROM $PROJTABLE P, $PROJQUEUETABLE Q"
+        . " WHERE P.projectid = Q.projectid"
+        . " AND semester = \"$semester\" AND telescope = \"$telescope\""
+        . " AND country != \"EC\"";
 
-  # Now run the query
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+    # Now run the query
+    my $dbh = $self->_dbhandle;
+    throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  my $sth = $dbh->prepare( $sql )
-    or throw OMP::Error::DBError("Error preparing sum allocated SQL statment");
+    my $sth = $dbh->prepare($sql)
+        or throw OMP::Error::DBError("Error preparing sum allocated SQL statment");
 
-  $sth->execute
-    or throw OMP::Error::DBError("DB Error executing sum allocated SQL: $DBI::errstr");
+    $sth->execute
+        or throw OMP::Error::DBError(
+        "DB Error executing sum allocated SQL: $DBI::errstr");
 
-  my $sum = ($sth->fetchrow_array)[0];
-  return  ( defined $sum ? $sum : 0 );
+    my $sum = ($sth->fetchrow_array)[0];
+    return (defined $sum ? $sum : 0);
 }
 
 
@@ -662,7 +672,7 @@ sub _get_total_alloc {
 Retrieve the C<OMP::Project> object constructed from the row
 in the database table associated with the current object.
 
-  $proj  = $db->_get_project_row;
+    $proj  = $db->_get_project_row;
 
 =cut
 
@@ -670,36 +680,39 @@ in the database table associated with the current object.
 # query of <projectid>$projectid</projectid>
 
 sub _get_project_row {
-  my $self = shift;
+    my $self = shift;
 
-  # Project
-  my $projectid = $self->projectid;
-  throw OMP::Error::UnknownProject("No project supplied")
-    unless $projectid;
+    # Project
+    my $projectid = $self->projectid;
+    throw OMP::Error::UnknownProject("No project supplied")
+        unless $projectid;
 
-  # check for the odd case of no word characters in the projectid
-  # whilst string is still technically "true"
-  # This triggers an unknown project error (since we know there is no
-  # valid project of that name) but should probably be
-  # trapped by the query builder
-  throw OMP::Error::UnknownProject("Supplied project ($projectid) has no word characters")
-    unless $projectid =~ /\w/;
+    # check for the odd case of no word characters in the projectid
+    # whilst string is still technically "true"
+    # This triggers an unknown project error (since we know there is no
+    # valid project of that name) but should probably be
+    # trapped by the query builder
+    throw OMP::Error::UnknownProject(
+        "Supplied project ($projectid) has no word characters")
+        unless $projectid =~ /\w/;
 
-  # Create the query
-  my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
-  my $query = new OMP::ProjQuery( XML => $xml );
+    # Create the query
+    my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
+    my $query = OMP::ProjQuery->new(XML => $xml);
 
-  my @projects = $self->_get_projects( $query );
+    my @projects = $self->_get_projects($query);
 
-  # Throw an exception if we got no results
-  throw OMP::Error::UnknownProject( "Unable to retrieve details for project $projectid" )
-    unless @projects;
+    # Throw an exception if we got no results
+    throw OMP::Error::UnknownProject(
+        "Unable to retrieve details for project $projectid")
+        unless @projects;
 
-  # Check that we only have one
-  throw OMP::Error::FatalError( "More than one project retrieved when requesting project '$projectid'!")
-    unless @projects == 1;
+    # Check that we only have one
+    throw OMP::Error::FatalError(
+        "More than one project retrieved when requesting project '$projectid'!")
+        unless @projects == 1;
 
-  return $projects[0];
+    return $projects[0];
 }
 
 
@@ -708,7 +721,7 @@ sub _get_project_row {
 Update the row relating to the supplied project, making sure that a
 previous entry is deleted.
 
-  $db->_update_project_row( $proj );
+    $db->_update_project_row($proj);
 
 where the argument is an object of type C<OMP::Project>
 
@@ -726,122 +739,132 @@ keys).
 =cut
 
 sub _update_project_row {
-  my $self = shift;
-  my $proj = shift;
+    my $self = shift;
+    my $proj = shift;
 
-  if (UNIVERSAL::isa( $proj, "OMP::Project")) {
+    if (UNIVERSAL::isa($proj, "OMP::Project")) {
+        # Update the projectid stored in this DB instance
+        $self->projectid($proj->projectid);
 
-    # Update the projectid stored in this DB instance
-    $self->projectid( $proj->projectid );
+        # First we delete the current contents
+        $self->_delete_project_row();
 
-    # First we delete the current contents
-    $self->_delete_project_row();
+        # Then we insert the new values
+        $self->_insert_project_row($proj);
 
-    # Then we insert the new values
-    $self->_insert_project_row( $proj );
+    }
+    else {
+        throw OMP::Error::BadArgs(
+            "Argument to _update_project_row must be of type OMP::Project\n");
 
-  } else {
-
-    throw OMP::Error::BadArgs("Argument to _update_project_row must be of type OMP::Project\n");
-
-  }
-
+    }
 }
 
 =item B<_delete_project_row>
 
 Delete the specified project from the database table.
 
-  $db->_delete_project_row();
+    $db->_delete_project_row();
 
 The project ID is picked up from the DB object.
 
 =cut
 
 sub _delete_project_row {
-  my $self = shift;
+    my $self = shift;
 
-  # Must clear out user link tables as well
-  $self->_db_delete_project_data( $PROJTABLE, $PROJUSERTABLE, $PROJQUEUETABLE);
-
+    # Must clear out user link tables as well
+    $self->_db_delete_project_data($PROJTABLE, $PROJUSERTABLE, $PROJQUEUETABLE);
 }
 
 =item B<_insert_project_row>
 
 Insert the project information into the database table.
 
-  $db->_insert_project_row( $project );
+    $db->_insert_project_row($project);
 
 where C<$project> is an object of type C<OMP::Project>.
 
 =cut
 
 sub _insert_project_row {
-  my $self = shift;
-  my $proj = shift;
+    my $self = shift;
+    my $proj = shift;
 
-  # Get some extra information
-  my $pi = $proj->pi->userid;
+    # Get some extra information
+    my $pi = $proj->pi->userid;
 
-  my ($taumin, $taumax)     = OMP::SiteQuality::to_db( 'TAU',
-                                                       $proj->taurange );
-  my ($seemin, $seemax)     = OMP::SiteQuality::to_db( 'SEEING',
-                                                       $proj->seeingrange );
-  my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db( 'CLOUD',
-                                                       $proj->cloudrange );
-  my ($skymin, $skymax)     = OMP::SiteQuality::to_db( 'SKY',
-                                                       $proj->skyrange );
+    my ($taumin, $taumax) = OMP::SiteQuality::to_db(
+        'TAU', $proj->taurange);
 
-  my $expirydate = $proj->expirydate();
-  $expirydate = "$expirydate" if defined $expirydate;
+    my ($seemin, $seemax) = OMP::SiteQuality::to_db(
+        'SEEING', $proj->seeingrange);
 
-  # Insert the generic data into table
-  $self->_db_insert_data( $PROJTABLE,
-                          $proj->projectid, $pi,
-                          $proj->title,
-                          $proj->semester,
-                          $proj->allocated->seconds,
-                          $proj->remaining->seconds, $proj->pending->seconds,
-                          $proj->telescope,$taumin,$taumax,$seemin,$seemax,
-                          int($cloudmax), $proj->state, int($cloudmin),
-                          $skymin, $skymax, $expirydate,
-                        );
+    my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db(
+        'CLOUD', $proj->cloudrange);
 
-  # Now insert the queue information
-  $self->enqueueProject( $proj );
+    my ($skymin, $skymax) = OMP::SiteQuality::to_db(
+        'SKY', $proj->skyrange);
 
-  # Now insert the user data
-  # All users end up in the same table. Contact information for a particular
-  # user is available via the contactable method in the OMP::Project.
+    my $expirydate = $proj->expirydate();
+    $expirydate = "$expirydate" if defined $expirydate;
 
-  # Loop over all the users. Note that this is *not* the output from the
-  # contacts method since that will only contain contactable people
-  my %contactable = $proj->contactable;
-  my %omp_access = $proj->omp_access;
+    # Insert the generic data into table
+    $self->_db_insert_data(
+        $PROJTABLE,
+        $proj->projectid,
+        $pi,
+        $proj->title,
+        $proj->semester,
+        $proj->allocated->seconds,
+        $proj->remaining->seconds,
+        $proj->pending->seconds,
+        $proj->telescope,
+        $taumin, $taumax,
+        $seemin, $seemax,
+        int($cloudmax),
+        $proj->state,
+        int($cloudmin),
+        $skymin, $skymax,
+        $expirydate,
+    );
 
-  # Group all the user information
-  my %roles = (PI => [$proj->pi],
-               COI => [$proj->coi],
-               SUPPORT => [$proj->support]
-              );
+    # Now insert the queue information
+    $self->enqueueProject($proj);
 
-  # Loop over all the different roles
-  for my $role (keys %roles) {
+    # Now insert the user data
+    # All users end up in the same table. Contact information for a particular
+    # user is available via the contactable method in the OMP::Project.
 
-    my $order = 1;
-    for my $user (@{ $roles{$role} }) {
-      my $userid = $user->userid();
-      $self->_insert_project_user( 'projectid' => $proj->projectid,
-                                    'userid' => $userid,
-                                    'role' => $role,
-                                    'contactable' => $contactable{ $userid },
-                                    'capacity_order' => $order++,
-                                    affiliation => $user->affiliation(),
-                                    omp_access => $omp_access{$userid},
-                                  );
+    # Loop over all the users. Note that this is *not* the output from the
+    # contacts method since that will only contain contactable people
+    my %contactable = $proj->contactable;
+    my %omp_access = $proj->omp_access;
+
+    # Group all the user information
+    my %roles = (
+        PI => [$proj->pi],
+        COI => [$proj->coi],
+        SUPPORT => [$proj->support],
+    );
+
+    # Loop over all the different roles
+    for my $role (keys %roles) {
+        my $order = 1;
+
+        for my $user (@{$roles{$role}}) {
+            my $userid = $user->userid();
+            $self->_insert_project_user(
+                'projectid' => $proj->projectid,
+                'userid' => $userid,
+                'role' => $role,
+                'contactable' => $contactable{$userid},
+                'capacity_order' => $order ++,
+                affiliation => $user->affiliation(),
+                omp_access => $omp_access{$userid},
+            );
+        }
     }
-  }
-
 }
 
 =item B<_insert_project_user>
@@ -849,30 +872,31 @@ sub _insert_project_row {
 Given a hash with keys of projectid, userid, role, contactable, and order per
 role per project, add a user to the OMP database table.
 
-  $self->_insert_project_user( 'projectid' => $projectid,
-                                'userid' => 'jdove',
-                                'role' => 'COI',
-                                'contactable' => undef,
-                                'capacity_order' => 2
-                              );
+    $self->_insert_project_user(
+        'projectid' => $projectid,
+        'userid' => 'jdove',
+        'role' => 'COI',
+        'contactable' => undef,
+        'capacity_order' => 2);
 
 =cut
 
 sub _insert_project_user {
+    my ($self, %attr) = @_;
 
-  my ( $self, %attr ) = @_;
+    # Note that we must convert undef to 0 here for the DB
+    $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
+    $attr{'omp_access'} = $attr{'omp_access'} ? 1 : 0;
 
-  # Note that we must convert undef to 0 here for the DB
-  $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
-  $attr{'omp_access'} = $attr{'omp_access'} ? 1 : 0;
-  $self->_db_insert_data( $PROJUSERTABLE,
-                          undef,
-                          map { $attr{$_} }
-                              qw( projectid userid role contactable
-                                  capacity_order affiliation omp_access
-                                )
-                        );
-  return;
+    $self->_db_insert_data(
+        $PROJUSERTABLE,
+        undef,
+        map {$attr{$_}} qw/
+            projectid userid role contactable
+            capacity_order affiliation omp_access
+        /);
+
+    return;
 }
 
 =item B<_get_projects>
@@ -880,186 +904,185 @@ sub _insert_project_user {
 Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery>
 object).
 
-  @projects = $db->_get_projects( $query );
+    @projects = $db->_get_projects($query);
 
 Returned as an array of C<OMP::Project> objects.
 
 =cut
 
 sub _get_projects {
-  my $self = shift;
-  my $query = shift;
+    my $self = shift;
+    my $query = shift;
 
-  my $sql = $query->sql( $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE );
+    my $sql = $query->sql($PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE);
 
-  # Run the query
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+    # Run the query
+    my $ref = $self->_db_retrieve_data_ashash($sql);
 
-  # Get user and queue information; do a separate query for every
-  # N projects, where N is the value of $MAX_ID
-  my $MAX_ID = 100;
-  my $utable = $OMP::UserDB::USERTABLE; #--- Proj user table ---#
-  my $uproj_alias = 'P';
-  my $userquery_sql = <<"USER_SQL";
-  SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
-         $uproj_alias.contactable, $uproj_alias.affiliation, $uproj_alias.omp_access,
-         U.uname, U.email
-    FROM $PROJUSERTABLE $uproj_alias, $utable U
-      WHERE $uproj_alias.userid = U.userid AND
-
+    # Get user and queue information; do a separate query for every
+    # N projects, where N is the value of $MAX_ID
+    my $MAX_ID = 100;
+    my $utable = $OMP::UserDB::USERTABLE;  #--- Proj user table ---#
+    my $uproj_alias = 'P';
+    my $userquery_sql = <<"USER_SQL";
+        SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
+            $uproj_alias.contactable, $uproj_alias.affiliation, $uproj_alias.omp_access,
+            U.uname, U.email
+        FROM $PROJUSERTABLE $uproj_alias, $utable U
+        WHERE $uproj_alias.userid = U.userid AND
 USER_SQL
 
-  my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE WHERE ";
+    my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE WHERE ";
 
-  my %projroles;
-  my %projcontactable;
-  my %projompaccess;
-  my %projqueue;
-  my %projadj;
-  my %projpri_queue;
-  my $start_index = 0;
-  while ($start_index <= $#$ref) {
-    my $end_index = ( $start_index + $MAX_ID < $#$ref ?
-                      $start_index + $MAX_ID : $#$ref);
-    my $proj_list = join(",", map {"\"".$_->{projectid}."\""}
-                         @$ref[$start_index..$end_index]
-                        );
+    my %projroles;
+    my %projcontactable;
+    my %projompaccess;
+    my %projqueue;
+    my %projadj;
+    my %projpri_queue;
+    my $start_index = 0;
+    while ($start_index <= $#$ref) {
+        my $end_index = ($start_index + $MAX_ID < $#$ref ? $start_index + $MAX_ID : $#$ref);
+        my $proj_list = join(",",
+            map {"\"" . $_->{projectid} . "\""}
+                @$ref[$start_index .. $end_index]);
 
-    # First do the user info query
-    $sql = $userquery_sql . <<"WHERE_ORDER_SQL";
-        projectid in ($proj_list)
-        ORDER BY $uproj_alias.projectid,
-                 $uproj_alias.capacity,
-                 $uproj_alias.capacity_order
+        # First do the user info query
+        $sql = $userquery_sql . <<"WHERE_ORDER_SQL";
+            projectid in ($proj_list)
+            ORDER BY $uproj_alias.projectid,
+                $uproj_alias.capacity,
+                $uproj_alias.capacity_order
 WHERE_ORDER_SQL
 
-    my $userref = $self->_db_retrieve_data_ashash( $sql );
+        my $userref = $self->_db_retrieve_data_ashash($sql);
 
-    # Loop over the results and assign to different roles
-    for my $row (@$userref) {
-      my $projectid = $row->{projectid};
-      my $capacity = $row->{capacity};
-      my $userid = $row->{userid};
+        # Loop over the results and assign to different roles
+        for my $row (@$userref) {
+            my $projectid = $row->{projectid};
+            my $capacity = $row->{capacity};
+            my $userid = $row->{userid};
 
-      # Store the results for assignment to project objects later on
-      $projroles{$projectid}->{$capacity} = []
-        unless exists $projroles{$projectid}->{$capacity};
+            # Store the results for assignment to project objects later on
+            $projroles{$projectid}->{$capacity} = []
+                unless exists $projroles{$projectid}->{$capacity};
 
-      push(@{ $projroles{$projectid}->{$capacity} },
-           new OMP::User( userid => $userid,
-                          name => $row->{uname},
-                          email => $row->{email},
-                          affiliation => $row->{'affiliation'},
-                        ));
+            push @{$projroles{$projectid}->{$capacity}},
+                OMP::User->new(
+                    userid => $userid,
+                    name => $row->{uname},
+                    email => $row->{email},
+                    affiliation => $row->{'affiliation'},
+                );
 
-      $projcontactable{$projectid}->{$userid} = $row->{contactable};
-      $projompaccess{$projectid}->{$userid} = $row->{'omp_access'};
+            $projcontactable{$projectid}->{$userid} = $row->{contactable};
+            $projompaccess{$projectid}->{$userid} = $row->{'omp_access'};
+        }
+
+        # Now do the queue info query
+        $sql = $queuequery_sql . "projectid in ($proj_list)";
+        my $queueref = $self->_db_retrieve_data_ashash($sql);
+
+        # Loop over results and store for later assignment to project objects
+        for my $row (@$queueref) {
+            my $projectid = $row->{projectid};
+            $projadj{$projectid}{uc($row->{country})} =
+                (defined $row->{tagadj} ? $row->{tagadj} : 0);
+
+            # Queue stores TAG priority + TAG adjustments
+            $projqueue{$projectid}{uc($row->{country})} =
+                $row->{tagpriority} + $projadj{$projectid}{uc($row->{country})};
+
+            $projpri_queue{$projectid} = uc($row->{country})
+                if $row->{isprimary};
+        }
+
+        $start_index = $end_index + 1;
     }
 
-    # Now do the queue info query
-    $sql = $queuequery_sql . "projectid in ($proj_list)";
-    my $queueref = $self->_db_retrieve_data_ashash( $sql );
+    # First create a UserDB object
+    my $udb = OMP::UserDB->new(DB => $self->db);
 
-    # Loop over results and store for later assignment to project objects
-    for my $row (@$queueref) {
-      my $projectid = $row->{projectid};
-      $projadj{$projectid}{uc($row->{country})} =
-         (defined $row->{tagadj} ? $row->{tagadj} : 0);
-      # Queue stores TAG priority + TAG adjustments
-      $projqueue{$projectid}{uc($row->{country})} = $row->{tagpriority}
-         + $projadj{$projectid}{uc($row->{country})};
+    # Loop over each project
+    my @projects;
+    for my $projhash (@$ref) {
+        # Remove the user id from PI field
+        my $piuserid = $projhash->{pi};
+        delete $projhash->{pi};
 
-      $projpri_queue{$projectid} = uc($row->{country}) if $row->{isprimary};
+        # cloud fix up for old usage
+        if (exists $projhash->{cloud}) {
+            my $crange = OMP::SiteQuality::upgrade_cloud($projhash->{cloud});
+            $projhash->{cloudmin} = $crange->min;
+            $projhash->{cloudmax} = $crange->max;
+            delete $projhash->{cloud};
+        }
+
+        # convert min/max to ranges
+        for my $key (qw/tau seeing cloud sky/) {
+            # determine the min/max keys
+            my $maxkey = $key . "max";
+            my $minkey = $key . "min";
+
+            # output key
+            my $outkey = $key . "range";
+
+            # convert the min and max into a OMP::Range object
+            $projhash->{$outkey} = OMP::SiteQuality::from_db(
+                $key, $projhash->{$minkey}, $projhash->{$maxkey});
+
+            # fix up any NULLs
+            OMP::SiteQuality::undef_to_default($key, $projhash->{$outkey});
+
+            # convert to 2 decimal places because of precision problems
+            # with a REAL sybase column
+            for my $m (qw/ min max /) {
+                my $val = $projhash->{$outkey}->$m();
+                next unless defined $val;
+                $val = sprintf('%.2f', $val);
+                $projhash->{$outkey}->$m($val);
+            }
+
+            delete $projhash->{$minkey};
+            delete $projhash->{$maxkey};
+        }
+
+        # Create a new OMP::Project object
+        my $proj = OMP::Project->new(%$projhash);
+        next unless $proj;
+
+        # Project ID
+        my $projectid = $proj->projectid;
+
+        # -------- Assign User information ---------
+        # This is a kluge for now since we have the PI in two places in the
+        # database for historical reasons: once in the ompproj table and once
+        # in ompprojuser.
+        $proj->pi($projroles{$projectid}{PI}->[0]);
+
+        # Now add other users to the project
+        $proj->coi(@{$projroles{$projectid}{COI}})
+            if exists $projroles{$projectid}{COI};
+
+        $proj->support(@{$projroles{$projectid}{SUPPORT}})
+            if exists $projroles{$projectid}{SUPPORT};
+
+        $proj->contactable(%{$projcontactable{$projectid}});
+        $proj->omp_access(%{$projompaccess{$projectid}});
+
+        # -------- Assign Queue information ---------
+        # Store new info, but make sure we have cleared the hash first
+        $proj->clearqueue;
+        $proj->queue($projqueue{$projectid});
+        $proj->primaryqueue($projpri_queue{$projectid});
+        $proj->tagadjustment($projadj{$projectid});
+
+        # And store it
+        push @projects, $proj;
     }
 
-    $start_index = $end_index + 1;
-  }
-
-  # First create a UserDB object
-  my $udb = new OMP::UserDB( DB => $self->db );
-
-  # Loop over each project
-  my @projects;
-  for my $projhash (@$ref) {
-
-    # Remove the user id from PI field
-    my $piuserid = $projhash->{pi};
-    delete $projhash->{pi};
-
-    # cloud fix up for old usage
-    if (exists $projhash->{cloud}) {
-      my $crange = OMP::SiteQuality::upgrade_cloud( $projhash->{cloud} );
-      $projhash->{cloudmin} = $crange->min;
-      $projhash->{cloudmax} = $crange->max;
-      delete $projhash->{cloud};
-    }
-
-    # convert min/max to ranges
-    for my $key (qw/ tau seeing cloud sky / ) {
-
-      # determine the min/max keys
-      my $maxkey = $key . "max";
-      my $minkey = $key . "min";
-
-      # output key
-      my $outkey = $key . "range";
-
-      # convert the min and max into a OMP::Range object
-      $projhash->{$outkey} = OMP::SiteQuality::from_db( $key,
-                                                        $projhash->{$minkey},
-                                                        $projhash->{$maxkey}
-                                                      );
-
-      # fix up any NULLs
-      OMP::SiteQuality::undef_to_default( $key, $projhash->{$outkey});
-
-      # convert to 2 decimal places because of precision problems
-      # with a REAL sybase column
-      for my $m (qw/ min max /) {
-        my $val = $projhash->{$outkey}->$m();
-        next unless defined $val;
-        $val = sprintf( '%.2f', $val);
-        $projhash->{$outkey}->$m( $val );
-      }
-
-      delete $projhash->{$minkey};
-      delete $projhash->{$maxkey};
-    }
-
-    # Create a new OMP::Project object
-    my $proj = new OMP::Project( %$projhash );
-    next unless $proj;
-
-    # Project ID
-    my $projectid = $proj->projectid;
-
-    # -------- Assign User information ---------
-    # This is a kluge for now since we have the PI in two places in the
-    # database for historical reasons: once in the ompproj table and once
-    # in ompprojuser.
-    $proj->pi($projroles{$projectid}{PI}->[0]);
-
-    # Now add other users to the project
-    $proj->coi( @{ $projroles{$projectid}{COI} } )
-      if exists $projroles{$projectid}{COI};
-    $proj->support( @{ $projroles{$projectid}{SUPPORT} } )
-      if exists $projroles{$projectid}{SUPPORT};
-    $proj->contactable( %{$projcontactable{$projectid}} );
-    $proj->omp_access( %{$projompaccess{$projectid}} );
-
-    # -------- Assign Queue information ---------
-    # Store new info, but make sure we have cleared the hash first
-    $proj->clearqueue;
-    $proj->queue($projqueue{$projectid});
-    $proj->primaryqueue($projpri_queue{$projectid});
-    $proj->tagadjustment( $projadj{$projectid} );
-
-    # And store it
-    push(@projects, $proj);
-  }
-
-  # Return the results as Project objects
-  return @projects;
+    # Return the results as Project objects
+    return @projects;
 }
 
 =item B<_get_max_role_order>
@@ -1067,30 +1090,26 @@ WHERE_ORDER_SQL
 Given a project id and a role, returns the maximum capacity order
 (integer) assigned for the role.  If nothing is found, 0 is returned.
 
-  my $max_order = $db->_get_max_role_order( $projectid, $role );
+    my $max_order = $db->_get_max_role_order($projectid, $role);
 
 =cut
 
 sub _get_max_role_order {
+    my ($self, $projid, $role) = @_;
 
-  my ( $self, $projid, $role ) = @_;
+    throw OMP::Error::BadArgs('Need both a project id and a role')
+        unless $projid && $role;
 
-  throw OMP::Error::BadArgs('Need both a project id and a role')
-    unless $projid && $role;
-
-  my $column = 'max_order';
-  my $sql =
-    qq[ SELECT MAX( capacity_order ) $column
+    my $column = 'max_order';
+    my $sql = " SELECT MAX( capacity_order ) $column
         FROM $PROJUSERTABLE
         WHERE projectid = '$projid' AND capacity = '$role'
-      ];
+    ";
 
-  my $order = $self->_db_retrieve_data_ashash( $sql );
+    my $order = $self->_db_retrieve_data_ashash($sql);
 
-  return $order->[0]{ $column } || 0;
+    return $order->[0]{$column} || 0;
 }
-
-=pod
 
 =item B<_remove_unchanged_flag>
 
@@ -1098,33 +1117,33 @@ Given an C<OMP::Project> object and a hash reference of (possibly)
 updated user-flag key-value pairs, returns a new hash reference
 of the remaining changed, possibly none, pairs.
 
-  $changed =
-    $db->_remove_unchanged_flag( $project, $flag,
-                                          { 'USR1' => 1, 'USR2' => 0 }
-                                        );
+    $changed = $db->_remove_unchanged_flag(
+        $project, $flag, {'USR1' => 1, 'USR2' => 0});
 
 =cut
 
 sub _remove_unchanged_flag {
+    my ($self, $proj, $flag, $updates) = @_;
 
-  my ( $self, $proj, $flag, $updates ) = @_;
+    my %old_flag = $proj->$flag;
+    my %changed;
+    for my $user (keys %{$updates}) {
 
-  my %old_flag = $proj->$flag;
-  my %changed;
-  for my $user ( keys %{ $updates } ) {
+        my $flag = $updates->{$user};
 
-    my $flag = $updates->{ $user };
+        next if exists $old_flag{$user}
+            && (($flag && $old_flag{$user})
+            || (! $flag && ! $old_flag{$user}));
 
-    next if exists $old_flag{ $user }
-          && ( ( $flag && $old_flag{ $user } )
-              || ( ! $flag && ! $old_flag{ $user } )
-              ) ;
+        $changed{$user} = $flag;
+    }
 
-    $changed{ $user } = $flag;
-  }
-
-  return %changed;
+    return %changed;
 }
+
+1;
+
+__END__
 
 =back
 
@@ -1154,11 +1173,8 @@ along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
-
-1;

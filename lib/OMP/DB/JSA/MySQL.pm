@@ -1,7 +1,5 @@
 package OMP::DB::JSA::MySQL;
 
-=pod
-
 =head1 NAME
 
 OMP::DB::JSA::MySQL - Connects to a MySQL database server
@@ -12,7 +10,6 @@ OMP::DB::JSA::MySQL - Connects to a MySQL database server
 
     $dbh = connect_to_db($ini_config_file);
 
-
 =head1 DESCRIPTION
 
 This package provides a database handle given "ini" style database log in
@@ -20,7 +17,7 @@ configuration with "database" section.  See L<OMP::Config> for details.
 
 =head1 FUNCTIONS
 
-=over 2
+=over 4
 
 =cut
 
@@ -41,7 +38,7 @@ our @EXPORT_OK = qw/connect_to_db/;
 Returns a database handle given a C<ini> style database configuration
 file with C<database> as the section (see L<OMP::Config> for details).
 
-  $dbh = connect_to_db($ini_config_file);
+    $dbh = connect_to_db($ini_config_file);
 
 Sets C<$dbh-E<gt>{'RaiseError'}> and C<$dbh-E<gt>{'AutoCommit'}> (see L<DBI>).
 
@@ -55,13 +52,13 @@ sub connect_to_db {
 
     local $OMP::Config::DEBUG = 0;
 
-    my $omp_cf = new OMP::Config();
+    my $omp_cf = OMP::Config->new();
 
     $omp_cf->configDatabase($config);
 
-    my ($driver, $server, $db, $user, $pass) =
-        map {$omp_cf->getData("database.$_")}
-            qw/driver server database user password/;
+    my ($driver, $server, $db, $user, $pass) = map {
+        $omp_cf->getData("database.$_")
+    } qw/driver server database user password/;
 
     die "DBI driver $driver not recognized" unless $driver eq 'mysql';
 
@@ -80,20 +77,18 @@ sub connect_to_db {
 
     $dbh->do("use $db") or $log->logdie($_->errstr);
 
-    return $dbh ;
+    return $dbh;
 }
 
 1;
 
 __END__
 
-=pod
-
 =back
 
 =head1 SEE ALSO
 
-=over 2
+=over 4
 
 =item *
 

@@ -1,0 +1,29 @@
+From: Example User <example@eaobservatory.org>
+Content-Type: multipart/mixed;
+        boundary="Apple-Mail=_B413BD43-05E4-4E34-9E45-F6D1576D6392"
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3774.500.171.1.1\))
+Subject: Text attachment example
+Message-Id: <C74CB174-7735-48B8-BC17-B478FB6888CE@eaobservatory.org>
+To: Example User <example@eaobservatory.org>
+X-Mailer: Apple Mail (2.3774.500.171.1.1)
+
+
+--Apple-Mail=_B413BD43-05E4-4E34-9E45-F6D1576D6392
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+        charset=us-ascii
+
+This is the text of the email itself.
+
+--Apple-Mail=_B413BD43-05E4-4E34-9E45-F6D1576D6392
+Content-Disposition: attachment;
+        filename=file.txt
+Content-Type: text/plain;
+        x-unix-mode=0644;
+        name="file.txt"
+Content-Transfer-Encoding: 7bit
+
+This is the text in the attachment.
+
+--Apple-Mail=_B413BD43-05E4-4E34-9E45-F6D1576D6392--
+
