@@ -702,7 +702,7 @@ sub parse_file_fault_form {
         my @assoc2 = split(/\s+/, $assoc2);
 
         # Use a hash to eliminate duplicates
-        my %projects = map {lc($_), undef} @assoc, @assoc2;
+        my %projects = map {uc($_), undef} @assoc, @assoc2;
         $parsed{projects} = [keys %projects];
     }
 

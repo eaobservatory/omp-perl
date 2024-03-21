@@ -723,7 +723,7 @@ sub _sidebar_project {
     # If there are any faults associated with this project put a link up to the
     # fault system and display the number of faults.
     my $faultdb = OMP::FaultDB->new(DB => $self->database);
-    my @faults = $faultdb->getAssociations(lc($projectid), 1);
+    my @faults = $faultdb->getAssociations($projectid, 1);
 
     $self->side_bar("Project $projectid", [
         ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],

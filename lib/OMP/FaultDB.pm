@@ -195,8 +195,8 @@ sub queryFaults {
 Retrieve the fault IDs (or optionally fault objects) associated
 with the specified project ID.
 
-    @faults = $db->getAssociations('m01bu52');
-    @faultids = $db->getAssociations('m01bu52', 1);
+    @faults = $db->getAssociations('M01BU52');
+    @faultids = $db->getAssociations('M01BU52', 1);
 
 If the optional second argument is true only the fault IDs
 are retrieved.
@@ -213,7 +213,7 @@ sub getAssociations {
     # Cant use standard interface for ASSOCTABLE query since
     # OMP::FaultQuery does not yet know how to query the ASSOCTABLE
     my $ref = $self->_db_retrieve_data_ashash(
-        "SELECT faultid FROM $ASSOCTABLE WHERE projectid = '$projectid'");
+        "SELECT faultid FROM $ASSOCTABLE WHERE projectid = ?", $projectid);
     my @ids = map {$_->{faultid}} @$ref;
 
     # Now we have all the fault IDs
@@ -530,7 +530,7 @@ sub _query_faultdb {
             # Only want to do this once per fault
             unless ($opt{'no_projects'}) {
                 my $assocref = $self->_db_retrieve_data_ashash(
-                    "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id");
+                    "SELECT * FROM $ASSOCTABLE  WHERE faultid = ?", $id);
                 $faults{$id}->projects(map {$_->{projectid}} @$assocref);
             }
         }
