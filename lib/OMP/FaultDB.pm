@@ -11,7 +11,6 @@ OMP::FaultDB - Fault database manipulation
 
     $faultid = $db->fileFault($fault);
     $db->respondFault($faultid, $response);
-    $db->closeFault($fault);
     $fault = $db->getFault($faultid);
     $faults = $db->queryFaults($query);
 
@@ -129,51 +128,6 @@ sub respondFault {
     $self->_mail_fault($fault);
 }
 
-=item B<closeFault>
-
-Close the supplied fault object in the database.
-
-    $db->closeFault($fault);
-    $db->closeFault($id);
-
-The argument can be either an C<OMP::Fault> (so that the fault status
-can be changed in the object) or a fault id.
-
-If an object is supplied, raises an exception if no faultid is
-present.
-
-=cut
-
-sub closeFault {
-    my $self = shift;
-    my $fault = shift;
-
-    # Need to lock the database since we are writing
-    $self->_db_begin_trans;
-    $self->_dblock;
-
-    # Determine the id
-    my $id = $fault;
-    my $isobj = 0;
-    if (UNIVERSAL::isa($fault, "OMP::Fault")) {
-        $isobj = 1;
-        $id = $fault->id;
-    }
-
-    # File the response
-    $self->_close_fault($id);
-
-    # Send an EMAIL??
-
-    # End transaction
-    $self->_dbunlock;
-    $self->_db_commit_trans;
-
-    # Change the object status if we have an object
-    $fault->close_fault
-        if $isobj;
-}
-
 =item B<getFault>
 
 Retrieve the specified fault from the database.
@@ -203,40 +157,6 @@ sub getFault {
 
     # Guaranteed to be only one match
     return $result->[0];
-}
-
-=item B<getFaultsByDate>
-
-Retrieve faults filed on the specified UT date. Date must be in the format
-'YYYY-MM-DD'.
-
-    $faults = $db->getFaultsByDate($ut);
-
-This method returns a reference to an array of C<OMP::Fault> objects.
-
-An optional second argument can be used to specify the category (OMP,
-CSG, UKIRT, JCMT etc).
-
-=cut
-
-sub getFaultsByDate {
-    my $self = shift;
-    my $date = shift;
-    my $cat = shift;
-
-    # I don't know if this is the proper query to make, since there are
-    # potentially two dates associated with any given fault (date filed
-    # and date occurred). We're looking for date occurred in this instance.
-    # If this date is not 'date', then it'll have to be changed (confused?)
-    my $xml = "<FaultQuery><date delta=\"1\">$date</date>"
-        . (defined $cat ? "<category>$cat</category>" : "")
-        . "<isfault>1</isfault>"
-        . "</FaultQuery>";
-    my $query = OMP::FaultQuery->new(XML => $xml);
-
-    my $result = $self->queryFaults($query);
-
-    return $result;
 }
 
 =item B<queryFaults>
@@ -534,27 +454,6 @@ sub _prepare_response_columns {
         preformatted => $resp->preformatted,
         flag => $resp->flag,
     };
-}
-
-=item B<_close_fault>
-
-Close the fault with the specified fault ID.
-
-    $db->_close_fault($id)
-
-=cut
-
-sub _close_fault {
-    my $self = shift;
-    my $id = shift;
-    my %status = OMP::Fault->faultStatus;
-    my $close = $status{Closed};  # Dont like bare string
-
-    # Update the status field
-    $self->_db_update_data(
-        $FAULTTABLE,
-        {status => $close},
-        " faultid = $id");
 }
 
 =item B<_query_faultdb>

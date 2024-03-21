@@ -15,8 +15,6 @@ OMP::Fault - A software bug or system fault object
             author => $user,
             text => $text));
 
-    $fault->close_fault();
-
 =head1 DESCRIPTION
 
 This class deals with software bug or fault system objects.  Faults
@@ -1876,17 +1874,6 @@ sub mail_list_users {
             'email' => $_,
         )
     } @{$self->mail_list};
-}
-
-=item B<close_fault>
-
-Change the status of the fault to "CLOSED".
-
-=cut
-
-sub close_fault {
-    my $self = shift;
-    $self->status(CLOSED);
 }
 
 =item B<respond>
