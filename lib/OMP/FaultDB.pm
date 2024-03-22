@@ -732,6 +732,10 @@ sub _mail_fault {
     );
 
     # Mail it off
+
+    # Note: since format_fault will already have wrapped the text, and includes
+    # <pre> sections with styling tags, suppress wrapping with wrap_width_preformatted=0
+    # and also specify a largish wrap_width value to avoid excessive plain text wrapping.
     $self->_mail_information(
         message => $msg,
         preformatted => 1,
@@ -740,6 +744,8 @@ sub _mail_fault {
         from => $from,
         subject => $subject,
         reply_to_sender => 1,
+        wrap_width => 120,
+        wrap_width_preformatted => 0,
     );
 }
 
