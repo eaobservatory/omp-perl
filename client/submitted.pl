@@ -63,7 +63,6 @@ use strict;
 use Pod::Usage;
 use Getopt::Long;
 use Time::Piece;
-use MIME::Lite;
 
 # Add to @INC for OMP libraries.
 use FindBin;
@@ -75,6 +74,7 @@ use OMP::FBQuery;
 use OMP::FeedbackDB;
 use OMP::ProjDB;
 use OMP::ProjQuery;
+use OMP::Mail;
 
 # Options
 my ($help, $man, $debug);
@@ -177,14 +177,21 @@ while (my ($proj, $first) = $sth->fetchrow_array()) {
 my %proj_by_support;
 for my $project (@projects) {
     for my $support ($project->support) {
-        push @{$proj_by_support{$support->email}}, $project;
+        my $userid = $support->userid;
+        $proj_by_support{$userid} = {
+            user => $support,
+            projects => [],
+        } unless exists $proj_by_support{$userid};
+
+        push @{$proj_by_support{$userid}->{'projects'}}, $project;
     }
 }
 
 if ($debug) {
-    for (keys %proj_by_support) {
-        print "$_:\n";
-        for (@{$proj_by_support{$_}}) {
+    foreach (sort keys %proj_by_support) {
+        my $support = $proj_by_support{$_};
+        print $support->{'user'}->name . ":\n";
+        for (@{$support->{'projects'}}) {
             print "\t\t" . ($new_submission{$_->projectid} ? 'New' : 'Resub.')
                 . "\t" . $_->projectid
                 . "\n";
@@ -193,8 +200,9 @@ if ($debug) {
 }
 else {
     # Send out emails
-    for my $support (keys %proj_by_support) {
-        my $projects = $proj_by_support{$support};
+    for my $userid (keys %proj_by_support) {
+        my $support = $proj_by_support{$userid};
+        my $projects = $support->{'projects'};
 
         # Construct the message
         my $anyNew = 0;
@@ -211,20 +219,16 @@ else {
         my $subject = 'Science program submissions'
             .  $anyNew ? ' [NEW]' : ' [resubmission]';
 
-        #print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
+        #print 'Email to: ', $support->{'user'}->email, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
-        my $msg = MIME::Lite->new(
-            From => OMP::User->get_flex()->as_email_hdr(),
-            To => $support,
-            Subject => $subject,
-            Data => $text,
+        my $mailer = OMP::Mail->new();
+        my $msg = $mailer->build(
+            from => OMP::User->get_flex(),
+            to => [$support->{'user'}],
+            subject => $subject,
+            message => $text,
         );
-
-        MIME::Lite->send('smtp', 'malama.eao.hawaii.edu', Timeout => 30);
-
-        # Send the message
-        $msg->send
-            or die "Error sending message: $!\n";
+        $mailer->send($msg);
     }
 }
 
