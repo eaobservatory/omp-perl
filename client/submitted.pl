@@ -217,7 +217,7 @@ else {
             } @{$projects};
 
         my $subject = 'Science program submissions'
-            .  $anyNew ? ' [NEW]' : ' [resubmission]';
+            . ($anyNew ? ' [NEW]' : ' [resubmission]');
 
         #print 'Email to: ', $support->{'user'}->email, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
