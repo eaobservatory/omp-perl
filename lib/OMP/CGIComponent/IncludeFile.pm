@@ -161,7 +161,7 @@ sub _get_resource {
         -type => exists $mime{$extension}
             ? $mime{$extension}
             : 'application/octet-stream',
-        -expires => '+10m',
+        -expires => '+1d',
     );
 
     my $fh = IO::File->new($pathname);
