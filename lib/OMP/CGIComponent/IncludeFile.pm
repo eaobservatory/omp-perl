@@ -183,6 +183,10 @@ the user has permission to see it.
 
 sub _resource_url {
     my ($type, $utdate, $filename, $projectid) = @_;
+
+    $filename =~ s/\?/&/;
+    $filename =~ s/&/&amp;/g;
+
     my $url = 'get_resource.pl?type=' . $type
         . '&amp;utdate=' . $utdate
         . '&amp;filename=' . $filename;
