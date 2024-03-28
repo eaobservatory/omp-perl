@@ -126,6 +126,21 @@ in paramhash format.
 Add a Reply-To header giving the "from" user's
 address, if they have one.
 
+=item wrap_width
+
+Text wrapping width.
+
+[Default: 80]
+
+=item wrap_width_preformatted
+
+Wrapping width for preformatted (HTML) data.  Can be 0 to disable.
+Note that if C<message_plain> is not specified, HTML will be wrapped
+to this width prior to conversion to plain text, which applies futher
+wrapping.
+
+[Default: same as specified for C<wrap_width>]
+
 =back
 
     $mess = $email->build(
@@ -162,14 +177,18 @@ sub build {
 
     # Decide if we'll have attachments or not and set the MIME type accordingly.
     my ($type, $message, $message_plain);
-    my $wrap_width = 80;
+    my $wrap_width = $args{'wrap_width'} // 80;
     unless ($args{'preformatted'}) {
         $type = 'text/plain';
         $message = OMP::Display->format_text($args{'message'}, 0, width => $wrap_width);
     }
     else {
         $type = 'multipart/alternative';
-        $message = OMP::Display->wrap_text($args{'message'}, $wrap_width, 0);
+        $message = $args{'message'};
+
+        my $wrap_width_preformatted = $args{'wrap_width_preformatted'} // $wrap_width;
+        $message = OMP::Display->wrap_text($message, $wrap_width_preformatted, 0)
+            if $wrap_width_preformatted;
 
         if (exists $args{'message_plain'} and defined $args{'message_plain'}) {
             $message_plain = OMP::Display->format_text($args{'message_plain'}, 0, width => $wrap_width);

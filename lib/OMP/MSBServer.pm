@@ -1370,6 +1370,8 @@ results. Requires a telescope name be provided as single argument.
 
 Returns an array (as a reference).
 
+B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
+
 =cut
 
 sub getResultColumns {
