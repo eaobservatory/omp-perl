@@ -354,7 +354,7 @@ a heterodyne instrument then you can specify multiple instruments.
     $obsinfo = $db->getObs(
         telescope => "JCMT",
         ut => 20111026,
-        instruments => [qw/HARP RXA3 RXWD/],
+        instrument => [qw/HARP RXA3 RXWD/],
         runnr => 57);
 
 A single observation ID is sufficient in some cases.
