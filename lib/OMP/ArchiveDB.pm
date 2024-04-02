@@ -382,13 +382,13 @@ sub getObs {
     my $self = shift;
     my %args = @_;
 
-    my $xml = "<ArcQuery>";
+    my %hash = ();
 
     if (defined($args{telescope}) && length($args{telescope})) {
-        $xml .= "<telescope>" . $args{telescope} . "</telescope>";
+        $hash{'telescope'} = $args{telescope};
     }
     if (defined($args{runnr}) && length($args{runnr})) {
-        $xml .= "<runnr>" . $args{runnr} . "</runnr>";
+        $hash{'runnr'} = $args{runnr};
     }
     if (exists $args{instrument} && defined($args{instrument})) {
         my @instruments;
@@ -399,22 +399,20 @@ sub getObs {
             push @instruments, $args{instrument};
         }
 
-        for my $i (@instruments) {
-            $xml .= "<instrument>" . $i . "</instrument>"
-                if (defined $i && length($i));
-        }
+        $hash{'instrument'} = \@instruments;
     }
     if (defined($args{ut}) && length($args{ut})) {
-        $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
+        $hash{'date'} = {
+            value => $args{ut},
+            delta => 1,
+        };
     }
     if (defined $args{obsid} && length $args{obsid}) {
-        $xml .= "<obsid>$args{obsid}</obsid>";
+        $hash{'obsid'} = $args{obsid};
     }
 
-    $xml .= "</ArcQuery>";
-
     # Construct a query
-    my $query = OMP::ArcQuery->new(XML => $xml);
+    my $query = OMP::ArcQuery->new(HASH => \%hash);
 
     # retain the fits header since it is probably useful if we
     # are retrieving single observations
