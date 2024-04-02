@@ -44,23 +44,28 @@ our $VERSION = '2.000';
 
 our $TEMPDIR = OMP::Config->getData('cachedir');
 
-require Exporter;
-
-our @ISA = qw/Exporter/;
-our @EXPORT = qw/
-    store_archive retrieve_archive cached_on suspect_cache unstored_files
-    simple_query
-/;
-our %EXPORT_TAGS = (
-    'all' => [@EXPORT],
-);
-
-Exporter::export_tags(qw/all/);
-
-# In-memory cache
-my %MEMCACHE;
-
 =head1 METHODS
+
+=head2 Constructor
+
+Create new cache object.
+
+    $cache = OMP::ArchiveDB::Cache->new();
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $self = bless {
+        memcache => {},
+    }, $class;
+
+    return $self;
+}
+
+=head2 General Methods
 
 =over 4
 
@@ -69,7 +74,7 @@ my %MEMCACHE;
 Store information about an C<OMP::ArcQuery> query and an
 C<OMP::Info::ObsGroup> object to a temporary file.
 
-    store_archive($query, $obsgrp);
+    $cache->store_archive($query, $obsgrp);
 
 Only queries that are made up only of a combination of
 telescope, instrument, date, and projectid
@@ -79,6 +84,7 @@ date ranges) are not supported.
 =cut
 
 sub store_archive {
+    my $self = shift;
     my $query = shift;
     my $obsgrp = shift;
     my $retainhdr = shift;
@@ -87,7 +93,7 @@ sub store_archive {
         throw OMP::Error::BadArgs("Must supply a query to store information in cache");
     }
 
-    return unless _use_cache($query);
+    return unless $self->_use_cache($query);
 
     unless (defined $obsgrp) {
         throw OMP::Error::BadArgs("Must supply an ObsGroup object to store information in cache");
@@ -103,7 +109,7 @@ sub store_archive {
     }
 
     # Get the filename.
-    my $filename = _filename_from_query($query);
+    my $filename = $self->_filename_from_query($query);
 
     # Do a fairly blind untaint
     if ($filename =~ /^([A-Za-z\-:0-9\/_]+)$/) {
@@ -148,7 +154,7 @@ sub store_archive {
     }
 
     # Store in memory cache (using a new copy) [if we have some observations]
-    $MEMCACHE{$filename} = OMP::Info::ObsGroup->new(
+    $self->{'memcache'}->{$filename} = OMP::Info::ObsGroup->new(
         obs => scalar($obsgrp->obs),
         retainhdr => $retainhdr,
     ) if scalar(@{$obsgrp->obs}) > 0;
@@ -177,7 +183,7 @@ sub store_archive {
 Retrieve information about an C<OMP::ArcQuery> query
 from temporary files.
 
-    $obsgrp = retrieve_archive($query, $return_if_suspect);
+    $obsgrp = $cache->retrieve_archive($query, $return_if_suspect);
 
 Returns an C<OMP::Info::ObsGroup> object, or undef if
 no results match the given query.
@@ -201,6 +207,7 @@ of C<OMP::Info::ObsGroup> to add the comments.
 =cut
 
 sub retrieve_archive {
+    my $self = shift;
     my $query = shift;
     my $return_if_suspect = shift;
     my $retainhdr = shift;
@@ -216,21 +223,21 @@ sub retrieve_archive {
     my $obsgrp;
 
     # Is this a simple query?
-    return unless simple_query($query);
+    return unless $self->simple_query($query);
 
-    return unless _use_cache($query);
+    return unless $self->_use_cache($query);
 
     # Is this a suspect cache?
-    return if $return_if_suspect && suspect_cache($query);
+    return if $return_if_suspect && $self->suspect_cache($query);
 
     # Check to see
 
     # Get the filename of whatever it is we're getting.
-    my $filename = _filename_from_query($query);
+    my $filename = $self->_filename_from_query($query);
 
     # Retrieve the ObsGroup object, if it exists. Prefer in memory version
-    if (exists $MEMCACHE{$filename}) {
-        $obsgrp = $MEMCACHE{$filename};
+    if (exists $self->{'memcache'}->{$filename}) {
+        $obsgrp = $self->{'memcache'}->{$filename};
     }
     else {
         # Try to grab the ObsGroup object from on-disk cache.
@@ -266,7 +273,7 @@ sub retrieve_archive {
         return unless defined $obsgrp;
 
         # Store in memory cache for next time around
-        $MEMCACHE{$filename} = OMP::Info::ObsGroup->new(
+        $self->{'memcache'}->{$filename} = OMP::Info::ObsGroup->new(
             obs => scalar($obsgrp->obs),
             retainhdr => $retainhdr,
         ) if scalar(@{$obsgrp->obs}) > 0;
@@ -284,7 +291,7 @@ about them stored in the cache, and additionally return the
 C<OMP::Info::ObsGroup> object corresponding to the data stored
 in the cache.
 
-    ($obsgrp, @files) = unstored_files($query);
+    ($obsgrp, @files) = $cache->unstored_files($query);
 
 Returns an C<OMP::Info::Obsgroup> object, or undef if no
 information about the given query is stored in the cache,
@@ -299,6 +306,7 @@ instrument will be used.
 =cut
 
 sub unstored_files {
+    my $self = shift;
     my $query = shift;
 
     unless (defined $query) {
@@ -309,7 +317,7 @@ sub unstored_files {
 
     # We want to have a cache returned for us, even if it's suspect.
     my $return_if_suspect = 0;
-    my $obsgrp = retrieve_archive($query, $return_if_suspect);
+    my $obsgrp = $self->retrieve_archive($query, $return_if_suspect);
 
     # Get a list of files that are stored in the cache.
     if (defined $obsgrp) {
@@ -405,7 +413,7 @@ sub unstored_files {
 Return the UT date on which the cache for the given query was
 written.
 
-    $ut = cached_on($query);
+    $ut = $cache->cached_on($query);
 
 Returns a C<Time::Piece> object if the cache for the given
 query exists, otherwise returns undef.
@@ -413,13 +421,14 @@ query exists, otherwise returns undef.
 =cut
 
 sub cached_on {
+    my $self = shift;
     my $query = shift;
 
     unless (defined $query) {
         throw OMP::Error::BadArgs("Must supply a query to retrieve a date");
     }
 
-    my $filename = _filename_from_query($query);
+    my $filename = $self->_filename_from_query($query);
 
     my $tp;
 
@@ -435,7 +444,7 @@ sub cached_on {
 
 Is the cache file for the given query suspect?
 
-    $suspect = suspect_cache($query);
+    $suspect = $cache->suspect_cache($query);
 
 A cache file is suspect if the file was written on the same
 UT date as the date (either the date outright or the starting
@@ -445,13 +454,14 @@ is suspect and false if it is not.
 =cut
 
 sub suspect_cache {
+    my $self = shift;
     my $query = shift;
 
     unless (defined $query) {
         throw OMP::Error::BadArgs("Must supply a query to retrieve a date");
     }
 
-    my $filetime = cached_on($query);
+    my $filetime = $self->cached_on($query);
     my $querytime = $query->daterange->min;
 
     unless (defined $filetime) {
@@ -470,7 +480,7 @@ sub suspect_cache {
 
 Is the query simple enough to be cached?
 
-    $simple = simple_query($query);
+    $simple = $cache->simple_query($query);
 
 A query is simple if it is made up of a combination of only the
 following things: instrument, telescope, projectid, and a date
@@ -482,6 +492,7 @@ Returns true if the query is simple and false otherwise.
 =cut
 
 sub simple_query {
+    my $self = shift;
     my $query = shift;
 
     my $isfile = $query->isfile;
@@ -509,7 +520,7 @@ sub simple_query {
 
 =back
 
-=head1 PRIVATE METHODS
+=head2 Private Methods
 
 =over 4
 
@@ -517,7 +528,7 @@ sub simple_query {
 
 Return a standard filename given an C<OMP::ArcQuery> object.
 
-    $filename = _filename_from_query($query);
+    $filename = $cache->_filename_from_query($query);
 
 The filename will include the path to the file.
 
@@ -529,6 +540,7 @@ date ranges) are not supported.
 =cut
 
 sub _filename_from_query {
+    my $self = shift;
     my $query = shift;
 
     unless (defined $query) {
@@ -627,13 +639,14 @@ specific configuration file).  It currently treats the missing name of
 the option, use_header_cache, as if cache retrival has been enabled to
 preserve old status quo.
 
-    return unless _use_cache($query);
+    return unless $cache->_use_cache($query);
 
     # Else, fetch|check cache.
 
 =cut
 
 sub _use_cache {
+    my $self = shift;
     my ($query) = @_;
 
     my $use = 1;

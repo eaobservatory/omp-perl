@@ -65,6 +65,26 @@ our %WARNED;
 
 =head1 METHODS
 
+=head2 Constructor
+
+Create new object.
+
+    $db = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(@_);
+
+    $self->{'Cache'} = OMP::ArchiveDB::Cache->new;
+
+    return $self;
+}
+
+=head2 General Methods
+
 =over 4
 
 =item B<search_db>
@@ -433,7 +453,7 @@ sub queryArc {
     }
 
     my $grp;
-    $QueryCache and $grp = retrieve_archive($query, 1, $retainhdr);
+    $QueryCache and $grp = $self->_cache->retrieve_archive($query, 1, $retainhdr);
 
     if (defined($grp)) {
         return $grp->obs;
@@ -575,7 +595,7 @@ sub _query_arcdb {
         push @return, @reorg;
     }
 
-    _make_cache($query, \@return);
+    $self->_make_cache($query, \@return);
 
     return @return;
 }
@@ -835,8 +855,8 @@ sub _query_files {
     my @obs;
 
     # If we have a simple query, go to the cache for stored information and files
-    if (simple_query($query)) {
-        ($obsgroup, @files) = unstored_files($query);
+    if ($self->_cache->simple_query($query)) {
+        ($obsgroup, @files) = $self->_cache->unstored_files($query);
         if (defined($obsgroup)) {
             @obs = $obsgroup->obs;
         }
@@ -1067,7 +1087,7 @@ sub _query_files {
     @returnarray = sort {$a->startobs->epoch <=> $b->startobs->epoch}
         @returnarray;
 
-    _make_cache($query, \@returnarray);
+    $self->_make_cache($query, \@returnarray);
 
     return @returnarray;
 }
@@ -1077,13 +1097,15 @@ sub _query_files {
 Gievn a query object and an array reference of L<OMP::Info::Obs> objects,
 creates cache file. On error, throws L<OMP::Error::CacheFailure> exception.
 
-    _make_cache($query, \@obs);
+    $db->_make_cache($query, \@obs);
 
-See C<&OMP::ArchiveDB::Cache::store_archive> sub for details.
+See C<OMP::ArchiveDB::Cache-E<gt>store_archive> method for details.
 
 =cut
 
 sub _make_cache {
+    my $self = shift;
+
     return unless $MakeCache;
 
     my ($query, $obs) = @_;
@@ -1093,7 +1115,7 @@ sub _make_cache {
 
     try {
         my $obsgroup = OMP::Info::ObsGroup->new(obs => $obs);
-        store_archive($query, $obsgroup);
+        $self->_cache->store_archive($query, $obsgroup);
     }
     catch OMP::Error::CacheFailure with {
         my $Error = shift;
@@ -1103,6 +1125,17 @@ sub _make_cache {
     };
 
     return;
+}
+
+=item B<_cache>
+
+Get cache object.
+
+=cut
+
+sub _cache {
+    my $self = shift;
+    return $self->{'Cache'};
 }
 
 =item B<_reorganize_archive>
