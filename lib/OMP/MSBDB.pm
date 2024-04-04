@@ -113,7 +113,7 @@ The project argument is required for Science Program
 access.
 
 If supplied, the database connection object must be of type
-C<OMP::DBbackend>.  It is not accepted if that is not the case.
+C<OMP::DB::Backend>.  It is not accepted if that is not the case.
 (but no error is raised - this is probably a bug).
 
 =cut

@@ -7,7 +7,7 @@ OMP::UserDB - OMP user database manipulation
 =head1 SYNOPSIS
 
     use OMP::UserDB;
-    $db = OMP::UserDB->new(DB => OMP::DBbackend->new);
+    $db = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
     $db->addUser($user);
     $db->updateUser($user);

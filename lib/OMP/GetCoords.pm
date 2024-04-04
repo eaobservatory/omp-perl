@@ -28,7 +28,7 @@ use Astro::Telescope;
 use Time::Piece qw/:override/;
 
 use OMP::Config;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::SciProg;
 use OMP::MSB;
 use OMP::MSBDB;
@@ -259,7 +259,7 @@ sub get_coords {
             my $E;
             try {
                 my $db = OMP::MSBDB->new(
-                    DB => OMP::DBbackend->new(),
+                    DB => OMP::DB::Backend->new(),
                     ProjectID => $projid);
                 my $sp = $db->fetchSciProg(1);
                 push @sciprogs, $sp;

@@ -66,7 +66,7 @@ BEGIN {
 }
 
 use OMP::SchedDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Info::Sched::Night;
 use OMP::General;
 
@@ -152,7 +152,7 @@ unless ($dry_run) {
     if ($confirm =~ /^[yY]/) {
         print "\nImporting...";
 
-        my $db = OMP::SchedDB->new(DB => OMP::DBbackend->new());
+        my $db = OMP::SchedDB->new(DB => OMP::DB::Backend->new());
         $db->update_schedule(\@sched);
 
         print " [DONE]\n";

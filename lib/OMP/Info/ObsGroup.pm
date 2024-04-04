@@ -677,7 +677,7 @@ sub commentScan {
     my $self = shift;
 
     # Add the comments.
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
+    my $odb = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
 
     $odb->updateObsComment(scalar $self->obs);
 
@@ -1987,7 +1987,7 @@ sub locate_timegaps {
     @obslist = sort {$a->[0] <=> $b->[0]} @obslist;
 
     # Get a list of comments
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
+    my $odb = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
 
     # Query between first and last observation."
 

@@ -41,7 +41,7 @@ use OMP::General;
 use OMP::Constants qw/:obs :logging/;
 use OMP::Error qw/:try/;
 use OMP::ObslogDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use Scalar::Util qw/blessed/;
 
 use Astro::FITS::Header;
@@ -1768,7 +1768,7 @@ sub remove_comment {
             "Must supply user ID in order to remove comments");
     }
 
-    my $db = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
+    my $db = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
 
     $db->removeComment($self, $userid);
 

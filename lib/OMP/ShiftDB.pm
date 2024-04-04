@@ -7,7 +7,7 @@ OMP::ShiftDB - Shift log database manipulation
 =head1 SYNOPSIS
 
     use OMP::ShiftDB;
-    $db = OMP::ShiftDB->new(DB => OMP::DBbackend->new);
+    $db = OMP::ShiftDB->new(DB => OMP::DB::Backend->new);
 
     $db->enterShiftLog($comment, $telescope);
     $comment = $db->getShiftLogs($query);

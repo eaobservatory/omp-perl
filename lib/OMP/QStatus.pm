@@ -20,7 +20,7 @@ use Time::Seconds qw/ONE_MINUTE ONE_HOUR/;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::DateSun;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::MSBDB;
 use OMP::MSBQuery;
 use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
@@ -99,7 +99,7 @@ sub query_queue_status {
     die 'telescope not specified' unless defined $telescope;
 
     # Create MSB database instance
-    my $backend = OMP::DBbackend->new();
+    my $backend = OMP::DB::Backend->new();
     my $db = OMP::MSBDB->new(DB => $backend);
 
     # Are we searching for a particular affiliation?  If so read the list

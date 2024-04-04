@@ -171,7 +171,7 @@ use JAC::Setup qw/jsa dataverify/;
 
 use OMP::FileUtils;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 use JSA::Datetime qw/make_datetime make_limited_datetime/;
 use OMP::EnterData;
 use OMP::EnterData::ACSIS;

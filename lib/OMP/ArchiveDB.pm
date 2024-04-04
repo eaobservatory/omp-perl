@@ -8,7 +8,7 @@ OMP::ArchiveDB - Query the data archive
 
     use OMP::ArchiveDB;
 
-    $db = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+    $db = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 =head1 DESCRIPTION
 
@@ -56,7 +56,7 @@ our $VERSION = '2.000';
 
 Create new object.
 
-    $db = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+    $db = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 =cut
 
@@ -496,7 +496,7 @@ sub queryArc {
         # Check for a connection. If we have one, good, but otherwise
         # set one up.
         unless (defined($self->db)) {
-            $self->db(OMP::DBbackend::Archive->new);
+            $self->db(OMP::DB::Backend::Archive->new);
         }
 
         # Trap errors with connection. If we have fatal error
@@ -723,7 +723,7 @@ _SQL_
     #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg';
     # my $cfg = OMP::Config->new('force' => 1);
 
-    my $db = OMP::DBbackend::Archive->new();
+    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle();
 
     my $st = $dbh->prepare($sql)

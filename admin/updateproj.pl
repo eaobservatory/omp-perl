@@ -93,7 +93,7 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use IO::File;
 use OMP::ProjDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::SiteQuality;
 use Pod::Usage;
 use Getopt::Long;
@@ -127,7 +127,7 @@ tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
 
 # Connect to the database
-my $projdb = OMP::ProjDB->new(DB => OMP::DBbackend->new);
+my $projdb = OMP::ProjDB->new(DB => OMP::DB::Backend->new);
 
 my $val_split = qr/\s*,\s*/;
 

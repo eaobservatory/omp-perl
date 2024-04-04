@@ -26,7 +26,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use Storable qw/nstore/;
 use File::Copy;
 use Time::Piece;
@@ -37,7 +37,7 @@ chdir $dumpdir
     or die "Error changing to directory $dumpdir: $!\n";
 
 # Connect
-my $db = OMP::DBbackend->new();
+my $db = OMP::DB::Backend->new();
 my $dbh = $db->handle;
 
 my @tab = @ARGV || qw/

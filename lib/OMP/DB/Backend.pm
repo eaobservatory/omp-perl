@@ -1,15 +1,15 @@
-package OMP::DBbackend;
+package OMP::DB::Backend;
 
 =head1 NAME
 
-OMP::DBbackend - Connect and disconnect from specific database backend
+OMP::DB::Backend - Connect and disconnect from specific database backend
 
 =head1 SYNOPSIS
 
-    use OMP::DBbackend;
+    use OMP::DB::Backend;
 
     # Set up connection to database
-    my $db = OMP::DBbackend->new;
+    my $db = OMP::DB::Backend->new;
 
     # Get the connection handle
     $dbh = $db->handle;
@@ -83,7 +83,7 @@ Password for user.
 
 This is a class method so that it can easily be subclassed.
 
-    %details = OMP::DBbackend->loginhash;
+    %details = OMP::DB::Backend->loginhash;
 
 The following environment variables are recognised to override
 these values:
@@ -127,8 +127,8 @@ sub loginhash {
 
 Instantiate a new object.
 
-    $db = OMP::DBbackend->new();
-    $db = OMP::DBbackend->new(1);
+    $db = OMP::DB::Backend->new();
+    $db = OMP::DB::Backend->new(1);
 
 The connection to the database backend is made immediately.
 

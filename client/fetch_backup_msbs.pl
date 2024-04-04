@@ -44,7 +44,7 @@ use lib "$FindBin::RealBin/../lib";
 
 use OMP::Config;
 use OMP::MSBQuery;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::MSBDB;
 
 my ($help, $man, $basedir, $cal);
@@ -144,7 +144,7 @@ my ($date_start, $date_end) = map {
 
 my $date_step = DateTime::Duration->new(minutes => 30);
 
-my $backend = OMP::DBbackend->new();
+my $backend = OMP::DB::Backend->new();
 
 my $utdate = $date_start->ymd('-');
 my %msb_filename = ();

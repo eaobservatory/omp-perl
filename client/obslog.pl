@@ -155,8 +155,8 @@ use OMP::ShiftDB;
 use OMP::ShiftQuery;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 
 our $VERSION = '2.000';
 
@@ -229,7 +229,8 @@ my $ut = OMP::DateTools->determine_utdate( $opt{ut} )->ymd;
 my $currentut = OMP::DateTools->today;
 my $utdisp = "Current UT date: $ut";
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new());
+my $dbb = OMP::DB::Backend->new();
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new());
 $arcdb->use_existing_criteria(1);
 
 my $user;
@@ -477,7 +478,7 @@ sub new_instrument {
     $nbContent->delete('0.0', 'end');
 
     # Set up a connection to the MSBDB.
-    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+    my $msbdb = OMP::MSBDoneDB->new(DB => $dbb);
 
     if (defined($obsgrp)) {
         my $counter = 0;
@@ -1682,7 +1683,7 @@ sub SaveComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new());
+    my $odb = OMP::ObslogDB->new(DB => $dbb);
     $odb->addComment($comment, $obs);
 
     # Add the comment to the observation.
@@ -1715,7 +1716,7 @@ sub SaveMultiComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new());
+    my $odb = OMP::ObslogDB->new(DB => $dbb);
 
     my @obs = ();
     @obs = split ',', $observations;
@@ -1768,7 +1769,7 @@ sub SaveMSBComment {
 
     my $db = OMP::MSBDoneDB->new(
         'ProjectID' => $obs->projectid,
-        'DB' => OMP::DBbackend->new
+        'DB' => $dbb,
     );
 
     $text = OMP::Info::Comment->new(
@@ -1925,7 +1926,7 @@ sub create_shiftlog_widget {
 }
 
 sub update_shiftlog_comments {
-    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+    my $sdb = OMP::ShiftDB->new(DB => $dbb);
     my $query = OMP::ShiftQuery->new(HASH => {
         date => {value => $ut, delta => 1},
         telescope => $telescope,
@@ -2119,7 +2120,7 @@ sub save_shift_comment {
     );
 
     # And add it to the system
-    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+    my $sdb = OMP::ShiftDB->new(DB => $dbb);
     $sdb->enterShiftLog($comment, $telescope);
 }
 
@@ -2417,7 +2418,7 @@ sub set_user {
     my $RefUser = shift;
     my $w = shift;
 
-    my $udb = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my $udb = OMP::UserDB->new(DB => $dbb);
     my $newUser = $udb->getUser($$RefUser);
     if (defined($newUser)) {
         $user = $newUser;

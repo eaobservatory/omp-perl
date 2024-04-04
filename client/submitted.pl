@@ -69,7 +69,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::FBQuery;
 use OMP::FeedbackDB;
 use OMP::ProjDB;
@@ -107,7 +107,7 @@ else {
 }
 
 # Get our database connection
-my $dbconnection = OMP::DBbackend->new();
+my $dbconnection = OMP::DB::Backend->new();
 
 # Instantiate a new FeedbackDB object
 my $db = OMP::FeedbackDB->new(DB => $dbconnection);

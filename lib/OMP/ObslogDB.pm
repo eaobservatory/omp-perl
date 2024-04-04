@@ -10,7 +10,7 @@ OMP::ObslogDB - Manipulate observation log table
 
     $db = OMP::ObslogDB->new(
         ProjectID => 'm01bu05',
-        DB => OMP::DBbackend->new);
+        DB => OMP::DB::Backend->new);
 
     $db->addComment($comment, $instrument, $date, $runnr);
 

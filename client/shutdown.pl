@@ -76,7 +76,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Password;
@@ -117,7 +117,7 @@ my $term = Term::ReadLine->new('Generate time accounting information for planned
 my $dseconds = DateTime::Format::Duration->new(pattern => '%s');
 
 # Connect to the database
-my $dbconnection = OMP::DBbackend->new();
+my $dbconnection = OMP::DB::Backend->new();
 
 # Prompt for telescope name (unless it was provided as an argument)
 $tel = OMP::General->determine_tel($term)

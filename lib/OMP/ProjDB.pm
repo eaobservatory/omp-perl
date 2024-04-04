@@ -62,7 +62,7 @@ Create a new instance of an C<OMP::ProjDB> object.
         DB => $connection);
 
 If supplied, the database connection object must be of type
-C<OMP::DBbackend>.  It is not accepted if that is not the case.
+C<OMP::DB::Backend>.  It is not accepted if that is not the case.
 (but no error is raised - this is probably a bug).
 
 Inherits from C<OMP::BaseDB>.

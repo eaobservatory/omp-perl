@@ -26,7 +26,7 @@ my %or_select = (
 
 my $cf = OMP::Config->new();
 $cf->configDatabase('/jac_sw/etc/ompsite-dev.cfg');
-my $db = OMP::DBbackend->new();
+my $db = OMP::DB::Backend->new();
 
 # Disable writing the science programme to the cache directory.  We don't
 # want to do this anyway from the test script, and if we let it try to do

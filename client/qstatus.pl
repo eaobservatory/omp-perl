@@ -74,7 +74,7 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP classes
 use OMP::General;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::QStatus qw/query_queue_status/;
 use Time::Piece qw/:override/;
 
@@ -197,7 +197,7 @@ for my $p (keys %projq) {
 }
 
 # Now populate the project hash with project details
-my $backend = OMP::DBbackend->new();
+my $backend = OMP::DB::Backend->new();
 my $projdb = OMP::ProjDB->new(DB => $backend,);
 
 for my $p (keys %projects) {

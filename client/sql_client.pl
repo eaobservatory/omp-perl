@@ -32,9 +32,9 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 
-my %lh = OMP::DBbackend::Archive->loginhash();
+my %lh = OMP::DB::Backend::Archive->loginhash();
 
 # Check the command line arguments for a user / host option so that we can
 # print a suitable "Connecting..." message.

@@ -52,7 +52,7 @@ use File::Path '1.05';
 use File::Basename;
 use Cwd;
 use OMP::DateTools;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Error qw/:try/;
@@ -1017,7 +1017,7 @@ sub add_fb_comment {
     my $project = OMP::ProjServer->projectDetails($projectid, "object");
     my $pi = $project->pi;
 
-    my $database = OMP::DBbackend->new();
+    my $database = OMP::DB::Backend->new();
     my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
     $fdb->addComment(
         {

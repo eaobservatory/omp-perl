@@ -24,10 +24,10 @@ BEGIN {
 use DBI;
 
 use lib OMPLIB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::FaultDB;
 
-my $dbs =  new OMP::DBbackend;
+my $dbs = OMP::DB::Backend->new;
 
 my ($help, $man, $tel, $ut, $days, $events);
 my $status = GetOptions("help" => \$help,

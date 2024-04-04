@@ -52,7 +52,7 @@ use Encode qw/decode/;
 # module is installed in "site_perl".
 use Encode::HanExtra;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault::Response;
 use OMP::FaultDB;
@@ -157,7 +157,7 @@ sub accept_message {
     my $audit = shift;
     my $args = shift;
 
-    my $database = OMP::DBbackend->new();
+    my $database = OMP::DB::Backend->new();
 
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 

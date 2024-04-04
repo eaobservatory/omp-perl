@@ -35,7 +35,7 @@ our $VERSION = '2.000';
 use OMP::Error qw/:try/;
 use OMP::Constants;
 use OMP::General;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::ArcQuery;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
@@ -512,7 +512,7 @@ sub telescope {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DBbackend> object). The first
+A shared database connection (an C<OMP::DB::Backend> object). The first
 time this is called, triggers a database connection.
 
     $db = $nr->db;
@@ -525,7 +525,7 @@ sub db {
     my $self = shift;
 
     unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DBbackend->new;
+        $self->{DB} = OMP::DB::Backend->new;
     }
 
     return $self->{DB};
@@ -1603,7 +1603,7 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DB::Backend->new());
 
     my $old_sum = '';
     my $old_tid = '';

@@ -72,8 +72,8 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::ArchiveDB;
 use OMP::Config;
 use OMP::Constants qw/:fb :logging/;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::Mail;
@@ -120,7 +120,8 @@ else {
 }
 
 # Prepare database objects.
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+my $db = OMP::DB::Backend->new();
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 # Get the list of MSBs
 
@@ -200,7 +201,7 @@ for my $proj (keys %sorted) {
 
     # Query for the telescope's shiftlog if we haven't retrieved it yet
     unless (exists $shiftlog{$proj_details->telescope}) {
-        my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+        my $sdb = OMP::ShiftDB->new(DB => $db);
 
         my $squery_xml = '<ShiftQuery>'
             . '<date delta="1">' . $utdate . '</date>'

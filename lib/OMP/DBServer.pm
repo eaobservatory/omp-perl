@@ -24,7 +24,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 
 our $VERSION = '2.000';
 
@@ -38,7 +38,7 @@ The database connection object. This is called by all the methods
 that use a C<OMP::MSBDB> object. The connection is automatically
 instantiated the first time it is requested.
 
-Returns a connection object of type C<OMP::DBbackend>.
+Returns a connection object of type C<OMP::DB::Backend>.
 
 =cut
 
@@ -53,7 +53,7 @@ Returns a connection object of type C<OMP::DBbackend>.
             return $db;
         }
         else {
-            $db = OMP::DBbackend->new;
+            $db = OMP::DB::Backend->new;
             return $db;
         }
     }
@@ -67,7 +67,7 @@ __END__
 
 =head1 SEE ALSO
 
-L<OMP::DBbackend>, L<OMP::MSBServer>, L<OMP::SpServer>.
+L<OMP::DB::Backend>, L<OMP::MSBServer>, L<OMP::SpServer>.
 
 =head1 NOTES
 
@@ -75,15 +75,15 @@ This is probably a design flaw but as the system has evolved the
 caching of the database connection has worked for the generic
 server interfaces but all the DB classes can be independently
 instantiated with their own DB connection object which subverts
-the caching since OMP::DBbackend is called directly. This is partly
+the caching since OMP::DB::Backend is called directly. This is partly
 my fault because I did not publicise the
 
     OMP::DBServer->dbConnection()
 
-interface enough and everyone used the DBbackend connection. Too
-late to change this now so OMP::DBbackend now also does connection
+interface enough and everyone used the DB::Backend connection. Too
+late to change this now so OMP::DB::Backend now also does connection
 caching. If someone is feeling really keen they could remove
-all the DBbackend references from the code....
+all the DB::Backend references from the code....
 
 =head1 COPYRIGHT
 

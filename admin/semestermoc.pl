@@ -29,7 +29,7 @@ use OMP::SpRegion;
 use Starlink::AST;
 use Starlink::ATL::MOC qw/write_moc_fits/;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::MSBDB;
 use OMP::ProjDB;
@@ -51,7 +51,7 @@ die 'Output filename not specified' unless defined $filename;
 
 my $order = 12;
 
-my $db = OMP::DBbackend->new();
+my $db = OMP::DB::Backend->new();
 my $projdb = OMP::ProjDB->new(DB => $db);
 my $msbdb = OMP::MSBDB->new(DB => $db);
 

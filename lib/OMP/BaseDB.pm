@@ -53,7 +53,7 @@ See C<OMP::ProjDB> and C<OMP::MSBDB> for more details on the
 use of these arguments and for further keys.
 
 If supplied, the database connection object must be of type
-C<OMP::DBbackend>.  It is not accepted if that is not the case.
+C<OMP::DB::Backend>.  It is not accepted if that is not the case.
 (but no error is raised - this is probably a bug).
 
 =cut
@@ -162,10 +162,10 @@ C<DBI>).  Returns C<undef> if no connection object is present.
 
     $dbh = $db->_dbhandle();
 
-Takes a database connection object (C<OMP::DBbackend> as argument in
+Takes a database connection object (C<OMP::DB::Backend> as argument in
 order to set the state.
 
-    $db->_dbhandle(OMP::DBbackend->new);
+    $db->_dbhandle(OMP::DB::Backend->new);
 
 If the argument is C<undef> the database handle is cleared.
 
@@ -178,7 +178,7 @@ sub _dbhandle {
     my $self = shift;
     if (@_) {
         my $db = shift;
-        if (UNIVERSAL::isa($db, "OMP::DBbackend")) {
+        if (UNIVERSAL::isa($db, "OMP::DB::Backend")) {
             $self->{DB} = $db;
         }
         elsif (! defined $db) {
@@ -200,11 +200,11 @@ sub _dbhandle {
 
 =item B<db>
 
-Retrieve the database connection (as an C<OMP::DBbackend> object)
+Retrieve the database connection (as an C<OMP::DB::Backend> object)
 associated with this object.
 
     $dbobj = $db->db();
-    $db->db(OMP::DBbackend->new);
+    $db->db(OMP::DB::Backend->new);
 
 =cut
 
@@ -227,7 +227,7 @@ sub db {
 Begin a database transaction. This is defined as something that has
 to happen in one go or trigger a rollback to reverse it.
 
-This method is delegated to C<OMP::DBbackend>.
+This method is delegated to C<OMP::DB::Backend>.
 
 =cut
 
@@ -252,7 +252,7 @@ sub _db_begin_trans {
 Commit the transaction. This informs the database that everthing
 is okay and that the actions should be finalised.
 
-This method is delegated to C<OMP::DBbackend>.
+This method is delegated to C<OMP::DB::Backend>.
 
 =cut
 
@@ -277,7 +277,7 @@ sub _db_commit_trans {
 Rollback (ie reverse) the transaction. This should be called if
 we detect an error during our transaction.
 
-This method is delegated to C<OMP::DBbackend>.
+This method is delegated to C<OMP::DB::Backend>.
 
 This method triggers a full rollback of the entire transaction
 regradless of whether other classes are using the transaction.
@@ -870,13 +870,13 @@ destroyed because we have simply gone out of scope (eg this class
 instantiated a new DB class for a short while) or because of an error,
 only rollback transactions if the internal count of transactions in
 this class matches the active transaction count in the
-C<OMP::DBbackend> object referenced by this object.
+C<OMP::DB::Backend> object referenced by this object.
 
 This relies on that object still being in existence (in which
 case a rollback here is too late anyway).
 
 If the counts do not match (hopefully because it has more than we
-know about) set our count to zero and decrement the C<OMP::DBbackend>
+know about) set our count to zero and decrement the C<OMP::DB::Backend>
 count by the required amount.
 
 =cut
@@ -884,7 +884,7 @@ count by the required amount.
 sub DESTROY {
     my $self = shift;
 
-    # Get the OMP::DBbackend
+    # Get the OMP::DB::Backend
     my $db = $self->db;
 
     # it may not exist by now (depending on object destruction

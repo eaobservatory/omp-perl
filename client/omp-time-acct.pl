@@ -116,7 +116,7 @@ use OMP::Constants qw/:logging/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::BaseDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::TimeAcctDB;
 
 my %default_opt = (
@@ -130,7 +130,7 @@ my %default_opt = (
 );
 my %opt = process_options(%default_opt);
 
-my $db = OMP::BaseDB->new('DB' => OMP::DBbackend->new)->_dbhandle
+my $db = OMP::BaseDB->new('DB' => OMP::DB::Backend->new)->_dbhandle
     or die "Failed to acquire a database handle.\n";
 
 my $query = make_project_query_2(@opt{qw/projects date-range/});

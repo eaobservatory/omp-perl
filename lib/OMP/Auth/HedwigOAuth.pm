@@ -16,8 +16,8 @@ use URI;
 use URI::QueryParam;
 
 use OMP::Config;
-use OMP::DBbackend;
-use OMP::DBbackend::Hedwig2OMP;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::UserQuery;
@@ -168,7 +168,7 @@ sub _finish_oauth {
 
     my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
 
-    my $db = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
 
     my $user = $db->getUser($omp_id);
 
@@ -187,7 +187,7 @@ sub _lookup_hedwig_id {
     my $cls = shift;
     my $hedwig_id = shift;
 
-    my $db = OMP::DBbackend::Hedwig2OMP->new();
+    my $db = OMP::DB::Backend::Hedwig2OMP->new();
 
     my $result = $db->handle()->selectall_arrayref(
         'SELECT omp_id FROM user WHERE hedwig_id = ?', {}, $hedwig_id);

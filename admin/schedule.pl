@@ -46,7 +46,7 @@ BEGIN {
 use OMP::General;
 use OMP::SchedDB;
 use OMP::DateTools;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 
 my ($tel, $semester, $help);
 my $status = GetOptions(
@@ -72,7 +72,7 @@ unless (defined $semester) {
 my ($start, $end) = OMP::DateTools->semester_boundary(
     tel => $tel, semester => $semester);
 
-my $db = OMP::SchedDB->new(DB => OMP::DBbackend->new());
+my $db = OMP::SchedDB->new(DB => OMP::DB::Backend->new());
 my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
 
 print $sched, "\n";

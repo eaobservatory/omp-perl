@@ -54,7 +54,7 @@ BEGIN {
 }
 
 use OMP::Config;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Preview;
@@ -93,7 +93,7 @@ sub main {
 
     my @pipelinedirs = OMP::Config->getData('preview.pipelinedirs', telescope => $telescope);
 
-    my $db = OMP::PreviewDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::PreviewDB->new(DB => OMP::DB::Backend->new());
     my %existing = map {$_->{'filename'} => $_} @{$db->queryPreviews(
         OMP::PreviewQuery->new(HASH => {
             telescope => $telescope,

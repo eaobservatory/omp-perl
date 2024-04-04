@@ -80,7 +80,7 @@ use Pod::Usage;
 use List::MoreUtils qw/uniq/;
 
 use OMP::Error qw/:try/;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::ProjDB;
 use OMP::ProjServer;
 
@@ -117,7 +117,7 @@ sub process {
     return
         unless $push && 0 < scalar @other;
 
-    my $db = OMP::DBbackend->new;
+    my $db = OMP::DB::Backend->new;
 
     add_link($db, $push, @other)
         or print "All the projects might not have been linked.\n";

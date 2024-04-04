@@ -40,9 +40,9 @@ BEGIN {
 
 use OMP::Auth;
 use OMP::Config;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
-use OMP::DBbackend::Hedwig2OMP;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Display;
 use OMP::ProjDB;
 use OMP::Error qw/:try/;
@@ -176,7 +176,7 @@ A database backend object.
 
     $db = $page->database;
 
-This will be an C<OMP::DBbackend> instance, constructed the first
+This will be an C<OMP::DB::Backend> instance, constructed the first
 time this method is called.
 
 =cut
@@ -185,7 +185,7 @@ sub database {
     my $self = shift;
 
     unless (defined $self->{'DB'}) {
-        $self->{'DB'} = OMP::DBbackend->new();
+        $self->{'DB'} = OMP::DB::Backend->new();
     }
 
     return $self->{'DB'};
@@ -197,7 +197,7 @@ A database backend object for the archive.
 
     $db = $page->database_archive;
 
-This will be an C<OMP::DBbackend::Archive> instance, constructed the first
+This will be an C<OMP::DB::Backend::Archive> instance, constructed the first
 time this method is called.
 
 =cut
@@ -206,7 +206,7 @@ sub database_archive {
     my $self = shift;
 
     unless (defined $self->{'DBArchive'}) {
-        $self->{'DBArchive'} = OMP::DBbackend::Archive->new();
+        $self->{'DBArchive'} = OMP::DB::Backend::Archive->new();
     }
 
     return $self->{'DBArchive'};
@@ -218,7 +218,7 @@ A backend object for the Hedwig2OMP database.
 
     $db = $page->database_hedwig2omp;
 
-This will be an C<OMP::DBbackend::Hedwig2OMP> instance, constructed the first
+This will be an C<OMP::DB::Backend::Hedwig2OMP> instance, constructed the first
 time this method is called.
 
 =cut
@@ -227,7 +227,7 @@ sub database_hedwig2omp {
     my $self = shift;
 
     unless (defined $self->{'DBHedwig2OMP'}) {
-        $self->{'DBHedwig2OMP'} = OMP::DBbackend::Hedwig2OMP->new();
+        $self->{'DBHedwig2OMP'} = OMP::DB::Backend::Hedwig2OMP->new();
     }
 
     return $self->{'DBHedwig2OMP'};
@@ -547,9 +547,7 @@ sub write_page_logout {
     my $content = shift;
     my %opt = @_;
 
-    my $q = $self->cgi;
-
-    $self->auth(OMP::Auth->log_out($q));
+    $self->auth(OMP::Auth->log_out($self));
 
     $self->html_title($opt{'title'});
 

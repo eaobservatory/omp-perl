@@ -28,7 +28,7 @@ use Carp;
 our $VERSION = '2.000';
 
 use OMP::Config;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
@@ -656,7 +656,7 @@ sub shifttypes {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DBbackend> object). The first
+A shared database connection (an C<OMP::DB::Backend> object). The first
 time this is called, triggers a database connection.
 
     $db = $tg->db;
@@ -669,7 +669,7 @@ sub db {
     my $self = shift;
 
     unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DBbackend->new;
+        $self->{DB} = OMP::DB::Backend->new;
     }
 
     return $self->{DB};

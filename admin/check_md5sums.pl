@@ -39,7 +39,7 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::General;
 use OMP::MSBDB;
 
@@ -52,7 +52,7 @@ GetOptions(
 
 pod2usage(-exitstatus => 0, -verbose => 2) if $help;
 
-my $db = OMP::DBbackend->new;
+my $db = OMP::DB::Backend->new;
 my $msbdb = OMP::MSBDB->new(DB => $db);
 
 my @projects;

@@ -1,21 +1,21 @@
-package OMP::DBbackend::Archive;
+package OMP::DB::Backend::Archive;
 
 =head1 NAME
 
-OMP::DBbackend::Archive - Database connection to JAC data archives
+OMP::DB::Backend::Archive - Database connection to JAC data archives
 
 =head1 SYNOPSIS
 
-    use OMP::DBbackend::Archive;
+    use OMP::DB::Backend::Archive;
 
-    $connection = OMP::DBbackend::Archive->new();
+    $connection = OMP::DB::Backend::Archive->new();
 
     $connection->begin_trans();
     $connection->commit_trans();
 
 =head1 DESCRIPTION
 
-Subclass of C<OMP::DBbackend> that knows how to connect to the
+Subclass of C<OMP::DB::Backend> that knows how to connect to the
 JAC data archives. Most methods are inherited from the base class.
 
 This class can be used for UKIRT and JCMT database access since the
@@ -29,7 +29,7 @@ use warnings;
 
 use OMP::Error qw/:try/;
 
-use base qw/OMP::DBbackend/;
+use base qw/OMP::DB::Backend/;
 
 our $VERSION = '2.000';
 
@@ -67,7 +67,7 @@ Password for user.
 
 This is a class method so that it can easily be subclassed.
 
-    %details = OMP::DBbackend->loginhash;
+    %details = OMP::DB::Backend::Archive->loginhash;
 
 The following environment variables are recognised to override
 these values:

@@ -13,7 +13,7 @@ use Astro::PAL;
 use DBI;
 use Math::Trig;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::ProjDB;
 use OMP::MSBDB;
 
@@ -144,7 +144,7 @@ sub find_targets {
 
     # Get the connection handle
 
-    my $dbs = OMP::DBbackend->new();
+    my $dbs = OMP::DB::Backend->new();
 
     my $db = $dbs->handle() || die qq {
     --------------------------------------------------------------

@@ -185,8 +185,8 @@ use Astro::Telescope;
 use DBI;
 
 use OMP::Password;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 use OMP::MSBDB;
 
 my $HPI = pi/2;
@@ -476,7 +476,7 @@ sub get_observed_targets {
 
     # Connect to the database.
     print STDERR "# Connecting to OMP server...";
-    my $dbbackend = OMP::DBbackend::Archive->new();
+    my $dbbackend = OMP::DB::Backend::Archive->new();
     my $dbh = $dbbackend->handle();
     print STDERR "done\n";
 
@@ -574,7 +574,7 @@ sub get_scheduled_targets {
 
     # Connect to the database.
     print STDERR "# Connecting to OMP server...";
-    my $dbbackend = OMP::DBbackend->new();
+    my $dbbackend = OMP::DB::Backend->new();
     my $dbh = $dbbackend->handle();
     print STDERR "done\n";
 

@@ -51,7 +51,7 @@ use JSA::WriteList qw/write_list/;
 use OMP::DB::JSA::TableTransfer;
 use JCMT::DataVerify;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 use OMP::DateTools;
 use OMP::General;
 use OMP::FileUtils;
@@ -328,7 +328,7 @@ sub prepare_and_insert {
     # The %columns hash will contain a key for each table, each key's value
     # being an anonymous hash containing the column information.
 
-    my $db = OMP::DBbackend::Archive->new();
+    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     my %columns = map {$_ => $self->get_columns($_, $dbh)}
@@ -2458,7 +2458,7 @@ sub calcbounds_update_bound_cols {
         # ";" is to indicate to Perl that "{" starts a BLOCK not an EXPR.
         map {; "obsra$_" , "obsdec$_"} ('', qw/tl bl tr br/);
 
-    my $db = OMP::DBbackend::Archive->new();
+    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     for my $obs (@{$obs_list}) {

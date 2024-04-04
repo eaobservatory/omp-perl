@@ -56,7 +56,7 @@ use Term::ReadLine;
 # This does not use a SOAP server since we want to be local
 # Does mean we need to connect to the database though
 use OMP::MSBDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Password;
 
 
@@ -79,7 +79,7 @@ my $project = $term->readline('Project ID of science program to delete: ');
 # Create the new object
 my $db = OMP::MSBDB->new(
     ProjectID => $project,
-    DB => OMP::DBbackend->new(),
+    DB => OMP::DB::Backend->new(),
 );
 
 # First list a summary of the project by retrieving the science

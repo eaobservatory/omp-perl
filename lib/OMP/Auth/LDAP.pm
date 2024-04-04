@@ -12,7 +12,7 @@ use warnings;
 use Net::LDAP;
 
 use OMP::Config;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::UserQuery;
@@ -60,7 +60,7 @@ sub log_in_userpass {
     throw OMP::Error::Authentication('Username or password not recognized.')
         if $mess->code;
 
-    my $db = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
     my @result = $db->queryUsers(OMP::UserQuery->new(
         XML => '<UserQuery><alias>' . $username . '</alias><obfuscated>0</obfuscated></UserQuery>'));
 

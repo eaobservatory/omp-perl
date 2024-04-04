@@ -40,7 +40,7 @@ BEGIN {
 
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
@@ -48,8 +48,9 @@ use OMP::UserServer;
 use OMP::Constants qw/:done/;
 
 # Connect to database
-my $msbdb = OMP::MSBDB->new(DB => OMP::DBbackend->new());
-my $msbdone = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+my $dbb = OMP::DB::Backend->new();
+my $msbdb = OMP::MSBDB->new(DB => $dbb);
+my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
 
 # Loop over info for modification
 for my $line (<>) {

@@ -17,7 +17,7 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault;
 use OMP::FaultDB;
@@ -106,11 +106,13 @@ sub query_component {
 
 # Perform the query, write PS and convert it to PDF.
 
+my $db = OMP::DB::Backend->new();
+
 sub query_to_pdf {
     my $name = shift;
     my $xml = shift;
 
-    my $fdb = OMP::FaultDB->new(DB => OMP::DBbackend->new());
+    my $fdb = OMP::FaultDB->new(DB => $db);
     my $query = OMP::FaultQuery->new(XML => $xml);
     my $faults = $fdb->queryFaults($query);
     my $toprint = '';

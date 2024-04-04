@@ -1,8 +1,8 @@
-package OMP::DBbackend::Hedwig2OMP;
+package OMP::DB::Backend::Hedwig2OMP;
 
 =head1 NAME
 
-OMP::DBbackend::Hedwig2OMP - Access to the hedwig2omp database
+OMP::DB::Backend::Hedwig2OMP - Access to the hedwig2omp database
 
 =cut
 
@@ -11,7 +11,7 @@ use warnings;
 
 use OMP::Config;
 
-use base qw/OMP::DBbackend/;
+use base qw/OMP::DB::Backend/;
 
 =head1 METHODS
 

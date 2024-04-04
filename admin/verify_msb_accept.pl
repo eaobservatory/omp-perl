@@ -84,7 +84,8 @@ BEGIN {
 
 use OMP::ArchiveDB;
 use OMP::DateTools;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
@@ -187,7 +188,7 @@ for my $msb (@sorted_msbdb) {
 # Look at the real data:
 print "---> Data headers ----\n";
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 if ($opt{'disk'}) {
     $OMP::FileUtils::RETURN_RECENT_FILES = 0;
@@ -444,8 +445,9 @@ if (@missing) {
         print "\n";
 
         # Connect to database
-        my $msbdb = OMP::MSBDB->new(DB => OMP::DBbackend->new);
-        my $msbdone = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new);
+        my $dbb = OMP::DB::Backend->new;
+        my $msbdb = OMP::MSBDB->new(DB => $dbb);
+        my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
 
         # Loop over all missing MSBs
         for my $msb (@missing) {

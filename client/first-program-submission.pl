@@ -80,7 +80,7 @@ BEGIN {
 use OMP::Constants qw/:fb/;
 use OMP::General;
 use OMP::BaseDB;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::FeedbackDB;
 
 my %opt = (
@@ -114,7 +114,7 @@ my @proj = get_projects(\%opt, @ARGV)
         '-sections' => 'SYNOPSIS',
         '-msg' => 'No project ids were given.');
 
-my $db = OMP::BaseDB->new('DB' => OMP::DBbackend->new);
+my $db = OMP::BaseDB->new('DB' => OMP::DB::Backend->new);
 my $progs = $db->_db_retrieve_data_ashash(make_query(@proj));
 
 unless (scalar @{$progs}) {

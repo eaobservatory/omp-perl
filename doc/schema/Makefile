@@ -5,9 +5,9 @@ SCHEMAS=omp.sql jcmt.sql jcmt_tms.sql ukirt.sql
 all: $(SCHEMAS)
 
 export OMP_CFG_DIR=../../cfg
-SERVER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"server"}'`
-USER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"user"}'`
-PASSWORD=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"password"}'`
+SERVER=`perl -I ../../lib -MOMP::DB::Backend::Archive -e 'my %lh = OMP::DB::Backend::Archive->loginhash(); print $$lh{"server"}'`
+USER=`perl -I ../../lib -MOMP::DB::Backend::Archive -e 'my %lh = OMP::DB::Backend::Archive->loginhash(); print $$lh{"user"}'`
+PASSWORD=`perl -I ../../lib -MOMP::DB::Backend::Archive -e 'my %lh = OMP::DB::Backend::Archive->loginhash(); print $$lh{"password"}'`
 PREFIX=`perl -I ../../lib -MOMP::Config -e 'print OMP::Config->new()->getData("arc-database-prefix")'`
 
 %.sql: filter.sed

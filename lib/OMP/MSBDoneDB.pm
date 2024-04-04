@@ -10,7 +10,7 @@ OMP::MSBDoneDB - Manipulate MSB Done table
 
     $db = OMP::MSBDoneDB->new(
         ProjectID => 'm01bu05',
-        DB => OMP::DBbackend->new);
+        DB => OMP::DB::Backend->new);
 
     @output = OMP::MSBServer->historyMSB($checksum);
     $db->addMSBcomment($checksum, $comment);

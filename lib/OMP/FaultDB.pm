@@ -7,7 +7,7 @@ OMP::FaultDB - Fault database manipulation
 =head1 SYNOPSIS
 
     use OMP::FaultDB;
-    $db = OMP::FaultDB->new(DB => OMP::DBbackend->new);
+    $db = OMP::FaultDB->new(DB => OMP::DB::Backend->new);
 
     $faultid = $db->fileFault($fault);
     $db->respondFault($faultid, $response);

@@ -24,7 +24,7 @@ BEGIN {
 use lib OMPLIB;
 
 use OMP::ArchiveDB;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 use OMP::NightRep;
 
 my $ROOT = '/export/data/obslog-dump';
@@ -50,7 +50,7 @@ $tel = check_telescope($tel);
 $start = $start ? string_to_time_start($start) : today_start();
 $end = $end ? string_to_time_end($end) : today_end();
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 warn sprintf "Telescope: %s  Start: %s  End: %s\n",
     $tel, map time_to_datetime_string($_), $start, $end
