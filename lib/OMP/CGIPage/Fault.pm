@@ -31,7 +31,6 @@ use OMP::CGIComponent::Fault;
 use OMP::CGIComponent::Project;
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
-use OMP::DBServer;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;

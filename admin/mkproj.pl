@@ -172,7 +172,7 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use Data::Dumper;
 use IO::File;
-use OMP::DBServer;
+use OMP::DB::Backend;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -221,6 +221,8 @@ die "Could not open file '$file'" unless defined $fh;
 $fh->binmode(':utf8');
 tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
+
+my $db = OMP::DB::Backend->new;
 
 my %ok_field;
 {
@@ -505,7 +507,7 @@ sub check_project {
 sub check_country {
     my ($countries) = @_;
 
-    my $projdb = OMP::ProjDB->new(DB => OMP::DBServer->dbConnection);
+    my $projdb = OMP::ProjDB->new(DB => $db);
     my %allowed = map {$_ => undef} $projdb->listCountries;
 
     my $ok = 1;

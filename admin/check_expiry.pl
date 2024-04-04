@@ -46,7 +46,7 @@ BEGIN {
 use lib OMPLIB;
 
 use OMP::DateTools;
-use OMP::DBServer;
+use OMP::DB::Backend;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 
@@ -59,6 +59,8 @@ GetOptions(
 
 die 'Telescope not specified' unless defined $tel;
 
+my $db = OMP::DB::Backend->new;
+
 check_project_expiry();
 
 exit 0;
@@ -68,10 +70,10 @@ sub check_project_expiry {
     my $dt = DateTime->now(time_zone => 'UTC');
     my $semester = OMP::DateTools->determine_semester(date => $dt, tel => $tel);
 
-    my $db = OMP::ProjDB->new(DB => OMP::DBServer->dbConnection());
+    my $pdb = OMP::ProjDB->new(DB => $db);
 
     # Check for expired projects.
-    foreach my $project ($db->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
+    foreach my $project ($pdb->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
                 '<telescope>' . $tel . '</telescope>'.
                 '<state>1</state>' .
                 '<expirydate><max>' . $dt->strftime('%F %T') . '</max></expirydate>' .
@@ -80,12 +82,12 @@ sub check_project_expiry {
 
         print "Expired: $projectid\n";
 
-        disable_project($db, $project) unless $dry_run;
+        disable_project($pdb, $project) unless $dry_run;
     }
 
 
     # Check for projects to advance to the current semester.
-    foreach my $project ($db->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
+    foreach my $project ($pdb->listProjects(OMP::ProjQuery->new(XML => '<ProjQuery>' .
             '<telescope>' . $tel . '</telescope>'.
             '<not><semester>' . $semester . '</semester></not>'.
             '<state>1</state>' .
@@ -100,25 +102,25 @@ sub check_project_expiry {
         else {
             print "Advancing semester: $projectid\n";
 
-            advance_project($db, $project, $semester) unless $dry_run;
+            advance_project($pdb, $project, $semester) unless $dry_run;
         }
     }
 }
 
 sub disable_project {
-    my ($db, $project) = @_;
+    my ($pdb, $project) = @_;
 
     $project->state(0);
 
-    $db->_update_project_row($project);
+    $pdb->_update_project_row($project);
 }
 
 sub advance_project {
-    my ($db, $project, $semester) = @_;
+    my ($pdb, $project, $semester) = @_;
 
     $project->semester($semester);
 
-    $db->_update_project_row($project);
+    $pdb->_update_project_row($project);
 }
 
 __END__

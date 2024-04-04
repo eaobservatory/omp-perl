@@ -67,12 +67,13 @@ BEGIN {
     use constant OMPLIB => "$FindBin::RealBin/../lib";
     use lib OMPLIB;
 
+    use OMP::DB::Backend;
     use OMP::DateTools;
     use OMP::Audio;
     use OMP::Error qw/:try/;
     use OMP::General;
     use OMP::MSBQuery;
-    use OMP::MSBServer;
+    use OMP::MSBDB;
 
     $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
         unless exists $ENV{'OMP_DIR'};
@@ -122,6 +123,8 @@ else {
     $w->destroy if Exists($w);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
+
+my $db = OMP::DB::Backend->new;
 
 create_main_window();
 
@@ -184,8 +187,6 @@ sub create_main_window {
 }
 
 sub scan_for_msbs {
-    my $class = 'OMP::MSBServer';
-
     # Get the optional semesters to use from the config system.
     my $E;
     my @semesters;
@@ -199,7 +200,7 @@ sub scan_for_msbs {
     otherwise {
         $E = shift;
     };
-    $class->throwException($E) if defined $E;
+    $E->throw if defined $E;
 
     # Get the current semester from OMP::General.
     my $current_semester = OMP::DateTools->determine_semester(
@@ -225,8 +226,8 @@ sub scan_for_msbs {
             XML => $xml,
             MaxCount => 100,
         );
-        my $db = OMP::MSBDB->new(DB => $class->dbConnection);
-        @results = $db->queryMSB($query, 'object');
+        my $mdb = OMP::MSBDB->new(DB => $db);
+        @results = $mdb->queryMSB($query, 'object');
     }
     catch OMP::Error with {
         $E = shift;
@@ -236,7 +237,7 @@ sub scan_for_msbs {
         $E = shift;
         print "Error: " . $E->{'-text'} . "\n";
     };
-    $class->throwException($E) if defined($E);
+    $E->throw if defined $E;
 
     my %returned_checksums;
     my %new_checksums;

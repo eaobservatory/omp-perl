@@ -24,7 +24,6 @@ use Time::Seconds qw/ONE_HOUR/;
 use CGI;
 
 use OMP::Constants qw/:done/;
-use OMP::DBServer;
 use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::DateTools;

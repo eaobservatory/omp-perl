@@ -31,11 +31,11 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::DBServer;
+use OMP::DB::Backend;
 use OMP::ProjAffiliationDB;
 
-my $affiliation_db = OMP::ProjAffiliationDB->new(
-    DB => OMP::DBServer->dbConnection());
+my $db = OMP::DB::Backend->new;
+my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $db);
 
 my %projects;
 
