@@ -206,7 +206,7 @@ my %lut = (
 );
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 
@@ -1059,7 +1059,7 @@ sub _create_sql_recurse {
 =item B><_querify>
 
 Make SQL to match instrument or backend values by matching upper case versions.
-Rest of the calls are sent to the parent C<_querify> method; see L<OMP::DBQuery>
+Rest of the calls are sent to the parent C<_querify> method; see L<OMP::Query>
 for details.
 
     $sql = $q->_querify("instrument", "SCUBA");
@@ -1169,7 +1169,7 @@ be used. It is also illegal to use ranges inside a plural element.
 
 =head1 SEE ALSO
 
-L<OMP::DBQuery>, L<OMP::MSBQuery>
+L<OMP::Query>, L<OMP::MSBQuery>
 
 =head1 AUTHORS
 

@@ -27,7 +27,7 @@ use OMP::General;
 use OMP::Range;
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 
@@ -253,7 +253,7 @@ be used. It is also illegal to use ranges inside a plural element.
 
 =head1 SEE ALSO
 
-L<OMP::DBQuery>, L<OMP::MSBQuery>
+L<OMP::Query>, L<OMP::MSBQuery>
 
 =head1 AUTHORS
 

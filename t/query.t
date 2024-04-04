@@ -3,7 +3,7 @@
 use strict;
 use Test::More tests => 5;
 
-require_ok('OMP::DBQuery');
+require_ok('OMP::Query');
 
 # Expected processed hash form of our query:
 my %expect = (
@@ -52,7 +52,7 @@ my %expect = (
 );
 
 # Try constructing a query from XML:
-my $query = OMP::DBQuery->new(XML => '<DBQuery>
+my $query = OMP::Query->new(XML => '<Query>
     <alpha>A &amp; A</alpha>
     <beta><min>40</min></beta>
     <gamma><max>30</max></gamma>
@@ -73,16 +73,16 @@ my $query = OMP::DBQuery->new(XML => '<DBQuery>
         <lambda>HHH</lambda>
     </not>
     <mu delta="3">1234</mu>
-</DBQuery>');
+</Query>');
 
-isa_ok($query, 'OMP::DBQuery');
+isa_ok($query, 'OMP::Query');
 
 my $hash = $query->raw_query_hash;
 
 is_deeply($hash, \%expect);
 
 # Try Constructing an equivalent query from a hash:
-my $query2 = OMP::DBQuery->new(HASH => {
+my $query2 = OMP::Query->new(HASH => {
     alpha => 'A & A',
     beta => {min => 40},
     gamma => {max => 30},
@@ -110,7 +110,7 @@ my $query2 = OMP::DBQuery->new(HASH => {
     },
 });
 
-isa_ok($query2, 'OMP::DBQuery');
+isa_ok($query2, 'OMP::Query');
 
 my $hash2 = $query2->raw_query_hash;
 

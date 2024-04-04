@@ -1,12 +1,12 @@
-package OMP::DBQuery;
+package OMP::Query;
 
 =head1 NAME
 
-OMP::DBQuery - Class representing an OMP database query
+OMP::Query - Class representing an OMP database query
 
 =head1 SYNOPSIS
 
-    $query = OMP::DBQuery->new(XML => $xml);
+    $query = OMP::Query->new(XML => $xml);
     $sql = $query->sql($table);
 
 =head1 DESCRIPTION
@@ -57,7 +57,7 @@ use overload '""' => "stringify";
 The constructor takes an XML representation of the query and
 returns the object.
 
-    $query = OMP::DBQuery->new(XML => $xml, MaxCount => $max);
+    $query = OMP::Query->new(XML => $xml, MaxCount => $max);
 
 Throws DBMalformedQuery exception if the XML is not valid.
 
@@ -288,12 +288,12 @@ sub stringify {
 Class method that returns the name of the XML root element to be
 located in the query XML. This changes depending on whether we
 are doing an MSB or Project query. Must be specified in a subclass.
-Returns "DBQuery" by default.
+Returns "Query" by default.
 
 =cut
 
 sub _root_element {
-    return "DBQuery";
+    return "Query";
 }
 
 =item B<_qhash_tosql>
@@ -419,10 +419,10 @@ sub _create_sql_recurse {
             map {$self->_querify($column, $range{$_}, $_);}
             keys %range);
     }
-    elsif (UNIVERSAL::isa($entry, 'OMP::DBQuery::Null')) {
+    elsif (UNIVERSAL::isa($entry, 'OMP::Query::Null')) {
         $sql = $self->_querify($column, $entry->null(), 'null');
     }
-    elsif (UNIVERSAL::isa($entry, 'OMP::DBQuery::True')) {
+    elsif (UNIVERSAL::isa($entry, 'OMP::Query::True')) {
         $sql = $self->_querify($column, $entry->true(), 'true');
     }
     elsif (ref($entry) eq 'HASH') {
@@ -723,7 +723,7 @@ Moves the C<delta> parameter to the C<_attr> section.
 
 =item boolean =E<gt> 0 | 1
 
-Converted to C<OMP::DBQuery::True> object.
+Converted to C<OMP::Query::True> object.
 
 =item or =E<gt> \%subquery
 
@@ -788,7 +788,7 @@ sub _process_given_hash {
                 $query{'_attr'}->{$key}->{delta} = $value->{'delta'};
             }
             elsif (exists $value->{'boolean'}) {
-                $query{$key} = OMP::DBQuery::True->new(true => $value->{'boolean'});
+                $query{$key} = OMP::Query::True->new(true => $value->{'boolean'});
             }
             else {
                 # Pass through representations such as {min => ..., max => ...}.
@@ -921,7 +921,7 @@ sub _post_process_hash {
         }
         elsif (ref($href->{$key}) eq "HASH") {
             if (exists $href->{$key}->{'null'}) {
-                $href->{$key} = OMP::DBQuery::Null->new(null => $href->{$key}->{'null'});
+                $href->{$key} = OMP::Query::Null->new(null => $href->{$key}->{'null'});
             }
             else {
                 # Convert to OMP::Range object
@@ -1123,9 +1123,9 @@ The Query XML is specified as follows:
 
 =over 4
 
-=item B<DBQuery>
+=item B<Query>
 
-The top-level container element is E<lt>DBQueryE<gt> although
+The top-level container element is E<lt>QueryE<gt> although
 sub-classes can change this.
 
 =item B<Equality>
@@ -1220,7 +1220,7 @@ OMP/SN/004, C<OMP::MSBQuery>
 
 =cut
 
-package OMP::DBQuery::Null;
+package OMP::Query::Null;
 
 sub new {
     my $class = shift;
@@ -1241,7 +1241,7 @@ sub null {
     return $self->{'null'};
 }
 
-package OMP::DBQuery::True;
+package OMP::Query::True;
 
 sub new {
     my $class = shift;

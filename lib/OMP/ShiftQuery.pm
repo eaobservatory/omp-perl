@@ -26,7 +26,7 @@ use OMP::Error;
 use OMP::General;
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 

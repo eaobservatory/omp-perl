@@ -27,7 +27,7 @@ use OMP::General;
 use OMP::Range;
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 
@@ -261,7 +261,7 @@ sub _post_process_hash {
         $href->{'person_access'} = {
             _JOIN => 'AND',
             "$U.userid" => $href->{'person_access'},
-            "$U.omp_access" => OMP::DBQuery::True->new(true => 1)
+            "$U.omp_access" => OMP::Query::True->new(true => 1)
         };
         $counter ++;
     }
@@ -352,7 +352,7 @@ is "ACTIVE" or "INACTIVE".
 
 =head1 SEE ALSO
 
-OMP/SN/004, C<OMP::DBQuery>
+OMP/SN/004, C<OMP::Query>
 
 =head1 AUTHORS
 

@@ -11,7 +11,7 @@ use warnings;
 
 use OMP::Error;
 
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 =head1 METHODS
 

@@ -33,7 +33,7 @@ use OMP::SiteQuality;
 use Time::Piece ':override';  # for gmtime
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 our $VERSION = '2.000';
@@ -976,7 +976,7 @@ using "all".
 
 =head1 SEE ALSO
 
-OMP/SN/004, C<OMP::DBQuery>
+OMP/SN/004, C<OMP::Query>
 
 =head1 AUTHORS
 

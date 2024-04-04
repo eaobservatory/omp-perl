@@ -22,7 +22,7 @@ use warnings;
 use Carp;
 
 # Inheritance
-use base qw/OMP::DBQuery/;
+use base qw/OMP::Query/;
 
 # Package globals
 
