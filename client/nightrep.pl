@@ -82,6 +82,8 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
+use OMP::ArchiveDB;
+use OMP::DBbackend::Archive;
 use OMP::Error qw/ :try /;
 use OMP::DateTools;
 use OMP::General;
@@ -114,12 +116,6 @@ if ($version) {
     exit;
 }
 
-# Modify only the non-default behaviour.
-unless ($use_cache) {
-    require OMP::ArchiveDB;
-    OMP::ArchiveDB::skip_cache_query();
-}
-
 # First thing we need to do is determine the telescope and
 # the UT date
 $ut = OMP::DateTools->determine_utdate($ut)->ymd;
@@ -150,7 +146,17 @@ unless ($dump or $ashtml) {
 
 # Night report
 
-my $NR = OMP::NightRep->new(date => $ut, telescope => $telescope);
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+
+# Modify only the non-default behaviour.
+unless ($use_cache) {
+    $arcdb->skip_cache_query();
+}
+
+my $NR = OMP::NightRep->new(
+    ADB => $arcdb,
+    date => $ut,
+    telescope => $telescope);
 
 if ($dump) {
     print scalar $NR->astext();

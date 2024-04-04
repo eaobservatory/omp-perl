@@ -758,6 +758,7 @@ sub rescan {
 
     try {
         my $grp = OMP::Info::ObsGroup->new(
+            ADB => $arcdb,
             telescope => $telescope,
             date => $ut,
             ignorebad => 1,
@@ -2503,14 +2504,14 @@ sub update_search_options {
     my ($disk, $db) = @opt{qw/disk database/};
 
     if ($today_ukirt || ($disk && $db) || ! ($disk || $db)) {
-        OMP::ArchiveDB::search_files();
-        OMP::ArchiveDB::search_db_skip_today();
+        $arcdb->search_files();
+        $arcdb->search_db_skip_today();
         return;
     }
 
-    return OMP::ArchiveDB::search_only_db() if $db;
+    return $arcdb->search_only_db() if $db;
 
-    return OMP::ArchiveDB::search_only_files() if $disk;
+    return $arcdb->search_only_files() if $disk;
 }
 
 sub grp_to_ref {

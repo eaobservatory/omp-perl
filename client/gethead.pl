@@ -75,8 +75,10 @@ use lib OMPLIB;
 
 use Getopt::Long;
 use Pod::Usage;
+use Astro::FITS::Header::Item;
 
 use OMP::ArchiveDB;
+use OMP::DBbackend::Archive;
 
 my ($ut, $inst, $runnr, $obsid, $help, $version, $man);
 my $status = GetOptions(
@@ -114,11 +116,12 @@ else {
     die 'Need an obsid or ut with runnr';
 }
 
-OMP::ArchiveDB::skip_cache_query();
-OMP::ArchiveDB::skip_cache_making();
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
 
-my $arcdb = OMP::ArchiveDB->new();
-my $obs= $arcdb->getObs(%args);
+$arcdb->skip_cache_query();
+$arcdb->skip_cache_making();
+
+my $obs = $arcdb->getObs(%args);
 
 if ($obs) {
     my $fits = $obs->fits;
@@ -133,7 +136,6 @@ if ($obs) {
         my $endmjd = $dateobs->mjd;
         $mjd = ($mjd + $endmjd) / 2.0;
     }
-    use Astro::FITS::Header::Item;
     my $mjdavg = Astro::FITS::Header::Item->new(
         Keyword => "MJD-AVG",
         Value => $mjd,

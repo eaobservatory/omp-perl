@@ -23,6 +23,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Digest::MD5 qw/md5_hex/;
 use File::Spec;
 
+use OMP::ArchiveDB;
 use OMP::Config;
 use OMP::CGIComponent::NightRep;
 use OMP::DateTools;
@@ -69,7 +70,7 @@ sub display_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $adb = OMP::ArchiveDB->new();
+    my $adb = OMP::ArchiveDB->new(DB => $self->database_archive);
     my $obs = $adb->getObs(
         telescope => $telescope,
         instrument => $inst,
@@ -144,7 +145,8 @@ sub thumbnails_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $grp = OMP::Info::ObsGroup->new(%query);
+    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $grp = OMP::Info::ObsGroup->new(ADB => $arcdb, %query);
 
     return $self->_write_error('No observations for this project and night')
         if (defined $projectid) and not $grp->numobs;

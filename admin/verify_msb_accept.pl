@@ -84,6 +84,7 @@ BEGIN {
 
 use OMP::ArchiveDB;
 use OMP::DateTools;
+use OMP::DBbackend::Archive;
 use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
@@ -186,14 +187,17 @@ for my $msb (@sorted_msbdb) {
 # Look at the real data:
 print "---> Data headers ----\n";
 
+my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new);
+
 if ($opt{'disk'}) {
     $OMP::FileUtils::RETURN_RECENT_FILES = 0;
-    OMP::ArchiveDB::search_only_files();
-    OMP::ArchiveDB::skip_cache_query();
-    OMP::ArchiveDB->use_existing_criteria(1);
+    $arcdb->search_only_files();
+    $arcdb->skip_cache_query();
+    $arcdb->use_existing_criteria(1);
 }
 
 my $grp = OMP::Info::ObsGroup->new(
+    ADB => $arcdb,
     telescope => $telescope,
     date => $ut,
     ignorebad => $opt{'ignorebad'},

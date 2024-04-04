@@ -23,6 +23,7 @@ use OMP::Error qw/:try/;
 use File::Basename;
 our $VERSION = '0.03';
 
+use OMP::ArchiveDB;
 use OMP::ProjServer;
 use OMP::PackageData;
 
@@ -80,10 +81,14 @@ sub request_data {
 
         # Go through the package data object so that we do not need to worry about
         # inconsistencies with local retrieval
+
+        my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+
         my $pkg;
         my $error;
         try {
             $pkg = OMP::PackageData->new(
+                ADB => $arcdb,
                 utdate => $utdate,
                 projectid => $projectid,
                 inccal => $inccal,

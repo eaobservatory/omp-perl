@@ -44,24 +44,11 @@ use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
 
-our $FallbackToFiles;
-our $SkipDBLookup;
-our $AnyDate;
-our $QueryCache;
-our $MakeCache;
-
 use Scalar::Util qw/blessed/;
 use Data::Dumper;
 use base qw/OMP::BaseDB/;
 
 our $VERSION = '2.000';
-
-search_db_skip_today();
-search_files();
-use_cache();
-
-# Cache a hash of files that we've already warned about.
-our %WARNED;
 
 =head1 METHODS
 
@@ -79,6 +66,13 @@ sub new {
     my $self = $class->SUPER::new(@_);
 
     $self->{'Cache'} = OMP::ArchiveDB::Cache->new;
+    $self->{'FallbackToFiles'} = 1;
+    $self->{'SkipDBLookup'} = 0;
+    $self->{'AnyDate'} = 0;
+    $self->{'QueryCache'} = 1;
+    $self->{'MakeCache'} = 1;
+    $self->{'Warned'} = {};
+    $self->{'OldCriteria'} = 0;
 
     return $self;
 }
@@ -97,9 +91,9 @@ Returns nothing.
 =cut
 
 sub search_db {
-    $AnyDate = 1;
-    $SkipDBLookup = 0;
-    return;
+    my $self = shift;
+    $self->{'AnyDate'} = 1;
+    $self->{'SkipDBLookup'} = 0;
 }
 
 =item B<search_db_skip_today>
@@ -112,9 +106,9 @@ Returns nothing.
 =cut
 
 sub search_db_skip_today {
-    $AnyDate = 0;
-    $SkipDBLookup = 0;
-    return;
+    my $self = shift;
+    $self->{'AnyDate'} = 0;
+    $self->{'SkipDBLookup'} = 0;
 }
 
 =item B<search_files>
@@ -126,8 +120,8 @@ Returns nothing.
 =cut
 
 sub search_files {
-    $FallbackToFiles = 1;
-    return;
+    my $self = shift;
+    $self->{'FallbackToFiles'} = 1;
 }
 
 =item B<search_only_db>
@@ -139,9 +133,9 @@ Returns nothing.
 =cut
 
 sub search_only_db {
-    search_db();
-    $FallbackToFiles = 0;
-    return;
+    my $self = shift;
+    $self->search_db();
+    $self->{'FallbackToFiles'} = 0;
 }
 
 =item B<search_only_files>
@@ -153,10 +147,10 @@ Returns nothing.
 =cut
 
 sub search_only_files {
-    $AnyDate = 0;
-    $SkipDBLookup = 1;
-    search_files();
-    return;
+    my $self = shift;
+    $self->{'AnyDate'} = 0;
+    $self->{'SkipDBLookup'} = 1;
+    $self->search_files();
 }
 
 =item B<use_existing_criteria>
@@ -174,14 +168,12 @@ Provide a truth value to inidicate to toggle use of existing criteria.
 
 =cut
 
-my $old_criteria;
 sub use_existing_criteria {
     my $self = shift @_;
 
-    return $old_criteria unless scalar @_;
+    return $self->{'OldCriteria'} unless scalar @_;
 
-    $old_criteria = !! $_[0];
-    return;
+    $self->{'OldCriteria'} = !! $_[0];
 }
 
 =item B<set_search_criteria>
@@ -192,17 +184,17 @@ Given an optional telescope name and/or optional search criteria, sets
 the places to search.  Default is set to search in database (excluding
 current date) & for files.
 
-    OMP::ArchiveDB->set_search_criteria();
+    $db->set_search_criteria();
 
 Sets search criteria by getting I<header_search> option value from
 "ini" style configuration file for JCMT ...
 
-    OMP::ArchiveDB->set_search_criteria('telescope' => 'jcmt');
+    $db->set_search_criteria('telescope' => 'jcmt');
 
 Directly specfiy a search criteria (files only search in this case)
 ...
 
-    OMP::ArchiveDB->set_search_criteria('header_search' => 'files');
+    $db->set_search_criteria('header_search' => 'files');
 
 Valid values for I<header_search> are ...
 
@@ -242,16 +234,19 @@ sub set_search_criteria {
     my $tel = $opt{'telescope'};
 
     my %search = (
-        'db' => \&search_only_db,
-        'files' => \&search_only_files,
-        'db-files' => sub {
-            search_db();
-            return search_files();
+        'db' => sub {
+            $self->search_only_db();
         },
-
+        'files' => sub {
+            $self->search_only_files();
+        },
+        'db-files' => sub {
+            $self->search_db();
+            $self->search_files();
+        },
         'db-skip-today-files' => sub {
-            search_db_skip_today();
-            return search_files();
+            $self->search_db_skip_today();
+            $self->search_files();
         },
     );
 
@@ -261,7 +256,7 @@ sub set_search_criteria {
         && ! defined $where;
 
     # Search database for current date too.
-    search_db() if $tel && lc $tel eq 'jcmt';
+    $self->search_db() if $tel && lc $tel eq 'jcmt';
 
     unless (defined $where) {
         try {
@@ -299,9 +294,9 @@ Returns nothing.
 =cut
 
 sub use_cache {
-    $QueryCache = 1;
-    $MakeCache = 1;
-    return;
+    my $self = shift;
+    $self->{'QueryCache'} = 1;
+    $self->{'MakeCache'} = 1;
 }
 
 =item B<skip_cache_query>
@@ -313,8 +308,8 @@ Returns nothing.
 =cut
 
 sub skip_cache_query {
-    $QueryCache = 0;
-    return;
+    my $self = shift;
+    $self->{'QueryCache'} = 0;
 }
 
 =item B<skip_cache_making>
@@ -326,8 +321,8 @@ Returns nothing.
 =cut
 
 sub skip_cache_making {
-    $MakeCache = 0;
-    return;
+    my $self = shift;
+    $self->{'MakeCache'} = 0;
 }
 
 =item B<getObs>
@@ -451,17 +446,19 @@ sub queryArc {
     }
 
     my $grp;
-    $QueryCache and $grp = $self->_cache->retrieve_archive($query, 1, $retainhdr);
+    if ($self->{'QueryCache'}) {
+        $grp = $self->_cache->retrieve_archive($query, 1, $retainhdr);
+    }
 
     if (defined($grp)) {
         return $grp->obs;
     }
 
-    # Check to see if the global flags $FallbackToFiles and
-    # $SkipDBLookup are set such that neither DB nor file
+    # Check to see if the flags FallbackToFiles and
+    # SkipDBLookup are set such that neither DB nor file
     # lookup can happen. If that's the case, then throw an
     # exception.
-    if (! $FallbackToFiles && $SkipDBLookup) {
+    if (! $self->{'FallbackToFiles'} && $self->{'SkipDBLookup'}) {
         throw OMP::Error(
             "FallbackToFiles and SkipDBLookup are both set to return no information.");
     }
@@ -488,14 +485,14 @@ sub queryArc {
 
         # Undo database lookup avoidance as old data will certainly be in database,
         # but possibly missing from disk.
-        $SkipDBLookup = 0
+        $self->{'SkipDBLookup'} = 0
             unless $istoday;
     }
 
     # First go to the database if we're looking for things that are
     # older than three days and we've been told not to skip the DB
     # lookup.
-    if ((! $istoday || $AnyDate) && ! $SkipDBLookup) {
+    if ((! $istoday || $self->{'AnyDate'}) && ! $self->{'SkipDBLookup'}) {
         # Check for a connection. If we have one, good, but otherwise
         # set one up.
         unless (defined($self->db)) {
@@ -521,7 +518,7 @@ sub queryArc {
     # if we do not yet have results we should query the file system
     # unless forbidden to do so for some reason (this was originally
     # because we threw an exception if the directories did not exist).
-    if ($FallbackToFiles) {
+    if ($self->{'FallbackToFiles'}) {
         # We fallback to files if the query failed in some way
         # (no connection, or error from the query)
         # OR if the query succeded but we can not be sure the data are
@@ -604,7 +601,7 @@ sub _add_files_in_obs {
     return
         unless $list && ref $list;
 
-    my ($st, $dbh) = _prepare_FILES_select();
+    my ($st, $dbh) = $self->_prepare_FILES_select();
 
     return
         unless $st && ref $st
@@ -614,7 +611,7 @@ sub _add_files_in_obs {
         my $header = $obs->hdrhash()
             or next;
 
-        my @file = _add_files(
+        my @file = $self->_add_files(
             'header' => $header,
             'st-handle' => $st,
             'db-handle' => $dbh,
@@ -636,7 +633,7 @@ sub _add_files_in_headers {
         && ref $list
         && scalar @{$list};
 
-    my ($st, $dbh) = _prepare_FILES_select();
+    my ($st, $dbh) = $self->_prepare_FILES_select();
 
     return
         unless $st && ref $st
@@ -644,7 +641,7 @@ sub _add_files_in_headers {
 
     for my $header (@{$list}) {
 
-        _add_files(
+        $self->_add_files(
             'header' => $header,
             'st-handle' => $st,
             'db-handle' => $dbh,
@@ -655,6 +652,7 @@ sub _add_files_in_headers {
 }
 
 sub _add_files {
+    my $self = shift;
     my (%arg) = @_;
 
     my ($header, $st, $dbh, $key) =
@@ -664,7 +662,7 @@ sub _add_files {
 
     return if _any_filename($header);
 
-    my @file = _fetch_files(
+    my @file = $self->_fetch_files(
         'st-handle' => $st,
         'db-handle' => $dbh,
         'header' => $header);
@@ -676,6 +674,7 @@ sub _add_files {
 }
 
 sub _fetch_files {
+    my $self = shift;
     my (%arg) = @_;
 
     my $id_key = 'obsid_subsysnr';
@@ -709,6 +708,8 @@ sub _fetch_files {
 }
 
 sub _prepare_FILES_select {
+    my $self = shift;
+
     my $sql = <<'_SQL_';
         SELECT file_id
         FROM %s
@@ -1016,7 +1017,7 @@ sub _query_files {
             OMP::General->log_message(
                 "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.",
                 OMP__LOG_ERROR);
-            $WARNED{$obs->filename} ++;
+            $self->{'Warned'}->{$obs->filename} ++;
 
             next;
         }
@@ -1104,7 +1105,7 @@ See C<OMP::ArchiveDB::Cache-E<gt>store_archive> method for details.
 sub _make_cache {
     my $self = shift;
 
-    return unless $MakeCache;
+    return unless $self->{'MakeCache'};
 
     my ($query, $obs) = @_;
 

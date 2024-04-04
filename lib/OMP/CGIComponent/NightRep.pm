@@ -709,10 +709,13 @@ sub cgi_to_obsgroup {
         throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
     }
 
+    my $arcdb = OMP::ArchiveDB->new(DB => $self->page->database_archive);
+
     my $grp;
 
     if (defined($telescope)) {
         $grp = OMP::Info::ObsGroup->new(
+            ADB => $arcdb,
             date => $ut,
             telescope => $telescope,
             projectid => $projid,
@@ -725,6 +728,7 @@ sub cgi_to_obsgroup {
         if (defined($projid)) {
             if (defined($inst)) {
                 $grp = OMP::Info::ObsGroup->new(
+                    ADB => $arcdb,
                     date => $ut,
                     instrument => $inst,
                     projectid => $projid,
@@ -734,6 +738,7 @@ sub cgi_to_obsgroup {
             }
             else {
                 $grp = OMP::Info::ObsGroup->new(
+                    ADB => $arcdb,
                     date => $ut,
                     projectid => $projid,
                     ignorebad => 1,
@@ -743,6 +748,7 @@ sub cgi_to_obsgroup {
         }
         elsif (defined($inst) && length($inst . "") > 0) {
             $grp = OMP::Info::ObsGroup->new(
+                ADB => $arcdb,
                 date => $ut,
                 instrument => $inst,
                 ignorebad => 1,

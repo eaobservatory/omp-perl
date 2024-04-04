@@ -11,18 +11,23 @@ OMP::Info::ObsGroup - General manipulations of groups of Info::Obs objects
     $grp = OMP::Info::ObsGroup->new(obs => \@obs);
 
     $grp = OMP::Info::ObsGroup->new(
+        ADB => $archivedb,
         instrument => 'SCUBA',
         date => '1999-08-15');
 
     $grp = OMP::Info::ObsGroup->new(
+        ADB => $archivedb,
         instrument => 'SCUBA',
         projectid => 'm02ac46');
 
     $grp->obs(@obs);
     @obs = $grp->obs;
 
-    $grp->runQuery($query);
-    $grp->populate(instrument => 'SCUBA', projectid => 'M02BU52');
+    $grp->runQuery($archivedb, $query);
+    $grp->populate(
+        ADB => $archivedb,
+        instrument => 'SCUBA',
+        projectid => 'M02BU52');
 
     %summary = $grp->stats;
     $html = $grp->format('html');
@@ -49,8 +54,6 @@ use OMP::Constants qw/:timegap :obs/;
 use OMP::DateTools;
 use OMP::DateSun;
 use OMP::ProjServer;
-use OMP::DBbackend::Archive;
-use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::ObslogDB;
 use OMP::Info::Obs;
@@ -79,6 +82,10 @@ Object constructor. Accept arguments in hash form with keys:
 =item obs
 
 Expects to point to array ref of Info::Obs objects.
+
+=item ADB
+
+C<OMP::ArchiveDB> object with which to perform query.
 
 =item telescope/instrument/projectid
 
@@ -181,7 +188,7 @@ sub obs {
 Run a query on the archive (using an OMP::ArcQuery object),
 store the results and attach any relevant comments.
 
-    $grp->runQuery($query, $retainhdr, $ignorebad, $nocomments);
+    $grp->runQuery($archivedb, $query, $retainhdr, $ignorebad, $nocomments);
 
 Previous observations are overwritten.
 
@@ -189,11 +196,16 @@ Previous observations are overwritten.
 
 sub runQuery {
     my $self = shift;
+    my $adb = shift;
     my $q = shift;
     my $retainhdr = shift;
     my $ignorebad = shift;
     my $nocomments = shift;
     my $search = shift;
+
+    throw OMP::Error::FatalError(
+        'runQuery: The ADB argument must be an OMP::ArchiveDB object')
+        unless eval {$adb->isa('OMP::ArchiveDB')};
 
     throw OMP::Error::FatalError(
         "runQuery: The query argument must be an OMP::ArcQuery class")
@@ -206,9 +218,6 @@ sub runQuery {
     unless (defined $ignorebad) {
         $ignorebad = 0;
     }
-
-    # Grab the results.
-    my $adb = OMP::ArchiveDB->new();
 
     if ($search) {
         $adb->set_search_criteria('header_search' => $search) if $search;
@@ -248,6 +257,7 @@ The results are stored in the object and retrievable via
 the C<obs> method.
 
     $grp->populate(
+        ADB => $archivedb,
         instrument => $inst,
         date => $date,
         projectid => $proj,
@@ -256,8 +266,7 @@ the C<obs> method.
         ignorebad => 0);
 
 This requires access to the obs log database (C<OMP::ObslogDB>) and
-also C<OMP::ArchiveDB>. The archive connections are handled
-automatically.
+also C<OMP::ArchiveDB>.
 
 UT date can be either "YYYY-MM-DD" string or a Time::Piece
 object from which "YYYY-MM-DD" is extracted.
@@ -456,7 +465,7 @@ sub populate {
     my $arcquery = OMP::ArcQuery->new(XML => $xml);
 
     # run the query
-    $self->runQuery($arcquery, $retainhdr, $ignorebad, $nocomments, $search);
+    $self->runQuery($args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);
 
     # Apply filter (with "message_sink" if desired to generate message output).
     my %filter_args = (

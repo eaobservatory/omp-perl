@@ -9,6 +9,7 @@ OMP::NightRep - Generalized routines to details from a given night
     use OMP::NightRep;
 
     $nr = OMP::NightRep->new(
+        ADB => $archivedb,
         date => '2002-12-18',
         telescope => 'jcmt');
 
@@ -35,8 +36,6 @@ use OMP::Error qw/:try/;
 use OMP::Constants;
 use OMP::General;
 use OMP::DBbackend;
-use OMP::DBbackend::Archive;
-use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
@@ -71,6 +70,7 @@ Create a new night report object. Accepts a hash argument specifying
 the date, delta and telescope to use for all queries.
 
     $nr = OMP::NightRep->new(
+        ADB => $archivedb,
         telescope => 'JCMT',
         date => '2002-12-10',
         delta_day => '7',
@@ -97,6 +97,7 @@ sub new {
         UTDateEnd => undef,
         DeltaDay => 1,
         DB => undef,
+        ADB => undef,
         },
         $class;
 
@@ -530,6 +531,27 @@ sub db {
     return $self->{DB};
 }
 
+=item B<adb>
+
+Archive database object.  An instance of C<OMP::ArchiveDB>.
+
+=cut
+
+sub adb {
+    my $self = shift;
+
+    if (@_) {
+        my $adb = shift;
+         throw OMP::Error::FatalError(
+             'ADB must be an OMP::ArchiveDB object')
+             unless eval {$adb->isa('OMP::ArchiveDB')};
+
+        $self->{'ADB'} = $adb;
+    }
+
+    return $self->{'ADB'};
+}
+
 =item B<warnings>
 
 Any warnings that were generated as a result of querying the data
@@ -796,8 +818,6 @@ sub obs {
         $self->{'Observations'} = $grp;
     }
     elsif (! $self->{'Observations'}) {
-        my $db = OMP::ArchiveDB->new();
-
         # XML query to get all observations
         my $xml = "<ArcQuery>"
             . "<telescope>" . $self->telescope . "</telescope>"
@@ -808,7 +828,7 @@ sub obs {
         my $query = OMP::ArcQuery->new(XML => $xml);
 
         # Get observations
-        my @obs = $db->queryArc($query, 0, 1);
+        my @obs = $self->adb->queryArc($query, 0, 1);
 
         my $grp;
         try {

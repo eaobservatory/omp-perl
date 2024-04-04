@@ -9,6 +9,7 @@ OMP::PackageData - Package up data for retrieval by PI
     use OMP::PackageData;
 
     my $pkg = OMP::PackageData->new(
+        ADB => $archivedb,
         projectid => 'M02BU127',
         utdate => '2002-09-15',
         inccal => 1);
@@ -101,6 +102,7 @@ $Raw_Base_Re = qr{\b ( $Raw_Base_Re ) \b}xi;
 Object constructor. Requires a project and a ut date.
 
     $pkg = OMP::PackageData->new(
+        ADB => $archivedb,
         projectid => 'blah',
         utdate => '2002-09-17');
 
@@ -607,6 +609,7 @@ sub _populate {
 # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
     # switch and optimize for it.
     my $grp = OMP::Info::ObsGroup->new(
+        ADB => $args{'ADB'},
         telescope => $tel,
         date => $self->utdate,
         inccal => $self->inccal,

@@ -232,7 +232,8 @@ sub night_report {
     ($delta) and $args{delta_day} = $delta;
 
     # Get the night report
-    my $nr = OMP::NightRep->new(%args);
+    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $nr = OMP::NightRep->new(ADB => $arcdb, %args);
 
     return $self->_write_error(
             'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
@@ -391,9 +392,11 @@ sub projlog_content {
     my $obs_summary = undef;
     try {
         # Want to go to files on disk
-        $OMP::ArchiveDB::FallbackToFiles = 1;
+        my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+        $arcdb->search_files();
 
         my $grp = OMP::Info::ObsGroup->new(
+            ADB => $arcdb,
             projectid => $projectid,
             date => $utdate,
             inccal => 1,
@@ -542,7 +545,8 @@ sub time_accounting {
 
     my $utdate = $self->_get_utdate();
 
-    my $nr = OMP::NightRep->new(date => $utdate, telescope => $tel);
+    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $nr = OMP::NightRep->new(ADB => $arcdb, date => $utdate, telescope => $tel);
 
     my %times = $nr->accounting;
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
