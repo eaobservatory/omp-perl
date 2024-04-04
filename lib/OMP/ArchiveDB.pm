@@ -493,12 +493,6 @@ sub queryArc {
     # older than three days and we've been told not to skip the DB
     # lookup.
     if ((! $istoday || $self->{'AnyDate'}) && ! $self->{'SkipDBLookup'}) {
-        # Check for a connection. If we have one, good, but otherwise
-        # set one up.
-        unless (defined($self->db)) {
-            $self->db(OMP::DB::Backend::Archive->new);
-        }
-
         # Trap errors with connection. If we have fatal error
         # talking to DB we should fallback to files (if allowed)
         try {
@@ -723,8 +717,7 @@ _SQL_
     #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg';
     # my $cfg = OMP::Config->new('force' => 1);
 
-    my $db = OMP::DB::Backend::Archive->new();
-    my $dbh = $db->handle();
+    my $dbh = $self->_dbhandle();
 
     my $st = $dbh->prepare($sql)
         or throw OMP::Error::DBError
