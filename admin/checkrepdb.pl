@@ -103,7 +103,7 @@ use Pod::Usage;
 use List::Util qw/max/;
 use Time::HiRes qw/gettimeofday tv_interval/;
 
-use OMP::BaseDB;
+use OMP::DB;
 use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 
@@ -376,7 +376,7 @@ sub check_missing_msb {
 
     foreach my $dbserver (@databases) {
         $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = OMP::BaseDB->new(DB => OMP::DB::Backend->new(1));
+        my $db = OMP::DB->new(DB => OMP::DB::Backend->new(1));
 
         my $sql = "SELECT projectid FROM ompsciprog\n".
             "WHERE projectid NOT IN (SELECT DISTINCT projectid FROM ompmsb)";
@@ -427,7 +427,7 @@ sub compare_row_count {
 
     foreach my $dbserver (@databases) {
         $ENV{OMP_DBSERVER} = $dbserver;
-        my $db = OMP::BaseDB->new(DB => OMP::DB::Backend->new(1));
+        my $db = OMP::DB->new(DB => OMP::DB::Backend->new(1));
 
         for my $table (qw/ompfault ompfaultassoc ompfaultbody ompfeedback
                           ompmsb ompmsbdone ompobs ompobslog ompproj
@@ -489,7 +489,7 @@ sub check_missing_sciprog {
 
     foreach my $dbserver (@databases) {
         $ENV{'OMP_DBSERVER'} = $dbserver;
-        my $db = OMP::BaseDB->new(DB => OMP::DB::Backend->new(1));
+        my $db = OMP::DB->new(DB => OMP::DB::Backend->new(1));
 
         my $ref = $db->_db_retrieve_data_ashash($sql);
 
@@ -530,7 +530,7 @@ sub check_truncated_sciprog {
 
     foreach my $dbserver (@databases) {
         $ENV{'OMP_DBSERVER'} = $dbserver;
-        my $db = OMP::BaseDB->new(DB => OMP::DB::Backend->new(1));
+        my $db = OMP::DB->new(DB => OMP::DB::Backend->new(1));
 
         my $ref = $db->_db_retrieve_data_ashash($sql);
 

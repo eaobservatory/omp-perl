@@ -40,7 +40,7 @@ use OMP::SiteQuality;
 
 use Time::Seconds;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 
 # This is picked up by OMP::MSBDB
 our $PROJTABLE = 'ompproj';
@@ -65,7 +65,7 @@ If supplied, the database connection object must be of type
 C<OMP::DB::Backend>.  It is not accepted if that is not the case.
 (but no error is raised - this is probably a bug).
 
-Inherits from C<OMP::BaseDB>.
+Inherits from C<OMP::DB>.
 
 =cut
 
@@ -1149,7 +1149,7 @@ __END__
 
 =head1 SEE ALSO
 
-This class inherits from C<OMP::BaseDB>.
+This class inherits from C<OMP::DB>.
 
 For related classes see C<OMP::MSBDB> and C<OMP::FeedbackDB>.
 

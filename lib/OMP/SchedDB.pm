@@ -15,7 +15,7 @@ use OMP::Info::Sched;
 use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 
 # Database tables relating to telescope schedules.
 our $SCHEDTABLE = 'ompsched';

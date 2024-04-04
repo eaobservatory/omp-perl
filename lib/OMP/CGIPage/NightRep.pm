@@ -45,7 +45,6 @@ use OMP::ObsQuery;
 use OMP::PreviewDB;
 use OMP::PreviewQuery;
 use OMP::ProjServer;
-use OMP::BaseDB;
 use OMP::ArchiveDB;
 use OMP::Error qw/:try/;
 

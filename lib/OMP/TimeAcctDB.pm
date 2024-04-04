@@ -34,7 +34,7 @@ use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::Constants qw/:fb/;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 our $ACCTTABLE  = 'omptimeacct';
 
 =head2 Time Accounting
@@ -474,7 +474,7 @@ __END__
 
 =head1 SEE ALSO
 
-This class inherits from C<OMP::BaseDB>.
+This class inherits from C<OMP::DB>.
 
 For related classes see C<OMP::MSBDB> and C<OMP::ProjDB>.
 

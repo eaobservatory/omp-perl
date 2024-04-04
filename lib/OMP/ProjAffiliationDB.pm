@@ -8,7 +8,7 @@ OMP::ProjAffiliationDB - Manipulate the project affiliation tables
 
 use strict;
 
-use base qw/OMP::BaseDB Exporter/;
+use base qw/OMP::DB Exporter/;
 
 our @EXPORT_OK = qw/%AFFILIATION_NAMES @AFFILIATIONS/;
 

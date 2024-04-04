@@ -177,7 +177,7 @@ __END__
 
 =over 2
 
-=item * L<OMP::BaseDB>, L<OMP::Mail>
+=item * L<OMP::DB>, L<OMP::Mail>
 
 =item * L<MIME::Entity>, L<Mail::Internet>, L<Net::SMTP>
 

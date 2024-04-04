@@ -58,7 +58,7 @@ use OMP::DateTools;
 use OMP::General;
 use Time::Piece;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 
 our $VERSION = '2.000';
 our $MSBDONETABLE = 'ompmsbdone';
@@ -1054,7 +1054,7 @@ __END__
 
 =head1 SEE ALSO
 
-This class inherits from C<OMP::BaseDB>.
+This class inherits from C<OMP::DB>.
 
 For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
 

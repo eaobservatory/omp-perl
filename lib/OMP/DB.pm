@@ -1,8 +1,8 @@
-package OMP::BaseDB;
+package OMP::DB;
 
 =head1 NAME
 
-OMP::BaseDB - Base class for OMP database manipulation
+OMP::DB - Base class for OMP database manipulation
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ Base class for constructing a new instance of a OMP DB connectivity
 class.
 
 
-    $db = OMP::BaseDB->new(
+    $db = OMP::DB->new(
         ProjectID => $project,
         DB => $connection);
 
@@ -763,7 +763,7 @@ sub _notify_feedback_system {
     my %comment = @_;
 
     OMP::General->log_message(
-        "BaseDB Notifying feedback system",
+        "DB Notifying feedback system",
         OMP__LOG_DEBUG);
 
     # We have to share the database connection because we have

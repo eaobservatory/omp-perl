@@ -12,7 +12,7 @@ use warnings;
 use Astro::Coords::TLE;
 use OMP::Error;
 
-use parent qw/OMP::BaseDB/;
+use parent qw/OMP::DB/;
 
 our $TLETABLE = 'omptle';
 

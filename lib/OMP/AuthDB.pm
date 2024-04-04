@@ -19,7 +19,7 @@ use OMP::Error;
 use OMP::User;
 use OMP::UserDB;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 
 our $AUTHTABLE = 'ompauth';
 our %DURATION = (

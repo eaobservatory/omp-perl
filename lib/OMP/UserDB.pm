@@ -31,7 +31,7 @@ use OMP::User;
 use OMP::Error;
 use OMP::UserQuery;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::DB/;
 
 our $VERSION = '2.000';
 
@@ -569,7 +569,7 @@ __END__
 
 =head1 SEE ALSO
 
-This class inherits from C<OMP::BaseDB>. It stores C<OMP::User>
+This class inherits from C<OMP::DB>. It stores C<OMP::User>
 objects
 
 For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.

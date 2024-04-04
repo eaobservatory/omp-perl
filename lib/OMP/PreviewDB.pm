@@ -13,7 +13,7 @@ use OMP::DateTools;
 use OMP::Error;
 use OMP::Info::Preview;
 
-use parent qw/OMP::BaseDB/;
+use parent qw/OMP::DB/;
 
 our $PREVIEWTABLE = 'omppreview';
 
