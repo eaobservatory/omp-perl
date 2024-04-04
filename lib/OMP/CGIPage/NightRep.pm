@@ -233,7 +233,7 @@ sub night_report {
 
     # Get the night report
     my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
-    my $nr = OMP::NightRep->new(ADB => $arcdb, %args);
+    my $nr = OMP::NightRep->new(DB => $self->database, ADB => $arcdb, %args);
 
     return $self->_write_error(
             'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
@@ -410,7 +410,8 @@ sub projlog_content {
                 size => 64,
             })));
 
-            $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
+            my $nr = OMP::NightRep->new(DB => $self->database);
+            $obs_summary = $nr->get_obs_summary(obsgroup => $grp);
         }
     }
     otherwise {
@@ -546,7 +547,9 @@ sub time_accounting {
     my $utdate = $self->_get_utdate();
 
     my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
-    my $nr = OMP::NightRep->new(ADB => $arcdb, date => $utdate, telescope => $tel);
+    my $nr = OMP::NightRep->new(
+        DB => $self->database, ADB => $arcdb,
+        date => $utdate, telescope => $tel);
 
     my %times = $nr->accounting;
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];

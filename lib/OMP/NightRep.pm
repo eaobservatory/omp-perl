@@ -9,6 +9,7 @@ OMP::NightRep - Generalized routines to details from a given night
     use OMP::NightRep;
 
     $nr = OMP::NightRep->new(
+        DB => $database,
         ADB => $archivedb,
         date => '2002-12-18',
         telescope => 'jcmt');
@@ -35,7 +36,6 @@ our $VERSION = '2.000';
 use OMP::Error qw/:try/;
 use OMP::Constants;
 use OMP::General;
-use OMP::DB::Backend;
 use OMP::ArcQuery;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
@@ -70,6 +70,7 @@ Create a new night report object. Accepts a hash argument specifying
 the date, delta and telescope to use for all queries.
 
     $nr = OMP::NightRep->new(
+        DB => $database,
         ADB => $archivedb,
         telescope => 'JCMT',
         date => '2002-12-10',
@@ -512,20 +513,22 @@ sub telescope {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DB::Backend> object). The first
-time this is called, triggers a database connection.
+A shared database connection (an C<OMP::DB::Backend> object).
 
     $db = $nr->db;
-
-Takes no arguments.
 
 =cut
 
 sub db {
     my $self = shift;
 
-    unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DB::Backend->new;
+    if (@_) {
+        my $db = shift;
+         throw OMP::Error::FatalError(
+             'DB must be an OMP::DB::Backend object')
+             unless eval {$db->isa('OMP::DB::Backend')};
+
+        $self->{'DB'} = $db;
     }
 
     return $self->{DB};
@@ -1603,7 +1606,7 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DB::Backend->new());
+    my $msbdb = OMP::MSBDoneDB->new(DB => $self->db);
 
     my $old_sum = '';
     my $old_tid = '';

@@ -14,9 +14,9 @@ BEGIN {
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
-use DBI;
 
 use lib OMPLIB;
+use OMP::DB::Backend;
 use OMP::NightRep;
 use strict;
 use Getopt::Long;
@@ -59,7 +59,9 @@ die "*Error*: telescope must be J(CMT) or U(KIRT). Exiting.\n"
 my $delta = 7;
 $delta = $days if ( defined($days) );
 
-my $nr = OMP::NightRep->new(date => $startut,
+my $db = OMP::DB::Backend->new();
+my $nr = OMP::NightRep->new(DB => $db,
+                            date => $startut,
                             telescope => $telescope,
                             delta_day => $delta,);
 

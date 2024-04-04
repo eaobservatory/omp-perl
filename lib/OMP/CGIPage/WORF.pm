@@ -101,9 +101,11 @@ sub display_page {
 
     $grp->attach_previews($previews);
 
+    my $nr = OMP::NightRep->new(DB => $self->database);
+
     return {
         projectid => $projectid,
-        obs_summary => OMP::NightRep->get_obs_summary(obsgroup => $grp),
+        obs_summary => $nr->get_obs_summary(obsgroup => $grp),
         observations => [
             sort {$a->startobs->epoch <=> $b->startobs->epoch}
             $grp->obs()],

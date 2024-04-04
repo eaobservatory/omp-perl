@@ -98,6 +98,7 @@ BEGIN {
 }
 
 use lib OMPLIB;
+use OMP::DB::Backend;
 use OMP::NightRep;
 use Time::Seconds;
 use Time::Piece;
@@ -238,6 +239,8 @@ if ($ps) {
   $hdevice = "${ps}/cps";
 }
 
+my $db = OMP::DB::Backend->new();
+
 print "\n$tel $statsmode operations stats ($utx) from $startut thru $endut\n\n";
 
 # ----------------------------------------------------------------------
@@ -285,7 +288,8 @@ while ($ut <= $endut) {
   $startut = $iut if ($loop == 1);
 
   # Get the accounting objects from the OMP
-  my $nr = OMP::NightRep->new(date => $iut,
+  my $nr = OMP::NightRep->new(DB => $db,
+                              date => $iut,
                               telescope => $tel,
                               delta_day => $delta,);
   my %acct = $nr->accounting_db('byproject');

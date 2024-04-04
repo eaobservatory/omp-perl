@@ -84,7 +84,8 @@ sub obs_table_text {
         $showcomments = 1;
     }
 
-    my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
+    my $nr = OMP::NightRep->new(DB => $self->database);
+    my $summary = $nr->get_obs_summary(obsgroup => $obsgroup, %options);
 
     unless (defined $summary) {
         print "No observations for this night\n";

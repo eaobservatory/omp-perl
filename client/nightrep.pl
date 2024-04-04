@@ -83,6 +83,7 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
 use OMP::ArchiveDB;
+use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::Error qw/ :try /;
 use OMP::DateTools;
@@ -146,6 +147,7 @@ unless ($dump or $ashtml) {
 
 # Night report
 
+my $db = OMP::DB::Backend->new;
 my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
 
 # Modify only the non-default behaviour.
@@ -154,6 +156,7 @@ unless ($use_cache) {
 }
 
 my $NR = OMP::NightRep->new(
+    DB => $db,
     ADB => $arcdb,
     date => $ut,
     telescope => $telescope);

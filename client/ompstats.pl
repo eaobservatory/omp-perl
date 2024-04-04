@@ -91,7 +91,9 @@ my ($startdate, $enddate) = OMP::DateTools->semester_boundary(
     semester => \@sems, tel => $tel);
 
 # Create the night report
+my $db = OMP::DB::Backend->new;
 my $nr = OMP::NightRep->new(
+    DB => $db,
     date => $startdate->ymd,
     date_end => $enddate->ymd,
     telescope => $tel,

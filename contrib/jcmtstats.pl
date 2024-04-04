@@ -16,6 +16,7 @@ BEGIN {
       }
 
 use lib OMPLIB;
+use OMP::DB::Backend;
 use OMP::NightRep;
 use Time::Seconds;
 use Time::Piece;
@@ -138,6 +139,8 @@ my $ut = $startut;
 print "\nMode: $statmode from $startut thru $endut\n\n";
 print OUTPUT "\nMode: $statmode from $startut thru $endut\n\n";
 
+my $db = OMP::DB::Backend->new();
+
 my $loop = 0;
 while ($ut <= $endut) {
 
@@ -180,7 +183,8 @@ while ($ut <= $endut) {
   }
 
   print "Date: $iut\n";
-  my $nr = OMP::NightRep->new(date => $iut,
+  my $nr = OMP::NightRep->new(DB => $db,
+                              date => $iut,
                               telescope => $tel,
                               delta_day => $delta,);
 
