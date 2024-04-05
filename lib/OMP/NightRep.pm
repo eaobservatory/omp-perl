@@ -235,13 +235,10 @@ sub db_accounts {
         # Database connection
         my $db = OMP::TimeAcctDB->new(DB => $self->db);
 
-        # XML query
-        my $xml = "<TimeAcctQuery>"
-            . $self->_get_date_xml(timeacct => 1)
-            . "</TimeAcctQuery>";
-
         # Get our sql query
-        my $query = OMP::TimeAcctQuery->new(XML => $xml);
+        my $query = OMP::TimeAcctQuery->new(HASH => {
+             date => $self->_get_date_hash(timeacct => 1)
+        });
 
         # Get the time accounting statistics from
         # the TimeAcctDB table. These are returned as a list of
@@ -319,33 +316,34 @@ sub faults {
         # Retrieve faults from the fault database
         my $fdb = OMP::FaultDB->new(DB => $self->db);
 
-        my %xml;
+        my %hash;
         # We have to do two separate queries in order to get back faults that
         # were filed on and occurred on the reporting dates
 
-        # XML query to get faults filed on the dates we are reaporting for
-        $xml{filed} = "<FaultQuery>"
-            . $self->_get_date_xml()
-            . "<category>" . $self->telescope . "</category>"
-            . "<isfault>1</isfault>"
-            . "</FaultQuery>";
+        # Query to get faults filed on the dates we are reaporting for
+        $hash{'filed'} = {
+            date => $self->_get_date_hash(),
+            category => $self->telescope,
+            isfault => {boolean => 1},
+        };
 
-        # XML query to get faults that occurred on the dates we are reporting for
-        $xml{actual} = "<FaultQuery>"
-            . $self->_get_date_xml(tag => 'faultdate')
-            . "<category>" . $self->telescope . "</category>"
-            . "</FaultQuery>";
+        # Query to get faults that occurred on the dates we are reporting for
+        $hash{'actual'} = {
+            faultdate => $self->_get_date_hash(),
+            category => $self->telescope,
+        };
 
         # Do both queries and merge the results
         my %results;
-        for my $xmlquery (keys %xml) {
-            my $query = OMP::FaultQuery->new(XML => $xml{$xmlquery});
+        for my $queryname (keys %hash) {
+            my $query = OMP::FaultQuery->new(HASH => $hash{$queryname});
+
             my $results = $fdb->queryFaults($query);
 
             for (@$results) {
                 # Use fault date epoch followed by ID for key so that we can
                 # sort properly and maintain uniqueness
-                if ($xmlquery =~ /filed/) {
+                if ($queryname =~ /filed/) {
                     # Don't keep results that have an actual date if they were
                     # returned by our "filed on" query
                     if (! $_->faultdate) {
@@ -821,14 +819,13 @@ sub obs {
         $self->{'Observations'} = $grp;
     }
     elsif (! $self->{'Observations'}) {
-        # XML query to get all observations
-        my $xml = "<ArcQuery>"
-            . "<telescope>" . $self->telescope . "</telescope>"
-            . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-            . "</ArcQuery>";
-
-        # Convert XML to an sql query
-        my $query = OMP::ArcQuery->new(XML => $xml);
+        my $query = OMP::ArcQuery->new(HASH => {
+            telescope => $self->telescope,
+            date => {
+                delta => $self->delta_day,
+                value => $self->date->ymd,
+            },
+        });
 
         # Get observations
         my @obs = $self->adb->queryArc($query, 0, 1);
@@ -859,16 +856,15 @@ sub msbs {
 
     my $db = OMP::MSBDoneDB->new(DB => $self->db);
 
-    # Our XML query to get all done MSBs fdr the specified date and delta
-    my $xml = "<MSBDoneQuery>"
-        . "<status>" . OMP__DONE_DONE . "</status>"
-        . "<status>" . OMP__DONE_REJECTED . "</status>"
-        . "<status>" . OMP__DONE_SUSPENDED . "</status>"
-        . "<status>" . OMP__DONE_ABORTED . "</status>"
-        . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-        . "</MSBDoneQuery>";
-
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::MSBDoneQuery->new(HASH => {
+        status => [
+            OMP__DONE_DONE,
+            OMP__DONE_REJECTED,
+            OMP__DONE_SUSPENDED,
+            OMP__DONE_ABORTED,
+        ],
+        date => {delta => $self->delta_day, value => $self->date->ymd},
+    });
 
     my @results = $db->queryMSBdone($query, {'comments' => 0});
 
@@ -925,12 +921,10 @@ sub shiftComments {
 
     my $sdb = OMP::ShiftDB->new(DB => $self->db);
 
-    my $xml = "<ShiftQuery>"
-        . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-        . "<telescope>" . $self->telescope . "</telescope>"
-        . "</ShiftQuery>";
-
-    my $query = OMP::ShiftQuery->new(XML => $xml);
+    my $query = OMP::ShiftQuery->new(HASH => {
+        date => {delta => $self->delta_day, value => $self->date->ymd},
+        telescope => $self->telescope,
+    });
 
     # These will have HTML comments
     my @result = $sdb->getShiftLogs($query);
@@ -1760,30 +1754,27 @@ sub mail_report {
 
 =over 4
 
-=item B<_get_date_xml>
+=item B<_get_date_hash>
 
-Return the date portion of an XML query.
+Return the date portion of a query hash.
 
-    $xmlpart = $self->_get_date_xml(tag => $tagname, timeacct => 1);
+    $hashpart = $self->_get_date_hash(timeacct => 1);
 
-Arguments are provided in hash form.  The name of the date tag defaults to
-'date', but this can be overridden by providing a 'tag' key that points to
-the name to be used. If the 'timeacct' key points to a true value, the
-query will adjust the delta so that it returns only the correct time accounts.
+Arguments are provided in hash form.  If the 'timeacct' key points to a true value,
+the query will adjust the delta so that it returns only the correct time accounts.
 
 =cut
 
-sub _get_date_xml {
+sub _get_date_hash {
     my $self = shift;
     my %args = @_;
     my $tag = (defined $args{tag} ? $args{tag} : "date");
 
     if ($self->date_end) {
-        return "<$tag><min>"
-            . $self->date->ymd
-            . "</min><max>"
-            . $self->date_end->ymd
-            . "</max></$tag>";
+        return {
+            min => $self->date->ymd,
+            max => $self->date_end->ymd,
+        };
     }
     else {
         # Use the delta
@@ -1795,7 +1786,10 @@ sub _get_date_xml {
         $delta -= 1
             if (defined $args{timeacct});
 
-        return "<$tag delta=\"$delta\">" . $self->date->ymd . "</$tag>";
+        return {
+            delta => $delta,
+            value => $self->date->ymd,
+        };
     }
 }
 
