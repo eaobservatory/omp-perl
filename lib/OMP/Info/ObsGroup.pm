@@ -356,24 +356,23 @@ sub populate {
             || exists $args{projectid};
 
     # if we have a date it could be either object or string
-    # also need special XML code
-    my $xmlbit = '';
+    my %hash;
     if (exists $args{date}) {
         if (ref($args{date})) {
             $args{date} = $args{date}->strftime("%Y-%m-%d");
         }
-        $xmlbit = "<date delta=\"1\">$args{date}</date>";
+        $hash{'date'} = {delta => 1, value => "$args{date}"};
     }
     elsif (exists($args{'daterange'})) {
         my $daterange = $args{'daterange'};
-        $xmlbit = "<date>";
+        my %datehash;
         if (defined($daterange->min)) {
-            $xmlbit .= "<min>" . $daterange->min->datetime . "</min>";
+            $datehash{'min'} = $daterange->min->datetime;
         }
         if (defined($daterange->max)) {
-            $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
+            $datehash{'max'} = $daterange->max->datetime;
         }
-        $xmlbit .= "</date>";
+        $hash{'date'} = \%datehash;
         # If the range is unbounded, disable comment lookup unless it was
         # specified explicitly.
         unless ($daterange->isbound) {
@@ -410,7 +409,7 @@ sub populate {
     # told otherwise
     if (exists($args{'projectid'})
             && ! (exists($args{'date'}) || exists($args{'daterange'}))) {
-        $xmlbit .= "<date><min>20000101</min></date>";
+        $hash{'date'} = {min => '20000101'};
         $nocomments = 1 unless defined $nocomments;
     }
 
@@ -433,36 +432,37 @@ sub populate {
     if (exists $args{instrument}) {
         # Old GSD in jcmt_tms.SCA table has "rxa3i", converted GSD data in
         # jcmt.COMMON has "RXA3".
-        my $rxa3 = '<instrument>rxa3i</instrument><instrument>rxa3</instrument>';
+        my @instrument;
+        my @rxa3 = qw/rxa3i rxa3/;
 
         if ($args{instrument} =~ /^rxa/i) {
-            $xmlbit .= $rxa3;
+            push @instrument, @rxa3;
         }
         elsif ($args{instrument} =~ /^rxb/i) {
-            $xmlbit .= "<instrument>rxb</instrument>";
+            push @instrument, 'rxb';
         }
         elsif ($args{instrument} =~ /^rxw/i) {
-            $xmlbit .= "<instrument>rxw</instrument>";
+            push @instrument ,'rxw';
         }
         elsif ($args{instrument} =~ /^heterodyne/i) {
-            $xmlbit .= "$rxa3<instrument>rxb</instrument><instrument>rxw</instrument>";
+            push @instrument, @rxa3, qw/rxb rxw/;
         }
         else {
-            $xmlbit .= "<instrument>" . $args{instrument} . "</instrument>";
+            push @instrument, $args{instrument};
         }
+
+        $hash{'instrument'} = \@instrument;
     }
 
-    # Form the XML.[restrict the keys]
+    # Form the hash. [restrict the keys]
     for my $key (@keys) {
         if (exists $args{$key} && defined $args{$key}) {
-            $xmlbit .= "<$key>$args{$key}</$key>";
+            $hash{$key} = "$args{$key}";
         }
     }
 
-    my $xml = "<ArcQuery>$xmlbit</ArcQuery>";
-
     # Form the query.
-    my $arcquery = OMP::ArcQuery->new(XML => $xml);
+    my $arcquery = OMP::ArcQuery->new(HASH => \%hash);
 
     # run the query
     $self->runQuery($args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);
@@ -1995,15 +1995,16 @@ sub locate_timegaps {
     if (@obslist) {
         my $start = $obslist[0]->[2]->startobs;
         my $end = $obslist[$#obslist]->[2]->endobs;
-        my $queryxml = "<ObsQuery>"
-            . "<date><min>" . $start->ymd . "</min>"
-            . "<max>" . $end->ymd . "T" . $end->hms . "</max></date>"
-            . "<obsactive>1</obsactive></ObsQuery>";
 
         OMP::General->log_message(
             "ObslogDB: Querying database for observation comments.\n");
 
-        my $query = OMP::ObsQuery->new(XML => $queryxml);
+        my $query = OMP::ObsQuery->new(HASH => {
+            date => {
+                min => $start->ymd,
+                max => $end->ymd . 'T' . $end->hms},
+            obsactive => {boolean => 1},
+        });
         my @commentresults = $odb->queryComments($query);
 
         %comments = map {$_->obsid => $_} @commentresults;
