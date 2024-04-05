@@ -49,7 +49,7 @@ use constant OMP__SCIPROG_AUTO => 3;
 use constant GZIP_THRESHOLD => 30_000;
 
 # Inherit server specific class
-use base qw/OMP::SOAPServer OMP::DBServer/;
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = '2.000';
 

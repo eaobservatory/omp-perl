@@ -32,7 +32,7 @@ use OMP::Project;
 use OMP::Error qw/:try/;
 
 # Inherit server specific class
-use base qw/OMP::SOAPServer OMP::DBServer/;
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = '2.000';
 
