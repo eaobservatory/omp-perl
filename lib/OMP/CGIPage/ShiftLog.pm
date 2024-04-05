@@ -118,14 +118,11 @@ sub shiftlog_search {
             $search->read_search_sort(),
         );
 
-        ($message, my $xml) = $search->common_search_xml(\%values, 'author');
+        ($message, my $hash) = $search->common_search_hash(\%values, 'author');
 
         unless (defined $message) {
-            my $query = OMP::ShiftQuery->new(XML => join '',
-                '<ShiftQuery>',
-                '<telescope>' . $telescope . '</telescope>',
-                @$xml,
-                '</ShiftQuery>');
+            $hash->{'telescope'} = $telescope;
+            my $query = OMP::ShiftQuery->new(HASH => $hash);
 
             my $sdb = OMP::ShiftDB->new(DB => $self->database);
             $result = $search->sort_search_results(

@@ -724,17 +724,21 @@ following sets of keys:
 
 Moves the C<delta> parameter to the C<_attr> section.
 
+=item value, mode
+
+Moves the C<mode> parameter to the C<_attr> section.
+
 =item boolean =E<gt> 0 | 1
 
 Converted to C<OMP::Query::True> object.
 
 =item or =E<gt> \%subquery
 
-Converted to OR expresion.  (Key name is arbitrary.)
+Converted to OR expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
 =item not =E<gt> \%subquery
 
-Converted to NOT expresion.  (Key name is arbitrary.)
+Converted to NOT expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
 =item min, max
 
@@ -788,7 +792,11 @@ sub _process_given_hash {
         elsif ('HASH' eq ref $value) {
             if (exists $value->{'value'} and exists $value->{'delta'}) {
                 $query{$key} = [$value->{'value'}];
-                $query{'_attr'}->{$key}->{delta} = $value->{'delta'};
+                $query{'_attr'}->{$key}->{'delta'} = $value->{'delta'};
+            }
+            elsif (exists $value->{'value'} and exists $value->{'mode'}) {
+                $query{$key} = [$value->{'value'}];
+                $query{'_attr'}->{$key}->{'mode'} = $value->{'mode'};
             }
             elsif (exists $value->{'boolean'}) {
                 $query{$key} = OMP::Query::True->new(true => $value->{'boolean'});

@@ -73,27 +73,26 @@ sub read_search_sort {
     );
 }
 
-=item common_search_xml
+=item common_search_hash
 
-Prepare database query XML fragments for common search parameters.
+Prepare database query fragment for common search parameters.
 
-    ($message, $xml) = $search->read_search_sort(\%values, $authorfield);
+    ($message, \%hash) = $search->common_search_hash(\%values, $authorfield);
 
 =cut
 
-sub common_search_xml {
+sub common_search_hash {
     my $self = shift;
     my $values = shift;
     my $authorfield = shift;
 
-    my @xml;
+    my %hash;
     my $message = undef;
 
     if ($values->{'text'}) {
-        push @xml, '<text'
-            . ($values->{'text_boolean'} ? ' mode="boolean"' : '') . '>'
-            . OMP::Display::escape_entity($values->{'text'})
-            . '</text>';
+        $hash{'text'} = $values->{'text_boolean'}
+            ? {value => $values->{'text'}, mode => 'boolean'}
+            : $values->{'text'}
     }
     else {
         $message = 'No query text specified.';
@@ -108,7 +107,7 @@ sub common_search_xml {
             $message = "Could not find user '$author'.";
         }
         else {
-            push @xml, '<' . $authorfield . '>' . $user->userid . '</' . $authorfield . '>';
+            $hash{$authorfield} = $user->userid;
         }
     }
 
@@ -128,15 +127,15 @@ sub common_search_xml {
         } qw/mindate maxdate/;
 
         if ($mindate or $maxdate) {
-            push @xml, '<date>';
+            my %datehash;
             if ($mindate) {
-                push @xml, '<min>' . $mindate->ymd. '</min>';
+                $datehash{'min'} = $mindate->ymd;
             }
             if ($maxdate) {
                 $maxdate += ONE_DAY;
-                push @xml, '<max>' . $maxdate->ymd . '</max>';
+                $datehash{'max'} = $maxdate->ymd;
             }
-            push @xml, '</date>';
+            $hash{'date'} = \%datehash;
         }
     }
     elsif ($values->{'period'} eq 'days') {
@@ -148,12 +147,12 @@ sub common_search_xml {
             else {
                 my $t = gmtime;
                 $t += ONE_DAY;
-                push @xml, '<date delta="-' . $days . '">'. $t->ymd. '</date>';
+                $hash{'date'} = {delta => - $days, value => $t->ymd};
             }
         }
     }
 
-    return ($message, \@xml);
+    return ($message, \%hash);
 }
 
 =item sort_search_results

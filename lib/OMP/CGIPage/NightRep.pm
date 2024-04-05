@@ -483,25 +483,26 @@ sub obslog_search {
             $search->read_search_sort(),
         );
 
-        ($message, my $xml) = $search->common_search_xml(\%values, 'commentauthor');
+        ($message, my $hash) = $search->common_search_hash(\%values, 'commentauthor');
 
         my $active = $values{'active'} = ($q->param('active') ? 1 : 0);
         if ($active) {
-            push @$xml, '<obsactive>1</obsactive>';
+            $hash->{'obsactive'} = {boolean => 1};
         }
 
         my $type = $values{'type'} = $q->param('type');
         if ($type) {
-            my $typexml = '<commentstatus><min>' . $min_status_timegap . '</min></commentstatus>';
-            push @$xml, ($type eq 'gap') ? $typexml : ('<not>' . $typexml . '</not>');
+            if ($type eq 'gap') {
+                $hash->{'commentstatus'} = {min => $min_status_timegap};
+            }
+            else {
+                $hash->{'EXPR__CS'} = {not => {commentstatus => {min => $min_status_timegap}}};
+            }
         }
 
         unless (defined $message) {
-            my $query = OMP::ObsQuery->new(XML => join '',
-                '<ObsQuery>',
-                '<telescope>' . $telescope . '</telescope>',
-                @$xml,
-                '</ObsQuery>');
+            $hash->{'telescope'} = $telescope;
+            my $query = OMP::ObsQuery->new(HASH => $hash);
 
             my $odb = OMP::ObslogDB->new(DB => $self->database);
             $result = $search->sort_search_results(
