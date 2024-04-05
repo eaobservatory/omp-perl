@@ -684,10 +684,6 @@ sub cgi_to_obsgroup {
     my $inccal = defined($args{'inccal'}) ? $args{'inccal'} : 0;
     my $timegap = defined($args{'timegap'}) ? $args{'timegap'} : 1;
 
-    my %options;
-    $options{'inccal'} = $inccal if $inccal;
-    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
-
     my $qv = $q->Vars;
     $ut = (defined($ut) ? $ut : $qv->{'ut'});
     $inst = (defined($inst) ? $inst : uc($qv->{'inst'}));
@@ -710,56 +706,23 @@ sub cgi_to_obsgroup {
         throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
     }
 
+    my %options = (
+        date => $ut,
+        ignorebad => 1,
+    );
+
+    $options{'inccal'} = $inccal if $inccal;
+    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
+    $options{'telescope'} = $telescope if defined $telescope;
+    $options{'projectid'} = $projid if defined $projid;
+    $options{'instrument'} = $inst if defined($inst) && length($inst . '') > 0;
+
     my $arcdb = OMP::ArchiveDB->new(DB => $self->page->database_archive);
 
-    my $grp;
-
-    if (defined($telescope)) {
-        $grp = OMP::Info::ObsGroup->new(
-            ADB => $arcdb,
-            date => $ut,
-            telescope => $telescope,
-            projectid => $projid,
-            instrument => $inst,
-            ignorebad => 1,
-            %options,
-        );
-    }
-    else {
-        if (defined($projid)) {
-            if (defined($inst)) {
-                $grp = OMP::Info::ObsGroup->new(
-                    ADB => $arcdb,
-                    date => $ut,
-                    instrument => $inst,
-                    projectid => $projid,
-                    ignorebad => 1,
-                    %options,
-                );
-            }
-            else {
-                $grp = OMP::Info::ObsGroup->new(
-                    ADB => $arcdb,
-                    date => $ut,
-                    projectid => $projid,
-                    ignorebad => 1,
-                    %options,
-                );
-            }
-        }
-        elsif (defined($inst) && length($inst . "") > 0) {
-            $grp = OMP::Info::ObsGroup->new(
-                ADB => $arcdb,
-                date => $ut,
-                instrument => $inst,
-                ignorebad => 1,
-                %options,
-            );
-        }
-        else {
-            throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
-        }
-    }
+    my $grp = OMP::Info::ObsGroup->new(
+        ADB => $arcdb,
+        %options,
+    );
 
     return $grp;
 }
