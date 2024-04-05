@@ -277,7 +277,10 @@ sub stringify {
     my $givenhash = $self->_given_hash;
     if (defined $givenhash) {
         require Data::Dumper;
-        return Data::Dumper->Dump([$givenhash], ['HASH']);
+        my $dumper = Data::Dumper->new([$givenhash], ['HASH']);
+        $dumper->Indent(0);
+        $dumper->Sortkeys(1);
+        return $dumper->Dump;
     }
 
     return 'UNDEFINED';
