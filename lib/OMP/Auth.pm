@@ -422,8 +422,9 @@ sub _fetch_projects {
 
     my $db = OMP::ProjDB->new(DB => OMP::DB::Backend->new());
 
-    my @projects = $db->listProjects(OMP::ProjQuery->new(
-        XML => '<ProjQuery><person_access>' . $userid . '</person_access></ProjQuery>'));
+    my @projects = $db->listProjects(OMP::ProjQuery->new(HASH => {
+        person_access => $userid,
+    }));
 
     return [map {$_->projectid} @projects];
 }

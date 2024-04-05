@@ -61,8 +61,10 @@ sub log_in_userpass {
         if $mess->code;
 
     my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
-    my @result = $db->queryUsers(OMP::UserQuery->new(
-        XML => '<UserQuery><alias>' . $username . '</alias><obfuscated>0</obfuscated></UserQuery>'));
+    my @result = $db->queryUsers(OMP::UserQuery->new(HASH => {
+        alias => $username,
+        obfuscated => {boolean => 0},
+    }));
 
     throw OMP::Error::Authentication('Could not find an OMP alias associated with your account.')
         unless @result;
