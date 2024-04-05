@@ -80,12 +80,12 @@ my %band = (
 );
 
 # Query types to perform.  This has a general PI query instead of
-# PI, INT separately.  Include as XML to deal with the annoying
+# PI, INT separately.  Include as a hash to deal with the annoying
 # fact that we need to set the semester also for LAP.
 my %query = (
-    lap => '<country>LAP</country><semester>LAP</semester>',
-    pi => '<country>PI</country><country>IF</country><semester/>',
-    nl => '<country>NL</country><semester/>',
+    lap => {country => 'LAP', semester => 'LAP'},
+    pi => {country => ['PI', 'IF']},
+    nl => {country => 'NL'},
 );
 
 # Calibration patterns.  Only include calibrations observations if
@@ -155,21 +155,15 @@ do {
     while (my ($instrument, $instrument_info) = each %cal_patterns) {
         print "CAL $instrument\n\n";
 
-        my $qxml = "<MSBQuery>\n" .
-            "<telescope>JCMT</telescope>\n" .
-            "<projectid full=\"1\">JCMTCAL</projectid>\n" .
-            "<instrument>$instrument</instrument>\n" .
-
-            "<disableconstraint>remaining</disableconstraint>\n" .
-            "<disableconstraint>allocation</disableconstraint>\n" .
-            "<disableconstraint>observability</disableconstraint>\n " .
-            "<disableconstraint>zoa</disableconstraint>\n " .
-            "</MSBQuery>\n";
-
         my $db = OMP::MSBDB->new(DB => $backend);
-        my @results = $db->queryMSB(
-            OMP::MSBQuery->new(XML => $qxml, MaxCount => 10000),
-            'object');
+        my $msbquery = OMP::MSBQuery->new(HASH => {
+            telescope => 'JCMT',
+            projectid => 'JCMTCAL',
+            instrument => $instrument,
+            disableconstraint => [qw/remaining allocation observability zoa/],
+            _attr => {projectid => {full => 1}},
+        }, MaxCount => 10000);
+        my @results = $db->queryMSB($msbquery, 'object');
 
         next unless scalar @results;
 
@@ -234,19 +228,17 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
             while (my ($query, $countrysemester) = each %query) {
                 print "$utdate $hst band $band $instrument $query\n\n";
-
-                my $qxml = "<MSBQuery>\n" .
-                    "<telescope>$telescope</telescope>\n" .
-                    "<date>" . $date->iso8601() . "</date>\n" .
-                    "<tau>$tau</tau>\n" .
-                    "<instrument>$instrument</instrument>\n" .
-                    "$countrysemester\n".
-                    "</MSBQuery>\n";
+                my %hash = (
+                    telescope => $telescope,
+                    date => $date->iso8601(),
+                    tau => $tau,
+                    instrument => $instrument,
+                    %$countrysemester,
+                );
 
                 my $db = OMP::MSBDB->new(DB => $backend);
-                my @results = $db->queryMSB(
-                    OMP::MSBQuery->new(XML => $qxml),
-                    'object');
+                my $msbquery = OMP::MSBQuery->new(HASH => \%hash);
+                my @results = $db->queryMSB($msbquery , 'object');
 
                 next unless scalar @results;
 

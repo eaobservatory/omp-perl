@@ -113,12 +113,10 @@ my $dbconnection = OMP::DB::Backend->new();
 my $db = OMP::FeedbackDB->new(DB => $dbconnection);
 
 # Create our query
-my $fbxml = '<FBQuery>'
-    . '<date><min>' . $mindate->ymd . '</min><max>' . $maxdate->ymd . '</max></date>'
-    . '<msgtype>' . OMP__FB_MSG_SP_SUBMITTED . '</msgtype>'
-    . '</FBQuery>';
-
-my $fbquery = OMP::FBQuery->new(XML => $fbxml);
+my $fbquery = OMP::FBQuery->new(HASH => {
+    date => {min => $mindate->ymd, max => $maxdate->ymd},
+    msgtype => OMP__FB_MSG_SP_SUBMITTED,
+});
 
 # Run our query to retrieve comments
 my $comments = $db->_fetch_comments($fbquery);
@@ -137,13 +135,10 @@ my %projects = map {$_->{projectid}, undef} @$comments;
 # to get support details for each project returned
 my $projdb = OMP::ProjDB->new(DB => $dbconnection);
 
-# XML Query on all project IDs returned
-my $projxml = '<ProjQuery>'
-    . (join '', map {"<projectid>$_</projectid>"} keys %projects)
-    . '</ProjQuery>';
-
-# Instantiate actual ProjQuery object
-my $projquery = OMP::ProjQuery->new(XML => $projxml);
+# Query on all project IDs returned
+my $projquery = OMP::ProjQuery->new(HASH => {
+    projectid => [keys %projects],
+});
 
 # Retrieve details for all projects returned
 my @projects = $projdb->listProjects($projquery);

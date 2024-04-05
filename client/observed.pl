@@ -203,12 +203,10 @@ for my $proj (keys %sorted) {
     unless (exists $shiftlog{$proj_details->telescope}) {
         my $sdb = OMP::ShiftDB->new(DB => $db);
 
-        my $squery_xml = '<ShiftQuery>'
-            . '<date delta="1">' . $utdate . '</date>'
-            . '<telescope>' . $proj_details->telescope . '</telescope>'
-            . '</ShiftQuery>';
-
-        my $query = OMP::ShiftQuery->new(XML => $squery_xml);
+        my $query = OMP::ShiftQuery->new(HASH => {
+            date => {delta => 1, value => $utdate},
+            telescope => $proj_details->telescope,
+        });
 
         _log_message("Getting shift log for $utdate " . $proj_details->telescope);
 

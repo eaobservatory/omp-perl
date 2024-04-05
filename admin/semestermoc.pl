@@ -55,14 +55,12 @@ my $db = OMP::DB::Backend->new();
 my $projdb = OMP::ProjDB->new(DB => $db);
 my $msbdb = OMP::MSBDB->new(DB => $db);
 
-my @projects = $projdb->listProjects(OMP::ProjQuery->new(XML => sprintf
-    '<ProjQuery>' .
-    '<state>1</state><telescope>JCMT</telescope>' .
-   ' %s%s' .
-    '</ProjQuery>',
-    (join '', map {sprintf '<semester>%s</semester>', $_} @$semester),
-    (join '', map {sprintf '<country>%s</country>', $_} @$queue),
-));
+my @projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
+    state => {boolean => 1},
+    telescope => 'JCMT',
+    semester => $semester,
+    country => $queue,
+}));
 
 my $combined = undef;
 

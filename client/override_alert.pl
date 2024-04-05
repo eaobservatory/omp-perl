@@ -209,23 +209,20 @@ sub scan_for_msbs {
     # Push the current semester onto the list of semesters.
     push @semesters, $current_semester;
 
-    # Generate the semester XML.
-    my $sem_xml = '<semesters>';
-    foreach my $semester (@semesters) {
-        $sem_xml .= "<semester>$semester</semester>";
-    }
-    $sem_xml .= '</semesters>';
-
-    my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
+    my %hash = (
+        telescope => $telescope,
+        priority => {max => 0},
+        semester => [grep {$_} @semesters],
+    );
     my @results;
     try {
-        OMP::General->log_message("override_alert.pl: Querying for override programs...");
-        OMP::General->log_message("override_alert.pl: XML: $xml");
-
         my $query = OMP::MSBQuery->new(
-            XML => $xml,
-            MaxCount => 100,
-        );
+            HASH => \%hash,
+            MaxCount => 100);
+
+        OMP::General->log_message("override_alert.pl: Querying for override programs...");
+        OMP::General->log_message("override_alert.pl: $query");
+
         my $mdb = OMP::MSBDB->new(DB => $db);
         @results = $mdb->queryMSB($query, 'object');
     }
