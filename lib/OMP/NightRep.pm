@@ -50,6 +50,7 @@ use OMP::FaultQuery;
 use OMP::FaultGroup;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
+use OMP::ProjDB;
 use Time::Piece qw/:override/;
 use OMP::Mail;
 use OMP::Display;
@@ -249,7 +250,7 @@ sub db_accounts {
 
         # Keep only the results for the telescope we are querying for
         @acct = grep {
-            OMP::ProjServer->verifyTelescope($_->projectid, $self->telescope)
+            OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
         } @acct;
 
         # Store result
@@ -871,7 +872,7 @@ sub msbs {
     # Currently need to verify the telescope outside of the query
     # This verification really slows things down
     @results = grep {
-        OMP::ProjServer->verifyTelescope($_->projectid, $self->telescope)
+        OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
     } @results;
 
     # Index by project id

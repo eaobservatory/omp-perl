@@ -90,7 +90,7 @@ use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserServer;
-use OMP::ProjServer;
+use OMP::ProjDB;
 use OMP::Constants qw/:done/;
 
 our $VERSION = '2.000';
@@ -140,6 +140,8 @@ else {
         if ref $telescope;
 }
 
+# Connect to database
+my $dbb = OMP::DB::Backend->new;
 
 # What does the done table say?
 OMP::General->log_message("Verifying MSB acceptance for date $ut on telescope $telescope");
@@ -154,7 +156,7 @@ my $output = OMP::MSBServer->observedMSBs({
 my %TITLES;  # MSB titles indexed by checksum
 my @msbs;
 for my $msb (@$output) {
-    next unless OMP::ProjServer->verifyTelescope($msb->projectid, $telescope);
+    next unless OMP::ProjDB->new(DB => $dbb, ProjectID => $msb->projectid)->verifyTelescope($telescope);
     my $title = $msb->title;
     $TITLES{$msb->checksum} = $msb->title;
     for my $c ($msb->comments) {
@@ -444,8 +446,6 @@ if (@missing) {
         print "\tDisabling per-MSB comments\n";
         print "\n";
 
-        # Connect to database
-        my $dbb = OMP::DB::Backend->new;
         my $msbdb = OMP::MSBDB->new(DB => $dbb);
         my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
 

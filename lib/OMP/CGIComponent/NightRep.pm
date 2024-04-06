@@ -32,6 +32,7 @@ use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::ObslogDB;
+use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
@@ -695,7 +696,8 @@ sub cgi_to_obsgroup {
             $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
         }
         elsif (defined($projid)) {
-            $telescope = OMP::ProjServer->getTelescope($projid);
+            $telescope = OMP::ProjDB->new(
+                DB => $self->database, ProjectID => $projid)->getTelescope();
         }
         else {
             throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");

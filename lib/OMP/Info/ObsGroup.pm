@@ -53,7 +53,7 @@ use warnings;
 use OMP::Constants qw/:timegap :obs/;
 use OMP::DateTools;
 use OMP::DateSun;
-use OMP::ProjServer;
+use OMP::ProjDB;
 use OMP::ArcQuery;
 use OMP::ObslogDB;
 use OMP::Info::Obs;
@@ -383,7 +383,9 @@ sub populate {
     # If we have a project ID but no telescope we must determine
     # the telescope from the database
     if (exists $args{projectid} && ! exists $args{telescope}) {
-        $args{telescope} = OMP::ProjServer->getTelescope($args{projectid});
+        $args{telescope} = OMP::ProjDB->new(
+            DB => OMP::DB::Backend->new,
+            ProjectID => $args{projectid})->getTelescope();
     }
     elsif (exists $args{instrument} && $args{instrument} =~ /^ACSIS/i) {
         $args{telescope} = 'JCMT';

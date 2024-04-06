@@ -31,7 +31,6 @@ use OMP::TimeAcctQuery;
 use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
-use OMP::ProjServer;
 use OMP::Constants qw/:fb/;
 
 use base qw/OMP::DB/;
@@ -133,7 +132,7 @@ sub getTimeSpent {
     if ($args{telescope} && ! $args{projectid}) {
         my $tel = uc($args{telescope});
         @matches = grep {
-            OMP::ProjServer->verifyTelescope($_->projectid, $tel)
+            OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($tel)
         } @matches;
     }
 
