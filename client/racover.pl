@@ -87,11 +87,13 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
 use OMP::Error qw/:try/;
+use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Password;
 use OMP::SciProgStats;
-use OMP::ProjServer;
+use OMP::ProjDB;
+use OMP::ProjQuery;
 use OMP::SpServer;
 
 our $DEBUG = 0;
@@ -118,6 +120,8 @@ if ($version) {
     print "Version: ", $VERSION, "\n";
     exit;
 }
+
+my $db = OMP::DB::Backend->new();
 
 my ($provider, $username, $password) = OMP::Password->get_userpass();
 
@@ -168,17 +172,18 @@ else {
     $semester = OMP::DateTools->determine_semester(tel => $telescope)
         unless defined $semester;
 
-    # Form the country part of the query [and a useful string for later]
-    my $ctryxml = (defined $country ? "<country>$country</country>" : "");
+    # Form a useful string for later
     my $ctrystr = (defined $country ? "Country " . uc($country) : '');
 
     $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
 
-    # Form the query string for the projects
-    my $query = "<ProjQuery><telescope>$telescope</telescope><semester>$semester</semester>$ctryxml<state>1</state></ProjQuery>";
-
     print "Querying database for project details...\n";
-    my $projects = OMP::ProjServer->listProjects($query, "object");
+    my $projects = OMP::ProjDB->new(DB => $db)->listProjects(OMP::ProjQuery->new(HASH => {
+        telescope => $telescope,
+        semester => $semester,
+        state => {boolean => 1},
+        ((defined $country) ? (country => $country) : ()),
+    }));
 
     print "Located " . scalar(@$projects) . " active projects in Semester $semester\n";
 

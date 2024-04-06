@@ -996,23 +996,24 @@ sub _get_accts {
     # Get project objects, using a different query depending on whether
     # we are returning science or engineering accounts
     my $db = OMP::ProjDB->new(DB => $self->db);
-    my $tel_xml = "<telescope>" . $self->_get_telescope . "</telescope>";
+    my %hash = (
+        telescope => $self->_get_telescope,
+    );
     my $query_xml;
     if ($arg eq 'sci') {
         # Get all the projects in the semesters that we have time
         # accounts for.
-        my $sem_xml = join("", map {"<semester>$_</semester>"} $self->_get_semesters());
-
-        $query_xml = "<ProjQuery>${sem_xml}${tel_xml}</ProjQuery>";
+        $hash{'semester'} = $self->_get_semesters();
     }
     else {
         # Get projects in the EC queue
-        $query_xml = "<ProjQuery><country>EC</country><isprimary>1</isprimary>${tel_xml}</ProjQuery>";
+        $hash{'country'} = 'EC';
+        $hash{'isprimary'} = 1;
     }
 
-    my $query = OMP::ProjQuery->new(XML => $query_xml);
-    my @projects = $db->listProjects($query);
-    my %projects = map {$_->projectid, $_} @projects;
+    my $query = OMP::ProjQuery->new(HASH => \%hash);
+    my $projects = $db->listProjects($query);
+    my %projects = map {$_->projectid, $_} @$projects;
 
     if ($arg eq 'sci') {
         # Only keep non-EC projects

@@ -141,7 +141,7 @@ my $projquery = OMP::ProjQuery->new(HASH => {
 });
 
 # Retrieve details for all projects returned
-my @projects = $projdb->listProjects($projquery);
+my $projects = $projdb->listProjects($projquery);
 
 # Find out which of the projects is a new submission.
 # Probably easiest just to have the database do the hard work
@@ -170,7 +170,7 @@ while (my ($proj, $first) = $sth->fetchrow_array()) {
 
 # Sort projects according to support person
 my %proj_by_support;
-for my $project (@projects) {
+for my $project (@$projects) {
     for my $support ($project->support) {
         my $userid = $support->userid;
         $proj_by_support{$userid} = {

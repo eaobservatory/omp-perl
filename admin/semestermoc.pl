@@ -55,7 +55,7 @@ my $db = OMP::DB::Backend->new();
 my $projdb = OMP::ProjDB->new(DB => $db);
 my $msbdb = OMP::MSBDB->new(DB => $db);
 
-my @projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
+my $projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
     state => {boolean => 1},
     telescope => 'JCMT',
     semester => $semester,
@@ -64,7 +64,7 @@ my @projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
 
 my $combined = undef;
 
-foreach my $project (@projects) {
+foreach my $project (@$projects) {
     my $projectid = $project->projectid;
     $msbdb->projectid($projectid);
 

@@ -51,11 +51,11 @@ my $total = 0.0;
 
 print "\nProjects without affiliation:\n\n";
 
-foreach my $project ($project_db->listProjects(
+foreach my $project (@{$project_db->listProjects(
         OMP::ProjQuery->new(HASH => {
             telescope => $telescope,
             semester => $semester,
-        }))) {
+        }))}) {
     my $project_id = $project->projectid();
     my $observed = ($project->allocated()
         + $project->pending()

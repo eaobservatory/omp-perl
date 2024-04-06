@@ -422,11 +422,11 @@ sub _fetch_projects {
 
     my $db = OMP::ProjDB->new(DB => OMP::DB::Backend->new());
 
-    my @projects = $db->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = $db->listProjects(OMP::ProjQuery->new(HASH => {
         person_access => $userid,
     }));
 
-    return [map {$_->projectid} @projects];
+    return [map {$_->projectid} @$projects];
 }
 
 =item B<_make_cookie>

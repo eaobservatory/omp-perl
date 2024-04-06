@@ -77,8 +77,8 @@ sub details {
             {}, $user->userid)};
 
     # Get projects user belongs to
-    my @projects;
-    my @support;
+    my $member;
+    my $support;
     try {
         my $db = OMP::ProjDB->new(DB => $self->database);
 
@@ -88,7 +88,7 @@ sub details {
 
         my $query = OMP::ProjQuery->new(XML => $xml);
 
-        @projects = $db->listProjects($query);
+        $member = $db->listProjects($query);
 
         # Get projects the user supports
         $xml = "<ProjQuery>"
@@ -97,7 +97,7 @@ sub details {
 
         $query = OMP::ProjQuery->new(XML => $xml);
 
-        @support = $db->listProjects($query);
+        $support = $db->listProjects($query);
     }
     otherwise {
         $E = shift;
@@ -108,7 +108,7 @@ sub details {
 
     # Sort out user's capacity for each project
     my %capacities;
-    foreach my $support_projects ([1, \@support], [0, \@projects]) {
+    foreach my $support_projects ([1, $support], [0, $member]) {
         my ($is_support, $projects) = @$support_projects;
 
         foreach my $project (@$projects) {

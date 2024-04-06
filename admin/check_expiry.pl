@@ -73,11 +73,11 @@ sub check_project_expiry {
     my $pdb = OMP::ProjDB->new(DB => $db);
 
     # Check for expired projects.
-    foreach my $project ($pdb->listProjects(OMP::ProjQuery->new(HASH => {
+    foreach my $project (@{$pdb->listProjects(OMP::ProjQuery->new(HASH => {
                 telescope => $tel,
                 state => {boolean => 1},
                 expirydate => {max => $dt->strftime('%F %T')},
-            }))) {
+            }))}) {
         my $projectid = $project->projectid();
 
         print "Expired: $projectid\n";
@@ -87,12 +87,12 @@ sub check_project_expiry {
 
 
     # Check for projects to advance to the current semester.
-    foreach my $project ($pdb->listProjects(OMP::ProjQuery->new(HASH => {
+    foreach my $project (@{$pdb->listProjects(OMP::ProjQuery->new(HASH => {
                 telescope => $tel,
                 EXPR__SM => {not => {semester => $semester}},
                 state => {boolean => 1},
                 expirydate => {null => 0},
-            }))) {
+            }))}) {
         my $projectid = $project->projectid();
 
         if ($project->semester() !~ $standard_semester) {

@@ -401,11 +401,11 @@ sub enqueueProject {
 
 Return all the projects for the given query.
 
-    @projects = $db->listProjects($query);
+    $projects = $db->listProjects($query);
 
 The query is specified as a C<OMP::ProjQuery> object.
 
-Returned as a list of C<OMP::Project> objects.
+Returned as a reference to a list of C<OMP::Project> objects.
 
 =cut
 
@@ -700,19 +700,19 @@ sub _get_project_row {
     my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
     my $query = OMP::ProjQuery->new(XML => $xml);
 
-    my @projects = $self->_get_projects($query);
+    my $projects = $self->_get_projects($query);
 
     # Throw an exception if we got no results
     throw OMP::Error::UnknownProject(
         "Unable to retrieve details for project $projectid")
-        unless @projects;
+        unless @$projects;
 
     # Check that we only have one
     throw OMP::Error::FatalError(
         "More than one project retrieved when requesting project '$projectid'!")
-        unless @projects == 1;
+        unless @$projects == 1;
 
-    return $projects[0];
+    return $projects->[0];
 }
 
 
@@ -904,9 +904,9 @@ sub _insert_project_user {
 Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery>
 object).
 
-    @projects = $db->_get_projects($query);
+    $projects = $db->_get_projects($query);
 
-Returned as an array of C<OMP::Project> objects.
+Returned as a reference to an array of C<OMP::Project> objects.
 
 =cut
 
@@ -1082,7 +1082,7 @@ WHERE_ORDER_SQL
     }
 
     # Return the results as Project objects
-    return @projects;
+    return \@projects;
 }
 
 =item B<_get_max_role_order>

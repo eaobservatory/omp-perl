@@ -37,6 +37,7 @@ use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
 use OMP::ProjServer;
+use OMP::ProjQuery;
 use OMP::TimeAcctDB;
 use OMP::SiteQuality;
 
@@ -122,17 +123,16 @@ sub list_projects {
     undef $support if $support eq '';
     undef $country if $country eq '';
 
-    my $xmlquery = '<ProjQuery>'
-        . "<state>$state</state><status>$status</status>"
-        . "<semester>$semester</semester><support>$support</support>"
-        . ((defined $country)
-            ? (join '', map {"<country>$_</country>"} split /\+/, $country)
-            : '')
-        . "<telescope>$telescope</telescope></ProjQuery>";
-
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
+    my $projects = OMP::ProjDB->new(DB => $self->database)->listProjects(OMP::ProjQuery->new(HASH => {
+        (defined $state ? (state => {boolean => $state}) : ()),
+        (defined $status ? (status => $status) : ()),
+        (defined $semester ? (semester => $semester) : ()),
+        (defined $support ? (support => $support) : ()),
+        (defined $country ? (country => [split /\+/, $country]) : ()),
+        telescope => $telescope,
+    }));
 
     my @sorted = ();
     if (@$projects) {

@@ -107,10 +107,10 @@ else {
 my $db = OMP::DB::Backend->new;
 my $projdb = OMP::ProjDB->new(DB => $db);
 my $projquery = OMP::ProjQuery->new(HASH => \%queryhash);
-my @projects = $projdb->listProjects($projquery);
+my $projects = $projdb->listProjects($projquery);
 my %email_users;
 
-for my $project (@projects) {
+for my $project (@$projects) {
     my @pis = $project->pi;
     my @cois = $project->coi;
 
