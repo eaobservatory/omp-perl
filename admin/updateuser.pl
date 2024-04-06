@@ -36,8 +36,11 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
+use OMP::DB::Backend;
 use OMP::User;
-use OMP::UserServer;
+use OMP::UserDB;
+
+my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
 foreach my $line (<>) {
     # Skip blank lines
@@ -50,7 +53,7 @@ foreach my $line (<>) {
     my ($user, $newname, $newemail) = split(/,/, $line);
 
     print "USERID: $user\n";
-    my $user = OMP::UserServer->getUser($user);
+    my $user = $udb->getUser($user);
 
     unless (defined $user) {
         print "********* NOT IN DATABASE ********\n";
@@ -66,7 +69,7 @@ foreach my $line (<>) {
 
     # Update the information
     print "Update:\t" . $user->as_email_hdr . "\n\n";
-    OMP::UserServer->updateUser($user);
+    $udb->updateUser($user);
 }
 
 __END__

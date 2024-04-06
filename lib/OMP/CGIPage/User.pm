@@ -29,6 +29,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::User;
+use OMP::UserDB;
 use OMP::UserServer;
 
 use base qw/OMP::CGIPage/;
@@ -317,7 +318,7 @@ sub edit_details {
             # Store changes
             if ($changed) {
                 try {
-                    OMP::UserServer->updateUser($user);
+                    OMP::UserDB->new(DB => $self->database)->updateUser($user);
                 }
                 otherwise {
                     my $E = shift;
@@ -422,7 +423,7 @@ sub _add_user_try {
     my $message = undef;
 
     try {
-        OMP::UserServer->addUser($omp_user);
+        OMP::UserDB->new(DB => $self->database)->addUser($omp_user);
     } otherwise {
         my $E = shift;
         $message = 'Unable to add user: ' . $E;

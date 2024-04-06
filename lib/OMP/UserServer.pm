@@ -6,7 +6,6 @@ OMP::UserServer - OMP user information server class
 
 =head1 SYNOPSIS
 
-    OMP::UserServer->addUser($user);
     OMP::UserServer->getUser($userid);
 
 =head1 DESCRIPTION
@@ -38,78 +37,6 @@ our $VERSION = '2.000';
 =head1 METHODS
 
 =over 4
-
-=item B<addUser>
-
-    OMP::UserServer->addUser($user);
-
-For now the argument is an C<OMP::User> object.
-
-=cut
-
-sub addUser {
-    my $class = shift;
-    my $user = shift;
-
-    my $E;
-    try {
-        my $db = OMP::UserDB->new(DB => $class->dbConnection);
-
-        $db->addUser($user);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    return;
-}
-
-=item updateUser
-
-Update user details.
-
-    OMP::UserServer->updateUser($user);
-
-For now accepts a C<OMP::User> object.
-
-=cut
-
-sub updateUser {
-    my $class = shift;
-    my $user = shift;
-
-    my $E;
-    try {
-        my $db = OMP::UserDB->new(DB => $class->dbConnection);
-
-        $db->updateUser($user);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    return;
-}
 
 =item B<verifyUser>
 

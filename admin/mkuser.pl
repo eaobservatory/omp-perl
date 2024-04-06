@@ -39,13 +39,15 @@ BEGIN {
 select \*STDERR; $| = 1;
 select \*STDOUT; $| = 1;
 
+use OMP::DB::Backend;
 use OMP::UserDB;
 use OMP::User;
-use OMP::UserServer;
 use OMP::Error qw/:try/;
 
 my $SEP_IN = q/[,;]+/;
 my $SEP_OUT = q/,/;
+
+my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
 while (<>) {
     next if /^\s*#/ or /^\s*$/;
@@ -106,11 +108,11 @@ while (<>) {
     # More efficient to do the add and catch the failure rather than
     # do an explicit verify
     try {
-        OMP::UserServer->addUser($ompuser);
+        $udb->addUser($ompuser);
     }
     otherwise {
         # Get the user
-        my $exist = OMP::UserServer->getUser($ompuser->userid);
+        my $exist = $udb->getUser($ompuser->userid);
 
         if ($exist) {
             print "\n*** ",
