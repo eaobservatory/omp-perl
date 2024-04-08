@@ -81,7 +81,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
-use OMP::ProjServer;
+use OMP::ProjDB;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
 use OMP::User;
@@ -163,7 +163,7 @@ for my $proj (keys %sorted) {
 
     _log_message("Getting project details for $proj");
 
-    my $proj_details = OMP::ProjServer->projectDetails($proj, 'object');
+    my $proj_details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails('object');
 
     _log_err($!);
 

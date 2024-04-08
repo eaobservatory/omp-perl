@@ -18,6 +18,7 @@ BEGIN {
 use lib OMPLIB;
 use OMP::DB::Backend;
 use OMP::NightRep;
+use OMP::ProjDB;
 use strict;
 use Getopt::Long;
 
@@ -106,7 +107,7 @@ sub print_reporting_breakdown {
 
         # No determine_country method exists, so we'll get project
         # details instead
-        my $details = OMP::ProjServer->projectDetails($proj, "object");
+        my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails("object");
 
         my $country = $details->country;
         #countrylist .= " $country" if ($country !~ /$countrylist/);

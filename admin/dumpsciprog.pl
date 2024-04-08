@@ -27,7 +27,6 @@ use lib OMPLIB;
 use OMP::Config;
 use OMP::MSBDB;
 use OMP::DB::Backend;
-use OMP::ProjServer;
 use OMP::Error qw/:try/;
 use Data::Dumper;
 use Time::Piece;

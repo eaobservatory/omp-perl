@@ -148,7 +148,7 @@ if (@projects) {
 
     # Convert to project objects (needs password)
     @projects = map {
-        OMP::ProjServer->projectDetails($_, 'object');
+        OMP::ProjDB->new(DB => $db, ProjectID => $_)->projectDetails('object');
     } @projects;
 }
 else {

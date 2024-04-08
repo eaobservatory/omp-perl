@@ -31,7 +31,6 @@ use Carp qw/carp/;
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::ProjDB;
-use OMP::ProjServer;
 use OMP::UserDB;
 
 #  Known user roles for a project.
@@ -94,7 +93,7 @@ sub verify_record {
         warn 'Unknown user ', $proj->{'userid'}, "\n";
     }
 
-    unless (OMP::ProjServer->verifyProject($proj->{'projectid'})) {
+    unless (OMP::ProjDB->new(DB => $db, ProjectID => $proj->{'projectid'})->verifyProject()) {
         $err ++;
         warn 'Cannot verify project ', $proj->{'projectid'}, "\n";
     }

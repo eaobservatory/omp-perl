@@ -82,7 +82,6 @@ use List::MoreUtils qw/uniq/;
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::ProjDB;
-use OMP::ProjServer;
 
 # Increase in the number increases the verbose output.
 my $VERBOSE = 0;
@@ -133,7 +132,7 @@ sub add_link {
 
     make_noise('Projects to be linked: ', join(', ', $push, @other), "\n");
 
-    my @valid = verify_projid($push, @other);
+    my @valid = verify_projid($db, $push, @other);
 
     make_noise('Validated projects: ', join(', ', @valid), "\n");
 
@@ -196,13 +195,14 @@ _ADD_LINK_
     my (%valid, %invalid);
 
     sub verify_projid {
+        my $db = shift;
         my (@projid) = @_;
 
         my (@valid);
         for (@projid) {
             next if exists $invalid{$_};
 
-            if (exists $valid{$_} || OMP::ProjServer->verifyProject($_)) {
+            if (exists $valid{$_} || OMP::ProjDB->new(DB => $db, ProjectID => $_)->verifyProject()) {
                 make_noise("$_ is ok\n") if $VERBOSE > 1;
 
                 $valid{$_} ++;

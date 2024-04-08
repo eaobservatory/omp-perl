@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::DateTools;
-use OMP::ProjServer;
+use OMP::ProjDB;
 use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
@@ -51,9 +51,11 @@ sub add_comment {
 
     my $comp = OMP::CGIComponent::Feedback->new(page => $self);
 
+    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object');
+
     if ($q->param('submit_add')) {
         return {
-            project => OMP::ProjServer->projectDetails($projectid, 'object'),
+            project => $project,
             target => undef,
             %{$comp->submit_fb_comment($projectid)},
             num_comments => $comp->fb_entries_count($projectid),
@@ -61,7 +63,7 @@ sub add_comment {
     }
 
     return {
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => $project,
         target => $self->url_absolute(),
         values => {
             # We don't re-display the form, but some pages link here with
@@ -106,7 +108,7 @@ sub fb_output {
 
     return {
         target => $self->url_absolute(),
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
         num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
         feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
         display_date => sub {

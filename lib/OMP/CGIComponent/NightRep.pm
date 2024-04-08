@@ -33,7 +33,6 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::ObslogDB;
 use OMP::ProjDB;
-use OMP::ProjServer;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::Error qw/:try/;
@@ -507,12 +506,13 @@ sub store_time_accounting {
             # If the project was added by the user, verify that it exists and
             # is enabled.
             if ($entry->{'user_added'}) {
-                unless (OMP::ProjServer->verifyProject($proj)) {
+                my $projdb = OMP::ProjDB->new(DB => $self->database, ProjectID => $proj);
+                unless ($projdb->verifyProject()) {
                     push @errors, sprintf 'Project %s does not exist.', $proj;
                     next;
                 }
 
-                my $p = OMP::ProjServer->projectDetails($proj, 'object');
+                my $p = $projdb->projectDetails('object');
                 unless ($p->state) {
                     push @errors, sprintf 'Project %s exists but is disabled.', $proj;
                     next;

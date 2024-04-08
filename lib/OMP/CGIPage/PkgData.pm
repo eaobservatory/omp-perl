@@ -89,6 +89,7 @@ sub request_data {
         my $error;
         try {
             $pkg = OMP::PackageData->new(
+                DB => $self->database,
                 ADB => $arcdb,
                 utdate => $utdate,
                 projectid => $projectid,

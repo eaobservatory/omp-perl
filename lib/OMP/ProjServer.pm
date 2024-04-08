@@ -4,10 +4,6 @@ package OMP::ProjServer;
 
 OMP::ProjServer - Project information Server class
 
-=head1 SYNOPSIS
-
-    $xmlsummary = OMP::ProjServer->summary("open");
-
 =head1 DESCRIPTION
 
 This class provides the public server interface for the OMP Project
@@ -39,99 +35,6 @@ our $VERSION = '2.000';
 =head1 METHODS
 
 =over 4
-
-=item B<projectDetails>
-
-Return the details of a single project. The summary is returned as a
-data structure (a reference to a hash), as an C<OMP::Project> object
-or as XML.
-
-    $href = OMP::ProjServer->projectDetails($project, 'data');
-    $xml = OMP::ProjServer->projectDetails($project, 'xml');
-    $obj = OMP::ProjServer->projectDetails($project, 'object');
-
-Note that this may cause problems for a strongly typed language.
-
-The default is to return XML since that is a simple string.
-
-=cut
-
-sub projectDetails {
-    my $class = shift;
-    my $projectid = shift;
-    my $mode = lc(shift);
-    $mode ||= 'xml';
-
-    OMP::General->log_message("ProjServer::projectDetails: $projectid\n");
-
-    my $E;
-    my $summary;
-    try {
-        my $db = OMP::ProjDB->new(
-            ProjectID => $projectid,
-            DB => $class->dbConnection);
-
-        $summary = $db->projectDetails($mode);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    return $summary;
-}
-
-=item B<verifyProject>
-
-Verify that the specified project is active and present in the
-database.
-
-    $result = OMP::ProjServer->verifyProject($projectid);
-
-Returns true or false.
-
-=cut
-
-sub verifyProject {
-    my $class = shift;
-
-    my $projectid = shift;
-    OMP::General->log_message("ProjServer::verifyProject: $projectid\n");
-
-    my $there;
-    my $E;
-    try {
-        my $db = OMP::ProjDB->new(
-            ProjectID => $projectid,
-            DB => $class->dbConnection);
-
-        $there = $db->verifyProject();
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    return $there;
-}
 
 =item B<addProject>
 

@@ -25,7 +25,6 @@ BEGIN {
 }
 
 use OMP::SpServer;
-use OMP::ProjServer;
 use OMP::Error qw/:try/;
 use OMP::Constants qw/:status/;
 use OMP::Password;

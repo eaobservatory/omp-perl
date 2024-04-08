@@ -1406,7 +1406,7 @@ sub _get_time_summary_shift {
     for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        my $details = OMP::ProjServer->projectDetails($proj, "object");
+        my $details = OMP::ProjDB->new(DB => $self->db, ProjectID => $proj)->projectDetails("object");
 
         push @{$proj_by_country{$details->country}}, $proj;
     }

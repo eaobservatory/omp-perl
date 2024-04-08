@@ -36,7 +36,6 @@ use OMP::MSBDB;
 use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
-use OMP::ProjServer;
 use OMP::ProjQuery;
 use OMP::TimeAcctDB;
 use OMP::SiteQuality;
@@ -83,7 +82,7 @@ sub fb_fault_content {
     }
 
     return {
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
         fault_list => $faultcomp->show_faults(
             faults => \@faults,
             descending => 0,
@@ -238,7 +237,7 @@ sub project_home {
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
 
     # Get the project details
-    my $project = OMP::ProjServer->projectDetails($projectid, 'object');
+    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object');
 
     # Get nights for which data was taken
     my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
@@ -454,8 +453,13 @@ sub project_users {
 
     my $q = $self->cgi;
 
+    my $db = OMP::ProjDB->new(
+        ProjectID => $projectid,
+        DB => $self->database,
+    );
+
     # Get the project info
-    my $project = OMP::ProjServer->projectDetails($projectid, 'object');
+    my $project = $db->projectDetails('object');
 
     # Get contacts
     my @contacts = $project->investigators;
@@ -488,11 +492,6 @@ sub project_users {
 
         # Store user contactable info to database (have to actually store
         # entire project back to database)
-        my $db = OMP::ProjDB->new(
-            ProjectID => $projectid,
-            DB => $self->database,
-        );
-
         my $error = undef;
         try {
             $db->updateContactability(\%new_contactable);

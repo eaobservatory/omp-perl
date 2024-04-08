@@ -100,6 +100,7 @@ BEGIN {
 use lib OMPLIB;
 use OMP::DB::Backend;
 use OMP::NightRep;
+use OMP::ProjDB;
 use Time::Seconds;
 use Time::Piece;
 use Getopt::Long;
@@ -319,7 +320,7 @@ while ($ut <= $endut) {
     $total_proj += $account->{total}->hours;
 
     # Get project details instead
-    my $details = OMP::ProjServer->projectDetails($proj, "object");
+    my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails("object");
 
     my $country = $details->country;
     if ( $country =~ /ec/i ) {
