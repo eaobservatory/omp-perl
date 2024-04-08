@@ -111,12 +111,10 @@ BEGIN {
 # and the OCS Config classes.
 use JAC::Setup qw/ocsq ocscfg/;
 
-# Load the servers (but use them locally without SOAP)
-use OMP::TransServer;
-
-# Need config system
 use OMP::Config;
 use OMP::Error qw/:try/;
+use OMP::SciProg;
+use OMP::Translator;
 
 # Options
 my ($help, $man, $debug, $cwd, $tempdir, $old,
@@ -214,7 +212,7 @@ my $xml;
 
 }
 
-my $filename = OMP::TransServer->translate($xml, {
+my $filename = translate($xml, {
     simulate => $sim,
     log => $log,
 });
@@ -224,6 +222,36 @@ die "Nothing was translated. Was the science program empty?"
 
 # convert the filename to an absolute path
 print File::Spec->rel2abs($filename) . "\n";
+
+# Translate the specified Science Program into a form understandable by
+# the observing system.
+#
+# Returns a filename suitable for passing to the queue or the Query Tool,
+# not the translated configurations themselves.
+#
+# Only works for JCMT translations. The UKIRT translator is written
+# in Java and part of the OT software package.
+#
+# Supported options are:
+#
+#     simulate - Run the translator for simulated configurations
+
+sub translate {
+    my $xml = shift;
+    my $opts = shift;
+
+    # in some cases the msb attribute of SpObs is incorrect from the QT
+    # so we need to fudge it here if we have no SpMSB
+    if ($xml !~ /<SpMSB>/) {
+        my $old = 'msb="false"';
+        my $new = 'msb="true"';
+        $xml =~ s/$old/$new/;
+    }
+
+    # Convert to science program
+    my $sp = OMP::SciProg->new(XML => $xml);
+    return OMP::Translator->translate($sp, %$opts);
+}
 
 __END__
 
