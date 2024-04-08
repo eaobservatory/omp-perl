@@ -18,13 +18,16 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::UserDB;
+
+my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
 for my $userid (<>) {
     chomp($userid);
     next unless $userid =~ /\w/;
     $userid =~ s/\s+//;
-    my $user = OMP::UserServer->getUser($userid);
+    my $user = $udb->getUser($userid);
     next unless defined $user;
     print $user->as_email_hdr() . "\n" if defined $user->email();
 }

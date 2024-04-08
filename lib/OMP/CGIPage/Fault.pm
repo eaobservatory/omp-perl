@@ -41,7 +41,7 @@ use OMP::Display;
 use OMP::FaultQuery;
 use OMP::Fault::Response;
 use OMP::User;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIPage/;
@@ -302,7 +302,7 @@ sub query_fault_output {
 
             # Get the user object (this will automatically
             # map the an alias to a user ID)
-            my $user = OMP::UserServer->getUser($author);
+            my $user = OMP::UserDB->new(DB => $self->database)->getUser($author);
 
             croak "Could not find user '$author'"
                 unless $user;

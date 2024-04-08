@@ -178,7 +178,7 @@ use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::SiteQuality;
 use OMP::Password;
-use OMP::UserServer;
+use OMP::UserDB;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -458,7 +458,7 @@ for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
 # returns a list of unverified users. C<OMP::Error> exceptions are caught &
 # saved for later display elsewhere.
 #
-# OMP::UserServer->addProject throws exceptions for each user one at a time.  So
+# OMP::ProjServer->addProject throws exceptions for each user one at a time.  So
 # user id verification is also done for all the user ids related to a project in
 # one go.
 sub unverified_users {
@@ -467,11 +467,13 @@ sub unverified_users {
     # For reference, see C<OMP::ProjServer->addProject()>.
     my $id_sep = qr/[,:]+/;
 
+    my $udb = OMP::UserDB->new(DB => $db);
+
     my @user;
     for my $user (map {$_ ? split /$id_sep/, $_ : ()} @list) {
         try {
             push @user, $user
-                unless OMP::UserServer->verifyUser($user);
+                unless $udb->verifyUser($user);
         }
         catch OMP::Error with {
             my $E = shift;

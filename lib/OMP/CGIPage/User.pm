@@ -31,7 +31,6 @@ use OMP::ProjDB;
 use OMP::User;
 use OMP::UserDB;
 use OMP::UserQuery;
-use OMP::UserServer;
 
 use base qw/OMP::CGIPage/;
 
@@ -61,7 +60,8 @@ sub details {
     my $user;
     my $E = undef;
     try {
-        $user = OMP::UserServer->getUser($userid);
+        my $udb = OMP::UserDB->new(DB => $self->database);
+        $user = $udb->getUser($userid);
     }
     otherwise {
         $E = shift;
@@ -217,7 +217,8 @@ sub edit_details {
 
     my $userid = $self->decoded_url_param("user");
 
-    my $user = OMP::UserServer->getUser($userid);
+    my $udb = OMP::UserDB->new(DB => $self->database);
+    my $user = $udb->getUser($userid);
 
     unless (defined $user) {
         return $self->_write_error("User [$userid] does not exist in the database.");
@@ -319,7 +320,7 @@ sub edit_details {
             # Store changes
             if ($changed) {
                 try {
-                    OMP::UserDB->new(DB => $self->database)->updateUser($user);
+                    $udb->updateUser($user);
                 }
                 otherwise {
                     my $E = shift;
@@ -396,7 +397,9 @@ sub _add_user_try {
     return 'User ID is not valid.'
         unless $userid =~ /^[A-Z]+[0-9]*$/;
 
-    my $user = OMP::UserServer->getUser($userid);
+    my $udb = OMP::UserDB->new(DB => $self->database);
+
+    my $user = $udb->getUser($userid);
     return 'User ID already exists.'
         if defined $user;
 
@@ -424,7 +427,7 @@ sub _add_user_try {
     my $message = undef;
 
     try {
-        OMP::UserDB->new(DB => $self->database)->addUser($omp_user);
+        $udb->addUser($omp_user);
     } otherwise {
         my $E = shift;
         $message = 'Unable to add user: ' . $E;

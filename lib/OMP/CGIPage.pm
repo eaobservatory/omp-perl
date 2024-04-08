@@ -51,7 +51,6 @@ use OMP::FaultDB;
 use OMP::General;
 use OMP::NetTools;
 use OMP::Password;
-use OMP::UserServer;
 
 our $VERSION = '2.000';
 

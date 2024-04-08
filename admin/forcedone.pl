@@ -44,13 +44,14 @@ use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::Constants qw/:done/;
 
 # Connect to database
 my $dbb = OMP::DB::Backend->new();
 my $msbdb = OMP::MSBDB->new(DB => $dbb);
 my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
+my $userdb = OMP::UserDB->new(DB => $dbb);
 
 # Loop over info for modification
 for my $line (<>) {
@@ -60,7 +61,7 @@ for my $line (<>) {
     my ($date, $proj, $checksum, $accept, $user, $comment) = split /,/, $line;
 
     $date = OMP::DateTools->parse_date($date);
-    $user = OMP::UserServer->getUser($user);
+    $user = $userdb->getUser($user);
 
     my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED);
 

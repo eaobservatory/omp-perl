@@ -90,7 +90,6 @@ use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
 use OMP::FeedbackDB;
 use OMP::Password;
-use OMP::UserServer;
 use OMP::ProjServer;
 
 our $VERSION = '2.000';

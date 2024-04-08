@@ -63,7 +63,8 @@ use POSIX qw/ /;
 #   circular dependency with OMP::NetTools such that determine_host must be
 #   defined before OMP::Config BEGIN block can trigger
 require OMP::Config;
-require OMP::UserServer;
+require OMP::DB::Backend;
+require OMP::UserDB;
 
 our $VERSION = '2.000';
 
@@ -406,9 +407,11 @@ sub determine_user {
     my $class = shift;
     my $w = shift;
 
+    my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+
     my $user;
     if (exists $ENV{USER}) {
-        $user = OMP::UserServer->getUser($ENV{USER});
+        $user = $udb->getUser($ENV{USER});
     }
 
     unless ($user) {
@@ -435,7 +438,7 @@ sub determine_user {
 
                     # Catch any errors that might pop up.
                     try {
-                        $user = OMP::UserServer->getUser($id);
+                        $user = $udb->getUser($id);
                     }
                     catch OMP::Error with {
                         my $Error = shift;

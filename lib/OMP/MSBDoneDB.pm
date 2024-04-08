@@ -52,7 +52,7 @@ use OMP::Error qw/:try/;
 use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::MSBDoneQuery;
 use OMP::DateTools;
 use OMP::General;

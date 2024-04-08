@@ -29,7 +29,7 @@ use OMP::Config;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FeedbackDB;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::DateTools;
 use OMP::General;
 use OMP::MSBDB;
@@ -971,7 +971,7 @@ sub update_users {
 
     return if _match_string($old_id, join ',', @userid);
 
-    my @user = map {_make_user($_)} @userid;
+    my @user = map {$self->_make_user($_)} @userid;
 
     if ($type eq 'pi') {
         # The "pi" method only accepts a single user (first argument) so pass
@@ -994,6 +994,7 @@ sub update_users {
 }
 
 sub _make_user {
+    my $self = shift;
     my ($userid) = @_;
 
     return unless $userid;
@@ -1001,7 +1002,7 @@ sub _make_user {
     my $affiliation;
     ($userid, $affiliation) = split ':', $userid, 2;
 
-    my $user = OMP::UserServer->getUser($userid)
+    my $user = OMP::UserDB->new(DB => $self->database)->getUser($userid)
         or throw OMP::Error "Unknown user ID given: $userid";
 
     if (defined $affiliation) {

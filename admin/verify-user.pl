@@ -14,7 +14,8 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::UserDB;
 
 my $SEP_IN = '[;,]+';
 my $SEP_OUT = ' ; ';
@@ -25,6 +26,8 @@ my $INDENT_3 = join '', (' ') x 6;
 
 my @file = @ARGV
     or die qq[Give user data in a CSV file to be verified.\n];
+
+my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
 for my $file (@file) {
     print "Processing $file ...\n";
@@ -68,7 +71,7 @@ sub decompose_user {
 sub verify {
     my ($name, $id, $email) = @_;
 
-    return OMP::UserServer->getUserExpensive(
+    return $udb->getUserExpensive(
         'name' => $name,
         'email' => $email,
         'userid' => $id,

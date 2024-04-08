@@ -89,7 +89,7 @@ use OMP::DB::Backend::Archive;
 use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
-use OMP::UserServer;
+use OMP::UserDB;
 use OMP::ProjDB;
 use OMP::Constants qw/:done/;
 
@@ -437,7 +437,8 @@ if (@missing) {
         $uid = $default if !$uid;
 
         # Validate the user id
-        my $validated = OMP::UserServer->getUser($uid);
+        my $udb = OMP::UserDB->new(DB => $dbb);
+        my $validated = $udb->getUser($uid);
         die "User '$uid' does not validate. Aborting.\n"
             unless defined $validated;
 

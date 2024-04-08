@@ -27,7 +27,8 @@ use strict;
 use warnings;
 use Carp;
 use Unicode::Normalize qw/normalize/;
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::UserDB;
 
 # Overloading
 use overload '""' => "stringify",
@@ -592,7 +593,7 @@ Returns true or false.
 
 sub verify {
     my $self = shift;
-    return OMP::UserServer->verifyUser($self->userid);
+    return OMP::UserDB->new(DB => OMP::DB::Backend->new)->verifyUser($self->userid);
 }
 
 =item B<domain>

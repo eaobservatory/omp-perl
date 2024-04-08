@@ -34,7 +34,6 @@ use OMP::FaultDB;
 use OMP::FaultGroup;
 use OMP::FaultUtil;
 use OMP::MSBServer;
-use OMP::UserServer;
 
 use base qw/OMP::CGIComponent/;
 

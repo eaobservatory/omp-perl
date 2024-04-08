@@ -38,9 +38,12 @@ BEGIN {
 }
 
 use Config::IniFiles;
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::UserDB;
 use Data::Dumper;
 use IO::File;
+
+my $userdb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
 
 # hard-wire for testing
 my $file = 'data/alloc04a_ukirt.ini';
@@ -68,10 +71,10 @@ for my $proj (keys %alloc) {
 # print out all the users and the frequency
 for (sort keys %users) {
     # Check if the user is in the database already
-    my $isthere = OMP::UserServer->verifyUser($_);
+    my $isthere = $userdb->verifyUser($_);
     my $string;
     if ($isthere) {
-        my $user = OMP::UserServer->getUser($_);
+        my $user = $userdb->getUser($_);
         $string = "In database as $user" . ":" . $user->email;
     }
     else {
@@ -79,7 +82,7 @@ for (sort keys %users) {
     }
 
     print "$_ [$users{$_}]\t$string\n";
-    my $user = OMP::UserServer->getUser($_);
+    my $user = $userdb->getUser($_);
     next unless $user;
     print "$_," . $user->name . "," . $user->email . "\n";
 }

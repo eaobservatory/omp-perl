@@ -32,13 +32,14 @@ use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::ProjDB;
 use OMP::ProjServer;
-use OMP::UserServer;
+use OMP::UserDB;
 
 #  Known user roles for a project.
 my @roles = map {uc $_} qw/coi pi support/;
 
 my $db = OMP::DB::Backend->new;
 my $projdb = OMP::ProjDB->new(DB => $db);
+my $userdb = OMP::UserDB->new(DB => $db);
 
 for my $file (@ARGV) {
     my %file = process_file($file);
@@ -107,7 +108,7 @@ sub verify_user {
 
     my $ok;
     try {
-        $ok = OMP::UserServer->verifyUser($user);
+        $ok = $userdb->verifyUser($user);
     }
     catch OMP::Error with {
         my $err = shift;

@@ -61,7 +61,6 @@ use OMP::ProjDB;
 use OMP::Project;
 use OMP::ProjServer;
 use OMP::User;
-use OMP::UserServer;
 use OMP::Password;
 
 my $force = 0;
