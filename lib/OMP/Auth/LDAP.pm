@@ -61,18 +61,18 @@ sub log_in_userpass {
         if $mess->code;
 
     my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
-    my @result = $db->queryUsers(OMP::UserQuery->new(HASH => {
+    my $result = $db->queryUsers(OMP::UserQuery->new(HASH => {
         alias => $username,
         obfuscated => {boolean => 0},
     }));
 
     throw OMP::Error::Authentication('Could not find an OMP alias associated with your account.')
-        unless @result;
+        unless @$result;
 
     throw OMP::Error::Authentication('Multiple OMP aliases were found for your account!')
-        if 1 < scalar @result;
+        if 1 < scalar @$result;
 
-    my $result = $result[0];
+    $result = $result->[0];
     $result->is_staff(1);
     return {user => $result};
 }

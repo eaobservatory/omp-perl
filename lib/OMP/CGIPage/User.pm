@@ -30,6 +30,7 @@ use OMP::General;
 use OMP::ProjDB;
 use OMP::User;
 use OMP::UserDB;
+use OMP::UserQuery;
 use OMP::UserServer;
 
 use base qw/OMP::CGIPage/;
@@ -185,10 +186,10 @@ sub list_users {
 
     my $q = $self->cgi;
 
-    my $users = OMP::UserServer->queryUsers(
-        "<UserQuery><obfuscated>0</obfuscated></UserQuery>");
-
-    my $rowclass = 'row_shaded';
+    my $udb = OMP::UserDB->new(DB => $self->database);
+    my $users = $udb->queryUsers(OMP::UserQuery->new(HASH => {
+        obfuscated => {boolean => 0},
+    }));
 
     # Set up list of initials
     my %hashTemp = map {uc substr($_->userid, 0, 1) => 1} @$users;

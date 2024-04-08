@@ -203,63 +203,6 @@ sub getUserExpensive {
     return @user;
 }
 
-=item B<queryUsers>
-
-Query the user database using an XML representation of the query.
-
-    $users = OMP::UserServer->queryUsers($userid, $format);
-
-See C<OMP::UserQuery> for more details on the format of the XML query.
-A typical query could be:
-
-    <UserQuery>
-        <userid>AJA</userid>
-        <userid>TIMJ</userid>
-    </UserQuery>
-
-This would return the user information for TIMJ and AJA.
-
-The format of the returned data is controlled by the last argument.
-This can either be "object" (a reference to an array containing
-C<OMP::User> objects), "hash" (reference to an array of hashes), or
-"xml" (return data as XML document).
-
-I<Currently only "object" is implemented>.
-
-=cut
-
-sub queryUsers {
-    my $class = shift;
-    my $xmlquery = shift;
-    my $mode = lc(shift);
-    $mode = "object" unless $mode;
-
-    my @users;
-    my $E;
-    try {
-        my $query = OMP::UserQuery->new(XML => $xmlquery);
-
-        my $db = OMP::UserDB->new(DB => $class->dbConnection);
-
-        @users = $db->queryUsers($query);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    return \@users;
-}
-
 1;
 
 __END__

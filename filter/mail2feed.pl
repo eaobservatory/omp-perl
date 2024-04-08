@@ -60,7 +60,8 @@ use OMP::FeedbackDB;
 use OMP::Mail;
 use OMP::General;
 use OMP::User;
-use OMP::UserServer;
+use OMP::UserDB;
+use OMP::UserQuery;
 
 our $VERSION = '0.003';
 
@@ -158,6 +159,7 @@ sub accept_message {
     my $args = shift;
 
     my $database = OMP::DB::Backend->new();
+    my $udb = OMP::UserDB->new(DB => $database);
 
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
@@ -188,8 +190,9 @@ sub accept_message {
     # the OMP user ID from the name therefore sometimes identifies
     # the wrong user.  See fault 20140717.002.
     if ($email) {
-        my $query = "<UserQuery><email>$email</email></UserQuery>";
-        my $users = OMP::UserServer->queryUsers($query, 'object');
+        my $users = $udb->queryUsers(OMP::UserQuery->new(HASH => {
+            email => $email,
+        }));
 
         if ($users->[0]) {
             $author = $users->[0];
@@ -203,7 +206,7 @@ sub accept_message {
     if ((not $author) and $author_guess) {
         my $userid = $author_guess->userid;
 
-        $author = OMP::UserServer->getUser($userid);
+        $author = $udb->getUser($userid);
     }
 
     if ($author) {

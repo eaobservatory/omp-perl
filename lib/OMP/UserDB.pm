@@ -179,25 +179,23 @@ sub getUser {
     return undef unless $username;
 
     # Create a query string
-    my $xml = "<UserQuery><userid>$username</userid></UserQuery>";
-    my $query = OMP::UserQuery->new(XML => $xml);
+    my $query = OMP::UserQuery->new(HASH => {userid => $username});
 
-    my @result = $self->queryUsers($query);
+    my $result = $self->queryUsers($query);
 
     # If our query didn't match any user IDs try matching to an alias
-    unless (@result) {
-        $xml = "<UserQuery><alias>$username</alias></UserQuery>";
-        $query = OMP::UserQuery->new(XML => $xml);
-        @result = $self->queryUsers($query);
+    unless (@$result) {
+        $query = OMP::UserQuery->new(HASH => {alias => $username});
+        $result = $self->queryUsers($query);
     }
 
-    if (scalar(@result) > 1) {
+    if (scalar(@$result) > 1) {
         throw OMP::Error::FatalError(
             "Multiple users match the supplied id [$username] - this is not possible [bizarre]");
     }
 
     # Guaranteed to be only one match
-    return $result[0];
+    return $result->[0];
 }
 
 =item B<getUserMultiple>
@@ -219,12 +217,8 @@ sub getUserMultiple {
     return {} unless @$usernames;
 
     return {
-        map {$_->userid => $_} $self->queryUsers(
-            OMP::UserQuery->new(XML => join '',
-                '<UserQuery>',
-                (map {'<userid>' . $_ . '</userid>'} @$usernames),
-                '</UserQuery>'
-            ))
+        map {$_->userid => $_} @{$self->queryUsers(
+            OMP::UserQuery->new(HASH => {userid => $usernames}))}
     };
 }
 
@@ -280,7 +274,7 @@ sub getUserExpensive {
 Query the user database table and retrieve the matching user objects.
 Queries must be supplied as C<OMP::UserQuery> objects.
 
-    @users = $db->queryUsers($query);
+    $users = $db->queryUsers($query);
 
 =cut
 
@@ -363,14 +357,13 @@ sub inferValidUser {
     }
 
     # Could not find a match, look for an exact match on email
-    my $xml = "<UserQuery><email>" . $guess->email . "</email></UserQuery>";
-    my $query = OMP::UserQuery->new(XML => $xml);
+    my $query = OMP::UserQuery->new(HASH => {email => $guess->email});
 
-    my @result = $self->queryUsers($query);
+    my $result = $self->queryUsers($query);
 
     # hopefully we have only 1 match
-    if (@result) {
-        return $result[0];
+    if (@$result) {
+        return $result->[0];
     }
     else {
         return;
@@ -446,7 +439,7 @@ sub _update_user {
 
 Query the user database table.
 
-    @results = $db->_query_userdb($query);
+    $results = $db->_query_userdb($query);
 
 Query must be an C<OMP::UserQuery> object.
 
@@ -466,11 +459,11 @@ sub _query_userdb {
     _convert_columns($ref);
 
     # Return the object equivalents
-    return map {
+    return [map {
         $_->{email} = undef
             if (defined $_->{email} && length($_->{email}) eq 0);
         OMP::User->new(%$_)
-    } @$ref;
+    } @$ref];
 }
 
 =item B<_query_userdb_expensive>
