@@ -235,6 +235,7 @@ sub project_home {
     my $projectid = shift;
 
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
+    my $msbdb = OMP::MSBDB->new(DB => $self->database);
 
     # Get the project details
     my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
@@ -270,7 +271,7 @@ sub project_home {
     my $cannot_retrieve;
     try {
         my @noretrieve = OMP::Config->getData("unretrievable", telescope => $project->telescope);
-        my $projinst = OMP::SpServer->programInstruments(${projectid});
+        my $projinst = $msbdb->getInstruments(${projectid});
 
         # See if the instrument in the project are listed in noretrieve
         my %inproj = map {(uc($_), undef)}

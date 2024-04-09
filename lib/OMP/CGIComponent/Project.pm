@@ -119,12 +119,14 @@ sub proj_sum_table {
     my $headings = shift;
 
     # Count msbs for each project
+    my $msbdb = OMP::MSBDB->new(DB => $self->database);
+
     my $proj_msbcount = {};
     my $proj_instruments = {};
     try {
         my @projectids = map {$_->projectid} @$projects;
         $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
-        $proj_instruments = OMP::SpServer->programInstruments(@projectids);
+        $proj_instruments = $msbdb->getInstruments(@projectids);
     }
     catch OMP::Error with {
     }
