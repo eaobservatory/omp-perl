@@ -80,8 +80,9 @@ my $db = OMP::DB::Backend->new();
 foreach my $query (@queries) {
     foreach my $phrase (@query_phrases) {
         # Report name (used as part of file name).
-        my $name = join('_', (map {ref $query->{$_} ? 'MULTIPLE' : $query->{$_}}
-                                  sort keys %$query), $phrase);
+        my $name = join '_',
+            (map {ref $query->{$_} ? 'MULTIPLE' : $query->{$_}} sort keys %$query),
+            $phrase;
 
         # Query hash.
         my %hash = (
