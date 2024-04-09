@@ -107,7 +107,7 @@ sub print_reporting_breakdown {
 
         # No determine_country method exists, so we'll get project
         # details instead
-        my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails("object");
+        my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails();
 
         my $country = $details->country;
         #countrylist .= " $country" if ($country !~ /$countrylist/);

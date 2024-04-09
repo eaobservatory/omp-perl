@@ -202,7 +202,7 @@ my $projdb = OMP::ProjDB->new(DB => $backend,);
 
 for my $p (keys %projects) {
     $projdb->projectid($p);
-    my $proj = $projdb->projectDetails('object');
+    my $proj = $projdb->projectDetails();
     $projects{$p}{'info'} = $proj;
 }
 

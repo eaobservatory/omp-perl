@@ -512,7 +512,7 @@ sub store_time_accounting {
                     next;
                 }
 
-                my $p = $projdb->projectDetails('object');
+                my $p = $projdb->projectDetails();
                 unless ($p->state) {
                     push @errors, sprintf 'Project %s exists but is disabled.', $proj;
                     next;

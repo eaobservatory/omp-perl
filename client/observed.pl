@@ -163,7 +163,7 @@ for my $proj (keys %sorted) {
 
     _log_message("Getting project details for $proj");
 
-    my $proj_details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails('object');
+    my $proj_details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails();
 
     _log_err($!);
 

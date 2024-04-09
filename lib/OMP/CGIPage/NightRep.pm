@@ -330,7 +330,7 @@ sub projlog_content {
     # Get a project object for this project
     my $proj;
     try {
-        $proj = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object');
+        $proj = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
     }
     otherwise {
         my $E = shift;

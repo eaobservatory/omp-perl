@@ -614,7 +614,7 @@ sub _populate {
 
     # Need to get the telescope associated with this project
     # Should ObsGroup do this???
-    my $proj = OMP::ProjDB->new(DB => $self->db, ProjectID => $self->projectid)->projectDetails('object');
+    my $proj = OMP::ProjDB->new(DB => $self->db, ProjectID => $self->projectid)->projectDetails();
 
     my $tel = $proj->telescope;
 
@@ -1037,7 +1037,7 @@ sub add_fb_comment {
     my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
 
     # Get project PI name for inclusion in feedback message
-    my $project = OMP::ProjDB->new(DB => $self->db, ProjectID => $projectid)->projectDetails('object');
+    my $project = OMP::ProjDB->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
     my $pi = $project->pi;
 
     my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->db);

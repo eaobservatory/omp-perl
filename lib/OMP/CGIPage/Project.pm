@@ -82,7 +82,7 @@ sub fb_fault_content {
     }
 
     return {
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         fault_list => $faultcomp->show_faults(
             faults => \@faults,
             descending => 0,
@@ -237,7 +237,7 @@ sub project_home {
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
 
     # Get the project details
-    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object');
+    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
 
     # Get nights for which data was taken
     my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
@@ -459,7 +459,7 @@ sub project_users {
     );
 
     # Get the project info
-    my $project = $db->projectDetails('object');
+    my $project = $db->projectDetails();
 
     # Get contacts
     my @contacts = $project->investigators;
@@ -563,7 +563,7 @@ sub support {
     my $project;
     my $E;
     try {
-        $project = $projdb->projectDetails("object");
+        $project = $projdb->projectDetails();
     }
     catch OMP::Error with {
         $E = shift;

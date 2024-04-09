@@ -94,7 +94,7 @@ sub fb_msb_output {
     }
 
     return {
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         num_comments => $fbcomp->fb_entries_count($projectid),
         target => $self->url_absolute(),
         prog_info => $prog_info,
@@ -174,7 +174,7 @@ sub msb_hist {
     return {
         target => $self->url_absolute(),
         target_base => $q->url(-absolute => 1),
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         msb_info => $msb_info,
         values => {
             show => $show,

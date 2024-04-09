@@ -319,7 +319,7 @@ while ($ut <= $endut) {
     $total_proj += $account->{total}->hours;
 
     # Get project details instead
-    my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails("object");
+    my $details = OMP::ProjDB->new(DB => $db, ProjectID => $proj)->projectDetails();
 
     my $country = $details->country;
     if ( $country =~ /ec/i ) {

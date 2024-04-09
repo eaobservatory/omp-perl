@@ -51,7 +51,7 @@ sub add_comment {
 
     my $comp = OMP::CGIComponent::Feedback->new(page => $self);
 
-    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object');
+    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
 
     if ($q->param('submit_add')) {
         return {
@@ -108,7 +108,7 @@ sub fb_output {
 
     return {
         target => $self->url_absolute(),
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails('object'),
+        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
         feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
         display_date => sub {

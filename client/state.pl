@@ -111,7 +111,7 @@ for my $id (split(',', $idstr)) {
     my $projdb = OMP::ProjDB->new(ProjectID => $id, DB => $dbconnection);
 
     # Get project
-    my $proj = $projdb->projectDetails('object');
+    my $proj = $projdb->projectDetails();
 
     # Display project state
     print "Project " . $proj->projectid . " is currently "

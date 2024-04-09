@@ -620,7 +620,7 @@ sub fetchMSB {
         DB => $self->db,
         ProjectID => $sp->projectID,
     );
-    my $pobj = $projdb->projectDetails('object');
+    my $pobj = $projdb->projectDetails();
 
     $msb->addFITStoObs($pobj);
 
@@ -1300,7 +1300,7 @@ sub getSubmitted {
             DB => $self->db,
             ProjectID => $projectid);
 
-        my $obj = $projdb->projectDetails('object');
+        my $obj = $projdb->projectDetails();
         push @projects, $obj;
     }
 
