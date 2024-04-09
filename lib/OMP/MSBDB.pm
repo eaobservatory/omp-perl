@@ -54,6 +54,7 @@ use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
+use OMP::MSBQuery;
 use OMP::TLEDB;
 use OMP::User;
 
