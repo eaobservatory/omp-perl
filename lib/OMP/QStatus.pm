@@ -174,7 +174,7 @@ sub query_queue_status {
         my $query = OMP::MSBQuery->new(
             XML => (sprintf $query_format, $refdate->datetime()));
 
-        my @results = $db->queryMSB($query, 'object');
+        my @results = $db->queryMSB($query);
 
         for my $msb (@results) {
             my $p = $msb->projectid();

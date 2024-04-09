@@ -647,15 +647,8 @@ Query the database for the MSBs that match the supplied query.
 
     @results = $db->queryMSB($query);
 
-The query is represented by an C<OMP::MSBQuery> object.  By default
-the result is returned as an array of XML strings. Alternative formats
-are those supported by C<OMP::Info::MSB::summary> with the caveat that
-the results are returned in an array where each msb summary is
-executed in scalar context. A special option of 'object' will cause
-the results to be returned directly as an array of C<OMP::Info::MSB>
-objects.
-
-    @results = $db->queryMSB($query, $format);
+The query is represented by an C<OMP::MSBQuery> object.  The result is
+returned as an array of C<OMP::Info::MSB> objects.
 
 The results are actually summaries of the table entries rather than
 direct summaries of MSBs. It is assumed that the table contains
@@ -667,31 +660,12 @@ no need to open each science program to obtain more information.
 sub queryMSB {
     my $self = shift;
     my $query = shift;
-    my $format = shift;
-    $format ||= 'xmlshort';
 
     # Run the query and obtain an array of hashes in order up to
     # the maximum number
     my @results = $self->_run_query($query);
 
-    return @results if $format eq 'object';
-
-    # Now go through the hash and translate it to an XML string
-    # This assumes that the database table contains everything
-    # we need for a summary (ie we don't want to have to open
-    # up the science programs to get extra information)
-    # We also will need to fix the order at some point since the
-    # QT will probably be relying on it for display
-    # Use the OMP::MSB code to generate an MSBSummary
-    # (since that is the code used to generate the table entry)
-    my $t0 = [gettimeofday];
-    my @xml = map {scalar($_->summary($format))} @results;
-
-    OMP::General->log_message(
-        "Reformatting to XML: " . tv_interval($t0) . " seconds\n",
-        OMP__LOG_DEBUG);
-
-    return @xml;
+    return @results;
 }
 
 =item B<doneMSB>
@@ -1351,7 +1325,7 @@ sub getMSBtitle {
     # value
     my $xml = "<MSBQuery><checksum>$checksum</checksum><disableconstraint>all</disableconstraint></MSBQuery>";
     my $query = OMP::MSBQuery->new(XML => $xml);
-    my @results = $self->queryMSB($query, 'object');
+    my @results = $self->queryMSB($query);
     if (@results) {
         return $results[0]->title;
     }

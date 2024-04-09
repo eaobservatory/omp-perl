@@ -224,7 +224,7 @@ sub scan_for_msbs {
         OMP::General->log_message("override_alert.pl: $query");
 
         my $mdb = OMP::MSBDB->new(DB => $db);
-        @results = $mdb->queryMSB($query, 'object');
+        @results = $mdb->queryMSB($query);
     }
     catch OMP::Error with {
         $E = shift;

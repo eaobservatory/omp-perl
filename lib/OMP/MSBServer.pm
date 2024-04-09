@@ -7,7 +7,7 @@ OMP::MSBServer - OMP MSB Server class
 =head1 SYNOPSIS
 
     $xml = OMP::MSBServer->fetchMSB($uniqueKey);
-    @results = OMP::MSBServer->queryMSB($xmlQuery, $max);
+    $xmlResults = OMP::MSBServer->queryMSB($xmlQuery, $max);
     OMP::MSBServer->doneMSB($project, $checksum);
 
 =head1 DESCRIPTION
@@ -360,7 +360,7 @@ sub queryMSB {
         my $tag = "QueryResult";
         my $xmlhead = '<?xml version="1.0" encoding="UTF-8"?>';
         $result = "$xmlhead\n<$tag>\n"
-            . join("\n", @results)
+            . join("\n", map {scalar $_->summary('xmlshort')} @results)
             . "\n</$tag>\n";
 
         OMP::General->log_message(

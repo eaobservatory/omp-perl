@@ -71,7 +71,7 @@ my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <disableconstraint>observability</disableconstraint>
   <disableconstraint>zoa</disableconstraint>
 </MSBQuery>');
-my @results = $msbdb->queryMSB($query, 'object');
+my @results = $msbdb->queryMSB($query);
 
 # Check that we have the correct set of MSBs, and store
 # their checksums for future reference.
@@ -172,7 +172,7 @@ sub set_field {
 # 3 tests per MSB if successful
 sub check_changed {
   my ($msbtitle) = @_;
-  my @results = $msbdb->queryMSB($query, 'object');
+  my @results = $msbdb->queryMSB($query);
   my %titles = map {$_ => 1} keys %prog;
 
   foreach my $msb (@results) {

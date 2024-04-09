@@ -88,7 +88,7 @@ my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <disableconstraint>observability</disableconstraint>
   <disableconstraint>zoa</disableconstraint>
 </MSBQuery>');
-my @results = $msbdb->queryMSB($query, 'object');
+my @results = $msbdb->queryMSB($query);
 #print Dumper(\@results); exit(0);
 
 my $obsid = undef;
@@ -185,7 +185,7 @@ sub do_msb {
 # Queries the database and compares the results with our table.
 # If successful, runs 2 tests per MSB remaining.
 sub compare_db {
-  @results = $msbdb->queryMSB($query, 'object');
+  @results = $msbdb->queryMSB($query);
 
   my %titles = map {$_ => 1} keys %prog;
 

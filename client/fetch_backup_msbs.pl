@@ -163,7 +163,7 @@ do {
             disableconstraint => [qw/remaining allocation observability zoa/],
             _attr => {projectid => {full => 1}},
         }, MaxCount => 10000);
-        my @results = $db->queryMSB($msbquery, 'object');
+        my @results = $db->queryMSB($msbquery);
 
         next unless scalar @results;
 
@@ -238,7 +238,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
                 my $db = OMP::MSBDB->new(DB => $backend);
                 my $msbquery = OMP::MSBQuery->new(HASH => \%hash);
-                my @results = $db->queryMSB($msbquery , 'object');
+                my @results = $db->queryMSB($msbquery);
 
                 next unless scalar @results;
 
