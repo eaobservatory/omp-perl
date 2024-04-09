@@ -339,7 +339,8 @@ for my $i (0 .. $#sorted_msbhdr) {
     # if we do not have a title for it we have to explicitly look in the database (since it
     # will not have been listed in the observedMSBs response)
     unless (exists $TITLES{$id}) {
-        my $missing = OMP::MSBServer->historyMSB($msb->{projectid}, $id, 'data');
+        my $msbdone = OMP::MSBDoneDB->new(DB => $dbb, ProjectID => $msb->{'projectid'});
+        my $missing = $msbdone->historyMSB($id);
         if (defined $missing) {
             $TITLES{$id} = $missing->title;
         }

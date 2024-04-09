@@ -12,7 +12,7 @@ OMP::MSBDoneDB - Manipulate MSB Done table
         ProjectID => 'm01bu05',
         DB => OMP::DB::Backend->new);
 
-    @output = OMP::MSBServer->historyMSB($checksum);
+    $output = $db->historyMSB($checksum);
     $db->addMSBcomment($checksum, $comment);
     @output = $db->observedMSBs($date, {'comments' => $allcomments});
     @output = $db->queryMSBdone($query, {'comments' => $allcomments});
@@ -75,16 +75,13 @@ Retrieve the observation history for the specified MSB (identified
 by checksum and project ID) or project.
 
     $msbinfo = $db->historyMSB($checksum);
-    @info = $db->historyMSB();
+    \@info = $db->historyMSB();
 
 The information is retrieved as an C<OMP::Info::MSB> object
 (with a checksum supplied) or an array of those objects.
 
 If the checksum is not supplied a full project observation history is
 returned (this is simply an array of MSB information objects).
-
-If no checksum is supplied, returns a list when called in an array
-context and a reference to an array when called in a scalar context.
 
 If a checksum is supplied, the first result will be returned,
 unless the project is also supplied, in which case an error is
@@ -105,21 +102,19 @@ sub historyMSB {
 
     throw OMP::Error::BadArgs(
         "Must supply either checksum or projectid to historyMSB")
-        if (! defined $checksum && ! defined $projectid);
+        unless (defined $checksum or defined $projectid);
 
-    my $xml = '<?xml version="1.0" encoding="UTF-8"?>'
-        . "\n<MSBDoneQuery>"
-        . ($checksum ? "<checksum>$checksum</checksum>" : "")
-        . ($projectid ? "<projectid>$projectid</projectid>" : "")
-        . "</MSBDoneQuery>";
+    my %hash = ();
+    $hash{'checksum'} = $checksum if defined $checksum;
+    $hash{'projectid'} = $projectid if defined $projectid;
 
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::MSBDoneQuery->new(HASH => \%hash);
 
     # Assume we have already got all the information
     # so we do not need to do a subsequent query
     my @responses = $self->queryMSBdone($query);
 
-    if ($checksum) {
+    if (defined $checksum) {
         if (defined $projectid) {
             # For compatability with existing code, only apply this check if we
             # are searching by checksum and have provided a project ID.  Otherwise
@@ -132,13 +127,8 @@ sub historyMSB {
         }
         return $responses[0];
     }
-    elsif (wantarray) {
-        return @responses;
-    }
-    else {
-        # Scalar context and no checksum
-        return \@responses;
-    }
+
+    return \@responses;
 }
 
 =item B<historyMSBtid>
@@ -590,7 +580,7 @@ sub queryMSBdone {
             # a project ID directly, so create another instance of
             # this class to do the query...
             my $dbproj = $self->new(ProjectID => $projectid, DB => $self->db());
-            $updated{$key} = $dbproj->historyMSB($checksum, 'data');
+            $updated{$key} = $dbproj->historyMSB($checksum);
         }
         $msbs = \%updated;
     }

@@ -142,6 +142,8 @@ sub msb_hist {
         };
     }
     else {
+        my $donedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
+
         # Get the science program info (if available)
         my $sp = OMP::MSBServer->getSciProgInfo($projectid);
 
@@ -160,7 +162,7 @@ sub msb_hist {
         }
         else {
             # show current
-            $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
+            $commentref = $donedb->historyMSB(undef);
 
             if ($show =~ /current/) {
                 $commentref = [grep {$sp->existsMSB($_->checksum)} @$commentref]
