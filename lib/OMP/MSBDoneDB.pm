@@ -392,7 +392,7 @@ sub observedMSBs {
 Return a list of all dates on which data for the specified
 project has been taken.
 
-    @dates = $db->observedDates();
+    \@dates = $db->observedDates();
 
 Assumes that this information can be gleaned from the MSBDone
 database rather than from the data archive itself. It is arguably
@@ -403,7 +403,7 @@ The optional first argument controls whether the dates are
 returned as an array of C<Time::Piece> objects or an array
 of date strings (YYYYMMDD format).
 
-    @objects = $db->observedDates(1);
+    \@objects = $db->observedDates(1);
 
 Throws an exception if the project ID can not be determined from the
 class (since there is no reason why you would want to ask for
@@ -469,7 +469,7 @@ sub observedDates {
     @dates = map {OMP::DateTools->parse_date($_);} @dates
         if $useobj;
 
-    return @dates;
+    return \@dates;
 }
 
 =item B<validateMSBtid>

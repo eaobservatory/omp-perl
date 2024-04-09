@@ -236,12 +236,13 @@ sub project_home {
 
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
     my $msbdb = OMP::MSBDB->new(DB => $self->database);
+    my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
     my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
 
     # Get nights for which data was taken
-    my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
+    my $nights = $msbdonedb->observedDates(1);
 
     # Since time may have been charged to the project even though no MSBs
     # were observed, check with the accounting DB as well

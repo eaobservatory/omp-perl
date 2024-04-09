@@ -55,7 +55,8 @@ sub fb_msb_active {
     my $self = shift;
     my $projectid = shift;
 
-    my $proj_info = OMP::MSBServer->getSciProgInfo($projectid, with_observations => 1);
+    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $proj_info = $msbdb->getSciProgInfo(with_observations => 1);
 
     my $active = [$proj_info->msb()];
 
@@ -122,6 +123,8 @@ sub msb_action {
         ? $args{'projectid'}
         : scalar $q->param('projectid');
 
+    my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
+
     my @messages = ();
     my @errors = ();
 
@@ -138,8 +141,7 @@ sub msb_action {
             );
 
             # Add the comment
-            OMP::MSBServer->addMSBcomment($projectid,
-                (scalar $q->param('checksum')), $comment);
+            $msbdonedb->addMSBcomment((scalar $q->param('checksum')), $comment);
             push @messages, "MSB comment successfully submitted.";
         }
         catch OMP::Error::MSBMissing with {
@@ -324,9 +326,11 @@ sub msb_count {
     my $self = shift;
     my $projectid = shift;
 
+    my $msbdb = OMP::MSBDB->new(DB => $self->database);
+
     my $num_msbs = undef;
     try {
-        my $msbs = OMP::MSBServer->getMSBCount($projectid);
+        my $msbs = $msbdb->getMSBCount($projectid);
         $num_msbs = (exists $msbs->{$projectid}) ? $msbs->{$projectid}->{'total'} : 0;
 
     }

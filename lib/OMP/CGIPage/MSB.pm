@@ -57,6 +57,9 @@ sub fb_msb_output {
 
     my $fbcomp = OMP::CGIComponent::Feedback->new(page => $self);
 
+    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
+
     my $checksum = undef;
     my $prog_info = undef;
     my @messages = ();
@@ -74,8 +77,7 @@ sub fb_msb_output {
                 text => scalar $q->param('comment'),
                 status => OMP__DONE_COMMENT,
             );
-            OMP::MSBServer->addMSBcomment(
-                $projectid, (scalar $q->param('checksum')), $comment);
+            $msbdonedb->addMSBcomment((scalar $q->param('checksum')), $comment);
             push @messages, 'MSB comment successfully submitted.';
         }
         catch OMP::Error::MSBMissing with {
@@ -89,8 +91,7 @@ sub fb_msb_output {
         return $self->_write_error($error) if defined $error;
     }
     else {
-        $prog_info = OMP::MSBServer->getSciProgInfo(
-            $projectid, with_observations => 1);
+        $prog_info = $msbdb->getSciProgInfo(with_observations => 1);
     }
 
     return {
@@ -142,10 +143,11 @@ sub msb_hist {
         };
     }
     else {
+        my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
         my $donedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
 
         # Get the science program info (if available)
-        my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+        my $sp = $msbdb->getSciProgInfo();
 
         my $commentref;
         if ($show =~ /observed/) {
@@ -242,7 +244,8 @@ sub observed {
 
         $projects = [map {
             my $projectid = $_;
-            my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+            my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+            my $sp = $msbdb->getSciProgInfo();
             my $msb_info = $comp->msb_comments(\@{$sorted{$projectid}}, $sp);
             {
                 project_id => $projectid,

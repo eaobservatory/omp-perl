@@ -386,7 +386,7 @@ for my $i (0 .. $#sorted_msbhdr) {
         # This will only happen when an MSB starts on one night and finishes the
         # next. Eg 2007-08-19
         my $tidhis;
-        $tidhis = OMP::MSBServer->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
+        $tidhis = OMP::MSBDoneDB->new(DB => $dbb)->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
         if ($tidhis) {
             print "\t------>>>>> MSB was processed outside the observing system\n";
             my $com = $tidhis->comments->[0];

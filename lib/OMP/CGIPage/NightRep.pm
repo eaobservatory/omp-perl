@@ -384,7 +384,8 @@ sub projlog_content {
             format => 'data',
     });
 
-    my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $sp = $msbdb->getSciProgInfo();
     my $msb_info = $msbcomp->msb_comments($observed, $sp);
 
     # Display observation log

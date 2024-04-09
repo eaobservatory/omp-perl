@@ -125,7 +125,7 @@ sub proj_sum_table {
     my $proj_instruments = {};
     try {
         my @projectids = map {$_->projectid} @$projects;
-        $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
+        $proj_msbcount = $msbdb->getMSBCount(@projectids);
         $proj_instruments = $msbdb->getInstruments(@projectids);
     }
     catch OMP::Error with {
