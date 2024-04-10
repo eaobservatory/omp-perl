@@ -10,7 +10,7 @@ OMP::ArchiveDB - Query the data archive
 
     $db = OMP::ArchiveDB->new(
         DB => OMP::DB::Backend::Archive->new,
-        FileUtil => OMP::FileUtils->new);
+        FileUtil => OMP::Util::File->new);
 
 =head1 DESCRIPTION
 
@@ -39,7 +39,7 @@ use OMP::General;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Config;
-use OMP::FileUtils;
+use OMP::Util::FITS;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
@@ -60,7 +60,7 @@ Create new object.
 
     $db = OMP::ArchiveDB->new(
         DB => OMP::DB::Backend::Archive->new,
-        FileUtil => OMP::FileUtils->new);
+        FileUtil => OMP::Util::File->new);
 
 =cut
 
@@ -95,7 +95,7 @@ sub new {
 
 =item B<fileutil>
 
-File utility object.  An instance of C<OMP::FileUtils>.
+File utility object.  An instance of C<OMP::Util::File>.
 
 =cut
 
@@ -105,8 +105,8 @@ sub fileutil {
     if (@_) {
         my $util = shift;
          throw OMP::Error::FatalError(
-             'FileUtil must be an OMP::FileUtils object')
-             unless eval {$util->isa('OMP::FileUtils')};
+             'FileUtil must be an OMP::Util::File object')
+             unless eval {$util->isa('OMP::Util::File')};
 
         $self->{'FileUtil'} = $util;
     }
@@ -1026,7 +1026,7 @@ sub _query_files {
     }
 
     # merge duplicate information into a hash indexed by obsid
-    my $headers = OMP::FileUtils->merge_dupes(@allheaders);
+    my $headers = OMP::Util::FITS->merge_dupes(@allheaders);
 
     # and create obs objects
     my @observations = OMP::Info::Obs->hdrs_to_obs(
@@ -1184,7 +1184,7 @@ sub _reorganize_archive {
 
     # The first thing we have to do is merge related rows based on obsid.
     # We assume that the query has given us a row per useful quantity each with an obsid somewhere
-    # first need to create a new array that matches requirement of OMP::FileUtils->merge_dupes()
+    # first need to create a new array that matches requirement of OMP::Util::FITS->merge_dupes()
     # Header translation requires that we have upper case keys to match the FITS standard.
     # Since merge_dupes() uses header translation we need to upper case everything
     # at the same time.
@@ -1198,7 +1198,7 @@ sub _reorganize_archive {
         push @rearranged, {header => \%newrow};
     }
 
-    my $unique = OMP::FileUtils->merge_dupes_no_fits(@rearranged);
+    my $unique = OMP::Util::FITS->merge_dupes_no_fits(@rearranged);
 
     # now convert into Obs::Info objects
     return OMP::Info::Obs->hdrs_to_obs(

@@ -48,7 +48,7 @@ use OMP::ProjDB;
 use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultDB;
-use OMP::FileUtils;
+use OMP::Util::File;
 use OMP::General;
 use OMP::NetTools;
 use OMP::Password;
@@ -240,7 +240,7 @@ File utility object.
 
     $util = $page->fileutil;
 
-This will be an C<OMP::FileUtils> instance, constructed the first
+This will be an C<OMP::Util::File> instance, constructed the first
 time this method is called.
 
 =cut
@@ -249,7 +249,7 @@ sub fileutil {
     my $self = shift;
 
     unless (defined $self->{'FileUtil'}) {
-        $self->{'FileUtil'} = OMP::FileUtils->new();
+        $self->{'FileUtil'} = OMP::Util::File->new();
     }
 
     return $self->{'FileUtil'};

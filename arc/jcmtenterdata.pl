@@ -169,7 +169,7 @@ BEGIN {
 
 use JAC::Setup qw/jsa dataverify/;
 
-use OMP::FileUtils;
+use OMP::Util::File;
 
 use OMP::DB::Backend::Archive;
 use JSA::Datetime qw/make_datetime make_limited_datetime/;
@@ -241,7 +241,7 @@ do {
     $ENV{'KAPPA_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'kappa');
     $ENV{'SMURF_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'smurf');
 
-    my $fileutil = OMP::FileUtils->new();
+    my $fileutil = OMP::Util::File->new();
 
     my $debug_fh = undef;
     if (defined $debugfile) {

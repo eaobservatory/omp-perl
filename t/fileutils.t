@@ -3,11 +3,11 @@
 use strict;
 use Test::More tests => 8;
 
-use OMP::FileUtils;
+use OMP::Util::File;
 
 # Check construction and setting "recent_file" option.
-my $util = OMP::FileUtils->new();
-isa_ok($util, 'OMP::FileUtils');
+my $util = OMP::Util::File->new();
+isa_ok($util, 'OMP::Util::File');
 
 ok(not $util->recent_files);
 $util->recent_files(1);
@@ -15,9 +15,9 @@ ok($util->recent_files);
 $util->recent_files(0);
 ok(not $util->recent_files);
 
-$util = OMP::FileUtils->new(recent_files => 0);
+$util = OMP::Util::File->new(recent_files => 0);
 ok(not $util->recent_files);
-$util = OMP::FileUtils->new(recent_files => 1);
+$util = OMP::Util::File->new(recent_files => 1);
 ok($util->recent_files);
 
 # Check other internal attributes.

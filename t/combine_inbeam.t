@@ -4,11 +4,11 @@ use Test::More tests => 14;
 
 use JAC::Setup qw/jsa dataverify/;
 use OMP::EnterData;
-use OMP::FileUtils;
+use OMP::Util::File;
 
 my $dict = './cfg/jcmt/data.dictionary';
 
-my $enter = OMP::EnterData->new(dict => $dict, fileutil => OMP::FileUtils->new);
+my $enter = OMP::EnterData->new(dict => $dict, fileutil => OMP::Util::File->new);
 
 isa_ok($enter, 'OMP::EnterData');
 

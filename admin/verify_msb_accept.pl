@@ -86,7 +86,7 @@ use OMP::ArchiveDB;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
-use OMP::FileUtils;
+use OMP::Util::File;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserDB;
@@ -190,7 +190,7 @@ for my $msb (@sorted_msbdb) {
 # Look at the real data:
 print "---> Data headers ----\n";
 
-my $fileutil = OMP::FileUtils->new();
+my $fileutil = OMP::Util::File->new();
 my $arcdb = OMP::ArchiveDB->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => $fileutil);

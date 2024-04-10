@@ -37,7 +37,7 @@ use Pod::Usage;
 use Time::Piece;
 use Log::Log4perl qw(:easy);
 
-use OMP::FileUtils;
+use OMP::Util::File;
 use OMP::EnterData::ACSIS;
 use OMP::EnterData::RxH3;
 use OMP::EnterData::SCUBA2;
@@ -71,7 +71,7 @@ my %instrument_class = (
 my $class = $instrument_class{uc($instrument_name)};
 die "Instrument '$instrument_name' not recognized"
     unless defined $class;
-my $fileutil = OMP::FileUtils->new();
+my $fileutil = OMP::Util::File->new();
 my $instrument = $class->new(
     dict => File::Spec->catfile(OMPLIB, '../cfg/jcmt/data.dictionary'),
     fileutil => $fileutil);

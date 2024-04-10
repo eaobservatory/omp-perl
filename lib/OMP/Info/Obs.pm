@@ -434,7 +434,7 @@ sub subsystem_filenames {
 
 =item B<hdrs_to_obs>
 
-Convert the result from OMP::FileUtils->merge_dupes() method to an
+Convert the result from OMP::Util::FITS->merge_dupes() method to an
 array of C<OMP::Info::Obs> objects.
 
     @obs = OMP::Info::Obs->hdrs_to_obs(

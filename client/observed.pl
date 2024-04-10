@@ -76,7 +76,7 @@ use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::Display;
 use OMP::DateTools;
-use OMP::FileUtils;
+use OMP::Util::File;
 use OMP::Mail;
 use OMP::NetTools;
 use OMP::General;
@@ -124,7 +124,7 @@ else {
 my $db = OMP::DB::Backend->new();
 my $arcdb = OMP::ArchiveDB->new(
     DB => OMP::DB::Backend::Archive->new,
-    FileUtil => OMP::FileUtils->new);
+    FileUtil => OMP::Util::File->new);
 
 # Get the list of MSBs
 

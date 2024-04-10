@@ -54,7 +54,7 @@ use JCMT::DataVerify;
 use OMP::DB::Backend::Archive;
 use OMP::DateTools;
 use OMP::General;
-use OMP::FileUtils;
+use OMP::Util::FITS;
 use OMP::Info::Obs;
 
 
@@ -76,7 +76,7 @@ Constructor.  A data dictionary file name is required.
 
     $enter = OMP::EnterData->new(
         dict => '/file/path',
-        fileutil => OMP::FileUtils->new());
+        fileutil => OMP::Util::File->new());
 
 Configuration values which can be passed as key-value pairs are:
 
@@ -106,8 +106,8 @@ sub new {
     my $fileutil = $args{'fileutil'};
     throw OMP::Error::FatalError('File utility object not given')
         unless defined $fileutil;
-    throw OMP::Error::FatalError('File utility must be an OMP::FileUtils object')
-        unless eval {$fileutil->isa('OMP::FileUtils')};
+    throw OMP::Error::FatalError('File utility must be an OMP::Util::File object')
+        unless eval {$fileutil->isa('OMP::Util::File')};
 
     my $obj = bless {
         dictionary => $class->create_dictionary($dict),
@@ -842,7 +842,7 @@ sub _get_observations {
     foreach my $entry (@headers) {
         my $header = $entry->{'header'};
 
-        # The headers will be passed to OMP::FileUtils->merge_dupes which
+        # The headers will be passed to OMP::Util::FITS->merge_dupes which
         # in turn passes them to Astro::FITS::Header->new(Hash => ...).
         # That constructor drops any null or empty string headers.  Since
         # we need to see the INBEAM header for all files, replace blank
@@ -866,7 +866,7 @@ sub _get_observations {
     }
 
 
-    my $merged = OMP::FileUtils->merge_dupes(@headers);
+    my $merged = OMP::Util::FITS->merge_dupes(@headers);
 
     my @obs = OMP::Info::Obs->hdrs_to_obs(
         retainhdr => 1,
@@ -2394,7 +2394,7 @@ sub calcbounds_files_for_date {
 
     $log->debug('Finding files for date ', $date_string);
 
-    # O::FileUtils requires date to be Time::Piece object.
+    # OMP::Util::File requires date to be Time::Piece object.
     my $date = Time::Piece->strptime($date_string, '%Y%m%d');
 
     my @file;
@@ -2407,7 +2407,7 @@ sub calcbounds_files_for_date {
 
     $log->debug('Files found for date ', $date_string, ' : ', scalar @file);
 
-    # Expand array references whcih come out from FileUtils sometimes.
+    # Expand array references whcih come out from OMP::Util::File sometimes.
     return map {$_ && ref $_ ? @{$_} : $_} @file;
 }
 
