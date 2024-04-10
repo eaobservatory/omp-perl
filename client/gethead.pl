@@ -79,6 +79,7 @@ use Astro::FITS::Header::Item;
 
 use OMP::ArchiveDB;
 use OMP::DB::Backend::Archive;
+use OMP::FileUtils;
 
 my ($ut, $inst, $runnr, $obsid, $help, $version, $man);
 my $status = GetOptions(
@@ -116,7 +117,9 @@ else {
     die 'Need an obsid or ut with runnr';
 }
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
+my $arcdb = OMP::ArchiveDB->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => OMP::FileUtils->new);
 
 $arcdb->skip_cache_query();
 $arcdb->skip_cache_making();

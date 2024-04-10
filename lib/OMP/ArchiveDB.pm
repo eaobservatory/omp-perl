@@ -8,7 +8,9 @@ OMP::ArchiveDB - Query the data archive
 
     use OMP::ArchiveDB;
 
-    $db = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
+    $db = OMP::ArchiveDB->new(
+        DB => OMP::DB::Backend::Archive->new,
+        FileUtil => OMP::FileUtils->new);
 
 =head1 DESCRIPTION
 
@@ -56,7 +58,9 @@ our $VERSION = '2.000';
 
 Create new object.
 
-    $db = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
+    $db = OMP::ArchiveDB->new(
+        DB => OMP::DB::Backend::Archive->new,
+        FileUtil => OMP::FileUtils->new);
 
 =cut
 
@@ -66,6 +70,7 @@ sub new {
     my $self = $class->SUPER::new(@_);
 
     $self->{'Cache'} = OMP::ArchiveDB::Cache->new;
+    $self->{'FileUtil'} = undef;
     $self->{'FallbackToFiles'} = 1;
     $self->{'SkipDBLookup'} = 0;
     $self->{'AnyDate'} = 0;
@@ -74,12 +79,40 @@ sub new {
     $self->{'Warned'} = {};
     $self->{'OldCriteria'} = 0;
 
+    my %args = @_;
+
+    for (qw/FileUtil/) {
+        my $method = lc $_;
+        $self->$method($args{$_}) if exists $args{$_};
+    }
+
     return $self;
 }
 
 =head2 General Methods
 
 =over 4
+
+=item B<fileutil>
+
+File utility object.  An instance of C<OMP::FileUtils>.
+
+=cut
+
+sub fileutil {
+    my $self = shift;
+
+    if (@_) {
+        my $util = shift;
+         throw OMP::Error::FatalError(
+             'FileUtil must be an OMP::FileUtils object')
+             unless eval {$util->isa('OMP::FileUtils')};
+
+        $self->{'FileUtil'} = $util;
+    }
+
+    return $self->{'FileUtil'};
+}
 
 =item B<search_db>
 
@@ -848,7 +881,7 @@ sub _query_files {
 
     # If we have a simple query, go to the cache for stored information and files
     if ($self->_cache->simple_query($query)) {
-        ($obsgroup, @files) = $self->_cache->unstored_files($query);
+        ($obsgroup, @files) = $self->_cache->unstored_files($query, $self->fileutil);
         if (defined($obsgroup)) {
             @obs = $obsgroup->obs;
         }
@@ -877,7 +910,7 @@ sub _query_files {
                 ################################################################################
                 next if ($inst =~ /^rx(?!h3)/i);
 
-                my @tfiles = OMP::FileUtils->files_on_disk(
+                my @tfiles = $self->fileutil->files_on_disk(
                     'instrument' => $inst,
                     'date' => $day,
                     'run' => $runnr,

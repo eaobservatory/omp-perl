@@ -70,7 +70,9 @@ sub display_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $adb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $adb = OMP::ArchiveDB->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
     my $obs = $adb->getObs(
         telescope => $telescope,
         instrument => $inst,
@@ -147,7 +149,9 @@ sub thumbnails_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $arcdb = OMP::ArchiveDB->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
     my $grp = OMP::Info::ObsGroup->new(ADB => $arcdb, %query);
 
     return $self->_write_error('No observations for this project and night')

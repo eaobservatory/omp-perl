@@ -241,6 +241,8 @@ do {
     $ENV{'KAPPA_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'kappa');
     $ENV{'SMURF_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'smurf');
 
+    my $fileutil = OMP::FileUtils->new();
+
     my $debug_fh = undef;
     if (defined $debugfile) {
         if ($debugfile eq '-') {
@@ -255,7 +257,8 @@ do {
         ACSIS => $acsis,
         'SCUBA-2' => $scuba2,
         RxH3 => $rxh3,
-        debug_fh => $debug_fh);
+        debug_fh => $debug_fh,
+        fileutil => $fileutil);
 
     # Reference to list of files to process. Can be undef if date-based.
     my $files = undef;
@@ -306,7 +309,7 @@ do {
     unless ($calcbounds) {
         # Original "enter data" mode.
 
-        $OMP::FileUtils::RETURN_RECENT_FILES = 1;
+        $fileutil->recent_files(1);
 
         my %enter_options = (
             dry_run => $dry_run,
@@ -420,6 +423,7 @@ exit;
 sub get_instruments {
     my %opt = @_;
     my $debug_fh = delete $opt{'debug_fh'};
+    my $fileutil = delete $opt{'fileutil'};
 
     my %class = (
         ACSIS => 'OMP::EnterData::ACSIS',
@@ -437,6 +441,7 @@ sub get_instruments {
 
         my $enter = $class->new(
             dict => File::Spec->catfile(OMPLIB, '../cfg/jcmt/data.dictionary'),
+            fileutil => $fileutil,
             debug_fh => $debug_fh);
 
         $inst{$enter->instrument_name()} = $enter;

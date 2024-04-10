@@ -31,7 +31,6 @@ use OMP::Error qw/:try/;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Range;
-use OMP::FileUtils;
 use Starlink::AST;
 use Carp;
 
@@ -291,7 +290,7 @@ about them stored in the cache, and additionally return the
 C<OMP::Info::ObsGroup> object corresponding to the data stored
 in the cache.
 
-    ($obsgrp, @files) = $cache->unstored_files($query);
+    ($obsgrp, @files) = $cache->unstored_files($query, $fileutil);
 
 Returns an C<OMP::Info::Obsgroup> object, or undef if no
 information about the given query is stored in the cache,
@@ -308,6 +307,7 @@ instrument will be used.
 sub unstored_files {
     my $self = shift;
     my $query = shift;
+    my $fileutil = shift;
 
     unless (defined $query) {
         throw OMP::Error::BadArgs("Must supply a query to retrieve list of files not existing in cache");
@@ -377,7 +377,7 @@ sub unstored_files {
         foreach my $inst (@insts) {
             next if ($inst =~ /^rx(?!h3)/i);
 
-            my @files = OMP::FileUtils->files_on_disk(
+            my @files = $fileutil->files_on_disk(
                 'instrument' => $inst,
                 'date' => $day,
                 'run' => $runnr,

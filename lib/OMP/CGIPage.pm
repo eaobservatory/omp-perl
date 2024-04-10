@@ -48,6 +48,7 @@ use OMP::ProjDB;
 use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultDB;
+use OMP::FileUtils;
 use OMP::General;
 use OMP::NetTools;
 use OMP::Password;
@@ -84,6 +85,7 @@ sub new {
         DB => undef,
         DBArchive => undef,
         DBHedwig2OMP => undef,
+        FileUtil => undef,
     };
 
     # create the object (else we cant use accessor methods)
@@ -231,6 +233,28 @@ sub database_hedwig2omp {
 
     return $self->{'DBHedwig2OMP'};
 }
+
+=item B<fileutil>
+
+File utility object.
+
+    $util = $page->fileutil;
+
+This will be an C<OMP::FileUtils> instance, constructed the first
+time this method is called.
+
+=cut
+
+sub fileutil {
+    my $self = shift;
+
+    unless (defined $self->{'FileUtil'}) {
+        $self->{'FileUtil'} = OMP::FileUtils->new();
+    }
+
+    return $self->{'FileUtil'};
+}
+
 =item B<side_bar>
 
 Add a section to the side bar:

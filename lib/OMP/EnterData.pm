@@ -74,15 +74,21 @@ $| = 1; # Make unbuffered
 
 Constructor.  A data dictionary file name is required.
 
-  $enter = OMP::EnterData->new('dict' => '/file/path/');
+    $enter = OMP::EnterData->new(
+        dict => '/file/path',
+        fileutil => OMP::FileUtils->new());
 
 Configuration values which can be passed as key-value pairs are:
 
 =over 4
 
-=item I<dict> C<file name>
+=item I<dict>
 
 File name for data dictionary.
+
+=item I<fileutil>
+
+File utility object.
 
 =back
 
@@ -97,8 +103,15 @@ sub new {
     throw OMP::Error::FatalError("Data dictionary, $dict, is not a readable file.")
         unless -f $dict && -r _;
 
+    my $fileutil = $args{'fileutil'};
+    throw OMP::Error::FatalError('File utility object not given')
+        unless defined $fileutil;
+    throw OMP::Error::FatalError('File utility must be an OMP::FileUtils object')
+        unless eval {$fileutil->isa('OMP::FileUtils')};
+
     my $obj = bless {
         dictionary => $class->create_dictionary($dict),
+        fileutil => $fileutil,
 
         # To keep track of already processed files.
         _cache_touched => {},
@@ -207,6 +220,19 @@ Returns the data dictionary.
 sub get_dictionary {
     my ($self) = @_;
     return $self->{'dictionary'};
+}
+
+=item B<fileutil>
+
+Get the file utility object.
+
+    $fileutil = $enter->fileutil();
+
+=cut
+
+sub fileutil {
+    my $self = shift;
+    return $self->{'fileutil'};
 }
 
 =item B<prepare_and_insert>
@@ -670,7 +696,7 @@ sub _get_observations {
             # OMP uses Time::Piece (instead of DateTime).
             my $date = Time::Piece->strptime($args{'date'}, '%Y%m%d');
 
-            @file = OMP::FileUtils->files_on_disk(
+            @file = $self->fileutil->files_on_disk(
                 date => $date,
                 instrument => $self->instrument_name());
         }
@@ -2375,8 +2401,9 @@ sub calcbounds_files_for_date {
 
     $log->debug('finding files for instrument ', $self->instrument_name());
 
-    push @file, OMP::FileUtils->files_on_disk(date       => $date,
-                                              instrument => $self->instrument_name());
+    push @file, $self->fileutil->files_on_disk(
+        date       => $date,
+        instrument => $self->instrument_name());
 
     $log->debug('Files found for date ', $date_string, ' : ', scalar @file);
 

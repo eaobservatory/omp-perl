@@ -5,10 +5,11 @@ use Test::Number::Delta;
 
 use JAC::Setup qw/jsa dataverify/;
 use OMP::EnterData::SCUBA2;
+use OMP::FileUtils;
 
 my $dict = './cfg/jcmt/data.dictionary';
 
-my $enter = OMP::EnterData::SCUBA2->new(dict => $dict);
+my $enter = OMP::EnterData::SCUBA2->new(dict => $dict, fileutil => OMP::FileUtils->new);
 
 isa_ok($enter, 'OMP::EnterData::SCUBA2');
 

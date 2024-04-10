@@ -140,8 +140,6 @@ use OMP::Error qw/:try/;
 use OMP::FileUtils;
 
 BEGIN {
-    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
-
     $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
         unless exists $ENV{'OMP_CFG_DIR'};
 }
@@ -230,7 +228,9 @@ my $currentut = OMP::DateTools->today;
 my $utdisp = "Current UT date: $ut";
 
 my $dbb = OMP::DB::Backend->new();
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new());
+my $arcdb = OMP::ArchiveDB->new(
+    DB => OMP::DB::Backend::Archive->new(),
+    FileUtil => OMP::FileUtils->new(recent_files => 0));
 $arcdb->use_existing_criteria(1);
 
 my $user;

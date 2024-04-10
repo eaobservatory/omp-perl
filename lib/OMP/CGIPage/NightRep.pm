@@ -231,7 +231,9 @@ sub night_report {
     ($delta) and $args{delta_day} = $delta;
 
     # Get the night report
-    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $arcdb = OMP::ArchiveDB->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
     my $nr = OMP::NightRep->new(DB => $self->database, ADB => $arcdb, %args);
 
     return $self->_write_error(
@@ -392,7 +394,9 @@ sub projlog_content {
     my $obs_summary = undef;
     try {
         # Want to go to files on disk
-        my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+        my $arcdb = OMP::ArchiveDB->new(
+            DB => $self->database_archive,
+            FileUtil => $self->fileutil);
         $arcdb->search_files();
 
         my $grp = OMP::Info::ObsGroup->new(
@@ -547,7 +551,9 @@ sub time_accounting {
 
     my $utdate = $self->_get_utdate();
 
-    my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+    my $arcdb = OMP::ArchiveDB->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
     my $nr = OMP::NightRep->new(
         DB => $self->database, ADB => $arcdb,
         date => $utdate, telescope => $tel);

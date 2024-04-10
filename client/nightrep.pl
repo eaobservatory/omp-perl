@@ -86,6 +86,7 @@ use OMP::ArchiveDB;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::Error qw/ :try /;
+use OMP::FileUtils;
 use OMP::DateTools;
 use OMP::General;
 use OMP::NightRep;
@@ -148,7 +149,9 @@ unless ($dump or $ashtml) {
 # Night report
 
 my $db = OMP::DB::Backend->new;
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
+my $arcdb = OMP::ArchiveDB->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => OMP::FileUtils->new);
 
 # Modify only the non-default behaviour.
 unless ($use_cache) {

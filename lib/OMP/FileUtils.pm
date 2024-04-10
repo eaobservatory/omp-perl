@@ -8,7 +8,8 @@ OMP::FileUtils - File-related utilities for the OMP
 
     use OMP::FileUtils;
 
-    @files = OMP::FileUtils->files_on_disk(
+    $util = OMP::FileUtils->new();
+    @files = $util->files_on_disk(
         'instrument' => $inst, 'date' => $date);
 
 =head1 DESCRIPTION
@@ -40,9 +41,6 @@ use OMP::General;
 our $VERSION = '2.000';
 our $DEBUG = 0;
 
-# Set to return files previously not encountered.
-our $RETURN_RECENT_FILES = 0;
-
 my $MISS_CONFIG_KEY =
     qr{ \b
         Key .+? could \s+ not \s+ be \s+ found \s+ in \s+ OMP \s+ config
@@ -58,25 +56,69 @@ my $MISS_DIRECTORY =
 
 =head1 METHODS
 
-There are no instance methods, only class (static) methods.
+=head2 Constructor
+
+Construct new C<OMP::FileUtils> object.
+
+    my $util = OMP::FileUtils->new();
+
+Any given hash options are passed to the corresponding methods.
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my %opt = @_;
+
+    my $self = bless {
+        recent_files => 0,
+        file_time => {},
+        file_raw => {},
+    }, $class;
+
+    foreach (keys %opt) {
+        $self->$_($opt{$_});
+    }
+
+    return $self;
+}
+
+=head2 Instance methods
 
 =over 4
+
+=item B<recent_files>
+
+Set/get "recent files" option.
+
+=cut
+
+sub recent_files {
+    my $self = shift;
+
+    if (@_) {
+        $self->{'recent_files'} = shift;
+    }
+
+    return $self->{'recent_files'};
+}
 
 =item B<files_on_disk>
 
 For a given instrument and UT date, this method returns a list of
 observation files.
 
-    my @files = OMP::FileUtils->files_on_disk(
+    @files = $util->files_on_disk(
         'instrument' => 'CGS4',
         'date' => $date);
 
-    my $files = OMP::FileUtils->files_on_disk(
+    $files = $util->files_on_disk(
         'instrument' => 'CGS4',
         'date' => $date,
         'run' => $runnr);
 
-    @files = OMP::FileUtils->files_on_disk(
+    @files = $util->files_on_disk(
         'instrument' => 'SCUBA-2',
         'date' => $date,
         'subarray' => $subarray,
@@ -103,7 +145,7 @@ array of array references.
 =cut
 
 sub files_on_disk {
-    my ($class, %arg) = @_;
+    my ($self, %arg) = @_;
 
     my ($instrument, $utdate, $runnr, $subarray, $old) =
         @arg{qw/instrument date run subarry old/};
@@ -152,8 +194,8 @@ sub files_on_disk {
     my $mute_miss_flag = 1;
     my ($use_meta, @return);
 
-    if ($class->use_raw_meta_opt($sys_config, %config)) {
-        @return = $class->get_raw_files_from_meta(
+    if ($self->use_raw_meta_opt($sys_config, %config)) {
+        @return = $self->get_raw_files_from_meta(
             'omp-config' => $sys_config,
             'search-config' => \%config,
             'flag-regex' => $flagfileregexp,
@@ -164,9 +206,9 @@ sub files_on_disk {
         _track_file('returning: ' => @return);
     }
     else {
-        @return = $class->get_raw_files(
+        @return = $self->get_raw_files(
             $directory,
-            $class->get_flag_files(
+            $self->get_flag_files(
                 $directory, $flagfileregexp, $runnr, $mute_miss_flag
             ),
             $mute_miss_raw
@@ -177,7 +219,7 @@ sub files_on_disk {
 }
 
 sub use_raw_meta_opt {
-    my ($class, $omp_config, %config) = @_;
+    my ($self, $omp_config, %config) = @_;
 
     my $meta;
     try {
@@ -196,7 +238,7 @@ sub use_raw_meta_opt {
 }
 
 sub get_raw_files_from_meta {
-    my ($class, %arg) = @_;
+    my ($self, %arg) = @_;
 
     my ($sys_config, $config, $flag_re, $mute_flag, $mute_raw) =
         @arg{qw/omp-config search-config flag-regex mute-miss-flag mute-miss-raw/};
@@ -221,12 +263,12 @@ sub get_raw_files_from_meta {
 
         _track_file('flag files: ', @{$flags});
 
-        push @flag, _get_updated_files(
+        push @flag, $self->_get_updated_files(
             [map {File::Spec->catfile($meta_dir, $_)} @{$flags}],
             $mute_flag);
     }
 
-    return $class->get_raw_files($meta_dir, [@flag], $mute_raw);
+    return $self->get_raw_files($meta_dir, [@flag], $mute_raw);
 }
 
 sub get_meta_files {
@@ -268,7 +310,7 @@ sub get_meta_files {
 }
 
 sub get_flag_files {
-    my ($class, $dir, $filter, $runnr, $mute_err) = @_;
+    my ($self, $dir, $filter, $runnr, $mute_err) = @_;
 
     my $flags;
     try {
@@ -300,122 +342,119 @@ sub get_flag_files {
     }
 
     return $flags
-        unless $RETURN_RECENT_FILES;
+        unless $self->recent_files;
 
-    my @updated = _get_updated_files($flags, $mute_err);
+    my @updated = $self->_get_updated_files($flags, $mute_err);
 
     return [] unless scalar @updated;
     return [@updated];
 }
 
-{
-    my (%file_time);
+sub _get_updated_files {
+    my $self = shift;
+    my ($list, $mute) = @_;
 
-    sub _get_updated_files {
-        my ($list, $mute) = @_;
+    my $file_time = $self->{'file_time'};
 
-        return unless $list && scalar @{$list};
+    return unless $list && scalar @{$list};
 
-        return @{$list}
-            unless $RETURN_RECENT_FILES;
+    return @{$list}
+        unless $self->recent_files;
 
-        # Skip filtering to narrow down temporary time gap problem.
-        return @{$list}
-            if $list->[0] =~ /[.](?:meta|ok)\b/;
+    # Skip filtering to narrow down temporary time gap problem.
+    return @{$list}
+        if $list->[0] =~ /[.](?:meta|ok)\b/;
 
-        my @send;
-        my %mod = _get_mod_epoch($list, $mute);
+    my @send;
+    my %mod = _get_mod_epoch($list, $mute);
 
-        while (my ($f, $t) = each %mod) {
-            next
-                if exists $file_time{$f}
-                && $file_time{$f}
-                && $t <= $file_time{$f};
+    while (my ($f, $t) = each %mod) {
+        next
+            if exists $file_time->{$f}
+            && $file_time->{$f}
+            && $t <= $file_time->{$f};
 
-            $file_time{$f} = $t;
-            push @send, $f;
-        }
-
-        return unless scalar @send;
-
-        # Sort files by ascending modification times.
-        return
-            map {$_->[0]}
-            sort {$a->[1] <=> $b->[1]}
-            map {[$_, $mod{$_}]}
-            @send;
+        $file_time->{$f} = $t;
+        push @send, $f;
     }
+
+    return unless scalar @send;
+
+    # Sort files by ascending modification times.
+    return
+        map {$_->[0]}
+        sort {$a->[1] <=> $b->[1]}
+        map {[$_, $mod{$_}]}
+        @send;
 }
 
 # Go through each flag file, open it, and retrieve the list of files within it.
-{
-    my (%raw);
+sub get_raw_files {
+    my ($self, $dir, $flags, $mute_err) = @_;
 
-    sub get_raw_files {
-        my ($class, $dir, $flags, $mute_err) = @_;
+    my $file_raw = $self->{'file_raw'};
 
-        return
-            unless $flags && scalar @{$flags};
+    return
+        unless $flags && scalar @{$flags};
 
-        my @raw;
+    my @raw;
 
-        foreach my $file (@{$flags}) {
-            # RxH3 writes FITS files but no flag files -- temporary work around
-            # is to have the FITS files themselves be the flags.
-            if ($file =~ /.fits$/) {
-                push @raw, [$file];
-                next;
-            }
-
-            # If the flag file size is 0 bytes, then we assume that the observation file
-            # associated with that flag file is of the same naming convention, removing
-            # the dot from the front and replacing the .ok on the end with .sdf.
-            if (-z $file) {
-                my $raw = $class->make_raw_name_from_flag($file);
-
-                next unless _sanity_check_file($raw);
-
-                push @raw, [$raw];
-                next;
-            }
-
-            my ($lines, $err);
-            try {
-                $lines = OMP::General->get_file_contents('file' => $file);
-            }
-            catch OMP::Error::FatalError with {
-                ($err) = @_;
-
-                OMP::General->log_message($err->text(), OMP__LOG_WARNING);
-
-                unless ($mute_err) {
-                    throw $err
-                        unless $err =~ /^Cannot open file/i;
-                }
-            };
-
-            my @checked;
-            for my $file (@{$lines}) {
-                my $f = File::Spec->catfile($dir, $file);
-
-                next
-                    if $RETURN_RECENT_FILES
-                    && exists $raw{$f};
-
-                next unless _sanity_check_file($f);
-
-                undef $raw{$f} if $RETURN_RECENT_FILES;
-                push @checked, $f;
-            }
-            push @raw, [@checked];
+    foreach my $file (@{$flags}) {
+        # RxH3 writes FITS files but no flag files -- temporary work around
+        # is to have the FITS files themselves be the flags.
+        if ($file =~ /.fits$/) {
+            push @raw, [$file];
+            next;
         }
 
-        return @raw;
+        # If the flag file size is 0 bytes, then we assume that the observation file
+        # associated with that flag file is of the same naming convention, removing
+        # the dot from the front and replacing the .ok on the end with .sdf.
+        if (-z $file) {
+            my $raw = $self->make_raw_name_from_flag($file);
+
+            next unless _sanity_check_file($raw);
+
+            push @raw, [$raw];
+            next;
+        }
+
+        my ($lines, $err);
+        try {
+            $lines = OMP::General->get_file_contents('file' => $file);
+        }
+        catch OMP::Error::FatalError with {
+            ($err) = @_;
+
+            OMP::General->log_message($err->text(), OMP__LOG_WARNING);
+
+            unless ($mute_err) {
+                throw $err
+                    unless $err =~ /^Cannot open file/i;
+            }
+        };
+
+        my @checked;
+        for my $file (@{$lines}) {
+            my $f = File::Spec->catfile($dir, $file);
+
+            next
+                if $self->recent_files
+                && exists $file_raw->{$f};
+
+            next unless _sanity_check_file($f);
+
+            undef $file_raw->{$f} if $self->recent_files;
+            push @checked, $f;
+        }
+        push @raw, [@checked];
     }
+
+    return @raw;
 }
 
 sub make_raw_name_from_flag {
-    my ($class, $flag) = @_;
+    my ($self, $flag) = @_;
 
     my $suffix = '.sdf';
 
@@ -425,6 +464,11 @@ sub make_raw_name_from_flag {
     return File::Spec->catfile($dir, $raw . $suffix);
 }
 
+=back
+
+=head2 Class methods
+
+=over 4
 
 =item B<merge_dupes>
 
@@ -485,7 +529,7 @@ Hash of files indexed by obsidss.
 =cut
 
 sub merge_dupes {
-    my $self = shift;
+    my $class = shift;
 
     # Take local copies so that we can add information without affecting caller
     my @unmerged = map {
@@ -509,28 +553,28 @@ sub merge_dupes {
             # merge it later
             $info->{header} = Astro::FITS::Header->new(Hash => $hdr);
         }
-        my $class;
+        my $trans;
 
-        eval {$class = Astro::FITS::HdrTrans::determine_class($hdr, undef, 1);};
+        eval {$trans = Astro::FITS::HdrTrans::determine_class($hdr, undef, 1);};
         if ($@) {
             warn sprintf "Skipped '%s' due to: %s\n", $info->{'filename'}, $@;
         }
 
-        next unless $class;
+        next unless $trans;
 
-        my $obsid = $class->to_OBSERVATION_ID($hdr, $info->{frameset});
+        my $obsid = $trans->to_OBSERVATION_ID($hdr, $info->{frameset});
 
         # check for translated filename
         unless (exists $info->{filename}) {
-            my $filename = $class->to_FILENAME($hdr);
+            my $filename = $trans->to_FILENAME($hdr);
             if (defined $filename) {
                 $info->{filename} = $filename;
             }
         }
 
         # Keep the obsidss around (assume only a single one from a row)
-        if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
-            my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM($hdr);
+        if ($trans->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+            my $obsidss = $trans->to_OBSERVATION_ID_SUBSYSTEM($hdr);
             $info->{obsidss} = $obsidss->[0]
                 if defined $obsidss && ref($obsidss) && @$obsidss;
         }
@@ -637,7 +681,7 @@ Reference to array of filenames.
 =cut
 
 sub merge_dupes_no_fits {
-    my $self = shift;
+    my $class = shift;
 
     # Take local copies so that we can add information without affecting caller
     my @unmerged = map {
@@ -651,19 +695,19 @@ sub merge_dupes_no_fits {
 
         # Need to get a unique key via header translation
         my $hdr = $info->{header};
-        my $class;
-        eval {$class = Astro::FITS::HdrTrans::determine_class($hdr, undef, 1);};
+        my $trans;
+        eval {$trans = Astro::FITS::HdrTrans::determine_class($hdr, undef, 1);};
         if ($@) {
             warn sprintf "Skipped '%s' due to: %s\n", $info->{'filename'}, $@;
         }
 
-        next unless $class;
+        next unless $trans;
 
-        my $obsid = $class->to_OBSERVATION_ID($hdr, $info->{frameset});
+        my $obsid = $trans->to_OBSERVATION_ID($hdr, $info->{frameset});
 
         # Keep the obsidss around (assume only a single one from a row)
-        if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
-            my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM($hdr);
+        if ($trans->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+            my $obsidss = $trans->to_OBSERVATION_ID_SUBSYSTEM($hdr);
             $info->{obsidss} = $obsidss->[0]
                 if defined $obsidss && ref($obsidss) && @$obsidss;
         }

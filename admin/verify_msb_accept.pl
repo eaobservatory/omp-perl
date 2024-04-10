@@ -190,10 +190,13 @@ for my $msb (@sorted_msbdb) {
 # Look at the real data:
 print "---> Data headers ----\n";
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DB::Backend::Archive->new);
+my $fileutil = OMP::FileUtils->new();
+my $arcdb = OMP::ArchiveDB->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => $fileutil);
 
 if ($opt{'disk'}) {
-    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
+    $fileutil->recent_files(0);
     $arcdb->search_only_files();
     $arcdb->skip_cache_query();
     $arcdb->use_existing_criteria(1);

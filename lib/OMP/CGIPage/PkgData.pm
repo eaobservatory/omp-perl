@@ -83,7 +83,9 @@ sub request_data {
         # Go through the package data object so that we do not need to worry about
         # inconsistencies with local retrieval
 
-        my $arcdb = OMP::ArchiveDB->new(DB => $self->database_archive);
+        my $arcdb = OMP::ArchiveDB->new(
+            DB => $self->database_archive,
+            FileUtil => $self->fileutil);
 
         my $pkg;
         my $error;

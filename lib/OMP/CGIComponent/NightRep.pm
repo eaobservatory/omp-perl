@@ -719,7 +719,9 @@ sub cgi_to_obsgroup {
     $options{'projectid'} = $projid if defined $projid;
     $options{'instrument'} = $inst if defined($inst) && length($inst . '') > 0;
 
-    my $arcdb = OMP::ArchiveDB->new(DB => $self->page->database_archive);
+    my $arcdb = OMP::ArchiveDB->new(
+        DB => $self->page->database_archive,
+        FileUtil => $self->page->fileutil);
 
     my $grp = OMP::Info::ObsGroup->new(
         ADB => $arcdb,
