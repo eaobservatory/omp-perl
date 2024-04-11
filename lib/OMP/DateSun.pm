@@ -41,15 +41,11 @@ if ($] >= 5.006 && $] < 5.008) {
 }
 use Carp;
 
+use OMP::Config;
 use OMP::DateTools;
 use Time::Piece ':override';
 use Time::Seconds;
 use POSIX qw/ /;
-
-# Note we have to require this module rather than use it because there is a
-# circular dependency with OMP::DateSun such that determine_host must be
-# defined before OMP::Config BEGIN block can trigger
-require OMP::Config;
 
 our $VERSION = '2.000';
 
