@@ -40,8 +40,6 @@ use OMP::Display;
 use OMP::General;
 use OMP::Constants qw/:obs :logging/;
 use OMP::Error qw/:try/;
-use OMP::ObslogDB;
-use OMP::DB::Backend;
 use Scalar::Util qw/blessed/;
 
 use Astro::FITS::Header;
@@ -1747,33 +1745,6 @@ sub rawdatadir {
     };
 
     return $dir;
-}
-
-=item B<remove_comment>
-
-    $obs->remove_comment($userid);
-
-Removes the existing comment for the given user ID from the C<OMP::Info::Obs>
-object and sets all comments for the given user ID and C<OMP::Info::Obs> object
-as inactive in the database.
-
-=cut
-
-sub remove_comment {
-    my $self = shift;
-    my $userid = shift;
-
-    unless (defined($userid)) {
-        throw OMP::Error::BadArgs(
-            "Must supply user ID in order to remove comments");
-    }
-
-    my $db = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
-
-    $db->removeComment($self, $userid);
-
-    # Reread all remaining comments (inefficient but reliable)
-    $db->updateObsComment([$self]);
 }
 
 =item B<simple_filename>
