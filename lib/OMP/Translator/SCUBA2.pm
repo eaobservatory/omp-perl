@@ -34,6 +34,7 @@ use JCMT::TCS::Pong;
 use OMP::Config;
 use OMP::Error;
 use OMP::General;
+use OMP::MSB;
 
 use OMP::Translator::SCUBA2Headers;
 
@@ -115,7 +116,6 @@ sub insert_setup_obs {
     return () unless @configs;
 
     # we start from OT XML to make things robust with translator changes
-    require OMP::MSB;
 
     my $setupxml = q|
     <SpObs msb="true" optional="false" remaining="1" type="ob" subtype="none">
