@@ -137,6 +137,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Config;
 use OMP::Error qw/:try/;
+use OMP::Util::Client;
 use OMP::Util::File;
 
 BEGIN {
@@ -265,7 +266,7 @@ if (defined $opt{tel}) {
 else {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    $telescope = OMP::General->determine_tel($w);
+    $telescope = OMP::Util::Client->determine_tel($w);
     $w->destroy if Exists($w);
     die "Unable to determine telescope. Exiting.\n"
         unless defined $telescope;
@@ -295,7 +296,7 @@ MainLoop();
 sub get_userid {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    my $user = OMP::General->determine_user($w);
+    my $user = OMP::Util::Client->determine_user($dbb, $w);
     throw OMP::Error::Authentication('Unable to obtain valid user name')
         unless defined $user;
     $w->destroy if Exists($w);

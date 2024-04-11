@@ -28,6 +28,7 @@ use warnings;
 use Carp;
 use Unicode::Normalize qw/normalize/;
 use OMP::DB::Backend;
+use OMP::General;
 use OMP::UserDB;
 
 # Overloading
@@ -875,8 +876,6 @@ sub deobfuscate {
 
 sub _obfu_rot13 {
     my ($self, $again) = @_;
-
-    require OMP::General;
 
     return OMP::General->rot13(map {$self->$_()} qw/userid name alias/);
 }

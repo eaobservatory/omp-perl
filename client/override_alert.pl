@@ -74,6 +74,7 @@ BEGIN {
     use OMP::General;
     use OMP::MSBQuery;
     use OMP::MSBDB;
+    use OMP::Util::Client;
 
     $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
         unless exists $ENV{'OMP_DIR'};
@@ -119,7 +120,7 @@ if (defined $opt{'tel'}) {
 else {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    $telescope = OMP::General->determine_tel($w);
+    $telescope = OMP::Util::Client->determine_tel($w);
     $w->destroy if Exists($w);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }

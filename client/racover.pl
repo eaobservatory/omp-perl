@@ -89,7 +89,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::DateTools;
-use OMP::General;
+use OMP::Util::Client;
 use OMP::Password;
 use OMP::SciProgStats;
 use OMP::ProjDB;
@@ -161,7 +161,7 @@ else {
     }
     else {
         # Should be able to pass in a readline object if Tk not desired
-        $telescope = OMP::General->determine_tel();
+        $telescope = OMP::Util::Client->determine_tel();
         die "Unable to determine telescope. Exiting.\n"
             unless defined $telescope;
         die "Unable to determine telescope [too many choices]. Exiting.\n"

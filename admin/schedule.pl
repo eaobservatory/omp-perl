@@ -43,7 +43,7 @@ BEGIN {
     use lib OMPLIB;
 }
 
-use OMP::General;
+use OMP::Util::Client;
 use OMP::SchedDB;
 use OMP::DateTools;
 use OMP::DB::Backend;
@@ -61,7 +61,7 @@ if (defined $tel) {
     $tel = uc($tel);
 }
 else {
-    $tel = OMP::General->determine_tel();
+    $tel = OMP::Util::Client->determine_tel();
     die 'Telescope not specified' unless (defined $tel) and (not ref $tel);
 }
 

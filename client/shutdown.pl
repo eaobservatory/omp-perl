@@ -77,7 +77,7 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
 use OMP::DB::Backend;
-use OMP::General;
+use OMP::Util::Client;
 use OMP::Info::Comment;
 use OMP::Password;
 use OMP::Project::TimeAcct;
@@ -120,11 +120,11 @@ my $dseconds = DateTime::Format::Duration->new(pattern => '%s');
 my $dbconnection = OMP::DB::Backend->new();
 
 # Prompt for telescope name (unless it was provided as an argument)
-$tel = OMP::General->determine_tel($term)
+$tel = OMP::Util::Client->determine_tel($term)
     unless defined $tel;
 
 # Verify telescope argument
-my %telescopes = map {$_, $_} OMP::General->determine_tel();
+my %telescopes = map {$_, $_} OMP::Util::Client->determine_tel();
 if (defined $tel and exists $telescopes{uc $tel}) {
     $tel = $telescopes{uc $tel};
 }

@@ -73,7 +73,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP classes
-use OMP::General;
+use OMP::Util::Client;
 use OMP::DB::Backend;
 use OMP::QStatus qw/query_queue_status/;
 use Time::Piece qw/:override/;
@@ -109,7 +109,7 @@ unless (defined $telescope) {
     require Term::ReadLine;
     my $term = Term::ReadLine->new('Gather queue parameters');
 
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
     die "Unable to determine telescope [too many choices]. Exiting.\n"
         if ref $telescope;

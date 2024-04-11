@@ -88,7 +88,7 @@ use OMP::DB::Backend::Archive;
 use OMP::Error qw/ :try /;
 use OMP::Util::File;
 use OMP::DateTools;
-use OMP::General;
+use OMP::Util::Client;
 use OMP::NightRep;
 
 our $VERSION = '2.000';
@@ -130,7 +130,7 @@ if (defined $tel) {
 else {
     require Term::ReadLine;
     my $term = Term::ReadLine->new('View night log');
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 

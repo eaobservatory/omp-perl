@@ -86,6 +86,7 @@ use OMP::ArchiveDB;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
+use OMP::Util::Client;
 use OMP::Util::File;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
@@ -134,7 +135,7 @@ if (defined($opt{tel})) {
     $telescope = uc($opt{tel});
 }
 else {
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
     die "Unable to determine telescope [too many choices]. Exiting.\n"
         if ref $telescope;
