@@ -30,7 +30,6 @@ use OMP::Error;
 use OMP::Constants qw/:fb :logging/;
 use OMP::NetTools;
 use OMP::General;
-use OMP::FeedbackDB;
 use OMP::Mail;
 
 =head1 METHODS
@@ -761,6 +760,10 @@ with OMP__FB_MSG_).
 sub _notify_feedback_system {
     my $self = shift;
     my %comment = @_;
+
+    # Delay importing until required to avoid a circular dependency
+    # between FeedbackDB and ProjDB.
+    require OMP::FeedbackDB;
 
     OMP::General->log_message(
         "DB Notifying feedback system",
