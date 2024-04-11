@@ -28,6 +28,7 @@ use Encode qw/encode/;
 
 # OMP dependencies
 use OMP::User;
+use OMP::UserDB;
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::MSBQuery;
@@ -430,7 +431,8 @@ sub doneMSB {
         my $user;
         if ($userid) {
             $user = OMP::User->new(userid => $userid);
-            unless ($user->verify) {
+            my $userdb = OMP::UserDB->new(DB => $class->dbConnection);
+            unless ($userdb->verifyUser($user->userid)) {
                 throw OMP::Error::InvalidUser(
                     "The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
             }
@@ -649,7 +651,8 @@ sub suspendMSB {
         my $user;
         if ($userid) {
             $user = OMP::User->new(userid => $userid);
-            unless ($user->verify) {
+            my $userdb = OMP::UserDB->new(DB => $class->dbConnection);
+            unless ($userdb->verifyUser($user->userid)) {
                 throw OMP::Error::InvalidUser(
                     "The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
             }
@@ -779,7 +782,8 @@ sub rejectMSB {
         my $user;
         if ($userid) {
             $user = OMP::User->new(userid => $userid);
-            unless ($user->verify) {
+            my $userdb = OMP::UserDB->new(DB => $class->dbConnection);
+            unless ($userdb->verifyUser($user->userid)) {
                 throw OMP::Error::InvalidUser(
                     "The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
             }

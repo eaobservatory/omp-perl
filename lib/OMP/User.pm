@@ -13,8 +13,6 @@ OMP::User - A User of the OMP system
         name => 'Mr Z',
         email => 'xyz@abc.def.com');
 
-    $u->verifyUser;
-
 =head1 DESCRIPTION
 
 This class simply provides details of the name and email address
@@ -27,9 +25,7 @@ use strict;
 use warnings;
 use Carp;
 use Unicode::Normalize qw/normalize/;
-use OMP::DB::Backend;
 use OMP::General;
-use OMP::UserDB;
 
 # Overloading
 use overload '""' => "stringify",
@@ -576,25 +572,6 @@ sub stringify {
     my $name = $self->name;
     $name = '' unless defined $name;
     return $name;
-}
-
-=item B<verify>
-
-Verify that the user described in this object is a valid
-user of the OMP. This requires a query of the OMP database
-tables. All entries are compared.
-
-    $isthere = $u->verify;
-
-Returns true or false.
-
-[simply verifies that the userid exists. Does not yet verify contents]
-
-=cut
-
-sub verify {
-    my $self = shift;
-    return OMP::UserDB->new(DB => OMP::DB::Backend->new)->verifyUser($self->userid);
 }
 
 =item B<domain>
