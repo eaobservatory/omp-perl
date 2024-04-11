@@ -57,12 +57,7 @@ use OMP::Error qw/:try/;
 use Text::Balanced qw/extract_delimited/;
 use OMP::SiteQuality;
 use POSIX qw/ /;
-
-# Apr 13 2011 - The following comment needs to be verified ...
-#   Note we have to require this module rather than use it because there is a
-#   circular dependency with OMP::NetTools such that determine_host must be
-#   defined before OMP::Config BEGIN block can trigger
-require OMP::Config;
+use OMP::Config;
 
 our $VERSION = '2.000';
 

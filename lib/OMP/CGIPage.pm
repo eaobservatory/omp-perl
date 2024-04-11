@@ -405,7 +405,7 @@ sub write_page {
 
     if ($auth_type =~ '^local_or_(\w+)$') {
         $auth_type = $1;
-        $auth_ok = 1 if OMP::NetTools->is_host_local();
+        $auth_ok = 1 if $self->is_host_local();
     }
 
     if ($auth_type =~ '^staff_or_(\w+)$') {
@@ -971,6 +971,41 @@ sub _write_project_choice {
             project_choices => $project_choices,
             target => $q->url(-absolute => 1),
         });
+}
+
+=item B<is_host_local>
+
+Returns true if the host accessing this page is local, false
+if not. The definition of "local" means that either there are
+no dots in the domainname (eg "lapaki" or "ulu") or the domain
+includes one of the endings specified in the "localdomain" config
+setting.
+
+    print "local" if $page->is_host_local
+
+=cut
+
+sub is_host_local {
+    my $self = shift;
+
+    my @domain = OMP::NetTools->determine_host();
+
+    # if no domain, assume we are really local (since only a host name)
+    return 1 unless $domain[1];
+
+    # Also return true if the domain does not include a "."
+    return 1 if $domain[1] !~ /\./;
+
+    # Now get the local definition of allowed remote hosts
+    my @local = OMP::Config->getData('localdomain');
+
+    # See whether anything in @local matches $domain[1]
+    if (grep {$domain[1] =~ /$_$/i} @local) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 =back
