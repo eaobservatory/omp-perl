@@ -277,7 +277,7 @@ sub stringify {
     my $givenhash = $self->_given_hash;
     if (defined $givenhash) {
         require Data::Dumper;
-        my $dumper = Data::Dumper->new([$givenhash], ['HASH']);
+        my $dumper = Data::Dumper->new([$givenhash], [$self->_root_element]);
         $dumper->Indent(0);
         $dumper->Sortkeys(1);
         return $dumper->Dump;
