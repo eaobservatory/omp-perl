@@ -28,7 +28,6 @@ our $VERSION = '2.000';
 
 use OMP::Error qw/:try/;
 use OMP::Project;
-use OMP::FeedbackDB;
 use OMP::ProjQuery;
 use OMP::Constants qw/:fb/;
 use OMP::User;
