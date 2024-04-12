@@ -1,8 +1,8 @@
-package OMP::PreviewDB;
+package OMP::DB::Preview;
 
 =head1 NAME
 
-OMP::PreviewDB - Fetch observation previews from the database
+OMP::DB::Preview - Fetch observation previews from the database
 
 =cut
 
