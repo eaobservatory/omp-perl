@@ -8,7 +8,7 @@ use IO::File;
 
 use OMP::Config;
 use OMP::DB::MSB;
-use OMP::MSBQuery;
+use OMP::Query::MSB;
 use OMP::SciProg;
 
 my %prog = (
@@ -65,7 +65,7 @@ is($@, '', 'Delete old science program');
 
 $msbdb->storeSciProg( SciProg => new OMP::SciProg( XML => $xml ), Force => 1 );
 
-my $query = new OMP::MSBQuery(XML => '<MSBQuery>
+my $query = new OMP::Query::MSB(XML => '<MSBQuery>
   <projectid full="1">' . $project . '</projectid>
   <disableconstraint>remaining</disableconstraint>
   <disableconstraint>allocation</disableconstraint>

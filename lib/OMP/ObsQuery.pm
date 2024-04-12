@@ -248,7 +248,7 @@ be used. It is also illegal to use ranges inside a plural element.
 
 =head1 SEE ALSO
 
-L<OMP::Query>, L<OMP::MSBQuery>
+L<OMP::Query>, L<OMP::Query::MSB>
 
 =head1 AUTHORS
 

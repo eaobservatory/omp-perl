@@ -71,7 +71,7 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
 
-    croak 'Usage : OMP::MSBQuery->new(XML => $xml)' unless @_;
+    croak 'Usage : OMP::Query->new(XML => $xml)' unless @_;
 
     my %args = @_;
 
@@ -1227,7 +1227,7 @@ There can also be "not" blocks.
 
 =head1 SEE ALSO
 
-OMP/SN/004, C<OMP::MSBQuery>
+OMP/SN/004, C<OMP::Query::MSB>
 
 =cut
 

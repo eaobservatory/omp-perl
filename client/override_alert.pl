@@ -72,7 +72,7 @@ BEGIN {
     use OMP::Audio;
     use OMP::Error qw/:try/;
     use OMP::General;
-    use OMP::MSBQuery;
+    use OMP::Query::MSB;
     use OMP::DB::MSB;
     use OMP::Util::Client;
 
@@ -217,7 +217,7 @@ sub scan_for_msbs {
     );
     my @results;
     try {
-        my $query = OMP::MSBQuery->new(
+        my $query = OMP::Query::MSB->new(
             HASH => \%hash,
             MaxCount => 100);
 

@@ -43,7 +43,7 @@ use Pod::Usage;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Config;
-use OMP::MSBQuery;
+use OMP::Query::MSB;
 use OMP::DB::Backend;
 use OMP::DB::MSB;
 
@@ -156,7 +156,7 @@ do {
         print "CAL $instrument\n\n";
 
         my $db = OMP::DB::MSB->new(DB => $backend);
-        my $msbquery = OMP::MSBQuery->new(HASH => {
+        my $msbquery = OMP::Query::MSB->new(HASH => {
             telescope => 'JCMT',
             projectid => 'JCMTCAL',
             instrument => $instrument,
@@ -237,7 +237,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                 );
 
                 my $db = OMP::DB::MSB->new(DB => $backend);
-                my $msbquery = OMP::MSBQuery->new(HASH => \%hash);
+                my $msbquery = OMP::Query::MSB->new(HASH => \%hash);
                 my @results = $db->queryMSB($msbquery);
 
                 next unless scalar @results;

@@ -22,7 +22,7 @@ use OMP::DateTools;
 use OMP::DateSun;
 use OMP::DB::Backend;
 use OMP::DB::MSB;
-use OMP::MSBQuery;
+use OMP::Query::MSB;
 use OMP::DB::ProjAffiliation qw/@AFFILIATIONS/;
 
 our @EXPORT_OK = qw/query_queue_status/;
@@ -167,7 +167,7 @@ sub query_queue_status {
         my $hr = $refdate->hour();
 
         # Form query object
-        my $query = OMP::MSBQuery->new(
+        my $query = OMP::Query::MSB->new(
             HASH => {%query_hash, date => $refdate->datetime()});
 
         my @results = $db->queryMSB($query);

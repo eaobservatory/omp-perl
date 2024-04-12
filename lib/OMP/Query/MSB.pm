@@ -1,12 +1,12 @@
-package OMP::MSBQuery;
+package OMP::Query::MSB;
 
 =head1 NAME
 
-OMP::MSBQuery - Class representing an OMP query of the MSB database
+OMP::Query::MSB - Class representing an OMP query of the MSB database
 
 =head1 SYNOPSIS
 
-    $query = OMP::MSBQuery->new(XML => $xml);
+    $query = OMP::Query::MSB->new(XML => $xml);
     $sql = $query->sql(
         $msbtable, $obstable,
         $projtable, $projqueuetable, $projusertable);

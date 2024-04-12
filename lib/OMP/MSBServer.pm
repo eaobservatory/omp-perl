@@ -31,7 +31,7 @@ use OMP::User;
 use OMP::DB::User;
 use OMP::DB::MSB;
 use OMP::DB::MSBDone;
-use OMP::MSBQuery;
+use OMP::Query::MSB;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
 use OMP::Constants qw/:done/;
@@ -308,7 +308,7 @@ sub queryMSB {
     try {
         # Convert the Query to an object
         # Triggers an exception on fatal errors
-        my $query = OMP::MSBQuery->new(
+        my $query = OMP::Query::MSB->new(
             XML => $xmlquery,
             MaxCount => $maxCount,
         );

@@ -54,7 +54,7 @@ use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::DB::TimeAcct;
 use OMP::DB::MSBDone;
-use OMP::MSBQuery;
+use OMP::Query::MSB;
 use OMP::DB::TLE;
 use OMP::User;
 
@@ -648,7 +648,7 @@ Query the database for the MSBs that match the supplied query.
 
     @results = $db->queryMSB($query);
 
-The query is represented by an C<OMP::MSBQuery> object.  The result is
+The query is represented by an C<OMP::Query::MSB> object.  The result is
 returned as an array of C<OMP::Info::MSB> objects.
 
 The results are actually summaries of the table entries rather than
@@ -1324,7 +1324,7 @@ sub getMSBtitle {
     # SQL since we only want one value from the table... The method approach
     # is a lot more prone to problems and increased overhead for such a simple
     # value
-    my $query = OMP::MSBQuery->new(HASH => {
+    my $query = OMP::Query::MSB->new(HASH => {
         checksum => $checksum,
         disableconstraint => 'all',
     });
@@ -2431,14 +2431,14 @@ sub _fetch_row {
 
 =item B<_run_query>
 
-Run a query on the database table using an C<OMP::MSBQuery> object and
+Run a query on the database table using an C<OMP::Query::MSB> object and
 return the matching rows (up to a maximum number) as an array of hash
 references.
 
     @results = $db->_run_query($query);
 
 The query object controls the maximum number of results that
-can be retrieved (see L<OMP::MSBQuery/maxCount>).
+can be retrieved (see L<OMP::Query::MSB/maxCount>).
 
 =cut
 
