@@ -1,20 +1,20 @@
-package OMP::ShiftDB;
+package OMP::DB::Shift;
 
 =head1 NAME
 
-OMP::ShiftDB - Shift log database manipulation
+OMP::DB::Shift - Shift log database manipulation
 
 =head1 SYNOPSIS
 
-    use OMP::ShiftDB;
-    $db = OMP::ShiftDB->new(DB => OMP::DB::Backend->new);
+    use OMP::DB::Shift;
+    $db = OMP::DB::Shift->new(DB => OMP::DB::Backend->new);
 
     $db->enterShiftLog($comment, $telescope);
     $comment = $db->getShiftLogs($query);
 
 =head1 DESCRIPTION
 
-The C<ShiftDB> class is used to manipulate the shift log database.
+The C<OMP::DB::Shift> class is used to manipulate the shift log database.
 
 =cut
 
@@ -124,7 +124,7 @@ sub enterShiftLog {
 
     # Add the writing of the comment to the logs
     my $logmessage =
-        sprintf("ShiftDB: %s %.50s", $author->userid, $comment->text);
+        sprintf("OMP::DB::Shift: %s %.50s", $author->userid, $comment->text);
     OMP::General->log_message($logmessage);
 }
 

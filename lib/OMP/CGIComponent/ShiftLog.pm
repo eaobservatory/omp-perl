@@ -30,7 +30,7 @@ use Time::Piece;
 use Time::Seconds;
 
 use OMP::ShiftQuery;
-use OMP::ShiftDB;
+use OMP::DB::Shift;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIComponent/;
@@ -168,7 +168,7 @@ sub get_shift_comments {
     });
 
     # Grab the results.
-    my $sdb = OMP::ShiftDB->new(DB => $self->database);
+    my $sdb = OMP::DB::Shift->new(DB => $self->database);
     my @result = $sdb->getShiftLogs($query);
 
     # At this point we have an array of relevant Info::Comment objects,
@@ -223,7 +223,7 @@ sub submit_comment {
     );
 
     # Store the comment in the database.
-    my $sdb = OMP::ShiftDB->new(DB => $self->database);
+    my $sdb = OMP::DB::Shift->new(DB => $self->database);
     $sdb->enterShiftLog($comment, $telescope);
 }
 

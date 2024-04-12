@@ -83,7 +83,7 @@ use OMP::General;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::DB::Project;
-use OMP::ShiftDB;
+use OMP::DB::Shift;
 use OMP::ShiftQuery;
 use OMP::User;
 
@@ -204,7 +204,7 @@ for my $proj (keys %sorted) {
 
     # Query for the telescope's shiftlog if we haven't retrieved it yet
     unless (exists $shiftlog{$proj_details->telescope}) {
-        my $sdb = OMP::ShiftDB->new(DB => $db);
+        my $sdb = OMP::DB::Shift->new(DB => $db);
 
         my $query = OMP::ShiftQuery->new(HASH => {
             date => {delta => 1, value => $utdate},

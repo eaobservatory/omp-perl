@@ -81,7 +81,7 @@ use OMP::Util::Client;
 use OMP::Info::Comment;
 use OMP::Password;
 use OMP::Project::TimeAcct;
-use OMP::ShiftDB;
+use OMP::DB::Shift;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctGroup;
 use OMP::UserDB;
@@ -282,7 +282,7 @@ unless ($DEBUG) {
     print "Stored time accounts.\n";
 
     # Store shiftlog comments
-    my $shiftdb = OMP::ShiftDB->new(DB => $dbconnection);
+    my $shiftdb = OMP::DB::Shift->new(DB => $dbconnection);
     for my $comment (@shiftcomms) {
         $shiftdb->enterShiftLog($comment, $tel);
     }

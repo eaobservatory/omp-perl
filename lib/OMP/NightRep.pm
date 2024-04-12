@@ -42,7 +42,7 @@ use OMP::Info::ObsGroup;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
-use OMP::ShiftDB;
+use OMP::DB::Shift;
 use OMP::ShiftQuery;
 use OMP::DateTools;
 use OMP::DB::Fault;
@@ -920,7 +920,7 @@ of C<OMP::Info::Comment> objects.
 sub shiftComments {
     my $self = shift;
 
-    my $sdb = OMP::ShiftDB->new(DB => $self->db);
+    my $sdb = OMP::DB::Shift->new(DB => $self->db);
 
     my $query = OMP::ShiftQuery->new(HASH => {
         date => {delta => $self->delta_day, value => $self->date->ymd},
@@ -1808,7 +1808,7 @@ method) can be retrieved in global variable C<$OMP::NightRep::WARNKEY>.
 =head1 SEE ALSO
 
 See C<OMP::TimeAcctDB>, C<OMP::Info::ObsGroup>, C<OMP::DB::Fault>,
-C<OMP::ShiftDB>
+C<OMP::DB::Shift>
 
 =head1 COPYRIGHT
 
