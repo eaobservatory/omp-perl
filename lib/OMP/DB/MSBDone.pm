@@ -54,7 +54,7 @@ use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
 use OMP::DB::User;
-use OMP::MSBDoneQuery;
+use OMP::Query::MSBDone;
 use OMP::DateTools;
 use OMP::General;
 use Time::Piece;
@@ -109,7 +109,7 @@ sub historyMSB {
     $hash{'checksum'} = $checksum if defined $checksum;
     $hash{'projectid'} = $projectid if defined $projectid;
 
-    my $query = OMP::MSBDoneQuery->new(HASH => \%hash);
+    my $query = OMP::Query::MSBDone->new(HASH => \%hash);
 
     # Assume we have already got all the information
     # so we do not need to do a subsequent query
@@ -150,7 +150,7 @@ sub historyMSBtid {
     return unless $msbtid =~ /\w/;
 
     # Construct the query
-    my $query = OMP::MSBDoneQuery->new(HASH => {
+    my $query = OMP::Query::MSBDone->new(HASH => {
         msbtid => $msbtid,
     });
 
@@ -372,7 +372,7 @@ sub observedMSBs {
             if delete $args{'include_undo'};
     }
 
-    my $query = OMP::MSBDoneQuery->new(HASH => {
+    my $query = OMP::Query::MSBDone->new(HASH => {
         status => \@status,
         ($date ? (date => {delta => 1, value => $date}) : ()),
         ($projectid ? (projectid => $projectid) : ()),
@@ -420,7 +420,7 @@ sub observedDates {
         unless $projectid;
 
     # Form the query
-    my $query = OMP::MSBDoneQuery->new(HASH => {
+    my $query = OMP::Query::MSBDone->new(HASH => {
         status => [
             OMP__DONE_DONE,
             OMP__DONE_REJECTED,
@@ -524,7 +524,7 @@ sub titleMSB {
 =item B<queryMSBdone>
 
 Query the MSB done table. Query must be supplied as an
-C<OMP::MSBDoneQuery> object.
+C<OMP::Query::MSBDone> object.
 
     @results = $db->queryMSBdone(
         $query,

@@ -1,12 +1,12 @@
-package OMP::MSBDoneQuery;
+package OMP::Query::MSBDone;
 
 =head1 NAME
 
-OMP::MSBDoneQuery - Class representing an XML OMP query of the MSB done table
+OMP::Query::MSBDone - Class representing an XML OMP query of the MSB done table
 
 =head1 SYNOPSIS
 
-    $query = OMP::MSBDoneQuery->new(XML => $xml);
+    $query = OMP::Query::MSBDone->new(XML => $xml);
     $sql = $query->sql($msbdonetable);
 
 =head1 DESCRIPTION

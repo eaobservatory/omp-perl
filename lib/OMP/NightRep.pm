@@ -49,7 +49,7 @@ use OMP::DB::Fault;
 use OMP::Query::Fault;
 use OMP::FaultGroup;
 use OMP::DB::MSBDone;
-use OMP::MSBDoneQuery;
+use OMP::Query::MSBDone;
 use OMP::DB::Project;
 use Time::Piece qw/:override/;
 use OMP::Mail;
@@ -857,7 +857,7 @@ sub msbs {
 
     my $db = OMP::DB::MSBDone->new(DB => $self->db);
 
-    my $query = OMP::MSBDoneQuery->new(HASH => {
+    my $query = OMP::Query::MSBDone->new(HASH => {
         status => [
             OMP__DONE_DONE,
             OMP__DONE_REJECTED,
