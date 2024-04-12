@@ -617,7 +617,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see L<OMP::DB>, L<OMP::FeedbackDB>, L<OMP::User>.
+For related classes see L<OMP::DB>, L<OMP::DB::Feedback>, L<OMP::User>.
 
 =head1 AUTHORS
 

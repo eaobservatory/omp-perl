@@ -29,7 +29,7 @@ use OMP::Config;
 use OMP::DB::Fault;
 use OMP::Display;
 use OMP::Error qw(:try);
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::UserDB;
 use OMP::DateTools;
 use OMP::General;
@@ -290,7 +290,7 @@ sub project_home {
     };
 
     # Get the "important" feedback comments
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
     my $comments = $fdb->getComments(status => [OMP__FB_IMPORTANT]);
 
     return {
@@ -920,7 +920,7 @@ sub process_project_changes {
 
     # Get OMP user object
     if ($q->param('send_mail')) {
-        my $fdb = OMP::FeedbackDB->new(ProjectID => $project->projectid, DB => $self->database);
+        my $fdb = OMP::DB::Feedback->new(ProjectID => $project->projectid, DB => $self->database);
         $fdb->addComment(
             {
                 author => $self->auth->user,

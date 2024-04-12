@@ -58,7 +58,7 @@ use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::ProjDB;
 use OMP::Constants qw/:fb/;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::Info::ObsGroup;
 use File::Temp qw/tempdir/;
 use OMP::Config;
@@ -1040,7 +1040,7 @@ sub add_fb_comment {
     my $project = OMP::ProjDB->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
     my $pi = $project->pi;
 
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->db);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->db);
     $fdb->addComment(
         {
             subject => "Data requested",

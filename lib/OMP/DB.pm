@@ -708,7 +708,7 @@ Notify the feedback system using the supplied message.
     $db->_notify_feedback_system(%comment);
 
 Where the comment hash includes the keys supported by the
-feedback system (see C<OMP::FeedbackDB>) and usually
+feedback system (see C<OMP::DB::Feedback>) and usually
 consist of:
 
 =over 4
@@ -762,8 +762,8 @@ sub _notify_feedback_system {
     my %comment = @_;
 
     # Delay importing until required to avoid a circular dependency
-    # between FeedbackDB and ProjDB.
-    require OMP::FeedbackDB;
+    # between OMP::DB::Feedback and ProjDB.
+    require OMP::DB::Feedback;
 
     OMP::General->log_message(
         "DB Notifying feedback system",
@@ -772,7 +772,7 @@ sub _notify_feedback_system {
     # We have to share the database connection because we have
     # locked out the project table making it impossible for
     # the feedback system to verify the project
-    my $fbdb = OMP::FeedbackDB->new(
+    my $fbdb = OMP::DB::Feedback->new(
         ProjectID => $self->projectid,
         DB => $self->db);
 
@@ -929,7 +929,7 @@ __END__
 =head1 SEE ALSO
 
 For related classes see C<OMP::MSBDB>, C<OMP::ProjDB> and
-C<OMP::FeedbackDB>.
+C<OMP::DB::Feedback>.
 
 =head1 AUTHORS
 

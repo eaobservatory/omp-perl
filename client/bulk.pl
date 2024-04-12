@@ -88,7 +88,7 @@ use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::Password;
 use OMP::ProjDB;
 
@@ -189,7 +189,7 @@ foreach my $projectid (@projects) {
         next;
     }
 
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $database);
     $fdb->addComment(\%comment);
     print " [DONE]\n";
 }

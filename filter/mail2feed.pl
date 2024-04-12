@@ -56,7 +56,7 @@ use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault::Response;
 use OMP::DB::Fault;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::Mail;
 use OMP::General;
 use OMP::User;
@@ -255,7 +255,7 @@ sub accept_feedback {
     );
 
     unless ($DRY_RUN) {
-        my $fdb = OMP::FeedbackDB->new(ProjectID => $project, DB => $database);
+        my $fdb = OMP::DB::Feedback->new(ProjectID => $project, DB => $database);
         $fdb->addComment(\%data);
         $audit->log(1 => "Sent to feedback system with Project $project");
     }

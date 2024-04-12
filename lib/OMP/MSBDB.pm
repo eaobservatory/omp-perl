@@ -3771,7 +3771,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
+For related classes see C<OMP::ProjDB> and C<OMP::DB::Feedback>.
 
 =head1 AUTHORS
 

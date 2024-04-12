@@ -71,7 +71,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
 use OMP::FBQuery;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 use OMP::Mail;
@@ -109,8 +109,8 @@ else {
 # Get our database connection
 my $dbconnection = OMP::DB::Backend->new();
 
-# Instantiate a new FeedbackDB object
-my $db = OMP::FeedbackDB->new(DB => $dbconnection);
+# Instantiate a new OMP::DB::Feedback object
+my $db = OMP::DB::Feedback->new(DB => $dbconnection);
 
 # Create our query
 my $fbquery = OMP::FBQuery->new(HASH => {
@@ -154,7 +154,7 @@ my $mindate_str = $mindate->ymd('');
 my %new_submission = ();
 my $dbh = $dbconnection->handle();
 my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
-        . $OMP::FeedbackDB::FBTABLE
+        . $OMP::DB::Feedback::FBTABLE
         . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
         . ' GROUP BY projectid');
 die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;

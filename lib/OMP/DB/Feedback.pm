@@ -1,12 +1,12 @@
-package OMP::FeedbackDB;
+package OMP::DB::Feedback;
 
 =head1 NAME
 
-OMP::FeedbackDB - Manipulate the feedback database
+OMP::DB::Feedback - Manipulate the feedback database
 
 =head1 SYNOPSIS
 
-    $db = OMP::FeedbackDB->new(
+    $db = OMP::DB::Feedback->new(
         ProjectID => $projectid,
         DB => $dbconnection);
 
@@ -54,9 +54,9 @@ our $FBTABLE = 'ompfeedback';
 
 =item B<new>
 
-Create a new instance of an C<OMP::FeedbackDB> object.
+Create a new instance of an C<OMP::DB::Feedback> object.
 
-    $db = OMP::FeedbackDB->new(
+    $db = OMP::DB::Feedback->new(
         ProjectID => $project,
         DB => $connection);
 

@@ -81,7 +81,7 @@ use OMP::Constants qw/:fb/;
 use OMP::General;
 use OMP::DB;
 use OMP::DB::Backend;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 
 my %opt = (
     'header' => undef,
@@ -232,11 +232,11 @@ sub make_query {
 
     return <<"__SQL__";
         SELECT f.projectid, date
-        FROM $OMP::FeedbackDB::FBTABLE f
+        FROM $OMP::DB::Feedback::FBTABLE f
         WHERE f.projectid IN ( $list )
           AND f.date =
             ( SELECT MIN(f2.date)
-              FROM $OMP::FeedbackDB::FBTABLE f2
+              FROM $OMP::DB::Feedback::FBTABLE f2
               WHERE f2.projectid = f.projectid
                 AND ( f2.msgtype = $submitted OR f2.subject LIKE 'Science program submitted%' )
             )

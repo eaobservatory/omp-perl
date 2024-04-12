@@ -24,7 +24,7 @@ use Carp;
 
 use OMP::Constants qw/:fb/;
 use OMP::Error qw/:try/;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::NetTools;
 
 use base qw/OMP::CGIComponent/;
@@ -62,7 +62,7 @@ sub fb_entries {
 
     my $order = (scalar $q->param("order")) // 'ascending';
 
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
     my $comments = $fdb->getComments(status => $status, order => $order);
 
     return {
@@ -91,7 +91,7 @@ sub fb_entries_count {
     my $self = shift;
     my $projectid = shift;
 
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
     my $comments = $fdb->getComments(
         status => [
             OMP__FB_IMPORTANT,
@@ -129,7 +129,7 @@ sub submit_fb_comment {
         status => OMP__FB_IMPORTANT,
     };
 
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
 
     my @messages;
     try {
