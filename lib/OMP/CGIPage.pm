@@ -44,7 +44,7 @@ use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Display;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::DB::Fault;

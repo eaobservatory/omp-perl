@@ -360,7 +360,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::ProjDB> and C<OMP::DB::Feedback>.
+For related classes see C<OMP::DB::Project> and C<OMP::DB::Feedback>.
 
 =head1 AUTHORS
 

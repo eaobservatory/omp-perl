@@ -81,7 +81,7 @@ use List::MoreUtils qw/uniq/;
 
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 
 # Increase in the number increases the verbose output.
 my $VERBOSE = 0;
@@ -157,9 +157,9 @@ sub add_link {
 _ADD_LINK_
 
     $sql = sprintf $sql,
-        $OMP::ProjDB::PROJQUEUETABLE,
+        $OMP::DB::Project::PROJQUEUETABLE,
         $push,
-        $OMP::ProjDB::PROJQUEUETABLE;
+        $OMP::DB::Project::PROJQUEUETABLE;
 
     my $err;
     try {
@@ -202,7 +202,7 @@ _ADD_LINK_
         for (@projid) {
             next if exists $invalid{$_};
 
-            if (exists $valid{$_} || OMP::ProjDB->new(DB => $db, ProjectID => $_)->verifyProject()) {
+            if (exists $valid{$_} || OMP::DB::Project->new(DB => $db, ProjectID => $_)->verifyProject()) {
                 make_noise("$_ is ok\n") if $VERBOSE > 1;
 
                 $valid{$_} ++;

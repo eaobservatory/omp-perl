@@ -42,7 +42,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::DB::ProjAffiliation;
 use OMP::Constants qw/:done :fb :logging/;
 use OMP::SiteQuality;
@@ -83,7 +83,7 @@ our $VERSION = '2.000';
 
 # Name of the table containing the MSB data
 our $MSBTABLE = 'ompmsb';
-our $PROJTABLE = $OMP::ProjDB::PROJTABLE;
+our $PROJTABLE = $OMP::DB::Project::PROJTABLE;
 our $OBSTABLE = 'ompobs';
 our $SCITABLE = 'ompsciprog';
 
@@ -617,7 +617,7 @@ sub fetchMSB {
 
     # We also need to obtain the project constraints
     my %pconst;
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         DB => $self->db,
         ProjectID => $sp->projectID,
     );
@@ -1271,7 +1271,7 @@ sub getSubmitted {
     # Get the project objects
     my @projects;
     for my $projectid (@projectids) {
-        my $projdb = OMP::ProjDB->new(
+        my $projdb = OMP::DB::Project->new(
             DB => $self->db,
             ProjectID => $projectid);
 
@@ -1870,7 +1870,7 @@ sub _verify_project_exists {
     my $self = shift;
 
     # Ask the project DB class
-    my $proj = OMP::ProjDB->new(
+    my $proj = OMP::DB::Project->new(
         ProjectID => $self->projectid,
         DB => $self->db);
 
@@ -1914,7 +1914,7 @@ sub _verify_project_constraints {
     }
 
     # Ask the project DB class for project object
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $self->projectid,
         DB => $self->db);
 
@@ -2460,7 +2460,7 @@ sub _run_query {
     # Get the sql
     my $sql = $query->sql(
         $MSBTABLE, $OBSTABLE, $PROJTABLE,
-        $OMP::ProjDB::PROJQUEUETABLE, $OMP::ProjDB::PROJUSERTABLE);
+        $OMP::DB::Project::PROJQUEUETABLE, $OMP::DB::Project::PROJUSERTABLE);
 
     print "SQL: $sql\n" if $DEBUG;
 
@@ -3771,7 +3771,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::ProjDB> and C<OMP::DB::Feedback>.
+For related classes see C<OMP::DB::Project> and C<OMP::DB::Feedback>.
 
 =head1 AUTHORS
 

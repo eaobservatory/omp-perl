@@ -174,7 +174,7 @@ use Data::Dumper;
 use IO::File;
 use OMP::DB::Backend;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Util::Project;
 use OMP::SiteQuality;
 use OMP::Password;
@@ -509,7 +509,7 @@ sub check_project {
 sub check_country {
     my ($countries) = @_;
 
-    my $projdb = OMP::ProjDB->new(DB => $db);
+    my $projdb = OMP::DB::Project->new(DB => $db);
     my %allowed = map {$_ => undef} $projdb->listCountries;
 
     my $ok = 1;

@@ -48,7 +48,7 @@ class.
         ProjectID => $project,
         DB => $connection);
 
-See C<OMP::ProjDB> and C<OMP::DB::MSB> for more details on the
+See C<OMP::DB::Project> and C<OMP::DB::MSB> for more details on the
 use of these arguments and for further keys.
 
 If supplied, the database connection object must be of type
@@ -762,7 +762,7 @@ sub _notify_feedback_system {
     my %comment = @_;
 
     # Delay importing until required to avoid a circular dependency
-    # between OMP::DB::Feedback and ProjDB.
+    # between OMP::DB::Feedback and OMP::DB::Project.
     require OMP::DB::Feedback;
 
     OMP::General->log_message(
@@ -928,7 +928,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::DB::MSB>, C<OMP::ProjDB> and
+For related classes see C<OMP::DB::MSB>, C<OMP::DB::Project> and
 C<OMP::DB::Feedback>.
 
 =head1 AUTHORS

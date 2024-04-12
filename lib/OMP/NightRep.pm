@@ -50,7 +50,7 @@ use OMP::FaultQuery;
 use OMP::FaultGroup;
 use OMP::DB::MSBDone;
 use OMP::MSBDoneQuery;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use Time::Piece qw/:override/;
 use OMP::Mail;
 use OMP::Display;
@@ -250,7 +250,7 @@ sub db_accounts {
 
         # Keep only the results for the telescope we are querying for
         @acct = grep {
-            OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
+            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
         } @acct;
 
         # Store result
@@ -872,7 +872,7 @@ sub msbs {
     # Currently need to verify the telescope outside of the query
     # This verification really slows things down
     @results = grep {
-        OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
+        OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
     } @results;
 
     # Index by project id
@@ -1406,7 +1406,7 @@ sub _get_time_summary_shift {
     for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        my $details = OMP::ProjDB->new(DB => $self->db, ProjectID => $proj)->projectDetails();
+        my $details = OMP::DB::Project->new(DB => $self->db, ProjectID => $proj)->projectDetails();
 
         push @{$proj_by_country{$details->country}}, $proj;
     }

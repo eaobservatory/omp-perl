@@ -24,7 +24,7 @@ use File::Basename;
 our $VERSION = '0.03';
 
 use OMP::DB::Archive;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::PackageData;
 
 use base qw/OMP::CGIPage/;
@@ -64,7 +64,7 @@ sub request_data {
     if ($utdate) {
         # Need to decide whether we are using CADC or OMP for data retrieval
         # To do that we need to know the telescope name
-        my $tel = OMP::ProjDB->new(
+        my $tel = OMP::DB::Project->new(
             DB => $self->database, ProjectID => $projectid)->getTelescope();
 
         return $self->_write_error(

@@ -1,12 +1,12 @@
-package OMP::ProjDB;
+package OMP::DB::Project;
 
 =head1 NAME
 
-OMP::ProjDB - Manipulate the project database
+OMP::DB::Project - Manipulate the project database
 
 =head1 SYNOPSIS
 
-    $projdb = OMP::ProjDB->new(
+    $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $dbconnection);
 
@@ -54,9 +54,9 @@ our $PROJQUEUETABLE = 'ompprojqueue';
 
 =item B<new>
 
-Create a new instance of an C<OMP::ProjDB> object.
+Create a new instance of an C<OMP::DB::Project> object.
 
-    $db = OMP::ProjDB->new(
+    $db = OMP::DB::Project->new(
         ProjectID => $project,
         DB => $connection);
 

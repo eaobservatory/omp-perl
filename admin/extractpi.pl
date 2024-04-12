@@ -18,7 +18,7 @@ BEGIN {
 }
 
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 
 my $SEM = '04A';
@@ -26,7 +26,7 @@ my $TEL = 'JCMT';
 
 # Query the database
 my $db = OMP::DB::Backend->new;
-my $projects = OMP::ProjDB->new(DB =>$ db)->listProjects(OMP::ProjQuery->new(HASH => {
+my $projects = OMP::DB::Project->new(DB =>$ db)->listProjects(OMP::ProjQuery->new(HASH => {
     semester => $SEM,
     telescope => $TEL,
 }));

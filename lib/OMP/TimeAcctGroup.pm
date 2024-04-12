@@ -33,7 +33,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctQuery;
@@ -745,7 +745,7 @@ sub completion_stats {
     my $lowdate = $self->_get_low_date();
 
     # Get total TAG allocation for semesters
-    my $projdb = OMP::ProjDB->new(DB => $self->db);
+    my $projdb = OMP::DB::Project->new(DB => $self->db);
     my $alloc = 0;
     for my $sem (@semesters) {
         $alloc += $projdb->getTotalAlloc($telescope, $sem);
@@ -993,7 +993,7 @@ sub _get_accts {
 
     # Get project objects, using a different query depending on whether
     # we are returning science or engineering accounts
-    my $db = OMP::ProjDB->new(DB => $self->db);
+    my $db = OMP::DB::Project->new(DB => $self->db);
     my %hash = ();
 
     $hash{'telescope'} = $self->_get_telescope if defined $self->_get_telescope;
@@ -1127,7 +1127,7 @@ sub _get_telescope {
     my $self = shift;
     my @accts = $self->_get_non_special_accts;
     if (@accts) {
-        my $db = OMP::ProjDB->new(
+        my $db = OMP::DB::Project->new(
             DB => $self->db,
             ProjectID => $accts[0]->projectid);
 

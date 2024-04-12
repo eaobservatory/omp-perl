@@ -7,13 +7,13 @@
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Password;
 
 OMP::Password->get_verified_auth('staff');
 
 # Connect to the database and create a proj db object
-my $db = OMP::ProjDB->new(DB => OMP::DB::Backend->new);
+my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new);
 
 while (<>) {
     chomp;

@@ -93,7 +93,7 @@ use OMP::Util::File;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserDB;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Constants qw/:done/;
 
 our $VERSION = '2.000';
@@ -159,7 +159,7 @@ my $output = OMP::MSBServer->observedMSBs({
 my %TITLES;  # MSB titles indexed by checksum
 my @msbs;
 for my $msb (@$output) {
-    next unless OMP::ProjDB->new(DB => $dbb, ProjectID => $msb->projectid)->verifyTelescope($telescope);
+    next unless OMP::DB::Project->new(DB => $dbb, ProjectID => $msb->projectid)->verifyTelescope($telescope);
     my $title = $msb->title;
     $TITLES{$msb->checksum} = $msb->title;
     for my $c ($msb->comments) {

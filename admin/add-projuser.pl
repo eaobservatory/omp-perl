@@ -30,14 +30,14 @@ use Carp qw/carp/;
 
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::UserDB;
 
 #  Known user roles for a project.
 my @roles = map {uc $_} qw/coi pi support/;
 
 my $db = OMP::DB::Backend->new;
-my $projdb = OMP::ProjDB->new(DB => $db);
+my $projdb = OMP::DB::Project->new(DB => $db);
 my $userdb = OMP::UserDB->new(DB => $db);
 
 for my $file (@ARGV) {
@@ -93,7 +93,7 @@ sub verify_record {
         warn 'Unknown user ', $proj->{'userid'}, "\n";
     }
 
-    unless (OMP::ProjDB->new(DB => $db, ProjectID => $proj->{'projectid'})->verifyProject()) {
+    unless (OMP::DB::Project->new(DB => $db, ProjectID => $proj->{'projectid'})->verifyProject()) {
         $err ++;
         warn 'Cannot verify project ', $proj->{'projectid'}, "\n";
     }
@@ -154,7 +154,7 @@ sub parse {
         uc $_;
     } split /$sep/, $line, 4;
 
-    # Keys are same as expected by OMP::ProjDB->_insert_project_user().
+    # Keys are same as expected by OMP::DB::Project->_insert_project_user().
     return {
         'projectid' => $proj,
         'userid' => $user,

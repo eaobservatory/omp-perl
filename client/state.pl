@@ -70,7 +70,7 @@ use lib "$FindBin::RealBin/../lib";
 # OMP Classes
 use OMP::DB::Backend;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Password;
 
 our $VERSION = '2.000';
@@ -108,7 +108,7 @@ print "\n";
 my $dbconnection = OMP::DB::Backend->new();
 
 for my $id (split(',', $idstr)) {
-    my $projdb = OMP::ProjDB->new(ProjectID => $id, DB => $dbconnection);
+    my $projdb = OMP::DB::Project->new(ProjectID => $id, DB => $dbconnection);
 
     # Get project
     my $proj = $projdb->projectDetails();

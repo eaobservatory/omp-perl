@@ -30,7 +30,7 @@ use OMP::Project::TimeAcct;
 use OMP::TimeAcctQuery;
 use OMP::DateTools;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Constants qw/:fb/;
 
 use base qw/OMP::DB/;
@@ -129,7 +129,7 @@ sub getTimeSpent {
     if ($args{telescope} && ! $args{projectid}) {
         my $tel = uc($args{telescope});
         @matches = grep {
-            OMP::ProjDB->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($tel)
+            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($tel)
         } @matches;
     }
 
@@ -216,8 +216,8 @@ sub setTimeSpent {
         $self->_insert_timeacct_entry($acct);
     }
 
-    # instantiate a ProjDB object
-    my $projdb = OMP::ProjDB->new(DB => $self->db);
+    # instantiate a OMP::DB::Project object
+    my $projdb = OMP::DB::Project->new(DB => $self->db);
 
     # get a summary of all the project data
     # grouped by project ID and UT date
@@ -226,7 +226,7 @@ sub setTimeSpent {
 
     # now need to recalculate the time spent for each project
     for my $proj (keys %projects) {
-        # update the ProjDB object with the current project id
+        # update the OMP::DB::Project object with the current project id
         $projdb->projectid($proj);
 
         # Some of the projects are not real (eg WEATHER, SCUBA)
@@ -472,7 +472,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::DB::MSB> and C<OMP::ProjDB>.
+For related classes see C<OMP::DB::MSB> and C<OMP::DB::Project>.
 
 =head1 COPYRIGHT
 

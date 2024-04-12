@@ -115,7 +115,7 @@ use DateTime;
 use OMP::DB::Backend;
 use OMP::SciProg;
 use OMP::Password;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::SpServer;
 
 our $VERSION = '2.000';
@@ -160,7 +160,7 @@ if (-e $file) {
     # looks to be a filename
     $sp = OMP::SciProg->new(FILE => $file);
 }
-elsif (OMP::ProjDB->new(DB => $db, ProjectID => $file)->verifyProject()) {
+elsif (OMP::DB::Project->new(DB => $db, ProjectID => $file)->verifyProject()) {
     # we have a project ID - we need to get permission
     print STDERR "Retrieving science programme $file\n";
     ($sp) =

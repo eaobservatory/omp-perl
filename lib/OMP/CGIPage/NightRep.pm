@@ -45,7 +45,7 @@ use OMP::DB::Obslog;
 use OMP::ObsQuery;
 use OMP::DB::Preview;
 use OMP::PreviewQuery;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::DB::Archive;
 use OMP::Error qw/:try/;
 
@@ -333,7 +333,7 @@ sub projlog_content {
     # Get a project object for this project
     my $proj;
     try {
-        $proj = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+        $proj = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
     }
     otherwise {
         my $E = shift;

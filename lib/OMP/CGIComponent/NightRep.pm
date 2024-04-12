@@ -33,7 +33,7 @@ use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::DB::Obslog;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::Error qw/:try/;
@@ -507,7 +507,7 @@ sub store_time_accounting {
             # If the project was added by the user, verify that it exists and
             # is enabled.
             if ($entry->{'user_added'}) {
-                my $projdb = OMP::ProjDB->new(DB => $self->database, ProjectID => $proj);
+                my $projdb = OMP::DB::Project->new(DB => $self->database, ProjectID => $proj);
                 unless ($projdb->verifyProject()) {
                     push @errors, sprintf 'Project %s does not exist.', $proj;
                     next;
@@ -697,7 +697,7 @@ sub cgi_to_obsgroup {
             $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
         }
         elsif (defined($projid)) {
-            $telescope = OMP::ProjDB->new(
+            $telescope = OMP::DB::Project->new(
                 DB => $self->database, ProjectID => $projid)->getTelescope();
         }
         else {

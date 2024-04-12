@@ -72,7 +72,7 @@ use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
 use OMP::FBQuery;
 use OMP::DB::Feedback;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 use OMP::Mail;
 
@@ -131,9 +131,9 @@ unless (scalar grep {defined $_} @$comments) {
 # Get project IDs for all comments returned.
 my %projects = map {$_->{projectid}, undef} @$comments;
 
-# Instantiate a new ProjDB object.  We'll need this
+# Instantiate a new OMP::DB::Project object.  We'll need this
 # to get support details for each project returned
-my $projdb = OMP::ProjDB->new(DB => $dbconnection);
+my $projdb = OMP::DB::Project->new(DB => $dbconnection);
 
 # Query on all project IDs returned
 my $projquery = OMP::ProjQuery->new(HASH => {

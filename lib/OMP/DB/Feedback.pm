@@ -34,7 +34,7 @@ use OMP::Display;
 use OMP::FBQuery;
 use OMP::Info::Comment;
 use OMP::Project;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::User;
 use OMP::UserDB;
 use OMP::Constants;
@@ -254,7 +254,7 @@ sub addComment {
     }
 
     # Check that the project actually exists
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $self->projectid,
         DB => $self->db,
     );
@@ -454,7 +454,7 @@ sub _mail_comment_important {
     my $projectid = shift;
     my $comment = shift;
 
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->db);
 
@@ -496,7 +496,7 @@ sub _mail_comment_support {
     my $projectid = shift;
     my $comment = shift;
 
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->db);
 
@@ -522,8 +522,8 @@ sub _mail_comment_info {
     my $projectid = shift;
     my $comment = shift;
 
-    # Get a ProjDB object so we can get info from the database
-    my $projdb = OMP::ProjDB->new(
+    # Get a OMP::DB::Project object so we can get info from the database
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->db);
 
@@ -633,7 +633,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::DB::MSB> and C<OMP::ProjDB>.
+For related classes see C<OMP::DB::MSB> and C<OMP::DB::Project>.
 
 =head1 COPYRIGHT
 

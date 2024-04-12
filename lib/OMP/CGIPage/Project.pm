@@ -37,7 +37,7 @@ use OMP::DB::MSB;
 use OMP::DB::MSBDone;
 use OMP::MSBServer;
 use OMP::DB::ProjAffiliation;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 use OMP::TimeAcctDB;
 use OMP::SiteQuality;
@@ -84,7 +84,7 @@ sub fb_fault_content {
     }
 
     return {
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         fault_list => $faultcomp->show_faults(
             faults => \@faults,
             descending => 0,
@@ -126,7 +126,7 @@ sub list_projects {
 
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::ProjDB->new(DB => $self->database)->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::ProjQuery->new(HASH => {
         (defined $state ? (state => {boolean => $state}) : ()),
         (defined $status ? (status => $status) : ()),
         (defined $semester ? (semester => $semester) : ()),
@@ -241,7 +241,7 @@ sub project_home {
     my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
-    my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    my $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
 
     # Get nights for which data was taken
     my $nights = $msbdonedb->observedDates(1);
@@ -457,7 +457,7 @@ sub project_users {
 
     my $q = $self->cgi;
 
-    my $db = OMP::ProjDB->new(
+    my $db = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->database,
     );
@@ -553,7 +553,7 @@ sub support {
         contacts => undef,
         } unless defined $projectid;
 
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->database,
     );
@@ -671,7 +671,7 @@ sub alter_proj {
     } unless defined $projectid;
 
     # Connect to the database
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->database,
     );

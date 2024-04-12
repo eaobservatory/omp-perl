@@ -92,7 +92,7 @@ use OMP::DateTools;
 use OMP::Util::Client;
 use OMP::Password;
 use OMP::SciProgStats;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 use OMP::SpServer;
 
@@ -148,7 +148,7 @@ if (@projects) {
 
     # Convert to project objects (needs password)
     @projects = map {
-        OMP::ProjDB->new(DB => $db, ProjectID => $_)->projectDetails();
+        OMP::DB::Project->new(DB => $db, ProjectID => $_)->projectDetails();
     } @projects;
 }
 else {
@@ -178,7 +178,7 @@ else {
     $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
 
     print "Querying database for project details...\n";
-    my $projects = OMP::ProjDB->new(DB => $db)->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = OMP::DB::Project->new(DB => $db)->listProjects(OMP::ProjQuery->new(HASH => {
         telescope => $telescope,
         semester => $semester,
         state => {boolean => 1},

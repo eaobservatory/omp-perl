@@ -92,7 +92,7 @@ BEGIN {
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use IO::File;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::UserDB;
 use OMP::DB::Backend;
 use OMP::SiteQuality;
@@ -129,7 +129,7 @@ $fh->close();
 
 # Connect to the database
 my $dbb = OMP::DB::Backend->new;
-my $projdb = OMP::ProjDB->new(DB => $dbb);
+my $projdb = OMP::DB::Project->new(DB => $dbb);
 my $userdb = OMP::UserDB->new(DB => $dbb);
 
 my $val_split = qr/\s*,\s*/;

@@ -27,7 +27,7 @@ use OMP::DB::Fault;
 use OMP::FaultQuery;
 use OMP::DateTools;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::User;
 use OMP::UserDB;
 use OMP::UserQuery;
@@ -82,7 +82,7 @@ sub details {
     my $member;
     my $support;
     try {
-        my $db = OMP::ProjDB->new(DB => $self->database);
+        my $db = OMP::DB::Project->new(DB => $self->database);
 
         my $query = OMP::ProjQuery->new(HASH => {
             person => $user->userid,

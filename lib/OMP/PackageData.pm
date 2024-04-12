@@ -56,7 +56,7 @@ use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Error qw/:try/;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Constants qw/:fb/;
 use OMP::DB::Feedback;
 use OMP::Info::ObsGroup;
@@ -614,7 +614,7 @@ sub _populate {
 
     # Need to get the telescope associated with this project
     # Should ObsGroup do this???
-    my $proj = OMP::ProjDB->new(DB => $self->db, ProjectID => $self->projectid)->projectDetails();
+    my $proj = OMP::DB::Project->new(DB => $self->db, ProjectID => $self->projectid)->projectDetails();
 
     my $tel = $proj->telescope;
 
@@ -1037,7 +1037,7 @@ sub add_fb_comment {
     my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
 
     # Get project PI name for inclusion in feedback message
-    my $project = OMP::ProjDB->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
+    my $project = OMP::DB::Project->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
     my $pi = $project->pi;
 
     my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->db);

@@ -15,7 +15,7 @@ use OMP::Constants qw/:logging/;
 use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 use OMP::User;
 
@@ -420,7 +420,7 @@ sub _fetch_projects {
     throw OMP::Error('OMP::Auth cannot fetch projects: user object has no userid')
         unless defined $userid;
 
-    my $db = OMP::ProjDB->new(DB => OMP::DB::Backend->new());
+    my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new());
 
     my $projects = $db->listProjects(OMP::ProjQuery->new(HASH => {
         person_access => $userid,

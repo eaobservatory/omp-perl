@@ -31,7 +31,7 @@ use OMP::DB::MSBDone;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::MSBServer;
-use OMP::ProjDB;
+use OMP::DB::Project;
 
 use base qw/OMP::CGIPage/;
 
@@ -97,7 +97,7 @@ sub fb_msb_output {
     }
 
     return {
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         num_comments => $fbcomp->fb_entries_count($projectid),
         target => $self->url_absolute(),
         prog_info => $prog_info,
@@ -176,7 +176,7 @@ sub msb_hist {
     return {
         target => $self->url_absolute(),
         target_base => $q->url(-absolute => 1),
-        project => OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         msb_info => $msb_info,
         values => {
             show => $show,
@@ -200,7 +200,7 @@ sub observed {
     my $q = $self->cgi;
     my $comp = OMP::CGIComponent::MSB->new(page => $self);
 
-    my $projdb = OMP::ProjDB->new(DB => $self->database);
+    my $projdb = OMP::DB::Project->new(DB => $self->database);
 
     my $telescope = $self->decoded_url_param('telescope');
     my $utdate = $self->decoded_url_param('utdate');

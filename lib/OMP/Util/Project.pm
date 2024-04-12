@@ -16,7 +16,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::DateTools;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::DB::ProjAffiliation;
 use OMP::SiteQuality;
 use OMP::UserDB;
@@ -201,7 +201,7 @@ sub addProject {
         expirydate => $expirydate,
     );
 
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         DB => $db,
         ProjectID => $proj->projectid,
     );

@@ -47,7 +47,7 @@ use lib OMPLIB;
 
 use OMP::DateTools;
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 
 my ($tel, $verbose, $dry_run);
@@ -70,7 +70,7 @@ sub check_project_expiry {
     my $dt = DateTime->now(time_zone => 'UTC');
     my $semester = OMP::DateTools->determine_semester(date => $dt, tel => $tel);
 
-    my $pdb = OMP::ProjDB->new(DB => $db);
+    my $pdb = OMP::DB::Project->new(DB => $db);
 
     # Check for expired projects.
     foreach my $project (@{$pdb->listProjects(OMP::ProjQuery->new(HASH => {

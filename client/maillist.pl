@@ -62,7 +62,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::DB::Backend;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::ProjQuery;
 
 our $VERSION = '2.000';
@@ -105,7 +105,7 @@ else {
 
 # Get projects
 my $db = OMP::DB::Backend->new;
-my $projdb = OMP::ProjDB->new(DB => $db);
+my $projdb = OMP::DB::Project->new(DB => $db);
 my $projquery = OMP::ProjQuery->new(HASH => \%queryhash);
 my $projects = $projdb->listProjects($projquery);
 my %email_users;

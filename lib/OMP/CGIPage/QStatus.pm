@@ -17,7 +17,7 @@ use OMP::CGIComponent::CaptureImage;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::SiteQuality;
 use OMP::QStatus qw/query_queue_status/;
 use OMP::QStatus::Plot qw/create_queue_status_plot/;
@@ -188,7 +188,7 @@ sub _show_input_page {
 
     my $q = $self->cgi;
 
-    my $db = OMP::ProjDB->new(DB => $self->database);
+    my $db = OMP::DB::Project->new(DB => $self->database);
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
     push @semesters, $semester unless grep {$_ eq $semester} @semesters;

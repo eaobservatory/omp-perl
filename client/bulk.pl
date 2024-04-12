@@ -90,7 +90,7 @@ use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
 use OMP::DB::Feedback;
 use OMP::Password;
-use OMP::ProjDB;
+use OMP::DB::Project;
 
 our $VERSION = '2.000';
 
@@ -143,7 +143,7 @@ my $database = OMP::DB::Backend->new();
 # Verify that the projects exist
 foreach my $projectid (@projects) {
     die "Project does not exist [$projectid]"
-        unless OMP::ProjDB->new(DB => $database, ProjectID => $projectid)->verifyProject();
+        unless OMP::DB::Project->new(DB => $database, ProjectID => $projectid)->verifyProject();
 }
 
 # Create the comment
