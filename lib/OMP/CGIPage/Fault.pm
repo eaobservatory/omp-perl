@@ -35,7 +35,7 @@ use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Fault;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::FaultUtil;
 use OMP::Display;
 use OMP::FaultQuery;
@@ -168,7 +168,7 @@ sub file_fault {
     # Submit the fault the the database
     my @message = ();
     try {
-        my $fdb = OMP::FaultDB->new(DB => $self->database);
+        my $fdb = OMP::DB::Fault->new(DB => $self->database);
         $faultid = $fdb->fileFault($fault);
     }
     catch OMP::Error::MailError with {
@@ -458,7 +458,7 @@ sub query_fault_output {
     my $faults;
     my $search_error = undef;
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
     try {
         $faults = $fdb->queryFaults(OMP::FaultQuery->new(HASH => \%hash), %queryopt);
 
@@ -574,7 +574,7 @@ sub view_fault {
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
     my $fault = $fdb->getFault($faultid);
     return $self->_write_error("Fault [$faultid] not found.")
         unless $fault;
@@ -816,7 +816,7 @@ sub update_fault {
         unless $faultid;
 
     # Get the fault
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
     my $fault = $fdb->getFault($faultid);
 
     unless ($q->param('submit_update')) {
@@ -905,7 +905,7 @@ sub update_resp {
     return $self->_write_error("A fault ID and response ID must be provided.")
         unless ($faultid and $respid);
 
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
 
     # Get the fault
     my $fault = $fdb->getFault($faultid);
@@ -1068,7 +1068,7 @@ sub _write_page_extra {
         $faultid = OMP::General->extract_faultid("[${faultid}]");
         croak 'Invalid fault ID' unless defined $faultid;
 
-        my $fdb = OMP::FaultDB->new(DB => $self->database);
+        my $fdb = OMP::DB::Fault->new(DB => $self->database);
 
         try {
             $fault = $fdb->getFault($faultid);

@@ -27,7 +27,6 @@ use Carp;
 our $VERSION = '2.000';
 
 use OMP::Fault;
-use OMP::FaultDB;
 use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;

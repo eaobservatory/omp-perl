@@ -25,7 +25,7 @@ use DBI;
 
 use lib OMPLIB;
 use OMP::DB::Backend;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 
 my $dbs = OMP::DB::Backend->new;
 
@@ -112,7 +112,7 @@ my $current_ref = $db->selectall_arrayref(
         author,
         0.01*floor(100*timelost),
         status
-    from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
+    from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
     where date between "$startut" and date_add("$startut", interval ${delta} day)
         and FB.faultid = F.faultid
         and category='${telescope}'
@@ -205,7 +205,7 @@ if ($telescope ne "JCMT_EVENTS") {
             author,
             0.01*floor(100*timelost),
             status
-        from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
+        from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
         where date between date_sub("$startut", interval ${delta} day) and "$startut"
             and FB.faultid = F.faultid
             and category='${telescope}'
@@ -237,7 +237,7 @@ if ($telescope ne "JCMT_EVENTS") {
             substring(subject,1,80),
             0.01*floor(100*timelost),
             status
-        from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
+        from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
         where date between "$startut" and date_add("$startut", interval ${delta} day)
             and faultdate < "$startut"
             and FB.faultid = F.faultid

@@ -45,7 +45,7 @@ use OMP::TimeAcctQuery;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
 use OMP::DateTools;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::FaultQuery;
 use OMP::FaultGroup;
 use OMP::MSBDoneDB;
@@ -315,7 +315,7 @@ sub faults {
     }
     elsif (! $self->{Faults}) {
         # Retrieve faults from the fault database
-        my $fdb = OMP::FaultDB->new(DB => $self->db);
+        my $fdb = OMP::DB::Fault->new(DB => $self->db);
 
         my %hash;
         # We have to do two separate queries in order to get back faults that
@@ -1807,7 +1807,7 @@ method) can be retrieved in global variable C<$OMP::NightRep::WARNKEY>.
 
 =head1 SEE ALSO
 
-See C<OMP::TimeAcctDB>, C<OMP::Info::ObsGroup>, C<OMP::FaultDB>,
+See C<OMP::TimeAcctDB>, C<OMP::Info::ObsGroup>, C<OMP::DB::Fault>,
 C<OMP::ShiftDB>
 
 =head1 COPYRIGHT

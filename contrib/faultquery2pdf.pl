@@ -20,7 +20,7 @@ use lib OMPLIB;
 use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::FaultQuery;
 use OMP::FaultUtil;
 
@@ -101,7 +101,7 @@ sub query_to_pdf {
     my $name = shift;
     my $hash = shift;
 
-    my $fdb = OMP::FaultDB->new(DB => $db);
+    my $fdb = OMP::DB::Fault->new(DB => $db);
     my $query = OMP::FaultQuery->new(HASH => $hash);
     my $faults = $fdb->queryFaults($query);
     my $toprint = '';

@@ -1,13 +1,13 @@
-package OMP::FaultDB;
+package OMP::DB::Fault;
 
 =head1 NAME
 
-OMP::FaultDB - Fault database manipulation
+OMP::DB::Fault - Fault database manipulation
 
 =head1 SYNOPSIS
 
-    use OMP::FaultDB;
-    $db = OMP::FaultDB->new(DB => OMP::DB::Backend->new);
+    use OMP::DB::Fault;
+    $db = OMP::DB::Fault->new(DB => OMP::DB::Backend->new);
 
     $faultid = $db->fileFault($fault);
     $db->respondFault($faultid, $response);
@@ -16,7 +16,7 @@ OMP::FaultDB - Fault database manipulation
 
 =head1 DESCRIPTION
 
-The C<FaultDB> class is used to manipulate the fault database. It is
+The C<OMP::DB::Fault> class is used to manipulate the fault database. It is
 designed to work with faults from multiple systems at once. The
 database consists of two tables: one for general fault information
 and one for the text associated with the fault report.

@@ -47,7 +47,7 @@ use OMP::Display;
 use OMP::ProjDB;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::Util::File;
 use OMP::General;
 use OMP::NetTools;
@@ -743,7 +743,7 @@ sub _sidebar_project {
 
     # If there are any faults associated with this project put a link up to the
     # fault system and display the number of faults.
-    my $faultdb = OMP::FaultDB->new(DB => $self->database);
+    my $faultdb = OMP::DB::Fault->new(DB => $self->database);
     my @faults = $faultdb->getAssociations($projectid, 1);
 
     $self->side_bar("Project $projectid", [

@@ -26,6 +26,7 @@ use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb);
 use OMP::Config;
+use OMP::DB::Fault;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FeedbackDB;
@@ -67,7 +68,7 @@ sub fb_fault_content {
     # Get a fault component object
     my $faultcomp = OMP::CGIComponent::Fault->new(page => $self);
 
-    my $faultdb = OMP::FaultDB->new(DB => $self->database);
+    my $faultdb = OMP::DB::Fault->new(DB => $self->database);
     my @faults = $faultdb->getAssociations($projectid, 0);
 
     # Display the first fault if a fault isnt specified in the URL

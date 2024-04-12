@@ -55,7 +55,7 @@ use Encode::HanExtra;
 use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault::Response;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::FeedbackDB;
 use OMP::Mail;
 use OMP::General;
@@ -285,7 +285,7 @@ sub accept_fault {
     );
 
     unless ($DRY_RUN) {
-        my $fdb = OMP::FaultDB->new(DB => $database);
+        my $fdb = OMP::DB::Fault->new(DB => $database);
         $fdb->respondFault($faultid, OMP::Fault::Response->new(%data));
     }
     else {

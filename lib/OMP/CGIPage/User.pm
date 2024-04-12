@@ -23,7 +23,7 @@ our $VERSION = '2.000';
 use OMP::Config;
 use OMP::Display;
 use OMP::Error qw/:try/;
-use OMP::FaultDB;
+use OMP::DB::Fault;
 use OMP::FaultQuery;
 use OMP::DateTools;
 use OMP::General;
@@ -137,7 +137,7 @@ sub details {
         date => {delta => -14, value => $today},
     });
 
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
     my $faults = $fdb->queryFaults($faultquery);
 
     # Sort by category
