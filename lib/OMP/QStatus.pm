@@ -23,7 +23,7 @@ use OMP::DateSun;
 use OMP::DB::Backend;
 use OMP::DB::MSB;
 use OMP::MSBQuery;
-use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
+use OMP::DB::ProjAffiliation qw/@AFFILIATIONS/;
 
 our @EXPORT_OK = qw/query_queue_status/;
 
@@ -110,7 +110,7 @@ sub query_queue_status {
         die 'Unknown affiliation "' . $affiliation .'"'
             unless grep {$_ eq $affiliation} @AFFILIATIONS;
 
-        my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $backend);
+        my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $backend);
         $affiliations = $affiliation_db->get_all_affiliations();
     }
 

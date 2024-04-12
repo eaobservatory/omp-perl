@@ -33,7 +33,7 @@ use lib OMPLIB;
 use OMP::DB::Backend;
 use OMP::ProjDB;
 use OMP::ProjQuery;
-use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
+use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
 
 my $telescope = uc($ARGV[0]) or die 'Telescope not specified';
 my $semester = uc($ARGV[1]) or die 'Semester not specified';
@@ -41,7 +41,7 @@ my $store_to_database = (exists $ARGV[2]) && (lc($ARGV[2]) eq '--store');
 
 my $db = OMP::DB::Backend->new;
 my $project_db = OMP::ProjDB->new(DB => $db);
-my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $db);
+my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $db);
 
 my $allocations = $affiliation_db->get_all_affiliation_allocations($telescope);
 

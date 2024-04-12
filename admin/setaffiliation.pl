@@ -32,10 +32,10 @@ BEGIN {
 }
 
 use OMP::DB::Backend;
-use OMP::ProjAffiliationDB;
+use OMP::DB::ProjAffiliation;
 
 my $db = OMP::DB::Backend->new;
-my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $db);
+my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $db);
 
 my %projects;
 

@@ -43,7 +43,7 @@ use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
 use OMP::ProjDB;
-use OMP::ProjAffiliationDB;
+use OMP::DB::ProjAffiliation;
 use OMP::Constants qw/:done :fb :logging/;
 use OMP::SiteQuality;
 use OMP::Range;
@@ -3220,7 +3220,7 @@ sub _run_query {
             # Another possible scheme for EAO pilot science semester: consider
             # allocation usage by affiliation,
             # time observed (least time first) and user priority only.
-            my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $self->db());
+            my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $self->db());
             my $proj_affiliation = $affiliation_db->get_all_affiliations();
             my $sem_affiliation = $affiliation_db->get_all_affiliation_allocations($telescope);
 

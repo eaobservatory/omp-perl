@@ -36,7 +36,7 @@ use OMP::General;
 use OMP::DB::MSB;
 use OMP::DB::MSBDone;
 use OMP::MSBServer;
-use OMP::ProjAffiliationDB;
+use OMP::DB::ProjAffiliation;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 use OMP::TimeAcctDB;
@@ -1010,7 +1010,7 @@ sub _make_user {
 
     if (defined $affiliation) {
         throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
-            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+            unless exists $OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$affiliation};
 
         $user->affiliation($affiliation);
     }

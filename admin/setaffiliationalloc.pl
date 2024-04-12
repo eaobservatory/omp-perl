@@ -43,7 +43,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 use OMP::DB::Backend;
-use OMP::ProjAffiliationDB;
+use OMP::DB::ProjAffiliation;
 
 my ($help, $telescope);
 
@@ -58,7 +58,7 @@ die 'Telescope not specified'
     unless defined $telescope;
 
 my $db = OMP::DB::Backend->new;
-my $affiliation_db = OMP::ProjAffiliationDB->new(DB => $db);
+my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $db);
 
 while (<>) {
     chomp;

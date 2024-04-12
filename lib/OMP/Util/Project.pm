@@ -17,7 +17,7 @@ use Carp;
 # OMP dependencies
 use OMP::DateTools;
 use OMP::ProjDB;
-use OMP::ProjAffiliationDB;
+use OMP::DB::ProjAffiliation;
 use OMP::SiteQuality;
 use OMP::UserDB;
 use OMP::Project;
@@ -99,7 +99,7 @@ sub addProject {
             my $affiliation = shift @coi_affiliations;
             throw OMP::Error::FatalError(
                 "CoI [$project[1]] affiliation '$affiliation' not recognized by the OMP")
-                unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+                unless exists $OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$affiliation};
             $this_coi->affiliation($affiliation);
         }
     }
@@ -166,7 +166,7 @@ sub addProject {
     if (defined $project[20]) {
         throw OMP::Error::FatalError(
             "PI [$project[1]] affiliation '$project[20]' not recognized by the OMP")
-            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[20]};
+            unless exists $OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$project[20]};
         $pi->affiliation($project[20]);
     }
 

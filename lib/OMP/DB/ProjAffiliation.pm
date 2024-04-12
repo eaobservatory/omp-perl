@@ -1,8 +1,8 @@
-package OMP::ProjAffiliationDB;
+package OMP::DB::ProjAffiliation;
 
 =head1 NAME
 
-OMP::ProjAffiliationDB - Manipulate the project affiliation tables
+OMP::DB::ProjAffiliation - Manipulate the project affiliation tables
 
 =cut
 

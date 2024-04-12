@@ -16,7 +16,7 @@ use List::MoreUtils qw/uniq/;
 use OMP::CGIComponent::CaptureImage;
 use OMP::DateTools;
 use OMP::General;
-use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
+use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
 use OMP::ProjDB;
 use OMP::SiteQuality;
 use OMP::QStatus qw/query_queue_status/;
