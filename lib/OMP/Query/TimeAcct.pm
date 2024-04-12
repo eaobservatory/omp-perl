@@ -1,12 +1,12 @@
-package OMP::TimeAcctQuery;
+package OMP::Query::TimeAcct;
 
 =head1 NAME
 
-OMP::TimeAcctQuery - Class representing an XML OMP query of the time accouting database
+OMP::Query::TimeAcct - Class representing an XML OMP query of the time accouting database
 
 =head1 SYNOPSIS
 
-    $query = OMP::TimeAcctQuery->new(XML => $xml);
+    $query = OMP::Query::TimeAcct->new(XML => $xml);
     $sql = $query->sql($accttable);
 
 =head1 DESCRIPTION

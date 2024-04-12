@@ -221,7 +221,7 @@ sub open_file {
     return $fh;
 }
 
-# Returns the C<OMP::TimeAcctQuery> object given a project id.
+# Returns the C<OMP::Query::TimeAcct> object given a project id.
 sub make_query {
     my (@proj) = @_;
 

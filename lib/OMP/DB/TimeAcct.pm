@@ -27,7 +27,7 @@ our $VERSION = '2.000';
 
 use OMP::Error qw/:try/;
 use OMP::Project::TimeAcct;
-use OMP::TimeAcctQuery;
+use OMP::Query::TimeAcct;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::Project;
@@ -109,7 +109,7 @@ sub getTimeSpent {
 
     # Create the query object
     # Note that we do not want to go exactly one day forward here
-    my $q = OMP::TimeAcctQuery->new(HASH => {
+    my $q = OMP::Query::TimeAcct->new(HASH => {
         ((exists $args{'projectid'})
             ? (projectid => $args{'projectid'})
             : ()),
@@ -173,7 +173,7 @@ sub verifyTimeAcctEntry {
 =item B<queryTimeSpent>
 
 Do a generic query on the time accounting database. The argument
-must be a C<OMP::TimeAcctQuery> object. Returns all the
+must be a C<OMP::Query::TimeAcct> object. Returns all the
 matches as C<OMP::Project::TimeAcct> objects.
 
     @matches = $db->queryTimeSpent($q);
@@ -339,7 +339,7 @@ Internal method to run the actual SQL query on the time accounting table.
 
     @results = $db->_run_timeacct_query($query);
 
-Requires C<OMP::TimeAcctQuery> object and returns
+Requires C<OMP::Query::TimeAcct> object and returns
 C<OMP::ProjecT::TimeAcct> objects.
 
 =cut

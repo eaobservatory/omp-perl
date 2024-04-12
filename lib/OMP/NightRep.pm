@@ -41,7 +41,7 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
-use OMP::TimeAcctQuery;
+use OMP::Query::TimeAcct;
 use OMP::DB::Shift;
 use OMP::Query::Shift;
 use OMP::DateTools;
@@ -237,7 +237,7 @@ sub db_accounts {
         my $db = OMP::DB::TimeAcct->new(DB => $self->db);
 
         # Get our sql query
-        my $query = OMP::TimeAcctQuery->new(HASH => {
+        my $query = OMP::Query::TimeAcct->new(HASH => {
              date => $self->_get_date_hash(timeacct => 1)
         });
 

@@ -36,7 +36,7 @@ use OMP::PlotHelper;
 use OMP::DB::Project;
 use OMP::Query::Project;
 use OMP::DB::TimeAcct;
-use OMP::TimeAcctQuery;
+use OMP::Query::TimeAcct;
 
 use Time::Seconds;
 
@@ -764,7 +764,7 @@ sub completion_stats {
         my @accts = $self->_get_non_special_accts();
         my %projectids = map {$_->projectid, undef} @accts;
         my $tdb = OMP::DB::TimeAcct->new(DB => $self->db);
-        my $query = OMP::TimeAcctQuery->new(HASH => {
+        my $query = OMP::Query::TimeAcct->new(HASH => {
             date => {max => $lowdate->datetime},
             projectid => [keys %projectids],
         });

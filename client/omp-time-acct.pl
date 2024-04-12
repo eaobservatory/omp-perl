@@ -160,7 +160,7 @@ exit;
 
 BEGIN {
   # The column names (and possible method names to be called, in order, on given
-    # C<OMP::TimeAcctQuery> object).
+    # C<OMP::Query::TimeAcct> object).
     my @header = qw/projectid timespent date confirmed/;
 
     #  Prints CSV given a list of elements of a record.
