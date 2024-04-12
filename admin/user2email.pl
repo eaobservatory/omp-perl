@@ -19,9 +19,9 @@ BEGIN {
 }
 
 use OMP::DB::Backend;
-use OMP::UserDB;
+use OMP::DB::User;
 
-my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+my $udb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 for my $userid (<>) {
     chomp($userid);

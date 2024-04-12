@@ -31,7 +31,7 @@ use OMP::Fault::Response;
 use OMP::FaultQuery;
 use OMP::FaultUtil;
 use OMP::Error;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Config;
@@ -438,8 +438,8 @@ sub _prepare_response_columns {
     my $text = $resp->text;
 
     # Verify user id is valid
-    # Create UserDB object for user determination
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    # Create OMP::DB::User object for user determination
+    my $udb = OMP::DB::User->new(DB => $self->db);
     my $userid = $udb->verifyUser($author->userid);
 
     throw OMP::Error::Authentication(
@@ -481,8 +481,8 @@ sub _query_faultdb {
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
-    # Create UserDB object for user determination
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    # Create OMP::DB::User object for user determination
+    my $udb = OMP::DB::User->new(DB => $self->db);
 
     # Create a cache for OMP::User objects since it is likely
     # that a single user will be involved in more than a single response

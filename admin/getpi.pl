@@ -21,7 +21,7 @@ BEGIN {
 
 use Config::IniFiles;
 use OMP::DB::Backend;
-use OMP::UserDB;
+use OMP::DB::User;
 use Data::Dumper;
 use IO::File;
 
@@ -36,7 +36,7 @@ $fh->binmode(':utf8');
 tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
 
-my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+my $udb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 # Loop over all projects
 my %users;

@@ -36,7 +36,7 @@ use OMP::Info::Comment;
 use OMP::Project;
 use OMP::DB::Project;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
@@ -564,7 +564,7 @@ sub _fetch_comments {
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $udb = OMP::DB::User->new(DB => $self->db);
     my $users = $udb->getUserMultiple([keys %{{map {
         my $user = $_->{'author'};
         (defined $user)

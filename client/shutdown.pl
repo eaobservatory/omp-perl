@@ -84,7 +84,7 @@ use OMP::Project::TimeAcct;
 use OMP::DB::Shift;
 use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
-use OMP::UserDB;
+use OMP::DB::User;
 
 our $DEBUG = 0;
 our $VERSION = '2.000';

@@ -14,7 +14,7 @@ use Net::LDAP;
 use OMP::Config;
 use OMP::DB::Backend;
 use OMP::Error;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::UserQuery;
 
 use base qw/OMP::Auth::Base/;
@@ -60,7 +60,7 @@ sub log_in_userpass {
     throw OMP::Error::Authentication('Username or password not recognized.')
         if $mess->code;
 
-    my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
+    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
     my $result = $db->queryUsers(OMP::UserQuery->new(HASH => {
         alias => $username,
         obfuscated => {boolean => 0},

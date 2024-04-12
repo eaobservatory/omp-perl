@@ -31,14 +31,14 @@ use Carp qw/carp/;
 use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::DB::Project;
-use OMP::UserDB;
+use OMP::DB::User;
 
 #  Known user roles for a project.
 my @roles = map {uc $_} qw/coi pi support/;
 
 my $db = OMP::DB::Backend->new;
 my $projdb = OMP::DB::Project->new(DB => $db);
-my $userdb = OMP::UserDB->new(DB => $db);
+my $userdb = OMP::DB::User->new(DB => $db);
 
 for my $file (@ARGV) {
     my %file = process_file($file);

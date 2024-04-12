@@ -21,7 +21,7 @@ use Time::Seconds qw/ONE_DAY/;
 
 use OMP::DateTools;
 use OMP::Display;
-use OMP::UserDB;
+use OMP::DB::User;
 
 use parent qw/OMP::CGIComponent/;
 
@@ -101,7 +101,7 @@ sub common_search_hash {
     if ($values->{'author'}) {
         my $author = uc $values->{'author'};
 
-        my $user = OMP::UserDB->new(DB => $self->database)->getUser($author);
+        my $user = OMP::DB::User->new(DB => $self->database)->getUser($author);
 
         unless ($user) {
             $message = "Could not find user '$author'.";

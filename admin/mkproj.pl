@@ -178,7 +178,7 @@ use OMP::DB::Project;
 use OMP::Util::Project;
 use OMP::SiteQuality;
 use OMP::Password;
-use OMP::UserDB;
+use OMP::DB::User;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -467,7 +467,7 @@ sub unverified_users {
     # For reference, see C<OMP::Util::Project->addProject()>.
     my $id_sep = qr/[,:]+/;
 
-    my $udb = OMP::UserDB->new(DB => $db);
+    my $udb = OMP::DB::User->new(DB => $db);
 
     my @user;
     for my $user (map {$_ ? split /$id_sep/, $_ : ()} @list) {

@@ -60,7 +60,7 @@ use OMP::DB::Feedback;
 use OMP::Mail;
 use OMP::General;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::UserQuery;
 
 our $VERSION = '0.003';
@@ -159,7 +159,7 @@ sub accept_message {
     my $args = shift;
 
     my $database = OMP::DB::Backend->new();
-    my $udb = OMP::UserDB->new(DB => $database);
+    my $udb = OMP::DB::User->new(DB => $database);
 
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 

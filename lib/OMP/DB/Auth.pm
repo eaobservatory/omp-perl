@@ -17,7 +17,7 @@ use Time::Seconds;
 use OMP::DateTools;
 use OMP::Error;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 
 use base qw/OMP::DB/;
 
@@ -109,7 +109,7 @@ sub verify_token {
     my $result = $self->_db_retrieve_data_ashash(
         'select A.userid, A.expiry, A.is_staff, A.duration, U.uname, U.email' .
         ' from ' . $AUTHTABLE .
-        ' as A join ' . $OMP::UserDB::USERTABLE .
+        ' as A join ' . $OMP::DB::User::USERTABLE .
         ' as U on A.userid = U.userid where token = ?',
         $token);
 

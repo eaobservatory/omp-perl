@@ -29,7 +29,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::DB::Project;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::UserQuery;
 
 use base qw/OMP::CGIPage/;
@@ -60,7 +60,7 @@ sub details {
     my $user;
     my $E = undef;
     try {
-        my $udb = OMP::UserDB->new(DB => $self->database);
+        my $udb = OMP::DB::User->new(DB => $self->database);
         $user = $udb->getUser($userid);
     }
     otherwise {
@@ -180,7 +180,7 @@ sub list_users {
 
     my $q = $self->cgi;
 
-    my $udb = OMP::UserDB->new(DB => $self->database);
+    my $udb = OMP::DB::User->new(DB => $self->database);
     my $users = $udb->queryUsers(OMP::UserQuery->new(HASH => {
         obfuscated => {boolean => 0},
     }));
@@ -211,7 +211,7 @@ sub edit_details {
 
     my $userid = $self->decoded_url_param("user");
 
-    my $udb = OMP::UserDB->new(DB => $self->database);
+    my $udb = OMP::DB::User->new(DB => $self->database);
     my $user = $udb->getUser($userid);
 
     unless (defined $user) {
@@ -391,7 +391,7 @@ sub _add_user_try {
     return 'User ID is not valid.'
         unless $userid =~ /^[A-Z]+[0-9]*$/;
 
-    my $udb = OMP::UserDB->new(DB => $self->database);
+    my $udb = OMP::DB::User->new(DB => $self->database);
 
     my $user = $udb->getUser($userid);
     return 'User ID already exists.'

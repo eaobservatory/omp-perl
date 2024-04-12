@@ -19,7 +19,7 @@ use OMP::Config;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Error;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::UserQuery;
 
 sub _get_client {
@@ -168,7 +168,7 @@ sub _finish_oauth {
 
     my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
 
-    my $db = OMP::UserDB->new(DB => OMP::DB::Backend->new());
+    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
 
     my $user = $db->getUser($omp_id);
 

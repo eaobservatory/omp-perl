@@ -44,14 +44,14 @@ use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::Constants qw/:done/;
 
 # Connect to database
 my $dbb = OMP::DB::Backend->new();
 my $msbdb = OMP::DB::MSB->new(DB => $dbb);
 my $msbdone = OMP::DB::MSBDone->new(DB => $dbb);
-my $userdb = OMP::UserDB->new(DB => $dbb);
+my $userdb = OMP::DB::User->new(DB => $dbb);
 
 # Loop over info for modification
 for my $line (<>) {

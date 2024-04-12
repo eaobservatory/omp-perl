@@ -40,14 +40,14 @@ select \*STDERR; $| = 1;
 select \*STDOUT; $| = 1;
 
 use OMP::DB::Backend;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::User;
 use OMP::Error qw/:try/;
 
 my $SEP_IN = q/[,;]+/;
 my $SEP_OUT = q/,/;
 
-my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+my $udb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 while (<>) {
     next if /^\s*#/ or /^\s*$/;

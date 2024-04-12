@@ -40,7 +40,7 @@ use OMP::ObsQuery;
 use Time::Piece;
 use Time::Seconds;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use Data::Dumper;
 
 use base qw/OMP::DB/;
@@ -135,14 +135,14 @@ sub addComment {
     my $userobj;
     if ($user) {
         if (UNIVERSAL::isa($user, 'OMP::User')) {
-            my $udb = OMP::UserDB->new(DB => $self->db);
+            my $udb = OMP::DB::User->new(DB => $self->db);
             unless ($udb->verifyUser($user->userid)) {
                 throw OMP::Error::BadArgs("Must supply a valid user");
             }
             $userobj = $user;
         }
         else {
-            my $udb = OMP::UserDB->new(DB => $self->db);
+            my $udb = OMP::DB::User->new(DB => $self->db);
             $userobj = $udb->getUser($user);
             unless (defined($userobj)) {
                 throw OMP::Error::BadArgs("User id $user is not in database");
@@ -151,7 +151,7 @@ sub addComment {
         $comment->author($userobj);
     }
     elsif (UNIVERSAL::isa($comment, 'OMP::Info::Comment')) {
-        my $udb = OMP::UserDB->new(DB => $self->db);
+        my $udb = OMP::DB::User->new(DB => $self->db);
         unless ($udb->verifyUser($comment->author->userid)) {
             throw OMP::Error::BadArgs(
                 "Must supply a valid user with the comment");
@@ -561,7 +561,7 @@ sub _reorganize_comments {
     my @return;
 
     # Connect to the user database
-    my $db = OMP::UserDB->new(DB => $self->db);
+    my $db = OMP::DB::User->new(DB => $self->db);
     my $users = $db->getUserMultiple([keys %{{
         map {$_->{'commentauthor'} => 1}
         @$rows

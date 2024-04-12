@@ -156,6 +156,7 @@ use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
+use OMP::DB::User;
 
 our $VERSION = '2.000';
 
@@ -2419,7 +2420,7 @@ sub set_user {
     my $RefUser = shift;
     my $w = shift;
 
-    my $udb = OMP::UserDB->new(DB => $dbb);
+    my $udb = OMP::DB::User->new(DB => $dbb);
     my $newUser = $udb->getUser($$RefUser);
     if (defined($newUser)) {
         $user = $newUser;

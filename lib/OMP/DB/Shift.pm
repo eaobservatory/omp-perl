@@ -24,7 +24,7 @@ use strict;
 use OMP::Info::Comment;
 use OMP::Display;
 use OMP::Error;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::ShiftQuery;
 use OMP::DateTools;
 
@@ -67,7 +67,7 @@ sub enterShiftLog {
 
     # Ensure that a valid user is supplied with the comment.
     my $author = $comment->author;
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $udb = OMP::DB::User->new(DB => $self->db);
     unless (defined($author)) {
         throw OMP::Error::BadArgs("Must supply author with comment");
     }
@@ -218,7 +218,7 @@ sub _reorganize_shiftlog {
     my @return;
 
     # Connect to the user database
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $udb = OMP::DB::User->new(DB => $self->db);
 
     # Get the User information as an OMP::User object from the author ids
     my $users = $udb->getUserMultiple([keys %{{map {$_->{'author'} => 1} @$rows}}]);

@@ -20,7 +20,7 @@ use warnings::register;
 
 use OMP::Config;
 use OMP::Error qw/:try/;
-use OMP::UserDB;
+use OMP::DB::User;
 
 =head1 METHODS
 
@@ -149,7 +149,7 @@ sub determine_user {
         unless (defined $db) && eval {$db->isa('OMP::DB::Backend')};
     my $w = shift;
 
-    my $udb = OMP::UserDB->new(DB => $db);
+    my $udb = OMP::DB::User->new(DB => $db);
 
     my $user;
     if (exists $ENV{USER}) {

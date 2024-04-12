@@ -19,7 +19,7 @@ use OMP::DateTools;
 use OMP::DB::Project;
 use OMP::DB::ProjAffiliation;
 use OMP::SiteQuality;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::Project;
 use OMP::Error qw/:try/;
 
@@ -80,7 +80,7 @@ sub addProject {
         . scalar(@project))
         unless scalar(@project) >= 11;
 
-    my $userdb = OMP::UserDB->new(DB => $db);
+    my $userdb = OMP::DB::User->new(DB => $db);
 
     # Split CoI and Support on colon or comma
     my @coi;

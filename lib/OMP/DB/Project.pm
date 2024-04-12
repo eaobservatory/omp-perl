@@ -31,7 +31,7 @@ use OMP::Project;
 use OMP::ProjQuery;
 use OMP::Constants qw/:fb/;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Project::TimeAcct;
@@ -446,7 +446,7 @@ sub listSupport {
     my %args = @_;
 
     # User table
-    my $utable = $OMP::UserDB::USERTABLE;
+    my $utable = $OMP::DB::User::USERTABLE;
 
     # Kluge. We should not be doing SQL at this level
     # Note that current project table does not know which telescope
@@ -886,7 +886,7 @@ sub _get_projects {
     # Get user and queue information; do a separate query for every
     # N projects, where N is the value of $MAX_ID
     my $MAX_ID = 100;
-    my $utable = $OMP::UserDB::USERTABLE;  #--- Proj user table ---#
+    my $utable = $OMP::DB::User::USERTABLE;  #--- Proj user table ---#
     my $uproj_alias = 'P';
     my $userquery_sql = <<"USER_SQL";
         SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
@@ -964,8 +964,8 @@ WHERE_ORDER_SQL
         $start_index = $end_index + 1;
     }
 
-    # First create a UserDB object
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    # First create a OMP::DB::User object
+    my $udb = OMP::DB::User->new(DB => $self->db);
 
     # Loop over each project
     my @projects;

@@ -53,7 +53,7 @@ use OMP::Error qw/:try/;
 use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::MSBDoneQuery;
 use OMP::DateTools;
 use OMP::General;
@@ -915,7 +915,7 @@ sub _reorganize_msb_done {
     my $self = shift;
     my $rows = shift;
 
-    my $udb = OMP::UserDB->new(DB => $self->db);
+    my $udb = OMP::DB::User->new(DB => $self->db);
     my $users = $udb->getUserMultiple(
         [keys %{{map {$_->{'userid'} => 1} grep {$_->{'userid'}} @$rows}}]);
 

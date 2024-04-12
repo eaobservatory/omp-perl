@@ -98,7 +98,7 @@ use lib OMPLIB;
 
 use OMP::DB::Backend;
 use OMP::User;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::Mail;
 
 my $MY_NAME = (fileparse($0))[0];
@@ -120,7 +120,7 @@ GetOptions(
 pod2usage('-exitval' => 0, '-verbose' => 3) if $help;
 
 my $db = OMP::DB::Backend->new;
-my $udb = OMP::UserDB->new(DB => $db);
+my $udb = OMP::DB::User->new(DB => $db);
 
 my $to_addr = $ARGV[0]
     or die 'Give an email address to send mail to.';

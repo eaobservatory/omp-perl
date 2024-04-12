@@ -30,7 +30,7 @@ use OMP::DB::Fault;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::DB::Feedback;
-use OMP::UserDB;
+use OMP::DB::User;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::MSB;
@@ -1005,7 +1005,7 @@ sub _make_user {
     my $affiliation;
     ($userid, $affiliation) = split ':', $userid, 2;
 
-    my $user = OMP::UserDB->new(DB => $self->database)->getUser($userid)
+    my $user = OMP::DB::User->new(DB => $self->database)->getUser($userid)
         or throw OMP::Error "Unknown user ID given: $userid";
 
     if (defined $affiliation) {

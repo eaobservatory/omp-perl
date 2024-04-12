@@ -39,11 +39,11 @@ BEGIN {
 
 use Config::IniFiles;
 use OMP::DB::Backend;
-use OMP::UserDB;
+use OMP::DB::User;
 use Data::Dumper;
 use IO::File;
 
-my $userdb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+my $userdb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 # hard-wire for testing
 my $file = 'data/alloc04a_ukirt.ini';

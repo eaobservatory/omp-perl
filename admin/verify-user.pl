@@ -15,7 +15,7 @@ BEGIN {
 }
 
 use OMP::DB::Backend;
-use OMP::UserDB;
+use OMP::DB::User;
 
 my $SEP_IN = '[;,]+';
 my $SEP_OUT = ' ; ';
@@ -27,7 +27,7 @@ my $INDENT_3 = join '', (' ') x 6;
 my @file = @ARGV
     or die qq[Give user data in a CSV file to be verified.\n];
 
-my $udb = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+my $udb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 for my $file (@file) {
     print "Processing $file ...\n";

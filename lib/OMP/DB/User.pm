@@ -1,13 +1,13 @@
-package OMP::UserDB;
+package OMP::DB::User;
 
 =head1 NAME
 
-OMP::UserDB - OMP user database manipulation
+OMP::DB::User - OMP user database manipulation
 
 =head1 SYNOPSIS
 
-    use OMP::UserDB;
-    $db = OMP::UserDB->new(DB => OMP::DB::Backend->new);
+    use OMP::DB::User;
+    $db = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
     $db->addUser($user);
     $db->updateUser($user);
@@ -17,7 +17,7 @@ OMP::UserDB - OMP user database manipulation
 
 =head1 DESCRIPTION
 
-The C<UserDB> class is used to manipulate the user database.
+The C<OMP::DB::User> class is used to manipulate the user database.
 
 =cut
 
@@ -509,7 +509,7 @@ sub _query_userdb_expensive {
 
     my $sql = 'SELECT DISTINCT '
         . join(', ', (@col, 'obfuscated'))
-        . " FROM $OMP::UserDB::USERTABLE "
+        . " FROM $OMP::DB::User::USERTABLE "
         . ' WHERE '
         . join(' OR ', map {" $_ LIKE ? "} keys %check)
         . ' ORDER BY userid , email , uname';
