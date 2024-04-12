@@ -1,8 +1,8 @@
-package OMP::PreviewQuery;
+package OMP::Query::Preview;
 
 =head1 NAME
 
-OMP::PreviewQuery - Class representing a query of the preview database
+OMP::Query::Preview - Class representing a query of the preview database
 
 =cut
 
@@ -29,7 +29,7 @@ sub sql {
     my $self = shift;
 
     throw OMP::Error::DBMalformedQuery(
-        'PreviewQuery: sql method invoked with incorrect number of arguments')
+        'OMP::Query::Preview: sql method invoked with incorrect number of arguments')
         unless 1 == scalar @_;
 
     my $previewtable = shift;

@@ -32,7 +32,7 @@ use OMP::General;
 use OMP::Info::Obs;
 use OMP::NightRep;
 use OMP::DB::Preview;
-use OMP::PreviewQuery;
+use OMP::Query::Preview;
 
 use base qw/OMP::CGIPage/;
 
@@ -93,7 +93,7 @@ sub display_page {
     $grp->commentScan;
 
     my $pdb = OMP::DB::Preview->new(DB => $self->database);
-    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
         telescope => $telescope,
         instrument => $inst,
         date => {value => $utdate->ymd(), delta => 1},
@@ -158,7 +158,7 @@ sub thumbnails_page {
         if (defined $projectid) and not $grp->numobs;
 
     my $pdb = OMP::DB::Preview->new(DB => $self->database);
-    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
         telescope => $telescope,
         size => 64,
         date => {value => $utdate->ymd(), delta => 1},
@@ -211,7 +211,7 @@ sub display_graphic {
     #         inccal => 1,
     #     );
     #     my $pdb = OMP::DB::Preview->new(DB => $self->database);
-    #     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    #     my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
     #         telescope => $telescope,
     #         date => {value => $utdate->ymd(), delta => 1},
     #     }));

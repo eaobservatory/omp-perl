@@ -44,7 +44,7 @@ use OMP::NightRep;
 use OMP::DB::Obslog;
 use OMP::Query::Obslog;
 use OMP::DB::Preview;
-use OMP::PreviewQuery;
+use OMP::Query::Preview;
 use OMP::DB::Project;
 use OMP::DB::Archive;
 use OMP::Error qw/:try/;
@@ -243,7 +243,7 @@ sub night_report {
 
     if (1 == $nr->delta_day) {
         my $pdb = OMP::DB::Preview->new(DB => $self->database);
-        $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+        $nr->obs->attach_previews($pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
             telescope => $tel,
             date => {value => $utdate->ymd(), delta => 1},
             size => 64,
@@ -409,7 +409,7 @@ sub projlog_content {
 
         if ($grp->numobs > 0) {
             my $pdb = OMP::DB::Preview->new(DB => $self->database);
-            $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+            $grp->attach_previews($pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
                 telescope => $telescope,
                 date => {value => $utdate, delta => 1},
                 size => 64,

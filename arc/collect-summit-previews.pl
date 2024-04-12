@@ -59,7 +59,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Preview;
 use OMP::DB::Preview;
-use OMP::PreviewQuery;
+use OMP::Query::Preview;
 
 main();
 
@@ -95,7 +95,7 @@ sub main {
 
     my $db = OMP::DB::Preview->new(DB => OMP::DB::Backend->new());
     my %existing = map {$_->{'filename'} => $_} @{$db->queryPreviews(
-        OMP::PreviewQuery->new(HASH => {
+        OMP::Query::Preview->new(HASH => {
             telescope => $telescope,
             date => {value => $date->ymd(''), delta => 1},
     }))};

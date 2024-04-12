@@ -27,7 +27,7 @@ Query the database for previews.
 
     $result = $db->queryPreviews($query);
 
-The query is specified as an C<OMP::PreviewQuery> object.
+The query is specified as an C<OMP::Query::Preview> object.
 
 =cut
 
