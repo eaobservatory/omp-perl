@@ -1,8 +1,8 @@
-package OMP::SchedDB;
+package OMP::DB::Sched;
 
 =head1 NAME
 
-OMP::SchedDB- Manipulate the telescope schedule database tables
+OMP::DB::Sched - Manipulate the telescope schedule database tables
 
 =cut
 

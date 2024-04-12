@@ -27,7 +27,7 @@ use Time::Seconds qw/ONE_DAY ONE_HOUR/;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::NetTools;
-use OMP::SchedDB;
+use OMP::DB::Sched;
 use OMP::Info::Sched::Night;
 use OMP::Info::Sched::Slot;
 
@@ -84,7 +84,7 @@ sub _sched_view {
         }
     }
 
-    my $db = OMP::SchedDB->new(DB => $self->database);
+    my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
@@ -139,7 +139,7 @@ sub sched_edit {
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
 
-    my $db = OMP::SchedDB->new(DB => $self->database);
+    my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
 
@@ -198,7 +198,7 @@ sub sched_view_queue_stats {
     my $self = shift;
 
     my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
-    my $db = OMP::SchedDB->new(DB => $self->database);
+    my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
@@ -255,7 +255,7 @@ sub sched_cal_list {
     my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
-    my $db = OMP::SchedDB->new(DB => $self->database);
+    my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $cal_list = $db->list_schedule_calendars(tel => $tel);
 
@@ -275,7 +275,7 @@ sub sched_cal_view {
     my $token = $self->decoded_url_param('token')
         or die 'Access token not specified';
 
-    my $db = OMP::SchedDB->new(DB => $self->database);
+    my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $cal_info = $db->get_schedule_calendar($token);
 
