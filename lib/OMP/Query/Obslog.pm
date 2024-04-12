@@ -1,12 +1,12 @@
-package OMP::ObsQuery;
+package OMP::Query::Obslog;
 
 =head1 NAME
 
-OMP::ObsQuery - Class representing an XML OMP query of the Observation table
+OMP::Query::Obslog - Class representing an XML OMP query of the Observation table
 
 =head1 SYNOPSIS
 
-    $query = OMP::ObsQuery->new(XML => $xml);
+    $query = OMP::Query::Obslog->new(XML => $xml);
     $sql = $query->sql($obslogtable);
 
 =head1 DESCRIPTION

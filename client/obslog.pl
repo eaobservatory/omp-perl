@@ -146,7 +146,7 @@ BEGIN {
 }
 
 use OMP::DB::Obslog;
-use OMP::ObsQuery;
+use OMP::Query::Obslog;
 use OMP::MSB;
 use OMP::DB::MSBDone;
 use OMP::Query::Archive;

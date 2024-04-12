@@ -42,7 +42,7 @@ use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::NightRep;
 use OMP::DB::Obslog;
-use OMP::ObsQuery;
+use OMP::Query::Obslog;
 use OMP::DB::Preview;
 use OMP::PreviewQuery;
 use OMP::DB::Project;
@@ -508,7 +508,7 @@ sub obslog_search {
 
         unless (defined $message) {
             $hash->{'telescope'} = $telescope;
-            my $query = OMP::ObsQuery->new(HASH => $hash);
+            my $query = OMP::Query::Obslog->new(HASH => $hash);
 
             my $odb = OMP::DB::Obslog->new(DB => $self->database);
             $result = $search->sort_search_results(

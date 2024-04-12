@@ -55,6 +55,7 @@ use OMP::DateTools;
 use OMP::DateSun;
 use OMP::DB::Project;
 use OMP::Query::Archive;
+use OMP::Query::Obslog;
 use OMP::DB::Obslog;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
@@ -2001,7 +2002,7 @@ sub locate_timegaps {
         OMP::General->log_message(
             "OMP::DB::Obslog: Querying database for observation comments.\n");
 
-        my $query = OMP::ObsQuery->new(HASH => {
+        my $query = OMP::Query::Obslog->new(HASH => {
             date => {
                 min => $start->ymd,
                 max => $end->ymd . 'T' . $end->hms},

@@ -36,7 +36,7 @@ use OMP::General;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Info::Comment;
-use OMP::ObsQuery;
+use OMP::Query::Obslog;
 use Time::Piece;
 use Time::Seconds;
 use OMP::User;
@@ -321,7 +321,7 @@ sub getComment {
         );
     }
 
-    my $query = OMP::ObsQuery->new(HASH => \%hash);
+    my $query = OMP::Query::Obslog->new(HASH => \%hash);
     my @results = $self->queryComments($query);
 
     # Return based on context and arguments.
@@ -358,7 +358,7 @@ sub removeComment {
 =item B<queryComments>
 
 Query the observation comment table. Query must be supplied as
-an C<OMP::ObsQuery> object.
+an C<OMP::Query::Obslog> object.
 
     @results = $db->queryComments($query, {allow_dateless => 0});
 
@@ -463,7 +463,7 @@ sub updateObsComment {
     OMP::General->log_message(
         "OMP::DB::Obslog: Querying database for observation comments.\n");
 
-    my $query = OMP::ObsQuery->new(HASH => {
+    my $query = OMP::Query::Obslog->new(HASH => {
         date => {
             min => $start->ymd . "T" . $start->hms,
             max => $end->ymd . "T" . $end->hms,
