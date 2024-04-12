@@ -1,8 +1,8 @@
-package OMP::AuthDB;
+package OMP::DB::Auth;
 
 =head1 NAME
 
-OMP::AuthDB - Manipulate the user authentication table
+OMP::DB::Auth - Manipulate the user authentication table
 
 =cut
 

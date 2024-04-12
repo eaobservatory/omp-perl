@@ -9,7 +9,7 @@ OMP::Auth - User authentication and authorization module
 use strict;
 use warnings;
 
-use OMP::AuthDB;
+use OMP::DB::Auth;
 use OMP::Config;
 use OMP::Constants qw/:logging/;
 use OMP::DB::Backend;
@@ -62,7 +62,7 @@ sub log_in {
     my %opt = @_;
 
     my $q = $page->cgi;
-    my $db = OMP::AuthDB->new(DB => $page->database);
+    my $db = OMP::DB::Auth->new(DB => $page->database);
 
     my $user = undef;
     my $token = undef;
@@ -197,7 +197,7 @@ sub log_out {
     my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
 
     if (exists $cookie{'token'}) {
-        my $db = OMP::AuthDB->new(DB => $page->database);
+        my $db = OMP::DB::Auth->new(DB => $page->database);
         $db->remove_token($cookie{'token'});
 
         return $cls->new(cookie => $cls->_make_cookie($q, '-1d'));

@@ -27,7 +27,7 @@ use warnings;
 # External dependencies
 use SOAP::Lite;
 use OMP::Auth;
-use OMP::AuthDB;
+use OMP::DB::Auth;
 use OMP::DB::Backend;
 use OMP::Config;
 use OMP::Constants qw/:status :logging/;
@@ -91,7 +91,7 @@ sub get_verified_projectid {
     my @headers;
     if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
         my (undef, $addr, undef) = OMP::NetTools->determine_host;
-        my $adb = OMP::AuthDB->new(DB => $class->dbConnection);
+        my $adb = OMP::DB::Auth->new(DB => $class->dbConnection);
         my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer', 'default');
         push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
         push @headers, SOAP::Header->new(name => 'token', value => $token);
