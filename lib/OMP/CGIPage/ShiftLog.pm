@@ -27,7 +27,7 @@ use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
 use OMP::Error qw/:try/;
 use OMP::DB::Shift;
-use OMP::ShiftQuery;
+use OMP::Query::Shift;
 
 use base qw/OMP::CGIPage/;
 
@@ -122,7 +122,7 @@ sub shiftlog_search {
 
         unless (defined $message) {
             $hash->{'telescope'} = $telescope;
-            my $query = OMP::ShiftQuery->new(HASH => $hash);
+            my $query = OMP::Query::Shift->new(HASH => $hash);
 
             my $sdb = OMP::DB::Shift->new(DB => $self->database);
             $result = $search->sort_search_results(

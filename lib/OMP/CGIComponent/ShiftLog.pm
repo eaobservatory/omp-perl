@@ -29,7 +29,7 @@ use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds;
 
-use OMP::ShiftQuery;
+use OMP::Query::Shift;
 use OMP::DB::Shift;
 use OMP::Error qw/:try/;
 
@@ -162,7 +162,7 @@ sub get_shift_comments {
     }
 
     # Form the query.
-    my $query = OMP::ShiftQuery->new(HASH => {
+    my $query = OMP::Query::Shift->new(HASH => {
         date => {delta => 1, value => $ut},
         telescope => $telescope,
     });

@@ -1,12 +1,12 @@
-package OMP::ShiftQuery;
+package OMP::Query::Shift;
 
 =head1 NAME
 
-OMP::ShiftQuery - Class representing queries of the shift log table
+OMP::Query::Shift - Class representing queries of the shift log table
 
 =head1 SYNOPSIS
 
-    $query = OMP::ShiftQuery->new(XML => $xml);
+    $query = OMP::Query::Shift->new(XML => $xml);
     $sql = $query->sql($shiftlogtable);
 
 =head1 DESCRIPTION

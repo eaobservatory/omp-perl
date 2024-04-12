@@ -151,7 +151,7 @@ use OMP::MSB;
 use OMP::DB::MSBDone;
 use OMP::Query::Archive;
 use OMP::DB::Shift;
-use OMP::ShiftQuery;
+use OMP::Query::Shift;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::DB::Backend;
@@ -1929,7 +1929,7 @@ sub create_shiftlog_widget {
 
 sub update_shiftlog_comments {
     my $sdb = OMP::DB::Shift->new(DB => $dbb);
-    my $query = OMP::ShiftQuery->new(HASH => {
+    my $query = OMP::Query::Shift->new(HASH => {
         date => {value => $ut, delta => 1},
         telescope => $telescope,
     });

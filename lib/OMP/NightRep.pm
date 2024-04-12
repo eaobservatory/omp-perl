@@ -43,7 +43,7 @@ use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
 use OMP::DB::Shift;
-use OMP::ShiftQuery;
+use OMP::Query::Shift;
 use OMP::DateTools;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
@@ -922,7 +922,7 @@ sub shiftComments {
 
     my $sdb = OMP::DB::Shift->new(DB => $self->db);
 
-    my $query = OMP::ShiftQuery->new(HASH => {
+    my $query = OMP::Query::Shift->new(HASH => {
         date => {delta => $self->delta_day, value => $self->date->ymd},
         telescope => $self->telescope,
     });

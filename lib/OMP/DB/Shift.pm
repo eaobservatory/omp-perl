@@ -25,7 +25,7 @@ use OMP::Info::Comment;
 use OMP::Display;
 use OMP::Error;
 use OMP::DB::User;
-use OMP::ShiftQuery;
+use OMP::Query::Shift;
 use OMP::DateTools;
 
 use Astro::Telescope;
@@ -94,7 +94,7 @@ sub enterShiftLog {
     # author, date and telescope as the current one.
 
     # Form a query
-    my $query = OMP::ShiftQuery->new(HASH => {
+    my $query = OMP::Query::Shift->new(HASH => {
         author => $author->userid,
         date => $date->strftime("%Y-%m-%dT%H:%M:%S"),
         telescope => (UNIVERSAL::isa($telescope, "Astro::Telescope")
@@ -134,7 +134,7 @@ Retrieve shift logs given a set of criteria defined in a query.
 
     @results = $db->getShiftLogs($query);
 
-The argument is a C<ShiftQuery> object, and the method returns
+The argument is a C<OMP::Query::Shift> object, and the method returns
 an array of C<Info::Comment> objects, ordered by date.
 
 =cut
