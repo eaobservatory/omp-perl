@@ -34,7 +34,7 @@ use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/:msb/;
 use OMP::SiteQuality;
-use OMP::TLEDB;
+use OMP::DB::TLE;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -2406,7 +2406,7 @@ sub processAutoCoords {
     my $self = shift;
     my %args = @_;
 
-    # Declare variable for OMP::TLEDB object but defer construction
+    # Declare variable for OMP::DB::TLE object but defer construction
     # until it is needed.
     my $tledb = undef;
 
@@ -2424,7 +2424,7 @@ sub processAutoCoords {
             my $coord = $tcs->coords();
 
             if ($coord->type() eq 'AUTO-TLE') {
-                $tledb = OMP::TLEDB->new(DB => $args{'DB'})
+                $tledb = OMP::DB::TLE->new(DB => $args{'DB'})
                     unless defined $tledb;
 
                 # Need to standardize the TLE target name before looking

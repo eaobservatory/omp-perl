@@ -1,8 +1,8 @@
-package OMP::TLEDB;
+package OMP::DB::TLE;
 
 =head1 NAME
 
-OMP::TLEDB - Class providing access to cached TLE coordinates
+OMP::DB::TLE - Class providing access to cached TLE coordinates
 
 =cut
 
@@ -24,7 +24,7 @@ our $TLETABLE = 'omptle';
 
 =item new
 
-Construct new OMP::TLEDB object.
+Construct new OMP::DB::TLE object.
 
 =cut
 

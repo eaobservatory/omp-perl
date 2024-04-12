@@ -55,7 +55,7 @@ use OMP::Project::TimeAcct;
 use OMP::DB::TimeAcct;
 use OMP::DB::MSBDone;
 use OMP::MSBQuery;
-use OMP::TLEDB;
+use OMP::DB::TLE;
 use OMP::User;
 
 use Time::Piece qw/:override/;
@@ -2272,7 +2272,7 @@ sub _insert_row {
         my $coordstype = $obs->{'coords'}->type();
         my $target = $obs->{'target'};
         if ($coordstype eq 'AUTO-TLE') {
-            my $tledb = OMP::TLEDB->new(DB => $self->db());
+            my $tledb = OMP::DB::TLE->new(DB => $self->db());
 
             # AUTO-TLE requires standardized target names.  This subroutine
             # throws an error if the target name is invalid.
@@ -3367,7 +3367,7 @@ sub _obs_row_to_coord {
             return undef;
         }
 
-        $coords = OMP::TLEDB->tle_row_to_coord($obs);
+        $coords = OMP::DB::TLE->tle_row_to_coord($obs);
     }
     else {
         throw OMP::Error::FatalError('Unknown coordinate type: ' . $coordstype);
