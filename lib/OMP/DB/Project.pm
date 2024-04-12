@@ -28,7 +28,7 @@ our $VERSION = '2.000';
 
 use OMP::Error qw/:try/;
 use OMP::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::Constants qw/:fb/;
 use OMP::User;
 use OMP::DB::User;
@@ -366,7 +366,7 @@ Return all the projects for the given query.
 
     $projects = $db->listProjects($query);
 
-The query is specified as a C<OMP::ProjQuery> object.
+The query is specified as a C<OMP::Query::Project> object.
 
 Returned as a reference to a list of C<OMP::Project> objects.
 
@@ -660,7 +660,7 @@ sub _get_project_row {
         unless $projectid =~ /\w/;
 
     # Create the query
-    my $query = OMP::ProjQuery->new(HASH => {
+    my $query = OMP::Query::Project->new(HASH => {
         projectid => $projectid,
     });
 
@@ -865,7 +865,7 @@ sub _insert_project_user {
 
 =item B<_get_projects>
 
-Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery>
+Retrieve list of projects that match the supplied query (supplied as a C<OMP::Query::Project>
 object).
 
     $projects = $db->_get_projects($query);

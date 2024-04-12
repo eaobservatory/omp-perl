@@ -16,7 +16,7 @@ use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::User;
 
 our %PROVIDERS = (
@@ -422,7 +422,7 @@ sub _fetch_projects {
 
     my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new());
 
-    my $projects = $db->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = $db->listProjects(OMP::Query::Project->new(HASH => {
         person_access => $userid,
     }));
 

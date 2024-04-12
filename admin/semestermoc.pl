@@ -33,7 +33,7 @@ use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::DB::MSB;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 
 my ($semester, $queue, $filename, $help);
 GetOptions(
@@ -55,7 +55,7 @@ my $db = OMP::DB::Backend->new();
 my $projdb = OMP::DB::Project->new(DB => $db);
 my $msbdb = OMP::DB::MSB->new(DB => $db);
 
-my $projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
+my $projects = $projdb->listProjects(OMP::Query::Project->new(HASH => {
     state => {boolean => 1},
     telescope => 'JCMT',
     semester => $semester,

@@ -1,12 +1,12 @@
-package OMP::ProjQuery;
+package OMP::Query::Project;
 
 =head1 NAME
 
-OMP::ProjQuery - Class representing an XML OMP query of the Project database
+OMP::Query::Project - Class representing an XML OMP query of the Project database
 
 =head1 SYNOPSIS
 
-    $query = OMP::ProjQuery->new(XML => $xml);
+    $query = OMP::Query::Project->new(XML => $xml);
     $sql = $query->sql($projtable, $projqueuetable, $projusertable);
 
 =head1 DESCRIPTION
@@ -54,7 +54,7 @@ sub sql {
     my $self = shift;
 
     throw OMP::Error::DBMalformedQuery(
-        "ProjQuery: sql method invoked with incorrect number of arguments\n")
+        "OMP::Query::Project: sql method invoked with incorrect number of arguments\n")
         unless scalar(@_) == 3;
 
     my ($projtable, $projqueuetable, $projusertable) = @_;

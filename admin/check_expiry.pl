@@ -48,7 +48,7 @@ use lib OMPLIB;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 
 my ($tel, $verbose, $dry_run);
 GetOptions(
@@ -73,7 +73,7 @@ sub check_project_expiry {
     my $pdb = OMP::DB::Project->new(DB => $db);
 
     # Check for expired projects.
-    foreach my $project (@{$pdb->listProjects(OMP::ProjQuery->new(HASH => {
+    foreach my $project (@{$pdb->listProjects(OMP::Query::Project->new(HASH => {
                 telescope => $tel,
                 state => {boolean => 1},
                 expirydate => {max => $dt->strftime('%F %T')},
@@ -87,7 +87,7 @@ sub check_project_expiry {
 
 
     # Check for projects to advance to the current semester.
-    foreach my $project (@{$pdb->listProjects(OMP::ProjQuery->new(HASH => {
+    foreach my $project (@{$pdb->listProjects(OMP::Query::Project->new(HASH => {
                 telescope => $tel,
                 EXPR__SM => {not => {semester => $semester}},
                 state => {boolean => 1},

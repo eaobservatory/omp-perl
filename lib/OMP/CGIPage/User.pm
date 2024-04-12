@@ -25,6 +25,7 @@ use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
+use OMP::Query::Project;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::Project;
@@ -84,14 +85,14 @@ sub details {
     try {
         my $db = OMP::DB::Project->new(DB => $self->database);
 
-        my $query = OMP::ProjQuery->new(HASH => {
+        my $query = OMP::Query::Project->new(HASH => {
             person => $user->userid,
         });
 
         $member = $db->listProjects($query);
 
         # Get projects the user supports
-        $query = OMP::ProjQuery->new(HASH => {
+        $query = OMP::Query::Project->new(HASH => {
             support => $user->userid,
         });
 

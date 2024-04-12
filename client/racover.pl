@@ -93,7 +93,7 @@ use OMP::Util::Client;
 use OMP::Password;
 use OMP::SciProgStats;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::SpServer;
 
 our $DEBUG = 0;
@@ -178,7 +178,7 @@ else {
     $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
 
     print "Querying database for project details...\n";
-    my $projects = OMP::DB::Project->new(DB => $db)->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = OMP::DB::Project->new(DB => $db)->listProjects(OMP::Query::Project->new(HASH => {
         telescope => $telescope,
         semester => $semester,
         state => {boolean => 1},

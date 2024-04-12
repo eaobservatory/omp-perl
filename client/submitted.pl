@@ -73,7 +73,7 @@ use OMP::DB::Backend;
 use OMP::Query::Feedback;
 use OMP::DB::Feedback;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::Mail;
 
 # Options
@@ -136,7 +136,7 @@ my %projects = map {$_->{projectid}, undef} @$comments;
 my $projdb = OMP::DB::Project->new(DB => $dbconnection);
 
 # Query on all project IDs returned
-my $projquery = OMP::ProjQuery->new(HASH => {
+my $projquery = OMP::Query::Project->new(HASH => {
     projectid => [keys %projects],
 });
 

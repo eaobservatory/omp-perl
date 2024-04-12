@@ -801,7 +801,7 @@ sub _post_process_hash {
     my $prefix = 'U';
 
     # A coi query is really a query on the ompprojuser table
-    # See also OMP::ProjQuery where this code is duplicated
+    # See also OMP::Query::Project where this code is duplicated
     if (exists $href->{coi}) {
         my $U = $prefix . $counter;
 

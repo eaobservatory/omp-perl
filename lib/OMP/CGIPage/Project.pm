@@ -38,7 +38,7 @@ use OMP::DB::MSBDone;
 use OMP::MSBServer;
 use OMP::DB::ProjAffiliation;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::DB::TimeAcct;
 use OMP::SiteQuality;
 
@@ -126,7 +126,7 @@ sub list_projects {
 
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::ProjQuery->new(HASH => {
+    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => {
         (defined $state ? (state => {boolean => $state}) : ()),
         (defined $status ? (status => $status) : ()),
         (defined $semester ? (semester => $semester) : ()),
@@ -145,7 +145,7 @@ sub list_projects {
         #
         # NOTE: This may be too slow.  We will probably want to let the
         # database do the sorting and grouping for us in the future,
-        # although that will require OMP::ProjQuery to support
+        # although that will require OMP::Query::Project to support
         # <orderby> and <groupby> tags
 
         if ($order eq 'projectid') {

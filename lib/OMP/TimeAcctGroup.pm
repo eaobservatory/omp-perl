@@ -34,7 +34,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::DB::TimeAcct;
 use OMP::TimeAcctQuery;
 
@@ -1009,7 +1009,7 @@ sub _get_accts {
         $hash{'isprimary'} = 1;
     }
 
-    my $query = OMP::ProjQuery->new(HASH => \%hash);
+    my $query = OMP::Query::Project->new(HASH => \%hash);
     my $projects = $db->listProjects($query);
     my %projects = map {$_->projectid, $_} @$projects;
 

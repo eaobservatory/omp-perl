@@ -32,7 +32,7 @@ use lib OMPLIB;
 
 use OMP::DB::Backend;
 use OMP::DB::Project;
-use OMP::ProjQuery;
+use OMP::Query::Project;
 use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
 
 my $telescope = uc($ARGV[0]) or die 'Telescope not specified';
@@ -52,7 +52,7 @@ my $total = 0.0;
 print "\nProjects without affiliation:\n\n";
 
 foreach my $project (@{$project_db->listProjects(
-        OMP::ProjQuery->new(HASH => {
+        OMP::Query::Project->new(HASH => {
             telescope => $telescope,
             semester => $semester,
         }))}) {
