@@ -82,7 +82,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
@@ -192,7 +192,7 @@ for my $msb (@sorted_msbdb) {
 print "---> Data headers ----\n";
 
 my $fileutil = OMP::Util::File->new();
-my $arcdb = OMP::ArchiveDB->new(
+my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => $fileutil);
 

@@ -129,7 +129,7 @@ BEGIN {
     use lib OMPLIB;
 }
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::Constants;
 use OMP::Display;
 use OMP::DateTools;
@@ -229,7 +229,7 @@ my $currentut = OMP::DateTools->today;
 my $utdisp = "Current UT date: $ut";
 
 my $dbb = OMP::DB::Backend->new();
-my $arcdb = OMP::ArchiveDB->new(
+my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new(),
     FileUtil => OMP::Util::File->new(recent_files => 0));
 $arcdb->use_existing_criteria(1);

@@ -77,7 +77,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Astro::FITS::Header::Item;
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::DB::Backend::Archive;
 use OMP::Util::File;
 
@@ -117,7 +117,7 @@ else {
     die 'Need an obsid or ut with runnr';
 }
 
-my $arcdb = OMP::ArchiveDB->new(
+my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => OMP::Util::File->new);
 

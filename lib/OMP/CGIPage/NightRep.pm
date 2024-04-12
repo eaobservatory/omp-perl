@@ -45,7 +45,7 @@ use OMP::ObsQuery;
 use OMP::PreviewDB;
 use OMP::PreviewQuery;
 use OMP::ProjDB;
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIPage/;
@@ -231,7 +231,7 @@ sub night_report {
     ($delta) and $args{delta_day} = $delta;
 
     # Get the night report
-    my $arcdb = OMP::ArchiveDB->new(
+    my $arcdb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
     my $nr = OMP::NightRep->new(DB => $self->database, ADB => $arcdb, %args);
@@ -394,7 +394,7 @@ sub projlog_content {
     my $obs_summary = undef;
     try {
         # Want to go to files on disk
-        my $arcdb = OMP::ArchiveDB->new(
+        my $arcdb = OMP::DB::Archive->new(
             DB => $self->database_archive,
             FileUtil => $self->fileutil);
         $arcdb->search_files();
@@ -551,7 +551,7 @@ sub time_accounting {
 
     my $utdate = $self->_get_utdate();
 
-    my $arcdb = OMP::ArchiveDB->new(
+    my $arcdb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
     my $nr = OMP::NightRep->new(

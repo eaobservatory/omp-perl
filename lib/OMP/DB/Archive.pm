@@ -1,14 +1,14 @@
-package OMP::ArchiveDB;
+package OMP::DB::Archive;
 
 =head1 NAME
 
-OMP::ArchiveDB - Query the data archive
+OMP::DB::Archive - Query the data archive
 
 =head1 SYNOPSIS
 
-    use OMP::ArchiveDB;
+    use OMP::DB::Archive;
 
-    $db = OMP::ArchiveDB->new(
+    $db = OMP::DB::Archive->new(
         DB => OMP::DB::Backend::Archive->new,
         FileUtil => OMP::Util::File->new);
 
@@ -32,7 +32,7 @@ use warnings;
 use JAC::Setup qw/hdrtrans/;
 
 use OMP::ArcQuery;
-use OMP::ArchiveDB::Cache;
+use OMP::DB::Archive::Cache;
 use OMP::Constants qw/:logging/;
 use OMP::Error qw/:try/;
 use OMP::General;
@@ -58,7 +58,7 @@ our $VERSION = '2.000';
 
 Create new object.
 
-    $db = OMP::ArchiveDB->new(
+    $db = OMP::DB::Archive->new(
         DB => OMP::DB::Backend::Archive->new,
         FileUtil => OMP::Util::File->new);
 
@@ -69,7 +69,7 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
-    $self->{'Cache'} = OMP::ArchiveDB::Cache->new;
+    $self->{'Cache'} = OMP::DB::Archive::Cache->new;
     $self->{'FileUtil'} = undef;
     $self->{'FallbackToFiles'} = 1;
     $self->{'SkipDBLookup'} = 0;
@@ -1011,7 +1011,7 @@ sub _query_files {
             catch Error with {
                 my $Error = shift;
                 OMP::General->log_message(
-                    "OMP::Error in OMP::ArchiveDB:\nfile: $file\ntext: " . $Error->{'-text'}
+                    "OMP::Error in OMP::DB::Archive:\nfile: $file\ntext: " . $Error->{'-text'}
                     . "\nsource: " . $Error->{'-file'}
                     . "\nline: " . $Error->{'-line'},
                     OMP__LOG_ERROR);
@@ -1041,7 +1041,7 @@ sub _query_files {
 
         unless (defined($obs->startobs)) {
             OMP::General->log_message(
-                "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.",
+                "OMP::Error in OMP::DB::Archive::_query_files: Observation is missing startobs(). Possible error in FITS headers.",
                 OMP__LOG_ERROR);
             $self->{'Warned'}->{$obs->filename} ++;
 
@@ -1124,7 +1124,7 @@ creates cache file. On error, throws L<OMP::Error::CacheFailure> exception.
 
     $db->_make_cache($query, \@obs);
 
-See C<OMP::ArchiveDB::Cache-E<gt>store_archive> method for details.
+See C<OMP::DB::Archive::Cache-E<gt>store_archive> method for details.
 
 =cut
 

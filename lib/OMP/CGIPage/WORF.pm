@@ -23,7 +23,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Digest::MD5 qw/md5_hex/;
 use File::Spec;
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::Config;
 use OMP::CGIComponent::NightRep;
 use OMP::DateTools;
@@ -70,7 +70,7 @@ sub display_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $adb = OMP::ArchiveDB->new(
+    my $adb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
     my $obs = $adb->getObs(
@@ -149,7 +149,7 @@ sub thumbnails_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $arcdb = OMP::ArchiveDB->new(
+    my $arcdb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
     my $grp = OMP::Info::ObsGroup->new(ADB => $arcdb, %query);

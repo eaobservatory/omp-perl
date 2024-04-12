@@ -1,16 +1,16 @@
-package OMP::ArchiveDB::Cache;
+package OMP::DB::Archive::Cache;
 
 =head1 NAME
 
-OMP::ArchiveDB::Cache - Provide a cache for the OMP::ArchiveDB class
+OMP::DB::Archive::Cache - Provide a cache for the OMP::DB::Archive class
 
 =head1 SYNOPSIS
 
-    use OMP::ArchiveDB::Cache;
+    use OMP::DB::Archive::Cache;
 
 =head1 DESCRIPTION
 
-This class provides a cache for the C<OMP::ArchiveDB> class, by
+This class provides a cache for the C<OMP::DB::Archive> class, by
 taking C<OMP::ArcQuery> queries and C<OMP::Info::ObsGroup> objects
 and storing them temporarily on disk, which allows for them to be
 quickly retrieved at a later time. This provides a quicker retrieval
@@ -49,7 +49,7 @@ our $TEMPDIR = OMP::Config->getData('cachedir');
 
 Create new cache object.
 
-    $cache = OMP::ArchiveDB::Cache->new();
+    $cache = OMP::DB::Archive::Cache->new();
 
 =cut
 
@@ -673,7 +673,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::ArcQuery>, C<OMP::ArchiveDB>, and
+For related classes see C<OMP::ArcQuery>, C<OMP::DB::Archive>, and
 C<OMP::Info::Group>.
 
 =head1 AUTHORS

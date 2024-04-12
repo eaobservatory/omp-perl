@@ -23,7 +23,7 @@ use OMP::Error qw/:try/;
 use File::Basename;
 our $VERSION = '0.03';
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::ProjDB;
 use OMP::PackageData;
 
@@ -83,7 +83,7 @@ sub request_data {
         # Go through the package data object so that we do not need to worry about
         # inconsistencies with local retrieval
 
-        my $arcdb = OMP::ArchiveDB->new(
+        my $arcdb = OMP::DB::Archive->new(
             DB => $self->database_archive,
             FileUtil => $self->fileutil);
 

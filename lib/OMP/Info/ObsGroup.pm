@@ -85,7 +85,7 @@ Expects to point to array ref of Info::Obs objects.
 
 =item ADB
 
-C<OMP::ArchiveDB> object with which to perform query.
+C<OMP::DB::Archive> object with which to perform query.
 
 =item telescope/instrument/projectid
 
@@ -204,8 +204,8 @@ sub runQuery {
     my $search = shift;
 
     throw OMP::Error::FatalError(
-        'runQuery: The ADB argument must be an OMP::ArchiveDB object')
-        unless eval {$adb->isa('OMP::ArchiveDB')};
+        'runQuery: The ADB argument must be an OMP::DB::Archive object')
+        unless eval {$adb->isa('OMP::DB::Archive')};
 
     throw OMP::Error::FatalError(
         "runQuery: The query argument must be an OMP::ArcQuery class")
@@ -266,7 +266,7 @@ the C<obs> method.
         ignorebad => 0);
 
 This requires access to the obs log database (C<OMP::ObslogDB>) and
-also C<OMP::ArchiveDB>.
+also C<OMP::DB::Archive>.
 
 UT date can be either "YYYY-MM-DD" string or a Time::Piece
 object from which "YYYY-MM-DD" is extracted.
@@ -2184,7 +2184,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::ArchiveDB> and C<OMP::ObslogDB>.
+For related classes see C<OMP::DB::Archive> and C<OMP::ObslogDB>.
 
 For information on time gaps see C<OMP::Info::Obs::TimeGap>.
 

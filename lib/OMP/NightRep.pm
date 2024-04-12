@@ -535,7 +535,7 @@ sub db {
 
 =item B<adb>
 
-Archive database object.  An instance of C<OMP::ArchiveDB>.
+Archive database object.  An instance of C<OMP::DB::Archive>.
 
 =cut
 
@@ -545,8 +545,8 @@ sub adb {
     if (@_) {
         my $adb = shift;
          throw OMP::Error::FatalError(
-             'ADB must be an OMP::ArchiveDB object')
-             unless eval {$adb->isa('OMP::ArchiveDB')};
+             'ADB must be an OMP::DB::Archive object')
+             unless eval {$adb->isa('OMP::DB::Archive')};
 
         $self->{'ADB'} = $adb;
     }

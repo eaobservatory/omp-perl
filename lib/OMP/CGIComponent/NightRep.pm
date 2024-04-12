@@ -25,6 +25,7 @@ use OMP::Config;
 use OMP::Constants qw/:obs :timegap/;
 use OMP::Display;
 use OMP::DateTools;
+use OMP::DB::Archive;
 use OMP::MSBDoneDB;
 use OMP::NightRep;
 use OMP::General;
@@ -719,7 +720,7 @@ sub cgi_to_obsgroup {
     $options{'projectid'} = $projid if defined $projid;
     $options{'instrument'} = $inst if defined($inst) && length($inst . '') > 0;
 
-    my $arcdb = OMP::ArchiveDB->new(
+    my $arcdb = OMP::DB::Archive->new(
         DB => $self->page->database_archive,
         FileUtil => $self->page->fileutil);
 

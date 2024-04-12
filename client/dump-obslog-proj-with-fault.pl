@@ -23,7 +23,7 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::Util::File;
@@ -53,7 +53,7 @@ $start = $start ? string_to_time_start($start) : today_start();
 $end = $end ? string_to_time_end($end) : today_end();
 
 my $db = OMP::DB::Backend->new;
-my $arcdb = OMP::ArchiveDB->new(
+my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => OMP::Util::File->new);
 

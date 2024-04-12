@@ -69,7 +69,7 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::Config;
 use OMP::Constants qw/:fb :logging/;
 use OMP::DB::Backend;
@@ -122,7 +122,7 @@ else {
 
 # Prepare database objects.
 my $db = OMP::DB::Backend->new();
-my $arcdb = OMP::ArchiveDB->new(
+my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => OMP::Util::File->new);
 
