@@ -57,13 +57,13 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ProjDB;
-use OMP::Project;
-use OMP::ProjServer;
-use OMP::User;
+use OMP::DB::Backend;
+use OMP::Util::Project;
 use OMP::Password;
 
 my $force = 0;
+
+my $db = OMP::DB::Backend->new;
 
 OMP::Password->get_verified_auth('staff');
 
@@ -101,7 +101,7 @@ while (<>) {
         undef,
     );
 
-    print join('--', @details), "\n";
+    print join('--', grep {defined $_} @details), "\n";
 
     # Now loop over 9 project ids
     for my $i (1 .. 10) {
@@ -114,6 +114,6 @@ while (<>) {
         }
 
         # Upload
-        OMP::ProjServer->addProject($force, @details);
+        OMP::Util::Project->addProject($db, $force, @details);
     }
 }

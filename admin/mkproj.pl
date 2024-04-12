@@ -175,7 +175,7 @@ use IO::File;
 use OMP::DB::Backend;
 use OMP::General;
 use OMP::ProjDB;
-use OMP::ProjServer;
+use OMP::Util::Project;
 use OMP::SiteQuality;
 use OMP::Password;
 use OMP::UserDB;
@@ -447,7 +447,7 @@ for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
 
     # Now add the project
     try {
-        OMP::ProjServer->addProject($force, @project_args);
+        OMP::Util::Project->addProject($db, $force, @project_args);
     }
     catch OMP::Error::ProjectExists with {
         print " - but the project already exists. Skipping.\n";
@@ -458,13 +458,13 @@ for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
 # returns a list of unverified users. C<OMP::Error> exceptions are caught &
 # saved for later display elsewhere.
 #
-# OMP::ProjServer->addProject throws exceptions for each user one at a time.  So
+# OMP::Util::Project->addProject throws exceptions for each user one at a time.  So
 # user id verification is also done for all the user ids related to a project in
 # one go.
 sub unverified_users {
     my (@list) = @_;
 
-    # For reference, see C<OMP::ProjServer->addProject()>.
+    # For reference, see C<OMP::Util::Project->addProject()>.
     my $id_sep = qr/[,:]+/;
 
     my $udb = OMP::UserDB->new(DB => $db);
