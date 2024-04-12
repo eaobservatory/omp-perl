@@ -73,7 +73,7 @@ BEGIN {
     use OMP::Error qw/:try/;
     use OMP::General;
     use OMP::MSBQuery;
-    use OMP::MSBDB;
+    use OMP::DB::MSB;
     use OMP::Util::Client;
 
     $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
@@ -224,7 +224,7 @@ sub scan_for_msbs {
         OMP::General->log_message("override_alert.pl: Querying for override programs...");
         OMP::General->log_message("override_alert.pl: $query");
 
-        my $mdb = OMP::MSBDB->new(DB => $db);
+        my $mdb = OMP::DB::MSB->new(DB => $db);
         @results = $mdb->queryMSB($query);
     }
     catch OMP::Error with {

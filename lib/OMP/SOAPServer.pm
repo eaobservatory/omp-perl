@@ -103,7 +103,7 @@ sub get_verified_projectid {
 =item B<dbConnection>
 
 The database connection object. This is called by all the methods
-that use a C<OMP::MSBDB> object. The connection is automatically
+that use a C<OMP::DB::MSB> object. The connection is automatically
 instantiated the first time it is requested.
 
 Returns a connection object of type C<OMP::DB::Backend>.

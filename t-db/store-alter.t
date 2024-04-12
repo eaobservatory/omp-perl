@@ -7,7 +7,7 @@ use Test::More tests => 2
 use IO::File;
 
 use OMP::Config;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::MSBQuery;
 use OMP::SciProg;
 
@@ -39,8 +39,9 @@ my $project = 'UNITTEST01';
 die 'Not using test database' unless {$db->loginhash()}->{'database'}
                                   eq 'devomp';
 
-my $msbdb = new OMP::MSBDB(ProjectID => $project,
-                           DB => $db);
+my $msbdb = OMP::DB::MSB->new(
+    ProjectID => $project,
+    DB => $db);
 
 ok($msbdb, 'Log in to MSB DB');
 

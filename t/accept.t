@@ -25,7 +25,7 @@ use warnings;
 use Test::More tests => 41;
 
 require_ok('OMP::SciProg');
-require_ok('OMP::MSBDB');
+require_ok('OMP::DB::MSB');
 
 my $prog = OMP::SciProg->new(FILE => 't/data/accept.xml');
 
@@ -303,10 +303,10 @@ sub _accept_or_undo {
     my $checksum = shift;
     my $accept = shift;
 
-    # Accept the MSB the same way as OMP::MSBDB::doneMSB does: find it by
+    # Accept the MSB the same way as OMP::DB::MSB::doneMSB does: find it by
     # checksum and then call its hasBeenObserved method.
 
-    my $msb = OMP::MSBDB::_find_msb_tolerant($prog, $checksum);
+    my $msb = OMP::DB::MSB::_find_msb_tolerant($prog, $checksum);
 
     return unless $msb;
 

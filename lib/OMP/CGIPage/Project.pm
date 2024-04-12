@@ -33,7 +33,7 @@ use OMP::DB::Feedback;
 use OMP::UserDB;
 use OMP::DateTools;
 use OMP::General;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
@@ -236,7 +236,7 @@ sub project_home {
     my $projectid = shift;
 
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
-    my $msbdb = OMP::MSBDB->new(DB => $self->database);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
     my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
@@ -337,7 +337,7 @@ sub program_summary {
     my $sp = undef;
     my $error = undef;
     try {
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $self->database);
         $sp = $db->fetchSciProg(1);
@@ -1066,7 +1066,7 @@ sub translate_msb {
     my $result = undef;
 
     try {
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $self->database);
 

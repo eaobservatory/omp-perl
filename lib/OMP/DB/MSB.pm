@@ -1,12 +1,12 @@
-package OMP::MSBDB;
+package OMP::DB::MSB;
 
 =head1 NAME
 
-OMP::MSBDB - A database of MSBs
+OMP::DB::MSB - A database of MSBs
 
 =head1 SYNOPSIS
 
-    $db = OMP::MSBDB->new(
+    $db = OMP::DB::MSB->new(
         ProjectID => $sp->projectID,
         DB => $connection);
 
@@ -104,9 +104,9 @@ use constant HAMAX => 4.5;
 
 =item B<new>
 
-Create a new instance of an C<OMP::MSBDB> object.
+Create a new instance of an C<OMP::DB::MSB> object.
 
-    $db = OMP::MSBDB->new(
+    $db = OMP::DB::MSB->new(
         ProjectID => $project,
         DB => $connection);
 
@@ -749,7 +749,7 @@ sub doneMSB {
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the MSBDB::fetchMSB method if we didn't need the science
+    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
     # program object. Unfortunately, since we intend to modify the
     # science program we need to get access to the object here
     # Retrieve the relevant science program
@@ -907,7 +907,7 @@ sub doneMSB {
             my $message_subject = "$telescope started observing your project on $utdate";
 
             $self->_notify_feedback_system(
-                program => "OMP::MSBDB",
+                program => "OMP::DB::MSB",
                 subject => $message_subject,
                 text => $message_text,
                 author => $author,
@@ -920,7 +920,7 @@ sub doneMSB {
     }
 
     $self->_notify_feedback_system(
-        program => "OMP::MSBDB",
+        program => "OMP::DB::MSB",
         subject => "MSB Observed",
         text => "Marked MSB title=\"$msbtitle \" with checksum"
             . " $checksum as done $reason",
@@ -981,7 +981,7 @@ sub undoMSB {
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the MSBDB::fetchMSB method if we didn't need the science
+    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
     # program object. Unfortunately, since we intend to modify the
     # science program we need to get access to the object here
     # Retrieve the relevant science program
@@ -1021,7 +1021,7 @@ sub undoMSB {
     # Might want to send a message to the feedback system at this
     # point
     $self->_notify_feedback_system(
-        program => "OMP::MSBDB",
+        program => "OMP::DB::MSB",
         subject => "MSB Observe Undone",
         text => "Incremented by 1 the number of remaining "
             . "observations for MSB with checksum"
@@ -1067,7 +1067,7 @@ sub alldoneMSB {
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the MSBDB::fetchMSB method if we didn't need the
+    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the
     # science program object. Unfortunately, since we intend to modify
     # the science program we need to get access to the object here
     # Retrieve the relevant science program
@@ -1108,7 +1108,7 @@ sub alldoneMSB {
     # Might want to send a message to the feedback system at this
     # point
     $self->_notify_feedback_system(
-        program => "OMP::MSBDB",
+        program => "OMP::DB::MSB",
         subject => "MSB All Observed",
         text => "Marked MSB with checksum" . " $checksum as completely done",
         msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
@@ -1157,7 +1157,7 @@ sub suspendMSB {
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the MSBDB::fetchMSB method if we didn't need the science
+    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
     # program object. Unfortunately, since we intend to modify the
     # science program we need to get access to the object here
     # Retrieve the relevant science program
@@ -1191,7 +1191,7 @@ sub suspendMSB {
     # point
     # do this early in case the MSBDone message fails!
     $self->_notify_feedback_system(
-        program => "OMP::MSBDB",
+        program => "OMP::DB::MSB",
         subject => "MSB suspended",
         text => "$msg : checksum is $checksum",
         author => $author,

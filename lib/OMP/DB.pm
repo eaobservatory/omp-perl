@@ -48,7 +48,7 @@ class.
         ProjectID => $project,
         DB => $connection);
 
-See C<OMP::ProjDB> and C<OMP::MSBDB> for more details on the
+See C<OMP::ProjDB> and C<OMP::DB::MSB> for more details on the
 use of these arguments and for further keys.
 
 If supplied, the database connection object must be of type
@@ -928,7 +928,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::MSBDB>, C<OMP::ProjDB> and
+For related classes see C<OMP::DB::MSB>, C<OMP::ProjDB> and
 C<OMP::DB::Feedback>.
 
 =head1 AUTHORS

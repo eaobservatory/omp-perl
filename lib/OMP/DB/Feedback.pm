@@ -43,7 +43,7 @@ use OMP::Config;
 
 use base qw/OMP::DB/;
 
-# This is picked up by OMP::MSBDB
+# This is picked up by OMP::DB::MSB
 our $FBTABLE = 'ompfeedback';
 
 =head1 METHODS
@@ -633,7 +633,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::MSBDB> and C<OMP::ProjDB>.
+For related classes see C<OMP::DB::MSB> and C<OMP::ProjDB>.
 
 =head1 COPYRIGHT
 

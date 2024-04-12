@@ -29,7 +29,7 @@ use Encode qw/encode/;
 # OMP dependencies
 use OMP::User;
 use OMP::UserDB;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::MSBDoneDB;
 use OMP::MSBQuery;
 use OMP::Info::MSB;
@@ -105,7 +105,7 @@ sub fetchMSB {
     my $E;
     try {
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(DB => $class->dbConnection);
+        my $db = OMP::DB::MSB->new(DB => $class->dbConnection);
 
         $msb = $db->fetchMSB(msbid => $key);
     }
@@ -207,7 +207,7 @@ sub fetchCalProgram {
     my $E;
     try {
         # Create new DB object
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => uc($telescope) . 'CAL',
             DB => $class->dbConnection,
         );
@@ -317,7 +317,7 @@ sub queryMSB {
         return '' unless defined $query;
 
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(DB => $class->dbConnection);
+        my $db = OMP::DB::MSB->new(DB => $class->dbConnection);
 
         # Do the query
         @results = $db->queryMSB($query);
@@ -453,7 +453,7 @@ sub doneMSB {
         );
 
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $project,
             DB => $class->dbConnection);
 
@@ -469,8 +469,8 @@ sub doneMSB {
         }
 
         # We want to set the option 'notify_first_accept=1' to the
-        # MSBDB::doneMSB option hash; we will actually check in
-        # MSBDB::MSBDone to only send that notification if the telescope
+        # OMP::DB::MSB::doneMSB option hash; we will actually check in
+        # OMP::DB::MSB::MSBDone to only send that notification if the telescope
         # is JCMT. this is to avoid having to look up the telescope here.
         $optargs{'notify_first_accept'} = 1;
 
@@ -528,7 +528,7 @@ sub undoMSB {
         );
 
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $project,
             DB => $class->dbConnection);
 
@@ -576,7 +576,7 @@ sub unremoveMSB {
         );
 
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $project,
             DB => $class->dbConnection);
 
@@ -673,7 +673,7 @@ sub suspendMSB {
         );
 
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $project,
             DB => $class->dbConnection);
 
@@ -724,7 +724,7 @@ sub alldoneMSB {
     my $E;
     try {
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $project,
             DB => $class->dbConnection);
 

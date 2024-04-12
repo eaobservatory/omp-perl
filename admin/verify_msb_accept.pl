@@ -86,6 +86,7 @@ use OMP::DB::Archive;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
+use OMP::DB::MSB;
 use OMP::Util::Client;
 use OMP::Util::File;
 use OMP::Info::ObsGroup;
@@ -452,7 +453,7 @@ if (@missing) {
         print "\tDisabling per-MSB comments\n";
         print "\n";
 
-        my $msbdb = OMP::MSBDB->new(DB => $dbb);
+        my $msbdb = OMP::DB::MSB->new(DB => $dbb);
         my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
 
         # Loop over all missing MSBs

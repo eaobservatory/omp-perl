@@ -45,7 +45,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::Config;
 use OMP::MSBQuery;
 use OMP::DB::Backend;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 
 my ($help, $man, $basedir, $cal);
 
@@ -155,7 +155,7 @@ do {
     while (my ($instrument, $instrument_info) = each %cal_patterns) {
         print "CAL $instrument\n\n";
 
-        my $db = OMP::MSBDB->new(DB => $backend);
+        my $db = OMP::DB::MSB->new(DB => $backend);
         my $msbquery = OMP::MSBQuery->new(HASH => {
             telescope => 'JCMT',
             projectid => 'JCMTCAL',
@@ -236,7 +236,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     %$countrysemester,
                 );
 
-                my $db = OMP::MSBDB->new(DB => $backend);
+                my $db = OMP::DB::MSB->new(DB => $backend);
                 my $msbquery = OMP::MSBQuery->new(HASH => \%hash);
                 my @results = $db->queryMSB($msbquery);
 
@@ -332,9 +332,9 @@ sub fetch_msb_object {
     my $projectid = shift;
     my $msbid = shift;
 
-    # The OMP::MSBDB seems to burn in the project ID after
+    # The OMP::DB::MSB seems to burn in the project ID after
     # fetching so we need a new one every time!
-    my $db = OMP::MSBDB->new(DB => $backend);
+    my $db = OMP::DB::MSB->new(DB => $backend);
 
     my $msb = eval {$db->fetchMSB(msbid => $msbid)};
     unless (defined $msb) {

@@ -21,7 +21,7 @@ use OMP::Config;
 use OMP::DateTools;
 use OMP::DateSun;
 use OMP::DB::Backend;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::MSBQuery;
 use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
 
@@ -100,7 +100,7 @@ sub query_queue_status {
 
     # Create MSB database instance
     my $backend = OMP::DB::Backend->new();
-    my $db = OMP::MSBDB->new(DB => $backend);
+    my $db = OMP::DB::MSB->new(DB => $backend);
 
     # Are we searching for a particular affiliation?  If so read the list
     # of project affiliations.

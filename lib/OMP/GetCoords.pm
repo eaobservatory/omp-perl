@@ -31,7 +31,7 @@ use OMP::Config;
 use OMP::DB::Backend;
 use OMP::SciProg;
 use OMP::MSB;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::Error qw/:try/;
 
 our $VERSION = '1.1';
@@ -258,7 +258,7 @@ sub get_coords {
             printf "Retrieve science program for $projid\n" if ($debug);
             my $E;
             try {
-                my $db = OMP::MSBDB->new(
+                my $db = OMP::DB::MSB->new(
                     DB => OMP::DB::Backend->new(),
                     ProjectID => $projid);
                 my $sp = $db->fetchSciProg(1);
@@ -267,12 +267,12 @@ sub get_coords {
             catch OMP::Error with {
                 # Just catch OMP::Error exceptions
                 $E = shift;
-                print "Error MSBDB: $E\n" if ($debug);
+                print "Error OMP::DB::MSB: $E\n" if ($debug);
             }
             otherwise {
               # This is "normal" errors. At the moment treat them like any other
                 $E = shift;
-                print "Error MSBDB: $E\n" if ($debug);
+                print "Error OMP::DB::MSB: $E\n" if ($debug);
             }
         }
 

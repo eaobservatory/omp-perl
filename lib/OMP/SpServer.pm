@@ -26,7 +26,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::SciProg;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::General;
 use OMP::Error qw/:try/;
 
@@ -131,7 +131,7 @@ sub storeProgram {
             $provider, $username, $password, $sp->projectID);
 
         # Create a new DB object
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $class->dbConnection,
         );
@@ -316,7 +316,7 @@ sub fetchProgram {
             $provider, $username, $password, $rawprojectid);
 
         # Create new DB object
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $class->dbConnection,
         );

@@ -14,8 +14,8 @@ This program compares MSB checksums in the OMP database with checksums
 calculated from the science program XML.
 
 For each listed project, or all projects if C<--all> is specified,
-retrieve the database checksums using C<OMP::MSBDB-E<gt>getSciProgInfo>
-and the current science program using C<OMP::MSBDB-E<gt>fetchSciProg>.
+retrieve the database checksums using C<OMP::DB::MSB-E<gt>getSciProgInfo>
+and the current science program using C<OMP::DB::MSB-E<gt>fetchSciProg>.
 The C<msb> method of each result is used to get the MSBs, assuming
 that the checksums in the science program will have been automatically
 recalculated.
@@ -41,7 +41,7 @@ use lib OMPLIB;
 
 use OMP::DB::Backend;
 use OMP::General;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 
 my ($verbose, $all_projects, $help);
 GetOptions(
@@ -53,7 +53,7 @@ GetOptions(
 pod2usage(-exitstatus => 0, -verbose => 2) if $help;
 
 my $db = OMP::DB::Backend->new;
-my $msbdb = OMP::MSBDB->new(DB => $db);
+my $msbdb = OMP::DB::MSB->new(DB => $db);
 
 my @projects;
 if ($all_projects) {

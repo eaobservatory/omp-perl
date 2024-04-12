@@ -41,7 +41,7 @@ use Time::Seconds;
 
 use base qw/OMP::DB/;
 
-# This is picked up by OMP::MSBDB
+# This is picked up by OMP::DB::MSB
 our $PROJTABLE = 'ompproj';
 our $PROJUSERTABLE = 'ompprojuser';
 our $PROJQUEUETABLE = 'ompprojqueue';
@@ -1115,7 +1115,7 @@ __END__
 
 This class inherits from C<OMP::DB>.
 
-For related classes see C<OMP::MSBDB> and C<OMP::DB::Feedback>.
+For related classes see C<OMP::DB::MSB> and C<OMP::DB::Feedback>.
 
 =head1 COPYRIGHT
 

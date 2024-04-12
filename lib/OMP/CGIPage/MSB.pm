@@ -26,6 +26,7 @@ use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw/:fb :done :msb/;
+use OMP::DB::MSB;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::MSBServer;
@@ -57,7 +58,7 @@ sub fb_msb_output {
 
     my $fbcomp = OMP::CGIComponent::Feedback->new(page => $self);
 
-    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
     my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
 
     my $checksum = undef;
@@ -143,7 +144,7 @@ sub msb_hist {
         };
     }
     else {
-        my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+        my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
         my $donedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
 
         # Get the science program info (if available)
@@ -240,7 +241,7 @@ sub observed {
 
         $projects = [map {
             my $projectid = $_;
-            my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+            my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
             my $sp = $msbdb->getSciProgInfo();
             my $msb_info = $comp->msb_comments(\@{$sorted{$projectid}}, $sp);
             {

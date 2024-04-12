@@ -187,7 +187,7 @@ use DBI;
 use OMP::Password;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 
 my $HPI = pi/2;
 
@@ -580,8 +580,8 @@ sub get_scheduled_targets {
 
     # Now retrieve data from the table.
     my $sql = "SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
-        FROM $OMP::MSBDB::OBSTABLE AS Q
-            JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
+        FROM $OMP::DB::MSB::OBSTABLE AS Q
+            JOIN $OMP::DB::MSB::SCITABLE as S ON Q.projectid = S.projectid
             JOIN $OMP::ProjDB::PROJTABLE AS P ON Q.projectid = P.projectid
         WHERE
         P.telescope = \"JCMT\"

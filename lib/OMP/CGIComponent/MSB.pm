@@ -29,7 +29,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::MSBDoneDB;
 use OMP::MSBServer;
 use OMP::ProjDB;
@@ -55,7 +55,7 @@ sub fb_msb_active {
     my $self = shift;
     my $projectid = shift;
 
-    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
     my $proj_info = $msbdb->getSciProgInfo(with_observations => 1);
 
     my $active = [$proj_info->msb()];
@@ -326,7 +326,7 @@ sub msb_count {
     my $self = shift;
     my $projectid = shift;
 
-    my $msbdb = OMP::MSBDB->new(DB => $self->database);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
 
     my $num_msbs = undef;
     try {

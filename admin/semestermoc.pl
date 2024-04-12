@@ -31,7 +31,7 @@ use Starlink::ATL::MOC qw/write_moc_fits/;
 
 use OMP::DB::Backend;
 use OMP::Error qw/:try/;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::ProjDB;
 use OMP::ProjQuery;
 
@@ -53,7 +53,7 @@ my $order = 12;
 
 my $db = OMP::DB::Backend->new();
 my $projdb = OMP::ProjDB->new(DB => $db);
-my $msbdb = OMP::MSBDB->new(DB => $db);
+my $msbdb = OMP::DB::MSB->new(DB => $db);
 
 my $projects = $projdb->listProjects(OMP::ProjQuery->new(HASH => {
     state => {boolean => 1},

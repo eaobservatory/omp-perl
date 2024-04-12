@@ -478,7 +478,7 @@ sub new_instrument {
     $nbContent->configure(-state => 'normal');
     $nbContent->delete('0.0', 'end');
 
-    # Set up a connection to the MSBDB.
+    # Set up a connection to the MSBDone database.
     my $msbdb = OMP::MSBDoneDB->new(DB => $dbb);
 
     if (defined($obsgrp)) {

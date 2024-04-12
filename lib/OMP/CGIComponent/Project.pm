@@ -25,6 +25,7 @@ use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::Constants qw/:status/;
 use OMP::DateTools;
+use OMP::DB::MSB;
 use OMP::General;
 use OMP::MSBServer;
 use OMP::ProjDB;
@@ -119,7 +120,7 @@ sub proj_sum_table {
     my $headings = shift;
 
     # Count msbs for each project
-    my $msbdb = OMP::MSBDB->new(DB => $self->database);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
 
     my $proj_msbcount = {};
     my $proj_instruments = {};

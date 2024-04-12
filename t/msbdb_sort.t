@@ -18,7 +18,7 @@ use strict;
 
 use Test::More tests => 5;
 
-use_ok('OMP::MSBDB');
+use_ok('OMP::DB::MSB');
 
 my @input = (
     {x => 0.2, y => 4},
@@ -33,7 +33,7 @@ my @input = (
 );
 
 my @test = @input;
-OMP::MSBDB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0, \@test);
+OMP::DB::MSB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0, \@test);
 my @expected = (
     {x => 0.1, y => 5},
     {x => 0.1, y => 2},
@@ -48,7 +48,7 @@ my @expected = (
 is_deeply(\@test, \@expected, 'sort with no tolerance');
 
 @test = @input;
-OMP::MSBDB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.1, \@test);
+OMP::DB::MSB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.1, \@test);
 my @expected = (
     {x => 0.2, y => 4},
     {x => 0.1, y => 5},
@@ -63,7 +63,7 @@ my @expected = (
 is_deeply(\@test, \@expected, 'sort with 0.1 tolerance');
 
 @test = @input;
-OMP::MSBDB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.2, \@test);
+OMP::DB::MSB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.2, \@test);
 my @expected = (
     {x => 0.2, y => 4},
     {x => 0.1, y => 5},
@@ -81,7 +81,7 @@ do {
     use sort 'stable';
     @test = sort {$a->{'y'} <=> $b->{'y'}} @input;
 };
-OMP::MSBDB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.1, \@test);
+OMP::DB::MSB::stable_fuzzy_sort(sub {$_[0]->{'x'}}, 0.1, \@test);
 my @expected = (
     {x => 0.1, y => 2},
     {x => 0.1, y => 5},

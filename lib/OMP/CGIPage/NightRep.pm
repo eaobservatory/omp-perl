@@ -34,6 +34,7 @@ use OMP::CGIComponent::Weather;
 use OMP::Config;
 use OMP::Constants;
 use OMP::DateTools;
+use OMP::DB::MSB;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -386,7 +387,7 @@ sub projlog_content {
             format => 'data',
     });
 
-    my $msbdb = OMP::MSBDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
     my $sp = $msbdb->getSciProgInfo();
     my $msb_info = $msbcomp->msb_comments($observed, $sp);
 

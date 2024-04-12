@@ -48,6 +48,7 @@ use strict;
 
 use Astro::WaveBand;
 use Carp;
+use OMP::DB::MSB;
 use OMP::Error qw/:try/;
 use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
@@ -505,7 +506,7 @@ the MSB must be present in the "done" table for this to work.
     $title = $db->titleMSB($checksum);
 
 Returns undef if the MSBID/checksum is not known or if the checksum is
-missing. Use C<OMP::MSBDB->getMSBtitle> to query the active MSB table.
+missing. Use C<OMP::DB::MSB->getMSBtitle> to query the active MSB table.
 
 =cut
 
@@ -868,7 +869,7 @@ sub _store_msb_done_comment {
     # One last ditch effort. Retrieve the actual science program
     # and look for the MSB
     unless ($msbinfo) {
-        # Cant use the OMP::MSBDB->fetchMSB method since that
+        # Cant use the OMP::DB::MSB->fetchMSB method since that
         # will call this class to register the fetch! Just do it
         # in two calls without the associated feedback messages
         # This will have a bit of an overhead.
@@ -876,7 +877,7 @@ sub _store_msb_done_comment {
         # Catch any exceptions - we are only interested in whether
         # we can get some information.
         try {
-            my $msbdb = OMP::MSBDB->new(DB => $self->db, ProjectID => $project);
+            my $msbdb = OMP::DB::MSB->new(DB => $self->db, ProjectID => $project);
             my $sp = $msbdb->fetchSciProg(1);
             my $msb = $sp->fetchMSB($checksum);
             $msbinfo = $msb->info() if $msb;
