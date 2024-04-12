@@ -53,7 +53,7 @@ use OMP::Info::Comment;
 use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::MSBQuery;
 use OMP::TLEDB;
 use OMP::User;
@@ -869,7 +869,7 @@ sub doneMSB {
     }
     else {
       # Check if project has had any msbs marked as DONE/ACCEPTED on this night.
-        my $msbdonedb = OMP::MSBDoneDB->new(
+        my $msbdonedb = OMP::DB::MSBDone->new(
             ProjectID => $self->projectid,
             DB => $self->db);
 
@@ -3528,7 +3528,7 @@ MSB transaction ID. [optional]
 
 =back
 
-This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
+This is a thin wrapper around C<OMP::DB::MSBDone::addMSBcomment>.
 
 Alternatively, the comment information can be supplied in the form
 of an OMP::Info::Comment object. The arguments would then be:
@@ -3557,7 +3557,7 @@ sub _notify_msb_done {
     $projectid = $self->projectid
         unless defined $projectid;
 
-    my $done = OMP::MSBDoneDB->new(
+    my $done = OMP::DB::MSBDone->new(
         ProjectID => $projectid,
         DB => $self->db);
 
@@ -3601,7 +3601,7 @@ sub _validate_msb_tid {
     my $checksum = shift;
     my $msbtid = shift;
 
-    my $done = OMP::MSBDoneDB->new(DB => self->db);
+    my $done = OMP::DB::MSBDone->new(DB => self->db);
 
     my $result = $done->validateMSBTID($checksum, $msbtid);
 

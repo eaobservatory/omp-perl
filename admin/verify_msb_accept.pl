@@ -87,6 +87,7 @@ use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
 use OMP::DB::MSB;
+use OMP::DB::MSBDone;
 use OMP::Util::Client;
 use OMP::Util::File;
 use OMP::Info::ObsGroup;
@@ -344,7 +345,7 @@ for my $i (0 .. $#sorted_msbhdr) {
     # if we do not have a title for it we have to explicitly look in the database (since it
     # will not have been listed in the observedMSBs response)
     unless (exists $TITLES{$id}) {
-        my $msbdone = OMP::MSBDoneDB->new(DB => $dbb, ProjectID => $msb->{'projectid'});
+        my $msbdone = OMP::DB::MSBDone->new(DB => $dbb, ProjectID => $msb->{'projectid'});
         my $missing = $msbdone->historyMSB($id);
         if (defined $missing) {
             $TITLES{$id} = $missing->title;
@@ -377,7 +378,7 @@ for my $i (0 .. $#sorted_msbhdr) {
         for my $db (@dbmsbs) {
             # We had some activity - remove each MSB DB entry
             my $com = $db->comments->[0];
-            my $text = OMP::MSBDoneDB::status_to_text($com->status);
+            my $text = OMP::DB::MSBDone::status_to_text($com->status);
             my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
             $users{$author} ++ if defined $com->author;
             print "\t$text by $author at " . $com->date->datetime . "\n";
@@ -391,11 +392,11 @@ for my $i (0 .. $#sorted_msbhdr) {
         # This will only happen when an MSB starts on one night and finishes the
         # next. Eg 2007-08-19
         my $tidhis;
-        $tidhis = OMP::MSBDoneDB->new(DB => $dbb)->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
+        $tidhis = OMP::DB::MSBDone->new(DB => $dbb)->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
         if ($tidhis) {
             print "\t------>>>>> MSB was processed outside the observing system\n";
             my $com = $tidhis->comments->[0];
-            my $text = OMP::MSBDoneDB::status_to_text($com->status);
+            my $text = OMP::DB::MSBDone::status_to_text($com->status);
             my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
             $users{$author} ++ if defined $com->author;
             print "\t$text by $author at " . $com->date->datetime . "\n";
@@ -454,7 +455,7 @@ if (@missing) {
         print "\n";
 
         my $msbdb = OMP::DB::MSB->new(DB => $dbb);
-        my $msbdone = OMP::MSBDoneDB->new(DB => $dbb);
+        my $msbdone = OMP::DB::MSBDone->new(DB => $dbb);
 
         # Loop over all missing MSBs
         for my $msb (@missing) {

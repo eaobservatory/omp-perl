@@ -30,7 +30,7 @@ use Encode qw/encode/;
 use OMP::User;
 use OMP::UserDB;
 use OMP::DB::MSB;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::MSBQuery;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
@@ -811,7 +811,7 @@ sub rejectMSB {
         );
 
         # Add the comment
-        my $db = OMP::MSBDoneDB->new(DB => $class->dbConnection, ProjectID => $project);
+        my $db = OMP::DB::MSBDone->new(DB => $class->dbConnection, ProjectID => $project);
         $db->addMSBcomment($checksum, $comment);
     }
     catch OMP::Error with {
@@ -907,7 +907,7 @@ sub observedMSBs {
     my $result;
     try {
         # Create a new object but we dont know any setup values
-        my $db = OMP::MSBDoneDB->new(DB => $class->dbConnection);
+        my $db = OMP::DB::MSBDone->new(DB => $class->dbConnection);
 
         # Do we have a project?
         $db->projectid($args->{projectid})

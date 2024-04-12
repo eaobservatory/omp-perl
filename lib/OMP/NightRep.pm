@@ -48,7 +48,7 @@ use OMP::DateTools;
 use OMP::DB::Fault;
 use OMP::FaultQuery;
 use OMP::FaultGroup;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::MSBDoneQuery;
 use OMP::ProjDB;
 use Time::Piece qw/:override/;
@@ -855,7 +855,7 @@ values of C<OMP::Info::MSB> objects.
 sub msbs {
     my $self = shift;
 
-    my $db = OMP::MSBDoneDB->new(DB => $self->db);
+    my $db = OMP::DB::MSBDone->new(DB => $self->db);
 
     my $query = OMP::MSBDoneQuery->new(HASH => {
         status => [
@@ -1601,7 +1601,7 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::MSBDoneDB->new(DB => $self->db);
+    my $msbdb = OMP::DB::MSBDone->new(DB => $self->db);
 
     my $old_sum = '';
     my $old_tid = '';

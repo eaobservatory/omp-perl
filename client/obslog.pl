@@ -148,7 +148,7 @@ BEGIN {
 use OMP::ObslogDB;
 use OMP::ObsQuery;
 use OMP::MSB;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::ArcQuery;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
@@ -479,7 +479,7 @@ sub new_instrument {
     $nbContent->delete('0.0', 'end');
 
     # Set up a connection to the MSBDone database.
-    my $msbdb = OMP::MSBDoneDB->new(DB => $dbb);
+    my $msbdb = OMP::DB::MSBDone->new(DB => $dbb);
 
     if (defined($obsgrp)) {
         my $counter = 0;
@@ -596,7 +596,7 @@ sub new_instrument {
 
                         # we should never get undef author
                         my $name = (defined $author ? $author->name : "<UNKNOWN>");
-                        my $status_text = OMP::MSBDoneDB::status_to_text($c->status);
+                        my $status_text = OMP::DB::MSBDone::status_to_text($c->status);
                         $nbContent->insert('end',
                             "  $status_text at " . $c->date . " UT by $name : " . $c->text . "\n");
                     }
@@ -1630,7 +1630,7 @@ sub RaiseMSBComment {
         $hist .= '* ' . $c->author->name . ':'
             if $c->author->name;
 
-        $hist .= $sep . OMP::MSBDoneDB::status_to_text($status)
+        $hist .= $sep . OMP::DB::MSBDone::status_to_text($status)
             if $status;
 
         $hist .= ($status ? ', ' : $sep) . $c->date . ' UT'
@@ -1768,7 +1768,7 @@ sub SaveMSBComment {
         unless $obs->checksum
         && $obs->projectid;
 
-    my $db = OMP::MSBDoneDB->new(
+    my $db = OMP::DB::MSBDone->new(
         'ProjectID' => $obs->projectid,
         'DB' => $dbb,
     );

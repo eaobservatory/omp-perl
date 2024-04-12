@@ -26,7 +26,7 @@ use OMP::Constants qw/:obs :timegap/;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::DB::Archive;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::NightRep;
 use OMP::General;
 use OMP::Info::Comment;

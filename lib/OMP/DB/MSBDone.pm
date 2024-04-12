@@ -1,14 +1,14 @@
-package OMP::MSBDoneDB;
+package OMP::DB::MSBDone;
 
 =head1 NAME
 
-OMP::MSBDoneDB - Manipulate MSB Done table
+OMP::DB::MSBDone - Manipulate MSB Done table
 
 =head1 SYNOPSIS
 
-    use OMP::MSBDoneDB;
+    use OMP::DB::MSBDone;
 
-    $db = OMP::MSBDoneDB->new(
+    $db = OMP::DB::MSBDone->new(
         ProjectID => 'm01bu05',
         DB => OMP::DB::Backend->new);
 
@@ -606,7 +606,7 @@ sub queryMSBdone {
 
 Convert a "done" status to textual form.
 
-    $text = OMP::MSBDoneDB::status_to_text($status);
+    $text = OMP::DB::MSBDone::status_to_text($status);
 
 =cut
 

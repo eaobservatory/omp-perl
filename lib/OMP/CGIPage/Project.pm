@@ -34,6 +34,7 @@ use OMP::UserDB;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::MSB;
+use OMP::DB::MSBDone;
 use OMP::MSBServer;
 use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
@@ -237,7 +238,7 @@ sub project_home {
 
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
     my $msbdb = OMP::DB::MSB->new(DB => $self->database);
-    my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
     my $project = OMP::ProjDB->new(DB => $self->database, ProjectID => $projectid)->projectDetails();

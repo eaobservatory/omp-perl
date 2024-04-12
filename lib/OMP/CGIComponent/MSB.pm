@@ -30,7 +30,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::DB::MSB;
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 use OMP::MSBServer;
 use OMP::ProjDB;
 use OMP::SpServer;
@@ -123,7 +123,7 @@ sub msb_action {
         ? $args{'projectid'}
         : scalar $q->param('projectid');
 
-    my $msbdonedb = OMP::MSBDoneDB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     my @messages = ();
     my @errors = ();
