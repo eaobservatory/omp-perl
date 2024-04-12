@@ -1,12 +1,12 @@
-package OMP::ArcQuery;
+package OMP::Query::Archive;
 
 =head1 NAME
 
-OMP::ArcQuery - Class representing an XML OMP query of the header archive
+OMP::Query::Archive - Class representing an XML OMP query of the header archive
 
 =head1 SYNOPSIS
 
-    $query = OMP::ArcQuery->new(XML => $xml);
+    $query = OMP::Query::Archive->new(XML => $xml);
     $sql = $query->sql();
 
 =head1 DESCRIPTION
@@ -353,7 +353,7 @@ sub telescope {
         catch OMP::Error with {} otherwise {
             my $Error = shift;
             my $errortext = $Error->{'-text'};
-            print "Error in ArcQuery::telescope: $errortext\n";
+            print "Error in OMP::Query::Archive::telescope: $errortext\n";
         };
     }
 
@@ -522,7 +522,7 @@ sub sql {
         }
         else {
             throw OMP::Error::DBMalformedQuery(
-                "Unknown telescope in ArcQuery::sql: $tel\n");
+                "Unknown telescope in OMP::Query::Archive::sql: $tel\n");
         }
 
         push @sql, $sql;

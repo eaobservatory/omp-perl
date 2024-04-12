@@ -19,7 +19,7 @@ Subclass of C<OMP::DB::Backend> that knows how to connect to the
 JAC data archives. Most methods are inherited from the base class.
 
 This class can be used for UKIRT and JCMT database access since the
-C<OMP::ArcQuery> class knows which internal database to access.
+C<OMP::Query::Archive> class knows which internal database to access.
 
 =cut
 

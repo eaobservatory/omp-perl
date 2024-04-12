@@ -36,7 +36,7 @@ our $VERSION = '2.000';
 use OMP::Error qw/:try/;
 use OMP::Constants;
 use OMP::General;
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::DB::TimeAcct;
@@ -820,7 +820,7 @@ sub obs {
         $self->{'Observations'} = $grp;
     }
     elsif (! $self->{'Observations'}) {
-        my $query = OMP::ArcQuery->new(HASH => {
+        my $query = OMP::Query::Archive->new(HASH => {
             telescope => $self->telescope,
             date => {
                 delta => $self->delta_day,

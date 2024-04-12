@@ -11,12 +11,12 @@ OMP::DB::Archive::Cache - Provide a cache for the OMP::DB::Archive class
 =head1 DESCRIPTION
 
 This class provides a cache for the C<OMP::DB::Archive> class, by
-taking C<OMP::ArcQuery> queries and C<OMP::Info::ObsGroup> objects
+taking C<OMP::Query::Archive> queries and C<OMP::Info::ObsGroup> objects
 and storing them temporarily on disk, which allows for them to be
 quickly retrieved at a later time. This provides a quicker retrieval
 of information from data files that are located on disk.
 
-It can also, given an C<OMP::ArcQuery> query, return a list of files
+It can also, given an C<OMP::Query::Archive> query, return a list of files
 that are not already in the cache.
 
 =cut
@@ -25,7 +25,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::Config;
 use OMP::Error qw/:try/;
 use OMP::Info::Obs;
@@ -70,7 +70,7 @@ sub new {
 
 =item B<store_archive>
 
-Store information about an C<OMP::ArcQuery> query and an
+Store information about an C<OMP::Query::Archive> query and an
 C<OMP::Info::ObsGroup> object to a temporary file.
 
     $cache->store_archive($query, $obsgrp);
@@ -179,7 +179,7 @@ sub store_archive {
 
 =item B<retrieve_archive>
 
-Retrieve information about an C<OMP::ArcQuery> query
+Retrieve information about an C<OMP::Query::Archive> query
 from temporary files.
 
     $obsgrp = $cache->retrieve_archive($query, $return_if_suspect);
@@ -285,7 +285,7 @@ sub retrieve_archive {
 =item B<unstored_files>
 
 Return a list of files currently existing on disk that match
-the given C<OMP::ArcQuery> query, yet do not have information
+the given C<OMP::Query::Archive> query, yet do not have information
 about them stored in the cache, and additionally return the
 C<OMP::Info::ObsGroup> object corresponding to the data stored
 in the cache.
@@ -526,7 +526,7 @@ sub simple_query {
 
 =item B<_filename_from_query>
 
-Return a standard filename given an C<OMP::ArcQuery> object.
+Return a standard filename given an C<OMP::Query::Archive> object.
 
     $filename = $cache->_filename_from_query($query);
 
@@ -633,7 +633,7 @@ sub _filename_from_query {
 
 =item B<_use_cache>
 
-Given an C<OMP::ArcQuery> object with telescope, returns a truth value
+Given an C<OMP::Query::Archive> object with telescope, returns a truth value
 if to skip cache retrival if configured such (in the telescope
 specific configuration file).  It currently treats the missing name of
 the option, use_header_cache, as if cache retrival has been enabled to
@@ -673,7 +673,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::ArcQuery>, C<OMP::DB::Archive>, and
+For related classes see C<OMP::Query::Archive>, C<OMP::DB::Archive>, and
 C<OMP::Info::Group>.
 
 =head1 AUTHORS

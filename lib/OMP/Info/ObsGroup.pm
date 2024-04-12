@@ -54,7 +54,7 @@ use OMP::Constants qw/:timegap :obs/;
 use OMP::DateTools;
 use OMP::DateSun;
 use OMP::DB::Project;
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::DB::Obslog;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
@@ -185,7 +185,7 @@ sub obs {
 
 =item B<runQuery>
 
-Run a query on the archive (using an OMP::ArcQuery object),
+Run a query on the archive (using an OMP::Query::Archive object),
 store the results and attach any relevant comments.
 
     $grp->runQuery($archivedb, $query, $retainhdr, $ignorebad, $nocomments);
@@ -208,8 +208,8 @@ sub runQuery {
         unless eval {$adb->isa('OMP::DB::Archive')};
 
     throw OMP::Error::FatalError(
-        "runQuery: The query argument must be an OMP::ArcQuery class")
-        unless UNIVERSAL::isa($q, "OMP::ArcQuery");
+        "runQuery: The query argument must be an OMP::Query::Archive class")
+        unless UNIVERSAL::isa($q, "OMP::Query::Archive");
 
     unless (defined $retainhdr) {
         $retainhdr = 0;
@@ -464,7 +464,7 @@ sub populate {
     }
 
     # Form the query.
-    my $arcquery = OMP::ArcQuery->new(HASH => \%hash);
+    my $arcquery = OMP::Query::Archive->new(HASH => \%hash);
 
     # run the query
     $self->runQuery($args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);

@@ -149,7 +149,7 @@ use OMP::DB::Obslog;
 use OMP::ObsQuery;
 use OMP::MSB;
 use OMP::DB::MSBDone;
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::DB::Shift;
 use OMP::ShiftQuery;
 use OMP::Info::Obs;

@@ -19,7 +19,7 @@ information associated with observations. In some cases the
 information may be retrieved from data headers rather than the
 database (since data headers are only uploaded to the database the day
 after observations are taken). Queries are supplied as
-C<OMP::ArcQuery> objects.
+C<OMP::Query::Archive> objects.
 
 This class provides read-only access to the header archive.
 
@@ -31,7 +31,7 @@ use warnings;
 
 use JAC::Setup qw/hdrtrans/;
 
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::DB::Archive::Cache;
 use OMP::Constants qw/:logging/;
 use OMP::Error qw/:try/;
@@ -440,7 +440,7 @@ sub getObs {
     }
 
     # Construct a query
-    my $query = OMP::ArcQuery->new(HASH => \%hash);
+    my $query = OMP::Query::Archive->new(HASH => \%hash);
 
     # retain the fits header since it is probably useful if we
     # are retrieving single observations
@@ -453,7 +453,7 @@ sub getObs {
 =item B<queryArc>
 
 Query the archive using the supplied query (supplied as a
-C<OMP::ArcQuery> object). Results are returned as C<OMP::Info::Obs>
+C<OMP::Query::Archive> object). Results are returned as C<OMP::Info::Obs>
 objects.
 
     @obs = $db->queryArc($query, $retainhdr, $ignorebad, $search);
@@ -572,7 +572,7 @@ sub queryArc {
 =item B<_query_arcdb>
 
 Query the header database and retrieve the matching observation objects.
-Queries must be supplied as C<OMP::ArcQuery> objects.
+Queries must be supplied as C<OMP::Query::Archive> objects.
 
     @faults = $db->_query_arcdb($query);
 
@@ -595,7 +595,7 @@ sub _query_arcdb {
 
     # Get the SQL
     # It doesnt make sense to specify the table names from this
-    # class since ArcQuery is the only class that cares and it
+    # class since OMP::Query::Archive is the only class that cares and it
     # has to decide what to do on the basis of the telescope
     # part of the query. It may be possible to supply
     # subclasses for JCMT and UKIRT and put the knowledge in there.
@@ -744,7 +744,7 @@ sub _prepare_FILES_select {
         ORDER BY obsid_subsysnr
 _SQL_
 
-    $sql = sprintf $sql, $OMP::ArcQuery::AFILESTAB;
+    $sql = sprintf $sql, $OMP::Query::Archive::AFILESTAB;
 
     # $ENV{'OMP_SITE_CONFIG'} =
     #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg';
@@ -801,7 +801,7 @@ sub _get_header_values {
 See if the query can be met by looking at file headers on disk.
 This is usually only needed during real-time data acquisition.
 
-Queries must be supplied as C<OMP::ArcQuery> objects.
+Queries must be supplied as C<OMP::Query::Archive> objects.
 
     @faults = $db->_query_files($query);
 
@@ -1217,7 +1217,7 @@ __END__
 This class inherits from C<OMP::DB>.
 
 For related classes see C<OMP::DB::Project> and C<OMP::DB::Feedback>,
-C<OMP::ArcQuery>.
+C<OMP::Query::Archive>.
 
 =head1 AUTHORS
 
