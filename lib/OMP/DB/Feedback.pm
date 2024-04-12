@@ -31,7 +31,7 @@ use Time::Piece;
 our $VERSION = '2.000';
 
 use OMP::Display;
-use OMP::FBQuery;
+use OMP::Query::Feedback;
 use OMP::Info::Comment;
 use OMP::Project;
 use OMP::DB::Project;
@@ -138,7 +138,7 @@ sub getComments {
     $hash{'projectid'} = $self->projectid if $self->projectid;
 
     # Create the query object
-    my $query = OMP::FBQuery->new(HASH => \%hash);
+    my $query = OMP::Query::Feedback->new(HASH => \%hash);
 
     # Get the comments
     my $comments = $self->_fetch_comments($query);
@@ -545,7 +545,7 @@ Internal method to retrieve the comments from the database.
 The hash argument controls the sort order of the results and the
 status of comments to be retrieved.
 
-Only argument is a query represented in the form of an C<OMP::FBQuery>
+Only argument is a query represented in the form of an C<OMP::Query::Feedback>
 object.
 
     $db->_fetch_comments($query);

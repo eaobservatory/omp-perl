@@ -70,7 +70,7 @@ use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
 use OMP::DB::Backend;
-use OMP::FBQuery;
+use OMP::Query::Feedback;
 use OMP::DB::Feedback;
 use OMP::DB::Project;
 use OMP::ProjQuery;
@@ -113,7 +113,7 @@ my $dbconnection = OMP::DB::Backend->new();
 my $db = OMP::DB::Feedback->new(DB => $dbconnection);
 
 # Create our query
-my $fbquery = OMP::FBQuery->new(HASH => {
+my $fbquery = OMP::Query::Feedback->new(HASH => {
     date => {min => $mindate->ymd, max => $maxdate->ymd},
     msgtype => OMP__FB_MSG_SP_SUBMITTED,
 });

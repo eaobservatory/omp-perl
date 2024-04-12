@@ -1,12 +1,12 @@
-package OMP::FBQuery;
+package OMP::Query::Feedback;
 
 =head1 NAME
 
-OMP::FBQuery - Class representing queries of the feedback message system
+OMP::Query::Feedback - Class representing queries of the feedback message system
 
 =head1 SYNOPSIS
 
-    $query = OMP::FBQuery->new(XML => $xml);
+    $query = OMP::Query::Feedback->new(XML => $xml);
     $sql = $query->sql($fbtable);
 
 =head1 DESCRIPTION
