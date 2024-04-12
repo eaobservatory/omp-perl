@@ -28,7 +28,7 @@ use warnings;
 use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
-use OMP::FaultQuery;
+use OMP::Query::Fault;
 use OMP::FaultUtil;
 use OMP::Error;
 use OMP::DB::User;
@@ -145,7 +145,7 @@ sub getFault {
 
     # No transaction required
     # Treat this as a DB query
-    my $query = OMP::FaultQuery->new(HASH => {
+    my $query = OMP::Query::Fault->new(HASH => {
         faultid => $id,
     });
 
@@ -163,7 +163,7 @@ sub getFault {
 =item B<queryFaults>
 
 Query the fault database and retrieve the matching fault objects.
-Queries must be supplied as C<OMP::FaultQuery> objects.
+Queries must be supplied as C<OMP::Query::Fault> objects.
 
     $faults = $db->queryFaults($query, %options);
 
@@ -212,7 +212,7 @@ sub getAssociations {
     my $idonly = shift;
 
     # Cant use standard interface for ASSOCTABLE query since
-    # OMP::FaultQuery does not yet know how to query the ASSOCTABLE
+    # OMP::Query::Fault does not yet know how to query the ASSOCTABLE
     my $ref = $self->_db_retrieve_data_ashash(
         "SELECT faultid FROM $ASSOCTABLE WHERE projectid = ?", $projectid);
     my @ids = map {$_->{faultid}} @$ref;
@@ -460,7 +460,7 @@ sub _prepare_response_columns {
 =item B<_query_faultdb>
 
 Query the fault database and retrieve the matching fault objects.
-Queries must be supplied as C<OMP::FaultQuery> objects.
+Queries must be supplied as C<OMP::Query::Fault> objects.
 
     $faults = $db->_query_faultdb($query, %options);
 

@@ -1,12 +1,12 @@
-package OMP::FaultQuery;
+package OMP::Query::Fault;
 
 =head1 NAME
 
-OMP::FaultQuery - Class representing an XML OMP query of the fault database
+OMP::Query::Fault - Class representing an XML OMP query of the fault database
 
 =head1 SYNOPSIS
 
-    $query = OMP::FaultQuery->new(XML => $xml);
+    $query = OMP::Query::Fault->new(XML => $xml);
     $sql = $query->sql($faulttable, $resptable);
 
 =head1 DESCRIPTION

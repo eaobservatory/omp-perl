@@ -46,7 +46,7 @@ use OMP::DB::Shift;
 use OMP::ShiftQuery;
 use OMP::DateTools;
 use OMP::DB::Fault;
-use OMP::FaultQuery;
+use OMP::Query::Fault;
 use OMP::FaultGroup;
 use OMP::DB::MSBDone;
 use OMP::MSBDoneQuery;
@@ -337,7 +337,7 @@ sub faults {
         # Do both queries and merge the results
         my %results;
         for my $queryname (keys %hash) {
-            my $query = OMP::FaultQuery->new(HASH => $hash{$queryname});
+            my $query = OMP::Query::Fault->new(HASH => $hash{$queryname});
 
             my $results = $fdb->queryFaults($query);
 

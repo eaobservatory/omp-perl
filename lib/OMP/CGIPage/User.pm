@@ -24,7 +24,7 @@ use OMP::Config;
 use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::DB::Fault;
-use OMP::FaultQuery;
+use OMP::Query::Fault;
 use OMP::DateTools;
 use OMP::General;
 use OMP::DB::Project;
@@ -132,7 +132,7 @@ sub details {
 
     # Query for faults user is associated with
     my $today = OMP::DateTools->today . "T23:59";
-    my $faultquery = OMP::FaultQuery->new(HASH => {
+    my $faultquery = OMP::Query::Fault->new(HASH => {
         author => $user->userid,
         date => {delta => -14, value => $today},
     });

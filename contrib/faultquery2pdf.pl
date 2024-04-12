@@ -21,7 +21,7 @@ use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault;
 use OMP::DB::Fault;
-use OMP::FaultQuery;
+use OMP::Query::Fault;
 use OMP::FaultUtil;
 
 # Specify text phrases to search for.
@@ -102,7 +102,7 @@ sub query_to_pdf {
     my $hash = shift;
 
     my $fdb = OMP::DB::Fault->new(DB => $db);
-    my $query = OMP::FaultQuery->new(HASH => $hash);
+    my $query = OMP::Query::Fault->new(HASH => $hash);
     my $faults = $fdb->queryFaults($query);
     my $toprint = '';
 

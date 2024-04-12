@@ -89,7 +89,7 @@ sub sql {
 Class method that returns the name of the XML root element to be
 located in the query XML. This changes depending on whether we
 are doing an MSB or Project query.
-Returns "FaultQuery" by default.
+Returns "UserQuery" by default.
 
 =cut
 
@@ -165,7 +165,7 @@ The Query XML is specified as follows:
 
 =item B<UserQuery>
 
-The top-level container element is E<lt>FaultQueryE<gt>.
+The top-level container element is E<lt>UserQueryE<gt>.
 
 =item B<Equality>
 

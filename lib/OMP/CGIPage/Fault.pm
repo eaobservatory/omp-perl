@@ -38,7 +38,7 @@ use OMP::Fault;
 use OMP::DB::Fault;
 use OMP::FaultUtil;
 use OMP::Display;
-use OMP::FaultQuery;
+use OMP::Query::Fault;
 use OMP::Fault::Response;
 use OMP::User;
 use OMP::DB::User;
@@ -460,14 +460,14 @@ sub query_fault_output {
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
     try {
-        $faults = $fdb->queryFaults(OMP::FaultQuery->new(HASH => \%hash), %queryopt);
+        $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%hash), %queryopt);
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
         if (! $q->param('faultsearch') and ! $faults->[0]) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-            $faults = $fdb->queryFaults(OMP::FaultQuery->new(HASH => \%currenthash), %queryopt);
+            $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
         }
     }
     otherwise {
