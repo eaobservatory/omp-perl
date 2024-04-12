@@ -15,7 +15,7 @@ use OMP::Config;
 use OMP::DB::Backend;
 use OMP::Error;
 use OMP::DB::User;
-use OMP::UserQuery;
+use OMP::Query::User;
 
 use base qw/OMP::Auth::Base/;
 
@@ -61,7 +61,7 @@ sub log_in_userpass {
         if $mess->code;
 
     my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
-    my $result = $db->queryUsers(OMP::UserQuery->new(HASH => {
+    my $result = $db->queryUsers(OMP::Query::User->new(HASH => {
         alias => $username,
         obfuscated => {boolean => 0},
     }));

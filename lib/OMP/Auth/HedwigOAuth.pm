@@ -20,7 +20,7 @@ use OMP::DB::Backend;
 use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Error;
 use OMP::DB::User;
-use OMP::UserQuery;
+use OMP::Query::User;
 
 sub _get_client {
     my $cls = shift;

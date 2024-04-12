@@ -29,7 +29,7 @@ use List::Util qw/first/;
 
 use OMP::User;
 use OMP::Error;
-use OMP::UserQuery;
+use OMP::Query::User;
 
 use base qw/OMP::DB/;
 
@@ -179,13 +179,13 @@ sub getUser {
     return undef unless $username;
 
     # Create a query string
-    my $query = OMP::UserQuery->new(HASH => {userid => $username});
+    my $query = OMP::Query::User->new(HASH => {userid => $username});
 
     my $result = $self->queryUsers($query);
 
     # If our query didn't match any user IDs try matching to an alias
     unless (@$result) {
-        $query = OMP::UserQuery->new(HASH => {alias => $username});
+        $query = OMP::Query::User->new(HASH => {alias => $username});
         $result = $self->queryUsers($query);
     }
 
@@ -218,7 +218,7 @@ sub getUserMultiple {
 
     return {
         map {$_->userid => $_} @{$self->queryUsers(
-            OMP::UserQuery->new(HASH => {userid => $usernames}))}
+            OMP::Query::User->new(HASH => {userid => $usernames}))}
     };
 }
 
@@ -272,7 +272,7 @@ sub getUserExpensive {
 =item B<queryUsers>
 
 Query the user database table and retrieve the matching user objects.
-Queries must be supplied as C<OMP::UserQuery> objects.
+Queries must be supplied as C<OMP::Query::User> objects.
 
     $users = $db->queryUsers($query);
 
@@ -357,7 +357,7 @@ sub inferValidUser {
     }
 
     # Could not find a match, look for an exact match on email
-    my $query = OMP::UserQuery->new(HASH => {email => $guess->email});
+    my $query = OMP::Query::User->new(HASH => {email => $guess->email});
 
     my $result = $self->queryUsers($query);
 
@@ -441,7 +441,7 @@ Query the user database table.
 
     $results = $db->_query_userdb($query);
 
-Query must be an C<OMP::UserQuery> object.
+Query must be an C<OMP::Query::User> object.
 
 =cut
 

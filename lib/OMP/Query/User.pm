@@ -1,12 +1,12 @@
-package OMP::UserQuery;
+package OMP::Query::User;
 
 =head1 NAME
 
-OMP::UserQuery - Class representing an XML OMP query of the user database
+OMP::Query::User - Class representing an XML OMP query of the user database
 
 =head1 SYNOPSIS
 
-    $query = OMP::UserQuery->new(XML => $xml);
+    $query = OMP::Query::User->new(XML => $xml);
     $sql = $query->sql($usertable);
 
 =head1 DESCRIPTION

@@ -31,7 +31,7 @@ use OMP::General;
 use OMP::DB::Project;
 use OMP::User;
 use OMP::DB::User;
-use OMP::UserQuery;
+use OMP::Query::User;
 
 use base qw/OMP::CGIPage/;
 
@@ -182,7 +182,7 @@ sub list_users {
     my $q = $self->cgi;
 
     my $udb = OMP::DB::User->new(DB => $self->database);
-    my $users = $udb->queryUsers(OMP::UserQuery->new(HASH => {
+    my $users = $udb->queryUsers(OMP::Query::User->new(HASH => {
         obfuscated => {boolean => 0},
     }));
 

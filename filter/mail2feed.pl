@@ -61,7 +61,7 @@ use OMP::Mail;
 use OMP::General;
 use OMP::User;
 use OMP::DB::User;
-use OMP::UserQuery;
+use OMP::Query::User;
 
 our $VERSION = '0.003';
 
@@ -190,7 +190,7 @@ sub accept_message {
     # the OMP user ID from the name therefore sometimes identifies
     # the wrong user.  See fault 20140717.002.
     if ($email) {
-        my $users = $udb->queryUsers(OMP::UserQuery->new(HASH => {
+        my $users = $udb->queryUsers(OMP::Query::User->new(HASH => {
             email => $email,
         }));
 
