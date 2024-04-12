@@ -35,7 +35,7 @@ use OMP::General;
 use OMP::PlotHelper;
 use OMP::DB::Project;
 use OMP::ProjQuery;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::TimeAcctQuery;
 
 use Time::Seconds;
@@ -763,7 +763,7 @@ sub completion_stats {
         $lowdate -= 1;  # Yesterday
         my @accts = $self->_get_non_special_accts();
         my %projectids = map {$_->projectid, undef} @accts;
-        my $tdb = OMP::TimeAcctDB->new(DB => $self->db);
+        my $tdb = OMP::DB::TimeAcct->new(DB => $self->db);
         my $query = OMP::TimeAcctQuery->new(HASH => {
             date => {max => $lowdate->datetime},
             projectid => [keys %projectids],

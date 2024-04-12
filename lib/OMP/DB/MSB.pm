@@ -52,7 +52,7 @@ use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::DB::MSBDone;
 use OMP::MSBQuery;
 use OMP::TLEDB;
@@ -690,7 +690,7 @@ store it again if someone has modified the science program between us
 retrieving and storing it.
 
 The time remaining on the project is decremented by the estimated
-time taken to observe the MSB (via OMP::TimeAcctDB).
+time taken to observe the MSB (via OMP::DB::TimeAcct).
 
 Invokes the C<hasBeenObserved> method on the MSB object.
 
@@ -825,7 +825,7 @@ sub doneMSB {
     # Now decrement the time for the project if required
     if ($optargs{adjusttime}) {
         my $shifttype = $optargs{shifttype};
-        my $acctdb = OMP::TimeAcctDB->new(
+        my $acctdb = OMP::DB::TimeAcct->new(
             ProjectID => $sp->projectID,
             DB => $self->db);
 

@@ -35,7 +35,7 @@ use OMP::Info::ObsGroup;
 use OMP::DB::Obslog;
 use OMP::DB::Project;
 use OMP::Project::TimeAcct;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIComponent/;
@@ -538,7 +538,7 @@ sub store_time_accounting {
     }
 
     unless (scalar @errors) {
-        my $db = OMP::TimeAcctDB->new(DB => $self->database);
+        my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
         $nr->db_accounts(OMP::TimeAcctGroup->new(accounts => \@acct));

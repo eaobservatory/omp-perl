@@ -117,7 +117,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::DB;
 use OMP::DB::Backend;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 
 my %default_opt = (
     'header' => undef,
@@ -221,7 +221,7 @@ NO_SQL
 
     return <<"_SQL_";
         SELECT projectid, timespent, date, confirmed
-        FROM $OMP::TimeAcctDB::ACCTTABLE
+        FROM $OMP::DB::TimeAcct::ACCTTABLE
         WHERE $sql
         ORDER BY projectid, date
 _SQL_

@@ -39,7 +39,7 @@ use OMP::General;
 use OMP::ArcQuery;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
 use OMP::DB::Shift;
@@ -234,7 +234,7 @@ sub db_accounts {
     elsif (! defined $self->{DBAccounts}) {
         # No accounts cached.  Retrieve some
         # Database connection
-        my $db = OMP::TimeAcctDB->new(DB => $self->db);
+        my $db = OMP::DB::TimeAcct->new(DB => $self->db);
 
         # Get our sql query
         my $query = OMP::TimeAcctQuery->new(HASH => {
@@ -242,7 +242,7 @@ sub db_accounts {
         });
 
         # Get the time accounting statistics from
-        # the TimeAcctDB table. These are returned as a list of
+        # the TimeAcct table. These are returned as a list of
         # Project::TimeAcct.pm objects. Note that there will be more than
         # one per project now that there are multiple shift types etc.
 
@@ -1807,7 +1807,7 @@ method) can be retrieved in global variable C<$OMP::NightRep::WARNKEY>.
 
 =head1 SEE ALSO
 
-See C<OMP::TimeAcctDB>, C<OMP::Info::ObsGroup>, C<OMP::DB::Fault>,
+See C<OMP::DB::TimeAcct>, C<OMP::Info::ObsGroup>, C<OMP::DB::Fault>,
 C<OMP::DB::Shift>
 
 =head1 COPYRIGHT

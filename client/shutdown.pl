@@ -82,7 +82,7 @@ use OMP::Info::Comment;
 use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::DB::Shift;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
 use OMP::UserDB;
 
@@ -276,7 +276,7 @@ if ($DEBUG) {
 # Store the accounts and comments to the database
 unless ($DEBUG) {
     # Store time accounts
-    my $acctdb = OMP::TimeAcctDB->new(DB => $dbconnection);
+    my $acctdb = OMP::DB::TimeAcct->new(DB => $dbconnection);
     $acctdb->setTimeSpent(@taccts);
 
     print "Stored time accounts.\n";

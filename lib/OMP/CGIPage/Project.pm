@@ -39,7 +39,7 @@ use OMP::MSBServer;
 use OMP::DB::ProjAffiliation;
 use OMP::DB::Project;
 use OMP::ProjQuery;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::SiteQuality;
 
 use base qw/OMP::CGIPage/;
@@ -248,7 +248,7 @@ sub project_home {
 
     # Since time may have been charged to the project even though no MSBs
     # were observed, check with the accounting DB as well
-    my $adb = OMP::TimeAcctDB->new(DB => $self->database);
+    my $adb = OMP::DB::TimeAcct->new(DB => $self->database);
 
     # Because of shifttypes, there may be more than one shift per night.
     my @accounts = $adb->getTimeSpent(projectid => $project->projectid);

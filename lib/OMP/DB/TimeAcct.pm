@@ -1,12 +1,12 @@
-package OMP::TimeAcctDB;
+package OMP::DB::TimeAcct;
 
 =head1 NAME
 
-OMP::TimeAcctDB - Manipulate the time accounting database
+OMP::DB::TimeAcct - Manipulate the time accounting database
 
 =head1 SYNOPSIS
 
-    $acctdb = OMP::TimeAcctDB->new(DB => $dbconnection);
+    $acctdb = OMP::DB::TimeAcct->new(DB => $dbconnection);
 
     @time = $acctdb->getTimeSpent();
     $acctdb->setTimeSpent(@time);
