@@ -41,7 +41,7 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::NightRep;
-use OMP::ObslogDB;
+use OMP::DB::Obslog;
 use OMP::ObsQuery;
 use OMP::PreviewDB;
 use OMP::PreviewQuery;
@@ -510,7 +510,7 @@ sub obslog_search {
             $hash->{'telescope'} = $telescope;
             my $query = OMP::ObsQuery->new(HASH => $hash);
 
-            my $odb = OMP::ObslogDB->new(DB => $self->database);
+            my $odb = OMP::DB::Obslog->new(DB => $self->database);
             $result = $search->sort_search_results(
                 \%values,
                 'startobs',

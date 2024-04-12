@@ -1,14 +1,14 @@
-package OMP::ObslogDB;
+package OMP::DB::Obslog;
 
 =head1 NAME
 
-OMP::ObslogDB - Manipulate observation log table
+OMP::DB::Obslog - Manipulate observation log table
 
 =head1 SYNOPSIS
 
-    use OMP::ObslogDB;
+    use OMP::DB::Obslog;
 
-    $db = OMP::ObslogDB->new(
+    $db = OMP::DB::Obslog->new(
         ProjectID => 'm01bu05',
         DB => OMP::DB::Backend->new);
 
@@ -159,32 +159,32 @@ sub addComment {
     }
 
     OMP::General->log_message(
-        "ObslogDB: Preparing for observation comment insert.\n");
+        "OMP::DB::Obslog: Preparing for observation comment insert.\n");
 
     # Lock the database (since we are writing).
     $self->_db_begin_trans;
     $self->_dblock;
 
     OMP::General->log_message(
-        "ObslogDB: Database locked. Setting old observation comments to inactive.\n");
+        "OMP::DB::Obslog: Database locked. Setting old observation comments to inactive.\n");
 
     # Set old observations in the archive to "inactive".
     $self->_set_inactive($obs, $comment->author->userid);
 
     OMP::General->log_message(
-        "ObslogDB: Old observation comments set to inactive. Inserting comment.\n");
+        "OMP::DB::Obslog: Old observation comments set to inactive. Inserting comment.\n");
 
     # Write the observation to database.
     $self->_store_comment($obs, $comment);
 
     OMP::General->log_message(
-        "ObslogDB: Comment inserted. Unlocking database.\n");
+        "OMP::DB::Obslog: Comment inserted. Unlocking database.\n");
 
     # End transaction.
     $self->_dbunlock;
     $self->_db_commit_trans;
 
-    OMP::General->log_message("ObslogDB: Database unlocked.\n");
+    OMP::General->log_message("OMP::DB::Obslog: Database unlocked.\n");
 
     return $self->_mail_staff_no_good($obs, $comment);
 }
@@ -203,14 +203,14 @@ sub _mail_staff_no_good {
     my $obsref = join ': ', grep {defined $_} $obsid, $proj, $tel;
 
     OMP::General->log_message(
-        "ObslogDB: Preparing to send mail about obs ($obsref) no good.\n");
+        "OMP::DB::Obslog: Preparing to send mail about obs ($obsref) no good.\n");
 
     my $to_key = 'mail.to-obs-rejected';
     my @to = grep {/./} OMP::Config->getData($to_key, 'telescope' => $tel);
 
     unless (scalar @to) {
         OMP::General->log_message(
-            "ObslogDB: No recipient email address ($to_key) found in $tel configuration.\n",
+            "OMP::DB::Obslog: No recipient email address ($to_key) found in $tel configuration.\n",
             OMP__LOG_WARNING);
         return;
     }
@@ -349,7 +349,7 @@ sub removeComment {
 
     if (! defined($obs) || ! defined($userid)) {
         throw OMP::Error::BadArgs(
-            "Must supply both OMP::Info::Obs object and user ID to ObslogDB->removeComment");
+            "Must supply both OMP::Info::Obs object and user ID to OMP::DB::Obslog->removeComment");
     }
 
     $self->_set_inactive($obs, $userid);
@@ -461,7 +461,7 @@ sub updateObsComment {
 
     # Print a message in the log.
     OMP::General->log_message(
-        "ObslogDB: Querying database for observation comments.\n");
+        "OMP::DB::Obslog: Querying database for observation comments.\n");
 
     my $query = OMP::ObsQuery->new(HASH => {
         date => {
@@ -473,7 +473,7 @@ sub updateObsComment {
     my @commentresults = $self->queryComments($query);
 
     OMP::General->log_message(
-        "ObslogDB: Finished query for observation comments.\n");
+        "OMP::DB::Obslog: Finished query for observation comments.\n");
 
     my %commhash;
 

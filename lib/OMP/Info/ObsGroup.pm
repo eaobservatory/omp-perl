@@ -55,7 +55,7 @@ use OMP::DateTools;
 use OMP::DateSun;
 use OMP::ProjDB;
 use OMP::ArcQuery;
-use OMP::ObslogDB;
+use OMP::DB::Obslog;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Error qw/:try/;
@@ -265,7 +265,7 @@ the C<obs> method.
         nocomments => 1,
         ignorebad => 0);
 
-This requires access to the obs log database (C<OMP::ObslogDB>) and
+This requires access to the obs log database (C<OMP::DB::Obslog>) and
 also C<OMP::DB::Archive>.
 
 UT date can be either "YYYY-MM-DD" string or a Time::Piece
@@ -679,7 +679,7 @@ sub commentScan {
     my $self = shift;
 
     # Add the comments.
-    my $odb = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
+    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
 
     $odb->updateObsComment(scalar $self->obs);
 
@@ -1989,7 +1989,7 @@ sub locate_timegaps {
     @obslist = sort {$a->[0] <=> $b->[0]} @obslist;
 
     # Get a list of comments
-    my $odb = OMP::ObslogDB->new(DB => OMP::DB::Backend->new);
+    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
 
     # Query between first and last observation."
 
@@ -1999,7 +1999,7 @@ sub locate_timegaps {
         my $end = $obslist[$#obslist]->[2]->endobs;
 
         OMP::General->log_message(
-            "ObslogDB: Querying database for observation comments.\n");
+            "OMP::DB::Obslog: Querying database for observation comments.\n");
 
         my $query = OMP::ObsQuery->new(HASH => {
             date => {
@@ -2039,7 +2039,7 @@ sub locate_timegaps {
 
                 # The -1 is taken from obslogDB.pm: and apepars to be how to
                 # match obsids from comments to timegaps.
-                my $timegapobsid = OMP::ObslogDB::_placeholder_obsid(
+                my $timegapobsid = OMP::DB::Obslog::_placeholder_obsid(
                     $timegap->instrument,
                     $timegap->runnr,
                     $timegap->endobs - 1);
@@ -2184,7 +2184,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::DB::Archive> and C<OMP::ObslogDB>.
+For related classes see C<OMP::DB::Archive> and C<OMP::DB::Obslog>.
 
 For information on time gaps see C<OMP::Info::Obs::TimeGap>.
 

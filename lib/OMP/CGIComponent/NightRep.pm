@@ -32,7 +32,7 @@ use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
-use OMP::ObslogDB;
+use OMP::DB::Obslog;
 use OMP::ProjDB;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
@@ -220,7 +220,7 @@ sub obs_add_comment {
     );
 
     # Store the comment in the database.
-    my $odb = OMP::ObslogDB->new(DB => $self->database);
+    my $odb = OMP::DB::Obslog->new(DB => $self->database);
     $odb->addComment($comment, $obs);
 
     return {
@@ -623,7 +623,7 @@ sub cgi_to_obs {
     }
 
     # Comment-ise the Info::Obs object.
-    my $db = OMP::ObslogDB->new(DB => $self->database);
+    my $db = OMP::DB::Obslog->new(DB => $self->database);
     $db->updateObsComment([$obs]);
 
     # And return the Info::Obs object.

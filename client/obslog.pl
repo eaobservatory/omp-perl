@@ -145,7 +145,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ObslogDB;
+use OMP::DB::Obslog;
 use OMP::ObsQuery;
 use OMP::MSB;
 use OMP::DB::MSBDone;
@@ -1684,7 +1684,7 @@ sub SaveComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => $dbb);
+    my $odb = OMP::DB::Obslog->new(DB => $dbb);
     $odb->addComment($comment, $obs);
 
     # Add the comment to the observation.
@@ -1717,7 +1717,7 @@ sub SaveMultiComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => $dbb);
+    my $odb = OMP::DB::Obslog->new(DB => $dbb);
 
     my @obs = ();
     @obs = split ',', $observations;
