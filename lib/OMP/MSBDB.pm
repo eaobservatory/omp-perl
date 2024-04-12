@@ -1320,12 +1320,14 @@ sub getMSBtitle {
     throw OMP::Error::BadArgs("No checksum supplied to getMSBtitle")
         unless $checksum;
 
-    # can either do this through the XML query system or directly through
+    # can either do this through the query system or directly through
     # SQL since we only want one value from the table... The method approach
     # is a lot more prone to problems and increased overhead for such a simple
     # value
-    my $xml = "<MSBQuery><checksum>$checksum</checksum><disableconstraint>all</disableconstraint></MSBQuery>";
-    my $query = OMP::MSBQuery->new(XML => $xml);
+    my $query = OMP::MSBQuery->new(HASH => {
+        checksum => $checksum,
+        disableconstraint => 'all',
+    });
     my @results = $self->queryMSB($query);
     if (@results) {
         return $results[0]->title;

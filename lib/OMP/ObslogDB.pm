@@ -279,17 +279,17 @@ sub getComment {
     my $obs = shift;
     my $allcomments = shift;
 
-    my $xml;
+    my %hash;
 
     # If $allcomments is true, then we don't want to limit
     # the query. Otherwise, we want to retrive comments
     # only for which obsactive = 1.
-    my $obsactivestring;
+    my %obsactive;
     if (defined($allcomments)) {
-        $obsactivestring = "";
+        %obsactive = ();
     }
     else {
-        $obsactivestring = "<obsactive>1</obsactive>";
+        %obsactive = (obsactive => {boolean => 1});
     }
 
     if (UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap")) {
@@ -302,12 +302,12 @@ sub getComment {
         my $t = $obs->endobs - 1;
 
         # Query the old way for timegap comments
-        $xml = "<ObsQuery>"
-            . "<instrument>" . $obs->instrument . "</instrument>"
-            . "<runnr>" . $obs->runnr . "</runnr>"
-            . "<date>" . $t->ymd . "T" . $t->hms . "</date>"
-            . $obsactivestring
-            . "</ObsQuery>";
+        %hash = (
+            instrument => $obs->instrument,
+            runnr => $obs->runnr,
+            date => $t->ymd . 'T' . $t->hms,
+            %obsactive,
+        );
     }
     else {
         unless (defined($obs->obsid)) {
@@ -316,12 +316,12 @@ sub getComment {
         }
 
         # Query only on obsid for normal comments
-        $xml = "<ObsQuery>"
-            . "<obsid>" . $obs->obsid . "</obsid>"
-            . "</ObsQuery>";
+        %hash = (
+            obsid => $obs->obsid,
+        );
     }
 
-    my $query = OMP::ObsQuery->new(XML => $xml);
+    my $query = OMP::ObsQuery->new(HASH => \%hash);
     my @results = $self->queryComments($query);
 
     # Return based on context and arguments.
@@ -459,16 +459,17 @@ sub updateObsComment {
         $end = $obsarray[-1]->startobs;
     }
 
-    my $xml = "<ObsQuery>"
-        . "<date><min>" . $start->ymd . "T" . $start->hms . "</min>"
-        . "<max>" . $end->ymd . "T" . $end->hms . "</max></date>"
-        . "<obsactive>1</obsactive></ObsQuery>";
-
     # Print a message in the log.
     OMP::General->log_message(
         "ObslogDB: Querying database for observation comments.\n");
 
-    my $query = OMP::ObsQuery->new(XML => $xml);
+    my $query = OMP::ObsQuery->new(HASH => {
+        date => {
+            min => $start->ymd . "T" . $start->hms,
+            max => $end->ymd . "T" . $end->hms,
+        },
+        obsactive => {boolean => 1},
+    });
     my @commentresults = $self->queryComments($query);
 
     OMP::General->log_message(

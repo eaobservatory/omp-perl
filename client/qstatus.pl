@@ -127,8 +127,8 @@ do {
     my ($q, $m, $i);
     ($q, $m, $i, $utmin, $utmax) = query_queue_status(
         telescope => $telescope,
-        country => $country,
-        semester => $semester,
+        ($country ? (country => $country) : ()),
+        ($semester ? (semester => $semester) : ()),
         affiliation => $affiliation,
         full_day => $full_day,
     );

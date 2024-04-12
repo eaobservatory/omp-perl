@@ -219,7 +219,7 @@ sub query_fault_output {
     my %daterange;
     my $mindate;
     my $maxdate;
-    my $xml;
+    my %hash;
 
     # XML query to return faults from the last 14 days
     my %faultstatus = 'safety' eq lc $category
@@ -230,34 +230,32 @@ sub query_fault_output {
                 ? OMP::Fault->faultStatus_VehicleIncident
                 : OMP::Fault->faultStatus;
 
-    my $currentxml = "<FaultQuery>"
-        . $comp->category_xml($category)
-        . "<date delta='-14'>" . $t->datetime . "</date>"
-        . "</FaultQuery>";
+    my %currenthash = (
+        %{$comp->category_hash($category)},
+        date => {delta => -14, value => $t->datetime},
+    );
 
     # Setup an argument for use with the query_fault_form function
     my $hidefields = ($category ne 'ANYCAT' ? 0 : 1);
 
     if ($q->param('search')) {
         # The 'Search' submit button was clicked
-        my @xml;
-
-        push @xml, $comp->category_xml($category);
+        %hash = %{$comp->category_hash($category)};
 
         if ($q->param('system') !~ /any/) {
             my $system = $q->param('system');
-            push @xml, "<system>$system</system>";
+            $hash{'system'} = $system;
         }
 
         if ($q->param('type') !~ /any/) {
             my $type = $q->param('type');
-            push @xml, "<type>$type</type>";
+            $hash{'type'} = $type;
         }
 
         # Return chronic faults only?
         if ($q->param('chronic')) {
             my %condition = OMP::Fault->faultCondition;
-            push @xml, "<condition>$condition{Chronic}</condition>";
+            $hash{'condition'} = $condition{'Chronic'};
         }
 
         if ($q->param('status') ne "any") {
@@ -271,7 +269,7 @@ sub query_fault_output {
                     OMP::Fault->faultStatusClosed_VehicleIncident,
                 );
 
-                push @xml, join '', map {"<status>$status{$_}</status>"} %status;
+                $hash{'status'} = [values %status];
             }
             elsif ($status eq "all_open") {
                 # Do a query on all open statuses
@@ -282,18 +280,11 @@ sub query_fault_output {
                     OMP::Fault->faultStatusOpen_VehicleIncident,
                 );
 
-                push @xml, join '', map {"<status>$status{$_}</status>"} %status;
+                $hash{'status'} = [values %status];
             }
             else {
                 # Do a query on just a single status
-                my %status = (
-                    OMP::Fault->faultStatus,
-                    OMP::Fault->faultStatus_Safety,
-                    OMP::Fault->faultStatus_JCMTEvents,
-                    OMP::Fault->faultStatus_VehicleIncident,
-                );
-
-                push @xml, "<status>$status</status>";
+                $hash{'status'} = $status;
             }
         }
 
@@ -307,7 +298,7 @@ sub query_fault_output {
             croak "Could not find user '$author'"
                 unless $user;
 
-            push @xml, "<author>" . $user->userid . "</author>";
+            $hash{'author'} = $user->userid;
         }
 
         # Generate the date portion of our query
@@ -343,10 +334,10 @@ sub query_fault_output {
 
             # Do a min/max date query
             if ($mindate or $maxdate) {
-                push @xml, "<date>";
-                push @xml, "<min>" . $mindate->datetime . "</min>" if $mindate;
-                push @xml, "<max>" . $maxdate->datetime . "</max>" if $maxdate;
-                push @xml, "</date>";
+                my %datehash = ();
+                $datehash{'min'} = $mindate->datetime if $mindate;
+                $datehash{'max'} = $maxdate->datetime if $maxdate;
+                $hash{'date'} = \%datehash;
             }
 
             # Convert dates back to localtime
@@ -360,7 +351,7 @@ sub query_fault_output {
             $maxdate = localtime($t->epoch);
             $mindate = localtime($maxdate->epoch - $days * ONE_DAY);
 
-            push @xml, "<date delta='-$days'>" . $t->datetime . "</date>";
+            $hash{'date'} = {delta => - $days, value => $t->datetime};
         }
         elsif ($q->param('period') eq 'last_month') {
             # Get results for the period between the first
@@ -386,81 +377,79 @@ sub query_fault_output {
             my $tempdate2 = Time::Piece->strptime($year . $month . $tempdate->month_last_day . "T23:59:59", "%Y%m%dT%H:%M:%S");
             $maxdate = gmtime($tempdate2->epoch);
 
-            push @xml, "<date><min>" . $mindate->datetime . "</min><max>" . $maxdate->datetime . "</max></date>";
+            $hash{'date'} = {
+                min => $mindate->datetime,
+                max => $maxdate->datetime,
+            };
 
             # Convert dates to localtime
             $mindate = localtime($mindate->epoch);
             $maxdate = localtime($maxdate->epoch);
         }
         else {
-            push @xml, '<date delta="-7">' . $t->ymd . '</date>';
+            $hash{'date'} = {delta => -7, value => $t->ymd};
         }
 
         # Get the text param and unescape things like &amp; &quot;
         my $text = $q->param('text');
-        if (defined $text) {
+        if ($text) {
             my $text_boolean = $q->param('text_boolean');
-            my $modestr = $text_boolean ? ' mode="boolean"' : '';
+            my $text_spec = $text_boolean ? {mode => 'boolean', value => $text} : $text;
 
             $text = OMP::Display::escape_entity($text);
             my $text_search = $q->param('text_search');
             if ($text_search eq 'text') {
-                push @xml, "<text$modestr>$text</text>";
+                $hash{'text'} = $text_spec;
             }
             elsif ($text_search eq 'subject') {
-                push @xml, "<subject$modestr>$text</subject>";
+                $hash{'subject'} = $text_spec;
             }
             else {
-                push @xml, '<or>',
-                    "<text$modestr>$text</text>",
-                    "<subject$modestr>$text</subject>",
-                    '</or>';
+                $hash{'EXPR__TS'} = {or => {
+                    text => $text_spec,
+                    subject => $text_spec,
+                }};
             }
         }
 
         # Return either only faults filed or only faults responded to
         if ($q->param('action') =~ /response/) {
-            push(@xml, "<isfault>0</isfault>");
+            $hash{'isfault'} = {boolean => 0};
         }
         elsif ($q->param('action') =~ /file/) {
-            push(@xml, "<isfault>1</isfault>");
+            $hash{'isfault'} = {boolean => 1};
         }
 
         if ($q->param('timelost')) {
-            push(@xml, "<timelost><min>.001</min></timelost>");
+            $hash{'timelost'} = {min => 0.001};
         }
-
-        # Our query XML
-        $xml = "<FaultQuery>" . join('', @xml) . "</FaultQuery>";
     }
     elsif ($q->param('major')) {
         # Faults within the last 14 days with 2 or more hours lost
-        $xml = "<FaultQuery>"
-            . $comp->category_xml($category)
-            . "<date delta='-14'>"
-            . $t->datetime
-            . "</date><timelost><min>2</min></timelost></FaultQuery>";
+        %hash = (
+            %{$comp->category_hash($category)},
+            date => {delta => -14, value => $t->datetime},
+            timelost => {min => 2},
+        );
     }
     elsif ($q->param('recent')) {
         # Faults active in the last 36 hours
-        $xml = "<FaultQuery>"
-            . $comp->category_xml($category)
-            . "<date delta='-2'>"
-            . $t->datetime
-            . "</date></FaultQuery>";
+        %hash = (
+            %{$comp->category_hash($category)},
+            date => {delta => -2, value => $t->datetime},
+        );
     }
     elsif ($q->param('current')) {
         # Faults within the last 14 days
-        $xml = $currentxml;
+        %hash = %currenthash;
         $title = "Displaying faults with any activity in the last 14 days";
     }
     else {
         # Initial display of query page
-        $xml = "<FaultQuery>"
-            . $comp->category_xml($category)
-            . "<date delta='-7'>"
-            . $t->datetime
-            . "</date></FaultQuery>";
+        %hash = (
+            %{$comp->category_hash($category)},
+            date => {delta => -7, value => $t->datetime},
+        );
         $title = "Displaying faults with any activity in the last 7 days";
     }
 
@@ -471,14 +460,14 @@ sub query_fault_output {
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
     my $fdb = OMP::FaultDB->new(DB => $self->database);
     try {
-        $faults = $fdb->queryFaults(OMP::FaultQuery->new(XML => $xml), %queryopt);
+        $faults = $fdb->queryFaults(OMP::FaultQuery->new(HASH => \%hash), %queryopt);
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
         if (! $q->param('faultsearch') and ! $faults->[0]) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-            $faults = $fdb->queryFaults(OMP::FaultQuery->new(XML => $currentxml), %queryopt);
+            $faults = $fdb->queryFaults(OMP::FaultQuery->new(HASH => \%currenthash), %queryopt);
         }
     }
     otherwise {

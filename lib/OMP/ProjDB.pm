@@ -660,8 +660,9 @@ sub _get_project_row {
         unless $projectid =~ /\w/;
 
     # Create the query
-    my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
-    my $query = OMP::ProjQuery->new(XML => $xml);
+    my $query = OMP::ProjQuery->new(HASH => {
+        projectid => $projectid,
+    });
 
     my $projects = $self->_get_projects($query);
 

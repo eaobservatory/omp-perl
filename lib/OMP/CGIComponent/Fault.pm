@@ -754,28 +754,28 @@ sub parse_file_fault_form {
     return %parsed;
 }
 
-=item B<category_xml>
+=item B<category_hash>
 
-Return a snippet of XML containing the name of the given category
-surrounded by an opening and closing category tag.
+Return a hash reference containing the name of the given category.
 
-    $xmlpart = $comp->category_xml($category);
+    \%hash = $comp->category_hash($category);
 
-Returns an empty string if the given category is 'ANYCAT' or if the only
+Returns an empty hash if the given category is 'ANYCAT' or if the only
 argument is undef.
 
 =cut
 
-sub category_xml {
+sub category_hash {
     my $self = shift;
     my $cat = shift;
 
+    my %hash = ();
+
     if (defined $cat and $cat ne "ANYCAT") {
-        return "<category>$cat</category>";
+        $hash{'category'} = $cat;
     }
-    else {
-        return "";
-    }
+
+    return \%hash;
 }
 
 =item B<get_status_labels>

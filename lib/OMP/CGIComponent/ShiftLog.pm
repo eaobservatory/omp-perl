@@ -161,11 +161,11 @@ sub get_shift_comments {
         $ut = $date;
     }
 
-    # Form the XML.
-    my $xml = "<ShiftQuery><date delta=\"1\">$ut</date><telescope>$telescope</telescope></ShiftQuery>";
-
     # Form the query.
-    my $query = OMP::ShiftQuery->new(XML => $xml);
+    my $query = OMP::ShiftQuery->new(HASH => {
+        date => {delta => 1, value => $ut},
+        telescope => $telescope,
+    });
 
     # Grab the results.
     my $sdb = OMP::ShiftDB->new(DB => $self->database);

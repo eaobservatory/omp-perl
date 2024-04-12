@@ -152,10 +152,6 @@ sub msb_hist {
         my $commentref;
         if ($show =~ /observed/) {
             # show observed
-            my $xml = "<MSBDoneQuery><projectid>$projectid</projectid><status>"
-                . OMP__DONE_DONE
-                . "</status></MSBDoneQuery>";
-
             $commentref = OMP::MSBServer->observedMSBs({
                 projectid => $projectid,
                 returnall => 1,

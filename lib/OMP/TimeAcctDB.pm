@@ -107,22 +107,19 @@ sub getTimeSpent {
         $shifttype = $args{shifttype};
     }
 
-    # Construct the XML for the query
-    # Note that we do not want to go exactly one day forward here
-    my $xml = "<TimeAcctQuery>"
-        . ( exists $args{projectid}
-            ? "<projectid>$args{projectid}</projectid>"
-            : '')
-        . ($date
-            ? "<date delta=\"0.99999\">$date</date>"
-            : '')
-        . ($shifttype
-            ? "<shifttype>$shifttype</shifttype>"
-            : '')
-        . "</TimeAcctQuery>";
-
     # Create the query object
-    my $q = OMP::TimeAcctQuery->new(XML => $xml);
+    # Note that we do not want to go exactly one day forward here
+    my $q = OMP::TimeAcctQuery->new(HASH => {
+        ((exists $args{'projectid'})
+            ? (projectid => $args{'projectid'})
+            : ()),
+        ($date
+            ? (date => {delta => 0.99999, value => $date})
+            : ()),
+        ($shifttype
+            ? (shifttype => $shifttype)
+            : ()),
+    });
 
     # Run the query
     my @matches = $self->queryTimeSpent($q);

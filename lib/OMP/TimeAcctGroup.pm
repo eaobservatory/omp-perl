@@ -764,12 +764,10 @@ sub completion_stats {
         my @accts = $self->_get_non_special_accts();
         my %projectids = map {$_->projectid, undef} @accts;
         my $tdb = OMP::TimeAcctDB->new(DB => $self->db);
-        my $xml = "<TimeAcctQuery>"
-            . "<date><max>" . $lowdate->datetime
-            . "</max></date>"
-            . join('', map {"<projectid>$_</projectid>"} keys %projectids)
-            . "</TimeAcctQuery>";
-        my $query = OMP::TimeAcctQuery->new(XML => $xml);
+        my $query = OMP::TimeAcctQuery->new(HASH => {
+            date => {max => $lowdate->datetime},
+            projectid => [keys %projectids],
+        });
         my @offset_accts = $tdb->queryTimeSpent($query);
         my $offset_grp = $self->new(accounts => \@offset_accts);
 
@@ -996,10 +994,10 @@ sub _get_accts {
     # Get project objects, using a different query depending on whether
     # we are returning science or engineering accounts
     my $db = OMP::ProjDB->new(DB => $self->db);
-    my %hash = (
-        telescope => $self->_get_telescope,
-    );
-    my $query_xml;
+    my %hash = ();
+
+    $hash{'telescope'} = $self->_get_telescope if defined $self->_get_telescope;
+
     if ($arg eq 'sci') {
         # Get all the projects in the semesters that we have time
         # accounts for.

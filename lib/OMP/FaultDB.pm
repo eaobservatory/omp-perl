@@ -145,8 +145,9 @@ sub getFault {
 
     # No transaction required
     # Treat this as a DB query
-    my $xml = "<FaultQuery><faultid>$id</faultid></FaultQuery>";
-    my $query = OMP::FaultQuery->new(XML => $xml);
+    my $query = OMP::FaultQuery->new(HASH => {
+        faultid => $id,
+    });
 
     my $result = $self->queryFaults($query);
 

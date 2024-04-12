@@ -129,25 +129,16 @@ sub getComments {
 
     my %args = (%defaults, @_);
 
-    # Form status and msgtype portions of XML query
-    my %xmlpart;
+    # Form status and msgtype portions of query
+    my %hash = ();
     for my $part (qw/status msgtype/) {
-        $xmlpart{$part} = join '', map {
-                "<$part>" . $_ . "</$part>"
-            } @{$args{$part}}
-            if defined($args{$part});
+        $hash{$part} = $args{$part} if defined $args{$part};
     }
 
-    # Form complete XML Query
-    my $xml = "<FBQuery>"
-        . ($self->projectid
-            ? "<projectid>" . $self->projectid . "</projectid>"
-            : "")
-        . join("", map {$xmlpart{$_}} keys %xmlpart)
-        . "</FBQuery>";
+    $hash{'projectid'} = $self->projectid if $self->projectid;
 
     # Create the query object
-    my $query = OMP::FBQuery->new(XML => $xml);
+    my $query = OMP::FBQuery->new(HASH => \%hash);
 
     # Get the comments
     my $comments = $self->_fetch_comments($query);

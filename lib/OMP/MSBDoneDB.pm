@@ -149,12 +149,9 @@ sub historyMSBtid {
     return unless $msbtid =~ /\w/;
 
     # Construct the query
-    my $xml = '<?xml version="1.0" encoding="UTF-8"?>'
-        . "\n<MSBDoneQuery>"
-        . "<msbtid>$msbtid</msbtid>"
-        . "</MSBDoneQuery>";
-
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::MSBDoneQuery->new(HASH => {
+        msbtid => $msbtid,
+    });
 
     # Execute the query
     my @responses = $self->queryMSBdone($query);
@@ -374,13 +371,11 @@ sub observedMSBs {
             if delete $args{'include_undo'};
     }
 
-    my $xml = "<MSBDoneQuery>"
-        . (join '', map {'<status>' . $_ . '</status>'} @status)
-        . ($date ? qq{<date delta="1">$date</date>} : "")
-        . ($projectid ? "<projectid>$projectid</projectid>" : "")
-        . "</MSBDoneQuery>";
-
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::MSBDoneQuery->new(HASH => {
+        status => \@status,
+        ($date ? (date => {delta => 1, value => $date}) : ()),
+        ($projectid ? (projectid => $projectid) : ()),
+    });
 
     my @results = $self->queryMSBdone($query, \%args);
 
@@ -424,15 +419,15 @@ sub observedDates {
         unless $projectid;
 
     # Form the query
-    my $xml = "<MSBDoneQuery>"
-        . "<status>" . OMP__DONE_DONE . "</status>"
-        . "<status>" . OMP__DONE_REJECTED . "</status>"
-        . "<status>" . OMP__DONE_SUSPENDED . "</status>"
-        . "<status>" . OMP__DONE_ABORTED . "</status>"
-        . "<projectid>$projectid</projectid>"
-        . "</MSBDoneQuery>";
-
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::MSBDoneQuery->new(HASH => {
+        status => [
+            OMP__DONE_DONE,
+            OMP__DONE_REJECTED,
+            OMP__DONE_SUSPENDED,
+            OMP__DONE_ABORTED,
+        ],
+        projectid => $projectid,
+    });
 
     # Execute the query - note that we dont need all the comments
     # since we are only interested in dates

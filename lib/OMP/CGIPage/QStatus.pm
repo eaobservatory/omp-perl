@@ -86,7 +86,13 @@ sub view_queue_status {
 
     my %query_opt = %opt;
     foreach my $param (qw/country instrument semester/) {
-        $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
+        my @selection = uniq map {split /\+/} keys %{$query_opt{$param}};
+        if (@selection) {
+            $query_opt{$param} = \@selection;
+        }
+        else {
+            delete $query_opt{$param};
+        }
     }
 
     my @project = $q->multi_param('project');

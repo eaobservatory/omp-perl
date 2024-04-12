@@ -94,17 +94,13 @@ sub enterShiftLog {
     # author, date and telescope as the current one.
 
     # Form a query
-    my $xml = "<ShiftQuery><author>" . $author->userid
-        . "</author><date>" . $date->strftime("%Y-%m-%dT%H:%M:%S")
-        . "</date><telescope>";
-    if (UNIVERSAL::isa($telescope, "Astro::Telescope")) {
-        $xml .= uc($telescope->name);
-    }
-    else {
-        $xml .= uc($telescope);
-    }
-    $xml .= "</telescope></ShiftQuery>";
-    my $query = OMP::ShiftQuery->new(XML => $xml);
+    my $query = OMP::ShiftQuery->new(HASH => {
+        author => $author->userid,
+        date => $date->strftime("%Y-%m-%dT%H:%M:%S"),
+        telescope => (UNIVERSAL::isa($telescope, "Astro::Telescope")
+            ? uc($telescope->name)
+            : uc($telescope)),
+    });
 
     my @result = $self->_fetch_shiftlog_info($query);
     my $id = $result[0]->{shiftid};

@@ -147,32 +147,28 @@ sub query_queue_status {
     # Run a simulated set of queries to determine which projects
     # have MSBs available
 
-    my $query_format = '<MSBQuery>' .
-        '<telescope>' . $telescope . '</telescope>' .
+    my %query_hash = (
+        telescope => $telescope,
         (exists $opt{'country'}
-            ? (join '', map {'<country>' . $_ . '</country>'}
-                    ((ref $opt{'country'}) ? @{$opt{'country'}} : $opt{'country'}))
-            : '') .
+            ? (country => $opt{'country'})
+            : ()),
         (exists $opt{'semester'}
-            ? (join '', map {'<semester>' . $_ . '</semester>'}
-                    ((ref $opt{'semester'}) ? @{$opt{'semester'}} : $opt{'semester'}))
-            : '') .
+            ? (semester => $opt{'semester'})
+            : ()),
         (exists $opt{'instrument'}
-            ? (join '', map {'<instrument>' . $_ . '</instrument>'}
-                    ((ref $opt{'instrument'}) ? @{$opt{'instrument'}} : $opt{'instrument'}))
-            : '') .
+            ? (instrument => $opt{'instrument'})
+            : ()),
         (exists $opt{'tau'}
-            ? '<tau>' . $opt{'tau'} . ' </tau>'
-            : '') .
-        '<date>%s</date>' .
-    '</MSBQuery>';
+            ? (tau => $opt{'tau'})
+            : ()),
+    );
 
     for (my $refdate = $utmin; $refdate <= $utmax; $refdate += ONE_HOUR) {
         my $hr = $refdate->hour();
 
-        # Form query object via XML
+        # Form query object
         my $query = OMP::MSBQuery->new(
-            XML => (sprintf $query_format, $refdate->datetime()));
+            HASH => {%query_hash, date => $refdate->datetime()});
 
         my @results = $db->queryMSB($query);
 

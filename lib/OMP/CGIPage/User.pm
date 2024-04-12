@@ -84,20 +84,16 @@ sub details {
     try {
         my $db = OMP::ProjDB->new(DB => $self->database);
 
-        my $xml = "<ProjQuery>"
-            . "<person>" . $user->userid . "</person>"
-            . "</ProjQuery>";
-
-        my $query = OMP::ProjQuery->new(XML => $xml);
+        my $query = OMP::ProjQuery->new(HASH => {
+            person => $user->userid,
+        });
 
         $member = $db->listProjects($query);
 
         # Get projects the user supports
-        $xml = "<ProjQuery>"
-            . "<support>" . $user->userid . "</support>"
-            . "</ProjQuery>";
-
-        $query = OMP::ProjQuery->new(XML => $xml);
+        $query = OMP::ProjQuery->new(HASH => {
+            support => $user->userid,
+        });
 
         $support = $db->listProjects($query);
     }
@@ -136,12 +132,10 @@ sub details {
 
     # Query for faults user is associated with
     my $today = OMP::DateTools->today . "T23:59";
-    my $xml = "<FaultQuery>"
-        . "<author>" . $user->userid . "</author>"
-        . "<date delta=\"-14\">$today</date>"
-        . "</FaultQuery>";
-    my $faultquery = OMP::FaultQuery->new(XML => $xml);
-
+    my $faultquery = OMP::FaultQuery->new(HASH => {
+        author => $user->userid,
+        date => {delta => -14, value => $today},
+    });
 
     my $fdb = OMP::FaultDB->new(DB => $self->database);
     my $faults = $fdb->queryFaults($faultquery);
