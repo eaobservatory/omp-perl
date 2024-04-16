@@ -24,6 +24,7 @@ use OMP::Config;
 use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::DB::Fault;
+use OMP::DB::Hedwig2OMP;
 use OMP::Query::Fault;
 use OMP::Query::Project;
 use OMP::DateTools;
@@ -74,10 +75,8 @@ sub details {
     return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
         unless $user;
 
-    my @hedwigids = map {$_->[0]} @{
-        $self->database_hedwig2omp->handle->selectall_arrayref(
-            'SELECT hedwig_id FROM user WHERE omp_id = ?',
-            {}, $user->userid)};
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $self->database_hedwig2omp);
+    my $hedwig_ids = $hodb->get_hedwig_ids($user->userid);
 
     # Get projects user belongs to
     my $member;
@@ -153,7 +152,7 @@ sub details {
 
     return {
         user => $user,
-        hedwig_ids => \@hedwigids,
+        hedwig_ids => $hedwig_ids,
         hedwig_profile => 'https://proposals.eaobservatory.org/person/',
         icon_url => OMP::Config->getData('iconsdir'),
         project_capacities => [sort {
