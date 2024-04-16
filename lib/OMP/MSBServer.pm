@@ -580,7 +580,7 @@ sub unremoveMSB {
             ProjectID => $project,
             DB => $class->dbConnection);
 
-        $db->undoMSB($checksum, $comment);
+        $db->unremoveMSB($checksum, $comment);
     }
     catch OMP::Error with {
         # Just catch OMP::Error exceptions

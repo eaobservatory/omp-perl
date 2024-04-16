@@ -937,7 +937,7 @@ sub doneMSB {
 
 =item B<undoMSB>
 
-Inrement the remaining counter of the MSB by one.
+Increment the remaining counter of the MSB by one.
 
     $db->undoMSB($checksum, $comment);
 
@@ -958,12 +958,6 @@ has changed and whether subsequent observations have occurred (the
 science program is only reorganized the first time an MSB in an OR
 block is observed).
 
-This method is also used to undo MSB removal, presumably for
-historical reasons -- the "removed" status was previously called
-"all done".  A suitable comment should be provided to indicate
-which action is being preformed, ideally with a transaction ID
-included in the case of undoing an MSB execution.
-
 =cut
 
 sub undoMSB {
@@ -971,63 +965,79 @@ sub undoMSB {
     my $checksum = shift;
     my $comment = shift;
 
-    my $comment_status = $comment->status();
     throw OMP::Error::BadArgs(
-        "Unexpected comment status for undoMSB: $comment_status")
-        unless $comment_status == OMP__DONE_UNDONE
-        || $comment_status == OMP__DONE_UNREMOVED;
+        'Unexpected comment status for undoMSB')
+        unless $comment->status == OMP__DONE_UNDONE;
 
     # Connect to the DB (and lock it out)
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
-    # program object. Unfortunately, since we intend to modify the
-    # science program we need to get access to the object here
-    # Retrieve the relevant science program
-    my $sp = $self->fetchSciProg(1);
+    my $result = $self->_apply_msb_operation($checksum, $comment, sub {
+        my $msb = shift;
 
-    # Get the MSB
-    my $msb = _find_msb_tolerant($sp, $checksum);
+        # Mark it as not observed
+        return $msb->undoObserve;
+    });
 
-    # Update the msb done table (need to do this even if the MSB
-    # no longer exists in the science program
-    $self->_notify_msb_done($checksum, $sp->projectID, $msb, $comment);
-
-    # Give up if we dont have a match
-    unless (defined $msb) {
-        # Disconnect and commit the comment
-        $self->_dbunlock;
-        $self->_db_commit_trans;
-
-        # and return
-        return;
+    if ($result) {
+        $self->_notify_feedback_system(
+            program => "OMP::DB::MSB",
+            subject => "MSB Observe Undone",
+            text => "Incremented by 1 the number of remaining "
+                . "observations for MSB with checksum"
+                . " $checksum",
+            msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
+        );
     }
 
-    # Mark it as not observed
-    $msb->undoObserve;
+    # Disconnect
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+}
 
-    # Recompute MSB checksums.
-    $sp->locate_msbs();
+=item B<unremoveMSB>
 
-    # Now need to store the MSB back to disk again
-    # since this has the advantage of updating the database table
-    # and making sure reorganized Science Program is stored.
-    # Note that we need the timestamp to change but do not want
-    # feedback table notification of this (since we have done that
-    # already).
-    $self->storeSciProg(SciProg => $sp, NoCache => 1, NoFeedback => 1);
+Restore the remaining counter of the MSB which has previously been marked
+as removed.
 
-    # Might want to send a message to the feedback system at this
-    # point
-    $self->_notify_feedback_system(
-        program => "OMP::DB::MSB",
-        subject => "MSB Observe Undone",
-        text => "Incremented by 1 the number of remaining "
-            . "observations for MSB with checksum"
-            . " $checksum",
-        msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
-    );
+    $db->unremoveMSB($checksum, $comment);
+
+This methods functions like the C<undoMSB> method except that
+it it undoes "removed" status rather than MSB observation.
+
+=cut
+
+sub unremoveMSB {
+    my $self = shift;
+    my $checksum = shift;
+    my $comment = shift;
+
+    throw OMP::Error::BadArgs(
+        'Unexpected comment status for unremoveMSB')
+        unless $comment->status == OMP__DONE_UNREMOVED;
+
+    # Connect to the DB (and lock it out)
+    $self->_db_begin_trans;
+    $self->_dblock;
+
+    my $result = $self->_apply_msb_operation($checksum, $comment, sub {
+        my $msb = shift;
+
+        # Mark it as not removed
+        return $msb->unRemove;
+    });
+
+    if ($result) {
+        $self->_notify_feedback_system(
+            program => "OMP::DB::MSB",
+            subject => "MSB Unremoved",
+            text => "Restored the number of remaining "
+                . "observations for MSB with checksum"
+                . " $checksum",
+            msgtype => OMP__FB_MSG_MSB_UNREMOVED,
+        );
+    }
 
     # Disconnect
     $self->_dbunlock;
@@ -1063,56 +1073,32 @@ sub alldoneMSB {
     my $self = shift;
     my $checksum = shift;
 
+    my $comment = OMP::Info::Comment->new(
+        text => 'MSB removed from consideration',
+        status => OMP__DONE_REMOVED);
+
     # Connect to the DB (and lock it out)
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the
-    # science program object. Unfortunately, since we intend to modify
-    # the science program we need to get access to the object here
-    # Retrieve the relevant science program
-    my $sp = $self->fetchSciProg(1);
+    my $result = $self->_apply_msb_operation($checksum, $comment, sub {
+        my $msb = shift;
 
-    # Get the MSB
-    my $msb = $sp->fetchMSB($checksum);
+        $msb->hasBeenCompletelyObserved();
 
-    # Update the msb done table (need to do this even if the MSB
-    # no longer exists in the science program
-    $self->_notify_msb_done($checksum, $sp->projectID, $msb,
-        "MSB removed from consideration",
-        OMP__DONE_REMOVED);
+        return 1;
+    });
 
-    # Give up if we dont have a match
-    unless (defined $msb) {
-        # Disconnect and commit the comment
-        $self->_dbunlock;
-        $self->_db_commit_trans;
-
-        # and return
-        return;
+    if ($result) {
+        # Might want to send a message to the feedback system at this
+        # point
+        $self->_notify_feedback_system(
+            program => "OMP::DB::MSB",
+            subject => "MSB All Observed",
+            text => "Marked MSB with checksum" . " $checksum as completely done",
+            msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
+        );
     }
-
-    $msb->hasBeenCompletelyObserved();
-
-    # Recompute MSB checksums.
-    $sp->locate_msbs();
-
-    # Now need to store the MSB back to disk again
-    # since this has the advantage of updating the database table
-    # and making sure reorganized Science Program is stored.
-    # Note that we need the timestamp to change but do not want
-    # feedback table notification of this (since we have done that
-    # already).
-    $self->storeSciProg(SciProg => $sp, NoCache => 1, NoFeedback => 1);
-
-    # Might want to send a message to the feedback system at this
-    # point
-    $self->_notify_feedback_system(
-        program => "OMP::DB::MSB",
-        subject => "MSB All Observed",
-        text => "Marked MSB with checksum" . " $checksum as completely done",
-        msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
-    );
 
     # Disconnect
     $self->_dbunlock;
@@ -1945,6 +1931,58 @@ sub _verify_project_constraints {
     }
 
     return @warnings;
+}
+
+=item B<_apply_msb_operation>
+
+Wrapper method to retrieve a science program from the database, find an
+MSB, apply the given function to it, and then store the updated program
+back to the database.
+
+Returns the result from the given function (evaluated in scalar context)
+or nothing (undef) if the MSB could not be found.
+
+=cut
+
+sub _apply_msb_operation {
+    my $self = shift;
+    my $checksum = shift;
+    my $comment = shift;
+    my $function = shift;
+    my %opt = @_;
+
+    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
+    # program object. Unfortunately, since we intend to modify the
+    # science program we need to get access to the object here
+    # Retrieve the relevant science program
+    my $sp = $self->fetchSciProg(1);
+
+    # Get the MSB
+    my $msb = _find_msb_tolerant($sp, $checksum);
+
+    # Give up if we dont have a match
+    return unless defined $msb;
+
+    if (defined $comment) {
+        # Update the msb done table (need to do this even if the MSB
+        # no longer exists in the science program
+        $self->_notify_msb_done($checksum, $sp->projectID, $msb, $comment);
+    }
+
+    my $result = $function->($msb);
+
+    # Recompute MSB checksums.
+    $sp->locate_msbs();
+
+    # Now need to store the MSB back to disk again
+    # since this has the advantage of updating the database table
+    # and making sure reorganized Science Program is stored.
+    # Note that we need the timestamp to change but do not want
+    # feedback table notification of this (since we have done that
+    # already).
+    $self->storeSciProg(SciProg => $sp, NoCache => 1, NoFeedback => 1);
+
+    return $result;
 }
 
 =back

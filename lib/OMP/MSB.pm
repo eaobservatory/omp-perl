@@ -1510,9 +1510,10 @@ reflect the modified state.
 
 Any suspend flags are cleared.
 
-If the MSB has been removed, this method will have the effect of re-enabling
-it with the original number of repeats. No other change will be made, since the
-assumption is that the removal is being reversed rather than an MSB acceptance.
+If the MSB has been removed, nothing is done.  The C<unRemove> method
+should be used instead to reverse this status.
+
+Returns true if the MSB was undone, false otherwise.
 
 B<Note:> all checksums in the science program should be
 recalculated after this method is called.
@@ -1522,19 +1523,18 @@ recalculated after this method is called.
 sub undoObserve {
     my $self = shift;
 
-    if ($self->isRemoved) {
-        $self->unRemove;
-    }
-    else {
-        $self->remaining_inc(1);
+    return 0 if $self->isRemoved;
 
-        # Reset datemin if we are a monitoring MSB
-        $self->scheduleMSBnow()
-            if $self->isPeriodic;
+    $self->remaining_inc(1);
 
-        # unsuspend
-        $self->clearSuspended;
-    }
+    # Reset datemin if we are a monitoring MSB
+    $self->scheduleMSBnow()
+        if $self->isPeriodic;
+
+    # unsuspend
+    $self->clearSuspended;
+
+    return 1;
 }
 
 =item B<hasBeenCompletelyObserved>

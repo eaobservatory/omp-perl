@@ -44,6 +44,7 @@ my @fb = qw/
     OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
     OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
     OMP__FB_MSG_PROJECT_ENABLED OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT
+    OMP__FB_MSG_MSB_UNREMOVED
 /;
 
 my @done = qw/
@@ -347,6 +348,15 @@ no time was spent on a project.
 =cut
 
 use constant OMP__FB_MSG_TIME_NONE_SPENT => 72;
+
+=item B<OMP__FB_MSG_MSB_UNREMOVED>
+
+A feedback comment informing users that the 'alldone' mark of an MSB
+has been removed.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_UNREMOVED => 80;
 
 =back
 
