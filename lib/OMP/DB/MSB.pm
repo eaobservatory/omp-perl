@@ -749,18 +749,6 @@ sub doneMSB {
     $self->_db_begin_trans;
     $self->_dblock;
 
-    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
-    # program object. Unfortunately, since we intend to modify the
-    # science program we need to get access to the object here
-    # Retrieve the relevant science program
-    my $sp = $self->fetchSciProg(1);
-
-    # Get the MSB
-    my $msb = _find_msb_tolerant($sp, $checksum);
-
-    # We are going to force the comment object through if we have one
-    # This allows us to preserve date information.
-
     # Work out the reason and user
     my $author;
     my $reason = "MSB marked as done";
@@ -780,66 +768,49 @@ sub doneMSB {
     # Force status
     $comment->status(OMP__DONE_DONE);
 
-    # Update the msb done table (need to do this even if the MSB
-    # no longer exists in the science program). Note that this implies
-    # the science program exists....Probably should be using self->projectid
-    $self->_notify_msb_done($checksum, $sp->projectID, $msb, $comment);
+    my $sp;
+    my $result = $self->_apply_msb_operation($checksum, $comment, sub {
+            my $msb = shift;
 
-    OMP::General->log_message("Marked MSB as done in the done table");
+            OMP::General->log_message("Marked MSB as done in the done table");
 
-    # Give up if we dont have a match
-    unless (defined $msb) {
-        # Disconnect and commit the comment
-        $self->_dbunlock;
-        $self->_db_commit_trans;
+            # Mark it as observed
+            $msb->hasBeenObserved();
 
-        # and return
-        return;
-    }
+            OMP::General->log_message(
+                "MSB marked as done in science program object");
 
-    unless ($optargs{'nodecrement'}) {
-        # Mark it as observed
-        $msb->hasBeenObserved();
+            return [$msb->estimated_time];
+        },
+        sp_reference => \$sp,
+        no_store => $optargs{'nodecrement'});
 
-        # Recompute MSB checksums.
-        $sp->locate_msbs();
+    if (defined $result) {
+        my ($estimated_time) = @$result;
 
-        OMP::General->log_message(
-            "MSB marked as done in science program object");
+        unless ($optargs{'nodecrement'}) {
+            OMP::General->log_message("Science program stored back to database");
+        }
 
-        # Now need to store the MSB back to disk again
-        # since this has the advantage of updating the database table
-        # and making sure reorganized Science Program is stored.
-        # Note that we need the timestamp to change but do not want
-        # feedback table notification of this (since we have done that
-        # already).
-        $self->storeSciProg(
-            SciProg => $sp,
-            NoCache => 1,
-            NoFeedback => 1,
-            NoConstraintCheck => 1);
+        # Now decrement the time for the project if required
+        if ($optargs{adjusttime}) {
+            my $shifttype = $optargs{shifttype};
+            my $acctdb = OMP::DB::TimeAcct->new(
+                ProjectID => $sp->projectID,
+                DB => $self->db);
 
-        OMP::General->log_message("Science program stored back to database");
-    }
+            # need TimeAcct object
+            my $acct = OMP::Project::TimeAcct->new(
+                projectid => $sp->projectID,
+                confirmed => 0,
+                date => scalar(gmtime()),
+                timespent => $estimated_time,
+                shifttype => $shifttype,
+            );
 
-    # Now decrement the time for the project if required
-    if ($optargs{adjusttime}) {
-        my $shifttype = $optargs{shifttype};
-        my $acctdb = OMP::DB::TimeAcct->new(
-            ProjectID => $sp->projectID,
-            DB => $self->db);
-
-        # need TimeAcct object
-        my $acct = OMP::Project::TimeAcct->new(
-            projectid => $sp->projectID,
-            confirmed => 0,
-            date => scalar(gmtime()),
-            timespent => $msb->estimated_time,
-            shifttype => $shifttype,
-        );
-
-        $acctdb->incPending($acct);
-        OMP::General->log_message("Incremented time on project");
+            $acctdb->incPending($acct);
+            OMP::General->log_message("Incremented time on project");
+        }
     }
 
     # Might want to send a message to the feedback system at this
@@ -1139,43 +1110,43 @@ sub suspendMSB {
     my $label = shift;
     my $comment = shift;
 
-    # Connect to the DB (and lock it out)
-    $self->_db_begin_trans;
-    $self->_dblock;
-
-    # We could use the OMP::DB::MSB::fetchMSB method if we didn't need the science
-    # program object. Unfortunately, since we intend to modify the
-    # science program we need to get access to the object here
-    # Retrieve the relevant science program
-    my $sp = $self->fetchSciProg(1);
-
-    # Get the MSB
-    my $msb = $sp->fetchMSB($checksum);
-
-    # Update the msb done table (need to do this even if the MSB
-    # no longer exists in the science program BUT make sure the
-    # message is different in that case
-    my $msg;
-    if (defined $msb) {
-        $msg = "MSB suspended at observation $label.";
-    }
-    else {
-        $msg = "Attempted to suspend MSB at observation $label but the MSB is no longer in the science program.",
-    }
-
     # Work out the reason and user and transaction ID
     my $author;
     my $msbtid;
     if (defined $comment) {
         $author = $comment->author;
-        $msg .= ": " . $comment->text
-            if defined $comment->text && $comment->text =~ /\w/;
         $msbtid = $comment->tid;
     }
 
-    # Might want to send a message to the feedback system at this
-    # point
-    # do this early in case the MSBDone message fails!
+    my $msg = "MSB suspended at observation $label.";
+
+    my $donecomment = OMP::Info::Comment->new(
+        text => $msg,
+        status => OMP__DONE_SUSPENDED,
+        author => $author,
+        tid => $msbtid);
+
+    # Connect to the DB (and lock it out)
+    $self->_db_begin_trans;
+    $self->_dblock;
+
+    my $result = $self->_apply_msb_operation($checksum, $donecomment, sub {
+        my $msb = shift;
+
+        # Mark it as observed
+        $msb->hasBeenSuspended($label);
+
+        return 1;
+    });
+
+    unless ($result) {
+        $msg = "Attempted to suspend MSB at observation $label but the MSB is no longer in the science program.",
+    }
+
+    if ((defined $comment) and (defined $comment->text) and ($comment->text =~ /\w/)) {
+        $msg .= ": " . $comment->text;
+    }
+
     $self->_notify_feedback_system(
         program => "OMP::DB::MSB",
         subject => "MSB suspended",
@@ -1183,39 +1154,6 @@ sub suspendMSB {
         author => $author,
         msgtype => OMP__FB_MSG_MSB_SUSPENDED,
     );
-
-    # if the MSB never existed in the system this will generate an error
-    # message and throw an exception. In practice this is not a problem
-    # since it was clearly never retrieved from the system!
-    $self->_notify_msb_done(
-        $checksum,
-        $sp->projectID,
-        $msb,
-        $msg,
-        OMP__DONE_SUSPENDED,
-        $author,
-        $msbtid);
-
-    # Give up if we dont have a match
-    unless (defined $msb) {
-        # Disconnect and commit the comment
-        $self->_dbunlock;
-        $self->_db_commit_trans;
-
-        # and return
-        return;
-    }
-
-    # Mark it as observed
-    $msb->hasBeenSuspended($label);
-
-    # Now need to store the MSB back to disk again
-    # since this has the advantage of updating the database table
-    # and making sure reorganized Science Program is stored.
-    # Note that we need the timestamp to change but do not want
-    # feedback table notification of this (since we have done that
-    # already).
-    $self->storeSciProg(SciProg => $sp, NoCache => 1, NoFeedback => 1);
 
     # Disconnect
     $self->_dbunlock;
@@ -1942,6 +1880,23 @@ back to the database.
 Returns the result from the given function (evaluated in scalar context)
 or nothing (undef) if the MSB could not be found.
 
+    $result = $msbdb->_apply_msb_operation($checksum, $comment, sub { ... });
+
+Additional options:
+
+=over 4
+
+=item I<sp_reference>
+
+If given, should be a scalar reference to which the SciProg object should be
+assigned (even if the specified MSB is not found).
+
+=item I<no_store>
+
+Skip MSB locate and SciProg store steps.
+
+=back
+
 =cut
 
 sub _apply_msb_operation {
@@ -1957,6 +1912,8 @@ sub _apply_msb_operation {
     # Retrieve the relevant science program
     my $sp = $self->fetchSciProg(1);
 
+    ${$opt{'sp_reference'}} = $sp if defined $opt{'sp_reference'};
+
     # Get the MSB
     my $msb = _find_msb_tolerant($sp, $checksum);
 
@@ -1971,16 +1928,22 @@ sub _apply_msb_operation {
 
     my $result = $function->($msb);
 
-    # Recompute MSB checksums.
-    $sp->locate_msbs();
+    unless ($opt{'no_store'}) {
+        # Recompute MSB checksums.
+        $sp->locate_msbs();
 
-    # Now need to store the MSB back to disk again
-    # since this has the advantage of updating the database table
-    # and making sure reorganized Science Program is stored.
-    # Note that we need the timestamp to change but do not want
-    # feedback table notification of this (since we have done that
-    # already).
-    $self->storeSciProg(SciProg => $sp, NoCache => 1, NoFeedback => 1);
+        # Now need to store the MSB back to disk again
+        # since this has the advantage of updating the database table
+        # and making sure reorganized Science Program is stored.
+        # Note that we need the timestamp to change but do not want
+        # feedback table notification of this (since we have done that
+        # already).
+        $self->storeSciProg(
+            SciProg => $sp,
+            NoCache => 1,
+            NoFeedback => 1,
+            NoConstraintCheck => 1);
+    }
 
     return $result;
 }
