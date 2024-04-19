@@ -120,6 +120,10 @@ sub list_projects {
     my $country = $q->param('country');
     my $order = $q->param('order');
 
+    my $instrument = {
+        map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $1 => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
+
     undef $semester if $semester =~ /any/i;
     undef $support if $support eq '';
     undef $country if $country eq '';
@@ -132,6 +136,7 @@ sub list_projects {
         (defined $semester ? (semester => $semester) : ()),
         (defined $support ? (support => $support) : ()),
         (defined $country ? (country => [split /\+/, $country]) : ()),
+        (%$instrument ? (instrument => [keys %$instrument]) : ()),
         telescope => $telescope,
     }));
 
@@ -220,6 +225,7 @@ sub list_projects {
             support => $support,
             country => $country,
             order => $order,
+            instrument => $instrument,
         },
     };
 }

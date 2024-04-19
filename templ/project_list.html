@@ -11,6 +11,7 @@
                     <option [% IF semester == values.semester %]selected="selected"[% END %] value="[% semester | html %]">[% semester | html %]</option>
                 [% END %]
             </select></td>
+            <td>Instrument:</td>
         </tr>
         <tr>
             <td align='right'>Queue:</td>
@@ -20,6 +21,13 @@
                     <option [% IF country == values.country %]selected="selected"[% END %] value="[% country | html %]">[% country | html %]</option>
                 [% END %]
             </select></td>
+            <td rowspan="4">
+                <select name="instrument" size="8" multiple="multiple">
+                    [% FOREACH instrument IN instruments %]
+                        <option [% IF values.instrument.$instrument %]selected="selected"[% END %] value="[% instrument | html %]">[% instrument | html %]</option>
+                    [% END %]
+                </select>
+            </td>
         </tr>
         <tr>
             <td align='right'>Show:</td>
@@ -55,6 +63,7 @@
             <td>
                 <input type="submit" name="submit_search" value="Submit" />
             </td>
+            <td>&nbsp;</td>
         </tr>
     </table>
 </form>

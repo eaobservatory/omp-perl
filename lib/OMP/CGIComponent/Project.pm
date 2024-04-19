@@ -92,6 +92,7 @@ sub list_projects_form {
         ],
         supports => \@support,
         countries => [sort @countries],
+        instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI KUNTUR/],
         orders => [
             [priority => 'Priority'],
             [projectid => 'Project ID'],
