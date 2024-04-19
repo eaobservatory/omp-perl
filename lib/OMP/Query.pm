@@ -428,6 +428,19 @@ sub _create_sql_recurse {
     elsif (UNIVERSAL::isa($entry, 'OMP::Query::True')) {
         $sql = $self->_querify($column, $entry->true(), 'true');
     }
+    elsif (eval {$entry->isa('OMP::Query::In')}) {
+        $sql = $self->_querify($column, $entry->values(), 'in');
+    }
+    elsif (eval {$entry->isa('OMP::Query::SubQuery')}) {
+        my $expr = $entry->expression;
+        my $table = $entry->table;
+        my $subquery = $entry->query;
+
+        # Assume operator is "IN" for now.
+        $sql = "($column IN (SELECT $expr FROM $table WHERE "
+            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} keys %$subquery)
+            . '))';
+    }
     elsif (ref($entry) eq 'HASH') {
         # Call myself but join with an OR or AND
         my @chunks = map {$self->_create_sql_recurse($_, $entry->{$_})}
@@ -1007,6 +1020,9 @@ sub _querify {
         my $expr = $value ? '' : 'NOT';
         return "($expr $name)";
     }
+    elsif ($cmp eq 'in') {
+        return "($name IN (" . (join ', ', map {"\"$_\""} @$value) . '))';
+    }
 
     # Lookup table for comparators
     my %cmptable = (
@@ -1271,6 +1287,53 @@ sub true {
         $self->{'true'} = shift;
     }
     return $self->{'true'};
+}
+
+package OMP::Query::In;
+
+sub new {
+    my $class = shift;
+    my %opt = @_;
+
+    return bless {
+        values => $opt{'values'},
+    }, $class;
+}
+
+sub values {
+    my $self = shift;
+    $self->{'values'} = shift if @_;
+    return $self->{'values'};
+}
+
+package OMP::Query::SubQuery;
+
+sub new {
+    my $class = shift;
+    my %opt = @_;
+
+    return bless {
+        expression => $opt{'expression'},
+        query => $opt{'query'},
+    }, $class;
+}
+
+sub expression {
+    my $self = shift;
+    $self->{'expression'} = shift if @_;
+    return $self->{'expression'};
+}
+
+sub table {
+    my $self = shift;
+    $self->{'table'} = shift if @_;
+    return $self->{'table'};
+}
+
+sub query {
+    my $self = shift;
+    $self->{'query'} = shift if @_;
+    return $self->{'query'};
 }
 
 1;

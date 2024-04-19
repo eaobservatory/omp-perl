@@ -31,6 +31,7 @@ use OMP::Project;
 use OMP::Query::Project;
 use OMP::Constants qw/:fb/;
 use OMP::User;
+use OMP::DB::MSB;
 use OMP::DB::User;
 use OMP::NetTools;
 use OMP::General;
@@ -878,7 +879,9 @@ sub _get_projects {
     my $self = shift;
     my $query = shift;
 
-    my $sql = $query->sql($PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE);
+    my $sql = $query->sql(
+        $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE,
+        $OMP::DB::MSB::OBSTABLE);
 
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);

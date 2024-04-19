@@ -7,7 +7,7 @@ OMP::Query::Project - Class representing an XML OMP query of the Project databas
 =head1 SYNOPSIS
 
     $query = OMP::Query::Project->new(XML => $xml);
-    $sql = $query->sql($projtable, $projqueuetable, $projusertable);
+    $sql = $query->sql($projtable, $projqueuetable, $projusertable, $obstable);
 
 =head1 DESCRIPTION
 
@@ -44,7 +44,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-    $sql = $query->sql($projtable, $projqueuetable, $projusertable);
+    $sql = $query->sql($projtable, $projqueuetable, $projusertable, $obstable);
 
 Returns undef if the query could not be formed.
 
@@ -55,9 +55,18 @@ sub sql {
 
     throw OMP::Error::DBMalformedQuery(
         "OMP::Query::Project: sql method invoked with incorrect number of arguments\n")
-        unless scalar(@_) == 3;
+        unless scalar(@_) == 4;
 
-    my ($projtable, $projqueuetable, $projusertable) = @_;
+    my ($projtable, $projqueuetable, $projusertable, $obstable) = @_;
+
+    # If we are doing a query by instrument, fill in the name
+    # of the observation table in the subquery.
+    do {
+        my $qhash = $self->query_hash;
+        if (exists $qhash->{'instrument'} and exists $qhash->{'instrument'}->{'P.projectid'}) {
+            $qhash->{'instrument'}->{'P.projectid'}->table($obstable);
+        }
+    };
 
     # Generate the WHERE clause from the query hash
     # Note that we ignore elevation, airmass and date since
@@ -264,6 +273,16 @@ sub _post_process_hash {
             "$U.omp_access" => OMP::Query::True->new(true => 1)
         };
         $counter ++;
+    }
+
+    if (exists $href->{'instrument'}) {
+        $href->{'instrument'} = {
+            'P.projectid' => OMP::Query::SubQuery->new(
+                expression => 'projectid',
+                query => {
+                    instrument => OMP::Query::In->new(values => $href->{'instrument'}),
+                }),
+        };
     }
 
     # Remove attributes since we dont need them anymore
