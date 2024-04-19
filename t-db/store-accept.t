@@ -17,25 +17,26 @@ use IO::File;
 use Data::Dumper;
 
 use OMP::Config;
+use OMP::DB::Backend;
 use OMP::DB::MSB;
 use OMP::Query::MSB;
 use OMP::SciProg;
 
 my %prog = (
-  'Raster 1' => {remaining => 1, nobs => 1},
-  'Raster 2' => {remaining => 2, nobs => 2},
-  'Raster 3' => {remaining => 3, nobs => 1},
-  'Or Pong 1' => {remaining => 1, 'or' => 1, nobs => 1},
-  'Or Pong 2' => {remaining => 2, 'or' => 1, nobs => 2},
-  'Or Pong 3' => {remaining => 3, 'or' => 1, nobs => 1},
-  'Or Daisy 1' => {remaining => 1, 'or' => 1, nobs => 1},
-  'Or Daisy 2' => {remaining => 2, 'or' => 1, nobs => 2},
-  'Or Daisy 3' => {remaining => 3, 'or' => 1, nobs => 1},
-  );
+    'Raster 1' => {remaining => 1, nobs => 1},
+    'Raster 2' => {remaining => 2, nobs => 2},
+    'Raster 3' => {remaining => 3, nobs => 1},
+    'Or Pong 1' => {remaining => 1, 'or' => 1, nobs => 1},
+    'Or Pong 2' => {remaining => 2, 'or' => 1, nobs => 2},
+    'Or Pong 3' => {remaining => 3, 'or' => 1, nobs => 1},
+    'Or Daisy 1' => {remaining => 1, 'or' => 1, nobs => 1},
+    'Or Daisy 2' => {remaining => 2, 'or' => 1, nobs => 2},
+    'Or Daisy 3' => {remaining => 3, 'or' => 1, nobs => 1},
+);
 
 # Or folder numbers in the above list have the following select numbers:
 my %or_select = (
-  1 => 3,
+    1 => 3,
 );
 
 my $cf = OMP::Config->new();
@@ -50,8 +51,8 @@ delete $cf->{'omp-dev'}->{'sciprog_cachedir'};
 
 my $project = 'UNITTEST01';
 
-die 'Not using test database' unless {$db->loginhash()}->{'database'}
-                                  eq 'devomp';
+die 'Not using test database'
+    unless {$db->loginhash()}->{'database'} eq 'devomp';
 
 my $msbdb = OMP::DB::MSB->new(
     ProjectID => $project,
@@ -59,12 +60,13 @@ my $msbdb = OMP::DB::MSB->new(
 
 ok($msbdb, 'Log in to MSB DB');
 
-my $xml; {
-        local $/ = undef;
-        my $fh = new IO::File('store-accept.xml');
-        $xml = <$fh>;
-        close $fh;
-}
+my $xml;
+do {
+    local $/ = undef;
+    my $fh = IO::File->new('store-accept.xml');
+    $xml = <$fh>;
+    close $fh;
+};
 
 die 'Not using the correct project ID'
   unless $xml =~ /<projectID>$project<\/projectID>/;
@@ -72,23 +74,21 @@ die 'Not using the correct project ID'
 # Delete old program before re-inserting so that we can
 # check that the obsid fields increment correctly.
 eval {
-  $msbdb->removeSciProg();
+    $msbdb->removeSciProg();
 };
 is($@, '', 'Delete old science program');
 
-my $sp = new OMP::SciProg( XML => $xml );
+my $sp = OMP::SciProg->new(XML => $xml);
 die 'Project ID from OMP::SciProg does not match'
     unless $sp->projectID eq $project;
 
-my @warnings = $msbdb->storeSciProg( SciProg => $sp, Force => 1 );
+my @warnings = $msbdb->storeSciProg(SciProg => $sp, Force => 1);
 
-my $query = new OMP::Query::MSB(XML => '<MSBQuery>
-  <projectid full="1">' . $project . '</projectid>
-  <!-- <disableconstraint>remaining</disableconstraint> -->
-  <disableconstraint>allocation</disableconstraint>
-  <disableconstraint>observability</disableconstraint>
-  <disableconstraint>zoa</disableconstraint>
-</MSBQuery>');
+my $query = OMP::Query::MSB->new(HASH => {
+    projectid => $project,
+    disableconstraint => [qw/allocation observability zoa/],
+    _attr => {projectid => {full => 1}},
+});
 my @results = $msbdb->queryMSB($query);
 #print Dumper(\@results); exit(0);
 
@@ -99,35 +99,35 @@ my $obsid = undef;
 #
 # Fetch in the correct sequence so that we can check the obsid fields.
 foreach my $msb (sort {$a->{'msbid'} <=> $b->{'msbid'}} @results) {
-  my $title = $msb->title();
+    my $title = $msb->title();
 
-  next unless exists $prog{$title};
-  pass('Find MSB by title: ' . $title);
+    next unless exists $prog{$title};
+    pass('Find MSB by title: ' . $title);
 
-  $prog{$title}->{'checksum'} = $msb->checksum();
+    $prog{$title}->{'checksum'} = $msb->checksum();
 
-  if (exists $prog{$title}->{'or'}) {
-    like($msb->checksum(), qr/O$/, 'checksum ends with O');
-  }
-  else {
-    unlike($msb->checksum(), qr/O$/, 'checksum does not end with O');
-  }
-
-  foreach my $obs (@{$msb->{'observations'}}) {
-    if (defined $obsid) {
-      is($obs->{'obsid'}, ++ $obsid, 'obsid in correct sequence '
-                                   . $obs->{'obsid'});
+    if (exists $prog{$title}->{'or'}) {
+        like($msb->checksum(), qr/O$/, 'checksum ends with O');
     }
     else {
-      $obsid = $obs->{'obsid'};
-      ok($obsid > 0, 'positive value for first obsid ' . $obsid);
+        unlike($msb->checksum(), qr/O$/, 'checksum does not end with O');
     }
-  }
+
+    foreach my $obs (@{$msb->{'observations'}}) {
+        if (defined $obsid) {
+            is($obs->{'obsid'}, ++ $obsid, 'obsid in correct sequence '
+                    . $obs->{'obsid'});
+        }
+        else {
+            $obsid = $obs->{'obsid'};
+            ok($obsid > 0, 'positive value for first obsid ' . $obsid);
+        }
+    }
 }
 
 foreach my $title (keys %prog) {
-  fail('Find MSB by title: ' . $title)
-    unless exists $prog{$title}->{'checksum'};
+    fail('Find MSB by title: ' . $title)
+        unless exists $prog{$title}->{'checksum'};
 }
 
 # Initial sanity check
@@ -150,64 +150,64 @@ do_msb('Raster 3');  compare_db();
 # avoid potentially copying errors accross.
 # Runs 1 test.
 sub do_msb {
-  my $title = shift;
+    my $title = shift;
 
-  if (exists $prog{$title} and exists $prog{$title}->{'checksum'}) {
-    my $checksum = $prog{$title}->{'checksum'};
+    if (exists $prog{$title} and exists $prog{$title}->{'checksum'}) {
+        my $checksum = $prog{$title}->{'checksum'};
 
-    if (exists $prog{$title}->{'or'}) {
-      my $or = $prog{$title}->{'or'};
-      delete $prog{$title}->{'or'};
-      $prog{$title}->{'checksum'} =~ s/O$//;
+        if (exists $prog{$title}->{'or'}) {
+            my $or = $prog{$title}->{'or'};
+            delete $prog{$title}->{'or'};
+            $prog{$title}->{'checksum'} =~ s/O$//;
 
-      unless (-- $or_select{$or}) {
-        foreach my $msb (keys %prog) {
-          delete $prog{$msb} if exists $prog{$msb}->{'or'}
-                                and $prog{$msb}->{'or'} == $or;
+            unless (-- $or_select{$or}) {
+                foreach my $msb (keys %prog) {
+                    delete $prog{$msb} if exists $prog{$msb}->{'or'}
+                    and $prog{$msb}->{'or'} == $or;
+                }
+            }
         }
-      }
+
+        unless (-- $prog{$title}->{'remaining'}) {
+            delete $prog{$title};
+        }
+
+        eval {
+            $msbdb->doneMSB($checksum, {adjusttime => 0});
+        };
+
+        is($@, '', 'Accept MSB in database');
     }
-
-    unless (-- $prog{$title}->{'remaining'}) {
-              delete $prog{$title};
+    else {
+        fail('Can not find MSB to accept');
     }
-
-    eval {
-      $msbdb->doneMSB($checksum, {adjusttime => 0});
-    };
-
-    is($@, '', 'Accept MSB in database');
-  }
-  else {
-    fail('Can not find MSB to accept');
-  }
 }
 
 # Queries the database and compares the results with our table.
 # If successful, runs 2 tests per MSB remaining.
 sub compare_db {
-  @results = $msbdb->queryMSB($query);
+    @results = $msbdb->queryMSB($query);
 
-  my %titles = map {$_ => 1} keys %prog;
+    my %titles = map {$_ => 1} keys %prog;
 
-  foreach my $msb (@results) {
-    my $title = $msb->title();
+    foreach my $msb (@results) {
+        my $title = $msb->title();
 
-    if (exists $prog{$title}) {
-      is($prog{$title}->{'remaining'}, $msb->remaining(),
-        'compare remaining of '.$title);
-      is($prog{$title}->{'checksum'}, $msb->checksum(),
-        'compare checksum of '.$title);
-      is($prog{$title}->{'nobs'}, scalar @{$msb->{'observations'}},
-        'check numner of observations for ' . $title);
-      delete $titles{$title};
+        if (exists $prog{$title}) {
+            is($prog{$title}->{'remaining'}, $msb->remaining(),
+                    'compare remaining of '.$title);
+            is($prog{$title}->{'checksum'}, $msb->checksum(),
+                    'compare checksum of '.$title);
+            is($prog{$title}->{'nobs'}, scalar @{$msb->{'observations'}},
+                    'check numner of observations for ' . $title);
+            delete $titles{$title};
+        }
+        else {
+            fail('MSB ' . $title . ' should not be in database');
+        }
     }
-    else {
-      fail('MSB ' . $title . ' should not be in database');
-    }
-  }
 
-  foreach my $title (keys %titles) {
-    fail('MSB ' . $title . ' missing from the database');
-  }
+    foreach my $title (keys %titles) {
+        fail('MSB ' . $title . ' missing from the database');
+    }
 }
