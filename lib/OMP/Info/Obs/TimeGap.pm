@@ -34,6 +34,19 @@ use base qw/OMP::Info::Obs/;
 
 our $VERSION = '2.000';
 
+our %status_label = (
+    OMP__TIMEGAP_INSTRUMENT() => 'Instrument',
+    OMP__TIMEGAP_WEATHER() => 'Weather',
+    OMP__TIMEGAP_FAULT() => 'Fault',
+    OMP__TIMEGAP_NEXT_PROJECT() => 'Next project',
+    OMP__TIMEGAP_PREV_PROJECT() => 'Last project',
+    OMP__TIMEGAP_NOT_DRIVER() => 'Observer not a driver',
+    OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime',
+    OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead',
+    OMP__TIMEGAP_LOGISTICS() => 'Logistics',
+    OMP__TIMEGAP_UNKNOWN() => 'Unknown',
+);
+
 =head1 METHODS
 
 =head2 Accessors
@@ -120,35 +133,11 @@ sub nightlog {
 
     $return{'_STRING'} = $return{'_STRING_LONG'} = "Time gap: ";
 
-    if ($self->status == OMP__TIMEGAP_INSTRUMENT) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "INSTRUMENT";
-    }
-    elsif ($self->status == OMP__TIMEGAP_WEATHER) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "WEATHER";
-    }
-    elsif ($self->status == OMP__TIMEGAP_FAULT) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "FAULT";
-    }
-    elsif ($self->status == OMP__TIMEGAP_NEXT_PROJECT) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "NEXT PROJECT";
-    }
-    elsif ($self->status == OMP__TIMEGAP_PREV_PROJECT) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "LAST PROJECT";
-    }
-    elsif ($self->status == OMP__TIMEGAP_NOT_DRIVER) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "OBSERVER NOT A DRIVER";
-    }
-    elsif ($self->status == OMP__TIMEGAP_SCHEDULED) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "SCHEDULED DOWNTIME";
-    }
-    elsif ($self->status == OMP__TIMEGAP_QUEUE_OVERHEAD) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "QUEUE OVERHEAD";
-    }
-    elsif ($self->status == OMP__TIMEGAP_LOGISTICS) {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "LOGISTICS";
+    if (exists $status_label{$self->status}) {
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= uc $status_label{$self->status};
     }
     else {
-        $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
+        $return{'_STRING'} = $return{'_STRING_LONG'} .= 'UNKNOWN';
     }
 
     my $length = $self->endobs - $self->startobs + 1;
@@ -200,23 +189,11 @@ sub summary {
     if (($format eq '72col') or ($format eq 'text')) {
         my $obssum = "Time gap: ";
 
-        if ($self->status == OMP__TIMEGAP_INSTRUMENT) {
-            $obssum .= "INSTRUMENT";
-        }
-        elsif ($self->status == OMP__TIMEGAP_WEATHER) {
-            $obssum .= "WEATHER";
-        }
-        elsif ($self->status == OMP__TIMEGAP_FAULT) {
-            $obssum .= "FAULT";
-        }
-        elsif ($self->status == OMP__TIMEGAP_NEXT_PROJECT) {
-            $obssum .= "NEXT PROJECT";
-        }
-        elsif ($self->status == OMP__TIMEGAP_PREV_PROJECT) {
-            $obssum .= "LAST PROJECT";
+        if (exists $status_label{$self->status}) {
+            $obssum .= uc $status_label{$self->status};
         }
         else {
-            $obssum .= "UNKNOWN";
+            $obssum .= 'UNKNOWN';
         }
 
         my $length = $self->endobs - $self->startobs;
