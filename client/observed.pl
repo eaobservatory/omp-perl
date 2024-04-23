@@ -50,6 +50,10 @@ This manual page.
 Do not send messages to the feedback system. Send all messages
 to standard output.
 
+=item B<-project>
+
+Limit to this project. (Intended for use with --debug.)
+
 =item B<-yesterday>
 
 If no date is supplied, default to the date for yesterday
@@ -90,10 +94,11 @@ use OMP::User;
 use Time::Piece;
 
 # Options
-my ($help, $man, $debug, $yesterday);
+my ($help, $man, $debug, $yesterday, $specifiedprojectid);
 my $optstatus = GetOptions(
     "help" => \$help,
     "man" => \$man,
+    'project=s' => \$specifiedprojectid,
     "debug" => \$debug,
     "yesterday" => \$yesterday,
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
@@ -143,6 +148,9 @@ my %sorted;
 for my $msbid (@$done) {
     # Get the project ID
     my $projectid = $msbid->projectid;
+
+    next if (defined $specifiedprojectid)
+        and ($projectid ne $specifiedprojectid);
 
     # Create a new entry in the hash if this is new ID
     $sorted{$projectid} = [] unless exists $sorted{$projectid};
