@@ -155,8 +155,8 @@ for my $msbid (@$done) {
 my %shiftlog;
 
 # Now create the comment and send it to feedback system
-my $fmt = "%-14s %03d %-20s %-20s %-10s";
-my $hfmt = "%-14s Rpt %-20s %-20s %-10s";
+my $fmt = "%-10s %03d %-34s %-10s %-10s";
+my $hfmt = "%-10s Rpt %-34s %-10s %-10s";
 for my $proj (keys %sorted) {
     # Each project info is sent independently to the
     # feedback system so we need to construct a message string
@@ -182,7 +182,7 @@ for my $proj (keys %sorted) {
         . "\n\n";
 
     # MSB Summary
-    $msg .= "Observed MSBs\n-----------\n\n";
+    $msg .= "Observed MSBs\n-------------\n\n";
     $msg .= sprintf "$hfmt\n", "Project", "Name", "Instrument", "Waveband";
 
     # UKIRT KLUGE: Find out if project is a UKIRT project
@@ -194,8 +194,8 @@ for my $proj (keys %sorted) {
         # This will be problematic if the format is modified
         $msg .= sprintf "$fmt\n",
             $proj, $msbid->nrepeats,
-            substr($msbid->title, 0, 20),
-            substr($msbid->instrument, 0, 20),
+            substr($msbid->title, 0, 34),
+            substr($msbid->instrument, 0, 10),
             substr($msbid->waveband, 0, 10);
     }
 
