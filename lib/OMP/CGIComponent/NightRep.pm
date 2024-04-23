@@ -244,6 +244,10 @@ Name of shift.
 
 List of time accounting entries.
 
+=item observations
+
+Observations which contributed to the time account (if available).
+
 =back
 
 =cut
@@ -262,8 +266,19 @@ sub time_accounting_shift {
 
     # If this shift exists in the times:
     my %rem;
+    my @observations;
     if (defined $times) {
         for my $proj (sort keys %$times) {
+            if (exists $times->{$proj}->{'DATA'}) {
+                my $projobs = $times->{$proj}->{'DATA'}->observations;
+                push @observations, {
+                    projectid => $proj,
+                    observations => [sort {
+                        $a->{'obs'}->startobs <=> $b->{'obs'}->startobs
+                    } @$projobs],
+                } if defined $projobs;
+            }
+
             if ($proj =~ /^$tel/) {
                 $rem{$proj} ++;
             }
@@ -323,6 +338,7 @@ sub time_accounting_shift {
     return {
         shift => $shift,
         entries => \@entries,
+        observations => \@observations,
     };
 }
 

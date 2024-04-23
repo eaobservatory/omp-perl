@@ -692,7 +692,7 @@ sub commentScan {
 Return an array of C<Project::TimeAcct> objects for the given
 C<ObsGroup> object and associated warnings.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStats;
+    my ($warnings, @timeacct) = $obsgroup->projectStats(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
@@ -727,15 +727,14 @@ If a small gap is between calibration observations it is charged
 to $telCAL project [they should probably be charged to the project
 in proportion to instrument usage but that requires more work].
 
-A special C<$format> paramter can be given to it; if this is 'BYSHIFT'
-then if using the SIMPLE mode for stats they will be returned by
-shifttype.
+Options are passed on to the C<projectStatsShared> or C<projectStatsSimple>
+method.
 
 =cut
 
 sub projectStats {
     my $self = shift;
-    my $format = uc(shift);
+    my %opt = @_;
 
     # Need to determine the telescope to decide which charging
     # scheme is to be used. We assume that the telescope associated
@@ -751,11 +750,11 @@ sub projectStats {
 
     if ($charge_scheme =~ /shared/i) {
         print "USING SHARED\n" if $DEBUG;
-        return $self->projectStatsShared;
+        return $self->projectStatsShared(%opt);
     }
     else {
         print "USING SIMPLE\n" if $DEBUG;
-        return $self->projectStatsSimple($format);
+        return $self->projectStatsSimple(%opt);
     }
 }
 
@@ -768,16 +767,27 @@ into a calibration project. A science project will only be charged
 for its science time. Optionally will divide time accounting by shifttype
 or not.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStatsSimple($format);
+    my ($warnings, @timeacct) = $obsgroup->projectStatsSimple(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
 to populate the C<Project::TimeAcct> objects.
 
-If the optional parameter C<$format> is given, if it is 'BYSHIFT' then
-the stats will be produced for each separate shifttype. Else, the key
+Options:
+
+=over 4
+
+=item I<by_shift>
+
+If true, the stats will be produced for each separate shifttype. Else, the key
 'ANYSHIFT' will be used in returned the C<Project::TimeAcct> objects, and
-only one per night will be produced for each project
+only one per night will be produced for each project.
+
+=item I<trace_observations>
+
+Add observation details to the generated time accounting objects.
+
+=back
 
 The first argument returned is an array of warning messages generated
 by the time accounting tool. Usually these will indicate calibrations
@@ -806,10 +816,11 @@ in proportion to instrument usage but that requires more work].
 
 sub projectStatsSimple {
     my $self = shift;
+    my %opt = @_;
 
-    # if format is 'BYSHIFT' then we will produce stats with shifttype
-    # as a key in the hash. Otherwise we will use the string 'NOSHIFT' as the key.
-    my $format = uc(shift);
+    my $by_shift = $opt{'by_shift'} // 0;
+    my $trace_observations = $opt{'trace_observations'} // 0;
+
     my @obs = $self->obs;
     my $numobs = $self->numobs;
     # If we do not have any observations we return empty
@@ -850,6 +861,9 @@ sub projectStatsSimple {
     my %proj_totals;
     my %night_totals;
 
+    # Observation details, if requested via the trace_observations options.
+    my %proj_observations;
+
     # In some cases we need to know the most recent observation
     my $prevobs;
 
@@ -860,7 +874,7 @@ sub projectStatsSimple {
         my $tel = uc($obs->telescope);
 
         my $shifttype;
-        if ($format eq 'BYSHIFT') {
+        if ($by_shift) {
             $shifttype = uc($obs->shifttype);
         }
         else {
@@ -1037,7 +1051,7 @@ sub projectStatsSimple {
                 # Use a hash ref just to make it easy to spot rather than matching
                 # to a digit
                 push @{$gapproj{$ymd}->{$tel}->{$shifttype}},
-                    {OTHER => $timespent->seconds};
+                    {OTHER => $timespent->seconds, OBS => $obs};
             }
             elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
                 # Always charge PROJECT gaps to the following project (this
@@ -1050,7 +1064,7 @@ sub projectStatsSimple {
                     if $DEBUG;
 
                 push @{$gapproj{$ymd}->{$tel}->{$shifttype}},
-                    {OTHER => $timespent->seconds};
+                    {OTHER => $timespent->seconds, OBS => $obs};
             }
             elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
                 # Must charge the previous project
@@ -1064,7 +1078,7 @@ sub projectStatsSimple {
                     my $prevtel = uc($prevobs->telescope);
                     my $prevshifttype;
 
-                    if ($format eq 'BYSHIFT') {
+                    if ($by_shift) {
                         $prevshifttype = uc($prevobs->shifttype);
                     }
                     else {
@@ -1076,10 +1090,20 @@ sub projectStatsSimple {
                         # Charge to the project
                         $proj_totals{$prevymd}{$prevshifttype}{$prevprojectid}
                             += $timespent->seconds;
+                        push @{$proj_observations{$prevymd}{$prevshifttype}{$prevprojectid}}, {
+                            obs => $obs,
+                            timespent => $timespent->seconds,
+                            comment => 'Gap assigned to previous project',
+                        } if $trace_observations;
                     }
                     else {
                         $proj_totals{$prevymd}{$prevshifttype}{$calproj}
                             += $timespent->seconds;
+                        push @{$proj_observations{$prevymd}{$prevshifttype}{$calproj}}, {
+                            obs => $obs,
+                            timespent => $timespent->seconds,
+                            comment => 'Gap assigned to calibration (previous project not science)',
+                        } if $trace_observations;
                     }
                 }
             }
@@ -1089,7 +1113,11 @@ sub projectStatsSimple {
                     if $DEBUG;
 
                 $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
-
+                push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                    obs => $obs,
+                    timespent => $timespent->seconds,
+                    comment => 'Gap assigned to calibration (instrument)',
+                } if $trace_observations;
             }
             elsif ($timespent->seconds > 0) {
                 # Just charge to OTHER [unless we have negative time gap]
@@ -1101,10 +1129,19 @@ sub projectStatsSimple {
         }
         elsif ($obs->isScience) {
             $proj_totals{$ymd}{$shifttype}{$projectid} += $timespent->seconds;
-
+            push @{$proj_observations{$ymd}{$shifttype}{$projectid}}, {
+                obs => $obs,
+                timespent => $timespent->seconds,
+                comment => 'Observation assigned to project',
+            } if $trace_observations;
         }
         else {
             $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
+            push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                obs => $obs,
+                timespent => $timespent->seconds,
+                comment => 'Observation assigned to calibration (not science)',
+            } if $trace_observations;
         }
 
         # Log the most recent information
@@ -1145,6 +1182,7 @@ sub projectStatsSimple {
                             # We have a gap. This should be charged to the following
                             # project
                             my $gap = $projects[$i]->{OTHER};
+                            my $obs = $projects[$i]->{'OBS'};
 
                             # but make sure we do not extend the array indefinitely
                             # This code is more complicated in case we want to apportion
@@ -1167,6 +1205,11 @@ sub projectStatsSimple {
                                     if (exists $proj_totals{$ymd}{$shifttype}{$proj}
                                             && $proj !~ /$CAL_NAME$/) {
                                         $proj_totals{$ymd}{$shifttype}{$proj} += $gap;
+                                        push @{$proj_observations{$ymd}{$shifttype}{$proj}}, {
+                                            obs => $obs,
+                                            timespent => $gap,
+                                            comment => 'Gap assigned to project',
+                                        } if $trace_observations;
 
                                         print "Adding $gap to $proj\n"
                                             if $DEBUG;
@@ -1174,6 +1217,11 @@ sub projectStatsSimple {
                                     else {
                                         # Charge to calibration regardless
                                         $proj_totals{$ymd}{$shifttype}{$calproj} += $gap;
+                                        push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                                            obs => $obs,
+                                            timespent => $gap,
+                                            comment => 'Gap assigned to calibration',
+                                        } if $trace_observations;
 
                                         print "Adding $gap to CALibration\n"
                                             if $DEBUG;
@@ -1280,14 +1328,18 @@ sub projectStatsSimple {
                 printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$shifttype}{$proj} / 3600
                     if $DEBUG;
 
-                my $timespent = Time::Seconds->new($proj_totals{$ymd}{$shifttype}{$proj});
-
-                push @timeacct, OMP::Project::TimeAcct->new(
+                my $projacct = OMP::Project::TimeAcct->new(
                     projectid => $proj,
                     date => $date,
-                    timespent => $timespent,
+                    timespent => Time::Seconds->new($proj_totals{$ymd}{$shifttype}{$proj}),
                     shifttype => $shifttype,
                 );
+
+                $projacct->observations($proj_observations{$ymd}{$shifttype}{$proj})
+                    if $trace_observations
+                    and exists $proj_observations{$ymd}{$shifttype}{$proj};
+
+                push @timeacct, $projacct;
             }
         }
     }
@@ -1301,7 +1353,7 @@ Return an array of C<Project::TimeAcct> objects for the given
 C<ObsGroup> object and associated warnings. This implementation
 shares calibrations amongst projects.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStatsShared;
+    my ($warnings, @timeacct) = $obsgroup->projectStatsShared(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
@@ -1348,6 +1400,8 @@ in proportion to instrument usage but that requires more work].
 
 sub projectStatsShared {
     my $self = shift;
+    my %opt = @_;
+
     my @obs = $self->obs;
 
     # If we do not have any observations we return empty

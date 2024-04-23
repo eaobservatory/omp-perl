@@ -93,6 +93,7 @@ sub new {
         ShiftType => undef,
         Remote => undef,
         Comment => undef,
+        Observations => undef,
     }, $class;
 
     # Deal with arguments
@@ -268,6 +269,26 @@ sub remote {
         $self->{Remote} = shift;
     }
     return $self->{Remote};
+}
+
+=item B<observations>
+
+Optional list of observations which contributed to the calculation of
+this time spent.
+
+This method does not (yet) check the type of the given value.  However
+if C<trace_observations> is specified, C<OMP::Info::ObsGroup> currently stores
+a list of hashes containing C<obs> (C<OMP::Info::Obs> object),
+C<timespent> (seconds) and C<comment> (text explanation of time charged).
+
+=cut
+
+sub observations {
+    my $self = shift;
+    if (@_) {
+        $self->{'Observations'} = shift;
+    }
+    return $self->{'Observations'};
 }
 
 =back

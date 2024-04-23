@@ -38,6 +38,7 @@ use OMP::DB::MSB;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::NightRep;
@@ -559,7 +560,7 @@ sub time_accounting {
         DB => $self->database, ADB => $arcdb,
         date => $utdate, telescope => $tel);
 
-    my %times = $nr->accounting;
+    my %times = $nr->accounting(trace_observations => 1);
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
 
     my %timelostbyshift = $nr->timelostbyshift;
@@ -619,6 +620,10 @@ sub time_accounting {
         shifts => \@result,
         shifts_extra => [keys %shift_added],
         shifts_other => [grep {my $x = $_; not grep {$_ eq $x} @shifts} @all_shifts],
+        status_label => {
+            %OMP::Info::Obs::status_label,
+            %OMP::Info::Obs::TimeGap::status_label,
+        },
     };
 }
 

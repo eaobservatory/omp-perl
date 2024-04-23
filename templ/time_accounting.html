@@ -121,4 +121,59 @@
         [% END %]
     </p>
 </form>
+
+<hr />
+
+<section>
+    <h2>Details of calculations from data headers</h2>
+
+    <p>
+        This section lists the individual observations (and time gaps)
+        which contributed to the &ldquo;Time from data headers&rdquo;
+        columns in the tables above.
+    </p>
+
+    [% FOREACH shift IN shifts %]
+        [% SET shift_name = shift.shift %]
+        <h3>Shift: [% shift_name | html %]</h3>
+
+        [% FOR proj_info IN shift.observations %]
+            <h4>[% proj_info.projectid | html %]</h4>
+
+            <table class="bordered">
+                <tr>
+                    <th>Instrument</th>
+                    <th>Run</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Allocation</th>
+                    <th>Explanation</th>
+                </tr>
+                [% FOR observation IN proj_info.observations %]
+                    <tr>
+                        <td>
+                            [% observation.obs.instrument | html %]
+                        </td>
+                        <td>
+                            [% IF observation.obs.projectid == 'TIMEGAP' %]
+                                Gap
+                            [% ELSE %]
+                                [% observation.obs.runnr | html %]
+                            [% END %]
+                        </td>
+                        <td>
+                            [% observation.obs.startobs.strftime("%H:%M:%S") %]
+                        </td>
+                        <td>
+                            [% SET status = observation.obs.status %]
+                            [% status_label.$status %]
+                        </td>
+                        <td>[% (observation.timespent / 3600.0) | format('%.3f') %]</td>
+                        <td>[% observation.comment | html %]</td>
+                    </tr>
+                [% END %]
+            </table>
+        [% END %]
+    [% END %]
+</section>
 [% END %]
