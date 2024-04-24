@@ -261,7 +261,7 @@ sub get_coords {
                 my $db = OMP::DB::MSB->new(
                     DB => OMP::DB::Backend->new(),
                     ProjectID => $projid);
-                my $sp = $db->fetchSciProg(1);
+                my $sp = $db->getSciProgInfo(with_observations => 1);
                 push @sciprogs, $sp;
             }
             catch OMP::Error with {
@@ -395,11 +395,11 @@ sub get_omp_coords {
 
     printf "nr of science program to plot: %d\n", $#sciprogs + 1 if $debug;
     foreach my $sp (@sciprogs) {
-        printf "Extract MSBs for %s\n", $sp->projectID if $debug;
+        printf "Extract MSBs for %s\n", $sp->projectid if $debug;
         my @msbs = $sp->msb;
         printf "%d MSBs returned\n", $#msbs + 1 if $debug;
 
-        my $prjstr = $sp->projectID . '@';
+        my $prjstr = $sp->projectid . '@';
         $prjstr =~ s/^m\d{2}[a,b]//aai;
         print "Project string: $prjstr\n" if $debug;
 
@@ -419,7 +419,7 @@ sub get_omp_coords {
             }
 
             # Get the observations
-            my @obss = $msb->obssum;
+            my @obss = $msb->observations;
 
             printf "Extract each of the %d observations\n", $#obss + 1
                 if $debug;
