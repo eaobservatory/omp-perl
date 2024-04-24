@@ -90,11 +90,10 @@ use OMP::Error qw/:try/;
 use OMP::DB::Backend;
 use OMP::DateTools;
 use OMP::Util::Client;
-use OMP::Password;
 use OMP::SciProgStats;
+use OMP::DB::MSB;
 use OMP::DB::Project;
 use OMP::Query::Project;
-use OMP::SpServer;
 
 our $DEBUG = 0;
 our $VERSION = '2.000';
@@ -122,8 +121,6 @@ if ($version) {
 }
 
 my $db = OMP::DB::Backend->new();
-
-my ($provider, $username, $password) = OMP::Password->get_userpass();
 
 # Form instrument string
 $instrument = uc($instrument) if defined $instrument;
@@ -210,16 +207,17 @@ for my $proj (@projects) {
 
     my $sp;
     try {
-        ($sp) = OMP::SpServer->fetchProgram(
-            $proj->projectid, $provider, $username, $password, 'OBJECT');
+        $sp = OMP::DB::MSB->new(
+            DB => $db, ProjectID => $proj->projectid,
+        )->getSciProgInfo(with_observations => 1);
     }
     catch OMP::Error::UnknownProject with {
-        print "Unable to retrieve science programme. Skipping\n";
+        print "Unable to retrieve science program info. Skipping\n";
     };
     next unless defined $sp;
 
     # Get the histogram for this program
-    my @local = $sp->ra_coverage(instrument => $instrument);
+    my @local = OMP::SciProgStats->ra_coverage($sp, instrument => $instrument);
 
     # And increment the global sum
     @rahist = map {$rahist[$_] + $local[$_]} (0 .. $#rahist);
