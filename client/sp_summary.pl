@@ -30,15 +30,17 @@ BEGIN {
 use lib OMPLIB;
 
 use OMP::Config;
+use OMP::DB::Backend;
+use OMP::DB::MSB;
 use OMP::SciProg;
-use OMP::SpServer;
-use OMP::Password;
 
 my ($verbose);
 
 GetOptions(
     'verbose' => \$verbose,
 ) or pod2usage(1);
+
+my $db = OMP::DB::Backend->new;
 
 foreach my $project (@ARGV) {
     my $sp;
@@ -47,8 +49,7 @@ foreach my $project (@ARGV) {
         my $project = uc($1);
 
         print STDERR 'Fetching project ', $project, "\n" if $verbose;
-        ($sp) = OMP::SpServer->fetchProgram(
-            $project, OMP::Password->get_userpass(), OMP::SpServer::OMP__SCIPROG_OBJ);
+        $sp = OMP::DB::MSB->new(DB => $db, ProjectID => $project)->fetchSciProg(1);
     }
     elsif (-e $project) {
         print STDERR 'Reading file ', $project, "\n" if $verbose;
