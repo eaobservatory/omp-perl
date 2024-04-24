@@ -54,6 +54,7 @@ use OMP::Info::SciProg;
 use OMP::Project::TimeAcct;
 use OMP::DB::TimeAcct;
 use OMP::DB::MSBDone;
+use OMP::DB::User;
 use OMP::Query::MSB;
 use OMP::DB::TLE;
 use OMP::User;
@@ -1158,6 +1159,147 @@ sub suspendMSB {
     # Disconnect
     $self->_dbunlock;
     $self->_db_commit_trans;
+}
+
+=item B<suspendMSB_comment>
+
+Convenience method to automatically construct a comment and
+then call C<suspendMSB>.  (This provides the interface previously
+provided by the C<OMP::MSBServer> module.)
+
+    $db->suspendMSB_comment($checksum, $label);
+
+Optionally, a user ID and reason for the suspension can be supplied.
+
+    $db->suspendMSB_comment($checksum, $label, $userid, $reason, $msbtid);
+
+Reason is optional. User id is mandatory if a reason is supplied.
+MSB transaction ID requires that reason and userid are specified (or are
+at least set explicitly to undef).
+
+B<Note>: this is the interface used by the Queue.  (Or it would be
+if suspend was implemented.)
+
+=cut
+
+sub suspendMSB_comment {
+    my $self = shift;
+    my $checksum = shift;
+    my $label = shift;
+    my $userid = shift;
+    my $reason = shift;
+    my $msbtid = shift;
+
+    my $reastr = (defined $reason ? $reason : '<None supplied>');
+    my $ustr = (defined $userid ? $userid : "<No User>");
+    my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
+
+    my $project = $self->projectid;
+
+    OMP::General->log_message(
+        "suspendMSB: $project $checksum $label\n"
+        . "User: $ustr Reason: $reastr\nTransaction ID: $msbtid\n");
+
+    # Create a comment object for suspendMSB
+    # We are allowed to specify a user regardless of whether there
+    # is a reason
+    my $user;
+    if ($userid) {
+        $user = OMP::User->new(userid => $userid);
+        my $userdb = OMP::DB::User->new(DB => $self->db);
+        unless ($userdb->verifyUser($user->userid)) {
+            throw OMP::Error::InvalidUser(
+                "The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+        }
+    }
+
+    # We must have a valid user if there is an explicit reason
+    if ($reason && ! defined $user) {
+        throw OMP::Error::BadArgs(
+            "A user ID must be supplied if a reason for the rejection is given");
+    }
+
+    # Form the comment object
+    my $comment = OMP::Info::Comment->new(
+        status => OMP__DONE_SUSPENDED,
+        text => $reason,
+        author => $user,
+        tid => $msbtid,
+    );
+
+    $self->suspendMSB($checksum, $label, $comment);
+}
+
+=item B<rejectMSB_comment>
+
+Convenience method to add a comment
+indicating that the MSB has been partially observed but has been
+rejected by the observer rather than being marked as complete.
+
+    $db->rejectMSB_comment($checksum, $userid, $reason, $msbtid);
+
+This method simply places an entry in the MSB history - it is a
+wrapper around addMSBComment method. The optional reason string can be
+used to specify a particular reason for the rejection. The userid
+is optional unless a reason is supplied (in which case it must be defined
+and must match a valid user ID). The MSB transaction ID can be specified.
+
+B<Note>: this is the interface used by the Queue.
+
+=cut
+
+sub rejectMSB_comment {
+    my $self = shift;
+    my $checksum = shift;
+    my $userid = shift;
+    my $reason = shift;
+    my $msbtid = shift;
+
+    my $reastr = (defined $reason ? $reason : "<None supplied>");
+    my $ustr = (defined $userid ? $userid : "<No User>");
+    my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
+
+    my $project = $self->projectid;
+
+    OMP::General->log_message(
+        "rejectMSB: $project $checksum User: $ustr Reason: $reastr MSBtid=$msbtid");
+
+    # We are allowed to specify a user regardless of whether there
+    # is a reason
+    my $user;
+    if ($userid) {
+        $user = OMP::User->new(userid => $userid);
+        my $userdb = OMP::DB::User->new(DB => $self->db);
+        unless ($userdb->verifyUser($user->userid)) {
+            throw OMP::Error::InvalidUser(
+                "The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+        }
+    }
+
+    # We must have a valid user if there is an explicit reason
+    if ($reason && ! defined $user) {
+        throw OMP::Error::BadArgs(
+            "A user ID must be supplied if a reason for the rejection is given");
+    }
+
+    # Default comment
+    $reason = "This MSB was observed but was not accepted by the observer/TSS. No reason was given."
+        unless defined $reason;
+
+    # Add prefix
+    $reason = "MSB rejected: $reason";
+
+    # Form the comment object
+    my $comment = OMP::Info::Comment->new(
+        status => OMP__DONE_REJECTED,
+        text => $reason,
+        author => $user,
+        tid => $msbtid,
+    );
+
+    # Add the comment
+    my $db = OMP::DB::MSBDone->new(DB => $self->db, ProjectID => $project);
+    $db->addMSBcomment($checksum, $comment);
 }
 
 =item B<getMSBCount>
