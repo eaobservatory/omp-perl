@@ -33,7 +33,6 @@ use OMP::DB::MSB;
 use OMP::DB::MSBDone;
 use OMP::MSBServer;
 use OMP::DB::Project;
-use OMP::SpServer;
 
 use base qw/OMP::CGIComponent/;
 
