@@ -52,7 +52,11 @@ Allowed keys are:
 
 =item instrument
 
-Specify an instrument for which the coverage is calculated
+Specify an instrument for which the coverage is calculated.
+
+=item tau
+
+Specify an opacity to which to restrict MSBs.
 
 =back
 
@@ -69,6 +73,12 @@ sub ra_coverage {
     # Now loop over each MSB
     for my $msb ($sp->msb) {
         my $remaining = $msb->remaining;
+
+        if (defined $args{'tau'}) {
+            unless ($msb->tau->contains($args{'tau'})) {
+                next;
+            }
+        }
 
         # Filter out complete MSBs or removed MSBs.
         next unless $remaining > 0;

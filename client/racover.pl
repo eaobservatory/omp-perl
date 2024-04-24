@@ -50,6 +50,10 @@ Country to query. Defaults to all countries.
 
 Restrict the query to a specific instrumnet. Default to all.
 
+=item B<-tau>
+
+Restrict query to MSBs suitable for the given opacity.
+
 =item B<-version>
 
 Report the version number.
@@ -99,7 +103,7 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects);
+my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects, $tau);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
@@ -109,6 +113,7 @@ my $status = GetOptions(
     "country=s" => \$country,
     "project=s" => \@projects,
     "tel=s" => \$tel,
+    'tau=s' => \$tau,
 );
 
 pod2usage(1) if $help;
@@ -205,6 +210,13 @@ for my $proj (@projects) {
         next;
     }
 
+    if (defined $tau) {
+        unless ($proj->taurange->contains($tau)) {
+            print "Project not allocated time for given opacity. Skipping\n";
+            next;
+        }
+    }
+
     my $sp;
     try {
         $sp = OMP::DB::MSB->new(
@@ -217,7 +229,10 @@ for my $proj (@projects) {
     next unless defined $sp;
 
     # Get the histogram for this program
-    my @local = OMP::SciProgStats->ra_coverage($sp, instrument => $instrument);
+    my @local = OMP::SciProgStats->ra_coverage(
+        $sp,
+        instrument => $instrument,
+        tau => $tau);
 
     # And increment the global sum
     @rahist = map {$rahist[$_] + $local[$_]} (0 .. $#rahist);
