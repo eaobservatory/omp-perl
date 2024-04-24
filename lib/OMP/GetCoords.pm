@@ -27,10 +27,6 @@ use Astro::Coords;
 use Astro::Telescope;
 use Time::Piece qw/:override/;
 
-use OMP::Config;
-use OMP::DB::Backend;
-use OMP::SciProg;
-use OMP::MSB;
 use OMP::DB::MSB;
 use OMP::Error qw/:try/;
 
@@ -150,6 +146,10 @@ Turn on debug output, including in called routines.
 
 =back
 
+=item db =E<gt> OMP::DB::Backend object
+
+Must be provided in "omp" mode.
+
 =back
 
 =back
@@ -259,7 +259,7 @@ sub get_coords {
             my $E;
             try {
                 my $db = OMP::DB::MSB->new(
-                    DB => OMP::DB::Backend->new(),
+                    DB => $args{'db'},
                     ProjectID => $projid);
                 my $sp = $db->getSciProgInfo(with_observations => 1);
                 push @sciprogs, $sp;
