@@ -948,7 +948,7 @@ sub _get_non_special_accts {
 
     # Create regexp to filter out special projects
     my $telpart = join('|', OMP::Config->getData('defaulttel'));
-    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER/);
+    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/);
     my $regexp = qr/^(${telpart})(${specpart})$/;
 
     # Filter out "__FAULT__" accounts and accounts that are named
@@ -968,7 +968,7 @@ sub _get_non_special_accts {
 
 Return either science accounts (accounts that are not associated with
 projects in the E&C queue) or E&C.  Special
-accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, __FAULT__).
+accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, _SHUTDOWN, __FAULT__).
 
     @accts = $self->_get_accts('sci'|'eng');
 
