@@ -30,7 +30,6 @@ use OMP::DB::MSB;
 use OMP::DB::MSBDone;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
-use OMP::MSBServer;
 use OMP::DB::Project;
 
 use base qw/OMP::CGIPage/;
@@ -154,11 +153,10 @@ sub msb_hist {
         my $commentref;
         if ($show =~ /observed/) {
             # show observed
-            $commentref = OMP::MSBServer->observedMSBs({
+            $commentref = $donedb->observedMSBs(
                 projectid => $projectid,
-                returnall => 1,
-                format => 'data',
-            });
+                comments => 1,
+            );
         }
         else {
             # show current
@@ -222,11 +220,10 @@ sub observed {
         };
     }
     elsif (defined $utdate and defined $telescope) {
-        my $commentref = OMP::MSBServer->observedMSBs({
+        my $commentref = OMP::DB::MSBDone->new(DB => $self->database)->observedMSBs(
             date => $utdate,
-            returnall => 1,
-            format => 'data',
-        });
+            comments => 1,
+        );
 
         # Now keep only the comments that are for the telescope we want
         # to see observed msbs for

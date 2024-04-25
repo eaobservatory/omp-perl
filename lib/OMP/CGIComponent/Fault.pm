@@ -25,6 +25,7 @@ use Carp;
 
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
+use OMP::DB::MSBDone;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::General;
@@ -32,7 +33,6 @@ use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultGroup;
 use OMP::FaultUtil;
-use OMP::MSBServer;
 
 use base qw/OMP::CGIComponent/;
 
@@ -262,11 +262,10 @@ sub file_fault_form {
         # We don't want this checkbox group if this form is being used for editing a fault.
         if (OMP::Fault->faultCanAssocProjects($category)) {
             # Values for checkbox group will be tonights projects
-            my $aref = OMP::MSBServer->observedMSBs({
+            my $aref = OMP::DB::MSBDone->new(DB => $self->database)->observedMSBs(
                 usenow => 1,
-                format => 'data',
-                returnall => 0,
-            });
+                comments => 0,
+            );
 
             if (@$aref[0]) {
                 my %projects;

@@ -85,7 +85,7 @@ use OMP::Mail;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
+use OMP::DB::MSBDone;
 use OMP::DB::Project;
 use OMP::DB::Shift;
 use OMP::Query::Shift;
@@ -135,11 +135,10 @@ my $arcdb = OMP::DB::Archive->new(
 
 _log_message("Getting MSBs for $utdate");
 
-my $done = OMP::MSBServer->observedMSBs({
+my $done = OMP::DB::MSBDone->new(DB => $db)->observedMSBs(
     date => $utdate,
-    returnall => 0,
-    format => 'data'
-});
+    comments => 0,
+);
 
 _log_err($!);
 

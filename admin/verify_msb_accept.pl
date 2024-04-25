@@ -91,7 +91,7 @@ use OMP::DB::MSBDone;
 use OMP::Util::Client;
 use OMP::Util::File;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
+use OMP::DB::MSBDone;
 use OMP::DB::User;
 use OMP::DB::Project;
 use OMP::Constants qw/:done/;
@@ -148,11 +148,10 @@ my $dbb = OMP::DB::Backend->new;
 
 # What does the done table say?
 OMP::General->log_message("Verifying MSB acceptance for date $ut on telescope $telescope");
-my $output = OMP::MSBServer->observedMSBs({
+my $output = OMP::DB::MSBDone->new(DB => $dbb)->observedMSBs(
     date => $ut,
-    returnall => 0,
-    format => 'object',
-});
+    comments => 0,
+);
 
 # Need to convert the OMP::Info::MSB with comments to a time
 # series. [yes this was how they were stored originally]

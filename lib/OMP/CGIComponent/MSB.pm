@@ -91,11 +91,12 @@ sub fb_msb_observed {
     my $projectid = shift;
 
     # Get observed MSBs
-    my $observed = OMP::MSBServer->observedMSBs({
-            projectid => $projectid,
-            format => 'data',
-            include_undo => 1
-    });
+    my $observed = OMP::DB::MSBDone->new(
+        DB => $self->database,
+        ProjectID => $projectid,
+    )->observedMSBs(
+        include_undo => 1,
+    );
 
     return undef unless scalar @$observed;
     return $self->msb_table(msbs => $observed);

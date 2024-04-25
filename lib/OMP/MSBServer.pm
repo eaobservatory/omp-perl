@@ -30,7 +30,6 @@ use Encode qw/encode/;
 use OMP::User;
 use OMP::DB::User;
 use OMP::DB::MSB;
-use OMP::DB::MSBDone;
 use OMP::Query::MSB;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
@@ -647,125 +646,6 @@ sub alldoneMSB {
     # This has to be outside the catch block else we get
     # a problem where we cant use die (it becomes throw)
     $class->throwException($E) if defined $E;
-}
-
-=item B<observedMSBs>
-
-Return all the MSBs observed (ie "marked as done" or MSBs started) on
-the specified date and/or for the specified project.
-
-    $output = OMP::MSBServer->observedMSBs({
-        date => $date,
-        comments => 1,
-        transactions => 1,
-        format => 'xml',
-        projectid => $proj,
-    });
-
-I<returnall> parameter has been I<deprecated> in favor of I<comments>.
-
-The C<comments> parameter governs whether all the comments
-associated with the observed MSBs are returned (regardless of when
-they were added) or only those added for the specified night. If the
-value is false only the comments for the night are returned.
-
-The output format matches that returned by C<historyMSB>.
-
-Similarly for C<transactions>, all the comments related to a
-transaction id will be returned if true.
-
-If the current date is required use the "usenow" flag:
-
-    $output = OMP::MSBServer->observedMSBs({
-        usenow => 1,
-        comments => 1,
-        format => 'xml',
-    });
-
-At least one of "usenow", "projectid" or "date" must be defined
-else the query is too open-ended (and would result in every MSB
-ever observed).
-
-Note that the argument is a reference to a hash.
-
-=cut
-
-sub observedMSBs {
-    my $class = shift;
-    my $args = shift;
-
-    # Support old key until its usage is brought upto date.
-    for ('returnall') {
-        $args->{'comments'} = delete $args->{$_}
-            if exists $args->{$_};
-    }
-
-    my $type = lc($args->{format});
-    $type ||= 'xml';
-    delete $args->{format};
-
-    # Check basic consistency of arguments
-    if (! exists $args->{usenow}
-            && ! exists $args->{date}
-            && ! exists $args->{projectid}) {
-        throw OMP::Error::BadArgs(
-            "observedMSBs: Please supply one of usenow, date or projectid");
-    }
-
-    # Log message
-    my $string;
-    my $dstr = (exists $args->{date} ? $args->{date} : "<undef>");
-    my $pstr = (exists $args->{projectid} ? $args->{projectid} : "<undef>");
-    my $ustr = (exists $args->{usenow} ? $args->{usenow} : "<undef>");
-
-    my $t0 = [gettimeofday];
-    OMP::General->log_message(
-        "observedMSBs: Begin.\nDate=$dstr\nProject=$pstr\nUseNow=$ustr\n");
-
-    my $E;
-    my $result;
-    try {
-        # Create a new object but we dont know any setup values
-        my $db = OMP::DB::MSBDone->new(DB => $class->dbConnection);
-
-        # Do we have a project?
-        $db->projectid($args->{projectid})
-            if exists $args->{projectid} && defined $args->{projectid};
-
-        delete $args->{projectid};
-
-        $result = $db->observedMSBs(%$args);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    my @msbs;
-    if ($type eq 'xml') {
-        # Generate the XML
-        my $xml = "<SpMSBSummaries>\n";
-        @msbs = (ref($result) eq 'ARRAY' ? @$result : $result);
-        for my $msb (@msbs) {
-            $xml .= $msb->summary('xml') . "\n";
-        }
-        $xml .= "</SpMSBSummaries>\n";
-        $result = $xml;
-    }
-
-    OMP::General->log_message(
-        "observedMSBs: Complete. Retrieved " . @msbs
-        . " MSBS in " . tv_interval($t0) . " seconds\n");
-
-    return $result;
 }
 
 =item B<getResultColumns>

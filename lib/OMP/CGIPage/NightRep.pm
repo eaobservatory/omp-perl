@@ -35,12 +35,12 @@ use OMP::Config;
 use OMP::Constants;
 use OMP::DateTools;
 use OMP::DB::MSB;
+use OMP::DB::MSBDone;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
 use OMP::NightRep;
 use OMP::DB::Obslog;
 use OMP::Query::Obslog;
@@ -380,13 +380,14 @@ sub projlog_content {
     }
 
     # Display MSBs observed on this date
-    my $observed = OMP::MSBServer->observedMSBs({
-            projectid => $projectid,
-            date => $utdate,
-            comments => 0,
-            transactions => 1,
-            format => 'data',
-    });
+    my $observed = OMP::DB::MSBDone->new(
+        DB => $self->database,
+        ProjectID => $projectid,
+    )->observedMSBs(
+        date => $utdate,
+        comments => 0,
+        transactions => 1,
+    );
 
     my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
     my $sp = $msbdb->getSciProgInfo();
