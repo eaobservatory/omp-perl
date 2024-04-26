@@ -84,7 +84,6 @@ our $VERSION = '2.000';
 
 # Name of the table containing the MSB data
 our $MSBTABLE = 'ompmsb';
-our $PROJTABLE = $OMP::DB::Project::PROJTABLE;
 our $OBSTABLE = 'ompobs';
 our $SCITABLE = 'ompsciprog';
 
@@ -2556,8 +2555,10 @@ sub _run_query {
 
     # Get the sql
     my $sql = $query->sql(
-        $MSBTABLE, $OBSTABLE, $PROJTABLE,
-        $OMP::DB::Project::PROJQUEUETABLE, $OMP::DB::Project::PROJUSERTABLE);
+        $MSBTABLE, $OBSTABLE,
+        $OMP::DB::Project::PROJTABLE,
+        $OMP::DB::Project::PROJQUEUETABLE,
+        $OMP::DB::Project::PROJUSERTABLE);
 
     print "SQL: $sql\n" if $DEBUG;
 
