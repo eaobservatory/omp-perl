@@ -417,7 +417,7 @@ for my $r (@rows) {
 print "\nNotes\n";
 print "[1] Conditions are project TAG conditions, not MSB constrained conditions\n";
 print "[2] MSB count reflects the MSB returned from queries and not the number of active MSBs in the science program.\n";
-print "[3] Availability is in localtime integer hours\n";
+print "[3] Availability is in UT integer hours\n";
 
 if (defined $plot_file) {
     require OMP::QStatus::Plot;
