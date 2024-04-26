@@ -25,7 +25,7 @@ use OMP::DB::MSB;
 use OMP::Query::MSB;
 use OMP::DB::ProjAffiliation qw/@AFFILIATIONS/;
 
-our @EXPORT_OK = qw/query_queue_status/;
+our @EXPORT_OK = qw/query_queue_status group_queue_status/;
 
 =item query_queue_status(%opt)
 
@@ -71,21 +71,12 @@ Optional.
 
 Affiliation code (optional).
 
-=item return_proj_msb
+=back
 
-If specified, return a reference to a hash of projects giving hashes of MSBs
+Returns a reference to a hash of projects giving hashes of MSBs
 by checksum, along with start and end times as Time::Piece objects.
 
-    my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %opt);
-
-Otherwise returns the data structures originally accumulated by
-F<client/qstatus.pl> where C<$utmin> and C<$utmax> are now hour numbers:
-
-
-    ($projq, $projmsb, $projinst, $utmin, $utmax) = query_queue_status(%opt);
-
-=back
+    my ($proj_msb, $utmin, $utmax) = query_queue_status(%opt);
 
 B<Note:> currently generates the queue information by performing queries
 at one hour increments.
@@ -138,10 +129,6 @@ sub query_queue_status {
     $utmin = gmtime($utmin->epoch());
     $utmax = gmtime($utmax->epoch());
 
-    my %projq;
-    my %projmsb;
-    my %projinst;
-
     my %msb;
 
     # Run a simulated set of queries to determine which projects
@@ -180,15 +167,53 @@ sub query_queue_status {
                 next unless exists $affiliations->{$p}->{$affiliation};
             }
 
+            my $checksum = $msb->checksum();
+
+            $msb{$p} = {} unless exists $msb{$p};
+
+            unless (exists $msb{$p}->{$checksum}) {
+                $msb->extra->{'qstatus_hours'} = [map {0} (0..23)];
+                $msb{$p}->{$checksum} = $msb;
+            }
+            $msb{$p}->{$checksum}->extra->{'qstatus_hours'}->[$hr] ++;
+        }
+    }
+
+    return (\%msb, $utmin, $utmax);
+}
+
+=item group_queue_status
+
+Convert the hash returned by C<query_queue_status>
+to the data structures originally accumulated by
+F<client/qstatus.pl> (except that the values of C<$projinst>
+are now MSBs rather than hits (MSBs * hours)).
+
+    ($projq, $projmsb, $projinst) = query_queue_status($proj_msb);
+
+=cut
+
+sub group_queue_status {
+    my $proj_msb = shift;
+
+    my %projq;
+    my %projmsb;
+    my %projinst;
+
+    foreach my $p (keys %$proj_msb) {
+        my $msbs = $proj_msb->{$p};
+        foreach my $checksum (keys %$msbs) {
+            my $msb = $msbs->{$checksum};
+
             # init array
             $projq{$p} = [map {0} (0..23)] unless exists $projq{$p};
 
             # indicate a hit for this project with this MSB
-            $projq{$p}[$hr] ++;
+            my $hours = $msb->extra->{'qstatus_hours'};
+            $projq{$p}[$_] += $hours->[$_] foreach (0 .. 23);
 
             # store the MSB id so that we know how many MSBs were
             # observable in the period
-            my $checksum = $msb->checksum();
             $projmsb{$p}{$checksum} ++;
 
             # Store the instrument information
@@ -196,14 +221,10 @@ sub query_queue_status {
             for my $i (split(/\//,$inst)) {
                 $projinst{$p}{$i} ++;
             }
-
-            $msb{$p} = {} unless exists $msb{$p};
-            $msb{$p}->{$checksum} = $msb unless exists $msb{$p}->{$checksum};
         }
     }
 
-    return (\%msb, $utmin, $utmax) if $opt{'return_proj_msb'};
-    return (\%projq, \%projmsb, \%projinst, $utmin->hour(), $utmax->hour());
+    return (\%projq, \%projmsb, \%projinst);
 }
 
 1;

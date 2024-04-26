@@ -80,7 +80,7 @@ use lib "$FindBin::RealBin/../lib";
 use OMP::Util::Client;
 use OMP::DB::Backend;
 use OMP::DB::Project;
-use OMP::QStatus qw/query_queue_status/;
+use OMP::QStatus qw/query_queue_status group_queue_status/;
 use Time::Piece qw/:override/;
 
 our $DEBUG = 0;
@@ -128,10 +128,9 @@ print "Analyzing "
     . (defined $country ? uc($country) . ' ' : '')
     . "queue status.\n";
 
-my (%projq, %projmsb, %projinst, $utmin, $utmax);
+my ($queryresult, %projq, %projmsb, %projinst, $utmin, $utminobj, $utmax, $utmaxobj);
 do {
-    my ($q, $m, $i);
-    ($q, $m, $i, $utmin, $utmax) = query_queue_status(
+    ($queryresult, $utminobj, $utmaxobj) = query_queue_status(
         telescope => $telescope,
         ($country ? (country => $country) : ()),
         ($semester ? (semester => $semester) : ()),
@@ -139,9 +138,15 @@ do {
         affiliation => $affiliation,
         full_day => $full_day,
     );
+
+    my ($q, $m, $i) = group_queue_status($queryresult);
+
     %projq = %$q;
     %projmsb = %$m;
     %projinst = %$i;
+
+    $utmin = $utminobj->hour();
+    $utmax = $utmaxobj->hour();
 };
 
 print "For UT hours $utmin to $utmax:\n";
