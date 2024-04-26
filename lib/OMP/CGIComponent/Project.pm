@@ -27,7 +27,6 @@ use OMP::Constants qw/:status/;
 use OMP::DateTools;
 use OMP::DB::MSB;
 use OMP::General;
-use OMP::MSBServer;
 use OMP::DB::Project;
 
 use File::Spec;

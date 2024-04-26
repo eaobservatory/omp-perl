@@ -35,7 +35,6 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::DB::MSB;
 use OMP::DB::MSBDone;
-use OMP::MSBServer;
 use OMP::DB::ProjAffiliation;
 use OMP::DB::Project;
 use OMP::Query::Project;
