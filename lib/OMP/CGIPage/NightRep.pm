@@ -174,6 +174,7 @@ sub night_report {
     my $self = shift;
     my $q = $self->cgi();
 
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
     my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
     my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
@@ -253,8 +254,7 @@ sub night_report {
 
     my ($prev, $next);
     unless ($delta) {
-        my $epoch = $utdate->epoch();
-        ($prev, $next) = map {scalar gmtime($epoch + $_)} (-1 * ONE_DAY(), ONE_DAY());
+        ($prev, $next) = $comp->date_prev_next($utdate);
     }
 
     # NOTE: disabled as we currently don't have fits in the OMP.
@@ -610,11 +610,15 @@ sub time_accounting {
         }
     }
 
+    my ($prev, $next) = $comp->date_prev_next($utdate);
+
     $self->_sidebar_night($tel, $utdate);
 
     return {
         telescope => $tel,
         ut_date => $utdate,
+        ut_date_prev => $prev,
+        ut_date_next => $next,
         target => $q->url(-absolute => 1, -query => 0),
         warnings => $warnings,
         errors => \@errors,

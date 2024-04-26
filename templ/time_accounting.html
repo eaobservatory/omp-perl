@@ -1,6 +1,12 @@
 [% WRAPPER "layout.html" %]
 <h1>Time accounting for [% ut_date.ymd | html %] at [% telescope | html %]</h1>
 
+<p>
+    <a href="[% target %]?telescope=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">Go to previous</a>
+    |
+    <a href="[% target %]?telescope=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Go to next</a>
+</p>
+
 <form method="get" action="[% target %]">
     <p>
         View time accounting for

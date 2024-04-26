@@ -20,6 +20,8 @@ use warnings;
 
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/hostfqdn/;
+use Time::Piece;
+use Time::Seconds qw/ONE_DAY/;
 
 use OMP::Config;
 use OMP::Constants qw/:obs :timegap/;
@@ -45,6 +47,23 @@ our $VERSION = '2.000';
 =head1 Routines
 
 =over 4
+
+=item B<date_prev_next>
+
+Return previous and next UT date.
+
+    ($prev, $next) = $comp->date_prev_next($utdate);
+
+=cut
+
+sub date_prev_next {
+    my $self = shift;
+    my $utdate = shift;
+
+    my $epoch = $utdate->epoch();
+
+    return map {scalar gmtime($epoch + $_)} (-1 * ONE_DAY(), ONE_DAY());
+}
 
 =item B<obs_table_text>
 
