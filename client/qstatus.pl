@@ -40,6 +40,10 @@ telescope's normal operating hours.
 
 Semester to query. Defaults to current semester.
 
+=item B<--tau>
+
+Limit query to given opacity.
+
 =item B<--instrument>
 
 Limit query to given instrument.
@@ -92,7 +96,8 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $instrument, $affiliation, $full_day, $plot_file);
+my ($help, $man, $version, $tel, $country, $semester, $instrument, $opacity,
+    $affiliation, $full_day, $plot_file);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
@@ -100,6 +105,7 @@ my $status = GetOptions(
     "country=s" => \$country,
     "semester=s" => \$semester,
     'instrument=s' => \$instrument,
+    'tau=s' => \$opacity,
     'affiliation=s' => \$affiliation,
     'plot=s' => \$plot_file,
     "tel=s" => \$tel,
@@ -141,6 +147,7 @@ do {
         ($country ? (country => $country) : ()),
         ($semester ? (semester => $semester) : ()),
         ($instrument ? (instrument => $instrument) : ()),
+        ($opacity ? (tau => $opacity) : ()),
         affiliation => $affiliation,
         full_day => $full_day,
     );
