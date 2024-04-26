@@ -49,6 +49,11 @@ Limit query to given instrument.
 Affiliation code.  If specified, only projects with this affiliation
 will be considered.
 
+=item B<--plot> E<lt>filename.pngE<gt>
+
+If specified, plot the results and save the resultant PNG image to
+the given file name.
+
 =item B<-version>
 
 Report the version number.
@@ -87,7 +92,7 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $instrument, $affiliation, $full_day);
+my ($help, $man, $version, $tel, $country, $semester, $instrument, $affiliation, $full_day, $plot_file);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
@@ -96,6 +101,7 @@ my $status = GetOptions(
     "semester=s" => \$semester,
     'instrument=s' => \$instrument,
     'affiliation=s' => \$affiliation,
+    'plot=s' => \$plot_file,
     "tel=s" => \$tel,
     'fullday' => \$full_day,
 );
@@ -405,6 +411,15 @@ print "\nNotes\n";
 print "[1] Conditions are project TAG conditions, not MSB constrained conditions\n";
 print "[2] MSB count reflects the MSB returned from queries and not the number of active MSBs in the science program.\n";
 print "[3] Availability is in localtime integer hours\n";
+
+if (defined $plot_file) {
+    require OMP::QStatus::Plot;
+    OMP::QStatus::Plot::create_queue_status_plot(
+        $queryresult, $utminobj, $utmaxobj,
+        output => $plot_file,
+        hdevice => '/PNG',
+    );
+}
 
 exit;
 
