@@ -40,6 +40,10 @@ telescope's normal operating hours.
 
 Semester to query. Defaults to current semester.
 
+=item B<--instrument>
+
+Limit query to given instrument.
+
 =item B<--affiliation>
 
 Affiliation code.  If specified, only projects with this affiliation
@@ -83,13 +87,14 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $affiliation, $full_day);
+my ($help, $man, $version, $tel, $country, $semester, $instrument, $affiliation, $full_day);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
     "version" => \$version,
     "country=s" => \$country,
     "semester=s" => \$semester,
+    'instrument=s' => \$instrument,
     'affiliation=s' => \$affiliation,
     "tel=s" => \$tel,
     'fullday' => \$full_day,
@@ -130,6 +135,7 @@ do {
         telescope => $telescope,
         ($country ? (country => $country) : ()),
         ($semester ? (semester => $semester) : ()),
+        ($instrument ? (instrument => $instrument) : ()),
         affiliation => $affiliation,
         full_day => $full_day,
     );
