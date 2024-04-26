@@ -31,7 +31,6 @@ use OMP::General;
 use OMP::Info::Comment;
 use OMP::DB::MSB;
 use OMP::DB::MSBDone;
-use OMP::MSBServer;
 use OMP::DB::Project;
 
 use base qw/OMP::CGIComponent/;
@@ -123,6 +122,7 @@ sub msb_action {
         ? $args{'projectid'}
         : scalar $q->param('projectid');
 
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
     my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     my @messages = ();
@@ -158,7 +158,10 @@ sub msb_action {
     elsif ($q->param("submit_remove")) {
         # Mark msb as 'all done'
         try {
-            OMP::MSBServer->alldoneMSB($projectid, (scalar $q->param('checksum')));
+            my $checksum = $q->param('checksum');
+
+            $msbdb->alldoneMSB($checksum);
+
             push @messages, "MSB removed from consideration.";
         }
         catch OMP::Error::MSBMissing with {
@@ -176,11 +179,17 @@ sub msb_action {
     elsif ($q->param("submit_undo")) {
         # Unmark msb as 'done'.
         try {
-            OMP::MSBServer->undoMSB(
-                $projectid,
-                (scalar $q->param('checksum')),
-                (scalar $q->param('transaction'))
+            my $checksum = $q->param('checksum');
+
+            # Prepare comment object.
+            my $comment = OMP::Info::Comment->new(
+                text => "MSB done status reversed.",
+                status => OMP__DONE_UNDONE,
+                tid => (scalar $q->param('transaction')),
             );
+
+            $msbdb->undoMSB($checksum, $comment);
+
             push @messages, "MSB done mark removed.";
         }
         catch OMP::Error::MSBMissing with {
@@ -198,7 +207,15 @@ sub msb_action {
     elsif ($q->param("submit_unremove")) {
         # Unremove a removed MSB.
         try {
-            OMP::MSBServer->unremoveMSB($projectid, (scalar $q->param('checksum')));
+            my $checksum = $q->param('checksum');
+
+            my $comment = OMP::Info::Comment->new(
+                text => "MSB removed status reversed.",
+                status => OMP__DONE_UNREMOVED,
+            );
+
+            $msbdb->unremoveMSB($checksum, $comment);
+
             push @messages, "MSB no longer removed from consideration.";
         }
         catch OMP::Error::MSBMissing with {
