@@ -94,6 +94,7 @@ __PACKAGE__->CreateAccessors(
     completion => '$',
     comments => '@OMP::Info::Comment',
     approach => '$',
+    extra => '%',
 );
 
 =head2 Accessor Methods
