@@ -31,9 +31,6 @@ use OMP::Range;
 use Time::Piece;
 use Time::Seconds;
 
-# To fetch GSD data converted to ACSIS format.
-our $GSD_FROM_JCMT_INSTEAD = 0;
-
 # TABLES
 our $SCUTAB = 'jcmt_tms.SCU S';
 our $GSDTAB = 'jcmt_tms.SCA G';
@@ -214,9 +211,50 @@ our $VERSION = '2.000';
 
 =head1 METHODS
 
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+This class adds one additional argument to the C<OMP::Query> constructor,
+"GSDFromJCMT".  If given a true value, fetch GSD data converted to ACSIS format.
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(@_);
+
+    my %args = @_;
+
+    $self->gsdFromJCMT($args{'GSDFromJCMT'}) if exists $args{'GSDFromJCMT'};
+
+    return $self;
+}
+
+=back
+
 =head2 Accessor Methods
 
 =over 4
+
+=item B<gsdFromJCMT>
+
+Whether to fetch GSD data converted to ACSIS format.
+
+=cut
+
+sub gsdFromJCMT {
+    my $self = shift;
+    if (@_) {
+        $self->{'GSDFromJCMT'} = !! shift;
+    }
+    return 0 unless exists $self->{'GSDFromJCMT'};
+    return $self->{'GSDFromJCMT'};
+}
 
 =item B<isfile>
 
@@ -633,7 +671,7 @@ sub _post_process_hash {
 
     my $newjcmt;
     # Override date dance to get GSD data from jcmt.{COMMON,ACSIS} tables.
-    if ($GSD_FROM_JCMT_INSTEAD) {
+    if ($self->gsdFromJCMT) {
         $newjcmt = 1;
     }
     elsif (exists $href->{date}) {
