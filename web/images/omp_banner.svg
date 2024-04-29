@@ -1,0 +1,20 @@
+<svg version="1.1" width="350" height="200" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        <![CDATA[
+            text {
+                font-size: 50px;
+                font-family: courier;
+                font-weight: 1;
+                letter-spacing: 0px;
+            }
+        ]]>
+    </style>
+
+    <g>
+        <text x="0" y="65" text-anchor="start">
+            <tspan x="10" fill="#F29A06">observation</tspan>
+            <tspan x="10" dy="1em" fill="#E62E3D">management</tspan>
+            <tspan x="10" dy="1em" fill="#87CFFF">project</tspan>
+        </text>
+    </g>
+</svg>
