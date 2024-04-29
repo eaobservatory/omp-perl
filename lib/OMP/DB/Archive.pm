@@ -78,6 +78,7 @@ sub new {
     $self->{'MakeCache'} = 1;
     $self->{'Warned'} = {};
     $self->{'OldCriteria'} = 0;
+    $self->{'GSDFromJCMT'} = undef;
 
     my %args = @_;
 
@@ -358,6 +359,21 @@ sub skip_cache_making {
     $self->{'MakeCache'} = 0;
 }
 
+=item B<gsdFromJCMT>
+
+Override C<gsdFromJCMT> attribe in queriess
+(whether to fetch GSD data converted to ACSIS format).
+
+=cut
+
+sub gsdFromJCMT {
+    my $self = shift;
+    if (@_) {
+        $self->{'GSDFromJCMT'} = shift;
+    }
+    return $self->{'GSDFromJCMT'};
+}
+
 =item B<getObs>
 
 Get information about a specific observation. The observation
@@ -467,6 +483,12 @@ database query by adding additional matches from disk).
 
 sub queryArc {
     my ($self, $query, $retainhdr, $ignorebad, $search) = @_;
+
+    # If "gsdFromJCMT" is defined, set the corresponding attribute in the
+    # query.  Must do this first, as $query->telescope triggers the query's
+    # hash post-processing.
+    my $gsdFromJCMT = $self->gsdFromJCMT;
+    $query->gsdFromJCMT($gsdFromJCMT) if defined $gsdFromJCMT;
 
     my $tel = $query->telescope;
 
