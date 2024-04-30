@@ -121,7 +121,7 @@ else {
     chomp($startut = <STDIN>);
 }
 die "start ut date not YYYYMMDD:" if ($startut !~ /^\d{8}$/);
-die "start ut date not valid:" if ($startut < 20030000 or $startut > 20200000);
+die "start ut date not valid:" if ($startut < 20030000 or $startut > 20300000);
 
 my $endut;
 if (defined $llast) {
@@ -132,7 +132,7 @@ else {
     chomp($endut = <STDIN>);
 }
 die "end ut date not YYYYMMDD:" if ($endut !~ /^\d{8}$/);
-die "end ut date not valid:" if ($endut < 20030000 or $endut > 20200000);
+die "end ut date not valid:" if ($endut < 20030000 or $endut > 20300000);
 
 die "start ut must be before end ut" if ($startut > $endut);
 
