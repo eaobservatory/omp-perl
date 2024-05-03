@@ -1135,8 +1135,8 @@ sub nightlog {
                 "Pol In?", "FTS In?", "Shift"
             ];
             @short_val = map $return{$_}, @{$return{'_ORDER'}};
-            $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
-            $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %6s  %6s  %7s %7s %-7s";
+            $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
+            $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %6s  %6s  %7s %7s %-7s";
         }
         else {
             $return{'_ORDER'} = [
