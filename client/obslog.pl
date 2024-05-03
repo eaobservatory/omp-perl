@@ -70,7 +70,7 @@ Another font to try is C<Dejavu LGC Sans::medium>.
 =item B<-geometry> window-geometry
 
 Specify window location and size of the main obslog window; default is
-I<785x450>.
+I<835x450>.
 
 =item B<-tel>
 
@@ -183,7 +183,7 @@ my $id;
 my $BREAK = 98;
 
 my %opt = (
-    'geometry' => '785x450',
+    'geometry' => '835x450',
 
     # Fixed width font;
     'font-fixed' => '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*',
