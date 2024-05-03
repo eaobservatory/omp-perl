@@ -914,6 +914,19 @@ sub RaiseComment {
     my @comments = $obs->comments;
     $status = $obs->status;
 
+    # Get the observation information.
+    my %nightlog = $obs->nightlog(
+        display => 'long',
+        comments => 1,
+    );
+
+    # Find the width of the header, assuming that log entries will be the
+    # same width, so that the header box can be sized to fit.
+    my $maxlength = 80;
+    foreach (split /\n/, $nightlog{'_STRING_HEADER'}) {
+        $maxlength = length $_ if length $_ > $maxlength;
+    }
+
     my $CommentWindow = $MainWindow->Toplevel();
     $CommentWindow->title('OMP Observation Log Tool Commenting System');
 
@@ -945,6 +958,7 @@ sub RaiseComment {
         -wrap => 'none',
         -relief => 'flat',
         -foreground => $HEADERCOLOUR,
+        -width => $maxlength + 2,
         -height => 1,
         -font => $HEADERFONT,
         -takefocus => 0,
@@ -1195,12 +1209,6 @@ sub RaiseComment {
             -anchor => 'n',
         );
     }
-
-    # Get the observation information.
-    my %nightlog = $obs->nightlog(
-        display => 'long',
-        comments => 1,
-    );
 
     # Insert the header information.
     $contentHeader->configure(-state => 'normal');
