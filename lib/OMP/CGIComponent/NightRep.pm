@@ -385,18 +385,20 @@ sub _time_accounting_project {
     elsif (exists $times->{DB} and $times->{DB}->confirmed) {
         # Confirmed overrides data headers
         $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
-        $entry{'comment'} = $times->{DB}->comment;
     }
     elsif (exists $times->{DATA}) {
         $entry{'time'} = _round_to_ohfive($times->{DATA}->timespent->hours);
     }
     elsif (exists $times->{DB}) {
         $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
-        $entry{'comment'} = $times->{DB}->comment;
     }
     else {
         # Empty
         $entry{'time'} = '';
+    }
+
+    if (exists $times->{'DB'}) {
+        $entry{'comment'} = $times->{'DB'}->comment;
     }
 
     # Notes about the data source
