@@ -42,6 +42,13 @@
         [% SET shift_name = shift.shift %]
         <h2>Shift: [% shift_name | html %]</h2>
 
+        <p>
+            <label>
+                <input type="checkbox" name="skip_[% shift_name %]" value="1" [% IF shift.skip %]checked="checked"[% END %]>
+                Do not confirm this shift
+            </label>
+        </p>
+
         <table class="bordered time_acct_shift" name="table_[% shift_name %]">
             <tr>
                 <th>Name</th>

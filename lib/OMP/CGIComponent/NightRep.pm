@@ -358,6 +358,7 @@ sub time_accounting_shift {
         shift => $shift,
         entries => \@entries,
         observations => \@observations,
+        skip => 0,
     };
 }
 
@@ -457,6 +458,12 @@ sub read_time_accounting_shift {
     my $q = $self->cgi;
     my $shift = $info->{'shift'};
 
+    $info->{'skip'} = !! $q->param(sprintf 'skip_%s', $shift);
+
+    # If "skip" was selected, the JavaScript should have disabled the
+    # corresponding form elements, so do not attempt to read from them.
+    return () if $info->{'skip'};
+
     my %seen = ();
     my @errors = ();
 
@@ -535,6 +542,8 @@ sub store_time_accounting {
     my @acct = ();
 
     foreach my $info (@$shifts) {
+        next if $info->{'skip'};
+
         my $shift = $info->{'shift'};
 
         foreach my $entry (@{$info->{'entries'}}) {
