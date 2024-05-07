@@ -82,7 +82,18 @@
                         </tr>
                     [% END %]
                     <tr bgcolor="#ffffff">
-                        <td><b>Actual time of failure:</b> [% IF fault.faultdate %]<a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&tel=JCMT">[% fault_info.display_date_local(fault.faultdate) | html %]</a>[% ELSE %]unknown[% END %]</td>
+                        <td>
+                            <b>Actual time of failure:</b>
+                            [% IF fault.faultdate %]
+                                [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
+                                    <a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(fault.faultdate) | html %]</a>
+                                [% ELSE %]
+                                    [% fault_info.display_date_local(fault.faultdate) | html %]
+                                [% END %]
+                            [% ELSE %]
+                                unknown
+                            [% END %]
+                        </td>
                         <td>
                             <b>Status:</b>
                             [% IF fault_info.allow_edit %]
@@ -144,7 +155,11 @@
                                         </td>
                                         <td>
                                             <b>Date:</b>
-                                            [% fault_info.display_date_local(response.date) | html %]
+                                            [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
+                                                <a href="/cgi-bin/nightrep.pl?utdate=[% response.date.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(response.date) | html %]</a>
+                                            [% ELSE %]
+                                                [% fault_info.display_date_local(response.date) | html %]
+                                            [% END %]
                                             [% IF fault_info.allow_edit %]
                                                 &nbsp;&nbsp;
                                                 <form method="post" action="[% fault_info.target %]" style="display: inline;">

@@ -90,6 +90,7 @@ sub fault_table {
         target => $self->page->url_absolute(),
         statuses => \@statuses,
         has_shift_type => !!%shifts,
+        category_is_telescope => OMP::Fault->faultIsTelescope($fault->category),
     };
 }
 
