@@ -290,6 +290,10 @@ Update only the times for an observation.
 
 Read file information from MongoDB.
 
+=item no_file_extra_info
+
+Option passed on to C<_get_observations> if given.
+
 =back
 
 =cut
@@ -328,6 +332,10 @@ sub prepare_and_insert {
 
     if (exists $arg{'files'}) {
         $obs_args{'files'} = _unique_files($arg{'files'});
+    }
+
+    if (exists $arg{'no_file_extra_info'}) {
+        $obs_args{'no_file_extra_info'} = $arg{'no_file_extra_info'};
     }
 
     my $name = $self->instrument_name();

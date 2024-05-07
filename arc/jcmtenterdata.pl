@@ -77,6 +77,12 @@ Skip bound calculations (applies only for ACSIS data)
 
 Skip setting a state, used otherwise to keep track of transfers.
 
+=item B<-nofileextra>
+
+Do not read file size and MD5 sum.  This can be used when updating old
+database records (which do not have these columns filled in) where the
+files at CADC may be gzip-compressed.
+
 =item B<--dry-run>
 
 Run in "dry run" mode, nothing actually is changed in database.
@@ -194,7 +200,7 @@ do {
     my $n_err = 0;
 
     my ($dry_run, $verbose, $calcbounds) = (0) x 3;
-    my ($obstime, $inbeam, $skip_state, $skip_db_path, $logfile, $wait);
+    my ($obstime, $inbeam, $skip_state, $skip_extra, $skip_db_path, $logfile, $wait);
     my ($help, $acsis, $rxh3, $scuba2, $file_src, $mongo_src, $simulation, $overwrite, $debugfile);
     my $starlink_dir = '/star';
 
@@ -213,6 +219,7 @@ do {
         'obstime'        => \$obstime,
         'inbeam'         => \$inbeam,
         'nostate'        => \$skip_state,
+        'nofileextra'    => \$skip_extra,
         'bounds!'        => \$find_bounds,
         'simulation!'    => \$simulation,
         'calcbounds'     => \$calcbounds,
@@ -314,6 +321,7 @@ do {
         my %enter_options = (
             dry_run => $dry_run,
             skip_state => $skip_state,
+            no_file_extra_info => $skip_extra,
             overwrite => $overwrite,
             process_simulation => $simulation,
             update_only_inbeam => $inbeam,
