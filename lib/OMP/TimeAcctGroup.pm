@@ -40,8 +40,6 @@ use OMP::Query::TimeAcct;
 
 use Time::Seconds;
 
-$| = 1;
-
 =head1 METHODS
 
 =head2 Constructor

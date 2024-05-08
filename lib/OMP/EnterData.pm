@@ -64,8 +64,6 @@ use Time::Piece;
 
 use NDF;
 
-$| = 1; # Make unbuffered
-
 =head2 METHODS
 
 =over 4

@@ -45,8 +45,6 @@ use base qw/OMP::CGIPage/;
 
 our $telescope = 'JCMT';
 
-$| = 1;
-
 =head1 Routines
 
 =over 4

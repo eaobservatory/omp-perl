@@ -33,8 +33,6 @@ use File::Spec;
 
 use base qw/OMP::CGIComponent/;
 
-$| = 1;
-
 =head1 Routines
 
 =over 4

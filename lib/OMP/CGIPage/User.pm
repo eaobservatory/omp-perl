@@ -36,8 +36,6 @@ use OMP::Query::User;
 
 use base qw/OMP::CGIPage/;
 
-$| = 1;
-
 # Width for HTML tables
 our $TABLEWIDTH = '100%';
 

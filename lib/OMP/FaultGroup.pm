@@ -35,8 +35,6 @@ use OMP::Project::TimeAcct;
 use Time::Piece;
 use Time::Seconds;
 
-$| = 1;
-
 =head1 METHODS
 
 =head2 Constructor

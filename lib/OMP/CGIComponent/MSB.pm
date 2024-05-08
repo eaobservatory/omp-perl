@@ -35,8 +35,6 @@ use OMP::DB::Project;
 
 use base qw/OMP::CGIComponent/;
 
-$| = 1;
-
 =head1 Routines
 
 =over 4
