@@ -66,7 +66,7 @@ sub _sched_view {
     my $self = shift;
     my $is_staff = shift;
 
-    my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
+    my ($tel, $semester, $start, $end, $utdate_selected) = $self->_sched_view_edit_info();
     my ($semester_next, $semester_prev, @semester_options);
     if ($semester =~ /^(\d\d)([AB])$/a) {
         if ($2 eq 'A') {
@@ -89,6 +89,10 @@ sub _sched_view {
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end)->nights();
     my $queue_info = $db->get_sched_queue_info(tel => $tel, include_hidden => 1);
 
+    if (defined $utdate_selected) {
+        $self->_sidebar_night($tel, $utdate_selected);
+    }
+
     return {
         title => "$tel Schedule $semester",
         schedule => $sched,
@@ -101,6 +105,9 @@ sub _sched_view {
         semester_next => $semester_next,
         semester_prev => $semester_prev,
         semester_options => \@semester_options,
+        utdate_selected => ((defined $utdate_selected)
+            ? $utdate_selected->ymd()
+            : undef),
     };
 }
 
@@ -110,6 +117,7 @@ sub _sched_view_edit_info {
     my $tel = $self->decoded_url_param('tel')
         or die 'Telescope not selected';
 
+    my $utdate = undef;
     my $semester = $self->decoded_url_param('semester');
     if (defined $semester) {
         die 'Semester not in expected format'
@@ -117,13 +125,20 @@ sub _sched_view_edit_info {
         $semester = $1;
     }
     else {
-        $semester = OMP::DateTools->determine_semester(tel => $tel);
+        my $utdate_str = $self->decoded_url_param('utdate');
+        if ($utdate_str) {
+            $utdate = OMP::DateTools->parse_date($utdate_str);
+            die 'Invalid date' unless defined $utdate;
+        }
+
+        $semester = OMP::DateTools->determine_semester(
+            tel => $tel, date => $utdate);
     }
 
     my ($start, $end) = OMP::DateTools->semester_boundary(
         tel => $tel, semester => $semester);
 
-    return ($tel, $semester, $start, $end);
+    return ($tel, $semester, $start, $end, $utdate);
 }
 
 =item B<sched_edit>
@@ -137,7 +152,7 @@ viewing page in the case of successful edit.
 sub sched_edit {
     my $self = shift;
 
-    my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
+    my ($tel, $semester, $start, $end, undef) = $self->_sched_view_edit_info();
 
     my $db = OMP::DB::Sched->new(DB => $self->database);
 
@@ -197,7 +212,7 @@ sub sched_edit {
 sub sched_view_queue_stats {
     my $self = shift;
 
-    my ($tel, $semester, $start, $end) = $self->_sched_view_edit_info();
+    my ($tel, $semester, $start, $end, undef) = $self->_sched_view_edit_info();
     my $db = OMP::DB::Sched->new(DB => $self->database);
 
     my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);

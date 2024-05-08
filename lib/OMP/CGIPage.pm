@@ -788,6 +788,7 @@ sub _sidebar_night {
         ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
         ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
         ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+        ['Schedule' => "/cgi-bin/sched.pl?tel=$telescope&utdate=$utdate#night_$utdate"],
         ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
             . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
         ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
