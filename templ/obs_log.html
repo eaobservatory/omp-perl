@@ -55,6 +55,22 @@
     <a href="/cgi-bin/staffworfthumb.pl?ut=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">View WORF thumbnails</a>
 </p>
 
+[% IF sched_night.defined %]
+    [% SET sched_night_slots = sched_night.slots_merged %]
+    <p>
+        <b>Schedule:</b>
+        [% IF sched_night_slots.size == 1 %]
+            [% sched_night_slots.0.queue | html %]
+        [% ELSE %]
+            [% FOREACH sched_night_slot IN sched_night_slots %]
+                [% sched_night_slot.time_first.strftime('%H:%M') %][% IF sched_night_slot.time_last.defined %]&ndash;[% sched_night_slot.time_last.strftime('%H:%M') %][% END %]
+                [% sched_night_slot.queue %][% IF not loop.last %],[% END %]
+            [% END %]
+            (HST)
+        [% END %]
+    </p>
+[% END %]
+
 [% render_weather_plot_links(weather_plots) %]
 
 [% IF ut_date_delta < 14 %]

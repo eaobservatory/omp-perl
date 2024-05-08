@@ -36,6 +36,7 @@ use OMP::Constants;
 use OMP::DateTools;
 use OMP::DB::MSB;
 use OMP::DB::MSBDone;
+use OMP::DB::Sched;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -243,6 +244,7 @@ sub night_report {
             'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
         unless $nr;
 
+    my $sched_night = undef;
     if (1 == $nr->delta_day) {
         my $pdb = OMP::DB::Preview->new(DB => $self->database);
         $nr->obs->attach_previews($pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
@@ -250,6 +252,15 @@ sub night_report {
             date => {value => $utdate->ymd(), delta => 1},
             size => 64,
         })));
+
+        my $sdb = OMP::DB::Sched->new(DB => $self->database);
+        my $sched = $sdb->get_schedule(
+            tel => 'JCMT',
+            date => $utdate);
+        my $sched_nights = $sched->nights;
+        if ((defined $sched_nights) and (1 == scalar @$sched_nights)) {
+            $sched_night = $sched_nights->[0];
+        }
     }
 
     my ($prev, $next);
@@ -281,6 +292,7 @@ sub night_report {
         ut_date_start => $start,    # starting value for form
 
         night_report => $nr,
+        sched_night => $sched_night,
 
         dq_nightly_html => ($tel ne 'JCMT' || $delta
             ? undef
