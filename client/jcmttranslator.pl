@@ -144,17 +144,17 @@ if ($version) {
     exit;
 }
 
-
-# debugging
-$OMP::Translator::DEBUG = $debug;
-
-# verbose
-$OMP::Translator::VERBOSE = $verbose;
+my %options = (
+    simulate => $sim,
+    log => $log,
+    verbose => $verbose,
+    debug => $debug,
+);
 
 # Translation directory override
 if ($transdir) {
     print "Overriding output directory. Using '$transdir'\n" if $verbose;
-    OMP::Translator->outputdir($transdir);
+    $options{'outputdir'} = $transdir;
 }
 elsif ($cwd || $tempdir) {
     if ($cwd && $tempdir) {
@@ -163,14 +163,14 @@ elsif ($cwd || $tempdir) {
     if ($cwd) {
         print "Overriding output directory. Using current directory\n"
             if $verbose;
-        OMP::Translator->outputdir(File::Spec->curdir);
+        $options{'outputdir'} = File::Spec->curdir;
     }
     elsif ($tempdir) {
         # this should fail if no temp dir is defined
         my $tmp = OMP::Config->getData("jcmt_translator.temptransdir");
         if ($tmp) {
             print "Overriding output directory. Using '$tmp'\n" if $verbose;
-            OMP::Translator->outputdir($tmp);
+            $options{'outputdir'} = $tmp;
         }
         else {
             die "No temporary translator directly defined.";
@@ -179,7 +179,7 @@ elsif ($cwd || $tempdir) {
 }
 
 # Configure translation mode
-OMP::Translator->backwards_compatibility_mode(1) if $old;
+$options{'backwards_compatibility_mode'} = 1 if $old;
 
 # Now for the action
 # Read from standard input or from the command line.
@@ -212,10 +212,7 @@ my $xml;
 
 }
 
-my $filename = translate($xml, {
-    simulate => $sim,
-    log => $log,
-});
+my $filename = translate($xml, \%options);
 
 die "Nothing was translated. Was the science program empty?"
     unless $filename;
