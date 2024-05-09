@@ -33,6 +33,7 @@ use OMP::NightRep;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Info::ObsGroup;
 use OMP::DB::Obslog;
 use OMP::DB::Project;
@@ -190,17 +191,10 @@ sub obs_comment_form {
     return {
         statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
             ? [
-                [OMP__TIMEGAP_UNKNOWN() => 'Unknown'],
-                [OMP__TIMEGAP_INSTRUMENT() => 'Instrument'],
-                [OMP__TIMEGAP_WEATHER() => 'Weather'],
-                [OMP__TIMEGAP_FAULT() => 'Fault'],
-                [OMP__TIMEGAP_NEXT_PROJECT() => 'Next project'],
-                [OMP__TIMEGAP_PREV_PROJECT() => 'Last project'],
-                [OMP__TIMEGAP_NOT_DRIVER() => 'Observer not driver'],
-                [OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime'],
-                [OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead'],
-                [OMP__TIMEGAP_LOGISTICS() => 'Logistics'],
-                ]
+                map {
+                    [$_ => $OMP::Info::Obs::TimeGap::status_label{$_}]
+                } @OMP::Info::Obs::TimeGap::status_order
+            ]
             : [
                 map {
                     [$_ => $OMP::Info::Obs::status_label{$_}]

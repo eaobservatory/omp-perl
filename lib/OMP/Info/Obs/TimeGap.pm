@@ -47,6 +47,19 @@ our %status_label = (
     OMP__TIMEGAP_UNKNOWN() => 'Unknown',
 );
 
+our @status_order = (
+    OMP__TIMEGAP_UNKNOWN(),
+    OMP__TIMEGAP_INSTRUMENT(),
+    OMP__TIMEGAP_WEATHER(),
+    OMP__TIMEGAP_FAULT(),
+    OMP__TIMEGAP_NEXT_PROJECT(),
+    OMP__TIMEGAP_PREV_PROJECT(),
+    OMP__TIMEGAP_NOT_DRIVER(),
+    OMP__TIMEGAP_SCHEDULED(),
+    OMP__TIMEGAP_QUEUE_OVERHEAD(),
+    OMP__TIMEGAP_LOGISTICS(),
+);
+
 =head1 METHODS
 
 =head2 Accessors
