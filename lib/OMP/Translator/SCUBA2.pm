@@ -44,24 +44,6 @@ use base qw/OMP::Translator::JCMT/;
 
 =over 4
 
-=item B<wiredir>
-
-Returns the wiring directory that should be used for ACSIS.
-
-    $trans->wiredir();
-
-=cut
-
-{
-    my $wiredir;
-
-    sub wiredir {
-        $wiredir = OMP::Config->getData('scuba2_translator.wiredir')
-            unless defined $wiredir;
-        return $wiredir;
-    }
-}
-
 =item B<cfgkey>
 
 Returns the config system name for this translator: scuba2_translator
