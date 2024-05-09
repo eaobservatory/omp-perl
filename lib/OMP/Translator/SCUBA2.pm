@@ -201,18 +201,24 @@ sub insert_setup_obs {
     return @outconfigs;
 }
 
-# _not_needing_setup($config)
-#
-# Returns true for observations for which a setup is not
-# required.
-#
-# This should not include setup obsevations themselves
-# as these are handled specifically by insert_setup_obs.
-#
-# The JCMT operators have determined that a
-# setup is not required before focus or pointing, since
-# that will normally be followed immediately by a setup
-# on the science target.
+=item B<_not_needing_setup>
+
+Returns true for observations for which a setup is not
+required.
+
+    if (_not_needing_setup($config)) {
+        ...
+    }
+
+This should not include setup observations themselves
+as these are handled specifically by insert_setup_obs.
+
+The JCMT operators have determined that a
+setup is not required before focus or pointing, since
+that will normally be followed immediately by a setup
+on the science target.
+
+=cut
 
 sub _not_needing_setup {
     my $config = shift;
