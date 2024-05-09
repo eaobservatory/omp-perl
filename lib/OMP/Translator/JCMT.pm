@@ -40,7 +40,7 @@ use OMP::Config;
 use OMP::Error;
 use OMP::General;
 
-use OMP::Translator::JCMTHeaders;
+use OMP::Translator::Headers::JCMT;
 
 use base qw/OMP::Translator::Base/;
 
@@ -698,7 +698,7 @@ sub tcs_base {
         $b->tag($t);
         my $coords = Storable::dclone($tags{$t}->{coords});
         my $targetName = $coords->name;
-        $coords->name(OMP::Translator::JCMTHeaders->fitsSafeString($targetName))
+        $coords->name(OMP::Translator::Headers::JCMT->fitsSafeString($targetName))
             if defined $targetName;
         $b->coords($coords);
 
@@ -1382,8 +1382,8 @@ sub header_config {
     );
 
     # Set verbosity level and handles
-    OMP::Translator::JCMTHeaders->VERBOSE($self->verbose);
-    OMP::Translator::JCMTHeaders->HANDLES($self->outhdl);
+    OMP::Translator::Headers::JCMT->VERBOSE($self->verbose);
+    OMP::Translator::Headers::JCMT->HANDLES($self->outhdl);
 
     # Now invoke the methods to configure the headers
     my $pkg = $self->hdrpkg;
@@ -1416,7 +1416,7 @@ sub header_config {
     }
 
     # clear global handles to allow the file to close at some point
-    OMP::Translator::JCMTHeaders->HANDLES(undef);
+    OMP::Translator::Headers::JCMT->HANDLES(undef);
 
     $cfg->header($hdr);
 }

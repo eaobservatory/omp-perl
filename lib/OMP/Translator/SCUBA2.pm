@@ -36,7 +36,7 @@ use OMP::Error;
 use OMP::General;
 use OMP::MSB;
 
-use OMP::Translator::SCUBA2Headers;
+use OMP::Translator::Headers::SCUBA2;
 
 use base qw/OMP::Translator::JCMT/;
 
@@ -63,7 +63,7 @@ Name of the class implementing DERIVED header configuration.
 =cut
 
 sub hdrpkg {
-    return "OMP::Translator::SCUBA2Headers";
+    return 'OMP::Translator::Headers::SCUBA2';
 }
 
 =item B<insert_setup_obs>

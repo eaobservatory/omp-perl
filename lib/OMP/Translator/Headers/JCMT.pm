@@ -1,13 +1,13 @@
-package OMP::Translator::JCMTHeaders;
+package OMP::Translator::Headers::JCMT;
 
 =head1 NAME
 
-OMP::Translator::JCMTHeaders - Header configuration for JCMT instruments
+OMP::Translator::Headers::JCMT - Header configuration for JCMT instruments
 
 =head1 SYNOPSIS
 
-    use OMP::Translator::JCMTHeaders;
-    $msbid = OMP::Translator::JCMTHeaders->getMSBID($cfg, %info);
+    use OMP::Translator::Headers::JCMT;
+    $msbid = OMP::Translator::Headers::JCMT->getMSBID($cfg, %info);
 
 =head1 DESCRIPTION
 
@@ -19,12 +19,12 @@ Some header values are determined through the invocation of methods
 specified in the header template XML. These methods are flagged by
 using the DERIVED specifier with a task name of TRANSLATOR.
 
-The following methods are in the OMP::Translator::JCMTHeaders
+The following methods are in the OMP::Translator::Headers::JCMT
 namespace. They are all given the observation summary hash as argument
 and the current Config object, and they return the value that should
 be used in the header.
 
-    $value = OMP::Translator::JCMTHeaders->getProject($cfg, %info);
+    $value = OMP::Translator::Headers::JCMT->getProject($cfg, %info);
 
 An empty string will be recognized as a true UNDEF header value. Returning
 undef is an error.

@@ -40,7 +40,7 @@ use OMP::Error;
 use OMP::General;
 use OMP::Range;
 
-use OMP::Translator::ACSISHeaders;
+use OMP::Translator::Headers::ACSIS;
 
 use base qw/OMP::Translator::JCMT/;
 
@@ -115,7 +115,7 @@ Name of the class implementing DERIVED header configuration.
 =cut
 
 sub hdrpkg {
-    return "OMP::Translator::ACSISHeaders";
+    return 'OMP::Translator::Headers::ACSIS';
 }
 
 =item B<translate_scan_pattern_lut>
