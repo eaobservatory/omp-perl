@@ -7,7 +7,7 @@ OMP::Translator::Headers::JCMT - Header configuration for JCMT instruments
 =head1 SYNOPSIS
 
     use OMP::Translator::Headers::JCMT;
-    $msbid = OMP::Translator::Headers::JCMT->getMSBID($cfg, %info);
+    $msbid = OMP::Translator::Headers::JCMT->new->getMSBID($cfg, %info);
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ namespace. They are all given the observation summary hash as argument
 and the current Config object, and they return the value that should
 be used in the header.
 
-    $value = OMP::Translator::Headers::JCMT->getProject($cfg, %info);
+    $value = OMP::Translator::Headers::JCMT->new->getProject($cfg, %info);
 
 An empty string will be recognized as a true UNDEF header value. Returning
 undef is an error.
@@ -39,7 +39,33 @@ use Data::Dumper;
 use Unicode::Normalize qw/normalize/;
 use OMP::DateTools;
 
-=head1 HELPER METHODS
+=head1 METHODS
+
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+Create new header object.
+
+    $hdrobj = $class->new;
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $self = bless {
+        verbose => 0,
+        handle => \*STDOUT,
+    }, $class;
+
+    return $self;
+}
+
+=head2 Helper Methods
 
 Set global variables to control verbosity and other generic items.
 
@@ -49,38 +75,30 @@ Set global variables to control verbosity and other generic items.
 
 Enable or disable verbose mode.
 
-    $verbose = $class->VERBOSE;
-    $class->VERBOSE(1);
+    $verbose = $hdrobj->VERBOSE;
+    $hdrobj->VERBOSE(1);
 
 =cut
 
-{
-    my $VERBOSE = 0;
-
-    sub VERBOSE {
-        my $class = shift;
-        if (@_) {$VERBOSE = shift;}
-        return $VERBOSE;
-    }
+sub VERBOSE {
+    my $self = shift;
+    if (@_) {$self->{'verbose'} = shift;}
+    return $self->{'verbose'};
 }
 
 =item B<HANDLES>
 
 Output handle for verbose messages. Defaults to STDOUT.
 
-    $handle = $class->HANDLES;
-    $class->HANDLES($handles);
+    $handle = $hdrobj->HANDLES;
+    $hdrobj->HANDLES($handles);
 
 =cut
 
-{
-    my $HANDLES = \*STDOUT;
-
-    sub HANDLES {
-        my $class = shift;
-        if (@_) {$HANDLES = shift;}
-        return $HANDLES;
-    }
+sub HANDLES {
+    my $self = shift;
+    if (@_) {$self->{'handle'} = shift;}
+    return $self->{'handle'};
 }
 
 =item B<default_project>
@@ -149,7 +167,7 @@ sub fitsSafeString {
 
 =back
 
-=head1 TRANSLATION METHODS
+=head2 Translation Methods
 
 =over 4
 

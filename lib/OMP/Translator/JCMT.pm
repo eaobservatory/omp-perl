@@ -173,9 +173,10 @@ sub translate {
                 MSBTITLE => 'getMSBTitle',
                 PROJECT => 'getProject',
             );
+            my $hdrobj = $self->_get_hdr_object;
             while (my ($header, $method) = each %headers) {
                 my $hdr = $cfg->header()->item($header);
-                my $val = $self->hdrpkg()->$method($cfg, %$obs);
+                my $val = $hdrobj->$method($cfg, %$obs);
                 if ((defined $hdr) and (defined $val)) {
                     $hdr->value($val);
                     $hdr->source(undef);
@@ -435,6 +436,24 @@ Name in the config system associated with this translator.
 
 sub cfgkey {
     die "Please subclass cfgkey";
+}
+
+=item B<_get_hdr_object>
+
+Construct new headers object.
+
+=cut
+
+sub _get_hdr_object {
+    my $self = shift;
+
+    my $hdrobj = $self->hdrpkg()->new();
+
+    # Set verbosity level and handles
+    $hdrobj->VERBOSE($self->verbose);
+    $hdrobj->HANDLES($self->outhdl);
+
+    return $hdrobj;
 }
 
 =back
@@ -1381,16 +1400,12 @@ sub header_config {
         }
     );
 
-    # Set verbosity level and handles
-    OMP::Translator::Headers::JCMT->VERBOSE($self->verbose);
-    OMP::Translator::Headers::JCMT->HANDLES($self->outhdl);
-
     # Now invoke the methods to configure the headers
-    my $pkg = $self->hdrpkg;
+    my $hdrobj = $self->_get_hdr_object;
     for my $i (@items) {
         my $method = $i->method;
-        if ($pkg->can($method)) {
-            my $val = $pkg->$method($cfg, %info);
+        if ($hdrobj->can($method)) {
+            my $val = $hdrobj->$method($cfg, %info);
             if (defined $val) {
                 $i->value($val);
                 $i->source(undef);  # clear derived status
@@ -1403,7 +1418,7 @@ sub header_config {
         }
         else {
             throw OMP::Error::FatalError(
-                "Method $method can not be invoked in package $pkg for header item "
+                "Method $method can not be invoked for header item "
                 . $i->keyword);
         }
     }
@@ -1411,12 +1426,9 @@ sub header_config {
     # call any overrides (these are required if something needs to happen
     # for a special observing mode but 99% of the times a nice default
     # is fine.
-    if ($pkg->can("override_headers")) {
-        $pkg->override_headers($hdr, %info);
+    if ($hdrobj->can("override_headers")) {
+        $hdrobj->override_headers($hdr, %info);
     }
-
-    # clear global handles to allow the file to close at some point
-    OMP::Translator::Headers::JCMT->HANDLES(undef);
 
     $cfg->header($hdr);
 }
