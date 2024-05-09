@@ -56,9 +56,9 @@ Convert the science program object (C<OMP::SciProg>) into
 a observing sequence understood by the instrument data acquisition
 system.
 
-    $xmlfile = OMP::Translate->translate($sp);
-    $data = OMP::Translate->translate($sp, asdata => 1);
-    @data = OMP::Translate->translate($sp, asdata => 1, simulate => 1);
+    $xmlfile = OMP::Translator->translate($sp);
+    $data = OMP::Translator->translate($sp, asdata => 1);
+    @data = OMP::Translator->translate($sp, asdata => 1, simulate => 1);
 
 The actual translation is implemented by the relevant subclass.
 Currently JCMT Heterodyne and SCUBA-2 data can be translated.

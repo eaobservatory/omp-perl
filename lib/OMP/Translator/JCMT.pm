@@ -81,8 +81,8 @@ It is assumed that this MSB will refer to an OCS observation
 (and has been prefiltered by the caller, usually C<OMP::Translator>).
 Always returns the configs as an array of C<JAC::OCS::Config> objects.
 
-    @configs = OMP::Translate->translate($msb);
-    @configs = OMP::Translate->translate($msb, simulate => 1);
+    @configs = OMP::Translator->translate($msb);
+    @configs = OMP::Translator->translate($msb, simulate => 1);
 
 It is the responsibility of the caller to write these objects.
 
