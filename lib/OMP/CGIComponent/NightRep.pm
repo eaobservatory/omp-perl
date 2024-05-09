@@ -587,7 +587,9 @@ sub store_time_accounting {
         my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
-        $nr->db_accounts(OMP::TimeAcctGroup->new(accounts => \@acct));
+        $nr->db_accounts(OMP::TimeAcctGroup->new(
+            DB => $self->database,
+            accounts => \@acct));
     }
 
     return @errors;

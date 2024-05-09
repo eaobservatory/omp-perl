@@ -257,6 +257,7 @@ sub db_accounts {
         my $acctgrp = OMP::TimeAcctGroup->new(
             accounts => \@acct,
             telescope => $self->telescope,
+            DB => $self->db,
         );
 
         $self->{DBAccounts} = $acctgrp;
@@ -474,7 +475,9 @@ sub hdr_accounts {
         }
 
         # Store the result
-        my $acctgrp = OMP::TimeAcctGroup->new(accounts => \@acct);
+        my $acctgrp = OMP::TimeAcctGroup->new(
+            accounts => \@acct,
+            DB => $self->db);
         $self->{HdrAccounts} = $acctgrp;
 
         # Store warnings

@@ -8,7 +8,9 @@ OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
 
     use OMP::TimeAcctGroup;
 
-    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
+    $tg = OMP::TimeAcctGroup->new(
+        DB => $database,
+        accounts => \@accounts);
 
     @stats = $tg->timeLostStats();
 
@@ -28,7 +30,6 @@ use Carp;
 our $VERSION = '2.000';
 
 use OMP::Config;
-use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
@@ -52,7 +53,9 @@ Object constructor. Takes a hash as an argument, the keys of which can
 be used to populate the object.  The keys must match the names of the
 accessor methods (ignoring case).
 
-    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
+    $tg = OMP::TimeAcctGroup->new(
+        DB => $database,
+        accounts => \@accounts);
 
 Arguments are optional.
 
@@ -654,23 +657,25 @@ sub shifttypes {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DB::Backend> object). The first
-time this is called, triggers a database connection.
+A shared database connection (an C<OMP::DB::Backend> object).
 
     $db = $tg->db;
-
-Takes no arguments.
 
 =cut
 
 sub db {
     my $self = shift;
 
-    unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DB::Backend->new;
+    if (@_) {
+        my $db = shift;
+         throw OMP::Error::FatalError(
+             'DB must be an OMP::DB::Backend object')
+             unless eval {$db->isa('OMP::DB::Backend')};
+
+        $self->{'DB'} = $db;
     }
 
-    return $self->{DB};
+    return $self->{'DB'};
 }
 
 =back
@@ -767,7 +772,9 @@ sub completion_stats {
             projectid => [keys %projectids],
         });
         my @offset_accts = $tdb->queryTimeSpent($query);
-        my $offset_grp = $self->new(accounts => \@offset_accts);
+        my $offset_grp = $self->new(
+            accounts => \@offset_accts,
+            DB => $self->db);
 
         #DEBUG
         printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n",
@@ -846,7 +853,8 @@ sub group_by_ut {
     for my $ut (keys %accts) {
         $accts{$ut} = $self->new(
             accounts => $accts{$ut},
-            telescope => $self->telescope
+            telescope => $self->telescope,
+            DB => $self->db,
         );
     }
 
