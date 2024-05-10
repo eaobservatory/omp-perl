@@ -18,42 +18,45 @@
 
 use strict;
 
-use Test::More tests => 1 + (8 * 2);
+use Test::More tests => 2 + (8 * 2);
 use Test::Number::Delta;
 
 require_ok('OMP::Translator::SCUBA2');
 
+my $translator = OMP::Translator::SCUBA2->new;
+isa_ok($translator, 'OMP::Translator::SCUBA2');
+
 # Test "dynamic" pong scan parameters.
 my ($dy, $vel);
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(7200.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(7200.0);
 is($dy, 360, 'PONG7200 dy');
 is($vel, 600, 'PONG7200 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(3600.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(3600.0);
 is($dy, 180, 'PONG3600 dy');
 is($vel, 600, 'PONG3600 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(2700.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(2700.0);
 is($dy, 105, 'PONG2700 dy');
 is($vel, 540, 'PONG2700 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(1800.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(1800.0);
 is($dy, 60, 'PONG1800 dy');
 is($vel, 400, 'PONG1800 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(900.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(900.0);
 is($dy, 30, 'PONG900 dy');
 is($vel, 280, 'PONG900 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(600.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(600.0);
 is($dy, 30, 'PONG600 dy');
 delta_ok($vel, 300.0, 'PONG600 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(300.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(300.0);
 is($dy, 30, 'PONG300 dy');
 delta_ok($vel, 150.0, 'PONG300 vel');
 
-($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(150.0);
+($dy, $vel) = $translator->_get_dyn_pong_parameters(150.0);
 is($dy, 30, 'PONG150 dy');
 delta_ok($vel, 75.0, 'PONG150 vel');
