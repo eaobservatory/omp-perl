@@ -230,6 +230,7 @@ sub translate {
     # Loop over each MSB
     my @configs;  # Somewhere to put the translated output
     my @classes;  # and translator class used
+    my @translators;  # and the translator objects
     for my $msb (@msbs) {
         # Survey Containers in child nodes present a problem since
         # the _get_SpObs method does not return clones for each target
@@ -329,8 +330,7 @@ sub translate {
                 unless exists $class_lut{$inst};
 
             # Create the full class name
-            my $class = $class_lut{$inst};
-            $class = $thisclass . '::' . $class;
+            my $class = $thisclass . '::' . $class_lut{$inst};
             print "Class is : $class\n" if $opts{'debug'};
 
             # Load the class
@@ -340,14 +340,16 @@ sub translate {
                     "Error loading class '$class': $@\n");
             }
 
-            # Set DEBUGGING in the class depending on the debugging state here
-            $class->debug($opts{'debug'});
+            my $translator = $class->new;
+
+            # Set DEBUGGING in the translator depending on the debugging state here
+            $translator->debug($opts{'debug'});
 
             # enable verbose logging
-            $class->verbose($verbose) if $class->can("verbose");
+            $translator->verbose($verbose) if $translator->can("verbose");
 
             # and register filehandles
-            $class->outhdl(@handles) if $class->can("outhdl");
+            $translator->outhdl(@handles) if $translator->can("outhdl");
 
             if (defined $logh) {
                 print $logh "---------------------------------------------\n";
@@ -363,7 +365,7 @@ sub translate {
 
             # And forward to the correct translator
             # We always get objects, sometimes multiple objects
-            my @new = $class->translate($tmpmsb, simulate => $opts{simulate});
+            my @new = $translator->translate($tmpmsb, simulate => $opts{simulate});
 
             if (defined $logh and not $opts{'no_log_input'}) {
                 # Basic XML
@@ -381,18 +383,16 @@ sub translate {
                 print $logh "---------------------------------------------\n";
             }
 
-            # Reset handles so that the globals do not hang around
-            $class->outhdl(undef) if $class->can("outhdl");
-
             # Now force translator directory into config
             # All of the objects returned by translate() support the outputdir() method
-            $_->outputdir($class->transdir) for @new;
+            $_->outputdir($translator->transdir) foreach @new;
 
             # Store them in the main config array
             push @configs, @new;
 
             # and store the class for each config
-            push @classes, $class for @new;
+            push @classes, $class foreach @new;
+            push @translators, $translator foreach @new;
         }
     }
 
@@ -407,21 +407,20 @@ sub translate {
             else {
                 push @contiguous, {
                     class => $classes[$i],
+                    translator => $translators[$i],
                     configs => [$configs[$i]]};
             }
         }
 
         my @newconfigs;
         for my $groups (@contiguous) {
-            my $class = $groups->{class};
+            my $translator = $groups->{'translator'};
             my @theseconfigs = @{$groups->{configs}};
-            if ($class->can("insert_setup_obs")) {
-                $class->outhdl(@handles) if $class->can("outhdl");
+            if ($translator->can('insert_setup_obs')) {
                 push @newconfigs,
-                    $class->insert_setup_obs(
+                    $translator->insert_setup_obs(
                         {simulate => $opts{simulate}},
                         @theseconfigs);
-                $class->outhdl(undef) if $class->can("outhdl");
             }
             else {
                 push @newconfigs, @theseconfigs;

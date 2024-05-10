@@ -7,7 +7,7 @@ OMP::Translator::SCUBA2 - translate SCUBA2 observations to configure XML
 =head1 SYNOPSIS
 
     use OMP::Translator::SCUBA2;
-    $config = OMP::Translator::SCUBA2->translate($sp);
+    $config = OMP::Translator::SCUBA2->new->translate($sp);
 
 =head1 DESCRIPTION
 
@@ -41,6 +41,32 @@ use OMP::Translator::Headers::SCUBA2;
 use base qw/OMP::Translator::JCMT/;
 
 =head1 METHODS
+
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+Construct SCUBA-2 translator object
+
+    $translator = $class->new;
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new();
+
+    $self->{'extra_apertures'} = undef;
+
+    return $self;
+}
+
+=back
+
+=head2 General Methods
 
 =over 4
 
@@ -86,7 +112,7 @@ Note that this works on translated observations.
 =cut
 
 sub insert_setup_obs {
-    my $class = shift;
+    my $self = shift;
 
     my %transargs;
     if (ref($_[0]) eq 'HASH') {
@@ -126,7 +152,7 @@ sub insert_setup_obs {
     OMP::Error::TranslateFail->throw("Could not create MSB of setup observation")
         unless defined $setupmsb;
 
-    my @setups = $class->translate($setupmsb, %transargs);
+    my @setups = $self->translate($setupmsb, %transargs);
 
     # Get the MSBID and title from the first config and force the setup
     # to inherit them.
@@ -699,31 +725,27 @@ Reads the extra apertures file and returns a hashref of name to X, Y pair.
 
 =cut
 
-{
-    my $extra_apertures = undef;
-
-    sub read_extra_apertures {
-        unless (defined $extra_apertures) {
-            my $self = shift;
-            my %hash = ();
-            my $file = File::Spec->catfile($self->wiredir(), 'extra_apertures.txt');
-            my $fh = IO::File->new($file);
-            if ($fh) {
-                while (<$fh>) {
-                    chomp;
-                    my ($name, $x, $y, undef) = split;
-                    $hash{$name} = [$x, $y];
-                }
+sub read_extra_apertures {
+    my $self = shift;
+    unless (defined $self->{'extra_apertures'}) {
+        my %hash = ();
+        my $file = File::Spec->catfile($self->wiredir(), 'extra_apertures.txt');
+        my $fh = IO::File->new($file);
+        if ($fh) {
+            while (<$fh>) {
+                chomp;
+                my ($name, $x, $y, undef) = split;
+                $hash{$name} = [$x, $y];
             }
-            $extra_apertures = \%hash;
         }
-        return $extra_apertures;
+        $self->{'extra_apertures'} = \%hash;
     }
+    return $self->{'extra_apertures'};
 }
 
 =back
 
-=head1 CONFIG GENERATORS
+=head2 Config Generators
 
 These routine configure the specific C<JAC::OCS::Config> objects.
 

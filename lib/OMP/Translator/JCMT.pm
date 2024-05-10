@@ -7,7 +7,7 @@ OMP::Translator::JCMT - Base class for JCMT configure XML translations
 =head1 SYNOPSIS
 
     use OMP::Translator::JCMT;
-    $config = OMP::Translator::JCMT->translate($sp);
+    $config = OMP::Translator::JCMT->new->translate($sp);
 
 =head1 DESCRIPTION
 
@@ -44,9 +44,6 @@ use OMP::Translator::Headers::JCMT;
 
 use base qw/OMP::Translator::Base/;
 
-# Default directory for writing configs
-our $TRANS_DIR = OMP::Config->getData('jcmt_translator.transdir');
-
 # Version number
 our $VERSION = '2.000';
 
@@ -71,6 +68,34 @@ our %FE_MAP = (
 use constant DIAM => 15;
 
 =head1 METHODS
+
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+Construct JCMT translator object
+
+    $translator = $class->new;
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new();
+
+    $self->{'transdir'} = OMP::Config->getData('jcmt_translator.transdir');
+    $self->{'wiredir'} = undef;
+    $self->{'handle'} = \*STDOUT;
+
+    return $self;
+}
+
+=back
+
+=head2 General Methods
 
 =over 4
 
@@ -293,25 +318,19 @@ sub translate {
 
 =item B<debug>
 
-Method to enable and disable global debugging state.
+Method to enable and disable debugging state.
 
-    OMP::Translator::JCMT->debug(1);
-
-Note that debugging will be enabled for all subclasses.
+    $translator->debug(1);
 
 =cut
 
-{
-    my $dbg;
-
-    sub debug {
-        my $class = shift;
-        if (@_) {
-            my $state = shift;
-            $dbg = ($state ? 1 : 0);
-        }
-        return $dbg;
+sub debug {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'debug'} = ($state ? 1 : 0);
     }
+    return $self->{'debug'};
 }
 
 =item B<outhdl>
@@ -319,51 +338,40 @@ Note that debugging will be enabled for all subclasses.
 Output file handles to use for verbose messages.
 Defaults to STDOUT.
 
-    OMP::Translator::JCMT->outhdl(\*STDOUT, $fh);
+    $translator->outhdl(\*STDOUT, $fh);
 
-Returns an C<IO::Tee> object.
-
-Pass in undef to reset to the default.
+Pass in undef to reset to STDOUT.
 
 =cut
 
-{
-    my $def = IO::Tee->new(\*STDOUT);
-    my $oh = $def;
-
-    sub outhdl {
-        my $class = shift;
-        if (@_) {
-            unless (defined $_[0]) {
-                $oh = $def;  # reset
-            }
-            else {
-                $oh = IO::Tee->new(@_);
-            }
+sub outhdl {
+    my $self = shift;
+    if (@_) {
+        unless (defined $_[0]) {
+            $self->{'handle'} = \*STDOUT;
         }
-        return $oh;
+        else {
+            $self->{'handle'} = IO::Tee->new(@_);
+        }
     }
+    return $self->{'handle'};
 }
 
 =item B<verbose>
 
-Method to enable and disable global verbosity state.
+Method to enable and disable verbosity state.
 
-    OMP::Translator::JCMT->verbose(1);
+    $translator->verbose(1);
 
 =cut
 
-{
-    my $verb;
-
-    sub verbose {
-        my $class = shift;
-        if (@_) {
-            my $state = shift;
-            $verb = ($state ? 1 : 0);
-        }
-        return $verb;
+sub verbose {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'verbose'} = ($state ? 1 : 0);
     }
+    return $self->{'verbose'};
 }
 
 =item B<output>
@@ -391,17 +399,17 @@ sub output {
 
 Override the default translation directory.
 
-    OMP::Translator::JCMT->transdir($dir);
+    $translator->transdir($dir);
 
 =cut
 
 sub transdir {
-    my $class = shift;
+    my $self = shift;
     if (@_) {
         my $dir = shift;
-        $TRANS_DIR = $dir;
+        $self->{'transdir'} = $dir;
     }
-    return $TRANS_DIR;
+    return $self->{'transdir'};
 }
 
 =item B<wiredir>
@@ -412,19 +420,14 @@ Returns the wiring directory that should be used for ACSIS.
 
 =cut
 
-{
-    my $wiredir;
-
-    sub wiredir {
-        my $self = shift;
-        unless (defined $wiredir) {
-            my $key = $self->cfgkey;
-            $wiredir = OMP::Config->getData($key . '.wiredir');
-        }
-        return $wiredir;
+sub wiredir {
+    my $self = shift;
+    unless (defined $self->{'wiredir'}) {
+        my $key = $self->cfgkey;
+        $self->{'wiredir'} = OMP::Config->getData($key . '.wiredir');
     }
+    return $self->{'wiredir'};
 }
-
 
 =item B<cfgkey>
 
@@ -458,7 +461,7 @@ sub _get_hdr_object {
 
 =back
 
-=head1 CONFIG GENERATORS
+=head2 Config Generators
 
 These routines configure the specific C<JAC::OCS::Config> objects.
 

@@ -7,7 +7,7 @@ OMP::Translator::ACSIS - translate ACSIS heterodyne observations to Configure XM
 =head1 SYNOPSIS
 
     use OMP::Translator::ACSIS;
-    $config = OMP::Translator::ACSIS->translate($sp);
+    $config = OMP::Translator::ACSIS->new->translate($sp);
 
 =head1 DESCRIPTION
 
@@ -93,6 +93,8 @@ our $LO2_INCR = 0.5E6;
 our $LO2_RANGE = OMP::Range->new(Min => 5.7E9, Max => 10.5E9);
 
 =head1 METHODS
+
+=head2 General Methods
 
 =over 4
 
@@ -730,7 +732,7 @@ sub _determine_best_sideband {
 
 =back
 
-=head1 CONFIG GENERATORS
+=head2 Config Generators
 
 These routines configure the specific C<JAC::OCS::Config> objects.
 
@@ -4999,7 +5001,7 @@ Returns empty list if no override is specified.
 =cut
 
 sub velOverride {
-    my $class = shift;
+    my $self = shift;
     my %info = @_;
 
     my $freq = $info{freqconfig};

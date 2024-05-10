@@ -32,14 +32,39 @@ use warnings;
 use OMP::Constants qw/:msb/;
 use OMP::General;
 
-our $DEBUG = 0;
-our $VERBOSE = 0;
-
 =head1 METHODS
+
+=head2 Constructor
 
 =over 4
 
-=item <PosAngRot>
+=item B<new>
+
+Create new translator object.
+
+    $translator = $class->new;
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $self = bless {
+        debug => 0,
+        verbose => 0,
+    }, $class;
+
+    return $self;
+}
+
+=back
+
+=head2 General Methods
+
+=over 4
+
+=item B<PosAngRot>
 
 Rotate coordinates through a specified position angle.
 Position Angle is defined as "East of North". This means
