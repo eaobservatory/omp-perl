@@ -100,12 +100,12 @@ my ($type, $verbose, @file) = ('acsis');
 die "SCUBA2 header verification is not complete yet.\n"
     if $type eq 'scuba2';
 
-my $translator = join '::', 'OMP::Translator', uc $type;
-eval "require $translator" or die $@;
+my $class = join '::', 'OMP::Translator', uc $type;
+eval "require $class" or die $@;
+my $translator = $class->new;
 
 if ($DEBUG) {
-    no strict 'refs';
-    ${"${translator}::DEBUG"} = $DEBUG;
+    $translator->debug(1);
 }
 
 # XML file describing the headers.
@@ -131,8 +131,9 @@ foreach my $file (@ARGV) {
         next;
     }
 
-    my $ocs_cf = new JAC::OCS::Config::Header('File' => $header_def,
-                                              'validation' => 0);
+    my $ocs_cf = JAC::OCS::Config::Header->new(
+        'File' => $header_def,
+        'validation' => 0);
 
     warn sprintf "obs type: %s  obs mode: %s  mapping mode: ?\n",
                  map {$obs->$_ || ''} qw/type mode/
