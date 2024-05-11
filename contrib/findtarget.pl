@@ -27,6 +27,7 @@ use Getopt::Long;
 
 use OMP::Config;
 use OMP::DateTools;
+use OMP::DB::Backend;
 use OMP::FindTarget qw/find_and_display_targets/;
 use OMP::Password;
 
@@ -174,6 +175,7 @@ unless (($ra ne "" && $dec ne "") || $proj ne "") {
 }
 
 find_and_display_targets(
+    DB => OMP::DB::Backend->new,
     proj => $proj,
     ra => $ra,
     dec => $dec,
