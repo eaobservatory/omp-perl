@@ -140,9 +140,12 @@ print "Analyzing "
     . (defined $country ? uc($country) . ' ' : '')
     . "queue status.\n";
 
+my $backend = OMP::DB::Backend->new();
+
 my ($queryresult, %projq, %projmsb, %projinst, $utmin, $utminobj, $utmax, $utmaxobj);
 do {
     ($queryresult, $utminobj, $utmaxobj) = query_queue_status(
+        DB => $backend,
         telescope => $telescope,
         ($country ? (country => $country) : ()),
         ($semester ? (semester => $semester) : ()),
@@ -222,7 +225,6 @@ for my $p (keys %projq) {
 }
 
 # Now populate the project hash with project details
-my $backend = OMP::DB::Backend->new();
 my $projdb = OMP::DB::Project->new(DB => $backend,);
 
 for my $p (keys %projects) {

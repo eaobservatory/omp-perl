@@ -20,7 +20,6 @@ use Time::Seconds qw/ONE_MINUTE ONE_HOUR/;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::DateSun;
-use OMP::DB::Backend;
 use OMP::DB::MSB;
 use OMP::Query::MSB;
 use OMP::DB::ProjAffiliation qw/@AFFILIATIONS/;
@@ -37,6 +36,10 @@ Contains code extracted from the F<client/qstatus.pl> script.
 Options:
 
 =over 4
+
+=item DB
+
+Database backend object.  Required.
 
 =item telescope
 
@@ -90,7 +93,7 @@ sub query_queue_status {
     die 'telescope not specified' unless defined $telescope;
 
     # Create MSB database instance
-    my $backend = OMP::DB::Backend->new();
+    my $backend = $opt{'DB'};
     my $db = OMP::DB::MSB->new(DB => $backend);
 
     # Are we searching for a particular affiliation?  If so read the list

@@ -107,7 +107,9 @@ sub view_queue_status {
         }
 
         # Pass options to query_queue_status.
-        my ($proj_msb, $utmin, $utmax) = query_queue_status(%query_opt);
+        my ($proj_msb, $utmin, $utmax) = query_queue_status(
+            DB => $self->database,
+            %query_opt);
 
         # Copy all results to the all-band hash.
         foreach my $project (keys %$proj_msb) {
