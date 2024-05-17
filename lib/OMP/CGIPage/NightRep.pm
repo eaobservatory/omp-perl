@@ -304,7 +304,6 @@ sub night_report {
             ['meteogram', 'EAO meteogram', $weathercomp->meteogram_plot($utdate)],
             ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
             ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
-            ['transparency', 'CFHT transparency', $weathercomp->transparency_plot($utdate)],
         ]),
     };
 }
