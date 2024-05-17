@@ -1,5 +1,5 @@
 [% MACRO render_shift_log_entries(comments, multiple_night) BLOCK %]
-    <table class="sum_table" cellspacing="0" width="600">
+    <table class="sum_table" cellspacing="0" width="800">
         [% SET bgcolor = 'b' %]
         [% FOREACH date IN comments %]
             [% IF multiple_night %]
@@ -13,8 +13,8 @@
             [% END %]
             [% FOREACH comment IN date.value %]
                 <tr class="row_[% bgcolor %]" valign="top" id="shiftid_[% comment.id %]">
-                    <td class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
-                    <td class="[% timecellclass _ '_' _ bgcolor %]">
+                    <td width="160" class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
+                    <td width="90" class="[% timecellclass _ '_' _ bgcolor %]">
                         [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
                     <td class="subject">[% comment.remove_pre_tags %]</td>
                 </tr>
