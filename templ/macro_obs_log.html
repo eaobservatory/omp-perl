@@ -7,14 +7,3 @@
       </p>
   [% END %]
 [% END -%]
-[% MACRO render_weather_plot_links(weather_plots) BLOCK %]
-    [% IF weather_plots.defined && ! weather_plots.empty %]
-        <p>
-            Weather information:
-            [% FOREACH weather_plot IN weather_plots %]
-                [% UNLESS loop.count % 4 %]<br />[% END %]
-                <a href="#[% weather_plot.0 | uri %]">[% weather_plot.1 | html %]</a>
-            [% END %]
-        </p>
-    [% END %]
-[% END -%]

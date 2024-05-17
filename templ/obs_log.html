@@ -43,10 +43,6 @@
     </p>
 </form>
 
-<p>
-    <a href="/cgi-bin/staffworfthumb.pl?ut=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">View WORF thumbnails</a>
-</p>
-
 [% IF sched_night.defined %]
     [% SET sched_night_slots = sched_night.slots_merged %]
     <p>
@@ -61,20 +57,6 @@
             (HST)
         [% END %]
     </p>
-[% END %]
-
-[% render_weather_plot_links(weather_plots) %]
-
-[% IF ut_date_delta < 14 %]
-    <p>
-        <a href="#faultsum">Fault summary</a>
-        <br />
-        <a href="#shiftcom">Shift log comments</a>
-        /
-        <a href="shiftlog.pl?date=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">Add shift log comment</a>
-        <br />
-        <a href="#obslog">Observation log</a>
-    <p>
 [% END %]
 
 [% render_night_report(night_report) %]
