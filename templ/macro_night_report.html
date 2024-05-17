@@ -187,7 +187,14 @@
 [% MACRO render_nr_fault_summary(night_report) BLOCK %]
     <h2><a name="faultsum">Fault summary</a></h2>
 
-    <table class="sum_table" cellspacing="0" width="600">
+    <table class="sum_table" cellspacing="0" width="800">
+        <tr class="sum_other">
+            <td width="100">Fault</td>
+            <td width="80">Time</td>
+            <td>Subject</td>
+            <td width="80" align="right">Loss / hr</td>
+            <td width="80" align="right">Shift</td>
+        </tr>
         [% FOREACH date IN night_report.faults_by_date %]
             [% SET timecellclass = 'time_a' %]
             [% IF night_report.delta_day != 1 %]
@@ -203,7 +210,7 @@
 
                     <td class="[% timecellclass %]">[% fault.date.strftime("%H:%M UT") | html %]</td>
                     <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="subject">[% fault.subject | html %]</a></td>
-                    <td class="time" align="right">[% fault.timelost | html %] hrs lost</td>
+                    <td class="time" align="right">[% fault.timelost | html %]</td>
                     <td class="shift" align="right">[% fault.shifttype | html %]</td>
                 </tr>
             [% END %]
