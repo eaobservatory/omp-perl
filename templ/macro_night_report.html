@@ -162,7 +162,7 @@
     <table class="sum_table" cellspacing="0" width="800">
         [% FOREACH project IN night_report.msbs %]
             <tr class="sum_other">
-                <td><a href="/cgi-bin/msbhist.pl?project=[% project.key | uri %]" class="link_dark">[% project.key | html %]</a></td>
+                <td><a href="/cgi-bin/projecthome.pl?project=[% project.key | uri %]" class="link_dark">[% project.key | html %]</a></td>
                 <td>Name</td>
                 <td>Waveband</td>
                 <td>Instrument</td>
