@@ -1292,6 +1292,7 @@ is an arrayref of entries.  Each entry is of the form:
             observed => $time,
             project => $time,
             total => $time,
+            pending => $time,
             clear => $time,
         }
     }
@@ -1351,6 +1352,106 @@ sub get_time_summary {
         overall => $overall_info,
         shift => \@shift_info,
     };
+}
+
+=item B<get_time_summary_combined>
+
+Prepare summarized time accounting information, as from
+C<get_time_summary_combined>, but where the various entries
+are organized by shift.
+
+=cut
+
+sub get_time_summary_combined {
+    my $self = shift;
+    my $time_summary = $self->get_time_summary();
+    my $overall = $time_summary->{'overall'};
+    my $shifts = $time_summary->{'shift'};
+
+    my @shift_names = map {$_->{'shift'}} @{$shifts};
+
+    my %combined = ();
+
+    # Top-level entries
+    foreach my $key (qw/shut faultloss technicalloss nontechnicalloss/) {
+        $combined{$key} = {
+            overall => $overall->{$key},
+            map {$_->{'shift'} => $_->{$key}} @$shifts,
+        } if $overall->{$key} || $key ne 'shut';
+    }
+
+    # Totals
+    foreach my $key (qw/observed project total clear pending/) {
+        $combined{'total'}->{$key} = {
+            overall => $overall->{'total'}->{$key},
+            map {$_->{'shift'} => $_->{'total'}->{$key}} @$shifts,
+        };
+    }
+
+    # Special categories
+    foreach my $entry (@{$overall->{'special'}}) {
+        my $name = $entry->{'name'};
+        my %combinedentry = (
+            name => $name,
+            overall => $entry,
+        );
+        foreach my $shift (@$shifts) {
+            foreach my $shiftentry (@{$shift->{'special'}}) {
+                if ($shiftentry->{'name'} eq $name) {
+                    $combinedentry{$shift->{'shift'}} = $shiftentry;
+                    last;
+                }
+            }
+        }
+        push @{$combined{'special'}}, \%combinedentry;
+    }
+
+    # Country and project
+    foreach my $entry (@{$overall->{'country'}}) {
+        my $country = $entry->{'country'};
+        my %combinedentry = (
+            country => $country,
+            total => {overall => $entry->{'total'}},
+        );
+
+        foreach my $shift (@$shifts) {
+            foreach my $shiftentry (@{$shift->{'country'}}) {
+                if ($shiftentry->{'country'} eq $country) {
+                    $combinedentry{'total'}->{$shift->{'shift'}} = $shiftentry->{'total'};
+                    last;
+                }
+            }
+        }
+
+        foreach my $projectentry (@{$entry->{'project'}}) {
+            my $project = $projectentry->{'project'};
+            my %combinedproject = (
+                project => $project,
+                overall => $projectentry,
+            );
+            foreach my $shift (@$shifts) {
+                foreach my $shiftentry (@{$shift->{'country'}}) {
+                    if ($shiftentry->{'country'} eq $country) {
+                        foreach my $shiftprojectentry (@{$shiftentry->{'project'}}) {
+                            if ($shiftprojectentry->{'project'} eq $project) {
+                                $combinedproject{$shift->{'shift'}} = $shiftprojectentry;
+                                last;
+                            }
+                        }
+                        last;
+                    }
+                }
+            }
+            push @{$combinedentry{'project'}}, \%combinedproject;
+        }
+
+        push @{$combined{'country'}}, \%combinedentry;
+    }
+
+    return {
+        combined => \%combined,
+        shifts => \@shift_names,
+    }
 }
 
 sub _get_time_summary_shift {
