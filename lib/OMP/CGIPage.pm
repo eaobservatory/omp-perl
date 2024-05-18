@@ -639,6 +639,17 @@ sub render_template {
         return OMP::Display::escape_entity($object->text);
     });
 
+    $templatecontext->define_filter('abbr_html', sub {
+        my ($context, $width) = @_;
+        return sub {
+            my $text = shift;
+            return OMP::Display::escape_entity($text) if $width >= length $text;
+            return '<abbr title="' . OMP::Display::escape_entity($text) . '">'
+                . OMP::Display::escape_entity(substr $text, 0, $width)
+                . '&hellip;</abbr>';
+        };
+    }, 1);
+
     my $template = Template->new({
         CONTEXT => $templatecontext,
         ENCODING => 'utf8',

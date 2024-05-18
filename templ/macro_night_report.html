@@ -123,7 +123,7 @@
                             [% entry.$shift.time | format(time_format) %]
                             [% IF entry.$shift.pending %](unconfirmed)[% END %]
                         </td>
-                        <td colspan="2">[% entry.$shift.comment | html %]</td>
+                        <td colspan="2">[% entry.$shift.comment | abbr_html(15) %]</td>
                     [% ELSE %]
                         <td colspan="3">&mdash;</td>
                     [% END %]
@@ -157,7 +157,7 @@
                                 [% entry.$shift.time | format(time_format) %]
                                 [% IF entry.$shift.pending %](unconfirmed)[% END %]
                             </td>
-                            <td [% UNLESS show_country_totals %]colspan="2"[% END %]>[% entry.$shift.comment | html %]</td>
+                            <td [% UNLESS show_country_totals %]colspan="2"[% END %]>[% entry.$shift.comment | abbr_html(15) %]</td>
                         [% ELSE %]
                             <td colspan="[% show_country_totals ? 2 : 3 %]">&mdash;</td>
                         [% END %]
