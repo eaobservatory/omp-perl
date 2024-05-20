@@ -79,29 +79,6 @@ sub fb_entries {
         };
 }
 
-=item B<fb_entries_count>
-
-Return the number of comments.
-
-    my $num_comments = $comp->fb_entries_count($projectid);
-
-=cut
-
-sub fb_entries_count {
-    my $self = shift;
-    my $projectid = shift;
-
-    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
-    my $comments = $fdb->getComments(
-        status => [
-            OMP__FB_IMPORTANT,
-            OMP__FB_INFO,
-            OMP__FB_SUPPORT,
-            OMP__FB_HIDDEN,
-    ]);
-    return scalar @$comments;
-}
-
 =item B<submit_fb_comment>
 
 Submit a feedback comment
