@@ -1,12 +1,8 @@
 [% PROCESS "macro_project.html" -%]
 [% WRAPPER "layout.html" %]
-<h1>Add feedback comment to project [% project.projectid | html %]</h1>
+<h1>[% project.projectid | html %]: Add comment</h1>
 
 [% render_project_status_table(project) %]
-
-[% render_feedback_count(project, num_comments) %]
-
-<hr />
 
 [% IF ! messages.empty %]
     [% FOREACH message IN messages %]

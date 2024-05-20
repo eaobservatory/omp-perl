@@ -56,7 +56,6 @@ sub add_comment {
             project => $project,
             target => undef,
             %{$comp->submit_fb_comment($projectid)},
-            num_comments => $comp->fb_entries_count($projectid),
         };
     }
 
@@ -69,7 +68,6 @@ sub add_comment {
             subject => (scalar $q->param('subject')),
         },
         messages => [],
-        num_comments => $comp->fb_entries_count($projectid),
     };
 }
 
