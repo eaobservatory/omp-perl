@@ -107,7 +107,6 @@ sub fb_output {
     return {
         target => $self->url_absolute(),
         project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
-        num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
         feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
         display_date => sub {
             return OMP::DateTools->display_date($_[0]);
