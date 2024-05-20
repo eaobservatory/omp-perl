@@ -95,7 +95,6 @@ sub fb_msb_output {
 
     return {
         project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
-        num_comments => $fbcomp->fb_entries_count($projectid),
         target => $self->url_absolute(),
         prog_info => $prog_info,
         comment_msb_checksum => $checksum,
