@@ -42,7 +42,7 @@ sub view_region {
 
     unless ($q->param('submit_output')) {
         return {
-            title => 'Download or Plot Regions for ' . uc($projectid),
+            title => (sprintf '%s: Science program regions', uc $projectid),
             target => $self->url_absolute(),
             selections => [
                 [all => 'All observations'],

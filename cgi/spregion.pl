@@ -22,6 +22,6 @@ use OMP::CGIPage::SpRegion;
 OMP::CGIPage::SpRegion->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::SpRegion::view_region,
     'project',
-    title => 'Science Program Regions',
+    title => 'Science program regions',
     template => 'project_sp_region.html',
 );
