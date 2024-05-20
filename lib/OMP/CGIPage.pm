@@ -759,13 +759,13 @@ sub _sidebar_project {
 
     $self->side_bar("Project $projectid", [
         ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
+        ['Contacts' => "/cgi-bin/projusers.pl?project=$projectid"],
         ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
-        ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+        ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
+        ['Active MSBs' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+        ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
         ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
         ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
-        ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
-        ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
-        [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
         (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
     ]);
 
