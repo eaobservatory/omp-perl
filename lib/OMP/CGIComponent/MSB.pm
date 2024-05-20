@@ -329,33 +329,6 @@ sub msb_comments {
     };
 }
 
-=item B<msb_count>
-
-Returns the current number of MSBs.
-
-    my $num_msbs = $comp->msb_count($projectid);
-
-=cut
-
-sub msb_count {
-    my $self = shift;
-    my $projectid = shift;
-
-    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
-
-    my $num_msbs = undef;
-    try {
-        my $msbs = $msbdb->getMSBCount($projectid);
-        $num_msbs = (exists $msbs->{$projectid}) ? $msbs->{$projectid}->{'total'} : 0;
-
-    }
-    otherwise {
-        my $E = shift;
-    };
-
-    return $num_msbs;
-}
-
 =item B<msb_table>
 
 Create a table containing information about given MSBs
