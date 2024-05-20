@@ -5,23 +5,16 @@
 [% MACRO render_project_status_table(project) BLOCK %]
     <table class="infobox" cellspacing="1" cellpadding="2" width="100%">
         <tr>
-            <td><b>PI:</b>[% render_project_member(project, project.pi, is_support=0) %]</td>
+            <td><b>PI:</b> [% render_project_member(project, project.pi, is_support=0) %]</td>
             <td><b>Title:</b> [% project.title | html %]</td>
-            <td><a href="/cgi-bin/props.pl?project=[% project.projectid %]">Science Case</a>
-            </td>
         </tr>
         <tr>
-            <td colspan="2"><b>CoI:</b>[% FOREACH coi IN project.coi %]
-                [% render_project_member(project, coi, is_support=0) %][% IF ! loop.last %],[% END %]
-            [% END %]</td>
-            <td><b>Staff Contact:</b>[% FOREACH support IN project.support %]
-                [% render_project_member(project, support, is_support=1) %][% IF ! loop.last %],[% END %]
-            [% END %]</td>
+            <td><b>Time allocated:</b> [% project.allocated.pretty_print | html %]</td>
+            <td><b>Queue:</b> [% project.country | html %]</td>
         </tr>
         <tr>
-            <td><b>Time allocated:</b>[% project.allocated.pretty_print | html %]</td>
-            <td><b>Time Remaining:</b>[% project.allRemaining.pretty_print | html %]</td>
-            <td><b>Queue:</b>[% project.country | html %]</td>
+            <td><b>Time remaining:</b> [% project.allRemaining.pretty_print | html %]</td>
+            <td>&nbsp;</td>
         </tr>
     </table>
 [% END -%]
