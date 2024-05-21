@@ -20,6 +20,6 @@ use OMP::CGIPage::PkgData;
 OMP::CGIPage::PkgData->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::PkgData::request_data,
     'project',
-    title => 'Data Retrieval',
+    title => 'Retrieve data',
     template => 'retrieve_data.html',
 );

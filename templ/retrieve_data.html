@@ -1,5 +1,5 @@
 [% WRAPPER "layout.html" %]
-<h1>Retrieve data for project [% projectid | html %]</h1>
+<h1>[% projectid | html %]: Retrieve data</h1>
 
 [% IF target.defined %]
     <form method="post" action="[% target %]">
