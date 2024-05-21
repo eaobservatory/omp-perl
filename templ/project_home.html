@@ -215,24 +215,4 @@
     [% msb_table(msbs_active.msbs, 1) %]
 [% END %]
 
-<p>
-    Click <a href="/cgi-bin/fbmsb.pl?project=[% project.projectid %]">here</a> for more details on the science program.
-    <br />
-    Click <a href="/cgi-bin/spregion.pl?project=[% project.projectid %]">here</a> to download or plot the regions observed in this program.
-</p>
-
-[% IF ! comments.empty %]
-    [% IF comments.size == 1 %]
-        <h3>There is 1 important comment
-    [% ELSE %]
-        <h3>There are [% comments.size %] important comments
-    [% END %]
-    for this project.</h3>
-    <p>
-        Click <a href="/cgi-bin/feedback.pl?project=[% project.projectid %]">here</a> to see them.
-    </p>
-[% ELSE %]
-    <h3>There are no important comments for this project.</h3>
-[% END %]
-
 [% END %]

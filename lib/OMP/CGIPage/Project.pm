@@ -293,10 +293,6 @@ sub project_home {
     otherwise {
     };
 
-    # Get the "important" feedback comments
-    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
-    my $comments = $fdb->getComments(status => [OMP__FB_IMPORTANT]);
-
     return {
         project => $project,
         is_staff => (!! $self->auth->is_staff),
@@ -310,7 +306,6 @@ sub project_home {
             ? $msbcomp->fb_msb_observed($projectid)
             : undef),
         msbs_active => $msbcomp->fb_msb_active($projectid),
-        comments => $comments,
         taurange_is_default => sub {
             return OMP::SiteQuality::is_default('TAU', $_[0]);
         },
