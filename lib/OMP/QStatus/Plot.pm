@@ -19,7 +19,6 @@ $ENV{PGPLOT_DIR} = '/star/bin' unless exists $ENV{PGPLOT_DIR};
 $ENV{PGPLOT_FONT} = '/star/bin/grfont.dat' unless exists $ENV{PGPLOT_FONT};
 
 use Astro::SourcePlot qw/sourceplot/;
-use OMP::QStatus qw/query_queue_status/;
 
 our @EXPORT_OK = qw/create_queue_status_plot/;
 

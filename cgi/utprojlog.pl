@@ -18,6 +18,6 @@ use OMP::CGIPage::NightRep;
 OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::NightRep::projlog_content,
     'project',
-    title => 'Project Log',
+    title => 'Project log',
     template => 'project_obs_log.html',
 );

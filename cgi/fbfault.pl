@@ -18,6 +18,6 @@ use OMP::CGIPage::Project;
 OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::Project::fb_fault_content,
     'project',
-    title => 'View Faults',
+    title => 'Faults',
     template => 'project_faults.html',
 );

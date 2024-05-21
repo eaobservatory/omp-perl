@@ -68,9 +68,9 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Password;
 
 our $VERSION = '2.000';
@@ -105,13 +105,13 @@ OMP::Password->get_verified_auth('staff');
 print "\n";
 
 # Connect to the database
-my $dbconnection = OMP::DBbackend->new();
+my $dbconnection = OMP::DB::Backend->new();
 
 for my $id (split(',', $idstr)) {
-    my $projdb = OMP::ProjDB->new(ProjectID => $id, DB => $dbconnection);
+    my $projdb = OMP::DB::Project->new(ProjectID => $id, DB => $dbconnection);
 
     # Get project
-    my $proj = $projdb->projectDetails('object');
+    my $proj = $projdb->projectDetails();
 
     # Display project state
     print "Project " . $proj->projectid . " is currently "

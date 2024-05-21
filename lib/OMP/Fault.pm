@@ -19,7 +19,7 @@ OMP::Fault - A software bug or system fault object
 
 This class deals with software bug or fault system objects.  Faults
 can be responded to and summarized. Most useful when used in
-conjunction with the fault database (see C<OMP::FaultDB>).
+conjunction with the fault database (see C<OMP::DB::Fault>).
 
 =cut
 
@@ -1995,7 +1995,7 @@ __END__
 
 =head1 SEE ALSO
 
-C<OMP::Fault::Response>, C<OMP::FaultDB>.
+C<OMP::Fault::Response>, C<OMP::DB::Fault>.
 
 =head1 AUTHORS
 

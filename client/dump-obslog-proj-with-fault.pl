@@ -23,6 +23,10 @@ BEGIN {
 
 use lib OMPLIB;
 
+use OMP::DB::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::Util::File;
 use OMP::NightRep;
 
 my $ROOT = '/export/data/obslog-dump';
@@ -47,6 +51,11 @@ GetOptions(
 $tel = check_telescope($tel);
 $start = $start ? string_to_time_start($start) : today_start();
 $end = $end ? string_to_time_end($end) : today_end();
+
+my $db = OMP::DB::Backend->new;
+my $arcdb = OMP::DB::Archive->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => OMP::Util::File->new);
 
 warn sprintf "Telescope: %s  Start: %s  End: %s\n",
     $tel, map time_to_datetime_string($_), $start, $end
@@ -146,7 +155,7 @@ sub today_end {
 sub list_nightrep {
     my ($date, $tel) = @_;
 
-    my $nr = OMP::NightRep->new(date => $date, telescope => $tel);
+    my $nr = OMP::NightRep->new(DB => $db, ADB => $arcdb, date => $date, telescope => $tel);
     unless ($nr) {
         carp($tel . "::$date: Could not find night report.\n");
         return;

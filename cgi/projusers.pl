@@ -18,6 +18,6 @@ use OMP::CGIPage::Project;
 OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::Project::project_users,
     'project',
-    title => 'Project Contacts',
+    title => 'Contacts',
     template => 'project_contacts.html',
 );

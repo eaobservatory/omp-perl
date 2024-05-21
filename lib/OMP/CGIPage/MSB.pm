@@ -26,13 +26,13 @@ use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw/:fb :done :msb/;
+use OMP::DB::MSB;
+use OMP::DB::MSBDone;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
-use OMP::MSBServer;
+use OMP::DB::Project;
 
 use base qw/OMP::CGIPage/;
-
-$| = 1;
 
 =head1 Routines
 
@@ -56,6 +56,9 @@ sub fb_msb_output {
 
     my $fbcomp = OMP::CGIComponent::Feedback->new(page => $self);
 
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
+
     my $checksum = undef;
     my $prog_info = undef;
     my @messages = ();
@@ -73,8 +76,7 @@ sub fb_msb_output {
                 text => scalar $q->param('comment'),
                 status => OMP__DONE_COMMENT,
             );
-            OMP::MSBServer->addMSBcomment(
-                $projectid, (scalar $q->param('checksum')), $comment);
+            $msbdonedb->addMSBcomment((scalar $q->param('checksum')), $comment);
             push @messages, 'MSB comment successfully submitted.';
         }
         catch OMP::Error::MSBMissing with {
@@ -88,13 +90,11 @@ sub fb_msb_output {
         return $self->_write_error($error) if defined $error;
     }
     else {
-        $prog_info = OMP::MSBServer->getSciProgInfo(
-            $projectid, with_observations => 1);
+        $prog_info = $msbdb->getSciProgInfo(with_observations => 1);
     }
 
     return {
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
-        num_comments => $fbcomp->fb_entries_count($projectid),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         target => $self->url_absolute(),
         prog_info => $prog_info,
         comment_msb_checksum => $checksum,
@@ -141,25 +141,23 @@ sub msb_hist {
         };
     }
     else {
+        my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+        my $donedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
+
         # Get the science program info (if available)
-        my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+        my $sp = $msbdb->getSciProgInfo();
 
         my $commentref;
         if ($show =~ /observed/) {
             # show observed
-            my $xml = "<MSBDoneQuery><projectid>$projectid</projectid><status>"
-                . OMP__DONE_DONE
-                . "</status></MSBDoneQuery>";
-
-            $commentref = OMP::MSBServer->observedMSBs({
+            $commentref = $donedb->observedMSBs(
                 projectid => $projectid,
-                returnall => 1,
-                format => 'data',
-            });
+                comments => 1,
+            );
         }
         else {
             # show current
-            $commentref = OMP::MSBServer->historyMSB($projectid, '', 'data');
+            $commentref = $donedb->historyMSB(undef);
 
             if ($show =~ /current/) {
                 $commentref = [grep {$sp->existsMSB($_->checksum)} @$commentref]
@@ -173,7 +171,7 @@ sub msb_hist {
     return {
         target => $self->url_absolute(),
         target_base => $q->url(-absolute => 1),
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         msb_info => $msb_info,
         values => {
             show => $show,
@@ -197,7 +195,7 @@ sub observed {
     my $q = $self->cgi;
     my $comp = OMP::CGIComponent::MSB->new(page => $self);
 
-    my $projdb = OMP::ProjDB->new(DB => $self->database);
+    my $projdb = OMP::DB::Project->new(DB => $self->database);
 
     my $telescope = $self->decoded_url_param('telescope');
     my $utdate = $self->decoded_url_param('utdate');
@@ -219,11 +217,10 @@ sub observed {
         };
     }
     elsif (defined $utdate and defined $telescope) {
-        my $commentref = OMP::MSBServer->observedMSBs({
+        my $commentref = OMP::DB::MSBDone->new(DB => $self->database)->observedMSBs(
             date => $utdate,
-            returnall => 1,
-            format => 'data',
-        });
+            comments => 1,
+        );
 
         # Now keep only the comments that are for the telescope we want
         # to see observed msbs for
@@ -239,7 +236,8 @@ sub observed {
 
         $projects = [map {
             my $projectid = $_;
-            my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+            my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+            my $sp = $msbdb->getSciProgInfo();
             my $msb_info = $comp->msb_comments(\@{$sorted{$projectid}}, $sp);
             {
                 project_id => $projectid,

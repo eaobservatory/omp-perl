@@ -32,7 +32,6 @@ use IO::File;
 
 use OMP::Config;
 use OMP::General;
-use OMP::MSBServer;
 use OMP::NetTools;
 
 use base qw/OMP::CGIComponent/;

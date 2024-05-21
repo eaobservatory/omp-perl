@@ -23,17 +23,18 @@ our $VERSION = '2.000';
 use OMP::Config;
 use OMP::Display;
 use OMP::Error qw/:try/;
-use OMP::FaultDB;
-use OMP::FaultQuery;
+use OMP::DB::Fault;
+use OMP::DB::Hedwig2OMP;
+use OMP::Query::Fault;
+use OMP::Query::Project;
 use OMP::DateTools;
 use OMP::General;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::User;
-use OMP::UserServer;
+use OMP::DB::User;
+use OMP::Query::User;
 
 use base qw/OMP::CGIPage/;
-
-$| = 1;
 
 # Width for HTML tables
 our $TABLEWIDTH = '100%';
@@ -59,7 +60,8 @@ sub details {
     my $user;
     my $E = undef;
     try {
-        $user = OMP::UserServer->getUser($userid);
+        my $udb = OMP::DB::User->new(DB => $self->database);
+        $user = $udb->getUser($userid);
     }
     otherwise {
         $E = shift;
@@ -71,33 +73,27 @@ sub details {
     return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
         unless $user;
 
-    my @hedwigids = map {$_->[0]} @{
-        $self->database_hedwig2omp->handle->selectall_arrayref(
-            'SELECT hedwig_id FROM user WHERE omp_id = ?',
-            {}, $user->userid)};
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $self->database_hedwig2omp);
+    my $hedwig_ids = $hodb->get_hedwig_ids($user->userid);
 
     # Get projects user belongs to
-    my @projects;
-    my @support;
+    my $member;
+    my $support;
     try {
-        my $db = OMP::ProjDB->new(DB => $self->database);
+        my $db = OMP::DB::Project->new(DB => $self->database);
 
-        my $xml = "<ProjQuery>"
-            . "<person>" . $user->userid . "</person>"
-            . "</ProjQuery>";
+        my $query = OMP::Query::Project->new(HASH => {
+            person => $user->userid,
+        });
 
-        my $query = OMP::ProjQuery->new(XML => $xml);
-
-        @projects = $db->listProjects($query);
+        $member = $db->listProjects($query);
 
         # Get projects the user supports
-        $xml = "<ProjQuery>"
-            . "<support>" . $user->userid . "</support>"
-            . "</ProjQuery>";
+        $query = OMP::Query::Project->new(HASH => {
+            support => $user->userid,
+        });
 
-        $query = OMP::ProjQuery->new(XML => $xml);
-
-        @support = $db->listProjects($query);
+        $support = $db->listProjects($query);
     }
     otherwise {
         $E = shift;
@@ -108,7 +104,7 @@ sub details {
 
     # Sort out user's capacity for each project
     my %capacities;
-    foreach my $support_projects ([1, \@support], [0, \@projects]) {
+    foreach my $support_projects ([1, $support], [0, $member]) {
         my ($is_support, $projects) = @$support_projects;
 
         foreach my $project (@$projects) {
@@ -134,14 +130,12 @@ sub details {
 
     # Query for faults user is associated with
     my $today = OMP::DateTools->today . "T23:59";
-    my $xml = "<FaultQuery>"
-        . "<author>" . $user->userid . "</author>"
-        . "<date delta=\"-14\">$today</date>"
-        . "</FaultQuery>";
-    my $faultquery = OMP::FaultQuery->new(XML => $xml);
+    my $faultquery = OMP::Query::Fault->new(HASH => {
+        author => $user->userid,
+        date => {delta => -14, value => $today},
+    });
 
-
-    my $fdb = OMP::FaultDB->new(DB => $self->database);
+    my $fdb = OMP::DB::Fault->new(DB => $self->database);
     my $faults = $fdb->queryFaults($faultquery);
 
     # Sort by category
@@ -156,7 +150,7 @@ sub details {
 
     return {
         user => $user,
-        hedwig_ids => \@hedwigids,
+        hedwig_ids => $hedwig_ids,
         hedwig_profile => 'https://proposals.eaobservatory.org/person/',
         icon_url => OMP::Config->getData('iconsdir'),
         project_capacities => [sort {
@@ -184,10 +178,10 @@ sub list_users {
 
     my $q = $self->cgi;
 
-    my $users = OMP::UserServer->queryUsers(
-        "<UserQuery><obfuscated>0</obfuscated></UserQuery>");
-
-    my $rowclass = 'row_shaded';
+    my $udb = OMP::DB::User->new(DB => $self->database);
+    my $users = $udb->queryUsers(OMP::Query::User->new(HASH => {
+        obfuscated => {boolean => 0},
+    }));
 
     # Set up list of initials
     my %hashTemp = map {uc substr($_->userid, 0, 1) => 1} @$users;
@@ -215,7 +209,8 @@ sub edit_details {
 
     my $userid = $self->decoded_url_param("user");
 
-    my $user = OMP::UserServer->getUser($userid);
+    my $udb = OMP::DB::User->new(DB => $self->database);
+    my $user = $udb->getUser($userid);
 
     unless (defined $user) {
         return $self->_write_error("User [$userid] does not exist in the database.");
@@ -317,7 +312,7 @@ sub edit_details {
             # Store changes
             if ($changed) {
                 try {
-                    OMP::UserServer->updateUser($user);
+                    $udb->updateUser($user);
                 }
                 otherwise {
                     my $E = shift;
@@ -394,7 +389,9 @@ sub _add_user_try {
     return 'User ID is not valid.'
         unless $userid =~ /^[A-Z]+[0-9]*$/;
 
-    my $user = OMP::UserServer->getUser($userid);
+    my $udb = OMP::DB::User->new(DB => $self->database);
+
+    my $user = $udb->getUser($userid);
     return 'User ID already exists.'
         if defined $user;
 
@@ -422,7 +419,7 @@ sub _add_user_try {
     my $message = undef;
 
     try {
-        OMP::UserServer->addUser($omp_user);
+        $udb->addUser($omp_user);
     } otherwise {
         my $E = shift;
         $message = 'Unable to add user: ' . $E;

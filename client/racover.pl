@@ -50,6 +50,10 @@ Country to query. Defaults to all countries.
 
 Restrict the query to a specific instrumnet. Default to all.
 
+=item B<-tau>
+
+Restrict query to MSBs suitable for the given opacity.
+
 =item B<-version>
 
 Report the version number.
@@ -87,18 +91,19 @@ use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
 use OMP::Error qw/:try/;
+use OMP::DB::Backend;
 use OMP::DateTools;
-use OMP::General;
-use OMP::Password;
+use OMP::Util::Client;
 use OMP::SciProgStats;
-use OMP::ProjServer;
-use OMP::SpServer;
+use OMP::DB::MSB;
+use OMP::DB::Project;
+use OMP::Query::Project;
 
 our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects);
+my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects, $tau);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
@@ -108,6 +113,7 @@ my $status = GetOptions(
     "country=s" => \$country,
     "project=s" => \@projects,
     "tel=s" => \$tel,
+    'tau=s' => \$tau,
 );
 
 pod2usage(1) if $help;
@@ -119,7 +125,7 @@ if ($version) {
     exit;
 }
 
-my ($provider, $username, $password) = OMP::Password->get_userpass();
+my $db = OMP::DB::Backend->new();
 
 # Form instrument string
 $instrument = uc($instrument) if defined $instrument;
@@ -144,7 +150,7 @@ if (@projects) {
 
     # Convert to project objects (needs password)
     @projects = map {
-        OMP::ProjServer->projectDetails($_, 'object');
+        OMP::DB::Project->new(DB => $db, ProjectID => $_)->projectDetails();
     } @projects;
 }
 else {
@@ -157,7 +163,7 @@ else {
     }
     else {
         # Should be able to pass in a readline object if Tk not desired
-        $telescope = OMP::General->determine_tel();
+        $telescope = OMP::Util::Client->determine_tel();
         die "Unable to determine telescope. Exiting.\n"
             unless defined $telescope;
         die "Unable to determine telescope [too many choices]. Exiting.\n"
@@ -168,17 +174,18 @@ else {
     $semester = OMP::DateTools->determine_semester(tel => $telescope)
         unless defined $semester;
 
-    # Form the country part of the query [and a useful string for later]
-    my $ctryxml = (defined $country ? "<country>$country</country>" : "");
+    # Form a useful string for later
     my $ctrystr = (defined $country ? "Country " . uc($country) : '');
 
     $sublabel = "Semester $semester for telescope $telescope $ctrystr $inststr";
 
-    # Form the query string for the projects
-    my $query = "<ProjQuery><telescope>$telescope</telescope><semester>$semester</semester>$ctryxml<state>1</state></ProjQuery>";
-
     print "Querying database for project details...\n";
-    my $projects = OMP::ProjServer->listProjects($query, "object");
+    my $projects = OMP::DB::Project->new(DB => $db)->listProjects(OMP::Query::Project->new(HASH => {
+        telescope => $telescope,
+        semester => $semester,
+        state => {boolean => 1},
+        ((defined $country) ? (country => $country) : ()),
+    }));
 
     print "Located " . scalar(@$projects) . " active projects in Semester $semester\n";
 
@@ -203,18 +210,29 @@ for my $proj (@projects) {
         next;
     }
 
+    if (defined $tau) {
+        unless ($proj->taurange->contains($tau)) {
+            print "Project not allocated time for given opacity. Skipping\n";
+            next;
+        }
+    }
+
     my $sp;
     try {
-        ($sp) = OMP::SpServer->fetchProgram(
-            $proj->projectid, $provider, $username, $password, 'OBJECT');
+        $sp = OMP::DB::MSB->new(
+            DB => $db, ProjectID => $proj->projectid,
+        )->getSciProgInfo(with_observations => 1);
     }
     catch OMP::Error::UnknownProject with {
-        print "Unable to retrieve science programme. Skipping\n";
+        print "Unable to retrieve science program info. Skipping\n";
     };
     next unless defined $sp;
 
     # Get the histogram for this program
-    my @local = $sp->ra_coverage(instrument => $instrument);
+    my @local = OMP::SciProgStats->ra_coverage(
+        $sp,
+        instrument => $instrument,
+        tau => $tau);
 
     # And increment the global sum
     @rahist = map {$rahist[$_] + $local[$_]} (0 .. $#rahist);

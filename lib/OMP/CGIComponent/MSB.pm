@@ -24,23 +24,16 @@ use Time::Seconds qw/ONE_HOUR/;
 use CGI;
 
 use OMP::Constants qw/:done/;
-use OMP::DBServer;
 use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
-use OMP::MSBDB;
-use OMP::MSBDoneDB;
-use OMP::MSBServer;
-use OMP::ProjDB;
-use OMP::ProjServer;
-use OMP::SpServer;
-use OMP::UserServer;
+use OMP::DB::MSB;
+use OMP::DB::MSBDone;
+use OMP::DB::Project;
 
 use base qw/OMP::CGIComponent/;
-
-$| = 1;
 
 =head1 Routines
 
@@ -58,7 +51,8 @@ sub fb_msb_active {
     my $self = shift;
     my $projectid = shift;
 
-    my $proj_info = OMP::MSBServer->getSciProgInfo($projectid, with_observations => 1);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+    my $proj_info = $msbdb->getSciProgInfo(with_observations => 1);
 
     my $active = [$proj_info->msb()];
 
@@ -94,11 +88,12 @@ sub fb_msb_observed {
     my $projectid = shift;
 
     # Get observed MSBs
-    my $observed = OMP::MSBServer->observedMSBs({
-            projectid => $projectid,
-            format => 'data',
-            include_undo => 1
-    });
+    my $observed = OMP::DB::MSBDone->new(
+        DB => $self->database,
+        ProjectID => $projectid,
+    )->observedMSBs(
+        include_undo => 1,
+    );
 
     return undef unless scalar @$observed;
     return $self->msb_table(msbs => $observed);
@@ -125,6 +120,9 @@ sub msb_action {
         ? $args{'projectid'}
         : scalar $q->param('projectid');
 
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+    my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
+
     my @messages = ();
     my @errors = ();
 
@@ -141,8 +139,7 @@ sub msb_action {
             );
 
             # Add the comment
-            OMP::MSBServer->addMSBcomment($projectid,
-                (scalar $q->param('checksum')), $comment);
+            $msbdonedb->addMSBcomment((scalar $q->param('checksum')), $comment);
             push @messages, "MSB comment successfully submitted.";
         }
         catch OMP::Error::MSBMissing with {
@@ -159,7 +156,10 @@ sub msb_action {
     elsif ($q->param("submit_remove")) {
         # Mark msb as 'all done'
         try {
-            OMP::MSBServer->alldoneMSB($projectid, (scalar $q->param('checksum')));
+            my $checksum = $q->param('checksum');
+
+            $msbdb->alldoneMSB($checksum);
+
             push @messages, "MSB removed from consideration.";
         }
         catch OMP::Error::MSBMissing with {
@@ -177,11 +177,17 @@ sub msb_action {
     elsif ($q->param("submit_undo")) {
         # Unmark msb as 'done'.
         try {
-            OMP::MSBServer->undoMSB(
-                $projectid,
-                (scalar $q->param('checksum')),
-                (scalar $q->param('transaction'))
+            my $checksum = $q->param('checksum');
+
+            # Prepare comment object.
+            my $comment = OMP::Info::Comment->new(
+                text => "MSB done status reversed.",
+                status => OMP__DONE_UNDONE,
+                tid => (scalar $q->param('transaction')),
             );
+
+            $msbdb->undoMSB($checksum, $comment);
+
             push @messages, "MSB done mark removed.";
         }
         catch OMP::Error::MSBMissing with {
@@ -199,7 +205,15 @@ sub msb_action {
     elsif ($q->param("submit_unremove")) {
         # Unremove a removed MSB.
         try {
-            OMP::MSBServer->unremoveMSB($projectid, (scalar $q->param('checksum')));
+            my $checksum = $q->param('checksum');
+
+            my $comment = OMP::Info::Comment->new(
+                text => "MSB removed status reversed.",
+                status => OMP__DONE_UNREMOVED,
+            );
+
+            $msbdb->unremoveMSB($checksum, $comment);
+
             push @messages, "MSB no longer removed from consideration.";
         }
         catch OMP::Error::MSBMissing with {
@@ -313,31 +327,6 @@ sub msb_comments {
         status_colors => \%colors,
         msbs => \@msbs,
     };
-}
-
-=item B<msb_count>
-
-Returns the current number of MSBs.
-
-    my $num_msbs = $comp->msb_count($projectid);
-
-=cut
-
-sub msb_count {
-    my $self = shift;
-    my $projectid = shift;
-
-    my $num_msbs = undef;
-    try {
-        my $msbs = OMP::MSBServer->getMSBCount($projectid);
-        $num_msbs = (exists $msbs->{$projectid}) ? $msbs->{$projectid}->{'total'} : 0;
-
-    }
-    otherwise {
-        my $E = shift;
-    };
-
-    return $num_msbs;
 }
 
 =item B<msb_table>

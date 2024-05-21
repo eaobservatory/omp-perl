@@ -26,8 +26,8 @@ use CGI::Carp qw/fatalsToBrowser/;
 use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
 use OMP::Error qw/:try/;
-use OMP::ShiftDB;
-use OMP::ShiftQuery;
+use OMP::DB::Shift;
+use OMP::Query::Shift;
 
 use base qw/OMP::CGIPage/;
 
@@ -118,16 +118,13 @@ sub shiftlog_search {
             $search->read_search_sort(),
         );
 
-        ($message, my $xml) = $search->common_search_xml(\%values, 'author');
+        ($message, my $hash) = $search->common_search_hash(\%values, 'author');
 
         unless (defined $message) {
-            my $query = OMP::ShiftQuery->new(XML => join '',
-                '<ShiftQuery>',
-                '<telescope>' . $telescope . '</telescope>',
-                @$xml,
-                '</ShiftQuery>');
+            $hash->{'telescope'} = $telescope;
+            my $query = OMP::Query::Shift->new(HASH => $hash);
 
-            my $sdb = OMP::ShiftDB->new(DB => $self->database);
+            my $sdb = OMP::DB::Shift->new(DB => $self->database);
             $result = $search->sort_search_results(
                 \%values, 'date',
                 scalar $sdb->getShiftLogs($query));

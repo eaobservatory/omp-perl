@@ -27,11 +27,7 @@ use Astro::Coords;
 use Astro::Telescope;
 use Time::Piece qw/:override/;
 
-use OMP::Config;
-use OMP::DBbackend;
-use OMP::SciProg;
-use OMP::MSB;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::Error qw/:try/;
 
 our $VERSION = '1.1';
@@ -150,6 +146,10 @@ Turn on debug output, including in called routines.
 
 =back
 
+=item db =E<gt> OMP::DB::Backend object
+
+Must be provided in "omp" mode.
+
 =back
 
 =back
@@ -258,21 +258,21 @@ sub get_coords {
             printf "Retrieve science program for $projid\n" if ($debug);
             my $E;
             try {
-                my $db = OMP::MSBDB->new(
-                    DB => OMP::DBbackend->new(),
+                my $db = OMP::DB::MSB->new(
+                    DB => $args{'db'},
                     ProjectID => $projid);
-                my $sp = $db->fetchSciProg(1);
+                my $sp = $db->getSciProgInfo(with_observations => 1);
                 push @sciprogs, $sp;
             }
             catch OMP::Error with {
                 # Just catch OMP::Error exceptions
                 $E = shift;
-                print "Error MSBDB: $E\n" if ($debug);
+                print "Error OMP::DB::MSB: $E\n" if ($debug);
             }
             otherwise {
               # This is "normal" errors. At the moment treat them like any other
                 $E = shift;
-                print "Error MSBDB: $E\n" if ($debug);
+                print "Error OMP::DB::MSB: $E\n" if ($debug);
             }
         }
 
@@ -395,11 +395,11 @@ sub get_omp_coords {
 
     printf "nr of science program to plot: %d\n", $#sciprogs + 1 if $debug;
     foreach my $sp (@sciprogs) {
-        printf "Extract MSBs for %s\n", $sp->projectID if $debug;
+        printf "Extract MSBs for %s\n", $sp->projectid if $debug;
         my @msbs = $sp->msb;
         printf "%d MSBs returned\n", $#msbs + 1 if $debug;
 
-        my $prjstr = $sp->projectID . '@';
+        my $prjstr = $sp->projectid . '@';
         $prjstr =~ s/^m\d{2}[a,b]//aai;
         print "Project string: $prjstr\n" if $debug;
 
@@ -419,7 +419,7 @@ sub get_omp_coords {
             }
 
             # Get the observations
-            my @obss = $msb->obssum;
+            my @obss = $msb->observations;
 
             printf "Extract each of the %d observations\n", $#obss + 1
                 if $debug;

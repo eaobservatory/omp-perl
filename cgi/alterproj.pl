@@ -18,6 +18,6 @@ use OMP::CGIPage::Project;
 OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::Project::alter_proj,
     'staff',
-    title => 'Alter Project',
+    title => 'Alter project',
     template => 'project_alter.html',
 );

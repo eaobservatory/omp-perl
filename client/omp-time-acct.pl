@@ -115,9 +115,9 @@ BEGIN {
 use OMP::Constants qw/:logging/;
 use OMP::DateTools;
 use OMP::General;
-use OMP::BaseDB;
-use OMP::DBbackend;
-use OMP::TimeAcctDB;
+use OMP::DB;
+use OMP::DB::Backend;
+use OMP::DB::TimeAcct;
 
 my %default_opt = (
     'header' => undef,
@@ -130,7 +130,7 @@ my %default_opt = (
 );
 my %opt = process_options(%default_opt);
 
-my $db = OMP::BaseDB->new('DB' => OMP::DBbackend->new)->_dbhandle
+my $db = OMP::DB->new('DB' => OMP::DB::Backend->new)->_dbhandle
     or die "Failed to acquire a database handle.\n";
 
 my $query = make_project_query_2(@opt{qw/projects date-range/});
@@ -160,7 +160,7 @@ exit;
 
 BEGIN {
   # The column names (and possible method names to be called, in order, on given
-    # C<OMP::TimeAcctQuery> object).
+    # C<OMP::Query::TimeAcct> object).
     my @header = qw/projectid timespent date confirmed/;
 
     #  Prints CSV given a list of elements of a record.
@@ -221,7 +221,7 @@ NO_SQL
 
     return <<"_SQL_";
         SELECT projectid, timespent, date, confirmed
-        FROM $OMP::TimeAcctDB::ACCTTABLE
+        FROM $OMP::DB::TimeAcct::ACCTTABLE
         WHERE $sql
         ORDER BY projectid, date
 _SQL_

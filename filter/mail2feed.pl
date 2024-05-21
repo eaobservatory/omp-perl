@@ -52,15 +52,16 @@ use Encode qw/decode/;
 # module is installed in "site_perl".
 use Encode::HanExtra;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault::Response;
-use OMP::FaultDB;
-use OMP::FeedbackDB;
+use OMP::DB::Fault;
+use OMP::DB::Feedback;
 use OMP::Mail;
 use OMP::General;
 use OMP::User;
-use OMP::UserServer;
+use OMP::DB::User;
+use OMP::Query::User;
 
 our $VERSION = '0.003';
 
@@ -157,7 +158,8 @@ sub accept_message {
     my $audit = shift;
     my $args = shift;
 
-    my $database = OMP::DBbackend->new();
+    my $database = OMP::DB::Backend->new();
+    my $udb = OMP::DB::User->new(DB => $database);
 
     $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
@@ -188,8 +190,9 @@ sub accept_message {
     # the OMP user ID from the name therefore sometimes identifies
     # the wrong user.  See fault 20140717.002.
     if ($email) {
-        my $query = "<UserQuery><email>$email</email></UserQuery>";
-        my $users = OMP::UserServer->queryUsers($query, 'object');
+        my $users = $udb->queryUsers(OMP::Query::User->new(HASH => {
+            email => $email,
+        }));
 
         if ($users->[0]) {
             $author = $users->[0];
@@ -203,7 +206,7 @@ sub accept_message {
     if ((not $author) and $author_guess) {
         my $userid = $author_guess->userid;
 
-        $author = OMP::UserServer->getUser($userid);
+        $author = $udb->getUser($userid);
     }
 
     if ($author) {
@@ -252,7 +255,7 @@ sub accept_feedback {
     );
 
     unless ($DRY_RUN) {
-        my $fdb = OMP::FeedbackDB->new(ProjectID => $project, DB => $database);
+        my $fdb = OMP::DB::Feedback->new(ProjectID => $project, DB => $database);
         $fdb->addComment(\%data);
         $audit->log(1 => "Sent to feedback system with Project $project");
     }
@@ -282,7 +285,7 @@ sub accept_fault {
     );
 
     unless ($DRY_RUN) {
-        my $fdb = OMP::FaultDB->new(DB => $database);
+        my $fdb = OMP::DB::Fault->new(DB => $database);
         $fdb->respondFault($faultid, OMP::Fault::Response->new(%data));
     }
     else {

@@ -20,7 +20,8 @@ BEGIN {
 }
 
 use Config::IniFiles;
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::DB::User;
 use Data::Dumper;
 use IO::File;
 
@@ -34,6 +35,8 @@ die "Could not open file '$file'" unless defined $fh;
 $fh->binmode(':utf8');
 tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
+
+my $udb = OMP::DB::User->new(DB => OMP::DB::Backend->new);
 
 # Loop over all projects
 my %users;
@@ -50,10 +53,10 @@ for my $proj (keys %alloc) {
 # print out all the users and the frequency
 for (sort keys %users) {
     # Check if the user is in the database already
-    my $isthere = OMP::UserServer->verifyUser($_);
+    my $isthere = $udb->verifyUser($_);
     my $string;
     if ($isthere) {
-        my $user = OMP::UserServer->getUser($_);
+        my $user = $udb->getUser($_);
         print $user->as_email_hdr . "\n";
     }
     else {

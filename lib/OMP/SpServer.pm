@@ -26,7 +26,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::SciProg;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use OMP::General;
 use OMP::Error qw/:try/;
 
@@ -44,7 +44,7 @@ use constant OMP__SCIPROG_AUTO => 3;
 use constant GZIP_THRESHOLD => 30_000;
 
 # Inherit server specific class
-use base qw/OMP::SOAPServer OMP::DBServer/;
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = '2.000';
 
@@ -131,7 +131,7 @@ sub storeProgram {
             $provider, $username, $password, $sp->projectID);
 
         # Create a new DB object
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $class->dbConnection,
         );
@@ -316,7 +316,7 @@ sub fetchProgram {
             $provider, $username, $password, $rawprojectid);
 
         # Create new DB object
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $class->dbConnection,
         );
@@ -343,118 +343,6 @@ sub fetchProgram {
         "fetchProgram: Complete in " . tv_interval($t0) . " seconds\n");
 
     return $string, @headers;
-}
-
-=item B<programDetails>
-
-Return a detailed summary of the science program. The summary is
-returned as either pre-formatted text or as a data structure (array of
-hashes for each MSB with each hash containing an array of hashes for
-each observation).
-
-    $text = OMP::SpServer->programDetails($project, 'ascii');
-    $array = OMP::SpServer->programDetails($project, 'data');
-
-Note that this may cause problems for a strongly typed language.
-
-=cut
-
-sub programDetails {
-    my $class = shift;
-    my $projectid = shift;
-    my $mode = lc(shift);
-    $mode ||= 'ascii';
-
-    OMP::General->log_message("programDetails: $projectid and $mode\n");
-
-    my $E;
-    my $summary;
-    try {
-        # Create new DB object
-        my $db = OMP::MSBDB->new(
-            ProjectID => $projectid,
-            DB => $class->dbConnection,
-        );
-
-        # Retrieve the Science Program object
-        # without sending explicit notification
-        my $sp = $db->fetchSciProg(1);
-
-        # Create a summary of the science program
-        $summary = $sp->summary($mode);
-
-        # Clean the data structure if we are in 'data'
-        if ($mode eq 'data') {
-            for my $msb (@{$summary}) {
-                delete $msb->{_obssum};
-                delete $msb->{summary};
-
-                $msb->{datemax} = '' . $msb->{datemax};    # unbless
-                $msb->{datemin} = '' . $msb->{datemin};    # unbless
-
-                for my $obs (@{$msb->{obs}}) {
-                    $obs->{waveband} = '' . $obs->{waveband};    # unbless
-                    $obs->{coords} = [$obs->{coords}->array];
-                }
-            }
-        }
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    # Return the stringified form
-    return $summary;
-}
-
-=item B<programInstruments>
-
-Return a reference to an array of all the instruments associated with
-each of the specified science programs.
-
-    \%instruments = OMP::SpServer->programInstruments(@projectids);
-
-=cut
-
-sub programInstruments {
-    my $class = shift;
-    my @projectids = @_;
-
-    OMP::General->log_message(
-        "programInstruments: " . (join ', ', @projectids) . "\n");
-
-    my $E;
-    my $inst;
-    try {
-        # Create new DB object
-        my $db = OMP::MSBDB->new(DB => $class->dbConnection);
-
-        $inst = $db->getInstruments(@projectids);
-    }
-    catch OMP::Error with {
-        # Just catch OMP::Error exceptions
-        # Server infrastructure should catch everything else
-        $E = shift;
-    }
-    otherwise {
-        # This is "normal" errors. At the moment treat them like any other
-        $E = shift;
-    };
-    # This has to be outside the catch block else we get
-    # a problem where we cant use die (it becomes throw)
-    $class->throwException($E) if defined $E;
-
-    # Return the stringified form
-    return $inst;
 }
 
 =item B<SpInsertCat>

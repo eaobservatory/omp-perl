@@ -50,6 +50,10 @@ This manual page.
 Do not send messages to the feedback system. Send all messages
 to standard output.
 
+=item B<-project>
+
+Limit to this project. (Intended for use with --debug.)
+
 =item B<-yesterday>
 
 If no date is supplied, default to the date for yesterday
@@ -69,28 +73,32 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
+use OMP::DB::Archive;
 use OMP::Config;
 use OMP::Constants qw/:fb :logging/;
-use OMP::DBbackend;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 use OMP::Display;
 use OMP::DateTools;
+use OMP::Util::File;
 use OMP::Mail;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
-use OMP::ProjServer;
-use OMP::ShiftDB;
-use OMP::ShiftQuery;
+use OMP::DB::MSBDone;
+use OMP::DB::Project;
+use OMP::DB::Shift;
+use OMP::Query::Shift;
 use OMP::User;
 
 use Time::Piece;
 
 # Options
-my ($help, $man, $debug, $yesterday);
+my ($help, $man, $debug, $yesterday, $specifiedprojectid);
 my $optstatus = GetOptions(
     "help" => \$help,
     "man" => \$man,
+    'project=s' => \$specifiedprojectid,
     "debug" => \$debug,
     "yesterday" => \$yesterday,
 ) or pod2usage(-exitstatus => 1, -verbose => 0);
@@ -117,15 +125,20 @@ else {
     $utdate = OMP::DateTools->parse_date($utdate);
 }
 
+# Prepare database objects.
+my $db = OMP::DB::Backend->new();
+my $arcdb = OMP::DB::Archive->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => OMP::Util::File->new);
+
 # Get the list of MSBs
 
 _log_message("Getting MSBs for $utdate");
 
-my $done = OMP::MSBServer->observedMSBs({
+my $done = OMP::DB::MSBDone->new(DB => $db)->observedMSBs(
     date => $utdate,
-    returnall => 0,
-    format => 'data'
-});
+    comments => 0,
+);
 
 _log_err($!);
 
@@ -134,6 +147,9 @@ my %sorted;
 for my $msbid (@$done) {
     # Get the project ID
     my $projectid = $msbid->projectid;
+
+    next if (defined $specifiedprojectid)
+        and ($projectid ne $specifiedprojectid);
 
     # Create a new entry in the hash if this is new ID
     $sorted{$projectid} = [] unless exists $sorted{$projectid};
@@ -146,8 +162,8 @@ for my $msbid (@$done) {
 my %shiftlog;
 
 # Now create the comment and send it to feedback system
-my $fmt = "%-14s %03d %-20s %-20s %-10s";
-my $hfmt = "%-14s Rpt %-20s %-20s %-10s";
+my $fmt = "%-10s %03d %-34s %-10s %-10s";
+my $hfmt = "%-10s Rpt %-34s %-10s %-10s";
 for my $proj (keys %sorted) {
     # Each project info is sent independently to the
     # feedback system so we need to construct a message string
@@ -157,7 +173,7 @@ for my $proj (keys %sorted) {
 
     _log_message("Getting project details for $proj");
 
-    my $proj_details = OMP::ProjServer->projectDetails($proj, 'object');
+    my $proj_details = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
 
     _log_err($!);
 
@@ -173,7 +189,7 @@ for my $proj (keys %sorted) {
         . "\n\n";
 
     # MSB Summary
-    $msg .= "Observed MSBs\n-----------\n\n";
+    $msg .= "Observed MSBs\n-------------\n\n";
     $msg .= sprintf "$hfmt\n", "Project", "Name", "Instrument", "Waveband";
 
     # UKIRT KLUGE: Find out if project is a UKIRT project
@@ -185,8 +201,8 @@ for my $proj (keys %sorted) {
         # This will be problematic if the format is modified
         $msg .= sprintf "$fmt\n",
             $proj, $msbid->nrepeats,
-            substr($msbid->title, 0, 20),
-            substr($msbid->instrument, 0, 20),
+            substr($msbid->title, 0, 34),
+            substr($msbid->instrument, 0, 10),
             substr($msbid->waveband, 0, 10);
     }
 
@@ -195,14 +211,12 @@ for my $proj (keys %sorted) {
 
     # Query for the telescope's shiftlog if we haven't retrieved it yet
     unless (exists $shiftlog{$proj_details->telescope}) {
-        my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+        my $sdb = OMP::DB::Shift->new(DB => $db);
 
-        my $squery_xml = '<ShiftQuery>'
-            . '<date delta="1">' . $utdate . '</date>'
-            . '<telescope>' . $proj_details->telescope . '</telescope>'
-            . '</ShiftQuery>';
-
-        my $query = OMP::ShiftQuery->new(XML => $squery_xml);
+        my $query = OMP::Query::Shift->new(HASH => {
+            date => {delta => 1, value => $utdate},
+            telescope => $proj_details->telescope,
+        });
 
         _log_message("Getting shift log for $utdate " . $proj_details->telescope);
 
@@ -236,6 +250,7 @@ for my $proj (keys %sorted) {
     _log_message("Making obs group for $proj & $utdate");
 
     my $grp = OMP::Info::ObsGroup->new(
+        ADB => $arcdb,
         projectid => $proj,
         date => $utdate,
         inccal => 0,

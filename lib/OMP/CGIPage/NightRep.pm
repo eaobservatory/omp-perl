@@ -34,19 +34,21 @@ use OMP::CGIComponent::Weather;
 use OMP::Config;
 use OMP::Constants;
 use OMP::DateTools;
+use OMP::DB::MSB;
+use OMP::DB::MSBDone;
+use OMP::DB::Sched;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
 use OMP::NightRep;
-use OMP::ObslogDB;
-use OMP::ObsQuery;
-use OMP::PreviewDB;
-use OMP::PreviewQuery;
-use OMP::ProjServer;
-use OMP::BaseDB;
-use OMP::ArchiveDB;
+use OMP::DB::Obslog;
+use OMP::Query::Obslog;
+use OMP::DB::Preview;
+use OMP::Query::Preview;
+use OMP::DB::Project;
+use OMP::DB::Archive;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIPage/;
@@ -173,6 +175,7 @@ sub night_report {
     my $self = shift;
     my $q = $self->cgi();
 
+    my $comp = OMP::CGIComponent::NightRep->new(page => $self);
     my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
     my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
 
@@ -232,25 +235,37 @@ sub night_report {
     ($delta) and $args{delta_day} = $delta;
 
     # Get the night report
-    my $nr = OMP::NightRep->new(%args);
+    my $arcdb = OMP::DB::Archive->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
+    my $nr = OMP::NightRep->new(DB => $self->database, ADB => $arcdb, %args);
 
     return $self->_write_error(
             'No observing report available for ' . $utdate->ymd . ' at ' . $tel . '.')
         unless $nr;
 
+    my $sched_night = undef;
     if (1 == $nr->delta_day) {
-        my $pdb = OMP::PreviewDB->new(DB => $self->database);
-        $nr->obs->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+        my $pdb = OMP::DB::Preview->new(DB => $self->database);
+        $nr->obs->attach_previews($pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
             telescope => $tel,
             date => {value => $utdate->ymd(), delta => 1},
             size => 64,
         })));
+
+        my $sdb = OMP::DB::Sched->new(DB => $self->database);
+        my $sched = $sdb->get_schedule(
+            tel => 'JCMT',
+            date => $utdate);
+        my $sched_nights = $sched->nights;
+        if ((defined $sched_nights) and (1 == scalar @$sched_nights)) {
+            $sched_night = $sched_nights->[0];
+        }
     }
 
     my ($prev, $next);
     unless ($delta) {
-        my $epoch = $utdate->epoch();
-        ($prev, $next) = map {scalar gmtime($epoch + $_)} (-1 * ONE_DAY(), ONE_DAY());
+        ($prev, $next) = $comp->date_prev_next($utdate);
     }
 
     # NOTE: disabled as we currently don't have fits in the OMP.
@@ -277,6 +292,7 @@ sub night_report {
         ut_date_start => $start,    # starting value for form
 
         night_report => $nr,
+        sched_night => $sched_night,
 
         dq_nightly_html => ($tel ne 'JCMT' || $delta
             ? undef
@@ -288,7 +304,6 @@ sub night_report {
             ['meteogram', 'EAO meteogram', $weathercomp->meteogram_plot($utdate)],
             ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
             ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
-            ['transparency', 'CFHT transparency', $weathercomp->transparency_plot($utdate)],
         ]),
     };
 }
@@ -330,7 +345,7 @@ sub projlog_content {
     # Get a project object for this project
     my $proj;
     try {
-        $proj = OMP::ProjServer->projectDetails($projectid, 'object');
+        $proj = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
     }
     otherwise {
         my $E = shift;
@@ -376,38 +391,45 @@ sub projlog_content {
     }
 
     # Display MSBs observed on this date
-    my $observed = OMP::MSBServer->observedMSBs({
-            projectid => $projectid,
-            date => $utdate,
-            comments => 0,
-            transactions => 1,
-            format => 'data',
-    });
+    my $observed = OMP::DB::MSBDone->new(
+        DB => $self->database,
+        ProjectID => $projectid,
+    )->observedMSBs(
+        date => $utdate,
+        comments => 0,
+        transactions => 1,
+    );
 
-    my $sp = OMP::MSBServer->getSciProgInfo($projectid);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
+    my $sp = $msbdb->getSciProgInfo();
     my $msb_info = $msbcomp->msb_comments($observed, $sp);
 
     # Display observation log
     my $obs_summary = undef;
     try {
         # Want to go to files on disk
-        $OMP::ArchiveDB::FallbackToFiles = 1;
+        my $arcdb = OMP::DB::Archive->new(
+            DB => $self->database_archive,
+            FileUtil => $self->fileutil);
+        $arcdb->search_files();
 
         my $grp = OMP::Info::ObsGroup->new(
+            ADB => $arcdb,
             projectid => $projectid,
             date => $utdate,
             inccal => 1,
         );
 
         if ($grp->numobs > 0) {
-            my $pdb = OMP::PreviewDB->new(DB => $self->database);
-            $grp->attach_previews($pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+            my $pdb = OMP::DB::Preview->new(DB => $self->database);
+            $grp->attach_previews($pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
                 telescope => $telescope,
                 date => {value => $utdate, delta => 1},
                 size => 64,
             })));
 
-            $obs_summary = OMP::NightRep->get_obs_summary(obsgroup => $grp);
+            my $nr = OMP::NightRep->new(DB => $self->database);
+            $obs_summary = $nr->get_obs_summary(obsgroup => $grp);
         }
     }
     otherwise {
@@ -480,27 +502,28 @@ sub obslog_search {
             $search->read_search_sort(),
         );
 
-        ($message, my $xml) = $search->common_search_xml(\%values, 'commentauthor');
+        ($message, my $hash) = $search->common_search_hash(\%values, 'commentauthor');
 
         my $active = $values{'active'} = ($q->param('active') ? 1 : 0);
         if ($active) {
-            push @$xml, '<obsactive>1</obsactive>';
+            $hash->{'obsactive'} = {boolean => 1};
         }
 
         my $type = $values{'type'} = $q->param('type');
         if ($type) {
-            my $typexml = '<commentstatus><min>' . $min_status_timegap . '</min></commentstatus>';
-            push @$xml, ($type eq 'gap') ? $typexml : ('<not>' . $typexml . '</not>');
+            if ($type eq 'gap') {
+                $hash->{'commentstatus'} = {min => $min_status_timegap};
+            }
+            else {
+                $hash->{'EXPR__CS'} = {not => {commentstatus => {min => $min_status_timegap}}};
+            }
         }
 
         unless (defined $message) {
-            my $query = OMP::ObsQuery->new(XML => join '',
-                '<ObsQuery>',
-                '<telescope>' . $telescope . '</telescope>',
-                @$xml,
-                '</ObsQuery>');
+            $hash->{'telescope'} = $telescope;
+            my $query = OMP::Query::Obslog->new(HASH => $hash);
 
-            my $odb = OMP::ObslogDB->new(DB => $self->database);
+            my $odb = OMP::DB::Obslog->new(DB => $self->database);
             $result = $search->sort_search_results(
                 \%values,
                 'startobs',
@@ -542,9 +565,14 @@ sub time_accounting {
 
     my $utdate = $self->_get_utdate();
 
-    my $nr = OMP::NightRep->new(date => $utdate, telescope => $tel);
+    my $arcdb = OMP::DB::Archive->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
+    my $nr = OMP::NightRep->new(
+        DB => $self->database, ADB => $arcdb,
+        date => $utdate, telescope => $tel);
 
-    my %times = $nr->accounting;
+    my %times = $nr->accounting(trace_observations => 1);
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
 
     my %timelostbyshift = $nr->timelostbyshift;
@@ -593,17 +621,25 @@ sub time_accounting {
         }
     }
 
+    my ($prev, $next) = $comp->date_prev_next($utdate);
+
     $self->_sidebar_night($tel, $utdate);
 
     return {
         telescope => $tel,
         ut_date => $utdate,
+        ut_date_prev => $prev,
+        ut_date_next => $next,
         target => $q->url(-absolute => 1, -query => 0),
         warnings => $warnings,
         errors => \@errors,
         shifts => \@result,
         shifts_extra => [keys %shift_added],
         shifts_other => [grep {my $x = $_; not grep {$_ eq $x} @shifts} @all_shifts],
+        status_label => {
+            %OMP::Info::Obs::status_label,
+            %OMP::Info::Obs::TimeGap::status_label,
+        },
     };
 }
 

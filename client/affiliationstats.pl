@@ -30,20 +30,18 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::DBServer;
-use OMP::ProjDB;
-use OMP::ProjQuery;
-use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
+use OMP::DB::Backend;
+use OMP::DB::Project;
+use OMP::Query::Project;
+use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
 
 my $telescope = uc($ARGV[0]) or die 'Telescope not specified';
 my $semester = uc($ARGV[1]) or die 'Semester not specified';
 my $store_to_database = (exists $ARGV[2]) && (lc($ARGV[2]) eq '--store');
 
-my $project_db = OMP::ProjDB->new(
-    DB => OMP::DBServer->dbConnection());
-
-my $affiliation_db = OMP::ProjAffiliationDB->new(
-    DB => OMP::DBServer->dbConnection());
+my $db = OMP::DB::Backend->new;
+my $project_db = OMP::DB::Project->new(DB => $db);
+my $affiliation_db = OMP::DB::ProjAffiliation->new(DB => $db);
 
 my $allocations = $affiliation_db->get_all_affiliation_allocations($telescope);
 
@@ -53,10 +51,11 @@ my $total = 0.0;
 
 print "\nProjects without affiliation:\n\n";
 
-foreach my $project ($project_db->listProjects(
-        OMP::ProjQuery->new(XML => '<ProjQuery><telescope>' . $telescope .
-            '</telescope><semester>' . $semester .
-            '</semester></ProjQuery>'))) {
+foreach my $project (@{$project_db->listProjects(
+        OMP::Query::Project->new(HASH => {
+            telescope => $telescope,
+            semester => $semester,
+        }))}) {
     my $project_id = $project->projectid();
     my $observed = ($project->allocated()
         + $project->pending()

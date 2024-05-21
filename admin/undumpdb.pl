@@ -14,10 +14,10 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Storable qw/retrieve/;
 
-use OMP::DBbackend;
-use OMP::BaseDB;
+use OMP::DB::Backend;
+use OMP::DB;
 
-my $db = OMP::BaseDB->new(DB => OMP::DBbackend->new);
+my $db = OMP::DB->new(DB => OMP::DB::Backend->new);
 
 my $dumpdir = "/DSS/omp-cache/tables";
 

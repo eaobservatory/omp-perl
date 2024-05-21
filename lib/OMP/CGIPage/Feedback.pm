@@ -21,14 +21,12 @@ use warnings;
 use Carp;
 
 use OMP::DateTools;
-use OMP::ProjServer;
+use OMP::DB::Project;
 use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 
 use base qw/OMP::CGIPage/;
-
-$| = 1;
 
 =head1 Routines
 
@@ -51,17 +49,18 @@ sub add_comment {
 
     my $comp = OMP::CGIComponent::Feedback->new(page => $self);
 
+    my $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+
     if ($q->param('submit_add')) {
         return {
-            project => OMP::ProjServer->projectDetails($projectid, 'object'),
+            project => $project,
             target => undef,
             %{$comp->submit_fb_comment($projectid)},
-            num_comments => $comp->fb_entries_count($projectid),
         };
     }
 
     return {
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => $project,
         target => $self->url_absolute(),
         values => {
             # We don't re-display the form, but some pages link here with
@@ -69,7 +68,6 @@ sub add_comment {
             subject => (scalar $q->param('subject')),
         },
         messages => [],
-        num_comments => $comp->fb_entries_count($projectid),
     };
 }
 
@@ -106,8 +104,7 @@ sub fb_output {
 
     return {
         target => $self->url_absolute(),
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
-        num_msbs => OMP::CGIComponent::MSB->new(page => $self)->msb_count($projectid),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
         display_date => sub {
             return OMP::DateTools->display_date($_[0]);

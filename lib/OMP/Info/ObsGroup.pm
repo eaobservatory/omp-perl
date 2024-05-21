@@ -11,18 +11,23 @@ OMP::Info::ObsGroup - General manipulations of groups of Info::Obs objects
     $grp = OMP::Info::ObsGroup->new(obs => \@obs);
 
     $grp = OMP::Info::ObsGroup->new(
+        ADB => $archivedb,
         instrument => 'SCUBA',
         date => '1999-08-15');
 
     $grp = OMP::Info::ObsGroup->new(
+        ADB => $archivedb,
         instrument => 'SCUBA',
         projectid => 'm02ac46');
 
     $grp->obs(@obs);
     @obs = $grp->obs;
 
-    $grp->runQuery($query);
-    $grp->populate(instrument => 'SCUBA', projectid => 'M02BU52');
+    $grp->runQuery($archivedb, $query);
+    $grp->populate(
+        ADB => $archivedb,
+        instrument => 'SCUBA',
+        projectid => 'M02BU52');
 
     %summary = $grp->stats;
     $html = $grp->format('html');
@@ -48,11 +53,10 @@ use warnings;
 use OMP::Constants qw/:timegap :obs/;
 use OMP::DateTools;
 use OMP::DateSun;
-use OMP::ProjServer;
-use OMP::DBbackend::Archive;
-use OMP::ArchiveDB;
-use OMP::ArcQuery;
-use OMP::ObslogDB;
+use OMP::DB::Project;
+use OMP::Query::Archive;
+use OMP::Query::Obslog;
+use OMP::DB::Obslog;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Error qw/:try/;
@@ -79,6 +83,10 @@ Object constructor. Accept arguments in hash form with keys:
 =item obs
 
 Expects to point to array ref of Info::Obs objects.
+
+=item ADB
+
+C<OMP::DB::Archive> object with which to perform query.
 
 =item telescope/instrument/projectid
 
@@ -178,10 +186,10 @@ sub obs {
 
 =item B<runQuery>
 
-Run a query on the archive (using an OMP::ArcQuery object),
+Run a query on the archive (using an OMP::Query::Archive object),
 store the results and attach any relevant comments.
 
-    $grp->runQuery($query, $retainhdr, $ignorebad, $nocomments);
+    $grp->runQuery($archivedb, $query, $retainhdr, $ignorebad, $nocomments);
 
 Previous observations are overwritten.
 
@@ -189,6 +197,7 @@ Previous observations are overwritten.
 
 sub runQuery {
     my $self = shift;
+    my $adb = shift;
     my $q = shift;
     my $retainhdr = shift;
     my $ignorebad = shift;
@@ -196,8 +205,12 @@ sub runQuery {
     my $search = shift;
 
     throw OMP::Error::FatalError(
-        "runQuery: The query argument must be an OMP::ArcQuery class")
-        unless UNIVERSAL::isa($q, "OMP::ArcQuery");
+        'runQuery: The ADB argument must be an OMP::DB::Archive object')
+        unless eval {$adb->isa('OMP::DB::Archive')};
+
+    throw OMP::Error::FatalError(
+        "runQuery: The query argument must be an OMP::Query::Archive class")
+        unless UNIVERSAL::isa($q, "OMP::Query::Archive");
 
     unless (defined $retainhdr) {
         $retainhdr = 0;
@@ -206,9 +219,6 @@ sub runQuery {
     unless (defined $ignorebad) {
         $ignorebad = 0;
     }
-
-    # Grab the results.
-    my $adb = OMP::ArchiveDB->new();
 
     if ($search) {
         $adb->set_search_criteria('header_search' => $search) if $search;
@@ -248,6 +258,7 @@ The results are stored in the object and retrievable via
 the C<obs> method.
 
     $grp->populate(
+        ADB => $archivedb,
         instrument => $inst,
         date => $date,
         projectid => $proj,
@@ -255,9 +266,8 @@ the C<obs> method.
         nocomments => 1,
         ignorebad => 0);
 
-This requires access to the obs log database (C<OMP::ObslogDB>) and
-also C<OMP::ArchiveDB>. The archive connections are handled
-automatically.
+This requires access to the obs log database (C<OMP::DB::Obslog>) and
+also C<OMP::DB::Archive>.
 
 UT date can be either "YYYY-MM-DD" string or a Time::Piece
 object from which "YYYY-MM-DD" is extracted.
@@ -347,24 +357,23 @@ sub populate {
             || exists $args{projectid};
 
     # if we have a date it could be either object or string
-    # also need special XML code
-    my $xmlbit = '';
+    my %hash;
     if (exists $args{date}) {
         if (ref($args{date})) {
             $args{date} = $args{date}->strftime("%Y-%m-%d");
         }
-        $xmlbit = "<date delta=\"1\">$args{date}</date>";
+        $hash{'date'} = {delta => 1, value => "$args{date}"};
     }
     elsif (exists($args{'daterange'})) {
         my $daterange = $args{'daterange'};
-        $xmlbit = "<date>";
+        my %datehash;
         if (defined($daterange->min)) {
-            $xmlbit .= "<min>" . $daterange->min->datetime . "</min>";
+            $datehash{'min'} = $daterange->min->datetime;
         }
         if (defined($daterange->max)) {
-            $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
+            $datehash{'max'} = $daterange->max->datetime;
         }
-        $xmlbit .= "</date>";
+        $hash{'date'} = \%datehash;
         # If the range is unbounded, disable comment lookup unless it was
         # specified explicitly.
         unless ($daterange->isbound) {
@@ -375,7 +384,9 @@ sub populate {
     # If we have a project ID but no telescope we must determine
     # the telescope from the database
     if (exists $args{projectid} && ! exists $args{telescope}) {
-        $args{telescope} = OMP::ProjServer->getTelescope($args{projectid});
+        $args{telescope} = OMP::DB::Project->new(
+            DB => OMP::DB::Backend->new,
+            ProjectID => $args{projectid})->getTelescope();
     }
     elsif (exists $args{instrument} && $args{instrument} =~ /^ACSIS/i) {
         $args{telescope} = 'JCMT';
@@ -401,7 +412,7 @@ sub populate {
     # told otherwise
     if (exists($args{'projectid'})
             && ! (exists($args{'date'}) || exists($args{'daterange'}))) {
-        $xmlbit .= "<date><min>20000101</min></date>";
+        $hash{'date'} = {min => '20000101'};
         $nocomments = 1 unless defined $nocomments;
     }
 
@@ -424,39 +435,40 @@ sub populate {
     if (exists $args{instrument}) {
         # Old GSD in jcmt_tms.SCA table has "rxa3i", converted GSD data in
         # jcmt.COMMON has "RXA3".
-        my $rxa3 = '<instrument>rxa3i</instrument><instrument>rxa3</instrument>';
+        my @instrument;
+        my @rxa3 = qw/rxa3i rxa3/;
 
         if ($args{instrument} =~ /^rxa/i) {
-            $xmlbit .= $rxa3;
+            push @instrument, @rxa3;
         }
         elsif ($args{instrument} =~ /^rxb/i) {
-            $xmlbit .= "<instrument>rxb</instrument>";
+            push @instrument, 'rxb';
         }
         elsif ($args{instrument} =~ /^rxw/i) {
-            $xmlbit .= "<instrument>rxw</instrument>";
+            push @instrument ,'rxw';
         }
         elsif ($args{instrument} =~ /^heterodyne/i) {
-            $xmlbit .= "$rxa3<instrument>rxb</instrument><instrument>rxw</instrument>";
+            push @instrument, @rxa3, qw/rxb rxw/;
         }
         else {
-            $xmlbit .= "<instrument>" . $args{instrument} . "</instrument>";
+            push @instrument, $args{instrument};
         }
+
+        $hash{'instrument'} = \@instrument;
     }
 
-    # Form the XML.[restrict the keys]
+    # Form the hash. [restrict the keys]
     for my $key (@keys) {
         if (exists $args{$key} && defined $args{$key}) {
-            $xmlbit .= "<$key>$args{$key}</$key>";
+            $hash{$key} = "$args{$key}";
         }
     }
 
-    my $xml = "<ArcQuery>$xmlbit</ArcQuery>";
-
     # Form the query.
-    my $arcquery = OMP::ArcQuery->new(XML => $xml);
+    my $arcquery = OMP::Query::Archive->new(HASH => \%hash);
 
     # run the query
-    $self->runQuery($arcquery, $retainhdr, $ignorebad, $nocomments, $search);
+    $self->runQuery($args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);
 
     # Apply filter (with "message_sink" if desired to generate message output).
     my %filter_args = (
@@ -668,7 +680,7 @@ sub commentScan {
     my $self = shift;
 
     # Add the comments.
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
+    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
 
     $odb->updateObsComment(scalar $self->obs);
 
@@ -680,7 +692,7 @@ sub commentScan {
 Return an array of C<Project::TimeAcct> objects for the given
 C<ObsGroup> object and associated warnings.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStats;
+    my ($warnings, @timeacct) = $obsgroup->projectStats(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
@@ -715,15 +727,14 @@ If a small gap is between calibration observations it is charged
 to $telCAL project [they should probably be charged to the project
 in proportion to instrument usage but that requires more work].
 
-A special C<$format> paramter can be given to it; if this is 'BYSHIFT'
-then if using the SIMPLE mode for stats they will be returned by
-shifttype.
+Options are passed on to the C<projectStatsShared> or C<projectStatsSimple>
+method.
 
 =cut
 
 sub projectStats {
     my $self = shift;
-    my $format = uc(shift);
+    my %opt = @_;
 
     # Need to determine the telescope to decide which charging
     # scheme is to be used. We assume that the telescope associated
@@ -739,11 +750,11 @@ sub projectStats {
 
     if ($charge_scheme =~ /shared/i) {
         print "USING SHARED\n" if $DEBUG;
-        return $self->projectStatsShared;
+        return $self->projectStatsShared(%opt);
     }
     else {
         print "USING SIMPLE\n" if $DEBUG;
-        return $self->projectStatsSimple($format);
+        return $self->projectStatsSimple(%opt);
     }
 }
 
@@ -756,16 +767,27 @@ into a calibration project. A science project will only be charged
 for its science time. Optionally will divide time accounting by shifttype
 or not.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStatsSimple($format);
+    my ($warnings, @timeacct) = $obsgroup->projectStatsSimple(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
 to populate the C<Project::TimeAcct> objects.
 
-If the optional parameter C<$format> is given, if it is 'BYSHIFT' then
-the stats will be produced for each separate shifttype. Else, the key
+Options:
+
+=over 4
+
+=item I<by_shift>
+
+If true, the stats will be produced for each separate shifttype. Else, the key
 'ANYSHIFT' will be used in returned the C<Project::TimeAcct> objects, and
-only one per night will be produced for each project
+only one per night will be produced for each project.
+
+=item I<trace_observations>
+
+Add observation details to the generated time accounting objects.
+
+=back
 
 The first argument returned is an array of warning messages generated
 by the time accounting tool. Usually these will indicate calibrations
@@ -794,10 +816,11 @@ in proportion to instrument usage but that requires more work].
 
 sub projectStatsSimple {
     my $self = shift;
+    my %opt = @_;
 
-    # if format is 'BYSHIFT' then we will produce stats with shifttype
-    # as a key in the hash. Otherwise we will use the string 'NOSHIFT' as the key.
-    my $format = uc(shift);
+    my $by_shift = $opt{'by_shift'} // 0;
+    my $trace_observations = $opt{'trace_observations'} // 0;
+
     my @obs = $self->obs;
     my $numobs = $self->numobs;
     # If we do not have any observations we return empty
@@ -838,6 +861,9 @@ sub projectStatsSimple {
     my %proj_totals;
     my %night_totals;
 
+    # Observation details, if requested via the trace_observations options.
+    my %proj_observations;
+
     # In some cases we need to know the most recent observation
     my $prevobs;
 
@@ -848,7 +874,7 @@ sub projectStatsSimple {
         my $tel = uc($obs->telescope);
 
         my $shifttype;
-        if ($format eq 'BYSHIFT') {
+        if ($by_shift) {
             $shifttype = uc($obs->shifttype);
         }
         else {
@@ -1025,7 +1051,7 @@ sub projectStatsSimple {
                 # Use a hash ref just to make it easy to spot rather than matching
                 # to a digit
                 push @{$gapproj{$ymd}->{$tel}->{$shifttype}},
-                    {OTHER => $timespent->seconds};
+                    {OTHER => $timespent->seconds, OBS => $obs};
             }
             elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
                 # Always charge PROJECT gaps to the following project (this
@@ -1038,7 +1064,7 @@ sub projectStatsSimple {
                     if $DEBUG;
 
                 push @{$gapproj{$ymd}->{$tel}->{$shifttype}},
-                    {OTHER => $timespent->seconds};
+                    {OTHER => $timespent->seconds, OBS => $obs};
             }
             elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
                 # Must charge the previous project
@@ -1052,7 +1078,7 @@ sub projectStatsSimple {
                     my $prevtel = uc($prevobs->telescope);
                     my $prevshifttype;
 
-                    if ($format eq 'BYSHIFT') {
+                    if ($by_shift) {
                         $prevshifttype = uc($prevobs->shifttype);
                     }
                     else {
@@ -1064,10 +1090,20 @@ sub projectStatsSimple {
                         # Charge to the project
                         $proj_totals{$prevymd}{$prevshifttype}{$prevprojectid}
                             += $timespent->seconds;
+                        push @{$proj_observations{$prevymd}{$prevshifttype}{$prevprojectid}}, {
+                            obs => $obs,
+                            timespent => $timespent->seconds,
+                            comment => 'Gap assigned to previous project',
+                        } if $trace_observations;
                     }
                     else {
                         $proj_totals{$prevymd}{$prevshifttype}{$calproj}
                             += $timespent->seconds;
+                        push @{$proj_observations{$prevymd}{$prevshifttype}{$calproj}}, {
+                            obs => $obs,
+                            timespent => $timespent->seconds,
+                            comment => 'Gap assigned to calibration (previous project not science)',
+                        } if $trace_observations;
                     }
                 }
             }
@@ -1077,7 +1113,11 @@ sub projectStatsSimple {
                     if $DEBUG;
 
                 $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
-
+                push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                    obs => $obs,
+                    timespent => $timespent->seconds,
+                    comment => 'Gap assigned to calibration (instrument)',
+                } if $trace_observations;
             }
             elsif ($timespent->seconds > 0) {
                 # Just charge to OTHER [unless we have negative time gap]
@@ -1089,10 +1129,19 @@ sub projectStatsSimple {
         }
         elsif ($obs->isScience) {
             $proj_totals{$ymd}{$shifttype}{$projectid} += $timespent->seconds;
-
+            push @{$proj_observations{$ymd}{$shifttype}{$projectid}}, {
+                obs => $obs,
+                timespent => $timespent->seconds,
+                comment => 'Observation assigned to project',
+            } if $trace_observations;
         }
         else {
             $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
+            push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                obs => $obs,
+                timespent => $timespent->seconds,
+                comment => 'Observation assigned to calibration (not science)',
+            } if $trace_observations;
         }
 
         # Log the most recent information
@@ -1133,6 +1182,7 @@ sub projectStatsSimple {
                             # We have a gap. This should be charged to the following
                             # project
                             my $gap = $projects[$i]->{OTHER};
+                            my $obs = $projects[$i]->{'OBS'};
 
                             # but make sure we do not extend the array indefinitely
                             # This code is more complicated in case we want to apportion
@@ -1155,6 +1205,11 @@ sub projectStatsSimple {
                                     if (exists $proj_totals{$ymd}{$shifttype}{$proj}
                                             && $proj !~ /$CAL_NAME$/) {
                                         $proj_totals{$ymd}{$shifttype}{$proj} += $gap;
+                                        push @{$proj_observations{$ymd}{$shifttype}{$proj}}, {
+                                            obs => $obs,
+                                            timespent => $gap,
+                                            comment => 'Gap assigned to project',
+                                        } if $trace_observations;
 
                                         print "Adding $gap to $proj\n"
                                             if $DEBUG;
@@ -1162,6 +1217,11 @@ sub projectStatsSimple {
                                     else {
                                         # Charge to calibration regardless
                                         $proj_totals{$ymd}{$shifttype}{$calproj} += $gap;
+                                        push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
+                                            obs => $obs,
+                                            timespent => $gap,
+                                            comment => 'Gap assigned to calibration',
+                                        } if $trace_observations;
 
                                         print "Adding $gap to CALibration\n"
                                             if $DEBUG;
@@ -1268,14 +1328,18 @@ sub projectStatsSimple {
                 printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$shifttype}{$proj} / 3600
                     if $DEBUG;
 
-                my $timespent = Time::Seconds->new($proj_totals{$ymd}{$shifttype}{$proj});
-
-                push @timeacct, OMP::Project::TimeAcct->new(
+                my $projacct = OMP::Project::TimeAcct->new(
                     projectid => $proj,
                     date => $date,
-                    timespent => $timespent,
+                    timespent => Time::Seconds->new($proj_totals{$ymd}{$shifttype}{$proj}),
                     shifttype => $shifttype,
                 );
+
+                $projacct->observations($proj_observations{$ymd}{$shifttype}{$proj})
+                    if $trace_observations
+                    and exists $proj_observations{$ymd}{$shifttype}{$proj};
+
+                push @timeacct, $projacct;
             }
         }
     }
@@ -1289,7 +1353,7 @@ Return an array of C<Project::TimeAcct> objects for the given
 C<ObsGroup> object and associated warnings. This implementation
 shares calibrations amongst projects.
 
-    my ($warnings, @timeacct) = $obsgroup->projectStatsShared;
+    my ($warnings, @timeacct) = $obsgroup->projectStatsShared(%options);
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
@@ -1336,6 +1400,8 @@ in proportion to instrument usage but that requires more work].
 
 sub projectStatsShared {
     my $self = shift;
+    my %opt = @_;
+
     my @obs = $self->obs;
 
     # If we do not have any observations we return empty
@@ -1978,7 +2044,7 @@ sub locate_timegaps {
     @obslist = sort {$a->[0] <=> $b->[0]} @obslist;
 
     # Get a list of comments
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
+    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
 
     # Query between first and last observation."
 
@@ -1986,15 +2052,16 @@ sub locate_timegaps {
     if (@obslist) {
         my $start = $obslist[0]->[2]->startobs;
         my $end = $obslist[$#obslist]->[2]->endobs;
-        my $queryxml = "<ObsQuery>"
-            . "<date><min>" . $start->ymd . "</min>"
-            . "<max>" . $end->ymd . "T" . $end->hms . "</max></date>"
-            . "<obsactive>1</obsactive></ObsQuery>";
 
         OMP::General->log_message(
-            "ObslogDB: Querying database for observation comments.\n");
+            "OMP::DB::Obslog: Querying database for observation comments.\n");
 
-        my $query = OMP::ObsQuery->new(XML => $queryxml);
+        my $query = OMP::Query::Obslog->new(HASH => {
+            date => {
+                min => $start->ymd,
+                max => $end->ymd . 'T' . $end->hms},
+            obsactive => {boolean => 1},
+        });
         my @commentresults = $odb->queryComments($query);
 
         %comments = map {$_->obsid => $_} @commentresults;
@@ -2027,7 +2094,7 @@ sub locate_timegaps {
 
                 # The -1 is taken from obslogDB.pm: and apepars to be how to
                 # match obsids from comments to timegaps.
-                my $timegapobsid = OMP::ObslogDB::_placeholder_obsid(
+                my $timegapobsid = OMP::DB::Obslog::_placeholder_obsid(
                     $timegap->instrument,
                     $timegap->runnr,
                     $timegap->endobs - 1);
@@ -2172,7 +2239,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see C<OMP::ArchiveDB> and C<OMP::ObslogDB>.
+For related classes see C<OMP::DB::Archive> and C<OMP::DB::Obslog>.
 
 For information on time gaps see C<OMP::Info::Obs::TimeGap>.
 

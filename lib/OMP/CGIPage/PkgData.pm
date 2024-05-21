@@ -23,7 +23,8 @@ use OMP::Error qw/:try/;
 use File::Basename;
 our $VERSION = '0.03';
 
-use OMP::ProjServer;
+use OMP::DB::Archive;
+use OMP::DB::Project;
 use OMP::PackageData;
 
 use base qw/OMP::CGIPage/;
@@ -63,7 +64,8 @@ sub request_data {
     if ($utdate) {
         # Need to decide whether we are using CADC or OMP for data retrieval
         # To do that we need to know the telescope name
-        my $tel = OMP::ProjServer->getTelescope($projectid);
+        my $tel = OMP::DB::Project->new(
+            DB => $self->database, ProjectID => $projectid)->getTelescope();
 
         return $self->_write_error(
             "Error obtaining telescope name from project code.")
@@ -80,10 +82,17 @@ sub request_data {
 
         # Go through the package data object so that we do not need to worry about
         # inconsistencies with local retrieval
+
+        my $arcdb = OMP::DB::Archive->new(
+            DB => $self->database_archive,
+            FileUtil => $self->fileutil);
+
         my $pkg;
         my $error;
         try {
             $pkg = OMP::PackageData->new(
+                DB => $self->database,
+                ADB => $arcdb,
                 utdate => $utdate,
                 projectid => $projectid,
                 inccal => $inccal,

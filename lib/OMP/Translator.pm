@@ -43,8 +43,6 @@ use OMP::MSB;
 use OMP::Translator::Base;
 
 our $VERSION = '2.000';
-our $DEBUG = 0;
-our $VERBOSE = 0;
 
 =head1 METHODS
 
@@ -56,9 +54,9 @@ Convert the science program object (C<OMP::SciProg>) into
 a observing sequence understood by the instrument data acquisition
 system.
 
-    $xmlfile = OMP::Translate->translate($sp);
-    $data = OMP::Translate->translate($sp, asdata => 1);
-    @data = OMP::Translate->translate($sp, asdata => 1, simulate => 1);
+    $xmlfile = OMP::Translator->translate($sp);
+    $data = OMP::Translator->translate($sp, asdata => 1);
+    @data = OMP::Translator->translate($sp, asdata => 1, simulate => 1);
 
 The actual translation is implemented by the relevant subclass.
 Currently JCMT Heterodyne and SCUBA-2 data can be translated.
@@ -78,9 +76,12 @@ Generate a translation suitable for simulate mode (if supported)
 
 =item log
 
-Log verbose messages to file. If the global $VERBOSE is true, then
-messages will also go to stdout. If $VERBOSE is false then
-verbosity will be enabled in the translation class but only to log file.
+Log verbose messages to file.
+
+=item verbose
+
+If true, then messages will also go to stdout.  Otherwise verbosity
+will be enabled in the translation class but only to log file.
 
 =item loghandle
 
@@ -109,6 +110,18 @@ JAC::OCS::Config
 
 =back
 
+=item outputdir
+
+Output directory. Passed on to the C<write_configs> method.
+
+=item backwards_compatibility_mode
+
+Option passed on to the C<write_configs> method.
+
+=item debug
+
+Enable additional debugging output.
+
 =back
 
 If there is more than one MSB to translate, REMOVED MSBs will be ignored.
@@ -124,14 +137,16 @@ sub translate {
         asdata => 0,
         simulate => 0,
         log => 0,
+        verbose => 0,
+        debug => 0,
         @_);
 
-    print join("\n", $sp->summary('asciiarray')) . "\n" if $DEBUG;
+    print join("\n", $sp->summary('asciiarray')) . "\n" if $opts{'debug'};
 
     # See how many MSBs we have (after pruning)
     my @msbs = OMP::Translator::Base->PruneMSBs($sp->msb);
     print "Number of MSBS to translate: " . scalar(@msbs) . "\n"
-        if $DEBUG;
+        if $opts{'debug'};
 
     # Return immediately if we have nothing to translate
     return () if scalar(@msbs) == 0;
@@ -164,11 +179,11 @@ sub translate {
 
     # Array of file handles that we should write verbose messages to
     my @handles = ();
-    push(@handles, \*STDOUT) if $VERBOSE;  # we want stdout messages if verbose
+    push(@handles, \*STDOUT) if $opts{'verbose'};  # we want stdout messages if verbose
 
-    # Decide on low-level verbosity setting. Should be derived from the global
-    # class $VERBOSE and also the logging functionality.
-    my $verbose = $VERBOSE;
+    # Decide on low-level verbosity setting. Should be derived from the
+    # "verbose" option and also the logging functionality.
+    my $verbose = $opts{'verbose'};
     my $logh;
     if ($opts{log}) {
         try {
@@ -215,6 +230,7 @@ sub translate {
     # Loop over each MSB
     my @configs;  # Somewhere to put the translated output
     my @classes;  # and translator class used
+    my @translators;  # and the translator objects
     for my $msb (@msbs) {
         # Survey Containers in child nodes present a problem since
         # the _get_SpObs method does not return clones for each target
@@ -314,9 +330,8 @@ sub translate {
                 unless exists $class_lut{$inst};
 
             # Create the full class name
-            my $class = $class_lut{$inst};
-            $class = $thisclass . '::' . $class;
-            print "Class is : $class\n" if $DEBUG;
+            my $class = $thisclass . '::' . $class_lut{$inst};
+            print "Class is : $class\n" if $opts{'debug'};
 
             # Load the class
             eval "require $class;";
@@ -325,14 +340,16 @@ sub translate {
                     "Error loading class '$class': $@\n");
             }
 
-            # Set DEBUGGING in the class depending on the debugging state here
-            $class->debug($DEBUG);
+            my $translator = $class->new;
+
+            # Set DEBUGGING in the translator depending on the debugging state here
+            $translator->debug($opts{'debug'});
 
             # enable verbose logging
-            $class->verbose($verbose) if $class->can("verbose");
+            $translator->verbose($verbose) if $translator->can("verbose");
 
             # and register filehandles
-            $class->outhdl(@handles) if $class->can("outhdl");
+            $translator->outhdl(@handles) if $translator->can("outhdl");
 
             if (defined $logh) {
                 print $logh "---------------------------------------------\n";
@@ -348,7 +365,7 @@ sub translate {
 
             # And forward to the correct translator
             # We always get objects, sometimes multiple objects
-            my @new = $class->translate($tmpmsb, simulate => $opts{simulate});
+            my @new = $translator->translate($tmpmsb, simulate => $opts{simulate});
 
             if (defined $logh and not $opts{'no_log_input'}) {
                 # Basic XML
@@ -366,18 +383,16 @@ sub translate {
                 print $logh "---------------------------------------------\n";
             }
 
-            # Reset handles so that the globals do not hang around
-            $class->outhdl(undef) if $class->can("outhdl");
-
             # Now force translator directory into config
             # All of the objects returned by translate() support the outputdir() method
-            $_->outputdir($class->transdir) for @new;
+            $_->outputdir($translator->transdir) foreach @new;
 
             # Store them in the main config array
             push @configs, @new;
 
             # and store the class for each config
-            push @classes, $class for @new;
+            push @classes, $class foreach @new;
+            push @translators, $translator foreach @new;
         }
     }
 
@@ -392,21 +407,20 @@ sub translate {
             else {
                 push @contiguous, {
                     class => $classes[$i],
+                    translator => $translators[$i],
                     configs => [$configs[$i]]};
             }
         }
 
         my @newconfigs;
         for my $groups (@contiguous) {
-            my $class = $groups->{class};
+            my $translator = $groups->{'translator'};
             my @theseconfigs = @{$groups->{configs}};
-            if ($class->can("insert_setup_obs")) {
-                $class->outhdl(@handles) if $class->can("outhdl");
+            if ($translator->can('insert_setup_obs')) {
                 push @newconfigs,
-                    $class->insert_setup_obs(
+                    $translator->insert_setup_obs(
                         {simulate => $opts{simulate}},
                         @theseconfigs);
-                $class->outhdl(undef) if $class->can("outhdl");
             }
             else {
                 push @newconfigs, @theseconfigs;
@@ -441,8 +455,16 @@ sub translate {
         }
     }
     else {
+        my %write_options = ();
+
+        $write_options{'transdir'} = $opts{'outputdir'}
+            if exists $opts{'outputdir'};
+
+        $write_options{'backwards_compatibility_mode'} = $opts{'backwards_compatibility_mode'}
+            if exists $opts{'backwards_compatibility_mode'};
+
         # We write to disk and return the name of the wrapper file
-        my $xml = $self->write_configs(\@configs);
+        my $xml = $self->write_configs(\@configs, %write_options);
 
         # clear logging
         for (@configs) {
@@ -454,63 +476,12 @@ sub translate {
     }
 }
 
-=item B<outputdir>
-
-Set (or retrieve) the default output directory for writing config information.
-Initially unset.
-
-    $dir = OMP::Translator->outputdir();
-    OMP::Translator->outputdir();
-
-If no output directory has been specified explicitly, the output directory
-will depend on the default specified for each translator (which may be
-class specific).
-
-=cut
-
-{
-    my $OUTPUT_DIR;
-
-    sub outputdir {
-        my $self = shift;
-        if (@_) {
-            $OUTPUT_DIR = shift;
-        }
-        return $OUTPUT_DIR;
-    }
-}
-
-=item B<backwards_compatibility_mode>
-
-Controls the global state of the translator when writing output files.
-By default, files are written in a format suitable for uploading to
-the new OCS queue using an XML format.
-
-If this switch is enabled, the file name returned by the translator
-will be instrument specific and multiple instruments can not be
-combined within a single translation.
-
-=cut
-
-{
-    my $cmode = 0;
-
-    sub backwards_compatibility_mode {
-        my $class = shift;
-        if (@_) {
-            $cmode = shift;
-        }
-        return $cmode;
-    }
-}
-
-
 =item B<write_configs>
 
 Write each config object to disk and return the name of an XML
 file containing all the information required for loading the OCS queue.
 
-    $qxml = OMP::Translator->write_configs(\@configs);
+    $qxml = OMP::Translator->write_configs(\@configs, %options);
 
 This method does not care what type of object is passed in so long
 as the following methods are supported:
@@ -538,12 +509,28 @@ Write file to disk and return name of file.
 An exception is thrown if the telescope is not the same for each
 config.
 
+Options include:
+
+=over 4
+
+=item transdir
+
 By default the configs are written to the directory suitable for each type of
-translation (ie whatever is in each object), unless either an explcit
-global C<outputdir> is defined or an explicit directory is provided to this
-method through the C<transdir> option.
+translation (ie whatever is in each object), unless an explicit directory
+is provided to this method through the C<transdir> option.
 
     $qxml = OMP::Translator->write_configs(\@configs, transdir => $dir);
+
+=item backwards_compatibility_mode
+
+By default, files are written in a format suitable for uploading to
+the new OCS queue using an XML format.
+
+If this switch is enabled, the file name returned by the translator
+will be instrument specific and multiple instruments can not be
+combined within a single translation.
+
+=back
 
 =cut
 
@@ -552,16 +539,13 @@ sub write_configs {
     my $configs = shift;
     my %opts = @_;
 
-    # Specified outputdir overrides default
+    # Specified transdir overrides default
     my $outdir;
     if (defined $opts{transdir}) {
         $outdir = $opts{transdir};
     }
-    elsif (defined $class->outputdir) {
-        $outdir = $class->outputdir;
-    }
 
-    if ($class->backwards_compatibility_mode) {
+    if ($opts{'backwards_compatibility_mode'}) {
         # check our config objects are all the same type
         my $class = blessed($configs->[0]);
         my $inst = $configs->[0]->instrument;

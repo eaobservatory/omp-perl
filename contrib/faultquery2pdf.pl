@@ -17,11 +17,11 @@ BEGIN {
 
 use lib OMPLIB;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Display;
 use OMP::Fault;
-use OMP::FaultDB;
-use OMP::FaultQuery;
+use OMP::DB::Fault;
+use OMP::Query::Fault;
 use OMP::FaultUtil;
 
 # Specify text phrases to search for.
@@ -75,43 +75,34 @@ my @queries = (
 
 # Loop over the query types.
 
+my $db = OMP::DB::Backend->new();
+
 foreach my $query (@queries) {
     foreach my $phrase (@query_phrases) {
         # Report name (used as part of file name).
-        my $name = join('_', (map {ref $query->{$_} ? 'MULTIPLE' : $query->{$_}}
-                                  sort keys %$query), $phrase);
+        my $name = join '_',
+            (map {ref $query->{$_} ? 'MULTIPLE' : $query->{$_}} sort keys %$query),
+            $phrase;
 
-        # Query XML.
-        my $xml = join("\n",
-            '<FaultQuery>',
-            (map {query_component($_, $query->{$_})} keys %$query),
-            '<text>' . $phrase . '</text>',
-            '</FaultQuery>');
+        # Query hash.
+        my %hash = (
+            text => $phrase,
+            %$query,
+        );
 
         # Perform the query.
-        query_to_pdf($name, $xml);
+        query_to_pdf($name, \%hash);
     }
-}
-
-# Expand a query parameter and single or multiple values into XML.
-
-sub query_component {
-    my $name = shift;
-    my $value = shift;
-
-    $value = [$value] unless ref $value;
-
-    return join("\n", map {'<' . $name . '>' . $_ . '</' . $name . '>'} @$value);
 }
 
 # Perform the query, write PS and convert it to PDF.
 
 sub query_to_pdf {
     my $name = shift;
-    my $xml = shift;
+    my $hash = shift;
 
-    my $fdb = OMP::FaultDB->new(DB => OMP::DBbackend->new());
-    my $query = OMP::FaultQuery->new(XML => $xml);
+    my $fdb = OMP::DB::Fault->new(DB => $db);
+    my $query = OMP::Query::Fault->new(HASH => $hash);
     my $faults = $fdb->queryFaults($query);
     my $toprint = '';
 

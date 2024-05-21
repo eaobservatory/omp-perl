@@ -79,9 +79,9 @@ BEGIN {
 
 use OMP::Constants qw/:fb/;
 use OMP::General;
-use OMP::BaseDB;
-use OMP::DBbackend;
-use OMP::FeedbackDB;
+use OMP::DB;
+use OMP::DB::Backend;
+use OMP::DB::Feedback;
 
 my %opt = (
     'header' => undef,
@@ -114,7 +114,7 @@ my @proj = get_projects(\%opt, @ARGV)
         '-sections' => 'SYNOPSIS',
         '-msg' => 'No project ids were given.');
 
-my $db = OMP::BaseDB->new('DB' => OMP::DBbackend->new);
+my $db = OMP::DB->new('DB' => OMP::DB::Backend->new);
 my $progs = $db->_db_retrieve_data_ashash(make_query(@proj));
 
 unless (scalar @{$progs}) {
@@ -221,7 +221,7 @@ sub open_file {
     return $fh;
 }
 
-# Returns the C<OMP::TimeAcctQuery> object given a project id.
+# Returns the C<OMP::Query::TimeAcct> object given a project id.
 sub make_query {
     my (@proj) = @_;
 
@@ -232,11 +232,11 @@ sub make_query {
 
     return <<"__SQL__";
         SELECT f.projectid, date
-        FROM $OMP::FeedbackDB::FBTABLE f
+        FROM $OMP::DB::Feedback::FBTABLE f
         WHERE f.projectid IN ( $list )
           AND f.date =
             ( SELECT MIN(f2.date)
-              FROM $OMP::FeedbackDB::FBTABLE f2
+              FROM $OMP::DB::Feedback::FBTABLE f2
               WHERE f2.projectid = f.projectid
                 AND ( f2.msgtype = $submitted OR f2.subject LIKE 'Science program submitted%' )
             )

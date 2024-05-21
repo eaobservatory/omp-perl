@@ -9,8 +9,8 @@ OMP::Auth::OMPToken - User authentication for SOAP clients via token
 use strict;
 use warnings;
 
-use OMP::AuthDB;
-use OMP::DBbackend;
+use OMP::DB::Auth;
+use OMP::DB::Backend;
 use OMP::Error;
 
 use base qw/OMP::Auth::Base/;
@@ -47,7 +47,7 @@ sub log_in_userpass {
     my $username = shift;
     my $token = shift;
 
-    my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::DB::Auth->new(DB => OMP::DB::Backend->new());
 
     my $user = $db->verify_token($token);
 

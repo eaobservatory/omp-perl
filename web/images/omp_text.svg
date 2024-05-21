@@ -1,0 +1,20 @@
+<svg version="1.1" width="300" height="100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        <![CDATA[
+            text {
+                font-size: 145px;
+                font-family: courier;
+                font-weight: 1;
+                letter-spacing: 0px;
+            }
+        ]]>
+    </style>
+
+    <g>
+        <text x="150" y="70" text-anchor="middle">
+            <tspan fill="#F29A06">o</tspan>
+            <tspan fill="#E62E3D">m</tspan>
+            <tspan fill="#87CFFF">p</tspan>
+        </text>
+    </g>
+</svg>

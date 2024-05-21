@@ -168,6 +168,7 @@ sub _show_plot {
         [],
         $capture->capture_png_as_data(sub {
             plot_sources(
+                db => $self->database,
                 output => '-',
                 hdevice => '/PNG',
                 %opt,

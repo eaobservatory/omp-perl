@@ -25,9 +25,8 @@ BEGIN {
 use lib OMPLIB;
 
 use OMP::Config;
-use OMP::MSBDB;
-use OMP::DBbackend;
-use OMP::ProjServer;
+use OMP::DB::MSB;
+use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use Data::Dumper;
 use Time::Piece;
@@ -69,7 +68,8 @@ if (-e $dumplog) {
         unless $date;
 }
 
-my $db = OMP::MSBDB->new(DB => OMP::DBbackend->new);
+my $dbb = OMP::DB::Backend->new;
+my $db = OMP::DB::MSB->new(DB => $dbb);
 
 # Query the database for all projects whose programs have been modified
 # since the last dump
@@ -83,9 +83,9 @@ my $n_err = 0;
 for my $projid (@projects) {
     try {
         # Create new DB object using backdoor password
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projid,
-            DB => OMP::DBbackend->new());
+            DB => $dbb);
 
         my $xml = $db->fetchSciProg(1, raw => 1);
 

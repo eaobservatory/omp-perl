@@ -26,25 +26,24 @@ use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb);
 use OMP::Config;
+use OMP::DB::Fault;
 use OMP::Display;
 use OMP::Error qw(:try);
-use OMP::FeedbackDB;
-use OMP::UserServer;
+use OMP::DB::Feedback;
+use OMP::DB::User;
 use OMP::DateTools;
 use OMP::General;
-use OMP::MSBDB;
-use OMP::MSBServer;
-use OMP::ProjAffiliationDB;
-use OMP::ProjDB;
-use OMP::ProjServer;
-use OMP::TimeAcctDB;
+use OMP::DB::MSB;
+use OMP::DB::MSBDone;
+use OMP::DB::ProjAffiliation;
+use OMP::DB::Project;
+use OMP::Query::Project;
+use OMP::DB::TimeAcct;
 use OMP::SiteQuality;
 
 use base qw/OMP::CGIPage/;
 
 our $telescope = 'JCMT';
-
-$| = 1;
 
 =head1 Routines
 
@@ -67,7 +66,7 @@ sub fb_fault_content {
     # Get a fault component object
     my $faultcomp = OMP::CGIComponent::Fault->new(page => $self);
 
-    my $faultdb = OMP::FaultDB->new(DB => $self->database);
+    my $faultdb = OMP::DB::Fault->new(DB => $self->database);
     my @faults = $faultdb->getAssociations($projectid, 0);
 
     # Display the first fault if a fault isnt specified in the URL
@@ -82,7 +81,7 @@ sub fb_fault_content {
     }
 
     return {
-        project => OMP::ProjServer->projectDetails($projectid, 'object'),
+        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         fault_list => $faultcomp->show_faults(
             faults => \@faults,
             descending => 0,
@@ -118,21 +117,25 @@ sub list_projects {
     my $country = $q->param('country');
     my $order = $q->param('order');
 
+    my $instrument = {
+        map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $1 => 1}
+        grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
+
     undef $semester if $semester =~ /any/i;
     undef $support if $support eq '';
     undef $country if $country eq '';
 
-    my $xmlquery = '<ProjQuery>'
-        . "<state>$state</state><status>$status</status>"
-        . "<semester>$semester</semester><support>$support</support>"
-        . ((defined $country)
-            ? (join '', map {"<country>$_</country>"} split /\+/, $country)
-            : '')
-        . "<telescope>$telescope</telescope></ProjQuery>";
-
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
+    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => {
+        (defined $state ? (state => {boolean => $state}) : ()),
+        (defined $status ? (status => $status) : ()),
+        (defined $semester ? (semester => $semester) : ()),
+        (defined $support ? (support => $support) : ()),
+        (defined $country ? (country => [split /\+/, $country]) : ()),
+        (%$instrument ? (instrument => [keys %$instrument]) : ()),
+        telescope => $telescope,
+    }));
 
     my @sorted = ();
     if (@$projects) {
@@ -144,7 +147,7 @@ sub list_projects {
         #
         # NOTE: This may be too slow.  We will probably want to let the
         # database do the sorting and grouping for us in the future,
-        # although that will require OMP::ProjQuery to support
+        # although that will require OMP::Query::Project to support
         # <orderby> and <groupby> tags
 
         if ($order eq 'projectid') {
@@ -219,6 +222,7 @@ sub list_projects {
             support => $support,
             country => $country,
             order => $order,
+            instrument => $instrument,
         },
     };
 }
@@ -236,16 +240,18 @@ sub project_home {
     my $projectid = shift;
 
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
+    my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
-    my $project = OMP::ProjServer->projectDetails($projectid, 'object');
+    my $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
 
     # Get nights for which data was taken
-    my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
+    my $nights = $msbdonedb->observedDates(1);
 
     # Since time may have been charged to the project even though no MSBs
     # were observed, check with the accounting DB as well
-    my $adb = OMP::TimeAcctDB->new(DB => $self->database);
+    my $adb = OMP::DB::TimeAcct->new(DB => $self->database);
 
     # Because of shifttypes, there may be more than one shift per night.
     my @accounts = $adb->getTimeSpent(projectid => $project->projectid);
@@ -271,7 +277,7 @@ sub project_home {
     my $cannot_retrieve;
     try {
         my @noretrieve = OMP::Config->getData("unretrievable", telescope => $project->telescope);
-        my $projinst = OMP::SpServer->programInstruments(${projectid});
+        my $projinst = $msbdb->getInstruments(${projectid});
 
         # See if the instrument in the project are listed in noretrieve
         my %inproj = map {(uc($_), undef)}
@@ -287,10 +293,6 @@ sub project_home {
     otherwise {
     };
 
-    # Get the "important" feedback comments
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $self->database);
-    my $comments = $fdb->getComments(status => [OMP__FB_IMPORTANT]);
-
     return {
         project => $project,
         is_staff => (!! $self->auth->is_staff),
@@ -304,7 +306,6 @@ sub project_home {
             ? $msbcomp->fb_msb_observed($projectid)
             : undef),
         msbs_active => $msbcomp->fb_msb_active($projectid),
-        comments => $comments,
         taurange_is_default => sub {
             return OMP::SiteQuality::is_default('TAU', $_[0]);
         },
@@ -335,7 +336,7 @@ sub program_summary {
     my $sp = undef;
     my $error = undef;
     try {
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $self->database);
         $sp = $db->fetchSciProg(1);
@@ -454,8 +455,13 @@ sub project_users {
 
     my $q = $self->cgi;
 
+    my $db = OMP::DB::Project->new(
+        ProjectID => $projectid,
+        DB => $self->database,
+    );
+
     # Get the project info
-    my $project = OMP::ProjServer->projectDetails($projectid, 'object');
+    my $project = $db->projectDetails();
 
     # Get contacts
     my @contacts = $project->investigators;
@@ -488,11 +494,6 @@ sub project_users {
 
         # Store user contactable info to database (have to actually store
         # entire project back to database)
-        my $db = OMP::ProjDB->new(
-            ProjectID => $projectid,
-            DB => $self->database,
-        );
-
         my $error = undef;
         try {
             $db->updateContactability(\%new_contactable);
@@ -550,7 +551,7 @@ sub support {
         contacts => undef,
         } unless defined $projectid;
 
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->database,
     );
@@ -564,7 +565,7 @@ sub support {
     my $project;
     my $E;
     try {
-        $project = $projdb->projectDetails("object");
+        $project = $projdb->projectDetails();
     }
     catch OMP::Error with {
         $E = shift;
@@ -668,7 +669,7 @@ sub alter_proj {
     } unless defined $projectid;
 
     # Connect to the database
-    my $projdb = OMP::ProjDB->new(
+    my $projdb = OMP::DB::Project->new(
         ProjectID => $projectid,
         DB => $self->database,
     );
@@ -918,7 +919,7 @@ sub process_project_changes {
 
     # Get OMP user object
     if ($q->param('send_mail')) {
-        my $fdb = OMP::FeedbackDB->new(ProjectID => $project->projectid, DB => $self->database);
+        my $fdb = OMP::DB::Feedback->new(ProjectID => $project->projectid, DB => $self->database);
         $fdb->addComment(
             {
                 author => $self->auth->user,
@@ -971,7 +972,7 @@ sub update_users {
 
     return if _match_string($old_id, join ',', @userid);
 
-    my @user = map {_make_user($_)} @userid;
+    my @user = map {$self->_make_user($_)} @userid;
 
     if ($type eq 'pi') {
         # The "pi" method only accepts a single user (first argument) so pass
@@ -994,6 +995,7 @@ sub update_users {
 }
 
 sub _make_user {
+    my $self = shift;
     my ($userid) = @_;
 
     return unless $userid;
@@ -1001,12 +1003,12 @@ sub _make_user {
     my $affiliation;
     ($userid, $affiliation) = split ':', $userid, 2;
 
-    my $user = OMP::UserServer->getUser($userid)
+    my $user = OMP::DB::User->new(DB => $self->database)->getUser($userid)
         or throw OMP::Error "Unknown user ID given: $userid";
 
     if (defined $affiliation) {
         throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
-            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+            unless exists $OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$affiliation};
 
         $user->affiliation($affiliation);
     }
@@ -1063,7 +1065,7 @@ sub translate_msb {
     my $result = undef;
 
     try {
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $self->database);
 

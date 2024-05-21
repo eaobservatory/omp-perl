@@ -27,7 +27,8 @@ use warnings;
 # External dependencies
 use SOAP::Lite;
 use OMP::Auth;
-use OMP::AuthDB;
+use OMP::DB::Auth;
+use OMP::DB::Backend;
 use OMP::Config;
 use OMP::Constants qw/:status :logging/;
 use OMP::Display;
@@ -90,13 +91,40 @@ sub get_verified_projectid {
     my @headers;
     if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
         my (undef, $addr, undef) = OMP::NetTools->determine_host;
-        my $adb = OMP::AuthDB->new(DB => $class->dbConnection);
+        my $adb = OMP::DB::Auth->new(DB => $class->dbConnection);
         my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer', 'default');
         push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
         push @headers, SOAP::Header->new(name => 'token', value => $token);
     }
 
     return ($projectid, $auth, @headers);
+}
+
+=item B<dbConnection>
+
+The database connection object. This is called by all the methods
+that use a C<OMP::DB::MSB> object. The connection is automatically
+instantiated the first time it is requested.
+
+Returns a connection object of type C<OMP::DB::Backend>.
+
+=cut
+
+{
+    # Hide the lexical variable
+    my $db;
+
+    sub dbConnection {
+        my $class = shift;
+
+        if (defined $db) {
+            return $db;
+        }
+        else {
+            $db = OMP::DB::Backend->new;
+            return $db;
+        }
+    }
 }
 
 =item B<throwException>
@@ -252,11 +280,13 @@ __END__
 
 =head1 SEE ALSO
 
+L<OMP::DB::Backend>, L<OMP::MSBServer>, L<OMP::SpServer>.
+
 OMP document OMP/SN/003.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify

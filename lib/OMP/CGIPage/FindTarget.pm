@@ -132,6 +132,7 @@ sub _show_output {
     my ($targets, $results, $result_sep);
     unless (@msg) {
         ($targets, $result_sep) = OMP::FindTarget::find_targets(
+            DB => $self->database,
             proj => $proj,
             ra   => $ra,
             dec  => $dec,

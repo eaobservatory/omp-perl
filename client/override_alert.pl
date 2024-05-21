@@ -67,12 +67,14 @@ BEGIN {
     use constant OMPLIB => "$FindBin::RealBin/../lib";
     use lib OMPLIB;
 
+    use OMP::DB::Backend;
     use OMP::DateTools;
     use OMP::Audio;
     use OMP::Error qw/:try/;
     use OMP::General;
-    use OMP::MSBQuery;
-    use OMP::MSBServer;
+    use OMP::Query::MSB;
+    use OMP::DB::MSB;
+    use OMP::Util::Client;
 
     $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
         unless exists $ENV{'OMP_DIR'};
@@ -118,10 +120,12 @@ if (defined $opt{'tel'}) {
 else {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    $telescope = OMP::General->determine_tel($w);
+    $telescope = OMP::Util::Client->determine_tel($w);
     $w->destroy if Exists($w);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
+
+my $db = OMP::DB::Backend->new;
 
 create_main_window();
 
@@ -184,8 +188,6 @@ sub create_main_window {
 }
 
 sub scan_for_msbs {
-    my $class = 'OMP::MSBServer';
-
     # Get the optional semesters to use from the config system.
     my $E;
     my @semesters;
@@ -199,7 +201,7 @@ sub scan_for_msbs {
     otherwise {
         $E = shift;
     };
-    $class->throwException($E) if defined $E;
+    $E->throw if defined $E;
 
     # Get the current semester from OMP::General.
     my $current_semester = OMP::DateTools->determine_semester(
@@ -208,25 +210,22 @@ sub scan_for_msbs {
     # Push the current semester onto the list of semesters.
     push @semesters, $current_semester;
 
-    # Generate the semester XML.
-    my $sem_xml = '<semesters>';
-    foreach my $semester (@semesters) {
-        $sem_xml .= "<semester>$semester</semester>";
-    }
-    $sem_xml .= '</semesters>';
-
-    my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
+    my %hash = (
+        telescope => $telescope,
+        priority => {max => 0},
+        semester => [grep {$_} @semesters],
+    );
     my @results;
     try {
-        OMP::General->log_message("override_alert.pl: Querying for override programs...");
-        OMP::General->log_message("override_alert.pl: XML: $xml");
+        my $query = OMP::Query::MSB->new(
+            HASH => \%hash,
+            MaxCount => 100);
 
-        my $query = OMP::MSBQuery->new(
-            XML => $xml,
-            MaxCount => 100,
-        );
-        my $db = OMP::MSBDB->new(DB => $class->dbConnection);
-        @results = $db->queryMSB($query, 'object');
+        OMP::General->log_message("override_alert.pl: Querying for override programs...");
+        OMP::General->log_message("override_alert.pl: $query");
+
+        my $mdb = OMP::DB::MSB->new(DB => $db);
+        @results = $mdb->queryMSB($query);
     }
     catch OMP::Error with {
         $E = shift;
@@ -236,7 +235,7 @@ sub scan_for_msbs {
         $E = shift;
         print "Error: " . $E->{'-text'} . "\n";
     };
-    $class->throwException($E) if defined($E);
+    $E->throw if defined $E;
 
     my %returned_checksums;
     my %new_checksums;

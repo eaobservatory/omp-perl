@@ -9,6 +9,8 @@ OMP::NightRep - Generalized routines to details from a given night
     use OMP::NightRep;
 
     $nr = OMP::NightRep->new(
+        DB => $database,
+        ADB => $archivedb,
         date => '2002-12-18',
         telescope => 'jcmt');
 
@@ -34,23 +36,21 @@ our $VERSION = '2.000';
 use OMP::Error qw/:try/;
 use OMP::Constants;
 use OMP::General;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
-use OMP::ArchiveDB;
-use OMP::ArcQuery;
+use OMP::Query::Archive;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
-use OMP::TimeAcctQuery;
-use OMP::ShiftDB;
-use OMP::ShiftQuery;
+use OMP::Query::TimeAcct;
+use OMP::DB::Shift;
+use OMP::Query::Shift;
 use OMP::DateTools;
-use OMP::FaultDB;
-use OMP::FaultQuery;
+use OMP::DB::Fault;
+use OMP::Query::Fault;
 use OMP::FaultGroup;
-use OMP::MSBDoneDB;
-use OMP::MSBDoneQuery;
+use OMP::DB::MSBDone;
+use OMP::Query::MSBDone;
+use OMP::DB::Project;
 use Time::Piece qw/:override/;
 use OMP::Mail;
 use OMP::Display;
@@ -71,6 +71,8 @@ Create a new night report object. Accepts a hash argument specifying
 the date, delta and telescope to use for all queries.
 
     $nr = OMP::NightRep->new(
+        DB => $database,
+        ADB => $archivedb,
         telescope => 'JCMT',
         date => '2002-12-10',
         delta_day => '7',
@@ -97,6 +99,7 @@ sub new {
         UTDateEnd => undef,
         DeltaDay => 1,
         DB => undef,
+        ADB => undef,
         },
         $class;
 
@@ -231,18 +234,15 @@ sub db_accounts {
     elsif (! defined $self->{DBAccounts}) {
         # No accounts cached.  Retrieve some
         # Database connection
-        my $db = OMP::TimeAcctDB->new(DB => $self->db);
-
-        # XML query
-        my $xml = "<TimeAcctQuery>"
-            . $self->_get_date_xml(timeacct => 1)
-            . "</TimeAcctQuery>";
+        my $db = OMP::DB::TimeAcct->new(DB => $self->db);
 
         # Get our sql query
-        my $query = OMP::TimeAcctQuery->new(XML => $xml);
+        my $query = OMP::Query::TimeAcct->new(HASH => {
+             date => $self->_get_date_hash(timeacct => 1)
+        });
 
         # Get the time accounting statistics from
-        # the TimeAcctDB table. These are returned as a list of
+        # the TimeAcct table. These are returned as a list of
         # Project::TimeAcct.pm objects. Note that there will be more than
         # one per project now that there are multiple shift types etc.
 
@@ -250,13 +250,14 @@ sub db_accounts {
 
         # Keep only the results for the telescope we are querying for
         @acct = grep {
-            OMP::ProjServer->verifyTelescope($_->projectid, $self->telescope)
+            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
         } @acct;
 
         # Store result
         my $acctgrp = OMP::TimeAcctGroup->new(
             accounts => \@acct,
             telescope => $self->telescope,
+            DB => $self->db,
         );
 
         $self->{DBAccounts} = $acctgrp;
@@ -315,35 +316,36 @@ sub faults {
     }
     elsif (! $self->{Faults}) {
         # Retrieve faults from the fault database
-        my $fdb = OMP::FaultDB->new(DB => $self->db);
+        my $fdb = OMP::DB::Fault->new(DB => $self->db);
 
-        my %xml;
+        my %hash;
         # We have to do two separate queries in order to get back faults that
         # were filed on and occurred on the reporting dates
 
-        # XML query to get faults filed on the dates we are reaporting for
-        $xml{filed} = "<FaultQuery>"
-            . $self->_get_date_xml()
-            . "<category>" . $self->telescope . "</category>"
-            . "<isfault>1</isfault>"
-            . "</FaultQuery>";
+        # Query to get faults filed on the dates we are reaporting for
+        $hash{'filed'} = {
+            date => $self->_get_date_hash(),
+            category => $self->telescope,
+            isfault => {boolean => 1},
+        };
 
-        # XML query to get faults that occurred on the dates we are reporting for
-        $xml{actual} = "<FaultQuery>"
-            . $self->_get_date_xml(tag => 'faultdate')
-            . "<category>" . $self->telescope . "</category>"
-            . "</FaultQuery>";
+        # Query to get faults that occurred on the dates we are reporting for
+        $hash{'actual'} = {
+            faultdate => $self->_get_date_hash(),
+            category => $self->telescope,
+        };
 
         # Do both queries and merge the results
         my %results;
-        for my $xmlquery (keys %xml) {
-            my $query = OMP::FaultQuery->new(XML => $xml{$xmlquery});
+        for my $queryname (keys %hash) {
+            my $query = OMP::Query::Fault->new(HASH => $hash{$queryname});
+
             my $results = $fdb->queryFaults($query);
 
             for (@$results) {
                 # Use fault date epoch followed by ID for key so that we can
                 # sort properly and maintain uniqueness
-                if ($xmlquery =~ /filed/) {
+                if ($queryname =~ /filed/) {
                     # Don't keep results that have an actual date if they were
                     # returned by our "filed on" query
                     if (! $_->faultdate) {
@@ -430,7 +432,7 @@ sub faults_by_date {
 Return time accounts derived from the data headers.  Time accounts are
 represented by an C<OMP::TimeAcctGroup> object.
 
-    $acctgrp = $nr->hdr_accounts();
+    $acctgrp = $nr->hdr_accounts(%options);
     $nr->hdr_accounts($acctgrp);
 
 Accepts an C<OMP::TimeAcctGroup> object.  Returns undef list if no time
@@ -440,9 +442,8 @@ accounts could be obtained from the data headers.
 
 sub hdr_accounts {
     my $self = shift;
-    my $method = shift;
 
-    if (@_) {
+    if (1 == scalar @_) {
         my $acctgrp = $_[0];
         throw OMP::Error::BadArgs(
             "Accounts must be provided as an OMP::TimeAcctGroup object")
@@ -451,6 +452,8 @@ sub hdr_accounts {
         $self->{HdrAccounts} = $acctgrp;
     }
     elsif (! defined $self->{HdrAccounts}) {
+        my %opt = @_;
+
         # No accounts cached, retrieve some.
         # Get the time accounting statistics from the data headers
         # Need to catch directory not found
@@ -465,14 +468,16 @@ sub hdr_accounts {
             $obsgrp->locate_timegaps(1);
 
             # Get one value per shift.
-            ($warnings, @acct) = $obsgrp->projectStats('BYSHIFT');
+            ($warnings, @acct) = $obsgrp->projectStats(by_shift => 1, %opt);
         }
         else {
             $warnings = [];
         }
 
         # Store the result
-        my $acctgrp = OMP::TimeAcctGroup->new(accounts => \@acct);
+        my $acctgrp = OMP::TimeAcctGroup->new(
+            accounts => \@acct,
+            DB => $self->db);
         $self->{HdrAccounts} = $acctgrp;
 
         # Store warnings
@@ -511,23 +516,46 @@ sub telescope {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DBbackend> object). The first
-time this is called, triggers a database connection.
+A shared database connection (an C<OMP::DB::Backend> object).
 
     $db = $nr->db;
-
-Takes no arguments.
 
 =cut
 
 sub db {
     my $self = shift;
 
-    unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DBbackend->new;
+    if (@_) {
+        my $db = shift;
+         throw OMP::Error::FatalError(
+             'DB must be an OMP::DB::Backend object')
+             unless eval {$db->isa('OMP::DB::Backend')};
+
+        $self->{'DB'} = $db;
     }
 
     return $self->{DB};
+}
+
+=item B<adb>
+
+Archive database object.  An instance of C<OMP::DB::Archive>.
+
+=cut
+
+sub adb {
+    my $self = shift;
+
+    if (@_) {
+        my $adb = shift;
+         throw OMP::Error::FatalError(
+             'ADB must be an OMP::DB::Archive object')
+             unless eval {$adb->isa('OMP::DB::Archive')};
+
+        $self->{'ADB'} = $adb;
+    }
+
+    return $self->{'ADB'};
 }
 
 =item B<warnings>
@@ -576,7 +604,7 @@ Optionally this can be limited by SHIFTTYPE and by REMOTE status.
 Data from the accounting database may or may not be confirmed time.
 For data from the data headers the confirmed status is not relevant.
 
-    %details = $nr->accounting;
+    %details = $nr->accounting(%options);
 
 A special key, "__WARNINGS__" includes any warnings generated by the
 accounting query (a reference to an array of strings). See
@@ -587,6 +615,7 @@ all warnings generated.
 
 sub accounting {
     my $self = shift;
+    my %opt = @_;
 
     # Hash for the results
     my %results;
@@ -596,7 +625,7 @@ sub accounting {
     $results{DB} = \%db;
 
     # Get the info from the headers
-    my %hdr = $self->accounting_hdr;
+    my %hdr = $self->accounting_hdr(%opt);
     $results{DATA} = \%hdr;
 
     # Now generate a combined hash
@@ -720,8 +749,9 @@ method.
 
 sub accounting_hdr {
     my $self = shift;
+    my %opt = @_;
 
-    my $acctgrp = $self->hdr_accounts;
+    my $acctgrp = $self->hdr_accounts(%opt);
 
     my @hdacct = $acctgrp->accounts;
     my $warnings = $self->warnings;
@@ -796,19 +826,16 @@ sub obs {
         $self->{'Observations'} = $grp;
     }
     elsif (! $self->{'Observations'}) {
-        my $db = OMP::ArchiveDB->new();
-
-        # XML query to get all observations
-        my $xml = "<ArcQuery>"
-            . "<telescope>" . $self->telescope . "</telescope>"
-            . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-            . "</ArcQuery>";
-
-        # Convert XML to an sql query
-        my $query = OMP::ArcQuery->new(XML => $xml);
+        my $query = OMP::Query::Archive->new(HASH => {
+            telescope => $self->telescope,
+            date => {
+                delta => $self->delta_day,
+                value => $self->date->ymd,
+            },
+        });
 
         # Get observations
-        my @obs = $db->queryArc($query, 0, 1);
+        my @obs = $self->adb->queryArc($query, 0, 1);
 
         my $grp;
         try {
@@ -834,25 +861,24 @@ values of C<OMP::Info::MSB> objects.
 sub msbs {
     my $self = shift;
 
-    my $db = OMP::MSBDoneDB->new(DB => $self->db);
+    my $db = OMP::DB::MSBDone->new(DB => $self->db);
 
-    # Our XML query to get all done MSBs fdr the specified date and delta
-    my $xml = "<MSBDoneQuery>"
-        . "<status>" . OMP__DONE_DONE . "</status>"
-        . "<status>" . OMP__DONE_REJECTED . "</status>"
-        . "<status>" . OMP__DONE_SUSPENDED . "</status>"
-        . "<status>" . OMP__DONE_ABORTED . "</status>"
-        . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-        . "</MSBDoneQuery>";
-
-    my $query = OMP::MSBDoneQuery->new(XML => $xml);
+    my $query = OMP::Query::MSBDone->new(HASH => {
+        status => [
+            OMP__DONE_DONE,
+            OMP__DONE_REJECTED,
+            OMP__DONE_SUSPENDED,
+            OMP__DONE_ABORTED,
+        ],
+        date => {delta => $self->delta_day, value => $self->date->ymd},
+    });
 
     my @results = $db->queryMSBdone($query, {'comments' => 0});
 
     # Currently need to verify the telescope outside of the query
     # This verification really slows things down
     @results = grep {
-        OMP::ProjServer->verifyTelescope($_->projectid, $self->telescope)
+        OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
     } @results;
 
     # Index by project id
@@ -900,14 +926,12 @@ of C<OMP::Info::Comment> objects.
 sub shiftComments {
     my $self = shift;
 
-    my $sdb = OMP::ShiftDB->new(DB => $self->db);
+    my $sdb = OMP::DB::Shift->new(DB => $self->db);
 
-    my $xml = "<ShiftQuery>"
-        . "<date delta=\"" . $self->delta_day . "\">" . $self->date->ymd . "</date>"
-        . "<telescope>" . $self->telescope . "</telescope>"
-        . "</ShiftQuery>";
-
-    my $query = OMP::ShiftQuery->new(XML => $xml);
+    my $query = OMP::Query::Shift->new(HASH => {
+        date => {delta => $self->delta_day, value => $self->date->ymd},
+        telescope => $self->telescope,
+    });
 
     # These will have HTML comments
     my @result = $sdb->getShiftLogs($query);
@@ -1268,6 +1292,7 @@ is an arrayref of entries.  Each entry is of the form:
             observed => $time,
             project => $time,
             total => $time,
+            pending => $time,
             clear => $time,
         }
     }
@@ -1329,6 +1354,106 @@ sub get_time_summary {
     };
 }
 
+=item B<get_time_summary_combined>
+
+Prepare summarized time accounting information, as from
+C<get_time_summary_combined>, but where the various entries
+are organized by shift.
+
+=cut
+
+sub get_time_summary_combined {
+    my $self = shift;
+    my $time_summary = $self->get_time_summary();
+    my $overall = $time_summary->{'overall'};
+    my $shifts = $time_summary->{'shift'};
+
+    my @shift_names = map {$_->{'shift'}} @{$shifts};
+
+    my %combined = ();
+
+    # Top-level entries
+    foreach my $key (qw/shut faultloss technicalloss nontechnicalloss/) {
+        $combined{$key} = {
+            overall => $overall->{$key},
+            map {$_->{'shift'} => $_->{$key}} @$shifts,
+        } if $overall->{$key} || $key ne 'shut';
+    }
+
+    # Totals
+    foreach my $key (qw/observed project total clear pending/) {
+        $combined{'total'}->{$key} = {
+            overall => $overall->{'total'}->{$key},
+            map {$_->{'shift'} => $_->{'total'}->{$key}} @$shifts,
+        };
+    }
+
+    # Special categories
+    foreach my $entry (@{$overall->{'special'}}) {
+        my $name = $entry->{'name'};
+        my %combinedentry = (
+            name => $name,
+            overall => $entry,
+        );
+        foreach my $shift (@$shifts) {
+            foreach my $shiftentry (@{$shift->{'special'}}) {
+                if ($shiftentry->{'name'} eq $name) {
+                    $combinedentry{$shift->{'shift'}} = $shiftentry;
+                    last;
+                }
+            }
+        }
+        push @{$combined{'special'}}, \%combinedentry;
+    }
+
+    # Country and project
+    foreach my $entry (@{$overall->{'country'}}) {
+        my $country = $entry->{'country'};
+        my %combinedentry = (
+            country => $country,
+            total => {overall => $entry->{'total'}},
+        );
+
+        foreach my $shift (@$shifts) {
+            foreach my $shiftentry (@{$shift->{'country'}}) {
+                if ($shiftentry->{'country'} eq $country) {
+                    $combinedentry{'total'}->{$shift->{'shift'}} = $shiftentry->{'total'};
+                    last;
+                }
+            }
+        }
+
+        foreach my $projectentry (@{$entry->{'project'}}) {
+            my $project = $projectentry->{'project'};
+            my %combinedproject = (
+                project => $project,
+                overall => $projectentry,
+            );
+            foreach my $shift (@$shifts) {
+                foreach my $shiftentry (@{$shift->{'country'}}) {
+                    if ($shiftentry->{'country'} eq $country) {
+                        foreach my $shiftprojectentry (@{$shiftentry->{'project'}}) {
+                            if ($shiftprojectentry->{'project'} eq $project) {
+                                $combinedproject{$shift->{'shift'}} = $shiftprojectentry;
+                                last;
+                            }
+                        }
+                        last;
+                    }
+                }
+            }
+            push @{$combinedentry{'project'}}, \%combinedproject;
+        }
+
+        push @{$combined{'country'}}, \%combinedentry;
+    }
+
+    return {
+        combined => \%combined,
+        shifts => \@shift_names,
+    }
+}
+
 sub _get_time_summary_shift {
     my ($self, $shiftresults, $shiftacct,
         $timelost, $timelost_technical, $timelost_nontechnical) = @_;
@@ -1388,7 +1513,7 @@ sub _get_time_summary_shift {
     for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        my $details = OMP::ProjServer->projectDetails($proj, "object");
+        my $details = OMP::DB::Project->new(DB => $self->db, ProjectID => $proj)->projectDetails();
 
         push @{$proj_by_country{$details->country}}, $proj;
     }
@@ -1583,7 +1708,7 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+    my $msbdb = OMP::DB::MSBDone->new(DB => $self->db);
 
     my $old_sum = '';
     my $old_tid = '';
@@ -1737,30 +1862,27 @@ sub mail_report {
 
 =over 4
 
-=item B<_get_date_xml>
+=item B<_get_date_hash>
 
-Return the date portion of an XML query.
+Return the date portion of a query hash.
 
-    $xmlpart = $self->_get_date_xml(tag => $tagname, timeacct => 1);
+    $hashpart = $self->_get_date_hash(timeacct => 1);
 
-Arguments are provided in hash form.  The name of the date tag defaults to
-'date', but this can be overridden by providing a 'tag' key that points to
-the name to be used. If the 'timeacct' key points to a true value, the
-query will adjust the delta so that it returns only the correct time accounts.
+Arguments are provided in hash form.  If the 'timeacct' key points to a true value,
+the query will adjust the delta so that it returns only the correct time accounts.
 
 =cut
 
-sub _get_date_xml {
+sub _get_date_hash {
     my $self = shift;
     my %args = @_;
     my $tag = (defined $args{tag} ? $args{tag} : "date");
 
     if ($self->date_end) {
-        return "<$tag><min>"
-            . $self->date->ymd
-            . "</min><max>"
-            . $self->date_end->ymd
-            . "</max></$tag>";
+        return {
+            min => $self->date->ymd,
+            max => $self->date_end->ymd,
+        };
     }
     else {
         # Use the delta
@@ -1772,7 +1894,10 @@ sub _get_date_xml {
         $delta -= 1
             if (defined $args{timeacct});
 
-        return "<$tag delta=\"$delta\">" . $self->date->ymd . "</$tag>";
+        return {
+            delta => $delta,
+            value => $self->date->ymd,
+        };
     }
 }
 
@@ -1789,8 +1914,8 @@ method) can be retrieved in global variable C<$OMP::NightRep::WARNKEY>.
 
 =head1 SEE ALSO
 
-See C<OMP::TimeAcctDB>, C<OMP::Info::ObsGroup>, C<OMP::FaultDB>,
-C<OMP::ShiftDB>
+See C<OMP::DB::TimeAcct>, C<OMP::Info::ObsGroup>, C<OMP::DB::Fault>,
+C<OMP::DB::Shift>
 
 =head1 COPYRIGHT
 

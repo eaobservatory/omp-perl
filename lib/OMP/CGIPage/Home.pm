@@ -21,8 +21,6 @@ use Carp;
 
 use base qw/OMP::CGIPage/;
 
-$| = 1;
-
 =head1 Routines
 
 =over 4

@@ -10,13 +10,13 @@ use Data::Dumper;
 # Pick up the OMP database
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
-use OMP::DBbackend;
+use OMP::DB::Backend;
 
 # Maximum length of text displayed from a column
 use constant LONGEST => 40;
 
 # Connect
-my $db = OMP::DBbackend->new();
+my $db = OMP::DB::Backend->new();
 my $dbh = $db->handle;
 
 my @tab;

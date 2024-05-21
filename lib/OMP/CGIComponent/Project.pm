@@ -25,16 +25,13 @@ use OMP::Display;
 use OMP::Error qw/:try/;
 use OMP::Constants qw/:status/;
 use OMP::DateTools;
+use OMP::DB::MSB;
 use OMP::General;
-use OMP::MSBServer;
-use OMP::ProjDB;
-use OMP::ProjServer;
+use OMP::DB::Project;
 
 use File::Spec;
 
 use base qw/OMP::CGIComponent/;
-
-$| = 1;
 
 =head1 Routines
 
@@ -55,7 +52,7 @@ sub list_projects_form {
     my $q = $self->cgi;
     my $telescope = $opt{'telescope'};
 
-    my $db = OMP::ProjDB->new(DB => $self->database);
+    my $db = OMP::DB::Project->new(DB => $self->database);
 
     # get the current semester for the default telescope case
     # so it can be defaulted in addition to the list of all semesters
@@ -92,6 +89,7 @@ sub list_projects_form {
         ],
         supports => \@support,
         countries => [sort @countries],
+        instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI KUNTUR/],
         orders => [
             [priority => 'Priority'],
             [projectid => 'Project ID'],
@@ -120,12 +118,14 @@ sub proj_sum_table {
     my $headings = shift;
 
     # Count msbs for each project
+    my $msbdb = OMP::DB::MSB->new(DB => $self->database);
+
     my $proj_msbcount = {};
     my $proj_instruments = {};
     try {
         my @projectids = map {$_->projectid} @$projects;
-        $proj_msbcount = OMP::MSBServer->getMSBCount(@projectids);
-        $proj_instruments = OMP::SpServer->programInstruments(@projectids);
+        $proj_msbcount = $msbdb->getMSBCount(@projectids);
+        $proj_instruments = $msbdb->getInstruments(@projectids);
     }
     catch OMP::Error with {
     }

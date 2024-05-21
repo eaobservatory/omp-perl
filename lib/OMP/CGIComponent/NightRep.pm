@@ -20,21 +20,25 @@ use warnings;
 
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/hostfqdn/;
+use Time::Piece;
+use Time::Seconds qw/ONE_DAY/;
 
 use OMP::Config;
 use OMP::Constants qw/:obs :timegap/;
 use OMP::Display;
 use OMP::DateTools;
-use OMP::MSBDoneDB;
+use OMP::DB::Archive;
+use OMP::DB::MSBDone;
 use OMP::NightRep;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Info::ObsGroup;
-use OMP::ObslogDB;
-use OMP::ProjServer;
+use OMP::DB::Obslog;
+use OMP::DB::Project;
 use OMP::Project::TimeAcct;
-use OMP::TimeAcctDB;
+use OMP::DB::TimeAcct;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIComponent/;
@@ -44,6 +48,23 @@ our $VERSION = '2.000';
 =head1 Routines
 
 =over 4
+
+=item B<date_prev_next>
+
+Return previous and next UT date.
+
+    ($prev, $next) = $comp->date_prev_next($utdate);
+
+=cut
+
+sub date_prev_next {
+    my $self = shift;
+    my $utdate = shift;
+
+    my $epoch = $utdate->epoch();
+
+    return map {scalar gmtime($epoch + $_)} (-1 * ONE_DAY(), ONE_DAY());
+}
 
 =item B<obs_table_text>
 
@@ -84,7 +105,8 @@ sub obs_table_text {
         $showcomments = 1;
     }
 
-    my $summary = OMP::NightRep->get_obs_summary(obsgroup => $obsgroup, %options);
+    my $nr = OMP::NightRep->new(DB => $self->database);
+    my $summary = $nr->get_obs_summary(obsgroup => $obsgroup, %options);
 
     unless (defined $summary) {
         print "No observations for this night\n";
@@ -169,17 +191,10 @@ sub obs_comment_form {
     return {
         statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
             ? [
-                [OMP__TIMEGAP_UNKNOWN() => 'Unknown'],
-                [OMP__TIMEGAP_INSTRUMENT() => 'Instrument'],
-                [OMP__TIMEGAP_WEATHER() => 'Weather'],
-                [OMP__TIMEGAP_FAULT() => 'Fault'],
-                [OMP__TIMEGAP_NEXT_PROJECT() => 'Next project'],
-                [OMP__TIMEGAP_PREV_PROJECT() => 'Last project'],
-                [OMP__TIMEGAP_NOT_DRIVER() => 'Observer not driver'],
-                [OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime'],
-                [OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead'],
-                [OMP__TIMEGAP_LOGISTICS() => 'Logistics'],
-                ]
+                map {
+                    [$_ => $OMP::Info::Obs::TimeGap::status_label{$_}]
+                } @OMP::Info::Obs::TimeGap::status_order
+            ]
             : [
                 map {
                     [$_ => $OMP::Info::Obs::status_label{$_}]
@@ -218,7 +233,7 @@ sub obs_add_comment {
     );
 
     # Store the comment in the database.
-    my $odb = OMP::ObslogDB->new(DB => $self->database);
+    my $odb = OMP::DB::Obslog->new(DB => $self->database);
     $odb->addComment($comment, $obs);
 
     return {
@@ -242,6 +257,10 @@ Name of shift.
 
 List of time accounting entries.
 
+=item observations
+
+Observations which contributed to the time account (if available).
+
 =back
 
 =cut
@@ -260,8 +279,19 @@ sub time_accounting_shift {
 
     # If this shift exists in the times:
     my %rem;
+    my @observations;
     if (defined $times) {
         for my $proj (sort keys %$times) {
+            if (exists $times->{$proj}->{'DATA'}) {
+                my $projobs = $times->{$proj}->{'DATA'}->observations;
+                push @observations, {
+                    projectid => $proj,
+                    observations => [sort {
+                        $a->{'obs'}->startobs <=> $b->{'obs'}->startobs
+                    } @$projobs],
+                } if defined $projobs;
+            }
+
             if ($proj =~ /^$tel/) {
                 $rem{$proj} ++;
             }
@@ -321,6 +351,8 @@ sub time_accounting_shift {
     return {
         shift => $shift,
         entries => \@entries,
+        observations => \@observations,
+        skip => 0,
     };
 }
 
@@ -348,18 +380,20 @@ sub _time_accounting_project {
     elsif (exists $times->{DB} and $times->{DB}->confirmed) {
         # Confirmed overrides data headers
         $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
-        $entry{'comment'} = $times->{DB}->comment;
     }
     elsif (exists $times->{DATA}) {
         $entry{'time'} = _round_to_ohfive($times->{DATA}->timespent->hours);
     }
     elsif (exists $times->{DB}) {
         $entry{'time'} = _round_to_ohfive($times->{DB}->timespent->hours);
-        $entry{'comment'} = $times->{DB}->comment;
     }
     else {
         # Empty
         $entry{'time'} = '';
+    }
+
+    if (exists $times->{'DB'}) {
+        $entry{'comment'} = $times->{'DB'}->comment;
     }
 
     # Notes about the data source
@@ -417,6 +451,12 @@ sub read_time_accounting_shift {
 
     my $q = $self->cgi;
     my $shift = $info->{'shift'};
+
+    $info->{'skip'} = !! $q->param(sprintf 'skip_%s', $shift);
+
+    # If "skip" was selected, the JavaScript should have disabled the
+    # corresponding form elements, so do not attempt to read from them.
+    return () if $info->{'skip'};
 
     my %seen = ();
     my @errors = ();
@@ -496,6 +536,8 @@ sub store_time_accounting {
     my @acct = ();
 
     foreach my $info (@$shifts) {
+        next if $info->{'skip'};
+
         my $shift = $info->{'shift'};
 
         foreach my $entry (@{$info->{'entries'}}) {
@@ -505,12 +547,13 @@ sub store_time_accounting {
             # If the project was added by the user, verify that it exists and
             # is enabled.
             if ($entry->{'user_added'}) {
-                unless (OMP::ProjServer->verifyProject($proj)) {
+                my $projdb = OMP::DB::Project->new(DB => $self->database, ProjectID => $proj);
+                unless ($projdb->verifyProject()) {
                     push @errors, sprintf 'Project %s does not exist.', $proj;
                     next;
                 }
 
-                my $p = OMP::ProjServer->projectDetails($proj, 'object');
+                my $p = $projdb->projectDetails();
                 unless ($p->state) {
                     push @errors, sprintf 'Project %s exists but is disabled.', $proj;
                     next;
@@ -535,10 +578,12 @@ sub store_time_accounting {
     }
 
     unless (scalar @errors) {
-        my $db = OMP::TimeAcctDB->new(DB => $self->database);
+        my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
-        $nr->db_accounts(OMP::TimeAcctGroup->new(accounts => \@acct));
+        $nr->db_accounts(OMP::TimeAcctGroup->new(
+            DB => $self->database,
+            accounts => \@acct));
     }
 
     return @errors;
@@ -620,7 +665,7 @@ sub cgi_to_obs {
     }
 
     # Comment-ise the Info::Obs object.
-    my $db = OMP::ObslogDB->new(DB => $self->database);
+    my $db = OMP::DB::Obslog->new(DB => $self->database);
     $db->updateObsComment([$obs]);
 
     # And return the Info::Obs object.
@@ -683,10 +728,6 @@ sub cgi_to_obsgroup {
     my $inccal = defined($args{'inccal'}) ? $args{'inccal'} : 0;
     my $timegap = defined($args{'timegap'}) ? $args{'timegap'} : 1;
 
-    my %options;
-    $options{'inccal'} = $inccal if $inccal;
-    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
-
     my $qv = $q->Vars;
     $ut = (defined($ut) ? $ut : $qv->{'ut'});
     $inst = (defined($inst) ? $inst : uc($qv->{'inst'}));
@@ -698,7 +739,8 @@ sub cgi_to_obsgroup {
             $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
         }
         elsif (defined($projid)) {
-            $telescope = OMP::ProjServer->getTelescope($projid);
+            $telescope = OMP::DB::Project->new(
+                DB => $self->database, ProjectID => $projid)->getTelescope();
         }
         else {
             throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");
@@ -709,50 +751,25 @@ sub cgi_to_obsgroup {
         throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
     }
 
-    my $grp;
+    my %options = (
+        date => $ut,
+        ignorebad => 1,
+    );
 
-    if (defined($telescope)) {
-        $grp = OMP::Info::ObsGroup->new(
-            date => $ut,
-            telescope => $telescope,
-            projectid => $projid,
-            instrument => $inst,
-            ignorebad => 1,
-            %options,
-        );
-    }
-    else {
-        if (defined($projid)) {
-            if (defined($inst)) {
-                $grp = OMP::Info::ObsGroup->new(
-                    date => $ut,
-                    instrument => $inst,
-                    projectid => $projid,
-                    ignorebad => 1,
-                    %options,
-                );
-            }
-            else {
-                $grp = OMP::Info::ObsGroup->new(
-                    date => $ut,
-                    projectid => $projid,
-                    ignorebad => 1,
-                    %options,
-                );
-            }
-        }
-        elsif (defined($inst) && length($inst . "") > 0) {
-            $grp = OMP::Info::ObsGroup->new(
-                date => $ut,
-                instrument => $inst,
-                ignorebad => 1,
-                %options,
-            );
-        }
-        else {
-            throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
-        }
-    }
+    $options{'inccal'} = $inccal if $inccal;
+    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
+    $options{'telescope'} = $telescope if defined $telescope;
+    $options{'projectid'} = $projid if defined $projid;
+    $options{'instrument'} = $inst if defined($inst) && length($inst . '') > 0;
+
+    my $arcdb = OMP::DB::Archive->new(
+        DB => $self->page->database_archive,
+        FileUtil => $self->page->fileutil);
+
+    my $grp = OMP::Info::ObsGroup->new(
+        ADB => $arcdb,
+        %options,
+    );
 
     return $grp;
 }

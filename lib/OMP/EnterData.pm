@@ -51,10 +51,10 @@ use JSA::WriteList qw/write_list/;
 use OMP::DB::JSA::TableTransfer;
 use JCMT::DataVerify;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 use OMP::DateTools;
 use OMP::General;
-use OMP::FileUtils;
+use OMP::Util::FITS;
 use OMP::Info::Obs;
 
 
@@ -64,8 +64,6 @@ use Time::Piece;
 
 use NDF;
 
-$| = 1; # Make unbuffered
-
 =head2 METHODS
 
 =over 4
@@ -74,15 +72,21 @@ $| = 1; # Make unbuffered
 
 Constructor.  A data dictionary file name is required.
 
-  $enter = OMP::EnterData->new('dict' => '/file/path/');
+    $enter = OMP::EnterData->new(
+        dict => '/file/path',
+        fileutil => OMP::Util::File->new());
 
 Configuration values which can be passed as key-value pairs are:
 
 =over 4
 
-=item I<dict> C<file name>
+=item I<dict>
 
 File name for data dictionary.
+
+=item I<fileutil>
+
+File utility object.
 
 =back
 
@@ -97,8 +101,15 @@ sub new {
     throw OMP::Error::FatalError("Data dictionary, $dict, is not a readable file.")
         unless -f $dict && -r _;
 
+    my $fileutil = $args{'fileutil'};
+    throw OMP::Error::FatalError('File utility object not given')
+        unless defined $fileutil;
+    throw OMP::Error::FatalError('File utility must be an OMP::Util::File object')
+        unless eval {$fileutil->isa('OMP::Util::File')};
+
     my $obj = bless {
         dictionary => $class->create_dictionary($dict),
+        fileutil => $fileutil,
 
         # To keep track of already processed files.
         _cache_touched => {},
@@ -209,6 +220,19 @@ sub get_dictionary {
     return $self->{'dictionary'};
 }
 
+=item B<fileutil>
+
+Get the file utility object.
+
+    $fileutil = $enter->fileutil();
+
+=cut
+
+sub fileutil {
+    my $self = shift;
+    return $self->{'fileutil'};
+}
+
 =item B<prepare_and_insert>
 
 Inserts observation in database retrieved from disk (see also
@@ -264,6 +288,10 @@ Update only the times for an observation.
 
 Read file information from MongoDB.
 
+=item no_file_extra_info
+
+Option passed on to C<_get_observations> if given.
+
 =back
 
 =cut
@@ -304,6 +332,10 @@ sub prepare_and_insert {
         $obs_args{'files'} = _unique_files($arg{'files'});
     }
 
+    if (exists $arg{'no_file_extra_info'}) {
+        $obs_args{'no_file_extra_info'} = $arg{'no_file_extra_info'};
+    }
+
     my $name = $self->instrument_name();
 
     # Retrieve observations from disk.  An Info::Obs object will be returned
@@ -328,7 +360,7 @@ sub prepare_and_insert {
     # The %columns hash will contain a key for each table, each key's value
     # being an anonymous hash containing the column information.
 
-    my $db = OMP::DBbackend::Archive->new();
+    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     my %columns = map {$_ => $self->get_columns($_, $dbh)}
@@ -670,7 +702,7 @@ sub _get_observations {
             # OMP uses Time::Piece (instead of DateTime).
             my $date = Time::Piece->strptime($args{'date'}, '%Y%m%d');
 
-            @file = OMP::FileUtils->files_on_disk(
+            @file = $self->fileutil->files_on_disk(
                 date => $date,
                 instrument => $self->instrument_name());
         }
@@ -816,7 +848,7 @@ sub _get_observations {
     foreach my $entry (@headers) {
         my $header = $entry->{'header'};
 
-        # The headers will be passed to OMP::FileUtils->merge_dupes which
+        # The headers will be passed to OMP::Util::FITS->merge_dupes which
         # in turn passes them to Astro::FITS::Header->new(Hash => ...).
         # That constructor drops any null or empty string headers.  Since
         # we need to see the INBEAM header for all files, replace blank
@@ -840,7 +872,7 @@ sub _get_observations {
     }
 
 
-    my $merged = OMP::FileUtils->merge_dupes(@headers);
+    my $merged = OMP::Util::FITS->merge_dupes(@headers);
 
     my @obs = OMP::Info::Obs->hdrs_to_obs(
         retainhdr => 1,
@@ -2368,19 +2400,20 @@ sub calcbounds_files_for_date {
 
     $log->debug('Finding files for date ', $date_string);
 
-    # O::FileUtils requires date to be Time::Piece object.
+    # OMP::Util::File requires date to be Time::Piece object.
     my $date = Time::Piece->strptime($date_string, '%Y%m%d');
 
     my @file;
 
     $log->debug('finding files for instrument ', $self->instrument_name());
 
-    push @file, OMP::FileUtils->files_on_disk(date       => $date,
-                                              instrument => $self->instrument_name());
+    push @file, $self->fileutil->files_on_disk(
+        date       => $date,
+        instrument => $self->instrument_name());
 
     $log->debug('Files found for date ', $date_string, ' : ', scalar @file);
 
-    # Expand array references whcih come out from FileUtils sometimes.
+    # Expand array references whcih come out from OMP::Util::File sometimes.
     return map {$_ && ref $_ ? @{$_} : $_} @file;
 }
 
@@ -2458,7 +2491,7 @@ sub calcbounds_update_bound_cols {
         # ";" is to indicate to Perl that "{" starts a BLOCK not an EXPR.
         map {; "obsra$_" , "obsdec$_"} ('', qw/tl bl tr br/);
 
-    my $db = OMP::DBbackend::Archive->new();
+    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     for my $obs (@{$obs_list}) {

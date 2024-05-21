@@ -76,15 +76,15 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
-use OMP::DBbackend;
-use OMP::General;
+use OMP::DB::Backend;
+use OMP::Util::Client;
 use OMP::Info::Comment;
 use OMP::Password;
 use OMP::Project::TimeAcct;
-use OMP::ShiftDB;
-use OMP::TimeAcctDB;
+use OMP::DB::Shift;
+use OMP::DB::TimeAcct;
 use OMP::TimeAcctGroup;
-use OMP::UserDB;
+use OMP::DB::User;
 
 our $DEBUG = 0;
 our $VERSION = '2.000';
@@ -117,14 +117,14 @@ my $term = Term::ReadLine->new('Generate time accounting information for planned
 my $dseconds = DateTime::Format::Duration->new(pattern => '%s');
 
 # Connect to the database
-my $dbconnection = OMP::DBbackend->new();
+my $dbconnection = OMP::DB::Backend->new();
 
 # Prompt for telescope name (unless it was provided as an argument)
-$tel = OMP::General->determine_tel($term)
+$tel = OMP::Util::Client->determine_tel($term)
     unless defined $tel;
 
 # Verify telescope argument
-my %telescopes = map {$_, $_} OMP::General->determine_tel();
+my %telescopes = map {$_, $_} OMP::Util::Client->determine_tel();
 if (defined $tel and exists $telescopes{uc $tel}) {
     $tel = $telescopes{uc $tel};
 }
@@ -276,13 +276,13 @@ if ($DEBUG) {
 # Store the accounts and comments to the database
 unless ($DEBUG) {
     # Store time accounts
-    my $acctdb = OMP::TimeAcctDB->new(DB => $dbconnection);
+    my $acctdb = OMP::DB::TimeAcct->new(DB => $dbconnection);
     $acctdb->setTimeSpent(@taccts);
 
     print "Stored time accounts.\n";
 
     # Store shiftlog comments
-    my $shiftdb = OMP::ShiftDB->new(DB => $dbconnection);
+    my $shiftdb = OMP::DB::Shift->new(DB => $dbconnection);
     for my $comment (@shiftcomms) {
         $shiftdb->enterShiftLog($comment, $tel);
     }

@@ -35,7 +35,7 @@ BEGIN {
 use Getopt::Long;
 use Pod::Usage;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 
 my $help;
 my $utdate = undef;
@@ -51,7 +51,7 @@ pod2usage('-exitval' => 1, '-verbose' => 1) if $help;
 
 die 'Date not specified' unless defined $utdate;
 
-my $db = new OMP::DBbackend::Archive();
+my $db = OMP::DB::Backend::Archive->new();
 
 my $dbh = $db->handle();
 

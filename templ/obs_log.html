@@ -15,58 +15,48 @@
     at [% telescope | html %]
 </h1>
 
-
-<p>
-    [% UNLESS ut_date_delta %]
-        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">Go to previous</a>
-        |
-        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Go to next</a>
-    [% END %]
-</p>
-
 <form method="get" action="[% target_base %]">
     <p>
-        View report
-        [% IF ut_date_delta %]
-            starting on
-        [% ELSE %]
-            for
+        [% UNLESS ut_date_delta %]
+            <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">&laquo; Previous</a>
+            &nbsp; &nbsp;
         [% END %]
+
         <input type="text" name="utdate" value="[% (ut_date_start.defined ? ut_date_start : ut_date.ymd) | html %]" size="10" />
         [% IF ut_date_delta %]
-            and ending on
+            &ndash;
             <input type="text" name="utdate_end" value="[% ut_date_end.ymd | html %]" size="10" />
         [% END %]
         UT
-        <input type="submit" name="" value="Submit" />
+        <input type="submit" name="" value="View" />
         <input type="hidden" name="tel" value="[% telescope | html %]" />
+
+        [% UNLESS ut_date_delta %]
+            &nbsp; &nbsp;
+            <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Next &raquo;</a>
+            &nbsp; &nbsp;
+            (<a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">multiple nights</a>)
+        [% ELSE %]
+            &nbsp; &nbsp;
+            (<a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">single night</a>)
+        [% END %]
     </p>
 </form>
 
-<p>
-    [% IF ut_date_delta %]
-        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">View a single night report</a>
-    [% ELSE %]
-        <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">View a report for multiple nights</a>
-    [% END %]
-</p>
-
-<p>
-    <a href="/cgi-bin/staffworfthumb.pl?ut=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">View WORF thumbnails</a>
-</p>
-
-[% render_weather_plot_links(weather_plots) %]
-
-[% IF ut_date_delta < 14 %]
+[% IF sched_night.defined %]
+    [% SET sched_night_slots = sched_night.slots_merged %]
     <p>
-        <a href="#faultsum">Fault summary</a>
-        <br />
-        <a href="#shiftcom">Shift log comments</a>
-        /
-        <a href="shiftlog.pl?date=[% ut_date.ymd | uri %]&amp;telescope=[% telescope | uri %]">Add shift log comment</a>
-        <br />
-        <a href="#obslog">Observation log</a>
-    <p>
+        <b>Schedule:</b>
+        [% IF sched_night_slots.size == 1 %]
+            [% sched_night_slots.0.queue | html %]
+        [% ELSE %]
+            [% FOREACH sched_night_slot IN sched_night_slots %]
+                [% sched_night_slot.time_first.strftime('%H:%M') %][% IF sched_night_slot.time_last.defined %]&ndash;[% sched_night_slot.time_last.strftime('%H:%M') %][% END %]
+                [% sched_night_slot.queue %][% IF not loop.last %],[% END %]
+            [% END %]
+            (HST)
+        [% END %]
+    </p>
 [% END %]
 
 [% render_night_report(night_report) %]

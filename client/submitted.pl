@@ -69,11 +69,11 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw/:fb/;
-use OMP::DBbackend;
-use OMP::FBQuery;
-use OMP::FeedbackDB;
-use OMP::ProjDB;
-use OMP::ProjQuery;
+use OMP::DB::Backend;
+use OMP::Query::Feedback;
+use OMP::DB::Feedback;
+use OMP::DB::Project;
+use OMP::Query::Project;
 use OMP::Mail;
 
 # Options
@@ -107,18 +107,16 @@ else {
 }
 
 # Get our database connection
-my $dbconnection = OMP::DBbackend->new();
+my $dbconnection = OMP::DB::Backend->new();
 
-# Instantiate a new FeedbackDB object
-my $db = OMP::FeedbackDB->new(DB => $dbconnection);
+# Instantiate a new OMP::DB::Feedback object
+my $db = OMP::DB::Feedback->new(DB => $dbconnection);
 
 # Create our query
-my $fbxml = '<FBQuery>'
-    . '<date><min>' . $mindate->ymd . '</min><max>' . $maxdate->ymd . '</max></date>'
-    . '<msgtype>' . OMP__FB_MSG_SP_SUBMITTED . '</msgtype>'
-    . '</FBQuery>';
-
-my $fbquery = OMP::FBQuery->new(XML => $fbxml);
+my $fbquery = OMP::Query::Feedback->new(HASH => {
+    date => {min => $mindate->ymd, max => $maxdate->ymd},
+    msgtype => OMP__FB_MSG_SP_SUBMITTED,
+});
 
 # Run our query to retrieve comments
 my $comments = $db->_fetch_comments($fbquery);
@@ -133,20 +131,17 @@ unless (scalar grep {defined $_} @$comments) {
 # Get project IDs for all comments returned.
 my %projects = map {$_->{projectid}, undef} @$comments;
 
-# Instantiate a new ProjDB object.  We'll need this
+# Instantiate a new OMP::DB::Project object.  We'll need this
 # to get support details for each project returned
-my $projdb = OMP::ProjDB->new(DB => $dbconnection);
+my $projdb = OMP::DB::Project->new(DB => $dbconnection);
 
-# XML Query on all project IDs returned
-my $projxml = '<ProjQuery>'
-    . (join '', map {"<projectid>$_</projectid>"} keys %projects)
-    . '</ProjQuery>';
-
-# Instantiate actual ProjQuery object
-my $projquery = OMP::ProjQuery->new(XML => $projxml);
+# Query on all project IDs returned
+my $projquery = OMP::Query::Project->new(HASH => {
+    projectid => [keys %projects],
+});
 
 # Retrieve details for all projects returned
-my @projects = $projdb->listProjects($projquery);
+my $projects = $projdb->listProjects($projquery);
 
 # Find out which of the projects is a new submission.
 # Probably easiest just to have the database do the hard work
@@ -159,7 +154,7 @@ my $mindate_str = $mindate->ymd('');
 my %new_submission = ();
 my $dbh = $dbconnection->handle();
 my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
-        . $OMP::FeedbackDB::FBTABLE
+        . $OMP::DB::Feedback::FBTABLE
         . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
         . ' GROUP BY projectid');
 die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
@@ -175,7 +170,7 @@ while (my ($proj, $first) = $sth->fetchrow_array()) {
 
 # Sort projects according to support person
 my %proj_by_support;
-for my $project (@projects) {
+for my $project (@$projects) {
     for my $support ($project->support) {
         my $userid = $support->userid;
         $proj_by_support{$userid} = {

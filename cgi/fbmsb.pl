@@ -18,6 +18,6 @@ use OMP::CGIPage::MSB;
 OMP::CGIPage::MSB->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::MSB::fb_msb_output,
     'project',
-    title => 'View MSBs',
+    title => 'Active MSBs',
     template => 'project_msbs.html',
 );

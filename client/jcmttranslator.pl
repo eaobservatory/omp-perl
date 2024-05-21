@@ -111,12 +111,10 @@ BEGIN {
 # and the OCS Config classes.
 use JAC::Setup qw/ocsq ocscfg/;
 
-# Load the servers (but use them locally without SOAP)
-use OMP::TransServer;
-
-# Need config system
 use OMP::Config;
 use OMP::Error qw/:try/;
+use OMP::SciProg;
+use OMP::Translator;
 
 # Options
 my ($help, $man, $debug, $cwd, $tempdir, $old,
@@ -146,17 +144,17 @@ if ($version) {
     exit;
 }
 
-
-# debugging
-$OMP::Translator::DEBUG = $debug;
-
-# verbose
-$OMP::Translator::VERBOSE = $verbose;
+my %options = (
+    simulate => $sim,
+    log => $log,
+    verbose => $verbose,
+    debug => $debug,
+);
 
 # Translation directory override
 if ($transdir) {
     print "Overriding output directory. Using '$transdir'\n" if $verbose;
-    OMP::Translator->outputdir($transdir);
+    $options{'outputdir'} = $transdir;
 }
 elsif ($cwd || $tempdir) {
     if ($cwd && $tempdir) {
@@ -165,14 +163,14 @@ elsif ($cwd || $tempdir) {
     if ($cwd) {
         print "Overriding output directory. Using current directory\n"
             if $verbose;
-        OMP::Translator->outputdir(File::Spec->curdir);
+        $options{'outputdir'} = File::Spec->curdir;
     }
     elsif ($tempdir) {
         # this should fail if no temp dir is defined
         my $tmp = OMP::Config->getData("jcmt_translator.temptransdir");
         if ($tmp) {
             print "Overriding output directory. Using '$tmp'\n" if $verbose;
-            OMP::Translator->outputdir($tmp);
+            $options{'outputdir'} = $tmp;
         }
         else {
             die "No temporary translator directly defined.";
@@ -181,7 +179,7 @@ elsif ($cwd || $tempdir) {
 }
 
 # Configure translation mode
-OMP::Translator->backwards_compatibility_mode(1) if $old;
+$options{'backwards_compatibility_mode'} = 1 if $old;
 
 # Now for the action
 # Read from standard input or from the command line.
@@ -214,16 +212,43 @@ my $xml;
 
 }
 
-my $filename = OMP::TransServer->translate($xml, {
-    simulate => $sim,
-    log => $log,
-});
+my $filename = translate($xml, \%options);
 
 die "Nothing was translated. Was the science program empty?"
     unless $filename;
 
 # convert the filename to an absolute path
 print File::Spec->rel2abs($filename) . "\n";
+
+# Translate the specified Science Program into a form understandable by
+# the observing system.
+#
+# Returns a filename suitable for passing to the queue or the Query Tool,
+# not the translated configurations themselves.
+#
+# Only works for JCMT translations. The UKIRT translator is written
+# in Java and part of the OT software package.
+#
+# Supported options are:
+#
+#     simulate - Run the translator for simulated configurations
+
+sub translate {
+    my $xml = shift;
+    my $opts = shift;
+
+    # in some cases the msb attribute of SpObs is incorrect from the QT
+    # so we need to fudge it here if we have no SpMSB
+    if ($xml !~ /<SpMSB>/) {
+        my $old = 'msb="false"';
+        my $new = 'msb="true"';
+        $xml =~ s/$old/$new/;
+    }
+
+    # Convert to science program
+    my $sp = OMP::SciProg->new(XML => $xml);
+    return OMP::Translator->translate($sp, %$opts);
+}
 
 __END__
 

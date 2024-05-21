@@ -1,8 +1,4 @@
-# Make sure we load the real class first
-use OMP::SciProg;
-
-# Then add our new methods to that class
-package OMP::SciProg;
+package OMP::SciProgStats;
 
 =head1 NAME
 
@@ -12,15 +8,11 @@ OMP::SciProgStats - Find statistical properties of a science program
 
     use OMP::SciProgStats;
 
-    @racover = $sp->ra_coverage();
+    @racover = OMP::SciProgStats->ra_coverage($sp);
 
 =head1 DESCRIPTION
 
-This class extends C<OMP::SciProg> such that additional methods
-associated with statistical analysis are made available. It does not
-provide a namespace of its own.
-
-It is separate to reduce the size of the core C<OMP::SciProg> class.
+Additional methods associated with statistical analysis are made available.
 
 =cut
 
@@ -34,15 +26,16 @@ our $VERSION = '2.000';
 
 =head1 METHODS
 
-No constructor or accessor methods provided by this extension.
-
 =over 4
 
 =item B<ra_coverage>
 
 Return a histogram of RA coverage present in the science program.
 
-    my @hist = $sp->ra_coverage();
+    my @hist = OMP::SciProgStats->ra_coverage($sp);
+
+This can be given either an C<OMP::SciProg> or C<OMP::Info::SciProg>
+object.
 
 The return list contains 24 elements, starting at hour 0 and
 incrementing to 23. The values are the amount of time present
@@ -59,27 +52,42 @@ Allowed keys are:
 
 =item instrument
 
-Specify an instrument for which the coverage is calculated
+Specify an instrument for which the coverage is calculated.
+
+=item tau
+
+Specify an opacity to which to restrict MSBs.
 
 =back
 
 =cut
 
 sub ra_coverage {
-    my $self = shift;
+    my $class = shift;
+    my $sp = shift;
     my %args = @_;
 
     # Initialise histogram
     my @rahist = map {0} (0 .. 23);
 
     # Now loop over each MSB
-    for my $msb ($self->msb) {
+    for my $msb ($sp->msb) {
         my $remaining = $msb->remaining;
+
+        if (defined $args{'tau'}) {
+            unless ($msb->tau->contains($args{'tau'})) {
+                next;
+            }
+        }
 
         # Filter out complete MSBs or removed MSBs.
         next unless $remaining > 0;
 
-        for my $obs ($msb->obssum) {
+        my @observations = (eval {$msb->isa('OMP::Info::MSB')})
+            ? $msb->observations
+            : $msb->obssum;
+
+        for my $obs (@observations) {
             # skip if we are specifically looking for one instrument
             next if (defined $args{instrument}
                 && $obs->{instrument} ne $args{instrument});

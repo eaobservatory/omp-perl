@@ -185,9 +185,10 @@ use Astro::Telescope;
 use DBI;
 
 use OMP::Password;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
-use OMP::MSBDB;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::DB::MSB;
+use OMP::DB::Project;
 
 my $HPI = pi/2;
 
@@ -476,7 +477,7 @@ sub get_observed_targets {
 
     # Connect to the database.
     print STDERR "# Connecting to OMP server...";
-    my $dbbackend = OMP::DBbackend::Archive->new();
+    my $dbbackend = OMP::DB::Backend::Archive->new();
     my $dbh = $dbbackend->handle();
     print STDERR "done\n";
 
@@ -569,25 +570,25 @@ sub get_scheduled_targets {
     my $fopclause = '';
     if (defined($fop) && $fop ne '') {
         $fopclause = " AND Q.projectid IN
-            (SELECT projectid FROM $OMP::ProjDB::PROJUSERTABLE WHERE userid=\"$fop\" AND capacity=\"SUPPORT\")";
+            (SELECT projectid FROM $OMP::DB::Project::PROJUSERTABLE WHERE userid=\"$fop\" AND capacity=\"SUPPORT\")";
     }
 
     # Connect to the database.
     print STDERR "# Connecting to OMP server...";
-    my $dbbackend = OMP::DBbackend->new();
+    my $dbbackend = OMP::DB::Backend->new();
     my $dbh = $dbbackend->handle();
     print STDERR "done\n";
 
     # Now retrieve data from the table.
     my $sql = "SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
-        FROM $OMP::MSBDB::OBSTABLE AS Q
-            JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
-            JOIN $OMP::ProjDB::PROJTABLE AS P ON Q.projectid = P.projectid
+        FROM $OMP::DB::MSB::OBSTABLE AS Q
+            JOIN $OMP::DB::MSB::SCITABLE as S ON Q.projectid = S.projectid
+            JOIN $OMP::DB::Project::PROJTABLE AS P ON Q.projectid = P.projectid
         WHERE
         P.telescope = \"JCMT\"
         AND timestamp BETWEEN $utstart AND $utstop
         AND Q.projectid NOT IN (
-            SELECT projectid FROM $OMP::ProjDB::PROJQUEUETABLE WHERE country IN (\"EC\", \"JAC\", \"EAO\"))
+            SELECT projectid FROM $OMP::DB::Project::PROJQUEUETABLE WHERE country IN (\"EC\", \"JAC\", \"EAO\"))
         $fopclause
         ORDER BY project, name";
     print 'Running query: ', $sql, "\n" if $debug;

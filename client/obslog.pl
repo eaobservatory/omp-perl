@@ -70,7 +70,7 @@ Another font to try is C<Dejavu LGC Sans::medium>.
 =item B<-geometry> window-geometry
 
 Specify window location and size of the main obslog window; default is
-I<785x450>.
+I<835x450>.
 
 =item B<-tel>
 
@@ -129,7 +129,7 @@ BEGIN {
     use lib OMPLIB;
 }
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::Constants;
 use OMP::Display;
 use OMP::DateTools;
@@ -137,26 +137,26 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Config;
 use OMP::Error qw/:try/;
-use OMP::FileUtils;
+use OMP::Util::Client;
+use OMP::Util::File;
 
 BEGIN {
-    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
-
     $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ObslogDB;
-use OMP::ObsQuery;
+use OMP::DB::Obslog;
+use OMP::Query::Obslog;
 use OMP::MSB;
-use OMP::MSBDoneDB;
-use OMP::ArcQuery;
-use OMP::ShiftDB;
-use OMP::ShiftQuery;
+use OMP::DB::MSBDone;
+use OMP::Query::Archive;
+use OMP::DB::Shift;
+use OMP::Query::Shift;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::DB::User;
 
 our $VERSION = '2.000';
 
@@ -183,7 +183,7 @@ my $id;
 my $BREAK = 98;
 
 my %opt = (
-    'geometry' => '785x450',
+    'geometry' => '835x450',
 
     # Fixed width font;
     'font-fixed' => '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*',
@@ -229,7 +229,10 @@ my $ut = OMP::DateTools->determine_utdate( $opt{ut} )->ymd;
 my $currentut = OMP::DateTools->today;
 my $utdisp = "Current UT date: $ut";
 
-my $arcdb = OMP::ArchiveDB->new(DB => OMP::DBbackend::Archive->new());
+my $dbb = OMP::DB::Backend->new();
+my $arcdb = OMP::DB::Archive->new(
+    DB => OMP::DB::Backend::Archive->new(),
+    FileUtil => OMP::Util::File->new(recent_files => 0));
 $arcdb->use_existing_criteria(1);
 
 my $user;
@@ -264,7 +267,7 @@ if (defined $opt{tel}) {
 else {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    $telescope = OMP::General->determine_tel($w);
+    $telescope = OMP::Util::Client->determine_tel($w);
     $w->destroy if Exists($w);
     die "Unable to determine telescope. Exiting.\n"
         unless defined $telescope;
@@ -294,7 +297,7 @@ MainLoop();
 sub get_userid {
     my $w = $MainWindow->Toplevel;
     $w->withdraw;
-    my $user = OMP::General->determine_user($w);
+    my $user = OMP::Util::Client->determine_user($dbb, $w);
     throw OMP::Error::Authentication('Unable to obtain valid user name')
         unless defined $user;
     $w->destroy if Exists($w);
@@ -476,8 +479,8 @@ sub new_instrument {
     $nbContent->configure(-state => 'normal');
     $nbContent->delete('0.0', 'end');
 
-    # Set up a connection to the MSBDB.
-    my $msbdb = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new());
+    # Set up a connection to the MSBDone database.
+    my $msbdb = OMP::DB::MSBDone->new(DB => $dbb);
 
     if (defined($obsgrp)) {
         my $counter = 0;
@@ -594,7 +597,7 @@ sub new_instrument {
 
                         # we should never get undef author
                         my $name = (defined $author ? $author->name : "<UNKNOWN>");
-                        my $status_text = OMP::MSBDoneDB::status_to_text($c->status);
+                        my $status_text = OMP::DB::MSBDone::status_to_text($c->status);
                         $nbContent->insert('end',
                             "  $status_text at " . $c->date . " UT by $name : " . $c->text . "\n");
                     }
@@ -758,6 +761,7 @@ sub rescan {
 
     try {
         my $grp = OMP::Info::ObsGroup->new(
+            ADB => $arcdb,
             telescope => $telescope,
             date => $ut,
             ignorebad => 1,
@@ -910,6 +914,19 @@ sub RaiseComment {
     my @comments = $obs->comments;
     $status = $obs->status;
 
+    # Get the observation information.
+    my %nightlog = $obs->nightlog(
+        display => 'long',
+        comments => 1,
+    );
+
+    # Find the width of the header, assuming that log entries will be the
+    # same width, so that the header box can be sized to fit.
+    my $maxlength = 80;
+    foreach (split /\n/, $nightlog{'_STRING_HEADER'}) {
+        $maxlength = length $_ if length $_ > $maxlength;
+    }
+
     my $CommentWindow = $MainWindow->Toplevel();
     $CommentWindow->title('OMP Observation Log Tool Commenting System');
 
@@ -941,6 +958,7 @@ sub RaiseComment {
         -wrap => 'none',
         -relief => 'flat',
         -foreground => $HEADERCOLOUR,
+        -width => $maxlength + 2,
         -height => 1,
         -font => $HEADERFONT,
         -takefocus => 0,
@@ -1191,12 +1209,6 @@ sub RaiseComment {
             -anchor => 'n',
         );
     }
-
-    # Get the observation information.
-    my %nightlog = $obs->nightlog(
-        display => 'long',
-        comments => 1,
-    );
 
     # Insert the header information.
     $contentHeader->configure(-state => 'normal');
@@ -1627,7 +1639,7 @@ sub RaiseMSBComment {
         $hist .= '* ' . $c->author->name . ':'
             if $c->author->name;
 
-        $hist .= $sep . OMP::MSBDoneDB::status_to_text($status)
+        $hist .= $sep . OMP::DB::MSBDone::status_to_text($status)
             if $status;
 
         $hist .= ($status ? ', ' : $sep) . $c->date . ' UT'
@@ -1681,7 +1693,7 @@ sub SaveComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new());
+    my $odb = OMP::DB::Obslog->new(DB => $dbb);
     $odb->addComment($comment, $obs);
 
     # Add the comment to the observation.
@@ -1714,7 +1726,7 @@ sub SaveMultiComment {
         status => $status
     );
 
-    my $odb = OMP::ObslogDB->new(DB => OMP::DBbackend->new());
+    my $odb = OMP::DB::Obslog->new(DB => $dbb);
 
     my @obs = ();
     @obs = split ',', $observations;
@@ -1765,9 +1777,9 @@ sub SaveMSBComment {
         unless $obs->checksum
         && $obs->projectid;
 
-    my $db = OMP::MSBDoneDB->new(
+    my $db = OMP::DB::MSBDone->new(
         'ProjectID' => $obs->projectid,
-        'DB' => OMP::DBbackend->new
+        'DB' => $dbb,
     );
 
     $text = OMP::Info::Comment->new(
@@ -1924,8 +1936,8 @@ sub create_shiftlog_widget {
 }
 
 sub update_shiftlog_comments {
-    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
-    my $query = OMP::ShiftQuery->new(HASH => {
+    my $sdb = OMP::DB::Shift->new(DB => $dbb);
+    my $query = OMP::Query::Shift->new(HASH => {
         date => {value => $ut, delta => 1},
         telescope => $telescope,
     });
@@ -2118,7 +2130,7 @@ sub save_shift_comment {
     );
 
     # And add it to the system
-    my $sdb = OMP::ShiftDB->new(DB => OMP::DBbackend->new());
+    my $sdb = OMP::DB::Shift->new(DB => $dbb);
     $sdb->enterShiftLog($comment, $telescope);
 }
 
@@ -2416,7 +2428,7 @@ sub set_user {
     my $RefUser = shift;
     my $w = shift;
 
-    my $udb = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my $udb = OMP::DB::User->new(DB => $dbb);
     my $newUser = $udb->getUser($$RefUser);
     if (defined($newUser)) {
         $user = $newUser;
@@ -2503,14 +2515,14 @@ sub update_search_options {
     my ($disk, $db) = @opt{qw/disk database/};
 
     if ($today_ukirt || ($disk && $db) || ! ($disk || $db)) {
-        OMP::ArchiveDB::search_files();
-        OMP::ArchiveDB::search_db_skip_today();
+        $arcdb->search_files();
+        $arcdb->search_db_skip_today();
         return;
     }
 
-    return OMP::ArchiveDB::search_only_db() if $db;
+    return $arcdb->search_only_db() if $db;
 
-    return OMP::ArchiveDB::search_only_files() if $disk;
+    return $arcdb->search_only_files() if $disk;
 }
 
 sub grp_to_ref {

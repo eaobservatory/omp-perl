@@ -9,6 +9,8 @@ OMP::PackageData - Package up data for retrieval by PI
     use OMP::PackageData;
 
     my $pkg = OMP::PackageData->new(
+        DB => $database,
+        ADB => $archivedb,
         projectid => 'M02BU127',
         utdate => '2002-09-15',
         inccal => 1);
@@ -51,13 +53,12 @@ use File::Path '1.05';
 use File::Basename;
 use Cwd;
 use OMP::DateTools;
-use OMP::DBbackend;
 use OMP::NetTools;
 use OMP::General;
 use OMP::Error qw/:try/;
-use OMP::ProjServer;
+use OMP::DB::Project;
 use OMP::Constants qw/:fb/;
-use OMP::FeedbackDB;
+use OMP::DB::Feedback;
 use OMP::Info::ObsGroup;
 use File::Temp qw/tempdir/;
 use OMP::Config;
@@ -101,6 +102,7 @@ $Raw_Base_Re = qr{\b ( $Raw_Base_Re ) \b}xi;
 Object constructor. Requires a project and a ut date.
 
     $pkg = OMP::PackageData->new(
+        ADB => $archivedb,
         projectid => 'blah',
         utdate => '2002-09-17');
 
@@ -114,6 +116,7 @@ sub new {
     my $class = ref($proto) || $proto;
 
     my $pkg = bless {
+        DB => undef,
         ProjectID => undef,
         UTDate => undef,
         RootTmpDir => OMP::Config->getData('tmpdir'),
@@ -428,6 +431,27 @@ sub flush_messages {
     return $messages;
 }
 
+=item B<db>
+
+Database connection (an C<OMP::DB::Backend> object).
+
+=cut
+
+sub db {
+    my $self = shift;
+
+    if (@_) {
+        my $db = shift;
+         throw OMP::Error::FatalError(
+             'DB must be an OMP::DB::Backend object')
+             unless eval {$db->isa('OMP::DB::Backend')};
+
+        $self->{'DB'} = $db;
+    }
+
+    return $self->{DB};
+}
+
 =back
 
 =head2 General Methods
@@ -579,6 +603,7 @@ sub _populate {
         unless exists $args{utdate} && exists $args{projectid};
 
     # init the object
+    $self->db($args{'DB'});
     $self->projectid($args{projectid});
     $self->utdate($args{utdate});
     $self->verbose($args{'verbose'}) if exists $args{'verbose'};
@@ -589,7 +614,7 @@ sub _populate {
 
     # Need to get the telescope associated with this project
     # Should ObsGroup do this???
-    my $proj = OMP::ProjServer->projectDetails($self->projectid, 'object');
+    my $proj = OMP::DB::Project->new(DB => $self->db, ProjectID => $self->projectid)->projectDetails();
 
     my $tel = $proj->telescope;
 
@@ -607,6 +632,7 @@ sub _populate {
 # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
     # switch and optimize for it.
     my $grp = OMP::Info::ObsGroup->new(
+        ADB => $args{'ADB'},
         telescope => $tel,
         date => $self->utdate,
         inccal => $self->inccal,
@@ -1011,11 +1037,10 @@ sub add_fb_comment {
     my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
 
     # Get project PI name for inclusion in feedback message
-    my $project = OMP::ProjServer->projectDetails($projectid, "object");
+    my $project = OMP::DB::Project->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
     my $pi = $project->pi;
 
-    my $database = OMP::DBbackend->new();
-    my $fdb = OMP::FeedbackDB->new(ProjectID => $projectid, DB => $database);
+    my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->db);
     $fdb->addComment(
         {
             subject => "Data requested",

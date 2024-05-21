@@ -77,6 +77,12 @@ Skip bound calculations (applies only for ACSIS data)
 
 Skip setting a state, used otherwise to keep track of transfers.
 
+=item B<-nofileextra>
+
+Do not read file size and MD5 sum.  This can be used when updating old
+database records (which do not have these columns filled in) where the
+files at CADC may be gzip-compressed.
+
 =item B<--dry-run>
 
 Run in "dry run" mode, nothing actually is changed in database.
@@ -169,9 +175,9 @@ BEGIN {
 
 use JAC::Setup qw/jsa dataverify/;
 
-use OMP::FileUtils;
+use OMP::Util::File;
 
-use OMP::DBbackend::Archive;
+use OMP::DB::Backend::Archive;
 use JSA::Datetime qw/make_datetime make_limited_datetime/;
 use OMP::EnterData;
 use OMP::EnterData::ACSIS;
@@ -194,7 +200,7 @@ do {
     my $n_err = 0;
 
     my ($dry_run, $verbose, $calcbounds) = (0) x 3;
-    my ($obstime, $inbeam, $skip_state, $skip_db_path, $logfile, $wait);
+    my ($obstime, $inbeam, $skip_state, $skip_extra, $skip_db_path, $logfile, $wait);
     my ($help, $acsis, $rxh3, $scuba2, $file_src, $mongo_src, $simulation, $overwrite, $debugfile);
     my $starlink_dir = '/star';
 
@@ -213,6 +219,7 @@ do {
         'obstime'        => \$obstime,
         'inbeam'         => \$inbeam,
         'nostate'        => \$skip_state,
+        'nofileextra'    => \$skip_extra,
         'bounds!'        => \$find_bounds,
         'simulation!'    => \$simulation,
         'calcbounds'     => \$calcbounds,
@@ -241,6 +248,8 @@ do {
     $ENV{'KAPPA_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'kappa');
     $ENV{'SMURF_DIR'} = File::Spec->catdir($starlink_dir, 'bin', 'smurf');
 
+    my $fileutil = OMP::Util::File->new();
+
     my $debug_fh = undef;
     if (defined $debugfile) {
         if ($debugfile eq '-') {
@@ -255,7 +264,8 @@ do {
         ACSIS => $acsis,
         'SCUBA-2' => $scuba2,
         RxH3 => $rxh3,
-        debug_fh => $debug_fh);
+        debug_fh => $debug_fh,
+        fileutil => $fileutil);
 
     # Reference to list of files to process. Can be undef if date-based.
     my $files = undef;
@@ -306,11 +316,12 @@ do {
     unless ($calcbounds) {
         # Original "enter data" mode.
 
-        $OMP::FileUtils::RETURN_RECENT_FILES = 1;
+        $fileutil->recent_files(1);
 
         my %enter_options = (
             dry_run => $dry_run,
             skip_state => $skip_state,
+            no_file_extra_info => $skip_extra,
             overwrite => $overwrite,
             process_simulation => $simulation,
             update_only_inbeam => $inbeam,
@@ -420,6 +431,7 @@ exit;
 sub get_instruments {
     my %opt = @_;
     my $debug_fh = delete $opt{'debug_fh'};
+    my $fileutil = delete $opt{'fileutil'};
 
     my %class = (
         ACSIS => 'OMP::EnterData::ACSIS',
@@ -437,6 +449,7 @@ sub get_instruments {
 
         my $enter = $class->new(
             dict => File::Spec->catfile(OMPLIB, '../cfg/jcmt/data.dictionary'),
+            fileutil => $fileutil,
             debug_fh => $debug_fh);
 
         $inst{$enter->instrument_name()} = $enter;

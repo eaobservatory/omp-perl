@@ -13,8 +13,6 @@ OMP::User - A User of the OMP system
         name => 'Mr Z',
         email => 'xyz@abc.def.com');
 
-    $u->verifyUser;
-
 =head1 DESCRIPTION
 
 This class simply provides details of the name and email address
@@ -27,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 use Unicode::Normalize qw/normalize/;
-use OMP::UserServer;
+use OMP::General;
 
 # Overloading
 use overload '""' => "stringify",
@@ -576,25 +574,6 @@ sub stringify {
     return $name;
 }
 
-=item B<verify>
-
-Verify that the user described in this object is a valid
-user of the OMP. This requires a query of the OMP database
-tables. All entries are compared.
-
-    $isthere = $u->verify;
-
-Returns true or false.
-
-[simply verifies that the userid exists. Does not yet verify contents]
-
-=cut
-
-sub verify {
-    my $self = shift;
-    return OMP::UserServer->verifyUser($self->userid);
-}
-
 =item B<domain>
 
 Returns the domain associated with the email address. Returns
@@ -874,8 +853,6 @@ sub deobfuscate {
 
 sub _obfu_rot13 {
     my ($self, $again) = @_;
-
-    require OMP::General;
 
     return OMP::General->rot13(map {$self->$_()} qw/userid name alias/);
 }

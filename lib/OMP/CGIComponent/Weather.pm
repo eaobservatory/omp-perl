@@ -30,8 +30,6 @@ use Time::Seconds qw/ONE_DAY/;
 
 use base qw/OMP::CGIComponent/;
 
-$| = 1;
-
 =head1 Routines
 
 =over 4
@@ -200,32 +198,6 @@ sub tau_plot {
     else {
         return undef, undef;
     }
-}
-
-=item B<transparency_plot>
-
-Return information for displaying a transparency plot.
-
-    my ($title, $url) = $comp->transparency_plot($utdate);
-
-Takes a UT date string as the only argument.
-
-=cut
-
-sub transparency_plot {
-    my $self = shift;
-    my $utdate = shift;
-
-    my $transparency_plot_dir = OMP::Config->getData('transparency-plot-url');
-
-    my $gifdate = $utdate;
-    $gifdate =~ s/-//g;
-    $gifdate = substr($gifdate, 0, 8);
-    $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
-    $gifdate = "$1-$2-$3";
-
-    return 'CFHT transparency',
-        "$transparency_plot_dir/${gifdate}.png";
 }
 
 =item B<wvm_graph>

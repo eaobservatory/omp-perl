@@ -172,13 +172,13 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use Data::Dumper;
 use IO::File;
-use OMP::DBServer;
+use OMP::DB::Backend;
 use OMP::General;
-use OMP::ProjDB;
-use OMP::ProjServer;
+use OMP::DB::Project;
+use OMP::Util::Project;
 use OMP::SiteQuality;
 use OMP::Password;
-use OMP::UserServer;
+use OMP::DB::User;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -221,6 +221,8 @@ die "Could not open file '$file'" unless defined $fh;
 $fh->binmode(':utf8');
 tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
+
+my $db = OMP::DB::Backend->new;
 
 my %ok_field;
 {
@@ -445,7 +447,7 @@ for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
 
     # Now add the project
     try {
-        OMP::ProjServer->addProject($force, @project_args);
+        OMP::Util::Project->addProject($db, $force, @project_args);
     }
     catch OMP::Error::ProjectExists with {
         print " - but the project already exists. Skipping.\n";
@@ -456,20 +458,22 @@ for my $proj (sort {uc $a cmp uc $b} keys %alloc) {
 # returns a list of unverified users. C<OMP::Error> exceptions are caught &
 # saved for later display elsewhere.
 #
-# OMP::UserServer->addProject throws exceptions for each user one at a time.  So
+# OMP::Util::Project->addProject throws exceptions for each user one at a time.  So
 # user id verification is also done for all the user ids related to a project in
 # one go.
 sub unverified_users {
     my (@list) = @_;
 
-    # For reference, see C<OMP::ProjServer->addProject()>.
+    # For reference, see C<OMP::Util::Project->addProject()>.
     my $id_sep = qr/[,:]+/;
+
+    my $udb = OMP::DB::User->new(DB => $db);
 
     my @user;
     for my $user (map {$_ ? split /$id_sep/, $_ : ()} @list) {
         try {
             push @user, $user
-                unless OMP::UserServer->verifyUser($user);
+                unless $udb->verifyUser($user);
         }
         catch OMP::Error with {
             my $E = shift;
@@ -505,7 +509,7 @@ sub check_project {
 sub check_country {
     my ($countries) = @_;
 
-    my $projdb = OMP::ProjDB->new(DB => OMP::DBServer->dbConnection);
+    my $projdb = OMP::DB::Project->new(DB => $db);
     my %allowed = map {$_ => undef} $projdb->listCountries;
 
     my $ok = 1;

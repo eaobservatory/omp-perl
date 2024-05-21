@@ -33,9 +33,8 @@ use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/:msb/;
-use OMP::SciProg;
 use OMP::SiteQuality;
-use OMP::TLEDB;
+use OMP::DB::TLE;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -1484,7 +1483,7 @@ sub hasBeenObserved {
         if ($n == 0) {
             print "Attempting to REMOVE remaining MSBs\n" if $DEBUG;
 
-            foreach (OMP::SciProg::_get_msbs_within_node(
+            foreach ($self->get_msbs_within_node(
                     $SpOR, {'NO_FIX_UP' => 1})) {
                 $_->remaining(OMP__MSB_REMOVED);
             }
@@ -1511,9 +1510,10 @@ reflect the modified state.
 
 Any suspend flags are cleared.
 
-If the MSB has been removed, this method will have the effect of re-enabling
-it with the original number of repeats. No other change will be made, since the
-assumption is that the removal is being reversed rather than an MSB acceptance.
+If the MSB has been removed, nothing is done.  The C<unRemove> method
+should be used instead to reverse this status.
+
+Returns true if the MSB was undone, false otherwise.
 
 B<Note:> all checksums in the science program should be
 recalculated after this method is called.
@@ -1523,19 +1523,18 @@ recalculated after this method is called.
 sub undoObserve {
     my $self = shift;
 
-    if ($self->isRemoved) {
-        $self->unRemove;
-    }
-    else {
-        $self->remaining_inc(1);
+    return 0 if $self->isRemoved;
 
-        # Reset datemin if we are a monitoring MSB
-        $self->scheduleMSBnow()
-            if $self->isPeriodic;
+    $self->remaining_inc(1);
 
-        # unsuspend
-        $self->clearSuspended;
-    }
+    # Reset datemin if we are a monitoring MSB
+    $self->scheduleMSBnow()
+        if $self->isPeriodic;
+
+    # unsuspend
+    $self->clearSuspended;
+
+    return 1;
 }
 
 =item B<hasBeenCompletelyObserved>
@@ -2407,7 +2406,7 @@ sub processAutoCoords {
     my $self = shift;
     my %args = @_;
 
-    # Declare variable for OMP::TLEDB object but defer construction
+    # Declare variable for OMP::DB::TLE object but defer construction
     # until it is needed.
     my $tledb = undef;
 
@@ -2425,7 +2424,7 @@ sub processAutoCoords {
             my $coord = $tcs->coords();
 
             if ($coord->type() eq 'AUTO-TLE') {
-                $tledb = OMP::TLEDB->new(DB => $args{'DB'})
+                $tledb = OMP::DB::TLE->new(DB => $args{'DB'})
                     unless defined $tledb;
 
                 # Need to standardize the TLE target name before looking
@@ -5357,6 +5356,86 @@ sub SpTelescopeObsComp {
     $summary{coordtags} = \%tags;
 
     return %summary;
+}
+
+=back
+
+=head2 Class Methods
+
+=over 4
+
+=item B<get_msbs_within_node>
+
+Find and return the MSBs within a given node of a science program.
+
+    my @msbs = OMP::MSB->get_msbs_within_node($node, \%msb_extra);
+
+=cut
+
+sub get_msbs_within_node {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $node = shift;
+    my $msb_extra = shift;
+
+    # Find all the SpMSB elements
+    my @spmsb = $node->findnodes(".//SpMSB");
+
+    # Find all the SpObs elements that are not in SpMSB
+    # We believe the MSB attribute
+    my @spobs = $node->findnodes('.//SpObs[@msb="true"]');
+
+    # occassionally we get some spurious hits here (have not found
+    # out why) so go through and remove spobs that have an SpMSB
+    # parent [this is the safest way if we do not trust the msb attribute
+    # - it may be that we should never trust the attribute and always
+    # get every SpObs and then remove spurious ones.
+    for (@spobs) {
+        my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
+
+        push @spmsb, $_ unless $parent;
+    }
+
+    # Loop over each MSB creating the MSB objects.
+    # Trick here is that for MSBs that are within Survey containers
+    # we need to create multiple MSB objects
+    # This means we will not be using a simple map
+    my @objs;
+    for my $msbnode (@spmsb) {
+        # Look for a survey container ancestor
+        my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
+
+        if ($sc) {
+            # We need to extract the TargetList information from the survey
+            # container and iterate over the target information
+            my ($tl) = $sc->findnodes('.//TargetList');
+            throw OMP::Error::SpBadStructure(
+                "No Target List specified for Survey container")
+                unless defined $tl;
+
+            # parse the target list
+            my %results = $class->TargetList($tl);
+
+            # "targets" contains the array of targets that we have found
+            for my $targ (@{$results{targets}}) {
+                push @objs, $class->new(
+                    TREE => $msbnode,
+                    %$msb_extra,
+                    OVERRIDE => $targ,
+                );
+            }
+        }
+        else {
+            # Not a survey, just create the object and store it
+            push @objs, $class->new(
+                TREE => $msbnode,
+                %$msb_extra,
+            );
+        }
+    }
+
+    return @objs;
 }
 
 1;

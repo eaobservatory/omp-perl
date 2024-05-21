@@ -45,4 +45,21 @@ $(document).ready(function () {
 
         calculate_total();
     });
+
+    var toggle_skip_shift = (function (skip_checkbox, shift_table) {
+        var skip = skip_checkbox.prop('checked');
+
+        shift_table.css({'opacity': skip ? 0.5 : 1.0});
+        shift_table.find('input').prop('disabled', skip);
+    });
+
+    $('input[name^="skip_"]').each(function () {
+        var input = $(this);
+
+        var shift_name = input.attr('name').substring(5);
+        var shift_table = $('table[name="table_' + shift_name + '"]');
+
+        toggle_skip_shift(input, shift_table);
+        input.on('change', function () {toggle_skip_shift(input, shift_table);});
+    });
 });

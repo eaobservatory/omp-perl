@@ -96,8 +96,9 @@ BEGIN {
 
 use lib OMPLIB;
 
+use OMP::DB::Backend;
 use OMP::User;
-use OMP::UserServer;
+use OMP::DB::User;
 use OMP::Mail;
 
 my $MY_NAME = (fileparse($0))[0];
@@ -118,6 +119,8 @@ GetOptions(
 
 pod2usage('-exitval' => 0, '-verbose' => 3) if $help;
 
+my $db = OMP::DB::Backend->new;
+my $udb = OMP::DB::User->new(DB => $db);
 
 my $to_addr = $ARGV[0]
     or die 'Give an email address to send mail to.';
@@ -159,7 +162,7 @@ sub make_user {
     my @result;
     foreach my $addr (@addrs) {
         if ($addr =~/^[A-Z]+$/) {
-            my $user = OMP::UserServer->getUser($addr);
+            my $user = $udb->getUser($addr);
             die "Unknown OMP user: $addr" unless defined $user;
             push @result, $user;
         }
@@ -177,7 +180,7 @@ __END__
 
 =over 2
 
-=item * L<OMP::BaseDB>, L<OMP::Mail>
+=item * L<OMP::DB>, L<OMP::Mail>
 
 =item * L<MIME::Entity>, L<Mail::Internet>, L<Net::SMTP>
 

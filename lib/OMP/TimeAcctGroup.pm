@@ -8,7 +8,9 @@ OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
 
     use OMP::TimeAcctGroup;
 
-    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
+    $tg = OMP::TimeAcctGroup->new(
+        DB => $database,
+        accounts => \@accounts);
 
     @stats = $tg->timeLostStats();
 
@@ -28,19 +30,16 @@ use Carp;
 our $VERSION = '2.000';
 
 use OMP::Config;
-use OMP::DBbackend;
 use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
-use OMP::ProjDB;
-use OMP::ProjQuery;
-use OMP::TimeAcctDB;
-use OMP::TimeAcctQuery;
+use OMP::DB::Project;
+use OMP::Query::Project;
+use OMP::DB::TimeAcct;
+use OMP::Query::TimeAcct;
 
 use Time::Seconds;
-
-$| = 1;
 
 =head1 METHODS
 
@@ -54,7 +53,9 @@ Object constructor. Takes a hash as an argument, the keys of which can
 be used to populate the object.  The keys must match the names of the
 accessor methods (ignoring case).
 
-    $tg = OMP::TimeAcctGroup->new(accounts => \@accounts);
+    $tg = OMP::TimeAcctGroup->new(
+        DB => $database,
+        accounts => \@accounts);
 
 Arguments are optional.
 
@@ -656,23 +657,25 @@ sub shifttypes {
 
 =item B<db>
 
-A shared database connection (an C<OMP::DBbackend> object). The first
-time this is called, triggers a database connection.
+A shared database connection (an C<OMP::DB::Backend> object).
 
     $db = $tg->db;
-
-Takes no arguments.
 
 =cut
 
 sub db {
     my $self = shift;
 
-    unless (defined $self->{DB}) {
-        $self->{DB} = OMP::DBbackend->new;
+    if (@_) {
+        my $db = shift;
+         throw OMP::Error::FatalError(
+             'DB must be an OMP::DB::Backend object')
+             unless eval {$db->isa('OMP::DB::Backend')};
+
+        $self->{'DB'} = $db;
     }
 
-    return $self->{DB};
+    return $self->{'DB'};
 }
 
 =back
@@ -745,7 +748,7 @@ sub completion_stats {
     my $lowdate = $self->_get_low_date();
 
     # Get total TAG allocation for semesters
-    my $projdb = OMP::ProjDB->new(DB => $self->db);
+    my $projdb = OMP::DB::Project->new(DB => $self->db);
     my $alloc = 0;
     for my $sem (@semesters) {
         $alloc += $projdb->getTotalAlloc($telescope, $sem);
@@ -763,15 +766,15 @@ sub completion_stats {
         $lowdate -= 1;  # Yesterday
         my @accts = $self->_get_non_special_accts();
         my %projectids = map {$_->projectid, undef} @accts;
-        my $tdb = OMP::TimeAcctDB->new(DB => $self->db);
-        my $xml = "<TimeAcctQuery>"
-            . "<date><max>" . $lowdate->datetime
-            . "</max></date>"
-            . join('', map {"<projectid>$_</projectid>"} keys %projectids)
-            . "</TimeAcctQuery>";
-        my $query = OMP::TimeAcctQuery->new(XML => $xml);
+        my $tdb = OMP::DB::TimeAcct->new(DB => $self->db);
+        my $query = OMP::Query::TimeAcct->new(HASH => {
+            date => {max => $lowdate->datetime},
+            projectid => [keys %projectids],
+        });
         my @offset_accts = $tdb->queryTimeSpent($query);
-        my $offset_grp = $self->new(accounts => \@offset_accts);
+        my $offset_grp = $self->new(
+            accounts => \@offset_accts,
+            DB => $self->db);
 
         #DEBUG
         printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n",
@@ -850,7 +853,8 @@ sub group_by_ut {
     for my $ut (keys %accts) {
         $accts{$ut} = $self->new(
             accounts => $accts{$ut},
-            telescope => $self->telescope
+            telescope => $self->telescope,
+            DB => $self->db,
         );
     }
 
@@ -950,7 +954,7 @@ sub _get_non_special_accts {
 
     # Create regexp to filter out special projects
     my $telpart = join('|', OMP::Config->getData('defaulttel'));
-    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER/);
+    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/);
     my $regexp = qr/^(${telpart})(${specpart})$/;
 
     # Filter out "__FAULT__" accounts and accounts that are named
@@ -970,7 +974,7 @@ sub _get_non_special_accts {
 
 Return either science accounts (accounts that are not associated with
 projects in the E&C queue) or E&C.  Special
-accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, __FAULT__).
+accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, _SHUTDOWN, __FAULT__).
 
     @accts = $self->_get_accts('sci'|'eng');
 
@@ -995,24 +999,25 @@ sub _get_accts {
 
     # Get project objects, using a different query depending on whether
     # we are returning science or engineering accounts
-    my $db = OMP::ProjDB->new(DB => $self->db);
-    my $tel_xml = "<telescope>" . $self->_get_telescope . "</telescope>";
-    my $query_xml;
+    my $db = OMP::DB::Project->new(DB => $self->db);
+    my %hash = ();
+
+    $hash{'telescope'} = $self->_get_telescope if defined $self->_get_telescope;
+
     if ($arg eq 'sci') {
         # Get all the projects in the semesters that we have time
         # accounts for.
-        my $sem_xml = join("", map {"<semester>$_</semester>"} $self->_get_semesters());
-
-        $query_xml = "<ProjQuery>${sem_xml}${tel_xml}</ProjQuery>";
+        $hash{'semester'} = $self->_get_semesters();
     }
     else {
         # Get projects in the EC queue
-        $query_xml = "<ProjQuery><country>EC</country><isprimary>1</isprimary>${tel_xml}</ProjQuery>";
+        $hash{'country'} = 'EC';
+        $hash{'isprimary'} = 1;
     }
 
-    my $query = OMP::ProjQuery->new(XML => $query_xml);
-    my @projects = $db->listProjects($query);
-    my %projects = map {$_->projectid, $_} @projects;
+    my $query = OMP::Query::Project->new(HASH => \%hash);
+    my $projects = $db->listProjects($query);
+    my %projects = map {$_->projectid, $_} @$projects;
 
     if ($arg eq 'sci') {
         # Only keep non-EC projects
@@ -1128,7 +1133,7 @@ sub _get_telescope {
     my $self = shift;
     my @accts = $self->_get_non_special_accts;
     if (@accts) {
-        my $db = OMP::ProjDB->new(
+        my $db = OMP::DB::Project->new(
             DB => $self->db,
             ProjectID => $accts[0]->projectid);
 

@@ -25,16 +25,14 @@ use Carp;
 
 use OMP::Config;
 use OMP::Constants qw/:faultresponse/;
+use OMP::DB::MSBDone;
 use OMP::Display;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::FaultDB;
 use OMP::FaultGroup;
 use OMP::FaultUtil;
-use OMP::MSBServer;
-use OMP::UserServer;
 
 use base qw/OMP::CGIComponent/;
 
@@ -92,6 +90,7 @@ sub fault_table {
         target => $self->page->url_absolute(),
         statuses => \@statuses,
         has_shift_type => !!%shifts,
+        category_is_telescope => OMP::Fault->faultIsTelescope($fault->category),
     };
 }
 
@@ -264,11 +263,10 @@ sub file_fault_form {
         # We don't want this checkbox group if this form is being used for editing a fault.
         if (OMP::Fault->faultCanAssocProjects($category)) {
             # Values for checkbox group will be tonights projects
-            my $aref = OMP::MSBServer->observedMSBs({
+            my $aref = OMP::DB::MSBDone->new(DB => $self->database)->observedMSBs(
                 usenow => 1,
-                format => 'data',
-                returnall => 0,
-            });
+                comments => 0,
+            );
 
             if (@$aref[0]) {
                 my %projects;
@@ -755,28 +753,28 @@ sub parse_file_fault_form {
     return %parsed;
 }
 
-=item B<category_xml>
+=item B<category_hash>
 
-Return a snippet of XML containing the name of the given category
-surrounded by an opening and closing category tag.
+Return a hash reference containing the name of the given category.
 
-    $xmlpart = $comp->category_xml($category);
+    \%hash = $comp->category_hash($category);
 
-Returns an empty string if the given category is 'ANYCAT' or if the only
+Returns an empty hash if the given category is 'ANYCAT' or if the only
 argument is undef.
 
 =cut
 
-sub category_xml {
+sub category_hash {
     my $self = shift;
     my $cat = shift;
 
+    my %hash = ();
+
     if (defined $cat and $cat ne "ANYCAT") {
-        return "<category>$cat</category>";
+        $hash{'category'} = $cat;
     }
-    else {
-        return "";
-    }
+
+    return \%hash;
 }
 
 =item B<get_status_labels>

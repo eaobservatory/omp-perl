@@ -61,7 +61,9 @@ use Term::ReadLine;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
-use OMP::ProjServer;
+use OMP::DB::Backend;
+use OMP::DB::Project;
+use OMP::Query::Project;
 
 our $VERSION = '2.000';
 
@@ -87,18 +89,14 @@ if ($version) {
     exit;
 }
 
-my $xmlquery;
+my %queryhash;
 if (defined $single_project) {
-    $xmlquery = "<ProjQuery>"
-        . "<projectid>$single_project</projectid>"
-        . "</ProjQuery>";
+    $queryhash{'projectid'} = $single_project;
 }
 elsif (defined $country) {
-    # XML query
-    $xmlquery = "<ProjQuery>" . "<country>$country</country>";
-    $xmlquery .= "<telescope>$telescope</telescope>"
-        unless (!$telescope);
-    $xmlquery .= "</ProjQuery>";
+    $queryhash{'country'} = $country;
+    $queryhash{'telescope'} = $telescope
+        if $telescope;
 }
 else {
     # Die if missing certain arguments
@@ -106,7 +104,10 @@ else {
 }
 
 # Get projects
-my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
+my $db = OMP::DB::Backend->new;
+my $projdb = OMP::DB::Project->new(DB => $db);
+my $projquery = OMP::Query::Project->new(HASH => \%queryhash);
+my $projects = $projdb->listProjects($projquery);
 my %email_users;
 
 for my $project (@$projects) {

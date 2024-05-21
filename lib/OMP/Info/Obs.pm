@@ -40,8 +40,6 @@ use OMP::Display;
 use OMP::General;
 use OMP::Constants qw/:obs :logging/;
 use OMP::Error qw/:try/;
-use OMP::ObslogDB;
-use OMP::DBbackend;
 use Scalar::Util qw/blessed/;
 
 use Astro::FITS::Header;
@@ -434,7 +432,7 @@ sub subsystem_filenames {
 
 =item B<hdrs_to_obs>
 
-Convert the result from OMP::FileUtils->merge_dupes() method to an
+Convert the result from OMP::Util::FITS->merge_dupes() method to an
 array of C<OMP::Info::Obs> objects.
 
     @obs = OMP::Info::Obs->hdrs_to_obs(
@@ -1137,8 +1135,8 @@ sub nightlog {
                 "Pol In?", "FTS In?", "Shift"
             ];
             @short_val = map $return{$_}, @{$return{'_ORDER'}};
-            $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
-            $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %6s  %6s  %7s %7s %-7s";
+            $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
+            $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %6s  %6s  %7s %7s %-7s";
         }
         else {
             $return{'_ORDER'} = [
@@ -1747,33 +1745,6 @@ sub rawdatadir {
     };
 
     return $dir;
-}
-
-=item B<remove_comment>
-
-    $obs->remove_comment($userid);
-
-Removes the existing comment for the given user ID from the C<OMP::Info::Obs>
-object and sets all comments for the given user ID and C<OMP::Info::Obs> object
-as inactive in the database.
-
-=cut
-
-sub remove_comment {
-    my $self = shift;
-    my $userid = shift;
-
-    unless (defined($userid)) {
-        throw OMP::Error::BadArgs(
-            "Must supply user ID in order to remove comments");
-    }
-
-    my $db = OMP::ObslogDB->new(DB => OMP::DBbackend->new);
-
-    $db->removeComment($self, $userid);
-
-    # Reread all remaining comments (inefficient but reliable)
-    $db->updateObsComment([$self]);
 }
 
 =item B<simple_filename>

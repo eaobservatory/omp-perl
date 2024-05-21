@@ -2,7 +2,6 @@
 
 # Derive Monthly, Weekly, or Daily stats for the JCMT over a given
 # time interval based from the accounting in the OMP.
-#
 
 use FindBin;
 use File::Spec;
@@ -10,13 +9,15 @@ use File::Spec;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
-          unless exists $ENV{OMP_CFG_DIR};
-        $ENV{PATH} = "/usr/bin";
-      }
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+    $ENV{PATH} = "/usr/bin";
+}
 
 use lib OMPLIB;
+use OMP::DB::Backend;
 use OMP::NightRep;
+use OMP::DB::Project;
 use Time::Seconds;
 use Time::Piece;
 use Getopt::Long;
@@ -25,40 +26,38 @@ use strict;
 my $tel = 'JCMT';
 
 my %grand = (
-    days     => 0.0,
-    proj     => 0.0,
-    weather  => 0.0,
-    tfaults  => 0.0,
-    hfaults  => 0.0,
-    other    => 0.0,
+    days => 0.0,
+    proj => 0.0,
+    weather => 0.0,
+    tfaults => 0.0,
+    hfaults => 0.0,
+    other => 0.0,
     extended => 0.0,
-    jcmtcal  => 0.0,
+    jcmtcal => 0.0,
     shutdown => 0.0,
-    unrep    => 0.0,
-    hours    => 0.0
+    unrep => 0.0,
+    hours => 0.0
 );
 
-# ----------------------------------------------------------------------
 # Parse the command line options
 
 my ($vers, $help, $man, $statsmode, $uutx, $ffirst, $llast);
-my $status = GetOptions("version" => \$vers,
-                        "help" => \$help,
-                        "man" => \$man,
-                        "statsmode=s" => \$statsmode,
-                        "xut" => \$uutx,
-                        "first=s"  => \$ffirst,
-                        "last=s" => \$llast,
-                       );
-
-
+my $status = GetOptions(
+    "version" => \$vers,
+    "help" => \$help,
+    "man" => \$man,
+    "statsmode=s" => \$statsmode,
+    "xut" => \$uutx,
+    "first=s" => \$ffirst,
+    "last=s" => \$llast,
+);
 
 my $progname = (split(/\//,"$0"))[-1];
 my ($prog, $suffix) = split(/\./,$progname,2);
 my $version = "1.0";
 
 if (defined $help or defined $man) {
-  print qq{
+    print qq{
 Name: ${progname} - Derive JCMT operations statistics from the OMP
 Version: $version\n
 Use: $progname [-v|-h] [-s m|w|d] [-x] [-f yyyymmdd] [-l yyyymmdd]\n
@@ -70,319 +69,335 @@ Use: $progname [-v|-h] [-s m|w|d] [-x] [-f yyyymmdd] [-l yyyymmdd]\n
 \t-l: \t Last date (yyyymmdd)
 \n
 };
-  exit;
+    exit;
 }
 
 if (defined $vers) {
-  print qq {
+    print qq {
 \t$progname --- version $version
 \tDerive JCMT operations statistics from the OMP
 \tContact Remo Tilanus (rpt\@jach.hawaii.edu) for more information
 
 };
-  exit;
+    exit;
 }
 
 my $statmode;
 if (defined $statsmode) {
-  $statmode = $statsmode;
-} else {
-  print "What kind of statistics? [m]onthly/(w)eekly/(d)aily: ";
-  chomp($statmode = <STDIN>);
+    $statmode = $statsmode;
+}
+else {
+    print "What kind of statistics? [m]onthly/(w)eekly/(d)aily: ";
+    chomp($statmode = <STDIN>);
 }
 if ($statmode =~ /^w/i) {
-  $statmode = 'weekly';
-} elsif ($statmode =~ /^d/i) {
-  $statmode = 'daily';
-} else {
-  $statmode = 'monthly';
+    $statmode = 'weekly';
+}
+elsif ($statmode =~ /^d/i) {
+    $statmode = 'daily';
+}
+else {
+    $statmode = 'monthly';
 }
 
 my $utx = "UT";
 if ($statmode eq "monthly") {
-  if (defined $uutx) {
-     $utx = "HST";
-  } else {
-    print "Start monthly stats on UT 1st? (Else start HST 1st = UT 2nd) [y]/n: ";
-    chomp(my $answer = <STDIN>);
-    $utx = "HST" if ($answer =~ /^n/i);
- }
+    if (defined $uutx) {
+        $utx = "HST";
+    }
+    else {
+        print "Start monthly stats on UT 1st? (Else start HST 1st = UT 2nd) [y]/n: ";
+        chomp(my $answer = <STDIN>);
+        $utx = "HST" if ($answer =~ /^n/i);
+    }
 }
 
 my $startut;
 if (defined $ffirst) {
-  $startut = $ffirst;
-} else {
-  print "First date? YYYYMMDD: ";
-  chomp($startut = <STDIN>);
+    $startut = $ffirst;
+}
+else {
+    print "First date? YYYYMMDD: ";
+    chomp($startut = <STDIN>);
 }
 die "start ut date not YYYYMMDD:" if ($startut !~ /^\d{8}$/);
-die "start ut date not valid:" if ($startut < 20030000 or $startut > 20200000);
+die "start ut date not valid:" if ($startut < 20030000 or $startut > 20300000);
 
 my $endut;
 if (defined $llast) {
-  $endut = $llast;
-} else {
-  print "Last date?  YYYYMMDD: ";
-  chomp ($endut = <STDIN>);
+    $endut = $llast;
+}
+else {
+    print "Last date?  YYYYMMDD: ";
+    chomp($endut = <STDIN>);
 }
 die "end ut date not YYYYMMDD:" if ($endut !~ /^\d{8}$/);
-die "end ut date not valid:" if ($endut < 20030000 or $endut > 20200000);
+die "end ut date not valid:" if ($endut < 20030000 or $endut > 20300000);
 
 die "start ut must be before end ut" if ($startut > $endut);
 
 my $outfile = "${prog}_${startut}_${statmode}.txt";
-open(OUTPUT,">${outfile}") || die "Failed to open ${outfile}";
+open(OUTPUT, ">${outfile}") or die "Failed to open ${outfile}";
 
 my $ut = $startut;
 print "\nMode: $statmode from $startut thru $endut\n\n";
 print OUTPUT "\nMode: $statmode from $startut thru $endut\n\n";
 
+my $db = OMP::DB::Backend->new();
+
 my $loop = 0;
 while ($ut <= $endut) {
+    my $total = 0;
+    my $total_pending = 0;
 
-  my $total = 0;
-  my $total_pending = 0;
+    $loop ++;
+    my $yy = substr($ut, 0, 4);
+    my $mm = substr($ut, 4, 2);
+    my $dd = substr($ut, 6, 2);
 
-  $loop++;
-  my $yy = substr($ut,0,4);
-  my $mm = substr($ut,4,2);
-  my $dd = substr($ut,6,2);
+    # Convert time to object. Assumes YYYY-MM-DDTHH:MM format
+    my $t = new Time::Piece->strptime("$ut", "%Y%m%d");
 
-  #Convert time to object. Assumes YYYY-MM-DDTHH:MM format
-  my $t = new Time::Piece->strptime( "$ut","%Y%m%d" );
+    my $iut;
+    my $delta;
+    if ($statmode =~ /^m/i) {
+        $dd = "01";
+        $dd = "02" if ($utx eq "HST");
+        $iut = $yy . $mm . $dd;
 
-  my $iut;
-  my $delta;
-  if ($statmode =~ /^m/i) {
+        $delta = 31;
+        $delta = 30 if ($mm == 4
+            or $mm == 6
+            or $mm == 9
+            or $mm == 11);
+        $delta = 28 if ($mm == 2);
+        $delta = 29 if ($mm == 2 && $yy % 4 == 0);
 
-
-    $dd = "01";
-    $dd = "02" if ($utx eq "HST");
-    $iut = $yy . $mm . $dd;
-
-    $delta = 31;
-    $delta = 30 if ($mm == 4 or $mm == 6 or $mm == 9 or
-                       $mm == 11);
-    $delta = 28 if ($mm == 2);
-    $delta = 29 if ($mm == 2 && $yy%4 == 0);
-
-  } elsif ($statmode =~ /^d/i) {
-
-    $iut = $ut;
-    $delta = 1;
-
-  } else {
-
-    $iut = $ut;
-    $delta = 7;
-
-  }
-
-  print "Date: $iut\n";
-  my $nr = OMP::NightRep->new(date => $iut,
-                              telescope => $tel,
-                              delta_day => $delta,);
-
-  my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
-
-  my %acct = $nr->accounting_db('byproject');
-
-  my $faultloss = $nr->timelost->hours;
-  my $technicalloss = $nr->timelost('technical')->hours;
-  my %items;
-
-  $total += $faultloss;
-
-  my $total_proj = 0.0;
-
-  foreach my $proj (keys %acct) {
-    next if $proj =~ /^$tel/;
-    my $account = $acct{$proj};
-    $total += $account->{total}->hours;
-    $total_proj += $account->{total}->hours;
-
-    # No determine_country method exists, so we'll get project
-    # details instead
-    my $details = OMP::ProjServer->projectDetails($proj, "object");
-
-    my $country = $details->country;
-    #countrylist .= " $country" if ($country !~ /$countrylist/);
-
-    my $pending;
-    if  ($account->{pending}) {
-      $total_pending += $account->{pending}->hours;
-      $pending = $account->{pending}->hours;
+    }
+    elsif ($statmode =~ /^d/i) {
+        $iut = $ut;
+        $delta = 1;
+    }
+    else {
+        $iut = $ut;
+        $delta = 7;
     }
 
-    my $time = $account->{total}->hours;
-    $time *= -1 if ($pending);
-    $items{"$proj"} = "${time}\@${country}";
-  }
+    print "Date: $iut\n";
+    my $nr = OMP::NightRep->new(
+        DB => $db,
+        date => $iut,
+        telescope => $tel,
+        delta_day => $delta,
+    );
 
-  my @country_totals;
-  foreach my $country ( split(/\s+/,$countrylist) ) {
-    my $ctotal = 0.0;
+    my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
+
+    my %acct = $nr->accounting_db('byproject');
+
+    my $faultloss = $nr->timelost->hours;
+    my $technicalloss = $nr->timelost('technical')->hours;
+    my %items;
+
+    $total += $faultloss;
+
+    my $total_proj = 0.0;
+
     foreach my $proj (keys %acct) {
-      my ($ptime, $pcountry) = split(/\@/,$items{$proj});
-      $ctotal += abs($ptime) if ($pcountry eq $country);
+        next if $proj =~ /^$tel/;
+        my $account = $acct{$proj};
+        $total += $account->{total}->hours;
+        $total_proj += $account->{total}->hours;
+
+        # No determine_country method exists, so we'll get project
+        # details instead
+        my $details = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
+
+        my $country = $details->country;
+        # countrylist .= " $country" if ($country !~ /$countrylist/);
+
+        my $pending;
+        if ($account->{pending}) {
+            $total_pending += $account->{pending}->hours;
+            $pending = $account->{pending}->hours;
+        }
+
+        my $time = $account->{total}->hours;
+        $time *= -1 if ($pending);
+        $items{"$proj"} = "${time}\@${country}";
     }
-    push @country_totals, $ctotal;
-  }
 
-  foreach my $proj (qw/WEATHER OTHER EXTENDED CAL _SHUTDOWN/) {
-    my $time = 0.0;
-    my $pending;
-    if (exists $acct{$tel.$proj}) {
-      $time = $acct{$tel.$proj}->{total}->hours;
-      if ($acct{$tel.$proj}->{pending}) {
-        $pending += $acct{$tel.$proj}->{pending}->hours;
-      }
-      $total += $time unless ($proj eq 'EXTENDED' or $proj eq '_SHUTDOWN');
+    my @country_totals;
+    foreach my $country (split(/\s+/, $countrylist)) {
+        my $ctotal = 0.0;
+        foreach my $proj (keys %acct) {
+            my ($ptime, $pcountry) = split(/\@/, $items{$proj});
+            $ctotal += abs($ptime) if ($pcountry eq $country);
+        }
+        push @country_totals, $ctotal;
     }
 
-    $time *= -1 if ($pending);
-    $items{lc("$proj")} = $time;
-  }
+    foreach my $proj (qw/WEATHER OTHER EXTENDED CAL _SHUTDOWN/) {
+        my $time = 0.0;
+        my $pending;
+        if (exists $acct{$tel . $proj}) {
+            $time = $acct{$tel . $proj}->{total}->hours;
+            if ($acct{$tel . $proj}->{pending}) {
+                $pending += $acct{$tel . $proj}->{pending}->hours;
+            }
+            $total += $time
+                unless ($proj eq 'EXTENDED' or $proj eq '_SHUTDOWN');
+        }
 
-  print OUTPUT "  UT        Projects Weather T_flts  H_flts  Other  Extended J_cal   Closed  Unreport Total  N_total t_fperc  h_fperc tn_fperc hn_fperc Cal_perc Cal_clear_perc\n" if ($loop == 1);
+        $time *= -1 if ($pending);
+        $items{lc("$proj")} = $time;
+    }
 
-  printf OUTPUT "%4.4d-%2.2d-%2.2d",$yy,$mm,$dd;
-  printf OUTPUT "  %6.2f",$total_proj;
-  printf OUTPUT "  %6.2f",abs($items{"weather"});
-  print  OUTPUT  "p" if ($items{"weather"} < 0);
-  printf OUTPUT "  %6.2f",$technicalloss;
-  printf OUTPUT "  %6.2f",$faultloss-$technicalloss;
-  printf OUTPUT "  %6.2f",abs($items{"other"});
-  print  OUTPUT  "p" if ($items{"other"} < 0);
-  printf OUTPUT "  %6.2f",abs($items{"extended"});
-  print  OUTPUT  "p" if ($items{"extended"} < 0);
-  printf OUTPUT "  %6.2f",abs($items{"cal"});
-  print  OUTPUT  "p" if ($items{"cal"} < 0);
-  printf OUTPUT "  %6.2f",abs($items{"_shutdown"});
-  print  OUTPUT  "p" if ($items{"_shutdown"} < 0);
-  printf OUTPUT "  %6.2f",$delta*12-($total+abs($items{"_shutdown"}));
-  printf OUTPUT "  %6.2f",$total;
-  printf OUTPUT "  %6.2f", $total + ($delta*12-($total+abs($items{"_shutdown"})));
-  my $denom = $total-abs($items{"weather"});
-  if ($denom > 0.1) {
-    printf OUTPUT "  %6.2f",100.0*$faultloss/$denom;
-    printf OUTPUT "  %6.2f",100.0*($faultloss-$technicalloss)/$denom;
-  } else {
-    printf OUTPUT "  %6.2f",0.0;
-    printf OUTPUT "  %6.2f",0.0;
-  }
+    print OUTPUT
+        "  UT        Projects Weather T_flts  H_flts  Other  Extended J_cal   Closed  Unreport Total  N_total t_fperc  h_fperc tn_fperc hn_fperc Cal_perc Cal_clear_perc\n"
+        if ($loop == 1);
 
-  #my $eo = sprintf("%6.2f", abs($delta*12-($total+abs($items{"_shutdown"}))));
-  my $ntotal = sprintf("%6.0f",$total);
-  #if ($ntotal != 12){
-  #    print "On $iut there was $eo EO and $ntotal hours obs\n";
-  #}
+    printf OUTPUT "%4.4d-%2.2d-%2.2d", $yy, $mm, $dd;
+    printf OUTPUT "  %6.2f", $total_proj;
+    printf OUTPUT "  %6.2f", abs($items{"weather"});
+    print OUTPUT "p" if ($items{"weather"} < 0);
+    printf OUTPUT "  %6.2f", $technicalloss;
+    printf OUTPUT "  %6.2f", $faultloss - $technicalloss;
+    printf OUTPUT "  %6.2f", abs($items{"other"});
+    print OUTPUT "p" if ($items{"other"} < 0);
+    printf OUTPUT "  %6.2f", abs($items{"extended"});
+    print OUTPUT "p" if ($items{"extended"} < 0);
+    printf OUTPUT "  %6.2f", abs($items{"cal"});
+    print OUTPUT "p" if ($items{"cal"} < 0);
+    printf OUTPUT "  %6.2f", abs($items{"_shutdown"});
+    print OUTPUT "p" if ($items{"_shutdown"} < 0);
+    printf OUTPUT "  %6.2f", $delta * 12 - ($total + abs($items{"_shutdown"}));
+    printf OUTPUT "  %6.2f", $total;
+    printf OUTPUT "  %6.2f", $total + ($delta * 12 - ($total + abs($items{"_shutdown"})));
+    my $denom = $total - abs($items{"weather"});
 
+    if ($denom > 0.1) {
+        printf OUTPUT "  %6.2f", 100.0 * $faultloss / $denom;
+        printf OUTPUT "  %6.2f", 100.0 * ($faultloss - $technicalloss) / $denom;
+    }
+    else {
+        printf OUTPUT "  %6.2f", 0.0;
+        printf OUTPUT "  %6.2f", 0.0;
+    }
 
-  my $ndenom = $ntotal-abs($items{"weather"});
-  if ($ndenom > 0.1) {
-    printf OUTPUT "  %6.2f",100.0*$faultloss/$ndenom;
-    printf OUTPUT "  %6.2f",100.0*($faultloss-$technicalloss)/$ndenom;
-    printf OUTPUT "  %6.2f",100.0*abs($items{"cal"})/$total;
-    printf OUTPUT "  %6.2f",100.0*abs($items{"cal"})/$ndenom;
-  } else {
-    printf OUTPUT "  %6.2f",0.0;
-    printf OUTPUT "  %6.2f",0.0;
-    printf OUTPUT "  %6.2f",0.0;
-    printf OUTPUT "  %6.2f",0.0;
-  }
+    #my $eo = sprintf("%6.2f", abs($delta * 12 - ($total + abs($items{"_shutdown"}))));
+    my $ntotal = sprintf("%6.0f", $total);
+    #if ($ntotal != 12) {
+    #    print "On $iut there was $eo EO and $ntotal hours obs\n";
+    #}
 
-  print OUTPUT  "\n";
+    my $ndenom = $ntotal - abs($items{"weather"});
+    if ($ndenom > 0.1) {
+        printf OUTPUT "  %6.2f", 100.0 * $faultloss / $ndenom;
+        printf OUTPUT "  %6.2f", 100.0 * ($faultloss - $technicalloss) / $ndenom;
+        printf OUTPUT "  %6.2f", 100.0 * abs($items{"cal"}) / $total;
+        printf OUTPUT "  %6.2f", 100.0 * abs($items{"cal"}) / $ndenom;
+    }
+    else {
+        printf OUTPUT "  %6.2f", 0.0;
+        printf OUTPUT "  %6.2f", 0.0;
+        printf OUTPUT "  %6.2f", 0.0;
+        printf OUTPUT "  %6.2f", 0.0;
+    }
 
+    print OUTPUT "\n";
 
-  # Add to Grand total
-  $grand{"days"}     += $delta;
-  $grand{"proj"}     += $total_proj;
-  $grand{"weather"}  += abs($items{"weather"});
-  $grand{"tfaults"}  += $technicalloss;
-  $grand{"hfaults"}  += $faultloss-$technicalloss;
-  $grand{"other"}    += abs($items{"other"});
-  $grand{"extended"} += abs($items{"extended"});
-  $grand{"jcmtcal"}  += abs($items{"cal"});
-  $grand{"shutdown"} += abs($items{"_shutdown"});
-  $grand{"unrep"}    += $delta*12-($total+abs($items{"_shutdown"}));
-  $grand{"hours"}    += $total;
-  $grand{"eo"}       += abs($delta*12-($total+abs($items{"_shutdown"})));
-  $grand{"proj_n"}   += $total_proj -  abs($delta*12-($total+abs($items{"_shutdown"})));
-  $grand{"hours_n"}   += $total - abs($delta*12-($total+abs($items{"_shutdown"})));
+    # Add to Grand total
+    $grand{"days"} += $delta;
+    $grand{"proj"} += $total_proj;
+    $grand{"weather"} += abs($items{"weather"});
+    $grand{"tfaults"} += $technicalloss;
+    $grand{"hfaults"} += $faultloss - $technicalloss;
+    $grand{"other"} += abs($items{"other"});
+    $grand{"extended"} += abs($items{"extended"});
+    $grand{"jcmtcal"} += abs($items{"cal"});
+    $grand{"shutdown"} += abs($items{"_shutdown"});
+    $grand{"unrep"} += $delta * 12 - ($total + abs($items{"_shutdown"}));
+    $grand{"hours"} += $total;
+    $grand{"eo"} += abs($delta * 12 - ($total + abs($items{"_shutdown"})));
+    $grand{"proj_n"} += $total_proj - abs($delta * 12 - ($total + abs($items{"_shutdown"})));
+    $grand{"hours_n"} += $total - abs($delta * 12 - ($total + abs($items{"_shutdown"})));
 
-  # Add delta to the datetime object
-  $t += (24*3600*$delta);
+    # Add delta to the datetime object
+    $t += (24 * 3600 * $delta);
 
-  $ut = $t->ymd;
-  $ut =~ s/\-//g;
-
+    $ut = $t->ymd;
+    $ut =~ s/\-//g;
 }
 
 # Print Grand summary
 
-print OUTPUT  "\n\n";
+print OUTPUT "\n\n";
 
 printf OUTPUT "The period from ${startut} thru ${endut} ($utx) contained %3d scheduled\n",
-       $grand{"days"};
-printf OUTPUT "12-hour nights, in total %4d hours.\n\n", 12*$grand{"days"};
+    $grand{"days"};
+printf OUTPUT "12-hour nights, in total %4d hours.\n\n",
+    12 * $grand{"days"};
 
 printf OUTPUT "Scheduled Time used for Observing   %7.2f  %6.2f%\n",
-        $grand{"proj"}, 100*$grand{"proj"}/$grand{"hours"};
+    $grand{"proj"}, 100 * $grand{"proj"} / $grand{"hours"};
 printf OUTPUT "Time lost to Weather                %7.2f  %6.2f%\n",
-        $grand{"weather"}, 100*$grand{"weather"}/$grand{"hours"};
+    $grand{"weather"}, 100 * $grand{"weather"} / $grand{"hours"};
 printf OUTPUT "Clear Time lost to Technical Faults %7.2f  %6.2f%\n",
-        $grand{"tfaults"}, 100*$grand{"tfaults"}/($grand{"hours"}-$grand{"weather"});
+    $grand{"tfaults"},
+    100 * $grand{"tfaults"} / ($grand{"hours"} - $grand{"weather"});
 printf OUTPUT "Clear Time lost to Human Faults     %7.2f  %6.2f%\n",
-        $grand{"hfaults"}, 100*$grand{"hfaults"}/($grand{"hours"}-$grand{"weather"});
+    $grand{"hfaults"},
+    100 * $grand{"hfaults"} / ($grand{"hours"} - $grand{"weather"});
 printf OUTPUT "Calibrations                        %7.2f  %6.2f%\n",
-        $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/$grand{"hours"};
+    $grand{"jcmtcal"}, 100 * $grand{"jcmtcal"} / $grand{"hours"};
 printf OUTPUT "Clear Time Calibrations             %7.2f  %6.2f%\n",
-    $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/($grand{"hours"}-$grand{"weather"});
+    $grand{"jcmtcal"},
+    100 * $grand{"jcmtcal"} / ($grand{"hours"} - $grand{"weather"});
 printf OUTPUT "Other Time                          %7.2f  %6.2f%\n",
-        $grand{"other"}, 100*$grand{"other"}/$grand{"hours"};
+    $grand{"other"}, 100 * $grand{"other"} / $grand{"hours"};
 printf OUTPUT "Unreported Time                     %7.2f  %6.2f%\n",
-        $grand{"unrep"}, 100*$grand{"unrep"}/$grand{"hours"};
+    $grand{"unrep"}, 100 * $grand{"unrep"} / $grand{"hours"};
 printf OUTPUT "Total Time Scheduled                %7.2f  %6.2f%\n",
-        $grand{"hours"}, 100*$grand{"hours"}/$grand{"hours"};
+    $grand{"hours"}, 100 * $grand{"hours"} / $grand{"hours"};
 printf OUTPUT "Facility Shutdown                   %7.2f  %6.2f%\n",
-        $grand{"shutdown"}, 100*$grand{"shutdown"}/$grand{"hours"};
+    $grand{"shutdown"}, 100 * $grand{"shutdown"} / $grand{"hours"};
 printf OUTPUT "Total Nighttime available           %7.2f  %6.2f%\n",
-        ($grand{"hours"}+$grand{"shutdown"}),
-        100*($grand{"hours"}+$grand{"shutdown"})/$grand{"hours"};
+    ($grand{"hours"} + $grand{"shutdown"}),
+    100 * ($grand{"hours"} + $grand{"shutdown"}) / $grand{"hours"};
 printf OUTPUT "Extended Time                       %7.2f  %6.2f%\n\n\n",
-        $grand{"extended"}, 100*$grand{"extended"}/$grand{"hours"};
+    $grand{"extended"}, 100 * $grand{"extended"} / $grand{"hours"};
 printf OUTPUT "Extended Obs                      %7.2f  %6.2f%\n\n\n",
-        $grand{"eo"}, 100*$grand{"eo"}/$grand{"hours"};
+    $grand{"eo"}, 100 * $grand{"eo"} / $grand{"hours"};
 
 print OUTPUT "Now numbers excluding Extended Observing project time\n";
 
 printf OUTPUT "Scheduled Time used for Observing   %7.2f  %6.2f%\n",
-        $grand{"proj_n"}, 100*$grand{"proj_n"}/$grand{"hours_n"};
+    $grand{"proj_n"}, 100 * $grand{"proj_n"} / $grand{"hours_n"};
 printf OUTPUT "Time lost to Weather                %7.2f  %6.2f%\n",
-        $grand{"weather"}, 100*$grand{"weather"}/$grand{"hours_n"};
+    $grand{"weather"}, 100 * $grand{"weather"} / $grand{"hours_n"};
 printf OUTPUT "Clear Time lost to Technical Faults %7.2f  %6.2f%\n",
-        $grand{"tfaults"}, 100*$grand{"tfaults"}/($grand{"hours_n"}-$grand{"weather"});
+    $grand{"tfaults"},
+    100 * $grand{"tfaults"} / ($grand{"hours_n"} - $grand{"weather"});
 printf OUTPUT "Clear Time lost to Human Faults     %7.2f  %6.2f%\n",
-        $grand{"hfaults"}, 100*$grand{"hfaults"}/($grand{"hours_n"}-$grand{"weather"});
+    $grand{"hfaults"},
+    100 * $grand{"hfaults"} / ($grand{"hours_n"} - $grand{"weather"});
 printf OUTPUT "Calibrations                        %7.2f  %6.2f%\n",
-        $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/$grand{"hours_n"};
+    $grand{"jcmtcal"}, 100 * $grand{"jcmtcal"} / $grand{"hours_n"};
 printf OUTPUT "Clear Time Calibrations             %7.2f  %6.2f%\n",
-        $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/($grand{"hours_n"}-$grand{"weather"});
+    $grand{"jcmtcal"},
+    100 * $grand{"jcmtcal"} / ($grand{"hours_n"} - $grand{"weather"});
 printf OUTPUT "Other Time                          %7.2f  %6.2f%\n",
-        $grand{"other"}, 100*$grand{"other"}/$grand{"hours_n"};
+    $grand{"other"}, 100 * $grand{"other"} / $grand{"hours_n"};
 printf OUTPUT "Unreported Time                     %7.2f  %6.2f%\n",
-        $grand{"unrep"}, 100*$grand{"unrep"}/$grand{"hours_n"};
+    $grand{"unrep"}, 100 * $grand{"unrep"} / $grand{"hours_n"};
 printf OUTPUT "Total Time Scheduled                %7.2f  %6.2f%\n",
-        $grand{"hours_n"}, 100*$grand{"hours_n"}/$grand{"hours_n"};
+    $grand{"hours_n"}, 100 * $grand{"hours_n"} / $grand{"hours_n"};
 printf OUTPUT "Facility Shutdown                   %7.2f  %6.2f%\n",
-        $grand{"shutdown"}, 100*$grand{"shutdown"}/$grand{"hours_n"};
+    $grand{"shutdown"}, 100 * $grand{"shutdown"} / $grand{"hours_n"};
 printf OUTPUT "Total Nighttime available           %7.2f  %6.2f%\n",
-        ($grand{"hours_n"}+$grand{"shutdown"}),
-        100*($grand{"hours_n"}+$grand{"shutdown"})/$grand{"hours_n"};
-
-
+    ($grand{"hours_n"} + $grand{"shutdown"}),
+    100 * ($grand{"hours_n"} + $grand{"shutdown"}) / $grand{"hours_n"};
 
 close OUTPUT;
 

@@ -17,18 +17,18 @@ echo "This utility creates the projects, accounting and faults sections"
 echo "for the ${meeting} minutes."
 
 if ($?1) then
-  set utstart = "$1"
+    set utstart = "$1"
 else
-  echo ""
-  echo -n "Start UT date (i.e. last week friday HST) yyyymmdd: "
-  set utstart = $<
+    echo ""
+    echo -n "Start UT date (i.e. last week friday HST) yyyymmdd: "
+    set utstart = $<
 endif
 
 if ($utstart < 20000101 || $utstart > 21000101) then
-  echo ""
-  echo "ERROR: '$utstart' is not a valid YYYYMMDD date"
-  echo ""
-  exit
+    echo ""
+    echo "ERROR: '$utstart' is not a valid YYYYMMDD date"
+    echo ""
+    exit
 endif
 
 echo ""
@@ -44,12 +44,11 @@ ${OPSMEETING_DIR}/faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
 
 echo "Running events summary for 7 nights starting ${utstart} UT"
 echo "...(can take a minute)..."
-${OPSMEETING_DIR}/faults.pl -events $utstart >> ${meeting}.rep
 
+${OPSMEETING_DIR}/faults.pl -events $utstart >> ${meeting}.rep
 
 echo ""
 echo "Finished: result is in the file '${meeting}.rep'"
 echo "You need to review the closed faults and only keep"
 echo "significant older faults."
-
 echo ""

@@ -29,14 +29,16 @@ BEGIN {
 use Carp qw/carp/;
 
 use OMP::Error qw/:try/;
-use OMP::ProjDB;
-use OMP::ProjServer;
-use OMP::UserServer;
+use OMP::DB::Backend;
+use OMP::DB::Project;
+use OMP::DB::User;
 
 #  Known user roles for a project.
 my @roles = map {uc $_} qw/coi pi support/;
 
-my $projdb = OMP::ProjDB->new('DB' => OMP::DBServer->dbConnection);
+my $db = OMP::DB::Backend->new;
+my $projdb = OMP::DB::Project->new(DB => $db);
+my $userdb = OMP::DB::User->new(DB => $db);
 
 for my $file (@ARGV) {
     my %file = process_file($file);
@@ -91,7 +93,7 @@ sub verify_record {
         warn 'Unknown user ', $proj->{'userid'}, "\n";
     }
 
-    unless (OMP::ProjServer->verifyProject($proj->{'projectid'})) {
+    unless (OMP::DB::Project->new(DB => $db, ProjectID => $proj->{'projectid'})->verifyProject()) {
         $err ++;
         warn 'Cannot verify project ', $proj->{'projectid'}, "\n";
     }
@@ -105,7 +107,7 @@ sub verify_user {
 
     my $ok;
     try {
-        $ok = OMP::UserServer->verifyUser($user);
+        $ok = $userdb->verifyUser($user);
     }
     catch OMP::Error with {
         my $err = shift;
@@ -152,7 +154,7 @@ sub parse {
         uc $_;
     } split /$sep/, $line, 4;
 
-    # Keys are same as expected by OMP::ProjDB->_insert_project_user().
+    # Keys are same as expected by OMP::DB::Project->_insert_project_user().
     return {
         'projectid' => $proj,
         'userid' => $user,

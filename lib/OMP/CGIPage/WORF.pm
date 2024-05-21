@@ -23,6 +23,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Digest::MD5 qw/md5_hex/;
 use File::Spec;
 
+use OMP::DB::Archive;
 use OMP::Config;
 use OMP::CGIComponent::NightRep;
 use OMP::DateTools;
@@ -30,8 +31,8 @@ use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::Info::Obs;
 use OMP::NightRep;
-use OMP::PreviewDB;
-use OMP::PreviewQuery;
+use OMP::DB::Preview;
+use OMP::Query::Preview;
 
 use base qw/OMP::CGIPage/;
 
@@ -69,7 +70,9 @@ sub display_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $adb = OMP::ArchiveDB->new();
+    my $adb = OMP::DB::Archive->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
     my $obs = $adb->getObs(
         telescope => $telescope,
         instrument => $inst,
@@ -89,8 +92,8 @@ sub display_page {
     my $grp = OMP::Info::ObsGroup->new(obs => [$obs]);
     $grp->commentScan;
 
-    my $pdb = OMP::PreviewDB->new(DB => $self->database);
-    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    my $pdb = OMP::DB::Preview->new(DB => $self->database);
+    my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
         telescope => $telescope,
         instrument => $inst,
         date => {value => $utdate->ymd(), delta => 1},
@@ -100,9 +103,11 @@ sub display_page {
 
     $grp->attach_previews($previews);
 
+    my $nr = OMP::NightRep->new(DB => $self->database);
+
     return {
         projectid => $projectid,
-        obs_summary => OMP::NightRep->get_obs_summary(obsgroup => $grp),
+        obs_summary => $nr->get_obs_summary(obsgroup => $grp),
         observations => [
             sort {$a->startobs->epoch <=> $b->startobs->epoch}
             $grp->obs()],
@@ -144,13 +149,16 @@ sub thumbnails_page {
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }
 
-    my $grp = OMP::Info::ObsGroup->new(%query);
+    my $arcdb = OMP::DB::Archive->new(
+        DB => $self->database_archive,
+        FileUtil => $self->fileutil);
+    my $grp = OMP::Info::ObsGroup->new(ADB => $arcdb, %query);
 
     return $self->_write_error('No observations for this project and night')
         if (defined $projectid) and not $grp->numobs;
 
-    my $pdb = OMP::PreviewDB->new(DB => $self->database);
-    my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    my $pdb = OMP::DB::Preview->new(DB => $self->database);
+    my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
         telescope => $telescope,
         size => 64,
         date => {value => $utdate->ymd(), delta => 1},
@@ -202,8 +210,8 @@ sub display_graphic {
     #         projectid => $projectid,
     #         inccal => 1,
     #     );
-    #     my $pdb = OMP::PreviewDB->new(DB => $self->database);
-    #     my $previews = $pdb->queryPreviews(OMP::PreviewQuery->new(HASH => {
+    #     my $pdb = OMP::DB::Preview->new(DB => $self->database);
+    #     my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
     #         telescope => $telescope,
     #         date => {value => $utdate->ymd(), delta => 1},
     #     }));

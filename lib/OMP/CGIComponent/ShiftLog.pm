@@ -29,8 +29,8 @@ use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds;
 
-use OMP::ShiftQuery;
-use OMP::ShiftDB;
+use OMP::Query::Shift;
+use OMP::DB::Shift;
 use OMP::Error qw/:try/;
 
 use base qw/OMP::CGIComponent/;
@@ -161,14 +161,14 @@ sub get_shift_comments {
         $ut = $date;
     }
 
-    # Form the XML.
-    my $xml = "<ShiftQuery><date delta=\"1\">$ut</date><telescope>$telescope</telescope></ShiftQuery>";
-
     # Form the query.
-    my $query = OMP::ShiftQuery->new(XML => $xml);
+    my $query = OMP::Query::Shift->new(HASH => {
+        date => {delta => 1, value => $ut},
+        telescope => $telescope,
+    });
 
     # Grab the results.
-    my $sdb = OMP::ShiftDB->new(DB => $self->database);
+    my $sdb = OMP::DB::Shift->new(DB => $self->database);
     my @result = $sdb->getShiftLogs($query);
 
     # At this point we have an array of relevant Info::Comment objects,
@@ -223,7 +223,7 @@ sub submit_comment {
     );
 
     # Store the comment in the database.
-    my $sdb = OMP::ShiftDB->new(DB => $self->database);
+    my $sdb = OMP::DB::Shift->new(DB => $self->database);
     $sdb->enterShiftLog($comment, $telescope);
 }
 

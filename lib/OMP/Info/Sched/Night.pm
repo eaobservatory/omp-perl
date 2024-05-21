@@ -90,7 +90,7 @@ sub slots_merged {
 
     my $slots = $self->slots_full();
     my $slot_first = shift @$slots;
-    my @result = ({queue => $slot_first->{'queue'}, num => 1});
+    my @result = ($self->_slot_merged_info($slot_first));
 
     for my $slot (@$slots) {
         if (((not defined $result[-1]->{'queue'})
@@ -100,13 +100,25 @@ sub slots_merged {
                     and ($result[-1]->{'queue'} eq $slot->{'queue'}))
             ) {
             $result[-1]->{'num'} ++;
+            $result[-1]->{'time_last'} = $slot->{'time'};
         }
         else {
-            push @result, {queue => $slot->{'queue'}, num => 1};
+            push @result, $self->_slot_merged_info($slot);
         }
     }
 
     return \@result;
+}
+
+sub _slot_merged_info {
+    my $self = shift;
+    my $slot = shift;
+    return {
+        queue => $slot->{'queue'},
+        num => 1,
+        time_first => $slot->{'time'},
+        time_last => undef,
+    };
 }
 
 =item B<slots_full>

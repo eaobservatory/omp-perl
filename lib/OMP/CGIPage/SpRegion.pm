@@ -17,7 +17,7 @@ use PGPLOT;
 
 use OMP::Error qw/:try/;
 use OMP::General;
-use OMP::MSBDB;
+use OMP::DB::MSB;
 use Starlink::AST::PGPLOT;
 use Starlink::ATL::MOC qw/write_moc_fits/;
 
@@ -42,7 +42,7 @@ sub view_region {
 
     unless ($q->param('submit_output')) {
         return {
-            title => 'Download or Plot Regions for ' . uc($projectid),
+            title => (sprintf '%s: Science program regions', uc $projectid),
             target => $self->url_absolute(),
             selections => [
                 [all => 'All observations'],
@@ -82,7 +82,7 @@ sub view_region {
     my $sp = undef;
     my $error = undef;
     try {
-        my $db = OMP::MSBDB->new(
+        my $db = OMP::DB::MSB->new(
             ProjectID => $projectid,
             DB => $self->database
         );

@@ -17,9 +17,6 @@ use Time::Piece qw/:override/;
 
 use OMP::Config;
 use OMP::GetCoords qw/get_coords/;
-use OMP::MSB;
-use OMP::SpServer;
-use OMP::SciProg;
 
 use base qw/Exporter/;
 
@@ -80,6 +77,10 @@ Output file (passed on to Astro::SourcePlot::sourceplot).
 =item hdevice
 
 PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
+
+=item db
+
+C<OMP::DB::Backend> object.
 
 =back
 
@@ -243,7 +244,7 @@ sub plot_sources {
     print "Projid: $projlis $utdate $telescope $plmode $output $hdevice\n"
         if ($debug);
 
-    my @coords = get_coords('omp', \@projids, \@objects, %sargs);
+    my @coords = get_coords('omp', \@projids, \@objects, db => $opt{'db'}, %sargs);
     printf "Nr of objects found: %d\n", $#coords + 1 if ($debug);
 
     # Call plot subtroutine

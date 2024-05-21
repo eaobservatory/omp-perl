@@ -7,7 +7,7 @@ OMP::Translator::JCMT - Base class for JCMT configure XML translations
 =head1 SYNOPSIS
 
     use OMP::Translator::JCMT;
-    $config = OMP::Translator::JCMT->translate($sp);
+    $config = OMP::Translator::JCMT->new->translate($sp);
 
 =head1 DESCRIPTION
 
@@ -40,12 +40,9 @@ use OMP::Config;
 use OMP::Error;
 use OMP::General;
 
-use OMP::Translator::JCMTHeaders;
+use OMP::Translator::Headers::JCMT;
 
 use base qw/OMP::Translator::Base/;
-
-# Default directory for writing configs
-our $TRANS_DIR = OMP::Config->getData('jcmt_translator.transdir');
 
 # Version number
 our $VERSION = '2.000';
@@ -72,6 +69,34 @@ use constant DIAM => 15;
 
 =head1 METHODS
 
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+Construct JCMT translator object
+
+    $translator = $class->new;
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new();
+
+    $self->{'transdir'} = OMP::Config->getData('jcmt_translator.transdir');
+    $self->{'wiredir'} = undef;
+    $self->{'handle'} = \*STDOUT;
+
+    return $self;
+}
+
+=back
+
+=head2 General Methods
+
 =over 4
 
 =item B<translate>
@@ -81,8 +106,8 @@ It is assumed that this MSB will refer to an OCS observation
 (and has been prefiltered by the caller, usually C<OMP::Translator>).
 Always returns the configs as an array of C<JAC::OCS::Config> objects.
 
-    @configs = OMP::Translate->translate($msb);
-    @configs = OMP::Translate->translate($msb, simulate => 1);
+    @configs = OMP::Translator->translate($msb);
+    @configs = OMP::Translator->translate($msb, simulate => 1);
 
 It is the responsibility of the caller to write these objects.
 
@@ -173,9 +198,10 @@ sub translate {
                 MSBTITLE => 'getMSBTitle',
                 PROJECT => 'getProject',
             );
+            my $hdrobj = $self->_get_hdr_object;
             while (my ($header, $method) = each %headers) {
                 my $hdr = $cfg->header()->item($header);
-                my $val = $self->hdrpkg()->$method($cfg, %$obs);
+                my $val = $hdrobj->$method($cfg, %$obs);
                 if ((defined $hdr) and (defined $val)) {
                     $hdr->value($val);
                     $hdr->source(undef);
@@ -292,25 +318,19 @@ sub translate {
 
 =item B<debug>
 
-Method to enable and disable global debugging state.
+Method to enable and disable debugging state.
 
-    OMP::Translator::JCMT->debug(1);
-
-Note that debugging will be enabled for all subclasses.
+    $translator->debug(1);
 
 =cut
 
-{
-    my $dbg;
-
-    sub debug {
-        my $class = shift;
-        if (@_) {
-            my $state = shift;
-            $dbg = ($state ? 1 : 0);
-        }
-        return $dbg;
+sub debug {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'debug'} = ($state ? 1 : 0);
     }
+    return $self->{'debug'};
 }
 
 =item B<outhdl>
@@ -318,51 +338,40 @@ Note that debugging will be enabled for all subclasses.
 Output file handles to use for verbose messages.
 Defaults to STDOUT.
 
-    OMP::Translator::JCMT->outhdl(\*STDOUT, $fh);
+    $translator->outhdl(\*STDOUT, $fh);
 
-Returns an C<IO::Tee> object.
-
-Pass in undef to reset to the default.
+Pass in undef to reset to STDOUT.
 
 =cut
 
-{
-    my $def = IO::Tee->new(\*STDOUT);
-    my $oh = $def;
-
-    sub outhdl {
-        my $class = shift;
-        if (@_) {
-            unless (defined $_[0]) {
-                $oh = $def;  # reset
-            }
-            else {
-                $oh = IO::Tee->new(@_);
-            }
+sub outhdl {
+    my $self = shift;
+    if (@_) {
+        unless (defined $_[0]) {
+            $self->{'handle'} = \*STDOUT;
         }
-        return $oh;
+        else {
+            $self->{'handle'} = IO::Tee->new(@_);
+        }
     }
+    return $self->{'handle'};
 }
 
 =item B<verbose>
 
-Method to enable and disable global verbosity state.
+Method to enable and disable verbosity state.
 
-    OMP::Translator::JCMT->verbose(1);
+    $translator->verbose(1);
 
 =cut
 
-{
-    my $verb;
-
-    sub verbose {
-        my $class = shift;
-        if (@_) {
-            my $state = shift;
-            $verb = ($state ? 1 : 0);
-        }
-        return $verb;
+sub verbose {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'verbose'} = ($state ? 1 : 0);
     }
+    return $self->{'verbose'};
 }
 
 =item B<output>
@@ -390,17 +399,17 @@ sub output {
 
 Override the default translation directory.
 
-    OMP::Translator::JCMT->transdir($dir);
+    $translator->transdir($dir);
 
 =cut
 
 sub transdir {
-    my $class = shift;
+    my $self = shift;
     if (@_) {
         my $dir = shift;
-        $TRANS_DIR = $dir;
+        $self->{'transdir'} = $dir;
     }
-    return $TRANS_DIR;
+    return $self->{'transdir'};
 }
 
 =item B<wiredir>
@@ -411,19 +420,14 @@ Returns the wiring directory that should be used for ACSIS.
 
 =cut
 
-{
-    my $wiredir;
-
-    sub wiredir {
-        my $self = shift;
-        unless (defined $wiredir) {
-            my $key = $self->cfgkey;
-            $wiredir = OMP::Config->getData($key . '.wiredir');
-        }
-        return $wiredir;
+sub wiredir {
+    my $self = shift;
+    unless (defined $self->{'wiredir'}) {
+        my $key = $self->cfgkey;
+        $self->{'wiredir'} = OMP::Config->getData($key . '.wiredir');
     }
+    return $self->{'wiredir'};
 }
-
 
 =item B<cfgkey>
 
@@ -437,9 +441,27 @@ sub cfgkey {
     die "Please subclass cfgkey";
 }
 
+=item B<_get_hdr_object>
+
+Construct new headers object.
+
+=cut
+
+sub _get_hdr_object {
+    my $self = shift;
+
+    my $hdrobj = $self->hdrpkg()->new();
+
+    # Set verbosity level and handles
+    $hdrobj->VERBOSE($self->verbose);
+    $hdrobj->HANDLES($self->outhdl);
+
+    return $hdrobj;
+}
+
 =back
 
-=head1 CONFIG GENERATORS
+=head2 Config Generators
 
 These routines configure the specific C<JAC::OCS::Config> objects.
 
@@ -698,7 +720,7 @@ sub tcs_base {
         $b->tag($t);
         my $coords = Storable::dclone($tags{$t}->{coords});
         my $targetName = $coords->name;
-        $coords->name(OMP::Translator::JCMTHeaders->fitsSafeString($targetName))
+        $coords->name(OMP::Translator::Headers::JCMT->fitsSafeString($targetName))
             if defined $targetName;
         $b->coords($coords);
 
@@ -1381,16 +1403,12 @@ sub header_config {
         }
     );
 
-    # Set verbosity level and handles
-    OMP::Translator::JCMTHeaders->VERBOSE($self->verbose);
-    OMP::Translator::JCMTHeaders->HANDLES($self->outhdl);
-
     # Now invoke the methods to configure the headers
-    my $pkg = $self->hdrpkg;
+    my $hdrobj = $self->_get_hdr_object;
     for my $i (@items) {
         my $method = $i->method;
-        if ($pkg->can($method)) {
-            my $val = $pkg->$method($cfg, %info);
+        if ($hdrobj->can($method)) {
+            my $val = $hdrobj->$method($cfg, %info);
             if (defined $val) {
                 $i->value($val);
                 $i->source(undef);  # clear derived status
@@ -1403,7 +1421,7 @@ sub header_config {
         }
         else {
             throw OMP::Error::FatalError(
-                "Method $method can not be invoked in package $pkg for header item "
+                "Method $method can not be invoked for header item "
                 . $i->keyword);
         }
     }
@@ -1411,12 +1429,9 @@ sub header_config {
     # call any overrides (these are required if something needs to happen
     # for a special observing mode but 99% of the times a nice default
     # is fine.
-    if ($pkg->can("override_headers")) {
-        $pkg->override_headers($hdr, %info);
+    if ($hdrobj->can("override_headers")) {
+        $hdrobj->override_headers($hdr, %info);
     }
-
-    # clear global handles to allow the file to close at some point
-    OMP::Translator::JCMTHeaders->HANDLES(undef);
 
     $cfg->header($hdr);
 }

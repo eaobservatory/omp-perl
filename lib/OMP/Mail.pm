@@ -15,7 +15,7 @@ OMP::Mail - Build and extract text from email messages
 =head1 DESCRIPTION
 
 This class has the original email composition & mailing functionality from
-the C<OMP::BaseDB> module.  It also has (an updated version of) the body
+the C<OMP::DB> module.  It also has (an updated version of) the body
 text extraction routine from the C<filter/mail2feed.pl> script.
 
 =cut
@@ -617,7 +617,7 @@ __END__
 
 =head1 SEE ALSO
 
-For related classes see L<OMP::BaseDB>, L<OMP::FeedbackDB>, L<OMP::User>.
+For related classes see L<OMP::DB>, L<OMP::DB::Feedback>, L<OMP::User>.
 
 =head1 AUTHORS
 

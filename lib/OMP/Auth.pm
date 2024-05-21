@@ -9,14 +9,14 @@ OMP::Auth - User authentication and authorization module
 use strict;
 use warnings;
 
-use OMP::AuthDB;
+use OMP::DB::Auth;
 use OMP::Config;
 use OMP::Constants qw/:logging/;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::General;
-use OMP::ProjDB;
-use OMP::ProjQuery;
+use OMP::DB::Project;
+use OMP::Query::Project;
 use OMP::User;
 
 our %PROVIDERS = (
@@ -62,7 +62,7 @@ sub log_in {
     my %opt = @_;
 
     my $q = $page->cgi;
-    my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::DB::Auth->new(DB => $page->database);
 
     my $user = undef;
     my $token = undef;
@@ -183,7 +183,7 @@ sub log_in_userpass {
 
 Log the current user out of their current CGI-based session.
 
-    my $auth = OMP::Auth->log_out($q);
+    my $auth = OMP::Auth->log_out($page);
 
 As for L<log_in>, the L<cookie> method must be used for the HTTP header.
 
@@ -191,12 +191,13 @@ As for L<log_in>, the L<cookie> method must be used for the HTTP header.
 
 sub log_out {
     my $cls = shift;
-    my $q = shift;
+    my $page = shift;
 
+    my $q = $page->cgi;
     my %cookie = $q->cookie(-name => OMP::Config->getData('cookie-name'));
 
     if (exists $cookie{'token'}) {
-        my $db = OMP::AuthDB->new(DB => OMP::DBbackend->new());
+        my $db = OMP::DB::Auth->new(DB => $page->database);
         $db->remove_token($cookie{'token'});
 
         return $cls->new(cookie => $cls->_make_cookie($q, '-1d'));
@@ -419,12 +420,13 @@ sub _fetch_projects {
     throw OMP::Error('OMP::Auth cannot fetch projects: user object has no userid')
         unless defined $userid;
 
-    my $db = OMP::ProjDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new());
 
-    my @projects = $db->listProjects(OMP::ProjQuery->new(
-        XML => '<ProjQuery><person_access>' . $userid . '</person_access></ProjQuery>'));
+    my $projects = $db->listProjects(OMP::Query::Project->new(HASH => {
+        person_access => $userid,
+    }));
 
-    return [map {$_->projectid} @projects];
+    return [map {$_->projectid} @$projects];
 }
 
 =item B<_make_cookie>

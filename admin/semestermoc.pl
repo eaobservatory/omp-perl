@@ -29,11 +29,11 @@ use OMP::SpRegion;
 use Starlink::AST;
 use Starlink::ATL::MOC qw/write_moc_fits/;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::Error qw/:try/;
-use OMP::MSBDB;
-use OMP::ProjDB;
-use OMP::ProjQuery;
+use OMP::DB::MSB;
+use OMP::DB::Project;
+use OMP::Query::Project;
 
 my ($semester, $queue, $filename, $help);
 GetOptions(
@@ -51,22 +51,20 @@ die 'Output filename not specified' unless defined $filename;
 
 my $order = 12;
 
-my $db = OMP::DBbackend->new();
-my $projdb = OMP::ProjDB->new(DB => $db);
-my $msbdb = OMP::MSBDB->new(DB => $db);
+my $db = OMP::DB::Backend->new();
+my $projdb = OMP::DB::Project->new(DB => $db);
+my $msbdb = OMP::DB::MSB->new(DB => $db);
 
-my @projects = $projdb->listProjects(OMP::ProjQuery->new(XML => sprintf
-    '<ProjQuery>' .
-    '<state>1</state><telescope>JCMT</telescope>' .
-   ' %s%s' .
-    '</ProjQuery>',
-    (join '', map {sprintf '<semester>%s</semester>', $_} @$semester),
-    (join '', map {sprintf '<country>%s</country>', $_} @$queue),
-));
+my $projects = $projdb->listProjects(OMP::Query::Project->new(HASH => {
+    state => {boolean => 1},
+    telescope => 'JCMT',
+    semester => $semester,
+    country => $queue,
+}));
 
 my $combined = undef;
 
-foreach my $project (@projects) {
+foreach my $project (@$projects) {
     my $projectid = $project->projectid;
     $msbdb->projectid($projectid);
 

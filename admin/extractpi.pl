@@ -17,16 +17,19 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ProjServer;
+use OMP::DB::Backend;
+use OMP::DB::Project;
+use OMP::Query::Project;
 
 my $SEM = '04A';
 my $TEL = 'JCMT';
 
 # Query the database
-my $projects = OMP::ProjServer->listProjects(
-    "<ProjQuery><semester>$SEM</semester><telescope>$TEL</telescope></ProjQuery>",
-    'object'
-);
+my $db = OMP::DB::Backend->new;
+my $projects = OMP::DB::Project->new(DB =>$ db)->listProjects(OMP::Query::Project->new(HASH => {
+    semester => $SEM,
+    telescope => $TEL,
+}));
 
 # Extract PI users and remove duplicates
 my %users = map {$_->pi->userid, $_->pi} @$projects;

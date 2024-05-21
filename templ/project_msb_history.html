@@ -2,7 +2,7 @@
 [% PROCESS "macro_project.html" -%]
 [% PROCESS "macro_msb.html" -%]
 [% WRAPPER "layout.html" %]
-<h1>MSB history for project [% project.projectid | html %]</h1>
+<h1>[% project.projectid | html %]: MSB history</h1>
 
 [% render_project_status_table(project) %]
 

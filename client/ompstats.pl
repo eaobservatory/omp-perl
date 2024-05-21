@@ -63,7 +63,7 @@ use Pod::Usage;
 use Getopt::Long;
 use Graphics::PLplot qw/:all/;
 
-use OMP::DBbackend;
+use OMP::DB::Backend;
 use OMP::General;
 use OMP::NightRep;
 
@@ -91,7 +91,9 @@ my ($startdate, $enddate) = OMP::DateTools->semester_boundary(
     semester => \@sems, tel => $tel);
 
 # Create the night report
+my $db = OMP::DB::Backend->new;
 my $nr = OMP::NightRep->new(
+    DB => $db,
     date => $startdate->ymd,
     date_end => $enddate->ymd,
     telescope => $tel,

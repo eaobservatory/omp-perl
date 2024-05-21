@@ -82,9 +82,13 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP Classes
+use OMP::DB::Archive;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
 use OMP::Error qw/ :try /;
+use OMP::Util::File;
 use OMP::DateTools;
-use OMP::General;
+use OMP::Util::Client;
 use OMP::NightRep;
 
 our $VERSION = '2.000';
@@ -114,12 +118,6 @@ if ($version) {
     exit;
 }
 
-# Modify only the non-default behaviour.
-unless ($use_cache) {
-    require OMP::ArchiveDB;
-    OMP::ArchiveDB::skip_cache_query();
-}
-
 # First thing we need to do is determine the telescope and
 # the UT date
 $ut = OMP::DateTools->determine_utdate($ut)->ymd;
@@ -132,7 +130,7 @@ if (defined $tel) {
 else {
     require Term::ReadLine;
     my $term = Term::ReadLine->new('View night log');
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
@@ -150,7 +148,21 @@ unless ($dump or $ashtml) {
 
 # Night report
 
-my $NR = OMP::NightRep->new(date => $ut, telescope => $telescope);
+my $db = OMP::DB::Backend->new;
+my $arcdb = OMP::DB::Archive->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => OMP::Util::File->new);
+
+# Modify only the non-default behaviour.
+unless ($use_cache) {
+    $arcdb->skip_cache_query();
+}
+
+my $NR = OMP::NightRep->new(
+    DB => $db,
+    ADB => $arcdb,
+    date => $ut,
+    telescope => $telescope);
 
 if ($dump) {
     print scalar $NR->astext();

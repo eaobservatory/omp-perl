@@ -112,10 +112,10 @@ use Starlink::ATL::MOC qw/write_moc_fits/;
 use DateTime;
 
 # OMP classes
+use OMP::DB::Backend;
+use OMP::DB::MSB;
 use OMP::SciProg;
-use OMP::Password;
-use OMP::ProjServer;
-use OMP::SpServer;
+use OMP::DB::Project;
 
 our $VERSION = '2.000';
 
@@ -149,6 +149,8 @@ if ($version) {
     exit;
 }
 
+my $db = OMP::DB::Backend->new;
+
 # Read the science program in
 my $file = shift(@ARGV);
 
@@ -157,13 +159,10 @@ if (-e $file) {
     # looks to be a filename
     $sp = OMP::SciProg->new(FILE => $file);
 }
-elsif (OMP::ProjServer->verifyProject($file)) {
+elsif (OMP::DB::Project->new(DB => $db, ProjectID => $file)->verifyProject()) {
     # we have a project ID - we need to get permission
     print STDERR "Retrieving science programme $file\n";
-    ($sp) =
-        OMP::SpServer->fetchProgram($file, OMP::Password->get_userpass(),
-        "OBJECT");
-
+    $sp = OMP::DB::MSB->new(DB => $db, ProjectID => $file)->fetchSciProg(1);
 }
 else {
     die "Supplied argument ($file) is neither a file nor a project ID\n";

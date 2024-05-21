@@ -23,8 +23,8 @@ use IO::File;
 
 use OMP::CGIComponent::IncludeFile;
 use OMP::Config;
+use OMP::DB::MSBDone;
 use OMP::General;
-use OMP::MSBServer;
 use OMP::NetTools;
 
 use base qw/OMP::CGIPage/;
@@ -90,13 +90,14 @@ sub get_resource {
     if ($type eq 'dq-nightly') {
         if (defined $projectid) {
             croak('UT date not specified') unless defined $utdate;
-            my $observed = OMP::MSBServer->observedMSBs({
-                projectid => $projectid,
+            my $observed = OMP::DB::MSBDone->new(
+                DB => $self->database,
+                ProjectID => $projectid,
+            )->observedMSBs(
                 date => $utdate,
                 comments => 0,
                 transactions => 0,
-                format => 'data',
-            });
+            );
 
             return $self->_write_forbidden() unless scalar @$observed;
         }

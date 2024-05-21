@@ -2,15 +2,9 @@
 [% PROCESS "macro_general.html" -%]
 [% PROCESS "macro_project.html" -%]
 [% WRAPPER "layout.html" %]
-<h1>Feedback for project [% project.projectid | html %]</h1>
+<h1>[% project.projectid | html %]: Feedback entries</h1>
 
 [% render_project_status_table(project) %]
-
-[% render_msb_count(project, num_msbs) %]
-
-<hr />
-
-<h2>Feedback entries</h2>
 
 <form method="post" action="[% target %]">
     <p>

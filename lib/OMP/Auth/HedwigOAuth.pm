@@ -16,11 +16,12 @@ use URI;
 use URI::QueryParam;
 
 use OMP::Config;
-use OMP::DBbackend;
-use OMP::DBbackend::Hedwig2OMP;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Hedwig2OMP;
+use OMP::DB::Hedwig2OMP;
 use OMP::Error;
-use OMP::UserDB;
-use OMP::UserQuery;
+use OMP::DB::User;
+use OMP::Query::User;
 
 sub _get_client {
     my $cls = shift;
@@ -168,7 +169,7 @@ sub _finish_oauth {
 
     my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
 
-    my $db = OMP::UserDB->new(DB => OMP::DBbackend->new());
+    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
 
     my $user = $db->getUser($omp_id);
 
@@ -187,17 +188,17 @@ sub _lookup_hedwig_id {
     my $cls = shift;
     my $hedwig_id = shift;
 
-    my $db = OMP::DBbackend::Hedwig2OMP->new();
+    my $db = OMP::DB::Backend::Hedwig2OMP->new();
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $db);
 
-    my $result = $db->handle()->selectall_arrayref(
-        'SELECT omp_id FROM user WHERE hedwig_id = ?', {}, $hedwig_id);
+    my $omp_id = $hodb->get_omp_id($hedwig_id);
 
     throw OMP::Error::Authentication(
         'There does not appear to be an OMP account linked to your Hedwig account. ' .
         'Please contact the observatory for assistance.')
-        unless 1 == scalar @$result;
+        unless defined $omp_id;
 
-    return $result->[0]->[0];
+    return $omp_id;
 }
 
 1;

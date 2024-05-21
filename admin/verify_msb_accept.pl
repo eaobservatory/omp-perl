@@ -82,13 +82,18 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use OMP::ArchiveDB;
+use OMP::DB::Archive;
 use OMP::DateTools;
-use OMP::FileUtils;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::DB::MSB;
+use OMP::DB::MSBDone;
+use OMP::Util::Client;
+use OMP::Util::File;
 use OMP::Info::ObsGroup;
-use OMP::MSBServer;
-use OMP::UserServer;
-use OMP::ProjServer;
+use OMP::DB::MSBDone;
+use OMP::DB::User;
+use OMP::DB::Project;
 use OMP::Constants qw/:done/;
 
 our $VERSION = '2.000';
@@ -132,27 +137,28 @@ if (defined($opt{tel})) {
     $telescope = uc($opt{tel});
 }
 else {
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
     die "Unable to determine telescope [too many choices]. Exiting.\n"
         if ref $telescope;
 }
 
+# Connect to database
+my $dbb = OMP::DB::Backend->new;
 
 # What does the done table say?
 OMP::General->log_message("Verifying MSB acceptance for date $ut on telescope $telescope");
-my $output = OMP::MSBServer->observedMSBs({
+my $output = OMP::DB::MSBDone->new(DB => $dbb)->observedMSBs(
     date => $ut,
-    returnall => 0,
-    format => 'object',
-});
+    comments => 0,
+);
 
 # Need to convert the OMP::Info::MSB with comments to a time
 # series. [yes this was how they were stored originally]
 my %TITLES;  # MSB titles indexed by checksum
 my @msbs;
 for my $msb (@$output) {
-    next unless OMP::ProjServer->verifyTelescope($msb->projectid, $telescope);
+    next unless OMP::DB::Project->new(DB => $dbb, ProjectID => $msb->projectid)->verifyTelescope($telescope);
     my $title = $msb->title;
     $TITLES{$msb->checksum} = $msb->title;
     for my $c ($msb->comments) {
@@ -186,14 +192,20 @@ for my $msb (@sorted_msbdb) {
 # Look at the real data:
 print "---> Data headers ----\n";
 
+my $fileutil = OMP::Util::File->new();
+my $arcdb = OMP::DB::Archive->new(
+    DB => OMP::DB::Backend::Archive->new,
+    FileUtil => $fileutil);
+
 if ($opt{'disk'}) {
-    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
-    OMP::ArchiveDB::search_only_files();
-    OMP::ArchiveDB::skip_cache_query();
-    OMP::ArchiveDB->use_existing_criteria(1);
+    $fileutil->recent_files(0);
+    $arcdb->search_only_files();
+    $arcdb->skip_cache_query();
+    $arcdb->use_existing_criteria(1);
 }
 
 my $grp = OMP::Info::ObsGroup->new(
+    ADB => $arcdb,
     telescope => $telescope,
     date => $ut,
     ignorebad => $opt{'ignorebad'},
@@ -332,7 +344,8 @@ for my $i (0 .. $#sorted_msbhdr) {
     # if we do not have a title for it we have to explicitly look in the database (since it
     # will not have been listed in the observedMSBs response)
     unless (exists $TITLES{$id}) {
-        my $missing = OMP::MSBServer->historyMSB($msb->{projectid}, $id, 'data');
+        my $msbdone = OMP::DB::MSBDone->new(DB => $dbb, ProjectID => $msb->{'projectid'});
+        my $missing = $msbdone->historyMSB($id);
         if (defined $missing) {
             $TITLES{$id} = $missing->title;
         }
@@ -364,7 +377,7 @@ for my $i (0 .. $#sorted_msbhdr) {
         for my $db (@dbmsbs) {
             # We had some activity - remove each MSB DB entry
             my $com = $db->comments->[0];
-            my $text = OMP::MSBDoneDB::status_to_text($com->status);
+            my $text = OMP::DB::MSBDone::status_to_text($com->status);
             my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
             $users{$author} ++ if defined $com->author;
             print "\t$text by $author at " . $com->date->datetime . "\n";
@@ -378,11 +391,11 @@ for my $i (0 .. $#sorted_msbhdr) {
         # This will only happen when an MSB starts on one night and finishes the
         # next. Eg 2007-08-19
         my $tidhis;
-        $tidhis = OMP::MSBServer->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
+        $tidhis = OMP::DB::MSBDone->new(DB => $dbb)->historyMSBtid($msb->{msbtid}) if defined $msb->{msbtid};
         if ($tidhis) {
             print "\t------>>>>> MSB was processed outside the observing system\n";
             my $com = $tidhis->comments->[0];
-            my $text = OMP::MSBDoneDB::status_to_text($com->status);
+            my $text = OMP::DB::MSBDone::status_to_text($com->status);
             my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
             $users{$author} ++ if defined $com->author;
             print "\t$text by $author at " . $com->date->datetime . "\n";
@@ -430,7 +443,8 @@ if (@missing) {
         $uid = $default if !$uid;
 
         # Validate the user id
-        my $validated = OMP::UserServer->getUser($uid);
+        my $udb = OMP::DB::User->new(DB => $dbb);
+        my $validated = $udb->getUser($uid);
         die "User '$uid' does not validate. Aborting.\n"
             unless defined $validated;
 
@@ -439,9 +453,8 @@ if (@missing) {
         print "\tDisabling per-MSB comments\n";
         print "\n";
 
-        # Connect to database
-        my $msbdb = OMP::MSBDB->new(DB => OMP::DBbackend->new);
-        my $msbdone = OMP::MSBDoneDB->new(DB => OMP::DBbackend->new);
+        my $msbdb = OMP::DB::MSB->new(DB => $dbb);
+        my $msbdone = OMP::DB::MSBDone->new(DB => $dbb);
 
         # Loop over all missing MSBs
         for my $msb (@missing) {

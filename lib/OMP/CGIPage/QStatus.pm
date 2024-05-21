@@ -16,8 +16,8 @@ use List::MoreUtils qw/uniq/;
 use OMP::CGIComponent::CaptureImage;
 use OMP::DateTools;
 use OMP::General;
-use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
-use OMP::ProjDB;
+use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
+use OMP::DB::Project;
 use OMP::SiteQuality;
 use OMP::QStatus qw/query_queue_status/;
 use OMP::QStatus::Plot qw/create_queue_status_plot/;
@@ -86,7 +86,13 @@ sub view_queue_status {
 
     my %query_opt = %opt;
     foreach my $param (qw/country instrument semester/) {
-        $query_opt{$param} = [uniq map {split /\+/} keys %{$query_opt{$param}}];
+        my @selection = uniq map {split /\+/} keys %{$query_opt{$param}};
+        if (@selection) {
+            $query_opt{$param} = \@selection;
+        }
+        else {
+            delete $query_opt{$param};
+        }
     }
 
     my @project = $q->multi_param('project');
@@ -102,7 +108,8 @@ sub view_queue_status {
 
         # Pass options to query_queue_status.
         my ($proj_msb, $utmin, $utmax) = query_queue_status(
-            return_proj_msb => 1, %query_opt);
+            DB => $self->database,
+            %query_opt);
 
         # Copy all results to the all-band hash.
         foreach my $project (keys %$proj_msb) {
@@ -182,7 +189,7 @@ sub _show_input_page {
 
     my $q = $self->cgi;
 
-    my $db = OMP::ProjDB->new(DB => $self->database);
+    my $db = OMP::DB::Project->new(DB => $self->database);
     my $semester = OMP::DateTools->determine_semester();
     my @semesters = $db->listSemesters(telescope => $telescope);
     push @semesters, $semester unless grep {$_ eq $semester} @semesters;

@@ -43,10 +43,10 @@ BEGIN {
     use lib OMPLIB;
 }
 
-use OMP::General;
-use OMP::SchedDB;
+use OMP::Util::Client;
+use OMP::DB::Sched;
 use OMP::DateTools;
-use OMP::DBbackend;
+use OMP::DB::Backend;
 
 my ($tel, $semester, $help);
 my $status = GetOptions(
@@ -61,7 +61,7 @@ if (defined $tel) {
     $tel = uc($tel);
 }
 else {
-    $tel = OMP::General->determine_tel();
+    $tel = OMP::Util::Client->determine_tel();
     die 'Telescope not specified' unless (defined $tel) and (not ref $tel);
 }
 
@@ -72,7 +72,7 @@ unless (defined $semester) {
 my ($start, $end) = OMP::DateTools->semester_boundary(
     tel => $tel, semester => $semester);
 
-my $db = OMP::SchedDB->new(DB => OMP::DBbackend->new());
+my $db = OMP::DB::Sched->new(DB => OMP::DB::Backend->new());
 my $sched = $db->get_schedule(tel => $tel, start => $start, end => $end);
 
 print $sched, "\n";

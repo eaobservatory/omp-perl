@@ -3,11 +3,11 @@
 use strict;
 use Test::More tests => 1 + 4 + 5 * 4;
 
-use OMP::MSBDoneDB;
+use OMP::DB::MSBDone;
 
-my $db = OMP::MSBDoneDB->new();
+my $db = OMP::DB::MSBDone->new();
 
-isa_ok($db, 'OMP::MSBDoneDB');
+isa_ok($db, 'OMP::DB::MSBDone');
 
 my $wb;
 my %opt = (format => 1, ndp => 0);

@@ -92,8 +92,9 @@ BEGIN {
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use IO::File;
-use OMP::ProjDB;
-use OMP::DBbackend;
+use OMP::DB::Project;
+use OMP::DB::User;
+use OMP::DB::Backend;
 use OMP::SiteQuality;
 use Pod::Usage;
 use Getopt::Long;
@@ -127,7 +128,9 @@ tie %alloc, 'Config::IniFiles', (-file => $fh);
 $fh->close();
 
 # Connect to the database
-my $projdb = OMP::ProjDB->new(DB => OMP::DBbackend->new);
+my $dbb = OMP::DB::Backend->new;
+my $projdb = OMP::DB::Project->new(DB => $dbb);
+my $userdb = OMP::DB::User->new(DB => $dbb);
 
 my $val_split = qr/\s*,\s*/;
 
@@ -158,8 +161,8 @@ for my $proj (sort {lc $a cmp lc $b} keys %alloc) {
             my @support = split $val_split, $alloc{$proj}->{$mod};
             for my $s (@support) {
                 die "Unable to locate user $s in database [mode = $mod]\n"
-                    unless OMP::UserServer->verifyUser($s);
-                $s = OMP::UserServer->getUser($s);
+                    unless $userdb->verifyUser($s);
+                $s = $userdb->getUser($s);
             }
             my @old = $project->support;
             print "Changing $mod from " . join(" and ", @old)
@@ -170,8 +173,8 @@ for my $proj (sort {lc $a cmp lc $b} keys %alloc) {
             # Need to generate an OMP::User object
             my $pi = $alloc{$proj}->{$mod};
             die "Unable to locate user $pi in database [mode = $mod]\n"
-                unless OMP::UserServer->verifyUser($pi);
-            $pi = OMP::UserServer->getUser($pi);
+                unless $userdb->verifyUser($pi);
+            $pi = $userdb->getUser($pi);
             print "Changing $mod from " . $project->$mod . " to $pi\n";
             $project->$mod($pi);
         }

@@ -40,10 +40,23 @@ telescope's normal operating hours.
 
 Semester to query. Defaults to current semester.
 
+=item B<--tau>
+
+Limit query to given opacity.
+
+=item B<--instrument>
+
+Limit query to given instrument.
+
 =item B<--affiliation>
 
 Affiliation code.  If specified, only projects with this affiliation
 will be considered.
+
+=item B<--plot> E<lt>filename.pngE<gt>
+
+If specified, plot the results and save the resultant PNG image to
+the given file name.
 
 =item B<-version>
 
@@ -73,23 +86,28 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 # OMP classes
-use OMP::General;
-use OMP::DBbackend;
-use OMP::QStatus qw/query_queue_status/;
+use OMP::Util::Client;
+use OMP::DB::Backend;
+use OMP::DB::Project;
+use OMP::QStatus qw/query_queue_status group_queue_status/;
 use Time::Piece qw/:override/;
 
 our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $affiliation, $full_day);
+my ($help, $man, $version, $tel, $country, $semester, $instrument, $opacity,
+    $affiliation, $full_day, $plot_file);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
     "version" => \$version,
     "country=s" => \$country,
     "semester=s" => \$semester,
+    'instrument=s' => \$instrument,
+    'tau=s' => \$opacity,
     'affiliation=s' => \$affiliation,
+    'plot=s' => \$plot_file,
     "tel=s" => \$tel,
     'fullday' => \$full_day,
 );
@@ -109,7 +127,7 @@ unless (defined $telescope) {
     require Term::ReadLine;
     my $term = Term::ReadLine->new('Gather queue parameters');
 
-    $telescope = OMP::General->determine_tel($term);
+    $telescope = OMP::Util::Client->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
     die "Unable to determine telescope [too many choices]. Exiting.\n"
         if ref $telescope;
@@ -122,19 +140,29 @@ print "Analyzing "
     . (defined $country ? uc($country) . ' ' : '')
     . "queue status.\n";
 
-my (%projq, %projmsb, %projinst, $utmin, $utmax);
+my $backend = OMP::DB::Backend->new();
+
+my ($queryresult, %projq, %projmsb, %projinst, $utmin, $utminobj, $utmax, $utmaxobj);
 do {
-    my ($q, $m, $i);
-    ($q, $m, $i, $utmin, $utmax) = query_queue_status(
+    ($queryresult, $utminobj, $utmaxobj) = query_queue_status(
+        DB => $backend,
         telescope => $telescope,
-        country => $country,
-        semester => $semester,
+        ($country ? (country => $country) : ()),
+        ($semester ? (semester => $semester) : ()),
+        ($instrument ? (instrument => $instrument) : ()),
+        ($opacity ? (tau => $opacity) : ()),
         affiliation => $affiliation,
         full_day => $full_day,
     );
+
+    my ($q, $m, $i) = group_queue_status($queryresult);
+
     %projq = %$q;
     %projmsb = %$m;
     %projinst = %$i;
+
+    $utmin = $utminobj->hour();
+    $utmax = $utmaxobj->hour();
 };
 
 print "For UT hours $utmin to $utmax:\n";
@@ -197,12 +225,11 @@ for my $p (keys %projq) {
 }
 
 # Now populate the project hash with project details
-my $backend = OMP::DBbackend->new();
-my $projdb = OMP::ProjDB->new(DB => $backend,);
+my $projdb = OMP::DB::Project->new(DB => $backend,);
 
 for my $p (keys %projects) {
     $projdb->projectid($p);
-    my $proj = $projdb->projectDetails('object');
+    my $proj = $projdb->projectDetails();
     $projects{$p}{'info'} = $proj;
 }
 
@@ -392,7 +419,16 @@ for my $r (@rows) {
 print "\nNotes\n";
 print "[1] Conditions are project TAG conditions, not MSB constrained conditions\n";
 print "[2] MSB count reflects the MSB returned from queries and not the number of active MSBs in the science program.\n";
-print "[3] Availability is in localtime integer hours\n";
+print "[3] Availability is in UT integer hours\n";
+
+if (defined $plot_file) {
+    require OMP::QStatus::Plot;
+    OMP::QStatus::Plot::create_queue_status_plot(
+        $queryresult, $utminobj, $utmaxobj,
+        output => $plot_file,
+        hdevice => '/PNG',
+    );
+}
 
 exit;
 

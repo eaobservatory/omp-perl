@@ -40,18 +40,18 @@ BEGIN {
 
 use OMP::Auth;
 use OMP::Config;
-use OMP::DBbackend;
-use OMP::DBbackend::Archive;
-use OMP::DBbackend::Hedwig2OMP;
+use OMP::DB::Backend;
+use OMP::DB::Backend::Archive;
+use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Display;
-use OMP::ProjDB;
+use OMP::DB::Project;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::FaultDB;
+use OMP::DB::Fault;
+use OMP::Util::File;
 use OMP::General;
 use OMP::NetTools;
 use OMP::Password;
-use OMP::UserServer;
 
 our $VERSION = '2.000';
 
@@ -85,6 +85,7 @@ sub new {
         DB => undef,
         DBArchive => undef,
         DBHedwig2OMP => undef,
+        FileUtil => undef,
     };
 
     # create the object (else we cant use accessor methods)
@@ -176,7 +177,7 @@ A database backend object.
 
     $db = $page->database;
 
-This will be an C<OMP::DBbackend> instance, constructed the first
+This will be an C<OMP::DB::Backend> instance, constructed the first
 time this method is called.
 
 =cut
@@ -185,7 +186,7 @@ sub database {
     my $self = shift;
 
     unless (defined $self->{'DB'}) {
-        $self->{'DB'} = OMP::DBbackend->new();
+        $self->{'DB'} = OMP::DB::Backend->new();
     }
 
     return $self->{'DB'};
@@ -197,7 +198,7 @@ A database backend object for the archive.
 
     $db = $page->database_archive;
 
-This will be an C<OMP::DBbackend::Archive> instance, constructed the first
+This will be an C<OMP::DB::Backend::Archive> instance, constructed the first
 time this method is called.
 
 =cut
@@ -206,7 +207,7 @@ sub database_archive {
     my $self = shift;
 
     unless (defined $self->{'DBArchive'}) {
-        $self->{'DBArchive'} = OMP::DBbackend::Archive->new();
+        $self->{'DBArchive'} = OMP::DB::Backend::Archive->new();
     }
 
     return $self->{'DBArchive'};
@@ -218,7 +219,7 @@ A backend object for the Hedwig2OMP database.
 
     $db = $page->database_hedwig2omp;
 
-This will be an C<OMP::DBbackend::Hedwig2OMP> instance, constructed the first
+This will be an C<OMP::DB::Backend::Hedwig2OMP> instance, constructed the first
 time this method is called.
 
 =cut
@@ -227,11 +228,33 @@ sub database_hedwig2omp {
     my $self = shift;
 
     unless (defined $self->{'DBHedwig2OMP'}) {
-        $self->{'DBHedwig2OMP'} = OMP::DBbackend::Hedwig2OMP->new();
+        $self->{'DBHedwig2OMP'} = OMP::DB::Backend::Hedwig2OMP->new();
     }
 
     return $self->{'DBHedwig2OMP'};
 }
+
+=item B<fileutil>
+
+File utility object.
+
+    $util = $page->fileutil;
+
+This will be an C<OMP::Util::File> instance, constructed the first
+time this method is called.
+
+=cut
+
+sub fileutil {
+    my $self = shift;
+
+    unless (defined $self->{'FileUtil'}) {
+        $self->{'FileUtil'} = OMP::Util::File->new();
+    }
+
+    return $self->{'FileUtil'};
+}
+
 =item B<side_bar>
 
 Add a section to the side bar:
@@ -382,7 +405,7 @@ sub write_page {
 
     if ($auth_type =~ '^local_or_(\w+)$') {
         $auth_type = $1;
-        $auth_ok = 1 if OMP::NetTools->is_host_local();
+        $auth_ok = 1 if $self->is_host_local();
     }
 
     if ($auth_type =~ '^staff_or_(\w+)$') {
@@ -547,9 +570,7 @@ sub write_page_logout {
     my $content = shift;
     my %opt = @_;
 
-    my $q = $self->cgi;
-
-    $self->auth(OMP::Auth->log_out($q));
+    $self->auth(OMP::Auth->log_out($self));
 
     $self->html_title($opt{'title'});
 
@@ -617,6 +638,17 @@ sub render_template {
         }
         return OMP::Display::escape_entity($object->text);
     });
+
+    $templatecontext->define_filter('abbr_html', sub {
+        my ($context, $width) = @_;
+        return sub {
+            my $text = shift;
+            return OMP::Display::escape_entity($text) if $width >= length $text;
+            return '<abbr title="' . OMP::Display::escape_entity($text) . '">'
+                . OMP::Display::escape_entity(substr $text, 0, $width)
+                . '&hellip;</abbr>';
+        };
+    }, 1);
 
     my $template = Template->new({
         CONTEXT => $templatecontext,
@@ -722,18 +754,18 @@ sub _sidebar_project {
 
     # If there are any faults associated with this project put a link up to the
     # fault system and display the number of faults.
-    my $faultdb = OMP::FaultDB->new(DB => $self->database);
+    my $faultdb = OMP::DB::Fault->new(DB => $self->database);
     my @faults = $faultdb->getAssociations($projectid, 1);
 
     $self->side_bar("Project $projectid", [
         ['Project home' => "/cgi-bin/projecthome.pl?project=$projectid"],
+        ['Contacts' => "/cgi-bin/projusers.pl?project=$projectid"],
         ['Feedback entries' => "/cgi-bin/feedback.pl?project=$projectid"],
-        ['Program details' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+        ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
+        ['Active MSBs' => "/cgi-bin/fbmsb.pl?project=$projectid"],
+        ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
         ['Program regions' => "/cgi-bin/spregion.pl?project=$projectid"],
         ['Program summary' => "/cgi-bin/spsummary.pl?project=$projectid"],
-        ['Add comment' => "/cgi-bin/fbcomment.pl?project=$projectid"],
-        ['MSB history' => "/cgi-bin/msbhist.pl?project=$projectid"],
-        [Contacts => "/cgi-bin/projusers.pl?project=$projectid"],
         (@faults ? ['Faults', "/cgi-bin/fbfault.pl?project=$projectid", '(' . scalar(@faults) . ')'] : ()),
     ]);
 
@@ -767,6 +799,7 @@ sub _sidebar_night {
         ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
         ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
         ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+        ['Schedule' => "/cgi-bin/sched.pl?tel=$telescope&utdate=$utdate#night_$utdate"],
         ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
             . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],
         ['WORF' => "/cgi-bin/staffworfthumb.pl?telescope=$telescope&ut=$utdate"],
@@ -950,6 +983,41 @@ sub _write_project_choice {
             project_choices => $project_choices,
             target => $q->url(-absolute => 1),
         });
+}
+
+=item B<is_host_local>
+
+Returns true if the host accessing this page is local, false
+if not. The definition of "local" means that either there are
+no dots in the domainname (eg "lapaki" or "ulu") or the domain
+includes one of the endings specified in the "localdomain" config
+setting.
+
+    print "local" if $page->is_host_local
+
+=cut
+
+sub is_host_local {
+    my $self = shift;
+
+    my @domain = OMP::NetTools->determine_host();
+
+    # if no domain, assume we are really local (since only a host name)
+    return 1 unless $domain[1];
+
+    # Also return true if the domain does not include a "."
+    return 1 if $domain[1] !~ /\./;
+
+    # Now get the local definition of allowed remote hosts
+    my @local = OMP::Config->getData('localdomain');
+
+    # See whether anything in @local matches $domain[1]
+    if (grep {$domain[1] =~ /$_$/i} @local) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 =back

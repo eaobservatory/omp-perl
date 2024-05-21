@@ -311,7 +311,7 @@ __END__
 
 =head1 SEE ALSO
 
-C<OMP::Fault>, C<OMP::FaultDB>.
+C<OMP::Fault>, C<OMP::DB::Fault>.
 
 =head1 AUTHORS
 

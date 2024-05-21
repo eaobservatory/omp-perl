@@ -6,7 +6,7 @@
 [% PROCESS "macro_night_report.html" -%]
 [% WRAPPER "layout.html" %]
 
-<h1>Project log for [% project.projectid | html %] on [% utdate | html %]</h1>
+<h1>[% project.projectid | html %]: Project log for [% utdate | html %]</h1>
 
 
 [% IF retrieve_date.defined %]
@@ -23,21 +23,11 @@
 [% END %]
 
 <p>
-    <a href="/cgi-bin/fbworfthumb.pl?project=[% project.projectid | uri %]&amp;ut=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">View WORF thumbnails</a>
-</p>
-
-<p>
-    <a href="#shiftcom">View shift comments</a>
-    /
-    <a href="/cgi-bin/fbshiftlog.pl?project=[% project.projectid | uri %]&amp;date=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">Add shift comment</a>
-</p>
-
-<p>
-    <a href="#wvm">View WVM graph</a>
-</p>
-
-<p>
-    <a href="/cgi-bin/obslog_text.pl?ut=[% utdate | uri %]&amp;project=[% project.projectid | uri %]">View text-based observation log</a>
+    <a href="/cgi-bin/fbworfthumb.pl?project=[% project.projectid | uri %]&amp;ut=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">WORF thumbnails</a>
+    <br />
+    <a href="/cgi-bin/fbshiftlog.pl?project=[% project.projectid | uri %]&amp;date=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">Shift comments</a>
+    <br />
+    <a href="/cgi-bin/obslog_text.pl?ut=[% utdate | uri %]&amp;project=[% project.projectid | uri %]">Text-based observation log</a>
 </p>
 
 [% IF ! comment_msb_messages.empty %]
