@@ -73,6 +73,11 @@ CREATE TABLE `ompfeedback` (
   KEY `feedback_idx` (`projectid`),
   KEY `idx_date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE `omphedwiguser` (
+  `hedwig_id` int(11) NOT NULL,
+  `omp_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`hedwig_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompkey` (
   `keystring` varchar(64) NOT NULL,
   `expiry` datetime NOT NULL

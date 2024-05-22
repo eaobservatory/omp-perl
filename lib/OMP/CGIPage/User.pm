@@ -73,7 +73,7 @@ sub details {
     return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
         unless $user;
 
-    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $self->database_hedwig2omp);
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $self->database);
     my $hedwig_ids = $hodb->get_hedwig_ids($user->userid);
 
     # Get projects user belongs to

@@ -2,7 +2,7 @@ package OMP::Auth::HedwigOAuth;
 
 =head1 NAME
 
-OMP::Auth::HedwigOAuth - User authentication via OAuth and the hedwig2omp database
+OMP::Auth::HedwigOAuth - User authentication via OAuth and the omphedwiguser table
 
 =cut
 
@@ -17,7 +17,6 @@ use URI::QueryParam;
 
 use OMP::Config;
 use OMP::DB::Backend;
-use OMP::DB::Backend::Hedwig2OMP;
 use OMP::DB::Hedwig2OMP;
 use OMP::Error;
 use OMP::DB::User;
@@ -188,7 +187,7 @@ sub _lookup_hedwig_id {
     my $cls = shift;
     my $hedwig_id = shift;
 
-    my $db = OMP::DB::Backend::Hedwig2OMP->new();
+    my $db = OMP::DB::Backend->new();
     my $hodb = OMP::DB::Hedwig2OMP->new(DB => $db);
 
     my $omp_id = $hodb->get_omp_id($hedwig_id);
