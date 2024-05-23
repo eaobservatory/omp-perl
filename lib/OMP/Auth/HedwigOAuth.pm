@@ -171,11 +171,18 @@ sub _finish_oauth {
         'ID token retrieved from Hedwig has no identitfier.')
         unless defined $hedwig_id;
 
-    my $omp_id = $cls->_lookup_hedwig_id($database, $hedwig_id);
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $database);
 
-    my $db = OMP::DB::User->new(DB => $database);
+    my $omp_id = $hodb->get_omp_id($hedwig_id);
 
-    my $user = $db->getUser($omp_id);
+    throw OMP::Error::Authentication(
+        'There does not appear to be an OMP account linked to your Hedwig account. ' .
+        'Please contact the observatory for assistance.')
+        unless defined $omp_id;
+
+    my $udb = OMP::DB::User->new(DB => $database);
+
+    my $user = $udb->getUser($omp_id);
 
     throw OMP::Error::Authentication(
         'Your linked OMP account appears not to exist.')
@@ -186,23 +193,6 @@ sub _finish_oauth {
     $user->is_staff(1) if $user->staff_access();
 
     return $user;
-}
-
-sub _lookup_hedwig_id {
-    my $cls = shift;
-    my $db = shift;
-    my $hedwig_id = shift;
-
-    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $db);
-
-    my $omp_id = $hodb->get_omp_id($hedwig_id);
-
-    throw OMP::Error::Authentication(
-        'There does not appear to be an OMP account linked to your Hedwig account. ' .
-        'Please contact the observatory for assistance.')
-        unless defined $omp_id;
-
-    return $omp_id;
 }
 
 1;
