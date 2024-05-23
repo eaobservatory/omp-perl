@@ -91,8 +91,10 @@ sub log_in_oauth {
             'Error logging in with Hedwig: no authorization code or error description received.');
     }
 
+    my $database = $page->database;
+
     my $user = $cls->_finish_oauth(
-        $code, OMP::Config->getData('auth_hedwig.url_redir'));
+        $database, $code, OMP::Config->getData('auth_hedwig.url_redir'));
 
     my $redirect_uri = scalar $q->param('state');
     my $duration = 'default';
@@ -126,11 +128,14 @@ sub log_in_userpass {
     my $redirect_uri = $1;
     my $code = shift;
 
-    return {user => $cls->_finish_oauth($code, $redirect_uri)};
+    my $database = OMP::DB::Backend->new();
+
+    return {user => $cls->_finish_oauth($database, $code, $redirect_uri)};
 }
 
 sub _finish_oauth {
     my $cls = shift;
+    my $database = shift;
     my $code = shift;
     my $redirect_uri = shift;
 
@@ -166,9 +171,9 @@ sub _finish_oauth {
         'ID token retrieved from Hedwig has no identitfier.')
         unless defined $hedwig_id;
 
-    my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
+    my $omp_id = $cls->_lookup_hedwig_id($database, $hedwig_id);
 
-    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
+    my $db = OMP::DB::User->new(DB => $database);
 
     my $user = $db->getUser($omp_id);
 
@@ -185,9 +190,9 @@ sub _finish_oauth {
 
 sub _lookup_hedwig_id {
     my $cls = shift;
+    my $db = shift;
     my $hedwig_id = shift;
 
-    my $db = OMP::DB::Backend->new();
     my $hodb = OMP::DB::Hedwig2OMP->new(DB => $db);
 
     my $omp_id = $hodb->get_omp_id($hedwig_id);
