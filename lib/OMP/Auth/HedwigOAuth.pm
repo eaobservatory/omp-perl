@@ -16,7 +16,6 @@ use URI;
 use URI::QueryParam;
 
 use OMP::Config;
-use OMP::DB::Backend;
 use OMP::DB::Hedwig2OMP;
 use OMP::Error;
 use OMP::DB::User;
@@ -123,14 +122,13 @@ code from an OAuth session initiated by the OT (or other program).
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     throw OMP::Error::Authentication('Invalid username -- should be the redirect URI.')
         unless shift =~ /^(http.*)$/;
     my $redirect_uri = $1;
     my $code = shift;
 
-    my $database = OMP::DB::Backend->new();
-
-    return {user => $cls->_finish_oauth($database, $code, $redirect_uri)};
+    return {user => $cls->_finish_oauth($db, $code, $redirect_uri)};
 }
 
 sub _finish_oauth {

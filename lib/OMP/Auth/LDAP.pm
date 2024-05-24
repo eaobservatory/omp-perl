@@ -12,7 +12,6 @@ use warnings;
 use Net::LDAP;
 
 use OMP::Config;
-use OMP::DB::Backend;
 use OMP::Error;
 use OMP::DB::User;
 use OMP::Query::User;
@@ -44,6 +43,7 @@ is a staff member.
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     throw OMP::Error::Authentication('Invalid username.')
         unless shift =~ /^([a-zA-Z]+)$/;
     my $username = lc($1);
@@ -60,8 +60,8 @@ sub log_in_userpass {
     throw OMP::Error::Authentication('Username or password not recognized.')
         if $mess->code;
 
-    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
-    my $result = $db->queryUsers(OMP::Query::User->new(HASH => {
+    my $userdb = OMP::DB::User->new(DB => $db);
+    my $result = $userdb->queryUsers(OMP::Query::User->new(HASH => {
         alias => $username,
         obfuscated => {boolean => 0},
     }));

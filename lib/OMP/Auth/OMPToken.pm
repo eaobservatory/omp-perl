@@ -10,7 +10,6 @@ use strict;
 use warnings;
 
 use OMP::DB::Auth;
-use OMP::DB::Backend;
 use OMP::Error;
 
 use base qw/OMP::Auth::Base/;
@@ -44,12 +43,13 @@ This is intended to allow SOAP clients to maintain a user session.
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     my $username = shift;
     my $token = shift;
 
-    my $db = OMP::DB::Auth->new(DB => OMP::DB::Backend->new());
+    my $authdb = OMP::DB::Auth->new(DB => $db);
 
-    my $user = $db->verify_token($token);
+    my $user = $authdb->verify_token($token);
 
     throw OMP::Error::Authentication('Your session may have expired.')
         unless defined $user;

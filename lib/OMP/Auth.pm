@@ -164,7 +164,7 @@ sub log_in_userpass {
     try {
         my $provider_class = $cls->_get_provider($provider);
 
-        my $user_info = $provider_class->log_in_userpass($username, $password);
+        my $user_info = $provider_class->log_in_userpass($db, $username, $password);
 
         $user = $user_info->{'user'} if exists $user_info->{'user'};
     }
