@@ -420,7 +420,7 @@ sub write_page {
             return $self->_write_forbidden()
                 unless $auth_ok
                 or $auth->is_staff
-                or $auth->has_project($projectid);
+                or $auth->has_project($self->database, $projectid);
 
             push @args, $projectid;
 
@@ -948,7 +948,7 @@ sub _write_project_choice {
     my $project_choices = undef;
     my %proj_opts = ();
     if (defined $self->auth->user) {
-        my $projects = $self->auth->projects;
+        my $projects = $self->auth->projects($self->database);
         if (@$projects) {
             $project_choices = [sort @$projects];
         }

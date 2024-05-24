@@ -86,7 +86,7 @@ sub get_verified_projectid {
 
     throw OMP::Error::Authentication('Permission denied.')
         unless $auth->is_staff
-        or $auth->has_project($projectid);
+        or $auth->has_project($db, $projectid);
 
     # If this was a new log in, generate an OMP token and return
     # via SOAP headers.
