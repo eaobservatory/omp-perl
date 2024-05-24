@@ -65,7 +65,7 @@ my $force = 0;
 
 my $db = OMP::DB::Backend->new;
 
-OMP::Password->get_verified_auth('staff');
+OMP::Password->get_verified_auth($db, 'staff');
 
 while (<>) {
     chomp;

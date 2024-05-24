@@ -133,7 +133,7 @@ else {
 }
 
 # Get staff auth
-my $auth = OMP::Password->get_verified_auth('staff');
+my $auth = OMP::Password->get_verified_auth($dbconnection, 'staff');
 
 # Get shift type
 my $prompt = 'SHIFT type affected by shutdown [NIGHT, DAY, EO, OTHER]: ';

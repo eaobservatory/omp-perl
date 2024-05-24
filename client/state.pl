@@ -100,12 +100,12 @@ if ($enable and $disable) {
     die "Use either -disable or -enable, not both.\n";
 }
 
-OMP::Password->get_verified_auth('staff');
-
-print "\n";
-
 # Connect to the database
 my $dbconnection = OMP::DB::Backend->new();
+
+OMP::Password->get_verified_auth($dbconnection, 'staff');
+
+print "\n";
 
 for my $id (split(',', $idstr)) {
     my $projdb = OMP::DB::Project->new(ProjectID => $id, DB => $dbconnection);

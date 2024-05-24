@@ -141,7 +141,7 @@ sub log_in {
 
 Attempt to log a user in, using the given provider, username and password.
 
-    my $auth = OMP::Auth->log_in_userpass($provider, $username, $password);
+    my $auth = OMP::Auth->log_in_userpass($db, $provider, $username, $password);
 
 This is for use outside of the web interface.  Not all providers
 may support this method.
@@ -150,9 +150,13 @@ may support this method.
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     my $provider = shift;
     my $username = shift;
     my $password = shift;
+
+    die 'An OMP::DB::Backend must be given'
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     my $user = undef;
     my $message = undef;
