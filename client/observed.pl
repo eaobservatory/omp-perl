@@ -250,6 +250,7 @@ for my $proj (keys %sorted) {
     _log_message("Making obs group for $proj & $utdate");
 
     my $grp = OMP::Info::ObsGroup->new(
+        DB => $db,
         ADB => $arcdb,
         projectid => $proj,
         date => $utdate,

@@ -761,6 +761,7 @@ sub rescan {
 
     try {
         my $grp = OMP::Info::ObsGroup->new(
+            DB => $dbb,
             ADB => $arcdb,
             telescope => $telescope,
             date => $ut,
@@ -774,7 +775,7 @@ sub rescan {
         }
         else {
             my $gaplength = OMP::Config->getData('timegap');
-            $grp->locate_timegaps($gaplength);
+            $grp->locate_timegaps($dbb, $gaplength);
 
             %obs = $grp->groupby('instrument');
             grp_to_ref($grp);

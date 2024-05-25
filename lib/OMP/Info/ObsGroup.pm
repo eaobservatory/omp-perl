@@ -11,11 +11,13 @@ OMP::Info::ObsGroup - General manipulations of groups of Info::Obs objects
     $grp = OMP::Info::ObsGroup->new(obs => \@obs);
 
     $grp = OMP::Info::ObsGroup->new(
+        DB => $db,
         ADB => $archivedb,
         instrument => 'SCUBA',
         date => '1999-08-15');
 
     $grp = OMP::Info::ObsGroup->new(
+        DB => $db,
         ADB => $archivedb,
         instrument => 'SCUBA',
         projectid => 'm02ac46');
@@ -23,8 +25,9 @@ OMP::Info::ObsGroup - General manipulations of groups of Info::Obs objects
     $grp->obs(@obs);
     @obs = $grp->obs;
 
-    $grp->runQuery($archivedb, $query);
+    $grp->runQuery($db, $archivedb, $query);
     $grp->populate(
+        DB => $db,
         ADB => $archivedb,
         instrument => 'SCUBA',
         projectid => 'M02BU52');
@@ -189,7 +192,7 @@ sub obs {
 Run a query on the archive (using an OMP::Query::Archive object),
 store the results and attach any relevant comments.
 
-    $grp->runQuery($archivedb, $query, $retainhdr, $ignorebad, $nocomments);
+    $grp->runQuery($db, $archivedb, $query, $retainhdr, $ignorebad, $nocomments);
 
 Previous observations are overwritten.
 
@@ -197,12 +200,17 @@ Previous observations are overwritten.
 
 sub runQuery {
     my $self = shift;
+    my $db = shift;
     my $adb = shift;
     my $q = shift;
     my $retainhdr = shift;
     my $ignorebad = shift;
     my $nocomments = shift;
     my $search = shift;
+
+    throw OMP::Error::FatalError(
+        'runQuery: The DB argument must be an OMP::DB::Backend object')
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     throw OMP::Error::FatalError(
         'runQuery: The ADB argument must be an OMP::DB::Archive object')
@@ -231,7 +239,7 @@ sub runQuery {
     $self->obs(\@result);
 
     # Attach comments
-    $self->commentScan() unless $nocomments;
+    $self->commentScan($db) unless $nocomments;
 
     return;
 }
@@ -258,6 +266,7 @@ The results are stored in the object and retrievable via
 the C<obs> method.
 
     $grp->populate(
+        DB => $db,
         ADB => $archivedb,
         instrument => $inst,
         date => $date,
@@ -385,7 +394,7 @@ sub populate {
     # the telescope from the database
     if (exists $args{projectid} && ! exists $args{telescope}) {
         $args{telescope} = OMP::DB::Project->new(
-            DB => OMP::DB::Backend->new,
+            DB => $args{'DB'},
             ProjectID => $args{projectid})->getTelescope();
     }
     elsif (exists $args{instrument} && $args{instrument} =~ /^ACSIS/i) {
@@ -468,7 +477,7 @@ sub populate {
     my $arcquery = OMP::Query::Archive->new(HASH => \%hash);
 
     # run the query
-    $self->runQuery($args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);
+    $self->runQuery($args{'DB'}, $args{'ADB'}, $arcquery, $retainhdr, $ignorebad, $nocomments, $search);
 
     # Apply filter (with "message_sink" if desired to generate message output).
     my %filter_args = (
@@ -492,7 +501,7 @@ sub populate {
 
     # Add in timegaps if necessary (not forgetting to sort if asked)
     if (exists $args{timegap}) {
-        $self->locate_timegaps($args{timegap});
+        $self->locate_timegaps($args{'DB'}, $args{timegap});
     }
     elsif ($args{sort}) {
         $self->sort_by_time();
@@ -672,15 +681,20 @@ sub sort_by_time {
 
 Ensure that the comments stored in the observations are up-to-date.
 
-    $grp->commentScan;
+    $grp->commentScan($db);
 
 =cut
 
 sub commentScan {
     my $self = shift;
+    my $db = shift;
+
+    throw OMP::Error::FatalError(
+        'commentScan: The DB argument must be an OMP::DB::Backend object')
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     # Add the comments.
-    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
+    my $odb = OMP::DB::Obslog->new(DB => $db);
 
     $odb->updateObsComment(scalar $self->obs);
 
@@ -2012,7 +2026,7 @@ sub groupby {
 Inserts C<OMP::Info::Obs::TimeGap> objects in appropriate locations
 and sorts the C<ObsGroup> object by time.
 
-    $obsgrp->locate_timegaps($gap_length);
+    $obsgrp->locate_timegaps($db, $gap_length);
 
 A timegap is inserted if there are more than C<gap_length> seconds between
 the completion of one observation (taken to be the value of the C<end_obs>
@@ -2025,7 +2039,12 @@ Otherwise, the timegap will be an B<UNKNOWN> type.
 
 sub locate_timegaps {
     my $self = shift;
+    my $db = shift;
     my $length = shift;
+
+    throw OMP::Error::FatalError(
+        'locate_timegapsThe DB argument must be an OMP::DB::Backend object')
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     my @obslist;
     my $counter = 0;
@@ -2044,7 +2063,7 @@ sub locate_timegaps {
     @obslist = sort {$a->[0] <=> $b->[0]} @obslist;
 
     # Get a list of comments
-    my $odb = OMP::DB::Obslog->new(DB => OMP::DB::Backend->new);
+    my $odb = OMP::DB::Obslog->new(DB => $db);
 
     # Query between first and last observation."
 

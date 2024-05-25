@@ -90,7 +90,7 @@ sub display_page {
     }
 
     my $grp = OMP::Info::ObsGroup->new(obs => [$obs]);
-    $grp->commentScan;
+    $grp->commentScan($self->database);
 
     my $pdb = OMP::DB::Preview->new(DB => $self->database);
     my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
@@ -152,7 +152,7 @@ sub thumbnails_page {
     my $arcdb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
-    my $grp = OMP::Info::ObsGroup->new(ADB => $arcdb, %query);
+    my $grp = OMP::Info::ObsGroup->new(DB => $self->database, ADB => $arcdb, %query);
 
     return $self->_write_error('No observations for this project and night')
         if (defined $projectid) and not $grp->numobs;

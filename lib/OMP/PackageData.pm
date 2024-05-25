@@ -632,6 +632,7 @@ sub _populate {
 # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
     # switch and optimize for it.
     my $grp = OMP::Info::ObsGroup->new(
+        DB => $args{'DB'},
         ADB => $args{'ADB'},
         telescope => $tel,
         date => $self->utdate,

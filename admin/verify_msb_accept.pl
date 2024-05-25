@@ -205,6 +205,7 @@ if ($opt{'disk'}) {
 }
 
 my $grp = OMP::Info::ObsGroup->new(
+    DB => $dbb,
     ADB => $arcdb,
     telescope => $telescope,
     date => $ut,
