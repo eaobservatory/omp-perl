@@ -262,7 +262,7 @@ sub query_fault_output {
             my $status = $q->param('status');
             if ($status eq 'any') {
             }
-            if ($status eq "all_closed") {
+            elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
                 my %status = (
                     OMP::Fault->faultStatusClosed,
