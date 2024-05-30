@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-check_expiry - Update projects with defined expiration dates
+check_expiry - Update projects with defined expiration or continuation
 
 =head1 SYNOPSIS
 
@@ -11,7 +11,7 @@ check_expiry - Update projects with defined expiration dates
 =head1 DESCRIPTION
 
 This program processes projects which have expiration dates
-as follows:
+or continuation requests as follows:
 
 =over 4
 
@@ -21,8 +21,13 @@ Projects past their expiration date are disabled.
 
 =item *
 
-Enabled projects are updated to be in the current semester,
+Enabled projects with expiry dates are updated to be in the current semester,
 unless they already are.
+
+=item *
+
+Enabled projects with suitable continuation requests are updated to be in
+the current semester.
 
 =back
 
@@ -104,6 +109,17 @@ sub check_project_expiry {
 
             advance_project($pdb, $project, $semester) unless $dry_run;
         }
+    }
+
+
+    # Check for projects with continuation requests.
+    foreach my $projectid (@{$pdb->find_projects_for_continuation($tel, $semester)}) {
+        $pdb->projectid($projectid);
+        my $project = $pdb->projectDetails();
+
+        print "Advancing semester for continuation request: $projectid\n";
+
+        advance_project($pdb, $project, $semester) unless $dry_run;
     }
 }
 

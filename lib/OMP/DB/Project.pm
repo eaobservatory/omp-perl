@@ -45,6 +45,7 @@ use base qw/OMP::DB/;
 our $PROJTABLE = 'ompproj';
 our $PROJUSERTABLE = 'ompprojuser';
 our $PROJQUEUETABLE = 'ompprojqueue';
+our $PROJCONTTABLE = 'ompprojcont';
 
 # Also define these here to avoid circular import with OMP::DB::MSB,
 # and because that module has more requirements.
@@ -579,6 +580,58 @@ sub _updateUserFlag {
     $self->_db_commit_trans;
 
     return;
+}
+
+=item B<get_project_continuation>
+
+Search for continuation records for the current project.
+
+=cut
+
+sub get_project_continuation {
+    my $self = shift;
+
+    my $id = $self->projectid;
+
+    my $results = $self->_db_retrieve_data_ashash(
+        'SELECT * FROM ' . $PROJCONTTABLE
+        . ' WHERE projectid = ?'
+        . ' ORDER BY requestid DESC',
+        $id);
+
+    return $results;
+}
+
+=item B<find_projects_for_contination>
+
+Search for projects which should be continued in the given semester.
+
+    $projects = $projdb->find_projects_for_continuation($telescope, $semester);
+
+B<Note:> includes enabled projects with continuation requests greater
+than the given semester, so that if a continuation request is added for
+the next semester, the project can first move to the current semester.
+
+=cut
+
+sub find_projects_for_continuation {
+    my $self = shift;
+    my $telescope = shift;
+    my $semester = shift;
+
+    my $results = $self->_db_retrieve_data_ashash(
+        'SELECT C.projectid FROM ' . $PROJCONTTABLE
+        . ' AS C JOIN ' . $PROJTABLE
+        . ' AS P ON C.projectid = P.projectid'
+        . ' WHERE C.semester >= ?'
+        . ' AND P.semester < ?'
+        . ' AND P.telescope = ?'
+        . ' AND P.state',
+        $semester, $semester, $telescope);
+
+    my @projects = map {$_->{'projectid'}} @$results;
+
+    return \@projects;
 }
 
 =back

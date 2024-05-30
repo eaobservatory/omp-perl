@@ -44,12 +44,25 @@
         <td><b>Expiry date:</b></td>
         <td>[% IF project.expirydate.defined %][% project.expirydate | html %][% ELSE %]not specified[% END %]</td>
     </tr>
+    [% IF ! continuation.empty %]
+        [% FOREACH contreq IN continuation %]
+            <tr>
+                [% IF loop.first %]
+                    <td rowspan="[% loop.size %]"><b>Continuation request[% IF loop.size > 1 %]s[% END %]:</b></td>
+                [% END %]
+                <td>
+                    [% contreq.semester | html %]
+                    <a href="[% proposal_url %][% contreq.requestid | url %]">[% contreq.requestid | html %]</a>
+                </td>
+            </tr>
+        [% END %]
+    [% END %]
 </table>
 
 <p>
     <a href="/cgi-bin/props.pl?project=[% project.projectid %]">Science case for this project</a>
     <br />
-    <a href="[% proposal_url %]">View this project in the proposal system</a>
+    <a href="[% proposal_url %][% project.projectid | url %]">View this project in the proposal system</a>
 </p>
 
 <table>

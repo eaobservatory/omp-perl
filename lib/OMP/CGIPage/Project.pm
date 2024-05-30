@@ -244,7 +244,9 @@ sub project_home {
     my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
 
     # Get the project details
-    my $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    my $projdb = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid);
+    my $project = $projdb->projectDetails();
+    my $continuation = $projdb->get_project_continuation();
 
     # Get nights for which data was taken
     my $nights = $msbdonedb->observedDates(1);
@@ -295,10 +297,11 @@ sub project_home {
 
     return {
         project => $project,
+        continuation => $continuation,
         is_staff => (!! $self->auth->is_staff),
         proposal_url => 'https://proposals.eaobservatory.org/'
             . (lc $project->telescope)
-            . '/proposal_by_code?code=' . $projectid,
+            . '/proposal_by_code?code=',
         today => OMP::DateTools->today(),
         accounts => \%accounts,
         cannot_retrieve => $cannot_retrieve,
