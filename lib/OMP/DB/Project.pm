@@ -634,6 +634,34 @@ sub find_projects_for_continuation {
     return \@projects;
 }
 
+=item B<add_project_continuation>
+
+Add a continuation request to the database.
+
+    $projdb->add_project_continuation($projectid, $semester, $requestid);
+
+=cut
+
+sub add_project_continuation {
+    my $self = shift;
+    my $projectid = shift;
+    my $semester = shift;
+    my $requestid = shift;
+
+    $self->_db_begin_trans();
+    $self->_dblock();
+
+    $self->_db_insert_data(
+        $PROJCONTTABLE,
+        $projectid,
+        $semester,
+        $requestid,
+    );
+
+    $self->_dbunlock();
+    $self->_db_commit_trans();
+}
+
 =back
 
 =head2 Internal Methods
