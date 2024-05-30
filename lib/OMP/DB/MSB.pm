@@ -83,8 +83,6 @@ use base qw/OMP::DB/;
 our $VERSION = '2.000';
 
 # Name of the table containing the MSB data
-our $MSBTABLE = 'ompmsb';
-our $OBSTABLE = 'ompobs';
 our $SCITABLE = 'ompsciprog';
 
 # Default number of results to return from a query
@@ -423,7 +421,7 @@ sub getInstruments {
     # No XML query interface to science programs, so we'll have to do an SQL query
     my $sql = 'SELECT projectid, '
         . 'GROUP_CONCAT(DISTINCT instrument ORDER BY instrument SEPARATOR ",") AS instruments '
-        . "FROM $OBSTABLE WHERE projectid IN ("
+        . "FROM $OMP::DB::Project::OBSTABLE WHERE projectid IN ("
         . (join ',', ('?',) x scalar @projectids)
         . ') GROUP BY projectid';
 
@@ -2135,7 +2133,7 @@ sub _insert_rows {
     # Get the current database status.
     my $sth = $dbh->prepare(
         'SELECT msbid, checksum, remaining'
-        . ' FROM ' . $MSBTABLE
+        . ' FROM ' . $OMP::DB::Project::MSBTABLE
         . ' WHERE projectid=?')
         or throw OMP::Error::DBError('Error preparing MSB check SQL: ' . $DBI::errstr);
 
@@ -2167,7 +2165,7 @@ sub _insert_rows {
                     unless defined $msbid;
 
                 $self->_db_update_data(
-                    $MSBTABLE,
+                    $OMP::DB::Project::MSBTABLE,
                     {
                         remaining => $summary->remaining(),
                     },
@@ -2194,7 +2192,7 @@ sub _insert_rows {
                 unless defined $msbid;
 
             $self->_db_update_data(
-                $MSBTABLE,
+                $OMP::DB::Project::MSBTABLE,
                 {
                     remaining => $summary->remaining(),
                     checksum => $checksum,
@@ -2223,7 +2221,7 @@ sub _insert_rows {
         $self->_db_delete_data(
             $_,
             'msbid=' . $msbid)
-            foreach ($MSBTABLE, $OBSTABLE);
+            foreach ($OMP::DB::Project::MSBTABLE, $OMP::DB::Project::OBSTABLE);
     }
 }
 
@@ -2311,7 +2309,7 @@ sub _insert_row {
 
     # Insert the MSB data
     $self->_db_insert_data(
-        $MSBTABLE,
+        $OMP::DB::Project::MSBTABLE,
         undef,
         $proj,
         $data{remaining},
@@ -2399,7 +2397,7 @@ sub _insert_row {
     # We dont use the generic interface here since we want to
     # reuse the statement handle.
     my $obsst = $dbh->prepare(
-        "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)")
+        "INSERT INTO $OMP::DB::Project::OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)")
         or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
     foreach my $obsrow (@obsrows) {
@@ -2428,7 +2426,9 @@ sub _clear_old_rows {
 
     # Remove the old data
     print "Clearing old msb and obs rows for project ID $proj\n" if $DEBUG;
-    $self->_db_delete_project_data($MSBTABLE, $OBSTABLE);
+    $self->_db_delete_project_data(
+        $OMP::DB::Project::MSBTABLE,
+        $OMP::DB::Project::OBSTABLE);
 }
 
 =item B<_fetch_row>
@@ -2477,7 +2477,7 @@ sub _fetch_row {
 
     # and construct the SQL command using bind variables so that
     # we dont have to worry about quoting
-    my $sql = "SELECT * FROM $MSBTABLE WHERE" . join("AND", @substrings);
+    my $sql = "SELECT * FROM $OMP::DB::Project::MSBTABLE WHERE" . join("AND", @substrings);
     print "STATEMENT: $sql\n" if $DEBUG;
 
     # Run the query
@@ -2491,7 +2491,7 @@ sub _fetch_row {
     #     unless @$ref;
 
     if ($with_observations) {
-        $sql = "SELECT * FROM $OBSTABLE WHERE "
+        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE "
             . join("AND", @substrings)
             . " ORDER BY obsid ASC";
         print "STATEMENT: $sql\n" if $DEBUG;
@@ -2555,7 +2555,8 @@ sub _run_query {
 
     # Get the sql
     my $sql = $query->sql(
-        $MSBTABLE, $OBSTABLE,
+        $OMP::DB::Project::MSBTABLE,
+        $OMP::DB::Project::OBSTABLE,
         $OMP::DB::Project::PROJTABLE,
         $OMP::DB::Project::PROJQUEUETABLE,
         $OMP::DB::Project::PROJUSERTABLE);
@@ -2609,7 +2610,7 @@ sub _run_query {
         my @clauses = map {" msbid = " . $_->{msbid} . ' '}
             @$ref[$start_index .. $end_index];
 
-        $sql = "SELECT * FROM $OBSTABLE WHERE "
+        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE "
             . join(" OR ", @clauses)
             . " ORDER BY obsid ASC";
 
@@ -3732,7 +3733,7 @@ sub _get_msb_count {
     return {} unless @projectids;
 
     # SQL query
-    my $sql = "SELECT projectid, COUNT(*) AS \"count\" FROM $MSBTABLE\n"
+    my $sql = "SELECT projectid, COUNT(*) AS \"count\" FROM $OMP::DB::Project::MSBTABLE\n"
         . "WHERE projectid IN ("
         . join(",", map {"\"" . uc($_) . "\""} @projectids)
         . ")\n";

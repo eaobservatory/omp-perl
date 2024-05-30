@@ -581,7 +581,7 @@ sub get_scheduled_targets {
 
     # Now retrieve data from the table.
     my $sql = "SELECT distinct Q.projectid AS project, target as name, ra2000 as ra, dec2000 as `dec`, timestamp
-        FROM $OMP::DB::MSB::OBSTABLE AS Q
+        FROM $OMP::DB::Project::OBSTABLE AS Q
             JOIN $OMP::DB::MSB::SCITABLE as S ON Q.projectid = S.projectid
             JOIN $OMP::DB::Project::PROJTABLE AS P ON Q.projectid = P.projectid
         WHERE

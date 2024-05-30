@@ -31,7 +31,6 @@ use OMP::Project;
 use OMP::Query::Project;
 use OMP::Constants qw/:fb/;
 use OMP::User;
-use OMP::DB::MSB;
 use OMP::DB::User;
 use OMP::NetTools;
 use OMP::General;
@@ -46,6 +45,11 @@ use base qw/OMP::DB/;
 our $PROJTABLE = 'ompproj';
 our $PROJUSERTABLE = 'ompprojuser';
 our $PROJQUEUETABLE = 'ompprojqueue';
+
+# Also define these here to avoid circular import with OMP::DB::MSB,
+# and because that module has more requirements.
+our $MSBTABLE = 'ompmsb';
+our $OBSTABLE = 'ompobs';
 
 =head1 METHODS
 
@@ -880,8 +884,7 @@ sub _get_projects {
     my $query = shift;
 
     my $sql = $query->sql(
-        $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE,
-        $OMP::DB::MSB::OBSTABLE);
+        $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE, $OBSTABLE);
 
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);
