@@ -14,8 +14,9 @@ Reads a continuation request definition file and adds the details
 to the OMP database.
 
 Currently only stores the request in the C<ompprojcont> table to allow
-the project to be automatically advanced up to the requested semester.
-Other aspects (such as the member list, or the time remaining)
+the project to be automatically advanced up to the requested semester
+and adds any members not present in the existing project.
+Other aspects (such as the priority, or the time remaining)
 are not (yet) processed.
 
 =head1 OPTIONS
@@ -50,7 +51,10 @@ use Getopt::Long;
 use Pod::Usage;
 
 use OMP::DB::Backend;
+use OMP::DB::ProjAffiliation;
 use OMP::DB::Project;
+use OMP::DB::User;
+use OMP::Error qw/:try/;
 use OMP::General;
 
 my ($help, $dry_run);
@@ -75,6 +79,7 @@ my $cfg = Config::IniFiles->new(
 
 my $db = OMP::DB::Backend->new;
 my $projdb = OMP::DB::Project->new(DB => $db);
+my $userdb = OMP::DB::User->new(DB => $db);
 
 foreach my $projectid ($cfg->Sections) {
     next if $projectid eq $defaultsection;
@@ -82,17 +87,76 @@ foreach my $projectid ($cfg->Sections) {
     my $semester = $cfg->val($projectid, 'semester');
     my $requestid = $cfg->val($projectid, 'continuation');
 
-    if ($project_check) {
-        $projdb->projectid($projectid);
-        unless ($projdb->verifyProject) {
-            die "Project $projectid does not exist";
-        }
+    $projdb->projectid($projectid);
+
+    my $project;
+    my $project_missing = 0;
+
+    try {
+        $project = $projdb->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+        $project_missing = 1;
+    };
+
+    if ($project_missing) {
+        die "Project $projectid does not exist"
+            if $project_check;
+    }
+    elsif (not defined $project) {
+        die "Project object not retrieved for $projectid";
     }
 
     print "Adding continuation of $projectid: $semester via request $requestid\n";
 
     $projdb->add_project_continuation($projectid, $semester, $requestid)
         unless $dry_run;
+
+    if (defined $project) {
+        my $n_update = 0;
+
+        # Make combined hash of current members (PI + CoIs).
+        my %members = ();
+        my @cois = $project->coi;
+        $members{$project->pi->userid} = 1;
+        $members{$_->userid} = 1 foreach @cois;
+
+        # Make combined list of new members (and thier affiliations).
+        my @new = $cfg->val($projectid, 'pi');
+        push @new, split /,/, $cfg->val($projectid, 'coi');
+        my @affiliation = $cfg->val($projectid, 'pi_affiliation');
+        push @affiliation, split /,/, $cfg->val($projectid, 'coi_affiliation');
+
+        die "Project $projectid has inconsistent number of affiliations"
+            unless (scalar @new) == (scalar @affiliation);
+
+        # Add new members to the CoIs list.
+        for (my $i = 0; $i <= $#new; $i ++) {
+            my $new_id = $new[$i];
+            my $new_affiliation = $affiliation[$i];
+            unless (exists $members{$new_id}) {
+                die "Affiliation '$new_affiliation' not recognized by the OMP"
+                    unless exists $OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$new_affiliation};
+
+                my $user = $userdb->getUser($new_id);
+                die "User $new_id not found" unless defined $user;
+
+                print "Adding member: $new[$i] ($affiliation[$i])\n";
+                $user->affiliation($new_affiliation);
+                push @cois, $user;
+                $n_update ++;
+            }
+        }
+
+        $project->coi(\@cois);
+
+        if ($n_update) {
+            print "Applying updates to project $projectid\n";
+
+            $projdb->_update_project_row($project)
+                unless $dry_run;
+        }
+    }
 }
 
 __END__
