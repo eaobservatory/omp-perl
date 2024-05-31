@@ -14,9 +14,9 @@ Reads a continuation request definition file and adds the details
 to the OMP database.
 
 Currently only stores the request in the C<ompprojcont> table to allow
-the project to be automatically advanced up to the requested semester
-and adds any members not present in the existing project.
-Other aspects (such as the priority, or the time remaining)
+the project to be automatically advanced up to the requested semester,
+adds any members not present in the existing project and updates the
+TAG priority.  Other aspects (such as the time remaining)
 are not (yet) processed.
 
 =head1 OPTIONS
@@ -149,6 +149,18 @@ foreach my $projectid ($cfg->Sections) {
         }
 
         $project->coi(\@cois);
+
+        # Check for update to TAG priority -- currently only support
+        # a single value.
+        my $new_priority = $cfg->val($projectid, 'tagpriority');
+        foreach my $priority ($project->tagpriority) {
+            if ($priority != $new_priority) {
+                print "Setting TAG priority: $new_priority\n";
+                $project->tagpriority($new_priority);
+                $n_update ++;
+                last;
+            }
+        }
 
         if ($n_update) {
             print "Applying updates to project $projectid\n";
