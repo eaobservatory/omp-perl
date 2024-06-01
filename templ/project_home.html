@@ -110,32 +110,39 @@
 [% IF accounts.defined && ! accounts.empty %]
     <h3>Observations were acquired on the following dates:</h3>
 
-    <p>
+    <table>
+        <tr bgcolor="#bcbee3">
+            <td><b>Date</b></td>
+            <td><b>Time</b></td>
+        </tr>
         [% FOREACH ymd IN accounts.keys.sort %]
             [% SET timeacct = accounts.$ymd %]
-            <a href="/cgi-bin/utprojlog.pl?project=[% project.projectid %]&utdate=[% ymd %][% IF cannot_retrieve %]&noretrv=1[% END %]">[% ymd %]</a>
+            <tr>
+                <td>
+                    <a href="/cgi-bin/utprojlog.pl?project=[% project.projectid %]&utdate=[% ymd %][% IF cannot_retrieve %]&noretrv=1[% END %]">[% ymd %]</a>
+                </td>
+                <td>
+                    [% IF timeacct.confirmed > 0 || timeacct.unconfirmed > 0 %]
+                        [% IF timeacct.confirmed > 0 %]
+                            [% timeacct.confirmed | format("%.2f hours") %]
+                        [% END %]
+                        [% IF timeacct.unconfirmed > 0 %]
+                            (Unconfirmed: [% timeacct.unconfirmed | format ("%.2f hours") %])
+                        [% END %]
 
-            [% IF timeacct.confirmed > 0 || timeacct.unconfirmed > 0 %]
-                [% IF timeacct.confirmed > 0 %]
-                    [% timeacct.confirmed | format("%.2f hrs") %]
-                [% END %]
-                [% IF timeacct.unconfirmed > 0 %]
-                    UNCONFIRMED:
-                    [% timeacct.unconfirmed | format ("%.2f hrs") %]
-                [% END %]
+                    [% ELSE %]
+                        (No science data charged)
+                    [% END %]
+                </td>
+            </tr>
+        [% END %]
+    </table>
 
-                [% IF cannot_retrieve %]
-                    click on date to view project log
-                [% ELSE %]
-                    click on date to retrieve data
-                [% END %]
-            [% ELSE %]
-                (no science data charged)
-            [% END %]
-
-            [% IF ! loop.last %]
-                <br />
-            [% END %]
+    <p>
+        [% IF cannot_retrieve %]
+            Click on a date to view project log.
+        [% ELSE %]
+            Click on a date to retrieve data.
         [% END %]
     </p>
 [% ELSE %]
