@@ -17,13 +17,13 @@
 
 <table>
     <tr>
-        <td><b>Principal Investigator:</b></td>
+        <td style="width: 25ex;"><b>Principal Investigator:</b></td>
         <td>[% render_project_member(project, project.pi, is_support=0) %]</td>
     </tr>
     <tr>
-        <td><b>Co-investigators:</b></td>
+        <td><b>Co-Investigators:</b></td>
         <td>[% FOREACH coi IN project.coi %]
-            [% render_project_member(project, coi, is_support=0) %][% IF ! loop.last %],[% END %]
+            <span style="white-space: nowrap;">[% render_project_member(project, coi, is_support=0) %][% IF ! loop.last %],[% END %]</span>
         [% END %]</td>
     </tr>
     <tr>
@@ -40,10 +40,12 @@
         <td><b>Semester:</b></td>
         <td>[% project.semester | html %]</td>
     </tr>
-    <tr>
-        <td><b>Expiry date:</b></td>
-        <td>[% IF project.expirydate.defined %][% project.expirydate | html %][% ELSE %]not specified[% END %]</td>
-    </tr>
+    [% IF project.expirydate.defined %]
+        <tr>
+            <td><b>Expiry date:</b></td>
+            <td>[% project.expirydate | html %]</td>
+        </tr>
+    [% END %]
     [% IF ! continuation.empty %]
         [% FOREACH contreq IN continuation %]
             <tr>
@@ -53,6 +55,9 @@
                 <td>
                     [% contreq.semester | html %]
                     <a href="[% proposal_url %][% contreq.requestid | url %]">[% contreq.requestid | html %]</a>
+                    [% IF is_staff %]
+                        &mdash; (<a href="/cgi-bin/props.pl?project=[% contreq.requestid %]">PDF</a>)
+                    [% END %]
                 </td>
             </tr>
         [% END %]
