@@ -71,6 +71,7 @@ __PACKAGE__->CreateAccessors(
     msbid => '$',
     tau => 'OMP::Range',
     checksum => '$',
+    country => '$',
     seeing => 'OMP::Range',
     priority => '$',
     schedpri => '$',
@@ -713,7 +714,7 @@ sub summary {
     my @elements = qw/
         projectid checksum tau seeing priority moon timeest title
         elevation datemin datemax telescope cloud sky remaining
-        msbid approach schedpri completion affiliation semester
+        msbid approach schedpri completion affiliation semester country
     /;
 
     # Include astrometry elements unless 'noast' option is being used
@@ -788,7 +789,7 @@ sub summary {
     }
 
     # Fill in some unknowns
-    for (qw/timeest priority title seeing tau cloud sky affiliation semester/) {
+    for (qw/timeest priority title seeing tau cloud sky affiliation semester country/) {
         $summary{$_} = "??" unless defined $summary{$_};
     }
 
@@ -1136,7 +1137,7 @@ sub getResultColumns {
     my @order;
     if ($tel eq 'JCMT') {
         @order = qw/
-            projectid semester priority schedpri affiliation completion
+            projectid country semester priority schedpri affiliation completion
             instrument waveband title target
             ra dec coordstype ha az airmass tau pol type
             timeest remaining obscount
@@ -1182,6 +1183,7 @@ my %coltypes = (
     affiliation => 'String',
     remaining => 'Integer',
     projectid => 'String',
+    country => 'String',
     semester => 'String',
     priority => 'Float',
     instrument => 'String',
