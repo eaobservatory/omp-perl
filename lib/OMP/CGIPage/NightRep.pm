@@ -414,6 +414,7 @@ sub projlog_content {
         $arcdb->search_files();
 
         my $grp = OMP::Info::ObsGroup->new(
+            DB => $self->database,
             ADB => $arcdb,
             projectid => $projectid,
             date => $utdate,

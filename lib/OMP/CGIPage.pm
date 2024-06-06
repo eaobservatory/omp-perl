@@ -42,7 +42,6 @@ use OMP::Auth;
 use OMP::Config;
 use OMP::DB::Backend;
 use OMP::DB::Backend::Archive;
-use OMP::DB::Backend::Hedwig2OMP;
 use OMP::Display;
 use OMP::DB::Project;
 use OMP::Error qw/:try/;
@@ -211,27 +210,6 @@ sub database_archive {
     }
 
     return $self->{'DBArchive'};
-}
-
-=item B<database_hedwig2omp>
-
-A backend object for the Hedwig2OMP database.
-
-    $db = $page->database_hedwig2omp;
-
-This will be an C<OMP::DB::Backend::Hedwig2OMP> instance, constructed the first
-time this method is called.
-
-=cut
-
-sub database_hedwig2omp {
-    my $self = shift;
-
-    unless (defined $self->{'DBHedwig2OMP'}) {
-        $self->{'DBHedwig2OMP'} = OMP::DB::Backend::Hedwig2OMP->new();
-    }
-
-    return $self->{'DBHedwig2OMP'};
 }
 
 =item B<fileutil>
@@ -442,7 +420,7 @@ sub write_page {
             return $self->_write_forbidden()
                 unless $auth_ok
                 or $auth->is_staff
-                or $auth->has_project($projectid);
+                or $auth->has_project($self->database, $projectid);
 
             push @args, $projectid;
 
@@ -970,7 +948,7 @@ sub _write_project_choice {
     my $project_choices = undef;
     my %proj_opts = ();
     if (defined $self->auth->user) {
-        my $projects = $self->auth->projects;
+        my $projects = $self->auth->projects($self->database);
         if (@$projects) {
             $project_choices = [sort @$projects];
         }

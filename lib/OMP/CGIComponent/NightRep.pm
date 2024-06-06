@@ -767,6 +767,7 @@ sub cgi_to_obsgroup {
         FileUtil => $self->page->fileutil);
 
     my $grp = OMP::Info::ObsGroup->new(
+        DB => $self->database,
         ADB => $arcdb,
         %options,
     );

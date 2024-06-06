@@ -10,7 +10,7 @@ use strict;
 
 use base qw/OMP::DB/;
 
-our $HEDWIG2OMPTABLE = 'user';
+our $HEDWIG2OMPTABLE = 'omphedwiguser';
 
 =head1 METHODS
 

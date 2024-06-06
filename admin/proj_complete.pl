@@ -10,10 +10,11 @@ use OMP::DB::Backend;
 use OMP::DB::Project;
 use OMP::Password;
 
-OMP::Password->get_verified_auth('staff');
+my $dbb = OMP::DB::Backend->new;
+OMP::Password->get_verified_auth($dbb, 'staff');
 
 # Connect to the database and create a proj db object
-my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new);
+my $db = OMP::DB::Project->new(DB => $dbb);
 
 while (<>) {
     chomp;

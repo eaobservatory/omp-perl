@@ -31,7 +31,6 @@ use OMP::Project;
 use OMP::Query::Project;
 use OMP::Constants qw/:fb/;
 use OMP::User;
-use OMP::DB::MSB;
 use OMP::DB::User;
 use OMP::NetTools;
 use OMP::General;
@@ -46,6 +45,12 @@ use base qw/OMP::DB/;
 our $PROJTABLE = 'ompproj';
 our $PROJUSERTABLE = 'ompprojuser';
 our $PROJQUEUETABLE = 'ompprojqueue';
+our $PROJCONTTABLE = 'ompprojcont';
+
+# Also define these here to avoid circular import with OMP::DB::MSB,
+# and because that module has more requirements.
+our $MSBTABLE = 'ompmsb';
+our $OBSTABLE = 'ompobs';
 
 =head1 METHODS
 
@@ -577,6 +582,86 @@ sub _updateUserFlag {
     return;
 }
 
+=item B<get_project_continuation>
+
+Search for continuation records for the current project.
+
+=cut
+
+sub get_project_continuation {
+    my $self = shift;
+
+    my $id = $self->projectid;
+
+    my $results = $self->_db_retrieve_data_ashash(
+        'SELECT * FROM ' . $PROJCONTTABLE
+        . ' WHERE projectid = ?'
+        . ' ORDER BY requestid DESC',
+        $id);
+
+    return $results;
+}
+
+=item B<find_projects_for_contination>
+
+Search for projects which should be continued in the given semester.
+
+    $projects = $projdb->find_projects_for_continuation($telescope, $semester);
+
+B<Note:> includes enabled projects with continuation requests greater
+than the given semester, so that if a continuation request is added for
+the next semester, the project can first move to the current semester.
+
+=cut
+
+sub find_projects_for_continuation {
+    my $self = shift;
+    my $telescope = shift;
+    my $semester = shift;
+
+    my $results = $self->_db_retrieve_data_ashash(
+        'SELECT C.projectid FROM ' . $PROJCONTTABLE
+        . ' AS C JOIN ' . $PROJTABLE
+        . ' AS P ON C.projectid = P.projectid'
+        . ' WHERE C.semester >= ?'
+        . ' AND P.semester < ?'
+        . ' AND P.telescope = ?'
+        . ' AND P.state',
+        $semester, $semester, $telescope);
+
+    my @projects = map {$_->{'projectid'}} @$results;
+
+    return \@projects;
+}
+
+=item B<add_project_continuation>
+
+Add a continuation request to the database.
+
+    $projdb->add_project_continuation($projectid, $semester, $requestid);
+
+=cut
+
+sub add_project_continuation {
+    my $self = shift;
+    my $projectid = shift;
+    my $semester = shift;
+    my $requestid = shift;
+
+    $self->_db_begin_trans();
+    $self->_dblock();
+
+    $self->_db_insert_data(
+        $PROJCONTTABLE,
+        $projectid,
+        $semester,
+        $requestid,
+    );
+
+    $self->_dbunlock();
+    $self->_db_commit_trans();
+}
+
 =back
 
 =head2 Internal Methods
@@ -880,8 +965,7 @@ sub _get_projects {
     my $query = shift;
 
     my $sql = $query->sql(
-        $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE,
-        $OMP::DB::MSB::OBSTABLE);
+        $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE, $OBSTABLE);
 
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);

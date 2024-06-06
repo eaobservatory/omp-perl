@@ -2,7 +2,7 @@ package OMP::Auth::HedwigOAuth;
 
 =head1 NAME
 
-OMP::Auth::HedwigOAuth - User authentication via OAuth and the hedwig2omp database
+OMP::Auth::HedwigOAuth - User authentication via OAuth and the omphedwiguser table
 
 =cut
 
@@ -16,8 +16,6 @@ use URI;
 use URI::QueryParam;
 
 use OMP::Config;
-use OMP::DB::Backend;
-use OMP::DB::Backend::Hedwig2OMP;
 use OMP::DB::Hedwig2OMP;
 use OMP::Error;
 use OMP::DB::User;
@@ -92,8 +90,10 @@ sub log_in_oauth {
             'Error logging in with Hedwig: no authorization code or error description received.');
     }
 
+    my $database = $page->database;
+
     my $user = $cls->_finish_oauth(
-        $code, OMP::Config->getData('auth_hedwig.url_redir'));
+        $database, $code, OMP::Config->getData('auth_hedwig.url_redir'));
 
     my $redirect_uri = scalar $q->param('state');
     my $duration = 'default';
@@ -122,16 +122,18 @@ code from an OAuth session initiated by the OT (or other program).
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     throw OMP::Error::Authentication('Invalid username -- should be the redirect URI.')
         unless shift =~ /^(http.*)$/;
     my $redirect_uri = $1;
     my $code = shift;
 
-    return {user => $cls->_finish_oauth($code, $redirect_uri)};
+    return {user => $cls->_finish_oauth($db, $code, $redirect_uri)};
 }
 
 sub _finish_oauth {
     my $cls = shift;
+    my $database = shift;
     my $code = shift;
     my $redirect_uri = shift;
 
@@ -167,11 +169,18 @@ sub _finish_oauth {
         'ID token retrieved from Hedwig has no identitfier.')
         unless defined $hedwig_id;
 
-    my $omp_id = $cls->_lookup_hedwig_id($hedwig_id);
+    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $database);
 
-    my $db = OMP::DB::User->new(DB => OMP::DB::Backend->new());
+    my $omp_id = $hodb->get_omp_id($hedwig_id);
 
-    my $user = $db->getUser($omp_id);
+    throw OMP::Error::Authentication(
+        'There does not appear to be an OMP account linked to your Hedwig account. ' .
+        'Please contact the observatory for assistance.')
+        unless defined $omp_id;
+
+    my $udb = OMP::DB::User->new(DB => $database);
+
+    my $user = $udb->getUser($omp_id);
 
     throw OMP::Error::Authentication(
         'Your linked OMP account appears not to exist.')
@@ -182,23 +191,6 @@ sub _finish_oauth {
     $user->is_staff(1) if $user->staff_access();
 
     return $user;
-}
-
-sub _lookup_hedwig_id {
-    my $cls = shift;
-    my $hedwig_id = shift;
-
-    my $db = OMP::DB::Backend::Hedwig2OMP->new();
-    my $hodb = OMP::DB::Hedwig2OMP->new(DB => $db);
-
-    my $omp_id = $hodb->get_omp_id($hedwig_id);
-
-    throw OMP::Error::Authentication(
-        'There does not appear to be an OMP account linked to your Hedwig account. ' .
-        'Please contact the observatory for assistance.')
-        unless defined $omp_id;
-
-    return $omp_id;
 }
 
 1;

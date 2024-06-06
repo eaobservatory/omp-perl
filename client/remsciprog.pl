@@ -70,7 +70,8 @@ my $status = GetOptions(
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
-OMP::Password->get_verified_auth('staff');
+my $dbb = OMP::DB::Backend->new();
+OMP::Password->get_verified_auth($dbb, 'staff');
 
 # Ask for the project id
 my $term = Term::ReadLine->new('Rem Sci Prog');
@@ -79,7 +80,7 @@ my $project = $term->readline('Project ID of science program to delete: ');
 # Create the new object
 my $db = OMP::DB::MSB->new(
     ProjectID => $project,
-    DB => OMP::DB::Backend->new(),
+    DB => $dbb,
 );
 
 # First list a summary of the project by retrieving the science

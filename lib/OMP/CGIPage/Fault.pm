@@ -242,14 +242,14 @@ sub query_fault_output {
         # The 'Search' submit button was clicked
         %hash = %{$comp->category_hash($category)};
 
-        if ($q->param('system') !~ /any/) {
+        if ($q->param('system')) {
             my $system = $q->param('system');
-            $hash{'system'} = $system;
+            $hash{'system'} = $system if $system !~ /any/;
         }
 
-        if ($q->param('type') !~ /any/) {
+        if ($q->param('type')) {
             my $type = $q->param('type');
-            $hash{'type'} = $type;
+            $hash{'type'} = $type if $type !~ /any/;
         }
 
         # Return chronic faults only?
@@ -258,9 +258,11 @@ sub query_fault_output {
             $hash{'condition'} = $condition{'Chronic'};
         }
 
-        if ($q->param('status') ne "any") {
+        if ($q->param('status')) {
             my $status = $q->param('status');
-            if ($status eq "all_closed") {
+            if ($status eq 'any') {
+            }
+            elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
                 my %status = (
                     OMP::Fault->faultStatusClosed,

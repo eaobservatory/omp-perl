@@ -34,8 +34,10 @@ use OMP::Password;
 # not 0: debug output
 my $debug = 0;
 
+my $db = OMP::DB::Backend->new;
+
 # Authorize access via staff requirement
-OMP::Password->get_verified_auth('staff');
+OMP::Password->get_verified_auth($db, 'staff');
 
 # Program name
 my $program = ( split( /\//, $0 ) )[-1];
@@ -175,7 +177,7 @@ unless (($ra ne "" && $dec ne "") || $proj ne "") {
 }
 
 find_and_display_targets(
-    DB => OMP::DB::Backend->new,
+    DB => $db,
     proj => $proj,
     ra => $ra,
     dec => $dec,

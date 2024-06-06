@@ -156,7 +156,7 @@ my $subject = shift @comment;
 chomp $subject;
 
 # Verify staff membership
-my $auth = OMP::Password->get_verified_auth('staff');
+my $auth = OMP::Password->get_verified_auth($database, 'staff');
 
 my %comment = (
     text => (join '', @comment),

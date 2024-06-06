@@ -35,9 +35,10 @@ sub log_in {
     my $page = shift;
 
     my $q = $page->cgi;
+    my $db = $page->database;
 
     my $user_info = $cls->log_in_userpass(
-        (scalar $q->param('username')), (scalar $q->param('password')));
+        $db, (scalar $q->param('username')), (scalar $q->param('password')));
 
     if (exists $user_info->{'user'}) {
         $user_info->{'duration'} = (scalar $q->param('remember_me')
@@ -53,7 +54,7 @@ Attempt to get an OMP::User object representing the user logging in
 with a specific user name and password.  Returned as a hash, perhaps
 including a 'user' key.
 
-    my $user_info = $provider_class->log_in_userpass($username, $password);
+    my $user_info = $provider_class->log_in_userpass($db, $username, $password);
 
 =cut
 

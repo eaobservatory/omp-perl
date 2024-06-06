@@ -465,7 +465,7 @@ sub hdr_accounts {
         my ($warnings, @acct);
         if ($obsgrp) {
             # locate time gaps > 1 second when calculating statistics.
-            $obsgrp->locate_timegaps(1);
+            $obsgrp->locate_timegaps($self->db, 1);
 
             # Get one value per shift.
             ($warnings, @acct) = $obsgrp->projectStats(by_shift => 1, %opt);
@@ -840,7 +840,7 @@ sub obs {
         my $grp;
         try {
             $grp = OMP::Info::ObsGroup->new(obs => \@obs);
-            $grp->commentScan;
+            $grp->commentScan($self->db);
         };
 
         $self->{'Observations'} = $grp;
@@ -1251,7 +1251,7 @@ sub astext {
     $str .= "Observation Log\n\n";
 
     my $grp = $self->obs;
-    $grp->locate_timegaps(OMP::Config->getData("timegap"));
+    $grp->locate_timegaps($self->db, OMP::Config->getData("timegap"));
     my $tmp = $grp->summary('72col');
     $str .= defined $tmp ? $tmp : '';
 
@@ -1632,7 +1632,7 @@ sub get_obs_summary {
     }
     else {
         $obsgroup = $self->obs();
-        $obsgroup->locate_timegaps(OMP::Config->getData('timegap'));
+        $obsgroup->locate_timegaps($self->db, OMP::Config->getData('timegap'));
     }
 
     my $sort;

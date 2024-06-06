@@ -14,7 +14,6 @@ use DBI;
 use Math::Trig;
 
 use OMP::DB::Project;
-use OMP::DB::MSB;
 
 use base qw/Exporter/;
 our @EXPORT_OK = qw/find_and_display_targets find_targets display_targets/;
@@ -80,8 +79,8 @@ sub find_targets {
                     sin(PI()/2 - Q2.dec2000)*sin(PI()/2 - Q.dec2000)*cos(Q2.ra2000 - Q.ra2000),
                 12))) AS separation,
                 Q.ra2000, Q.dec2000, Q.instrument
-            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::MSB::MSBTABLE M, $OMP::DB::MSB::OBSTABLE Q,
-                $OMP::DB::Project::PROJTABLE P2, $OMP::DB::MSB::MSBTABLE M2, $OMP::DB::MSB::OBSTABLE Q2
+            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::Project::MSBTABLE M, $OMP::DB::Project::OBSTABLE Q,
+                $OMP::DB::Project::PROJTABLE P2, $OMP::DB::Project::MSBTABLE M2, $OMP::DB::Project::OBSTABLE Q2
             WHERE P2.projectid LIKE \"$proj\"
                 AND M2.projectid = P2.projectid
                 AND Q2.msbid = M2.msbid
@@ -122,7 +121,7 @@ sub find_targets {
                     sin(PI()/2 - $dec_rad)*sin(PI()/2 - Q.dec2000)*cos($ra_rad - Q.ra2000),
                 12))) AS separation,
                 Q.ra2000, Q.dec2000, Q.instrument
-            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::MSB::MSBTABLE M, $OMP::DB::MSB::OBSTABLE Q
+            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::Project::MSBTABLE M, $OMP::DB::Project::OBSTABLE Q
             WHERE P.projectid NOT LIKE '%EC%'
                 AND M.projectid = P.projectid
                 AND Q.msbid = M.msbid

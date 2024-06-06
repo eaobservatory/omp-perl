@@ -156,17 +156,20 @@ Prompt the user for their username (if necessary) and password
 using C<get_userpass> and then log in with C<log_in_userpass>
 and check the resultant C<OMP::Auth> for the specified type.
 
-    my $auth = OMP::Password->get_verified_auth('staff');
+    my $auth = OMP::Password->get_verified_auth($db, 'staff');
 
 =cut
 
 sub get_verified_auth {
     my $cls = shift;
+    my $db = shift;
     my $auth_type = shift;
 
+    croak 'An OMP::DB::Backend must be given'
+        unless eval {$db->isa('OMP::DB::Backend')};
     croak 'No auth_type specified' unless defined $auth_type;
 
-    my $auth = OMP::Auth->log_in_userpass($cls->get_userpass);
+    my $auth = OMP::Auth->log_in_userpass($db, $cls->get_userpass);
 
     throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
         unless defined $auth->user;

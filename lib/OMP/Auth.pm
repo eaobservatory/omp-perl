@@ -12,7 +12,6 @@ use warnings;
 use OMP::DB::Auth;
 use OMP::Config;
 use OMP::Constants qw/:logging/;
-use OMP::DB::Backend;
 use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::DB::Project;
@@ -141,7 +140,7 @@ sub log_in {
 
 Attempt to log a user in, using the given provider, username and password.
 
-    my $auth = OMP::Auth->log_in_userpass($provider, $username, $password);
+    my $auth = OMP::Auth->log_in_userpass($db, $provider, $username, $password);
 
 This is for use outside of the web interface.  Not all providers
 may support this method.
@@ -150,9 +149,13 @@ may support this method.
 
 sub log_in_userpass {
     my $cls = shift;
+    my $db = shift;
     my $provider = shift;
     my $username = shift;
     my $password = shift;
+
+    die 'An OMP::DB::Backend must be given'
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     my $user = undef;
     my $message = undef;
@@ -160,7 +163,7 @@ sub log_in_userpass {
     try {
         my $provider_class = $cls->_get_provider($provider);
 
-        my $user_info = $provider_class->log_in_userpass($username, $password);
+        my $user_info = $provider_class->log_in_userpass($db, $username, $password);
 
         $user = $user_info->{'user'} if exists $user_info->{'user'};
     }
@@ -277,12 +280,16 @@ sub user {
 
 Access a list of projects to which the user has access.
 
-    my $projects = $auth->projects();
+    my $projects = $auth->projects($db);
 
 =cut
 
 sub projects {
     my $self = shift;
+    my $db = shift;
+
+    die 'An OMP::DB::Backend must be given'
+        unless eval {$db->isa('OMP::DB::Backend')};
 
     if (@_) {
         throw OMP::Error::BadArgs('OMP::Auth->projects must be an array ref')
@@ -290,7 +297,7 @@ sub projects {
         $self->{'projects'} = shift;
     }
     elsif (not defined $self->{'projects'}) {
-        $self->{'projects'} = $self->_fetch_projects();
+        $self->{'projects'} = $self->_fetch_projects($db);
     }
 
     return $self->{'projects'};
@@ -383,7 +390,7 @@ sub is_staff {
 
 Determine whether the user has access to the given projects.
 
-    my $has_project = $auth->has_project($projectid);
+    my $has_project = $auth->has_project($db, $projectid);
 
 Note: this method only checks for projects which list this user -- it does
 not consider staff access to projects.
@@ -392,9 +399,10 @@ not consider staff access to projects.
 
 sub has_project {
     my $self = shift;
+    my $db = shift;
     my $project = shift;
 
-    return !! grep {$_ eq $project} @{$self->projects};
+    return !! grep {$_ eq $project} @{$self->projects($db)};
 }
 
 =back
@@ -412,6 +420,7 @@ has access.
 
 sub _fetch_projects {
     my $self = shift;
+    my $db = shift;
 
     my $user = $self->user;
     return [] unless defined $user;
@@ -420,9 +429,9 @@ sub _fetch_projects {
     throw OMP::Error('OMP::Auth cannot fetch projects: user object has no userid')
         unless defined $userid;
 
-    my $db = OMP::DB::Project->new(DB => OMP::DB::Backend->new());
+    my $projdb = OMP::DB::Project->new(DB => $db);
 
-    my $projects = $db->listProjects(OMP::Query::Project->new(HASH => {
+    my $projects = $projdb->listProjects(OMP::Query::Project->new(HASH => {
         person_access => $userid,
     }));
 

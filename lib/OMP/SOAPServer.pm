@@ -78,20 +78,22 @@ sub get_verified_projectid {
     # Ensure project ID is upper case before attempting authorization.
     $projectid = uc $projectid;
 
-    my $auth = OMP::Auth->log_in_userpass($provider, $username, $password);
+    my $db = $class->dbConnection();
+
+    my $auth = OMP::Auth->log_in_userpass($db, $provider, $username, $password);
     throw OMP::Error::Authentication($auth->message // 'Authentication failed.')
         unless defined $auth->user;
 
     throw OMP::Error::Authentication('Permission denied.')
         unless $auth->is_staff
-        or $auth->has_project($projectid);
+        or $auth->has_project($db, $projectid);
 
     # If this was a new log in, generate an OMP token and return
     # via SOAP headers.
     my @headers;
     if ((exists $ENV{'HTTP_SOAPACTION'}) and ($provider ne 'omptoken')) {
         my (undef, $addr, undef) = OMP::NetTools->determine_host;
-        my $adb = OMP::DB::Auth->new(DB => $class->dbConnection);
+        my $adb = OMP::DB::Auth->new(DB => $db);
         my $token = $adb->issue_token($auth->user(), $addr, 'OMP::SOAPServer', 'default');
         push @headers, SOAP::Header->new(name => 'user', value => $auth->user()->userid());
         push @headers, SOAP::Header->new(name => 'token', value => $token);

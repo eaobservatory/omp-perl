@@ -73,6 +73,11 @@ CREATE TABLE `ompfeedback` (
   KEY `feedback_idx` (`projectid`),
   KEY `idx_date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE `omphedwiguser` (
+  `hedwig_id` int(11) NOT NULL,
+  `omp_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`hedwig_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompkey` (
   `keystring` varchar(64) NOT NULL,
   `expiry` datetime NOT NULL
@@ -230,6 +235,14 @@ CREATE TABLE `ompprojaffiliation` (
   `affiliation` varchar(32) NOT NULL,
   `fraction` double NOT NULL,
   PRIMARY KEY (`projectid`,`affiliation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE `ompprojcont` (
+  `projectid` varchar(32) NOT NULL,
+  `semester` varchar(10) NOT NULL,
+  `requestid` varchar(32) NOT NULL,
+  PRIMARY KEY (`requestid`),
+  KEY `idx_projcont_id` (`projectid`),
+  KEY `idx_projcont_sem` (`semester`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompprojqueue` (
   `uniqid` bigint(20) NOT NULL AUTO_INCREMENT,

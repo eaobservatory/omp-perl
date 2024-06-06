@@ -274,7 +274,7 @@ if (any_err()) {
 }
 
 unless ($dry_run) {
-    OMP::Password->get_verified_auth('staff');
+    OMP::Password->get_verified_auth($db, 'staff');
 }
 
 # Loop over each project and add it in
