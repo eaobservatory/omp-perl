@@ -751,7 +751,7 @@ sub _sidebar_project {
         ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
         ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
         ['Target observability' => "/cgi-bin/sourceplot.pl?project=$projectid"],
-    ]) if $self->auth->is_staff;
+    ], project_id_panel => 1) if $self->auth->is_staff;
 }
 
 =item B<_sidebar_night>
