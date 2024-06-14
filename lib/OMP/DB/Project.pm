@@ -586,16 +586,33 @@ sub _updateUserFlag {
 
 Search for continuation records for the current project.
 
+    $contination = $projdb->get_project_continuation(%opts);
+
+Options include:
+
+=over 4
+
+=item reverse
+
+Search by continuation request ID rather than original project code.
+
+=back
+
 =cut
 
 sub get_project_continuation {
     my $self = shift;
+    my %opts = @_;
 
     my $id = $self->projectid;
 
+    my $column = $opts{'reverse'}
+        ? 'requestid'
+        : 'projectid';
+
     my $results = $self->_db_retrieve_data_ashash(
         'SELECT * FROM ' . $PROJCONTTABLE
-        . ' WHERE projectid = ?'
+        . ' WHERE ' . $column . ' = ?'
         . ' ORDER BY requestid DESC',
         $id);
 
