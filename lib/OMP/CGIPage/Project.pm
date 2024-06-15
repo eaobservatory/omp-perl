@@ -482,7 +482,15 @@ sub project_users {
     );
 
     # Get the project info
-    my $project = $db->projectDetails();
+    my $project = undef;
+    try {
+        $project = $db->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+    };
+
+    return $self->_write_not_found_page('Project not found.')
+        unless defined $project;
 
     # Get contacts
     my @contacts = $project->investigators;
@@ -579,7 +587,7 @@ sub support {
 
     # Verify that project exists
     my $verify = $projdb->verifyProject;
-    return $self->_write_error("No project with ID of [$projectid] exists.")
+    return $self->_write_not_found_page('Project not found.')
         unless $verify;
 
     # Get project details (as object)
@@ -697,7 +705,7 @@ sub alter_proj {
 
     # Verify that project exists
     my $verify = $projdb->verifyProject;
-    return $self->_write_error("No project with ID of [$projectid] exists.")
+    return $self->_write_not_found_page('Project not found.')
         unless $verify;
 
     # Retrieve the project object

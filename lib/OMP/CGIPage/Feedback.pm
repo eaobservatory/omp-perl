@@ -22,6 +22,7 @@ use Carp;
 
 use OMP::DateTools;
 use OMP::DB::Project;
+use OMP::Error qw/:try/;
 use OMP::CGIComponent::Feedback;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
@@ -49,7 +50,15 @@ sub add_comment {
 
     my $comp = OMP::CGIComponent::Feedback->new(page => $self);
 
-    my $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    my $project = undef;
+    try {
+        $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+    };
+
+    return $self->_write_not_found_page('Project not found.')
+        unless defined $project;
 
     if ($q->param('submit_add')) {
         return {
@@ -100,11 +109,19 @@ sub fb_output {
     my $self = shift;
     my $projectid = shift;
 
-    my $q = $self->cgi;
+    my $project = undef;
+    try {
+        $project = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+    };
+
+    return $self->_write_not_found_page('Project not found.')
+        unless defined $project;
 
     return {
         target => $self->url_absolute(),
-        project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
+        project => $project,
         feedback => OMP::CGIComponent::Feedback->new(page => $self)->fb_entries($projectid),
         display_date => sub {
             return OMP::DateTools->display_date($_[0]);

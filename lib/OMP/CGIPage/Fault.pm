@@ -1080,8 +1080,10 @@ sub _write_page_extra {
             croak "Unable to retrieve fault $faultid [$E]";
         };
 
-        croak "Unable to retrieve fault with id [$faultid]"
-            unless (defined $fault);
+        unless (defined $fault) {
+            $self->_write_not_found_page('Fault not found.');
+            return {abort => 1};
+        }
 
         $self->html_title($faultid . ': ' . $self->html_title());
         $cat = $fault->category;
