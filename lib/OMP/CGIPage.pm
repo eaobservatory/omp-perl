@@ -751,7 +751,7 @@ sub _sidebar_project {
         ['Edit project' => "/cgi-bin/alterproj.pl?project=$projectid"],
         ['Edit support ' => "/cgi-bin/edit_support.pl?project=$projectid"],
         ['Target observability' => "/cgi-bin/sourceplot.pl?project=$projectid"],
-    ]) if $self->auth->is_staff;
+    ], project_id_panel => 1) if $self->auth->is_staff;
 }
 
 =item B<_sidebar_night>
@@ -861,28 +861,67 @@ sub _write_forbidden {
 
 =item B<_write_error>
 
-Create a page with an error message.
+Create an internal server error page.
 
     $page->_write_error('Message', ...);
 
-This method includes a header and footer.
+Calls C<_write_error_page> with status 500.
 
 =cut
 
 sub _write_error {
     my $self = shift;
+
+    return $self->_write_error_page(
+        '500 Internal Server Error', 'Error', @_);
+}
+
+=item B<_write_error_page>
+
+Create a page with an error message.
+
+    $page->_write_error_page('Status description', $title, @messages);
+
+This method includes a header and footer.
+
+=cut
+
+sub _write_error_page {
+    my $self = shift;
+    my $status = shift;
+    my $title = shift;
     my %opt = ();
 
-    $self->_write_http_header('500 Internal Server Error', \%opt);
+    $self->_write_http_header($status, \%opt);
 
     $self->render_template(
         'error.html', {
             %{$self->_write_page_context_extra(\%opt)},
-            error_title => 'Error',
+            error_title => $title,
             error_messages => \@_,
         });
 
     return undef;
+}
+
+=item B<_write_not_found_page>
+
+Create a not found page.
+
+    $page->_write_not_found_page('Message', ...);
+
+Calls C<_write_error_page> with status 404.
+
+B<Note:> for resource-fetching scripts, the basic C<_write_not_found>
+method may be preferable.
+
+=cut
+
+sub _write_not_found_page {
+    my $self = shift;
+
+    return $self->_write_error_page(
+        '404 Not Found', 'Not Found', @_);
 }
 
 =item B<_write_not_found>

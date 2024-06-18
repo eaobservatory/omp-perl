@@ -47,9 +47,21 @@
                             <form method="get" action="/cgi-bin/viewfault.pl" enctype="multipart/form-data">
                                 Fault ID
                                 <br />
-                                <input type="text" name="fault"  size="12" maxlength="20" />
+                                <input type="text" name="fault" size="12" maxlength="20" />
                                 <br />
                                 <input type="submit" name="" value="View fault" />
+                            </form>
+                        </li>
+                    [% END %]
+                    [% IF side_bar.options.project_id_panel %]
+                        <li>&nbsp;</li>
+                        <li>
+                            <form method="get" action="/cgi-bin/projecthome.pl" enctype="multipart/form-data">
+                                Project ID
+                                <br />
+                                <input type="text" name="project" size="12" maxlength="20" />
+                                <br />
+                                <input type="submit" name="" value="View project" />
                             </form>
                         </li>
                     [% END %]

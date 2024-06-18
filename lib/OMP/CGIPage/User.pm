@@ -70,7 +70,7 @@ sub details {
     return $self->_write_error("Unable to retrieve user: $E")
         if defined $E;
 
-    return $self->_write_error("Unable to retrieve details for unknown user [" . $userid . "]")
+    return $self->_write_not_found_page('User "' . $userid . '" not found.')
         unless $user;
 
     my $hodb = OMP::DB::Hedwig2OMP->new(DB => $self->database);
@@ -212,9 +212,8 @@ sub edit_details {
     my $udb = OMP::DB::User->new(DB => $self->database);
     my $user = $udb->getUser($userid);
 
-    unless (defined $user) {
-        return $self->_write_error("User [$userid] does not exist in the database.");
-    }
+    return $self->_write_not_found_page('User "' . $userid . '" not found.')
+        unless defined $user;
 
     my @messages;
 

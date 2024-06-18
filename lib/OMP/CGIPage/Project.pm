@@ -245,7 +245,25 @@ sub project_home {
 
     # Get the project details
     my $projdb = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid);
-    my $project = $projdb->projectDetails();
+
+    my $project = undef;
+    try {
+        $project = $projdb->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+    };
+
+    unless (defined $project) {
+        my $reverse = $projdb->get_project_continuation(reverse => 1);
+
+        if (@$reverse) {
+            return $self->_write_redirect(
+                '/cgi-bin/projecthome.pl?project=' . $reverse->[0]->{'projectid'});
+        }
+
+        return $self->_write_not_found_page('Project not found.');
+    }
+
     my $continuation = $projdb->get_project_continuation();
 
     # Get nights for which data was taken
@@ -464,7 +482,15 @@ sub project_users {
     );
 
     # Get the project info
-    my $project = $db->projectDetails();
+    my $project = undef;
+    try {
+        $project = $db->projectDetails();
+    }
+    catch OMP::Error::UnknownProject with {
+    };
+
+    return $self->_write_not_found_page('Project not found.')
+        unless defined $project;
 
     # Get contacts
     my @contacts = $project->investigators;
@@ -561,7 +587,7 @@ sub support {
 
     # Verify that project exists
     my $verify = $projdb->verifyProject;
-    return $self->_write_error("No project with ID of [$projectid] exists.")
+    return $self->_write_not_found_page('Project not found.')
         unless $verify;
 
     # Get project details (as object)
@@ -679,7 +705,7 @@ sub alter_proj {
 
     # Verify that project exists
     my $verify = $projdb->verifyProject;
-    return $self->_write_error("No project with ID of [$projectid] exists.")
+    return $self->_write_not_found_page('Project not found.')
         unless $verify;
 
     # Retrieve the project object
