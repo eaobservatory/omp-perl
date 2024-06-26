@@ -172,6 +172,9 @@ while (my ($proj, $first) = $sth->fetchrow_array()) {
 my %proj_by_support;
 for my $project (@$projects) {
     for my $support ($project->support) {
+        # Skip support without email address.
+        next unless $support->email;
+
         my $userid = $support->userid;
         $proj_by_support{$userid} = {
             user => $support,
