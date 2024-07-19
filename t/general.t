@@ -20,12 +20,12 @@
 
 use strict;
 use Test::More tests => 2
-    + 19 # infer
+    + 20 # infer
     + 3
     + 10 # bands
     + 18
     + 35 # project extract
-    + 3 # project extract fail
+    + 5 # project extract fail
     + 1 # fault extract
     + 1 # fault extract fail
     + 9;
@@ -61,6 +61,12 @@ my @input = (
     {
         projectid => 'tj125',
         result => 'tj125',
+    },
+    {
+        projectid => 'ec34',
+        semester => '12a',
+        telescope => 'jcmt',
+        result => 'm12aec34',
     },
 
     # JCMT service
@@ -265,6 +271,8 @@ my @fail = (
     '[su03]',
     '[sc04]',
     '[s06]',
+    '[ec12]',
+    '[ec09]',
 );
 for my $string (@fail) {
     is(OMP::General->extract_projectid($string),
