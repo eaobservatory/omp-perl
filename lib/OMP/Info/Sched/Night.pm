@@ -32,6 +32,7 @@ __PACKAGE__->CreateAccessors(
     staff_op => '$',
     staff_eo => '$',
     staff_it => '$',
+    staff_po => '$',
     notes => '$',
     notes_private => '$',
     slots => '@OMP::Info::Sched::Slot',
@@ -175,7 +176,7 @@ sub stringify {
     return $self->date_local()->strftime('%Y-%m-%d')
         . ($self->holiday() ? ' H ' : ($self->date_local()->day_of_week =~ /[06]/ ? ' S ' : '   '))
         . sprintf('%-10.10s %-10.10s %-10.10s %-20.20s',
-            $self->staff_op(), $self->staff_eo(), $self->staff_it(), $self->notes())
+            $self->staff_po(), $self->staff_op(), $self->staff_eo(), $self->notes())
         . ' ' . ((defined $self->queue()) ? $self->queue() : '??')
         . ' ['
         . ((defined $self->slots()) ? (join ' ', map {$_->stringify()} @{$self->slots()}) : '--')

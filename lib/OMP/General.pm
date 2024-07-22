@@ -138,7 +138,8 @@ sub infer_projectid {
     # return it - padding the number)
     if ($projid !~ /^s[uic]\d\d/aai
             && $projid =~ /^([A-Za-z]{2,}?)(\d+)$/a) {
-        return $1 . sprintf("%02d", $2);
+        return $1 . sprintf("%02d", $2)
+            unless 'EC' eq uc $1;
     }
 
     # We need a guess at a telescope before we can guess a semester.
@@ -227,10 +228,15 @@ sub extract_projectid {
             or $string =~ /\b(nls\d+)\b/aai                  # JCMT Dutch service (deprecated format)
             or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai     # SHADES proposal
             or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai    # Things like JCMTCAL
-            or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai     # Staff projects TJ02
-                && $string !~ /\bs[uinc]\d+\b/aai            # but not JCMT service abbrev
-            )) {
+            ) {
         $projid = $1;
+    }
+
+    if ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai) {          # Staff projects TJ02
+        $projid = $1;
+        undef $projid
+            if $projid =~ /^s[uinc]\d+$/aai                  # but not JCMT service abbrev
+            or $projid =~ /^ec\d+$/aai;                      # or E&C abbrev
     }
 
     return $projid;

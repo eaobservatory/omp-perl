@@ -6,6 +6,12 @@
         <th style="text-align: left;">User ID</th>
         <td>[% user.userid | html %]</td>
     </tr>
+    [% IF user.alias %]
+        <tr>
+            <th style="text-align: left;">Alias</th>
+            <td>[% user.alias | html %]</td>
+        </tr>
+    [% END %]
     <tr>
         <th style="text-align: left;">Name</th>
         <td>[% user.name | html %]</td>

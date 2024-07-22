@@ -171,6 +171,7 @@ sub sched_edit {
             $day->staff_op(_str_or_undef(scalar $q->param('staff_op_' . $date_str)));
             $day->staff_eo(_str_or_undef(scalar $q->param('staff_eo_' . $date_str)));
             $day->staff_it(_str_or_undef(scalar $q->param('staff_it_' . $date_str)));
+            $day->staff_po(_str_or_undef(scalar $q->param('staff_po_' . $date_str)));
             $day->notes(_str_or_undef(scalar $q->param('notes_' . $date_str)));
             $day->notes_private((scalar $q->param('notes_private_' . $date_str)) ? 1 : 0);
             $day->holiday((scalar $q->param('holiday_' . $date_str)) ? 1 : 0);
@@ -357,6 +358,7 @@ sub _create_calendar {
         ['Night', 'staff_op', 0],
         ['Morning', 'staff_eo', 1],
         ['IT', 'staff_it', 0],
+        ['Pre-obs', 'staff_po', 0],
     );
 
     # Assemble hash of nights by "next" date string.  This will allow us to
