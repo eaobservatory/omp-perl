@@ -279,6 +279,7 @@ CREATE TABLE `ompsched` (
   `staff_it` varchar(80) DEFAULT NULL,
   `notes` varchar(80) DEFAULT NULL,
   `notes_private` tinyint(1) NOT NULL DEFAULT 0,
+  `staff_po` varchar(80) DEFAULT NULL,
   PRIMARY KEY (`telescope`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 CREATE TABLE `ompschedcal` (
