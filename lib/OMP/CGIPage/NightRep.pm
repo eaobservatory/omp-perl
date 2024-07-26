@@ -182,7 +182,6 @@ sub night_report {
     my $delta;
     my $utdate;
     my $utdate_end;
-    my $start;
 
     if ($q->param('utdate_end')) {
         # Get delta and start UT date from multi night form
@@ -199,9 +198,7 @@ sub night_report {
                                       # to include last day
     }
     else {
-        ($utdate, my $utdate_today) = $self->_get_utdate();
-
-        $start = substr($utdate->ymd(), 0, 8) if $utdate_today;
+        $utdate = $self->_get_utdate();
 
         # Get delta from URL
         if ($q->param('delta')) {
@@ -218,8 +215,6 @@ sub night_report {
 
             # Subtract delta (days) from date if we have a delta
             $utdate = $utdate_end - ($delta - 1) * ONE_DAY;
-
-            undef $start;
         }
     }
 
@@ -263,11 +258,6 @@ sub night_report {
         }
     }
 
-    my ($prev, $next);
-    unless ($delta) {
-        ($prev, $next) = $comp->date_prev_next($utdate);
-    }
-
     # NOTE: disabled as we currently don't have fits in the OMP.
     # taufits: $weathercomp->tau_plot($utdate),
     # NOTE: also currently disabled?
@@ -287,9 +277,6 @@ sub night_report {
         ut_date => $utdate,
         ut_date_end => $utdate_end,
         ut_date_delta => $delta,
-        ut_date_prev => $prev,
-        ut_date_next => $next,
-        ut_date_start => $start,    # starting value for form
 
         night_report => $nr,
         sched_night => $sched_night,
@@ -622,15 +609,11 @@ sub time_accounting {
         }
     }
 
-    my ($prev, $next) = $comp->date_prev_next($utdate);
-
     $self->_sidebar_night($tel, $utdate);
 
     return {
         telescope => $tel,
         ut_date => $utdate,
-        ut_date_prev => $prev,
-        ut_date_next => $next,
         target => $q->url(-absolute => 1, -query => 0),
         warnings => $warnings,
         errors => \@errors,
@@ -681,7 +664,6 @@ sub _get_utdate {
 
     my $datestr = $self->cgi->param($param);
 
-    my $today = 0;
     my $utdate;
     if ($datestr) {
         $utdate = OMP::DateTools->parse_date($datestr);
@@ -693,11 +675,9 @@ sub _get_utdate {
     else {
         # No UT date in URL.  Use current date.
         $utdate = OMP::DateTools->today(1);
-        $today = 1;
     }
 
-    return $utdate unless wantarray;
-    return ($utdate, $today);
+    return $utdate;
 }
 
 1;

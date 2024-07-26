@@ -28,6 +28,8 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use JSON;
+use Time::Piece;
+use Time::Seconds qw/ONE_DAY/;
 use Template;
 use Template::Context;
 use Template::Stash;
@@ -590,6 +592,18 @@ sub render_template {
                 OMP::CGIPage::Counter->new(@_);
             },
         },
+    });
+
+    # Methods "date_prev" and "date_next" apply
+    # to Time::Piece objects -- these are blessed arrays.
+    $templatecontext->define_vmethod('array', 'date_prev', sub {
+        my $utdate = shift;
+        return scalar gmtime($utdate->epoch() - ONE_DAY());
+    });
+
+    $templatecontext->define_vmethod('array', 'date_next', sub {
+        my $utdate = shift;
+        return scalar gmtime($utdate->epoch() + ONE_DAY());
     });
 
     $templatecontext->define_vmethod('hash', 'json', sub {
