@@ -1,41 +1,16 @@
+[% PROCESS "macro_general.html" -%]
 [% PROCESS "macro_shift_log.html" -%]
 [% WRAPPER "layout.html" %]
 
-<form method="get" action="[% target_base %]">
-    <table>
-        <tr>
-            <td>Date:</td>
-            <td>
-                <input type="text" name="date" value="[% values.date | html %]" size="16" maxlength="10"/>&nbsp;UT
-                (yyyy-mm-dd format)
-            </td>
-        </tr>
-        <tr>
-            <td>Telescope:</td>
-            <td>
-                [% FOREACH value IN telescopes %]
-                    <label>
-                        <input type="radio" name="telescope" value="[% value | html%]" [% IF value == values.telescope %]checked="checked"[% END %] />
-                        [% value | html %]
-                    </label>
-                [% END %]
-            </td>
-        </tr>
-        <tr>
-            <td>&nbsp;</td>
-            <td>
-                <input type="submit" name="" value="Change date / telescope" />
-                [% IF project_id.defined %]
-                    <input type="hidden" name="project" value="[% project_id | html %]" />
-                [% END %]
-            </td>
-        </tr>
-    </table>
-</form>
+<h1>Shift comments for [% values.telescope | html %] on [% values.date.ymd %]</h1>
+
+[% SET target_fields = {telescope => values.telescope} %]
+[% IF project_id.defined %]
+    [% SET target_fields.project = project_id %]
+[% END %]
+[% render_date_select(target_base, values.date, target_fields, '') %]
 
 <hr />
-
-<h1>Shift comments for [% values.telescope | html %] on [% values.date %]</h1>
 
 [% render_shift_log_entries(comments, 0) %]
 

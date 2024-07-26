@@ -93,14 +93,12 @@ sub parse_query {
 
     # Date. This is in yyyy-mm-dd format. If it is not set, it
     # will default to the current UT date.
-    my $date = $self->page->decoded_url_param('date');
+    my $date = $self->page->decoded_url_param('utdate');
     if ($date) {
-        my $dateobj = OMP::DateTools->parse_date($date);
-        $return{'date'} = $dateobj->ymd;
+        $return{'date'} = OMP::DateTools->parse_date($date);
     }
     else {
-        my $dateobj = gmtime;
-        $return{'date'} = $dateobj->ymd;
+        $return{'date'} = gmtime;
     }
 
     # Time. This is in hh:mm:ss or hhmmss format. If it is not set, it
@@ -196,7 +194,7 @@ sub submit_comment {
     my $telescope = $v->{'telescope'};
     my $zone = $v->{'zone'};
     my $entryzone = $v->{'entryzone'};
-    my $date = $v->{'date'};
+    my $date = $v->{'date'}->ymd;
     my $time = $v->{'time'};
     my $text = $v->{'text'};
 

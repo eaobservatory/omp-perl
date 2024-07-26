@@ -80,7 +80,6 @@ sub shiftlog_page {
         target_base => $q->url(-absolute => 1),
         project_id => $projectid,
         values => $parsed,
-        telescopes => [sort map {uc} OMP::Config->telescopes()],
 
         comments => $comp->get_shift_comments($parsed),
     };
