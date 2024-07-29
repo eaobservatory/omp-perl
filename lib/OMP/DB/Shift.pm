@@ -48,9 +48,7 @@ our $DEBUG = 1;
 
 =item B<enterShiftLog>
 
-Add a comment to the shift log database. A comment is uniquely
-identified in the shift log database using a combination of
-author and date of entry.
+Add a comment to the shift log database.
 
     $db->enterShiftLog($comment, $telescope);
 
@@ -82,50 +80,52 @@ sub enterShiftLog {
         throw OMP::Error::BadArgs("Date not supplied with comment");
     }
 
-    # $date -= $date->sec;
-
     # Ensure that a telescope is supplied.
     if ((! defined($telescope))
             || (length($telescope . '') == 0)) {
         throw OMP::Error::BadArgs("Telescope not supplied");
     }
 
-    # Retrieve any comment that has the same combination of
-    # author, date and telescope as the current one.
-
-    # Form a query
-    my $query = OMP::Query::Shift->new(HASH => {
-        author => $author->userid,
-        date => $date->strftime("%Y-%m-%dT%H:%M:%S"),
-        telescope => (UNIVERSAL::isa($telescope, "Astro::Telescope")
-            ? uc($telescope->name)
-            : uc($telescope)),
-    });
-
-    my @result = $self->_fetch_shiftlog_info($query);
-    my $id = $result[0]->{shiftid};
-
     # Lock the database and wrap all this in a transaction
     $self->_db_begin_trans;
     $self->_dblock;
 
-    if (defined($id)) {
-        # We're updating.
-        $self->_update_shiftlog($id, $comment);
-    }
-    else {
-        # We're inserting.
-        $self->_insert_shiftlog($comment, uc($telescope));
-    }
+    $self->_insert_shiftlog($comment, $telescope);
 
     # End transaction
     $self->_dbunlock;
     $self->_db_commit_trans;
 
     # Add the writing of the comment to the logs
-    my $logmessage =
-        sprintf("OMP::DB::Shift: %s %.50s", $author->userid, $comment->text);
-    OMP::General->log_message($logmessage);
+    OMP::General->log_message(
+        sprintf 'OMP::DB::Shift: %s %.50s',
+        $author->userid, $comment->text);
+}
+
+=item B<updateShiftLog>
+
+Update a comment in the shift log database.
+
+    $db->updateShiftLog($comment);
+
+The $comment argument passed to the method is an C<Info::Comment> object,
+which must have an "id" attribute identifying the entry to update.
+
+=cut
+
+sub updateShiftLog {
+    my $self = shift;
+    my $comment = shift;
+
+    my $id = $comment->id;
+
+    $self->_db_begin_trans;
+    $self->_dblock;
+
+    $self->_update_shiftlog($id, $comment);
+
+    $self->_dbunlock;
+    $self->_db_commit_trans;
 }
 
 =item B<getShiftLogs>

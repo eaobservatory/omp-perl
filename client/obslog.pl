@@ -2092,47 +2092,61 @@ sub save_shift_comment {
     my $commenttext = shift;
     my $TZ = shift;
     my $time = shift;
+    my $shiftid = shift;
 
     return unless $commenttext =~ /\w/;
 
     # Use current date if the field is blank
     my $date;
 
-    if (defined $time && $time =~ /\d/a) {
-        # Now need to parse the time (either as UT or local time)
-        my $islocal = ($TZ eq 'UT' ? 0 : 1);
-        $date = OMP::DateTools->parse_date($time, $islocal);
+    unless (defined $shiftid) {
+        if (defined $time && $time =~ /\d/a) {
+            # Now need to parse the time (either as UT or local time)
+            my $islocal = ($TZ eq 'UT' ? 0 : 1);
+            $date = OMP::DateTools->parse_date($time, $islocal);
 
-        # if it did not parse tell people
-        unless (defined $date) {
-            # popup the error and return
-            require Tk::Dialog;
-            my $dialog = $w->Dialog(
-                -text => 'Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS',
-                -title => 'Error parsing time',
-                -buttons => ['Abort'],
-                -bitmap => 'error',
-                -font => $opt{'font-var'},
-            );
+            # if it did not parse tell people
+            unless (defined $date) {
+                # popup the error and return
+                require Tk::Dialog;
+                my $dialog = $w->Dialog(
+                    -text => 'Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS',
+                    -title => 'Error parsing time',
+                    -buttons => ['Abort'],
+                    -bitmap => 'error',
+                    -font => $opt{'font-var'},
+                );
 
-            $dialog->Show;
-            return;
+                $dialog->Show;
+                return;
+            }
         }
-    }
-    else {
-        $date = gmtime();
+        else {
+            $date = gmtime();
+        }
     }
 
     # Now create the comment
-    my $comment = OMP::Info::Comment->new(
-        author => $user,
-        date => $date,
-        text => $commenttext,
-    );
-
     # And add it to the system
     my $sdb = OMP::DB::Shift->new(DB => $dbb);
-    $sdb->enterShiftLog($comment, $telescope);
+
+    unless (defined $shiftid) {
+        my $comment = OMP::Info::Comment->new(
+            author => $user,
+            date => $date,
+            text => $commenttext,
+        );
+
+        $sdb->enterShiftLog($comment, $telescope);
+    }
+    else {
+        my $comment = OMP::Info::Comment->new(
+            text => $commenttext,
+            id => $shiftid,
+        );
+
+        $sdb->updateShiftLog($comment);
+    }
 }
 
 sub raise_shift_comment {
@@ -2142,6 +2156,7 @@ sub raise_shift_comment {
 
     my $TZ = 'LocalTime';
     my $RefTime;
+    my $shiftid = undef;
 
     my $ShiftCommentWindow = $MainWindow->Toplevel();
     $ShiftCommentWindow->title('OMP Shift Log Tool Commenting System');
@@ -2194,7 +2209,7 @@ sub raise_shift_comment {
         -text => 'Save',
         -command => sub {
             my $t = $scrolledComment->get('0.0', 'end',);
-            save_shift_comment($entryFrame, $t, $TZ, $RefTime);
+            save_shift_comment($entryFrame, $t, $TZ, $RefTime, $shiftid);
             populate_shiftlog_widget();
             CloseWindow($ShiftCommentWindow);
         },
@@ -2261,6 +2276,7 @@ sub raise_shift_comment {
 
         # And the comment time (which is always UT) into the box. Disable
         # the update and don't let the user update the time either.
+        $shiftid = $comment->id;
         $TZ = 'UT';
         $RefTime = $comment->date->ymd . 'T' . $comment->date->hms;
         $repeatid->cancel;
