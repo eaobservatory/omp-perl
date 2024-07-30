@@ -147,9 +147,10 @@ sub getShiftLogs {
 
     if (! defined($query_hash->{date})
             && ! defined($query_hash->{author})
-            && ! defined($query_hash->{telescope})) {
-        OMP::Error::FatalError(
-            "Must supply one of userid, date, or telescope.");
+            && ! defined($query_hash->{telescope})
+            && ! defined($query_hash->{shiftid})) {
+        throw OMP::Error::FatalError(
+            "Must supply one of shiftid, userid, date, or telescope.");
     }
 
     my @results = $self->_fetch_shiftlog_info($query);
@@ -233,6 +234,7 @@ sub _reorganize_shiftlog {
             author => $users->{$row->{'author'}},
             relevance => $row->{'relevance'},
             id => $row->{'shiftid'},
+            telescope => $row->{'telescope'},
         );
     }
 

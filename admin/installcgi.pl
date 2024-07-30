@@ -86,7 +86,7 @@ my @pubfiles = qw/
     projecthome.pl projusers.pl props.pl pubsched.pl
     qstatus.pl queryfault.pl retrieve_data.pl
     sched.pl schedcal.pl schedcallist.pl schedstat.pl
-    searchobslog.pl searchshiftlog.pl shiftlog.pl
+    searchobslog.pl searchshiftlog.pl shiftlog.pl shiftlogedit.pl
     sourceplot.pl spregion.pl spsummary.pl
     spsrv.pl staffobscomment.pl
     staffworf.pl staffworfthumb.pl staffworfimage.pl

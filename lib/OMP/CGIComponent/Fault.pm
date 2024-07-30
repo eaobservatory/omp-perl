@@ -323,17 +323,7 @@ sub file_fault_form {
         # Projects associated with this fault
         my @assoc = $fault->projects;
 
-        # The fault text.  If preformatted, strip out <PRE> tags.  If there
-        # aren't any <PRE> tags assume this fault used explicit HTML formatting.
-        my $message = $fault->responses->[0]->text;
-        if ($fault->responses->[0]->preformatted) {
-            if ($message =~ m!^<pre>(.*?)</pre>$!is) {
-                $message = OMP::Display->replace_entity($1);
-            }
-            else {
-                $message = OMP::Display->html2plain($message);
-            }
-        }
+        my $message = OMP::Display->prepare_edit_text($fault->responses->[0]);
 
         %defaults = (
             system => $fault->system,
@@ -454,17 +444,7 @@ sub response_form {
         # Setup defaults for response editing
         $resp = $fault->getResponse($respid);
 
-        my $text = $resp->text;
-
-        if ($resp->preformatted) {
-            # Prepare text for editing
-            if ($text =~ m!^<pre>(.*?)</pre>$!is) {
-                $text = OMP::Display->replace_entity($1);
-            }
-            else {
-                $text = OMP::Display->html2plain($text);
-            }
-        }
+        my $text = OMP::Display->prepare_edit_text($resp);
 
         %defaults = (
             text => $text,

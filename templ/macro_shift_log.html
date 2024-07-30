@@ -1,4 +1,4 @@
-[% MACRO render_shift_log_entries(comments, multiple_night) BLOCK %]
+[% MACRO render_shift_log_entries(comments, multiple_night, allow_edit) BLOCK %]
     <table class="sum_table" cellspacing="0" width="800">
         [% SET bgcolor = 'b' %]
         [% FOREACH date IN comments %]
@@ -7,6 +7,9 @@
                     <tr class="sum_other" valign="top">
                         <td class="[% timecellclass _ '_' _ bgcolor %]" colspan="2">[% date.key | html %]</td>
                         <td>&nbsp;</td>
+                        [% IF allow_edit %]
+                            <td>&nbsp;</td>
+                        [% END %]
                     </tr>
             [% ELSE %]
                 [% SET timecellclass = 'time' %]
@@ -17,6 +20,11 @@
                     <td width="90" class="[% timecellclass _ '_' _ bgcolor %]">
                         [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
                     <td class="subject">[% comment.remove_pre_tags %]</td>
+                    [% IF allow_edit %]
+                        <td width="40" class="subject">
+                            <a href="/cgi-bin/shiftlogedit.pl?shiftid=[% comment.id | uri %]">Edit</a>
+                        </td>
+                    [% END %]
                 </tr>
                 [% SET bgcolor = ((bgcolor == 'a') ? 'b' : 'a') %]
             [% END %]

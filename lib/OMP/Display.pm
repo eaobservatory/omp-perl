@@ -260,6 +260,35 @@ sub wrap_text {
     return wrap($indentstr, $indentstr, $text);
 }
 
+=item B<prepare_edit_text>
+
+Prepare text for editing.  If the comment is "preformatted",
+remove enclosing E<lt>preE<gt> tags or convert to plain text
+with C<html2plain>.  Otherwise return the (non-preformatted)
+text as-is.
+
+Accepts an object with C<text> and C<preformatted> accessors.
+
+=cut
+
+sub prepare_edit_text {
+    my $self = shift;
+    my $comment = shift;
+
+    my $text = $comment->text;
+
+    if ($comment->preformatted) {
+        if ($text =~ m/^<pre>(.*?)<\/pre>$/is) {
+            $text = OMP::Display->replace_entity($1);
+        }
+        else {
+            $text = OMP::Display->html2plain($text);
+        }
+    }
+
+    return $text;
+}
+
 1;
 
 __END__

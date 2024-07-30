@@ -12,33 +12,35 @@
 
 <hr />
 
-[% render_shift_log_entries(comments, 0) %]
+[% render_shift_log_entries(comments, 0, allow_edit) %]
 
-<hr />
+[% IF allow_edit %]
+    <hr />
 
-<form method="post" action="[% target %]">
-    <table border="0">
-        <tr>
-            <td>Author:</td>
-            <td>[% omp_user.name | html %]</td>
-        </tr>
-        <tr valign="top">
-            <td>Time:</td>
-            <td>
-                <input type="text" name="time" size="16" maxlength="8" />&nbsp;[% values.entryzone | html %]
-                (HHMMSS or HH:MM:SS, 24hr format)
-                <br />
-                (will default to current time if blank)
-            </td>
-        </tr>
-        <tr valign="top">
-            <td>Comment:</td>
-            <td><textarea name="text" rows="15" cols="50"></textarea></td>
-        </tr>
-        <tr>
-            <td>&nbsp;</td>
-            <td><input type="submit" name="submit_comment" value="Submit Comment" /></td>
-        </tr>
-    </table>
-</form>
+    <form method="post" action="[% target %]">
+        <table border="0">
+            <tr>
+                <td>Author:</td>
+                <td>[% omp_user.name | html %]</td>
+            </tr>
+            <tr valign="top">
+                <td>Time:</td>
+                <td>
+                    <input type="text" name="time" size="16" maxlength="8" />&nbsp;[% values.entryzone | html %]
+                    (HHMMSS or HH:MM:SS, 24hr format)
+                    <br />
+                    (will default to current time if blank)
+                </td>
+            </tr>
+            <tr valign="top">
+                <td>Comment:</td>
+                <td><textarea name="text" rows="15" cols="70"></textarea></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td><input type="submit" name="submit_comment" value="Submit Comment" /></td>
+            </tr>
+        </table>
+    </form>
+    [% END %]
 [% END %]

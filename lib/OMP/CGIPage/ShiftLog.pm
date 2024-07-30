@@ -52,12 +52,14 @@ sub shiftlog_page {
     my $self = shift;
     my $projectid = shift;
 
+    my $allow_edit = (not defined $projectid);
+
     my $q = $self->cgi;
     my $comp = OMP::CGIComponent::ShiftLog->new(page => $self);
 
     my $parsed = $comp->parse_query();
 
-    if ($q->param('submit_comment')) {
+    if ($allow_edit and $q->param('submit_comment')) {
         my $E;
         try {
             $comp->submit_comment($parsed);
@@ -80,8 +82,73 @@ sub shiftlog_page {
         target_base => $q->url(-absolute => 1),
         project_id => $projectid,
         values => $parsed,
+        allow_edit => $allow_edit,
 
         comments => $comp->get_shift_comments($parsed),
+    };
+}
+
+=item B<shiftlog_edit>
+
+Page allowing an existing shift log entry to be edited.
+
+=cut
+
+sub shiftlog_edit {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    my @messages = ();
+    my $id = $self->decoded_url_param('shiftid');
+
+    return $self->_write_error('Shift log entry ID not given.')
+        unless defined $id;
+
+    my $sdb = OMP::DB::Shift->new(DB => $self->database);
+    my @result = $sdb->getShiftLogs(
+        OMP::Query::Shift->new(HASH => {shiftid => $id}));
+
+    return $self->_write_not_found_page('Shift log entry not found.')
+        unless @result;
+    die 'Multiple entries' if 1 < scalar @result;
+
+    my $comment = $result[0];
+    die 'Retrieved entry has wrong ID'
+        unless $comment->id == $id;
+
+    if ($q->param('submit_edit')) {
+        my $text = $q->param('text');
+        $text =~ s/^\s+//s;
+        $text =~ s/\s+$//s;
+        $comment->text($text);
+        $comment->preformatted(0);
+
+        my $E;
+        try {
+            $sdb->updateShiftLog($comment);
+        }
+        otherwise {
+            $E = shift;
+        };
+
+        if (defined $E) {
+            push @messages,
+                'Error storing updated shift comment: ' . $E;
+        }
+        else {
+            return $self->_write_redirect(
+                sprintf '/cgi-bin/shiftlog.pl?utdate=%s&telescope=%s',
+                $comment->date->ymd, $comment->telescope);
+        }
+    }
+
+    return {
+        target => $self->url_absolute(),
+        messages => \@messages,
+        values => {
+            text => OMP::Display->prepare_edit_text($comment),
+            author => $comment->author,
+        },
     };
 }
 
