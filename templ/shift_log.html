@@ -20,25 +20,30 @@
     <form method="post" action="[% target %]">
         <table border="0">
             <tr>
-                <td>Author:</td>
+                <td><b>User:</b></td>
                 <td>[% omp_user.name | html %]</td>
             </tr>
             <tr valign="top">
-                <td>Time:</td>
+                <td><b>Time:</b></td>
                 <td>
-                    <input type="text" name="time" size="16" maxlength="8" />&nbsp;[% values.entryzone | html %]
-                    (HHMMSS or HH:MM:SS, 24hr format)
+                    <input type="text" name="time" size="16" maxlength="8" value="[% values.time | html %]" />
+                    &nbsp;
+                    <select name="entryzone">
+                        [% FOREACH tz IN ['UT', 'HST'] %]
+                            <option [% IF tz == values.entryzone %]selected="selected"[% END %] value="[% tz %]">[% tz %]</option>
+                        [% END %]
+                    </select>
                     <br />
-                    (will default to current time if blank)
+                    <small>(HHMMSS or HH:MM:SS, 24 hour format, current time if blank)</small>
                 </td>
             </tr>
             <tr valign="top">
-                <td>Comment:</td>
-                <td><textarea name="text" rows="15" cols="70"></textarea></td>
+                <td>&nbsp;</td>
+                <td><textarea name="text" rows="15" cols="70">[% values.text | html %]</textarea></td>
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td><input type="submit" name="submit_comment" value="Submit Comment" /></td>
+                <td><input type="submit" name="submit_comment" value="Submit comment" /></td>
             </tr>
         </table>
     </form>

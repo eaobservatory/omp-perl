@@ -435,7 +435,6 @@ sub projlog_content {
         shift_log_comments => $shiftcomp->get_shift_comments({
             date => $utdate,
             telescope => $telescope,
-            zone => "UT",
         }),
 
         dq_nightly_html => $includecomp->include_file_ut(

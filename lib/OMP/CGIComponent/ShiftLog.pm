@@ -26,6 +26,7 @@ use warnings;
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use OMP::DateTools;
+use Scalar::Util qw/blessed/;
 use Time::Piece;
 use Time::Seconds;
 
@@ -65,19 +66,6 @@ sub parse_query {
         ($return{'telescope'} = $telescope) =~ s/\W//ag;
     }
 
-    # Time Zone for display. This is either UT or HST. Defaults to UT.
-    if (exists($vars->{'zone'})) {
-        if ($vars->{'zone'} =~ /hst/i) {
-            $return{'zone'} = 'HST';
-        }
-        else {
-            $return{'zone'} = 'UT';
-        }
-    }
-    else {
-        $return{'zone'} = 'UT';
-    }
-
     # Time Zone for entry. This is either UT or HST. Defaults to HST.
     if (exists($vars->{'entryzone'})) {
         if ($vars->{'entryzone'} =~ /ut/i) {
@@ -103,12 +91,11 @@ sub parse_query {
 
     # Time. This is in hh:mm:ss or hhmmss format. If it is not set, it
     # will default to the current local time.
-    if (exists($vars->{'time'}) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/a) {
-        $return{'time'} = "$1:$2:$3";
+    if (exists($vars->{'time'}) && $vars->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)?/a) {
+        $return{'time'} = join ':', $1, $2, ($3 // '00');
     }
     else {
-        my $dateobj = localtime;
-        $return{'time'} = $dateobj->hms;
+        $return{'time'} = '';
     }
 
     # Text. Anything goes, but leading/trailing whitespace is stripped.
@@ -129,9 +116,6 @@ Gets shift comments for a given date.
 The first argument is a hash reference to a verified
 query (see B<parse_query>),
 
-Note that timestamps on comments will always be displayed
-in HST regardless of the timezone setting.
-
 This function will print nothing if neither the telescope
 nor date are given in the verified query.
 
@@ -144,20 +128,9 @@ sub get_shift_comments {
     return unless defined $v->{'telescope'};
     return unless defined $v->{'date'};
 
-    my $date = $v->{'date'};
+    my $ut = $v->{'date'};
+    $ut = $ut->ymd if blessed $ut;
     my $telescope = $v->{'telescope'};
-
-    # If the date given is in HST, we need to convert it to UT so the query
-    # knows how to deal with it.
-    my $ut;
-    if ($v->{'zone'} =~ /HST/i) {
-        my $hstdate = Time::Piece->strptime($date, "%Y-%m-%d");
-        my $utdate = $hstdate + 10 * ONE_HOUR;
-        $ut = $utdate->datetime;
-    }
-    else {
-        $ut = $date;
-    }
 
     # Form the query.
     my $query = OMP::Query::Shift->new(HASH => {
@@ -192,7 +165,6 @@ sub submit_comment {
     return unless defined $v->{'text'};
 
     my $telescope = $v->{'telescope'};
-    my $zone = $v->{'zone'};
     my $entryzone = $v->{'entryzone'};
     my $date = $v->{'date'}->ymd;
     my $time = $v->{'time'};
@@ -201,17 +173,21 @@ sub submit_comment {
     my $userobj = $self->auth->user;
 
     # Form the date.
-    $time =~ /(\d\d):(\d\d):(\d\d)/a;
-    my ($hour, $minute, $second) = ($1, $2, $3);
+    if ($time and $time =~ /(\d\d):(\d\d):(\d\d)/a) {
+        my ($hour, $minute, $second) = ($1, $2, $3);
 
-    # Convert the time zone to UT, if necessary.
-    if (($entryzone =~ /hst/i) && ($zone =~ /ut/i)) {
-        $hour += 10;
-        $hour %= 24;
+        # Convert the time zone to UT, if necessary.
+        if ($entryzone =~ /hst/i) {
+            $hour += 10;
+            $hour %= 24;
+        }
+        $time = join ':', $hour, $minute, $second;
     }
-
-    my $datestring = "$date $hour:$minute:$second";
-    my $datetime = Time::Piece->strptime($datestring, "%Y-%m-%d %H:%M:%S");
+    else {
+        my $timeobj = gmtime;
+        $time = $timeobj->hms;
+    }
+    my $datetime = Time::Piece->strptime("$date $time", '%Y-%m-%d %T');
 
     # Create an OMP::Info::Comment object.
     my $comment = OMP::Info::Comment->new(
