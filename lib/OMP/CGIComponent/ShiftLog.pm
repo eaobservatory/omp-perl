@@ -116,9 +116,6 @@ Gets shift comments for a given date.
 The first argument is a hash reference to a verified
 query (see B<parse_query>),
 
-This function will print nothing if neither the telescope
-nor date are given in the verified query.
-
 =cut
 
 sub get_shift_comments {
@@ -144,7 +141,7 @@ sub get_shift_comments {
 
     # At this point we have an array of relevant Info::Comment objects,
     # so return them.
-    return {all => \@result};
+    return \@result;
 }
 
 =item B<submit_comment>

@@ -74,7 +74,7 @@
     [% IF shift_log_comments.empty %]
         <p>No shift log comments available for this night.</p>
     [% ELSE %]
-        [% render_shift_log_entries(shift_log_comments, 0) %]
+        [% render_shift_log_entries({all => shift_log_comments}, 0) %]
     [% END %]
 [% END %]
 

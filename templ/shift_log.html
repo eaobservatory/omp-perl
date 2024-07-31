@@ -12,7 +12,13 @@
 
 <hr />
 
-[% render_shift_log_entries(comments, 0, allow_edit) %]
+[% IF comments.empty %]
+    <p>
+        <i>No shift log entries found.</i>
+    </p>
+[% ELSE %]
+    [% render_shift_log_entries({all => comments}, 0, allow_edit) %]
+[% END %]
 
 [% IF allow_edit %]
     <hr />
