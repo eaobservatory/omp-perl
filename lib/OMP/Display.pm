@@ -90,6 +90,33 @@ sub format_html {
     return $self->preify_text($wrapped);
 }
 
+=item B<format_html_inline>
+
+Prepare text for display in HTML, but not using E<lt>preE<gt> tags.
+
+    $html = OMP::Display->format_html_inline($text, $paragraph);
+
+If C<$paragraph> is specified then return paragraphs wrapped
+in E<lt>pE<gt> tags.  Otherwise simply separate paragraphs
+with two E<lt>brE<gt> tags.
+=cut
+
+sub format_html_inline {
+    my $self = shift;
+    my $text = shift;
+    my $paragraph = shift;
+
+    my @paragraphs = map {
+        join '<br />', map {escape_entity($_)} split /\n/
+    } split /\n\n+/, $self->remove_cr($text);
+
+    if ($paragraph) {
+        return join "\n", map {sprintf '<p>%s</p>', $_} @paragraphs;
+    }
+
+    return join "\n<br />&nbsp;<br />\n", @paragraphs;
+}
+
 =item B<escape_entity>
 
 Replace a & E<gt> or E<lt> with the corresponding HTML entity.
@@ -176,13 +203,7 @@ sub preify_text {
     my $self = shift;
     my $string = shift;
 
-    $string = escape_entity($string);
-    $string = "<pre>$string</pre>";
-
-    # Strip ^M
-    $string =~ s/\015//g;
-
-    return $string;
+    return sprintf '<pre>%s</pre>', escape_entity($self->remove_cr($string));
 }
 
 =item B<replace_entity>

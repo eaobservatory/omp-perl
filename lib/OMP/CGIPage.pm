@@ -612,6 +612,7 @@ sub render_template {
 
     # Method to format as HTML text from any object with 'text' and 'preformatted'
     # attributes. (Unfortunately can't use a filter as that would stringify first.)
+    # Wraps to the requested width, and if not preformatted, wraps in <pre> tags.
     $templatecontext->define_vmethod('hash', 'format_text', sub {
         my $object = shift;
         my $width = shift;
@@ -620,6 +621,8 @@ sub render_template {
             width => $width);
     });
 
+    # Method to format as HTML text not enclosed in <pre> tags.  I.e. instead
+    # of line wrapping, replace newlines with <br /> tags.
     $templatecontext->define_vmethod('hash', 'remove_pre_tags', sub {
         my $object = shift;
         if ($object->preformatted) {
@@ -628,7 +631,7 @@ sub render_template {
             $text =~ s/<\/PRE>\s*$//i;
             return $text;
         }
-        return OMP::Display::escape_entity($object->text);
+        return OMP::Display->format_html_inline($object->text, 0);
     });
 
     $templatecontext->define_filter('abbr_html', sub {
