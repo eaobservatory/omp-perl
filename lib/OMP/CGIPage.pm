@@ -645,6 +645,17 @@ sub render_template {
         };
     }, 1);
 
+    # Filter to recognize OMP links (e.g. fault IDs).  Use a filter (which
+    # applies to formatted HTML) so that it can apply to both preformatted
+    # and non-preformatted text.
+    $templatecontext->define_filter('replace_omp_links', sub {
+        my ($context, %options) = @_;
+        return sub {
+            my $text = shift;
+            return OMP::Display->replace_omp_links($text, %options);
+        };
+    }, 1);
+
     my $template = Template->new({
         CONTEXT => $templatecontext,
         ENCODING => 'utf8',

@@ -310,6 +310,67 @@ sub prepare_edit_text {
     return $text;
 }
 
+=item B<replace_omp_links>
+
+Apply local "OMP" formatting by recognizing text which should act
+as a link.
+
+=cut
+
+sub replace_omp_links {
+    my $self = shift;
+    my $text = shift;
+    my %opt = @_;
+
+    my @patterns = (
+        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})/, sub {
+            my $faultid = shift;
+            sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
+                $faultid, $faultid;
+        }],
+    );
+
+    if (exists $opt{'fault'}) {
+        my $faultid = $opt{'fault'};
+
+        unshift @patterns, [qr/image:([-_.A-Za-z0-9]+)/, sub {
+            my $filename = shift;
+            sprintf '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=%s&amp;filename=%s" alt="Image: %s"/>',
+                $faultid, $filename, $filename;
+        }];
+
+        push @patterns, [qr/(?<!\S)#([0-9]+)\b/, sub {
+            my $response = shift;
+            sprintf '<a href="#response%s">#%s</a>',
+                $response, $response;
+        }];
+    }
+
+    return join '', _replace_patterns($text, @patterns);
+}
+
+# Apply patterns to given text, recursing only on unmatched parts so that
+# we do not subsitute something (e.g. a fault ID) in a link we have already
+# prepared (e.g. a link to a fault image).
+sub _replace_patterns {
+    my $text = shift;
+    my $pattern = shift;
+    my ($patt, $func) = @$pattern;
+
+    my @result = ();
+    my @fragment = split $patt, $text;
+    while (@fragment) {
+        my $unmatched = shift @fragment;
+        push @result, (scalar @_) ? _replace_patterns($unmatched, @_) : $unmatched;
+        next unless @fragment;
+
+        my $match = shift @fragment;
+        push @result, $func->($match);
+    }
+
+    return @result;
+}
+
 1;
 
 __END__
