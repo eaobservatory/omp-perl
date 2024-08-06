@@ -48,18 +48,34 @@ sub display_page {
         unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
     my $telescope = $1;
 
-    my $utdate_str = $self->decoded_url_param('ut');
-    my $utdate = OMP::DateTools->parse_date($utdate_str);
-    die 'Invalid date' unless defined $utdate;
+    my %param = (
+        telescope => $telescope,
+    );
 
-    die 'Invalid instrument'
-        unless $self->decoded_url_param('inst') =~ /^([\-\w\d]+)$/a;
-    my $inst = $1;
+    my $utdate;
+    my $obsid_str = $self->decoded_url_param('obsid');
+    if (defined $obsid_str) {
+        die 'Invalid obsid'
+            unless $obsid_str =~ /^((?:acsis|scuba2)_\d{5}_(\d{8})T\d{6})$/;
 
-    die 'Invalid runnr' unless $self->decoded_url_param('runnr') =~ /^(\d+)$/a;
-    my $runnr = $1;
+        $param{'obsid'} = $1;
+        $utdate = OMP::DateTools->parse_date($2);
+    }
+    else {
+        my $utdate_str = $self->decoded_url_param('ut');
+        $utdate = OMP::DateTools->parse_date($utdate_str);
+        die 'Invalid date' unless defined $utdate;
+
+        die 'Invalid instrument'
+            unless $self->decoded_url_param('inst') =~ /^([\-\w\d]+)$/a;
+        $param{'instrument'} = $1;
+
+        die 'Invalid runnr' unless $self->decoded_url_param('runnr') =~ /^(\d+)$/a;
+        $param{'runnr'} = $1;
+    }
 
     my $utdate_ymd = $utdate->ymd('-');
+    $param{'ut'} = $utdate_ymd;
     my $worfimage;
     if (defined $projectid) {
         $worfimage = "fbworfimage.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
@@ -73,13 +89,7 @@ sub display_page {
     my $adb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
-    my $obs = $adb->getObs(
-        telescope => $telescope,
-        instrument => $inst,
-        ut => $utdate_ymd,
-        runnr => $runnr,
-        retainhdr => 0
-    );
+    my $obs = $adb->getObs(%param, retainhdr => 0);
 
     die 'No matching observation found' unless defined $obs;
 
@@ -95,9 +105,9 @@ sub display_page {
     my $pdb = OMP::DB::Preview->new(DB => $self->database);
     my $previews = $pdb->queryPreviews(OMP::Query::Preview->new(HASH => {
         telescope => $telescope,
-        instrument => $inst,
+        instrument => $obs->instrument,
         date => {value => $utdate->ymd(), delta => 1},
-        runnr => $runnr,
+        runnr => $obs->runnr,
         size => 256,
     }));
 
