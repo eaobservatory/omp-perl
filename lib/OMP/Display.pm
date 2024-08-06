@@ -323,10 +323,25 @@ sub replace_omp_links {
     my %opt = @_;
 
     my @patterns = (
-        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})/, sub {
+        [qr/(?:(?<=>)|(?<!\S))(https?:\/\/[-._~A-Za-z0-9%:\/?#\[\]@!\$&()*+,;=]+)(?:(?=<)|(?!\S))/a, sub {
+            my $url = shift;
+            sprintf '<a href="%s">%s</a>',
+                $url, $url;
+        }],
+        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})/a, sub {
             my $faultid = shift;
             sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
                 $faultid, $faultid;
+        }],
+        [qr/((?:acsis|scuba2)_\d{5}_\d{8}T\d{6})/a, sub {
+            my $obsid = shift;
+            sprintf '<a href="/cgi-bin/staffworf.pl?telescope=JCMT&amp;obsid=%s">%s</a>',
+                $obsid, $obsid;
+        }],
+        [qr/((?:jcmt|ukirt):\d{4}-\d\d-\d\d)/aai, sub {
+            my ($telescope, $utdate) = split ':', shift, 2;
+            sprintf '<a href="/cgi-bin/nightrep.pl?tel=%s&amp;utdate=%s">%s</a>',
+                (uc $telescope), $utdate, $utdate;
         }],
     );
 
