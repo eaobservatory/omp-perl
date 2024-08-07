@@ -20,4 +20,5 @@ OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
     'project',
     title => 'Project log',
     template => 'project_obs_log.html',
+    javascript => ['copy_text.js'],
 );

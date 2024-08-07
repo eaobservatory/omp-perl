@@ -20,4 +20,5 @@ OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
     'local_or_staff',
     title => 'Observing Report',
     template => 'obs_log.html',
+    javascript => ['copy_text.js'],
 );
