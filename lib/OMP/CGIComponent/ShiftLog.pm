@@ -104,6 +104,8 @@ sub parse_query {
         $return{'text'} =~ s/\s+$//s;
     }
 
+    $return{'private'} = ((scalar $q->param('private')) ? 1 : 0);
+
     return \%return;
 }
 
@@ -111,7 +113,7 @@ sub parse_query {
 
 Gets shift comments for a given date.
 
-    my $comments = $comp->get_shift_comments($verified);
+    my $comments = $comp->get_shift_comments($verified, [$include_private]);
 
 The first argument is a hash reference to a verified
 query (see B<parse_query>),
@@ -121,6 +123,7 @@ query (see B<parse_query>),
 sub get_shift_comments {
     my $self = shift;
     my $v = shift;
+    my $include_private = shift;
 
     return unless defined $v->{'telescope'};
     return unless defined $v->{'date'};
@@ -133,6 +136,7 @@ sub get_shift_comments {
     my $query = OMP::Query::Shift->new(HASH => {
         date => {delta => 1, value => $ut},
         telescope => $telescope,
+        ($include_private ? (private => {any => 1}) : ()),
     });
 
     # Grab the results.
@@ -191,6 +195,7 @@ sub submit_comment {
         author => $userobj,
         text => $v->{'text'},
         date => $datetime,
+        private => $v->{'private'},
     );
 
     # Store the comment in the database.

@@ -124,6 +124,12 @@ sub _post_process_hash {
         $href->{$prefix . 'text'} = delete $href->{'text'};
     }
 
+    # Ensure "private" was specified (as "any" or otherwise),
+    # if not require it to be false.
+    unless (exists $href->{'private'}) {
+        $href->{'private'} = OMP::Query::True->new(true => 0);
+    }
+
     delete $href->{_attr};
 }
 

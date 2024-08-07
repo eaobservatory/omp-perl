@@ -100,6 +100,7 @@ sub new {
         DeltaDay => 1,
         DB => undef,
         ADB => undef,
+        PrivateComments => 0,
         },
         $class;
 
@@ -585,6 +586,22 @@ sub warnings {
     return $self->{Warnings};
 }
 
+=item B<include_private_comments>
+
+Whether to include private comments or not.
+
+=cut
+
+sub include_private_comments {
+    my $self = shift;
+
+    if (@_) {
+        $self->{'PrivateComments'} = !! shift;
+    }
+
+    return $self->{'PrivateComments'};
+}
+
 =back
 
 =head2 General Methods
@@ -931,6 +948,7 @@ sub shiftComments {
     my $query = OMP::Query::Shift->new(HASH => {
         date => {delta => $self->delta_day, value => $self->date->ymd},
         telescope => $self->telescope,
+        ($self->include_private_comments ? (private => {any => 1}) : ()),
     });
 
     # These will have HTML comments

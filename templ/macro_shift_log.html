@@ -19,7 +19,7 @@
                     <td width="160" class="time_a">[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
                     <td width="90" class="[% timecellclass _ '_' _ bgcolor %]">
                         [% comment.date.strftime("%H:%M:%S") %]&nbsp;UT</td>
-                    <td class="subject">[% comment.remove_pre_tags | replace_omp_links() %]</td>
+                    <td class="subject" [% IF comment.private %]style="color: red;"[% END %]>[% comment.remove_pre_tags | replace_omp_links() %]</td>
                     [% IF allow_edit %]
                         <td width="40" class="subject">
                             <a href="/cgi-bin/shiftlogedit.pl?shiftid=[% comment.id | uri %]">Edit</a>

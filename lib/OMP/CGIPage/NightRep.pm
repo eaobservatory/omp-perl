@@ -226,6 +226,7 @@ sub night_report {
     my %args = (
         date => $utdate->ymd,
         telescope => $tel,
+        include_private_comments => 1,
     );
     ($delta) and $args{delta_day} = $delta;
 
@@ -557,7 +558,8 @@ sub time_accounting {
         FileUtil => $self->fileutil);
     my $nr = OMP::NightRep->new(
         DB => $self->database, ADB => $arcdb,
-        date => $utdate, telescope => $tel);
+        date => $utdate, telescope => $tel,
+        include_private_comments => 1);
 
     my %times = $nr->accounting(trace_observations => 1);
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];

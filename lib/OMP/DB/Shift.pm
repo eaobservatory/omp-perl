@@ -230,6 +230,7 @@ sub _reorganize_shiftlog {
         push @return, OMP::Info::Comment->new(
             text => $row->{text},
             preformatted => $row->{'preformatted'},
+            private => $row->{'private'},
             date => OMP::DateTools->parse_date($row->{date}),
             author => $users->{$row->{'author'}},
             relevance => $row->{'relevance'},
@@ -300,7 +301,9 @@ sub _insert_shiftlog {
         $author->userid,
         $telstring,
         \%text,
-        ($comment->preformatted ? 1 : 0));
+        ($comment->preformatted ? 1 : 0),
+        ($comment->private ? 1 : 0),
+    );
 }
 
 =item B<_update_shiftlog>
@@ -324,6 +327,7 @@ sub _update_shiftlog {
     my %new = (
         text => OMP::Display->remove_cr($comment->text),
         preformatted => ($comment->preformatted ? 1 : 0),
+        private => ($comment->private ? 1 : 0),
     );
 
     $self->_db_update_data(

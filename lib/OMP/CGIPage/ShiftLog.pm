@@ -84,7 +84,8 @@ sub shiftlog_page {
         values => $parsed,
         allow_edit => $allow_edit,
 
-        comments => $comp->get_shift_comments($parsed),
+        comments => $comp->get_shift_comments(
+            $parsed, (not defined $projectid)),
     };
 }
 
@@ -122,6 +123,7 @@ sub shiftlog_edit {
         $text =~ s/\s+$//s;
         $comment->text($text);
         $comment->preformatted(0);
+        $comment->private((scalar $q->param('private')) ? 1 : 0);
 
         my $E;
         try {
@@ -148,6 +150,7 @@ sub shiftlog_edit {
         values => {
             text => OMP::Display->prepare_edit_text($comment),
             author => $comment->author,
+            private => $comment->private,
         },
     };
 }
