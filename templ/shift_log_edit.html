@@ -1,0 +1,30 @@
+[% WRAPPER "layout.html" %]
+<h1>Edit Shift Log Entry</h1>
+
+[% IF ! messages.empty %]
+    [% FOREACH message = messages %]
+        <p style="color: red">[% message | html %]</p>
+    [% END %]
+[% END %]
+
+<form method="post" action="[% target %]">
+    <table border="0">
+        <tr>
+            <td><b>User:</b></td>
+            <td>[% values.author.name | html %]</td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><textarea name="text" rows="15" cols="70">[% values.text | html %]</textarea></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><label><input type="checkbox" name="private" value="1" [% IF values.private %]checked="checked"[% END %] /> Private</label></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><input type="submit" name="submit_edit" value="Submit changes" /></td>
+        </tr>
+    </table>
+</form>
+[% END %]

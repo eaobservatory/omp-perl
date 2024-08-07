@@ -13,12 +13,11 @@ BEGIN {
     }
 }
 
-use OMP::CGIPage::NightRep;
+use OMP::CGIPage::ShiftLog;
 
-OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
-    \&OMP::CGIPage::NightRep::night_report,
-    'local_or_staff',
-    title => 'Observing Report',
-    template => 'obs_log.html',
-    javascript => ['copy_text.js'],
+OMP::CGIPage::ShiftLog->new(cgi => CGI->new())->write_page(
+    'shiftlog_edit',
+    'staff',
+    title => 'Edit Shift Log Entry',
+    template => 'shift_log_edit.html',
 );

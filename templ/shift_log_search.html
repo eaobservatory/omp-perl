@@ -22,8 +22,8 @@
         [% FOR comment IN log_entries %]
             <tr valign="top">
                 <td>[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
-                <td><a href="/cgi-bin/shiftlog.pl?date=[% comment.date.strftime("%Y-%m-%d") %]&telescope=[% telescope | html %]#shiftid_[% comment.id %]">[% comment.date.strftime("%Y-%m-%d %H:%M:%S") %]&nbsp;UT</a></td>
-                <td width="400">[% comment.remove_pre_tags %]</td>
+                <td><a href="/cgi-bin/shiftlog.pl?utdate=[% comment.date.strftime("%Y-%m-%d") %]&amp;telescope=[% telescope | html %]#shiftid_[% comment.id %]">[% comment.date.strftime("%Y-%m-%d %H:%M:%S") %]&nbsp;UT</a></td>
+                <td width="400">[% comment.remove_pre_tags | replace_omp_links() %]</td>
             </tr>
         [% END %]
     </table>

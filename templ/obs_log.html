@@ -15,33 +15,29 @@
     at [% telescope | html %]
 </h1>
 
-<form method="get" action="[% target_base %]">
-    <p>
-        [% UNLESS ut_date_delta %]
-            <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_prev.ymd | uri %]">&laquo; Previous</a>
-            &nbsp; &nbsp;
-        [% END %]
+[% SET target_fields = {tel => telescope} %]
+[% UNLESS ut_date_delta %]
+    [% multiple_night_link = BLOCK %]
+        &nbsp; &nbsp;
+        (<a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">multiple nights</a>)
+    [% END %]
 
-        <input type="text" name="utdate" value="[% (ut_date_start.defined ? ut_date_start : ut_date.ymd) | html %]" size="10" />
-        [% IF ut_date_delta %]
+    [% render_date_select(target_base, ut_date, target_fields, multiple_night_link) %]
+[% ELSE %]
+    <form method="get" action="[% target_base %]">
+        <p>
+            <input type="text" name="utdate" value="[% ut_date.ymd | html %]" size="10" />
             &ndash;
             <input type="text" name="utdate_end" value="[% ut_date_end.ymd | html %]" size="10" />
-        [% END %]
-        UT
-        <input type="submit" name="" value="View" />
-        <input type="hidden" name="tel" value="[% telescope | html %]" />
+            UT
+            <input type="submit" name="" value="View" />
+            [% render_hidden_fields(target_fields) %]
 
-        [% UNLESS ut_date_delta %]
-            &nbsp; &nbsp;
-            <a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_next.ymd | uri %]">Next &raquo;</a>
-            &nbsp; &nbsp;
-            (<a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date.ymd | uri %]&amp;delta=7">multiple nights</a>)
-        [% ELSE %]
             &nbsp; &nbsp;
             (<a href="[% target_base %]?tel=[% telescope | uri %]&amp;utdate=[% ut_date_end.ymd | uri %]">single night</a>)
-        [% END %]
-    </p>
-</form>
+        </p>
+    </form>
+[% END %]
 
 [% IF sched_night.defined %]
     [% SET sched_night_slots = sched_night.slots_merged %]

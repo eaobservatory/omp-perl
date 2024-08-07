@@ -96,6 +96,7 @@ __PACKAGE__->CreateAccessors(
     author => 'OMP::User',
     _date => 'Time::Piece',
     preformatted => '$',
+    private => '$',
     status => '$',
     runnr => '$',
     tid => '$',

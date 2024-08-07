@@ -86,7 +86,7 @@ my @pubfiles = qw/
     projecthome.pl projusers.pl props.pl pubsched.pl
     qstatus.pl queryfault.pl retrieve_data.pl
     sched.pl schedcal.pl schedcallist.pl schedstat.pl
-    searchobslog.pl searchshiftlog.pl shiftlog.pl
+    searchobslog.pl searchshiftlog.pl shiftlog.pl shiftlogedit.pl
     sourceplot.pl spregion.pl spsummary.pl
     spsrv.pl staffobscomment.pl
     staffworf.pl staffworfthumb.pl staffworfimage.pl
@@ -94,7 +94,7 @@ my @pubfiles = qw/
     updatefault.pl updateresp.pl update_user.pl userdetails.pl
     utprojlog.pl
     viewfault.pl wwwobserved.pl
-    fault_summary.js form_submit_timeout.js log_in.js
+    copy_text.js fault_summary.js form_submit_timeout.js log_in.js
     sched_edit.js submit_on_change.js
     table_filter.js time_accounting.js time_set_now.js
     user_list.js

@@ -90,6 +90,33 @@ sub format_html {
     return $self->preify_text($wrapped);
 }
 
+=item B<format_html_inline>
+
+Prepare text for display in HTML, but not using E<lt>preE<gt> tags.
+
+    $html = OMP::Display->format_html_inline($text, $paragraph);
+
+If C<$paragraph> is specified then return paragraphs wrapped
+in E<lt>pE<gt> tags.  Otherwise simply separate paragraphs
+with two E<lt>brE<gt> tags.
+=cut
+
+sub format_html_inline {
+    my $self = shift;
+    my $text = shift;
+    my $paragraph = shift;
+
+    my @paragraphs = map {
+        join '<br />', map {escape_entity($_)} split /\n/
+    } split /\n\n+/, $self->remove_cr($text);
+
+    if ($paragraph) {
+        return join "\n", map {sprintf '<p>%s</p>', $_} @paragraphs;
+    }
+
+    return join "\n<br />&nbsp;<br />\n", @paragraphs;
+}
+
 =item B<escape_entity>
 
 Replace a & E<gt> or E<lt> with the corresponding HTML entity.
@@ -176,13 +203,7 @@ sub preify_text {
     my $self = shift;
     my $string = shift;
 
-    $string = escape_entity($string);
-    $string = "<pre>$string</pre>";
-
-    # Strip ^M
-    $string =~ s/\015//g;
-
-    return $string;
+    return sprintf '<pre>%s</pre>', escape_entity($self->remove_cr($string));
 }
 
 =item B<replace_entity>
@@ -258,6 +279,111 @@ sub wrap_text {
     my $indentstr = ' ' x $indent;
 
     return wrap($indentstr, $indentstr, $text);
+}
+
+=item B<prepare_edit_text>
+
+Prepare text for editing.  If the comment is "preformatted",
+remove enclosing E<lt>preE<gt> tags or convert to plain text
+with C<html2plain>.  Otherwise return the (non-preformatted)
+text as-is.
+
+Accepts an object with C<text> and C<preformatted> accessors.
+
+=cut
+
+sub prepare_edit_text {
+    my $self = shift;
+    my $comment = shift;
+
+    my $text = $comment->text;
+
+    if ($comment->preformatted) {
+        if ($text =~ m/^<pre>(.*?)<\/pre>$/is) {
+            $text = OMP::Display->replace_entity($1);
+        }
+        else {
+            $text = OMP::Display->html2plain($text);
+        }
+    }
+
+    return $text;
+}
+
+=item B<replace_omp_links>
+
+Apply local "OMP" formatting by recognizing text which should act
+as a link.
+
+=cut
+
+sub replace_omp_links {
+    my $self = shift;
+    my $text = shift;
+    my %opt = @_;
+
+    my @patterns = (
+        [qr/(?:(?<=>)|(?<!\S))(https?:\/\/[-._~A-Za-z0-9%:\/?#\[\]@!\$&()*+,;=]+)(?:(?=<)|(?!\S))/a, sub {
+            my $url = shift;
+            sprintf '<a href="%s">%s</a>',
+                $url, $url;
+        }],
+        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})/a, sub {
+            my $faultid = shift;
+            sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
+                $faultid, $faultid;
+        }],
+        [qr/((?:acsis|scuba2)_\d{5}_\d{8}T\d{6})/a, sub {
+            my $obsid = shift;
+            sprintf '<a href="/cgi-bin/staffworf.pl?telescope=JCMT&amp;obsid=%s">%s</a>',
+                $obsid, $obsid;
+        }],
+        [qr/((?:jcmt|ukirt):\d{4}-\d\d-\d\d)/aai, sub {
+            my ($telescope, $utdate) = split ':', shift, 2;
+            sprintf '<a href="/cgi-bin/nightrep.pl?tel=%s&amp;utdate=%s">%s</a>',
+                (uc $telescope), $utdate, $utdate;
+        }],
+    );
+
+    if (exists $opt{'fault'}) {
+        my $faultid = $opt{'fault'};
+
+        unshift @patterns, [qr/image:([-_.A-Za-z0-9]+)/, sub {
+            my $filename = shift;
+            sprintf '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=%s&amp;filename=%s" alt="Image: %s"/>',
+                $faultid, $filename, $filename;
+        }];
+
+        push @patterns, [qr/(?<!\S)#([0-9]+)\b/, sub {
+            my $response = shift;
+            sprintf '<a href="#response%s">#%s</a>',
+                $response, $response;
+        }];
+    }
+
+    return join '', _replace_patterns($text, @patterns);
+}
+
+# Apply patterns to given text, recursing only on unmatched parts so that
+# we do not subsitute something (e.g. a fault ID) in a link we have already
+# prepared (e.g. a link to a fault image).
+sub _replace_patterns {
+    my $text = shift;
+    my $pattern = shift;
+    my ($patt, $func) = @$pattern;
+
+    my @result = ();
+    my @fragment = split $patt, $text;
+    while (@fragment) {
+        my $unmatched = shift @fragment;
+        push @result, (scalar @_) ? _replace_patterns($unmatched, @_) : $unmatched;
+        next unless @fragment;
+
+        my $match = shift @fragment;
+        push @result, $func->($match);
+    }
+
+    return @result;
 }
 
 1;

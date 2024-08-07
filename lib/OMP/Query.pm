@@ -422,6 +422,9 @@ sub _create_sql_recurse {
             map {$self->_querify($column, $range{$_}, $_);}
             keys %range);
     }
+    elsif (UNIVERSAL::isa($entry, 'OMP::Query::Any')) {
+        # Do nothing.
+    }
     elsif (UNIVERSAL::isa($entry, 'OMP::Query::Null')) {
         $sql = $self->_querify($column, $entry->null(), 'null');
     }
@@ -761,6 +764,10 @@ Left as is.
 
 Left as is.
 
+=item any =E<gt> 1
+
+Left as is.
+
 =back
 
 =cut
@@ -946,6 +953,9 @@ sub _post_process_hash {
         elsif (ref($href->{$key}) eq "HASH") {
             if (exists $href->{$key}->{'null'}) {
                 $href->{$key} = OMP::Query::Null->new(null => $href->{$key}->{'null'});
+            }
+            elsif (exists $href->{$key}->{'any'}) {
+                $href->{$key} = OMP::Query::Any->new();
             }
             else {
                 # Convert to OMP::Range object
@@ -1266,6 +1276,18 @@ sub null {
         $self->{'null'} = shift;
     }
     return $self->{'null'};
+}
+
+package OMP::Query::Any;
+
+sub new {
+    my $class = shift;
+    my %opt = @_;
+
+    my $self = bless {
+    }, $class;
+
+    return $self;
 }
 
 package OMP::Query::True;

@@ -25,7 +25,7 @@
 <p>
     <a href="/cgi-bin/fbworfthumb.pl?project=[% project.projectid | uri %]&amp;ut=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">WORF thumbnails</a>
     <br />
-    <a href="/cgi-bin/fbshiftlog.pl?project=[% project.projectid | uri %]&amp;date=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">Shift comments</a>
+    <a href="/cgi-bin/fbshiftlog.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;telescope=[% telescope | uri %]">Shift comments</a>
     <br />
     <a href="/cgi-bin/obslog_text.pl?ut=[% utdate | uri %]&amp;project=[% project.projectid | uri %]">Text-based observation log</a>
 </p>
@@ -74,7 +74,7 @@
     [% IF shift_log_comments.empty %]
         <p>No shift log comments available for this night.</p>
     [% ELSE %]
-        [% render_shift_log_entries(shift_log_comments, 0) %]
+        [% render_shift_log_entries({all => shift_log_comments}, 0) %]
     [% END %]
 [% END %]
 

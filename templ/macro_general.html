@@ -6,3 +6,19 @@
         <input type="hidden" name="[% field.key | html %]" value="[% field.value | html %]" />
     [% END %]
 [% END -%]
+[% MACRO render_date_select(target, ut_date, fields, extra) BLOCK %]
+    [% USE target_url = url(target, fields) %]
+    <form method="get" action="[% target %]">
+        <p>
+            <a href="[% target_url(utdate=ut_date.date_prev.ymd) %]">&laquo; Previous</a>
+            &nbsp; &nbsp;
+            <input type="text" name="utdate" value="[% ut_date.ymd | html %]" size="10" />
+            UT
+            <input type="submit" name="" value="View" />
+            [% render_hidden_fields(fields) %]
+            &nbsp; &nbsp;
+            <a href="[% target_url(utdate=ut_date.date_next.ymd) %]">Next &raquo;</a>
+            [% extra %]
+        </p>
+    </form>
+[% END -%]

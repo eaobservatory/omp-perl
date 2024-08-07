@@ -17,7 +17,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 3;
+use Test::More tests => 5;
 use strict;
 require_ok('OMP::Display');
 
@@ -27,3 +27,10 @@ is(OMP::Display->remove_cr("alpha\r\nbeta\r\ngamma"), "alpha\nbeta\ngamma");
 # 8-character horizontal rule.
 is(OMP::Display->html2plain('<p>alpha</p><hr><p>beta</p>'),
     "alpha\n\n--------\n\nbeta\n");
+
+# Test formatting into lines and paragraphs.
+is(OMP::Display->format_html_inline("a\r\n<b>\r\n\r\n<c>\r\nd", 0),
+    "a<br />&lt;b&gt;\n<br />&nbsp;<br />\n&lt;c&gt;<br />d");
+
+is(OMP::Display->format_html_inline("a\r\n<b>\r\n\r\n<c>\r\nd", 1),
+    "<p>a<br />&lt;b&gt;</p>\n<p>&lt;c&gt;<br />d</p>");

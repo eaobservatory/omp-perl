@@ -28,6 +28,8 @@ use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
 use JSON;
+use Time::Piece;
+use Time::Seconds qw/ONE_DAY/;
 use Template;
 use Template::Context;
 use Template::Stash;
@@ -592,12 +594,25 @@ sub render_template {
         },
     });
 
+    # Methods "date_prev" and "date_next" apply
+    # to Time::Piece objects -- these are blessed arrays.
+    $templatecontext->define_vmethod('array', 'date_prev', sub {
+        my $utdate = shift;
+        return scalar gmtime($utdate->epoch() - ONE_DAY());
+    });
+
+    $templatecontext->define_vmethod('array', 'date_next', sub {
+        my $utdate = shift;
+        return scalar gmtime($utdate->epoch() + ONE_DAY());
+    });
+
     $templatecontext->define_vmethod('hash', 'json', sub {
         return encode_json($_[0]);
     });
 
     # Method to format as HTML text from any object with 'text' and 'preformatted'
     # attributes. (Unfortunately can't use a filter as that would stringify first.)
+    # Wraps to the requested width, and if not preformatted, wraps in <pre> tags.
     $templatecontext->define_vmethod('hash', 'format_text', sub {
         my $object = shift;
         my $width = shift;
@@ -606,6 +621,8 @@ sub render_template {
             width => $width);
     });
 
+    # Method to format as HTML text not enclosed in <pre> tags.  I.e. instead
+    # of line wrapping, replace newlines with <br /> tags.
     $templatecontext->define_vmethod('hash', 'remove_pre_tags', sub {
         my $object = shift;
         if ($object->preformatted) {
@@ -614,7 +631,7 @@ sub render_template {
             $text =~ s/<\/PRE>\s*$//i;
             return $text;
         }
-        return OMP::Display::escape_entity($object->text);
+        return OMP::Display->format_html_inline($object->text, 0);
     });
 
     $templatecontext->define_filter('abbr_html', sub {
@@ -625,6 +642,17 @@ sub render_template {
             return '<abbr title="' . OMP::Display::escape_entity($text) . '">'
                 . OMP::Display::escape_entity(substr $text, 0, $width)
                 . '&hellip;</abbr>';
+        };
+    }, 1);
+
+    # Filter to recognize OMP links (e.g. fault IDs).  Use a filter (which
+    # applies to formatted HTML) so that it can apply to both preformatted
+    # and non-preformatted text.
+    $templatecontext->define_filter('replace_omp_links', sub {
+        my ($context, %options) = @_;
+        return sub {
+            my $text = shift;
+            return OMP::Display->replace_omp_links($text, %options);
         };
     }, 1);
 
@@ -776,7 +804,7 @@ sub _sidebar_night {
         ['Observing report' => "/cgi-bin/nightrep.pl?tel=$telescope&utdate=$utdate"],
         ['Time accounting' => "/cgi-bin/timeacct.pl?telescope=$telescope&utdate=$utdate"],
         ['MSB summary' => "/cgi-bin/wwwobserved.pl?telescope=$telescope&utdate=$utdate"],
-        ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&date=$utdate"],
+        ['Shift log' => "/cgi-bin/shiftlog.pl?telescope=$telescope&utdate=$utdate"],
         ['Schedule' => "/cgi-bin/sched.pl?tel=$telescope&utdate=$utdate#night_$utdate"],
         ['Faults' => "/cgi-bin/queryfault.pl?faultsearch=true&action=activity&period=arbitrary"
             . "&mindate=$utdate&maxdate=$utdate&timezone=UT&search=Search&cat=$telescope"],

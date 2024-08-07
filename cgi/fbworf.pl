@@ -31,4 +31,5 @@ OMP::CGIPage::WORF->new(cgi => CGI->new())->write_page(
     'project',
     title => 'WORF: WWW Observing Remotely Facility',
     template => 'worf_display.html',
+    javascript => ['copy_text.js'],
 );

@@ -21,8 +21,6 @@ OMP::Config - parse and supply information from OMP configuration files
 
     $tel = OMP::Config->inferTelescope('instruments', 'SCUBA');
 
-    @telescopes = OMP::Config->telescopes;
-
 =head1 DESCRIPTION
 
 This class can read and return the information contained in
@@ -349,23 +347,6 @@ sub getDataSearch {
     throw OMP::Error::BadCfgKey(
         'None of the keys [' . (join ', ', @keys)
         . '] could be found in OMP config system');
-}
-
-=item B<getTelescopes>
-
-Return a list of telescopes for which a config file exists.
-
-    @telescopes = OMP::Config->getTelescopes();
-
-=cut
-
-sub telescopes {
-    my $class = shift;
-
-    my $self = _get_instance($class);
-
-    $self->_checkConfig;
-    return grep {$_ ne 'omp'} keys %{$self};
 }
 
 =item B<inferTelescope>
