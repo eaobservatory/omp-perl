@@ -144,7 +144,7 @@ sub _get_resource {
 
     # Check filename is valid.
     my $extension;
-    if ($filename =~ /^([-_a-zA-Z0-9]+)\.([a-zA-Z0-9]+)$/) {
+    if ($filename =~ /^([a-zA-Z0-9][-_.a-zA-Z0-9]*)\.([a-zA-Z0-9]+)$/) {
         $filename = $1 . '.' . $2;
         $extension = $2;
     }

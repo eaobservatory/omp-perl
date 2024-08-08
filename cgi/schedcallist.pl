@@ -20,4 +20,5 @@ OMP::CGIPage::Sched->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'Schedule Calendar List',
     template => 'sched_calendars.html',
+    javascript => ['copy_text.js'],
 );

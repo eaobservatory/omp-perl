@@ -107,7 +107,7 @@ sub shiftlog_edit {
 
     my $sdb = OMP::DB::Shift->new(DB => $self->database);
     my @result = $sdb->getShiftLogs(
-        OMP::Query::Shift->new(HASH => {shiftid => $id}));
+        OMP::Query::Shift->new(HASH => {shiftid => $id, private => {any => 1}}));
 
     return $self->_write_not_found_page('Shift log entry not found.')
         unless @result;
