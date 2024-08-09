@@ -5,6 +5,14 @@
 <form method="post" action="[% form_info.target %]">
     [% render_common_fields(form_info.values) %]
     [% render_search_text_field(form_info.values) %]
+    <p>
+        <b>Visibility:</b>
+        <select name="private">
+            <option value="0" [% IF form_info.values.private == "0" %]selected="selected"[% END %]>Non-private</option>
+            <option value="1" [% IF form_info.values.private == "1" %]selected="selected"[% END %]>Private</option>
+            <option value="" [% IF form_info.values.private == "" %]selected="selected"[% END %]>Any</option>
+        </select>
+    </p>
     [% render_sort_fields(form_info.values) %]
     <p>
         <input type="submit" name="search" value="Search"/>
@@ -23,7 +31,7 @@
             <tr valign="top">
                 <td>[% IF comment.author %][% comment.author.name | html %][% ELSE %]Anonymous[% END %]</td>
                 <td><a href="/cgi-bin/shiftlog.pl?utdate=[% comment.date.strftime("%Y-%m-%d") %]&amp;telescope=[% telescope | html %]#shiftid_[% comment.id %]">[% comment.date.strftime("%Y-%m-%d %H:%M:%S") %]&nbsp;UT</a></td>
-                <td width="400">[% comment.remove_pre_tags | replace_omp_links() %]</td>
+                <td width="400" [% IF comment.private %]style="color: red;"[% END %]>[% comment.remove_pre_tags | replace_omp_links() %]</td>
             </tr>
         [% END %]
     </table>
