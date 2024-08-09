@@ -197,8 +197,14 @@ sub observed {
 
     my $projdb = OMP::DB::Project->new(DB => $self->database);
 
-    my $telescope = $self->decoded_url_param('telescope');
-    my $utdate = $self->decoded_url_param('utdate');
+    die 'Invalid telescope'
+        unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
+    my $telescope = $1;
+    my $utdatestr = $self->decoded_url_param('utdate');
+    my $utdate = (defined $utdatestr)
+        ? OMP::DateTools->parse_date($utdatestr)
+        : OMP::DateTools->today(1);
+    die 'Invalid date' unless defined $utdate;
 
     my $comment_msb_id_fields = undef;
     my $projects = undef;
@@ -216,9 +222,9 @@ sub observed {
             projectid => scalar $q->param('projectid'),
         };
     }
-    elsif (defined $utdate and defined $telescope) {
+    else {
         my $commentref = OMP::DB::MSBDone->new(DB => $self->database)->observedMSBs(
-            date => $utdate,
+            date => $utdate->ymd,
             comments => 1,
         );
 
@@ -254,7 +260,7 @@ sub observed {
         telescopes => [$projdb->listTelescopes],
         values => {
             telescope => $telescope,
-            utdate => $utdate // OMP::DateTools->today,
+            utdate => $utdate,
         },
         comment_msb_id_fields => $comment_msb_id_fields,
         projects => $projects,

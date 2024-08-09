@@ -129,11 +129,13 @@ sub thumbnails_page {
     my $self = shift;
     my $projectid = shift;
 
+    my $q = $self->cgi;
+
     die 'Invalid telescope'
         unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
     my $telescope = $1;
 
-    my $utdate_str = $self->decoded_url_param('ut');
+    my $utdate_str = $self->decoded_url_param('utdate');
     my $utdate = OMP::DateTools->parse_date($utdate_str);
     die 'Invalid date' unless defined $utdate;
 
@@ -178,10 +180,12 @@ sub thumbnails_page {
 
     return {
         projectid => $projectid,
+        telescope => $telescope,
         ut_date => $utdate,
         observations => [
             sort {$a->startobs->epoch <=> $b->startobs->epoch}
             $grp->obs()],
+        target_base => $q->url(-absolute => 1),
         target_obs => $worflink,
         target_image => $worfimage,
     };
