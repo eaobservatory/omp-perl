@@ -1,5 +1,7 @@
 [% USE scalar -%]
+[% PROCESS "macro_general.html" -%]
 [% WRAPPER "layout.html" %]
+
 <h1>
     WORF Thumbnails for
     [% IF projectid.defined %]
@@ -7,6 +9,10 @@
     [% END %]
     [% ut_date.ymd %]
 </h1>
+
+[% UNLESS projectid.defined %]
+    [% render_date_select(target_base, ut_date, {telescope => telescope}, '') %]
+[% END %]
 
 [% MACRO render_thumbnails(previews) BLOCK %]
     [% IF previews.size > 0 %]

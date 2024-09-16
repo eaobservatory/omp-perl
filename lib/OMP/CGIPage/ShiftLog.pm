@@ -178,6 +178,7 @@ sub shiftlog_search {
         mindate => '',
         maxdate => '',
         days => '',
+        private => '0',
     );
 
     if ($q->param('search')) {
@@ -188,6 +189,15 @@ sub shiftlog_search {
         );
 
         ($message, my $hash) = $search->common_search_hash(\%values, 'author');
+
+        if ($q->param('private') =~ /(1|0)/) {
+            $values{'private'} = $1;
+            $hash->{'private'} = {boolean => $1};
+        }
+        else {
+            $values{'private'} = '';
+            $hash->{'private'} = {any => 1};
+        }
 
         unless (defined $message) {
             $hash->{'telescope'} = $telescope;
