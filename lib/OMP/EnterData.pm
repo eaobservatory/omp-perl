@@ -1936,18 +1936,26 @@ sub calc_radec {
     my $pa = $headerref->{'MAP_PA'};
     $pa *= -1 if defined $pa;
 
-    my @command  = $self->get_bound_check_command($temp->filename(), $pa);
-
-    $log->info(sprintf(
-        "Performing bound calculation for files starting %s", $filenames->[0]));
-
     # Get the bounds
     my @corner     = qw/TL BR TR BL/;
     my %par_corner = map {; $_ => 'F' . $_ } @corner;
 
-    my $values = try_star_command(
-        command => \@command,
-        values => [qw/REFLAT REFLON/, values %par_corner]);
+    # Attempt the bounds calculation with pixsize=1, and if that fails,
+    # try again with pixsize=2.
+    my $values;
+    foreach my $pixsize (1, 2) {
+        $log->info(sprintf(
+            "Performing bound calculation for files starting %s (using pixsize %d)",
+            $filenames->[0], $pixsize));
+
+        my @command = $self->get_bound_check_command($temp->filename(), $pa, $pixsize);
+
+        $values = try_star_command(
+            command => \@command,
+            values => [qw/REFLAT REFLON/, values %par_corner]);
+
+        last if defined $values;
+    }
 
     return unless defined $values;
 
