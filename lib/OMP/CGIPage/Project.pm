@@ -242,6 +242,7 @@ sub project_home {
     my $msbcomp = OMP::CGIComponent::MSB->new(page => $self);
     my $msbdb = OMP::DB::MSB->new(DB => $self->database);
     my $msbdonedb = OMP::DB::MSBDone->new(DB => $self->database, ProjectID => $projectid);
+    my $affiliationdb = OMP::DB::ProjAffiliation->new(DB => $self->database);
 
     # Get the project details
     my $projdb = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid);
@@ -313,9 +314,22 @@ sub project_home {
     otherwise {
     };
 
+    my $affiliations = undef;
+    if ($self->auth->is_staff) {
+        my $affil_perc = $affiliationdb->get_project_affiliations($projectid);
+
+        $affiliations = [map {
+                [$OMP::DB::ProjAffiliation::AFFILIATION_NAMES{$_}, $affil_perc->{$_}]
+            } sort {
+                $affil_perc->{$b} <=> $affil_perc->{$a}
+            } keys %$affil_perc]
+        if scalar %$affil_perc;
+    }
+
     return {
         project => $project,
         continuation => $continuation,
+        affiliations => $affiliations,
         is_staff => (!! $self->auth->is_staff),
         proposal_url => 'https://proposals.eaobservatory.org/'
             . (lc $project->telescope)
