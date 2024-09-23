@@ -94,6 +94,8 @@ foreach my $info (sort {$b->[1] <=> $a->[1]} @projects) {
         join ', ', map {
             sprintf('%.0f%% %s', $info->[2]->{$_} * 100.0,
                 $AFFILIATION_NAMES{$_})
+        } sort {
+            $info->[2]->{$b} <=> $info->[2]->{$a}
         } keys %{$info->[2]};
 }
 
