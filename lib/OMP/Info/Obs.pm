@@ -522,9 +522,6 @@ sub hdrs_to_obs {
             }
         }
 
-        # Ask for the raw data directory
-        my $rawdir = $obs->rawdatadir;
-
         push @observations, $obs;
     }
 
@@ -770,8 +767,17 @@ sub filename {
             for my $f (@{$self->{FILENAME}}) {
                 my ($vol, $path, $file) = File::Spec->splitpath($f);
                 next if $path;
+
+                # check for placeholders
+                my $thisrawdir = $rawdir;
+                if ($rawdir =~ /_\+SUBARRAY\+_/) {
+                    next unless $f =~ /^(s[48][a-d])/;
+                    my $subarray = $1;
+                    $thisrawdir =~ s/_\+SUBARRAY\+_/$subarray/;
+                }
+
                 # change filename in place
-                $f = File::Spec->catpath($vol, $rawdir, $file);
+                $f = File::Spec->catpath($vol, $thisrawdir, $file);
             }
         }
     }
@@ -1560,6 +1566,9 @@ Note that this data directory is suitable for a single raw observation rather th
 a set of observations. This is because some data are written into per-observation sub
 directories and that is taken into account.
 
+B<Warning:> in the case of SCUBA-2 the returned value will include a C<_+SUBARRAY+_>
+placeholder to be filled in for each file.
+
 =cut
 
 sub rawdatadir {
@@ -1630,7 +1639,18 @@ sub rawdatadir {
         $sub_inst = 'SCUBA';
     }
     elsif ($instrument =~ /^scuba-?2$/i) {
-        # throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
+        $dir = OMP::Config->getData(
+            'scuba-2.rawdatadir',
+            telescope => 'JCMT',
+            utdate => $utdate);
+
+        # Replace the subarray pattern with a label for easier replacement
+        # and add the observation subdirectory.
+        my ($pre, $post) = split /s\[48\]\[a-d\]/, $dir;
+        my $runnr = sprintf '%05u', $self->runnr;
+        $dir = File::Spec->catdir($pre, '_+SUBARRAY+_', $post, $runnr);
+
+        $sub_inst = 'SCUBA-2';
     }
 
     #  Need to have run number appeneded (as least in case of ACSIS backend).
