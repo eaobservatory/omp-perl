@@ -522,9 +522,6 @@ sub hdrs_to_obs {
             }
         }
 
-        # Ask for the raw data directory
-        my $rawdir = $obs->rawdatadir;
-
         push @observations, $obs;
     }
 
@@ -770,8 +767,17 @@ sub filename {
             for my $f (@{$self->{FILENAME}}) {
                 my ($vol, $path, $file) = File::Spec->splitpath($f);
                 next if $path;
+
+                # check for placeholders
+                my $thisrawdir = $rawdir;
+                if ($rawdir =~ /_\+SUBARRAY\+_/) {
+                    next unless $f =~ /^(s[48][a-d])/;
+                    my $subarray = $1;
+                    $thisrawdir =~ s/_\+SUBARRAY\+_/$subarray/;
+                }
+
                 # change filename in place
-                $f = File::Spec->catpath($vol, $rawdir, $file);
+                $f = File::Spec->catpath($vol, $thisrawdir, $file);
             }
         }
     }
@@ -1549,98 +1555,6 @@ sub nightlog {
     return %return;
 }
 
-=item B<file_from_bits>
-
-    $filename = $obs->file_from_bits;
-
-Returns a filename (including path) based on information given in the C<Obs> object.
-
-=cut
-
-sub file_from_bits {
-    my $self = shift;
-
-    my $instrument = $self->instrument;
-    throw OMP::Error("file_from_bits: Unable to determine instrument to create filename.")
-        unless defined $instrument;
-
-    # first get the raw data directory
-    my $rawdir = $self->rawdatadir;
-
-    # Now work out the full path
-    my $filename;
-    if ($instrument =~ /(ufti|ircam|cgs4|michelle|uist|wfcam)/i) {
-        my $utdate;
-        ($utdate = $self->startobs->ymd) =~ s/-//g;
-        my $runnr = sprintf("%05u", $self->runnr);
-
-        # work out the instrument prefix. Seems that we can not use a hash because
-        # the instrument names may include numbers (eg ircam3)
-        my $instprefix;
-        if ($instrument =~ /ufti/i) {
-            $instprefix = "f";
-        }
-        elsif ($instrument =~ /uist/i) {
-            $instprefix = "u";
-        }
-        elsif ($instrument =~ /ircam/i) {
-            $instprefix = "i";
-        }
-        elsif ($instrument =~ /cgs4/i) {
-            $instprefix = "c";
-        }
-        elsif ($instrument =~ /michelle/i) {
-            $instprefix = "m";
-        }
-        elsif ($instrument =~ /wfcam/i) {
-            my %prefix = (
-                1 => 'w',
-                2 => 'x',
-                3 => 'y',
-                4 => 'z',
-            );
-            $instprefix = $prefix{$self->camera_number};
-        }
-        else {
-            throw OMP::Error("file_from_bits: Unrecognized UKIRT instrument: '$instrument'");
-        }
-
-        $filename = File::Spec->catdir(
-            $rawdir,
-            $instprefix . $utdate . "_" . $runnr . ".sdf");
-
-    }
-    elsif ($instrument =~ /^(rx|het|fts)/i && ! $self->_backend_acsis_like()) {
-        my $project = $self->projectid;
-        my $ut = $self->startobs;
-        my $timestring = sprintf '%02u%02u%02u_%02u%02u%02u',
-            $ut->yy, $ut->mon, $ut->mday, $ut->hour, $ut->min, $ut->sec;
-        my $backend = $self->backend;
-        my $runnr = sprintf '%04u', $self->runnr;
-        $filename = "$project\@" . $timestring . "_" . $backend . "_" . $runnr . ".gsd";
-    }
-    elsif ($instrument =~ /scuba/i) {
-        my $utdate;
-        ($utdate = $self->startobs->ymd) =~ s/-//g;
-        my $runnr = sprintf '%04u', $self->runnr;
-
-        $filename = File::Spec->catfile($rawdir, $utdate . "_dem_" . $runnr . ".sdf");
-    }
-    elsif ($self->_backend_acsis_like()) {
-        my $utdate;
-        ($utdate = $self->startobs->ymd) =~ s/-//g;
-        my $runnr = sprintf '%05u', $self->runnr;
-        $filename = File::Spec->catfile(
-            $filename,
-            "a" . $utdate . "_" . $runnr . "_00_0001.sdf");
-    }
-    else {
-        throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
-    }
-
-    return $filename;
-}
-
 =item B<rawdatadir>
 
 Using information in the Obs object either derive the raw data dir or determine it
@@ -1651,6 +1565,9 @@ from the path attached to filenames (if any).
 Note that this data directory is suitable for a single raw observation rather than
 a set of observations. This is because some data are written into per-observation sub
 directories and that is taken into account.
+
+B<Warning:> in the case of SCUBA-2 the returned value will include a C<_+SUBARRAY+_>
+placeholder to be filled in for each file.
 
 =cut
 
@@ -1722,7 +1639,18 @@ sub rawdatadir {
         $sub_inst = 'SCUBA';
     }
     elsif ($instrument =~ /^scuba-?2$/i) {
-        # throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
+        $dir = OMP::Config->getData(
+            'scuba-2.rawdatadir',
+            telescope => 'JCMT',
+            utdate => $utdate);
+
+        # Replace the subarray pattern with a label for easier replacement
+        # and add the observation subdirectory.
+        my ($pre, $post) = split /s\[48\]\[a-d\]/, $dir;
+        my $runnr = sprintf '%05u', $self->runnr;
+        $dir = File::Spec->catdir($pre, '_+SUBARRAY+_', $post, $runnr);
+
+        $sub_inst = 'SCUBA-2';
     }
 
     #  Need to have run number appeneded (as least in case of ACSIS backend).

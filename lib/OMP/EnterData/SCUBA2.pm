@@ -72,11 +72,13 @@ check/find the bounds.
 =cut
 
 sub get_bound_check_command {
-    my ($self, $fh, $pos_angle) = @_;
+    my ($self, $fh, $pos_angle, $pixsize) = @_;
 
     my $smurf_dir = $ENV{'SMURF_DIR'};
     die 'SMURF_DIR not set' unless defined $smurf_dir;
     die 'SMURF_DIR does not exist' unless -d $smurf_dir;
+
+    $pixsize //= 1;
 
     # Turn off autogrid; only rotate raster maps. Just need bounds.
     return (
@@ -84,7 +86,7 @@ sub get_bound_check_command {
         "in=^$fh",
         'system=ICRS',
         'out=!',
-        'pixsize=1',
+        "pixsize=$pixsize",
         'msg_filter=quiet',
         (defined $pos_angle ? "crota=$pos_angle" : ()),
         'method=ITER', 'config=!',

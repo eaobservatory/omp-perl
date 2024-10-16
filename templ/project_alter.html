@@ -99,6 +99,11 @@
                     <td><input type="text" name="expirydate" value="[% project.expirydate %]" />
                     (for Rapid Turnaround projects only)</td>
                 </tr>
+                <tr>
+                    <td align="right">Direct download</td>
+                    <td><input type="checkbox" name="directdownload" value="1" [% IF project.directdownload %]checked="checked"[% END %] />
+                    (for suitable projects requiring immediate raw data access)</td>
+                </td>
             </table>
             <p>
                 <label>

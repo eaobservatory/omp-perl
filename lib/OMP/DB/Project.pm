@@ -894,6 +894,7 @@ sub _insert_project_row {
         int($cloudmin),
         $skymin, $skymax,
         $expirydate,
+        $proj->directdownload,
     );
 
     # Now insert the queue information
