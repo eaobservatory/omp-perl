@@ -78,8 +78,9 @@ sub request_data {
     if ($utdate) {
         # Need to decide whether we are using CADC or OMP for data retrieval
         # To do that we need to know the telescope name
-        my $tel = OMP::DB::Project->new(
-            DB => $self->database, ProjectID => $projectid)->getTelescope();
+        my $project = OMP::DB::Project->new(
+            DB => $self->database, ProjectID => $projectid)->projectDetails();
+        my $tel = $project->telescope();
 
         return $self->_write_error(
             "Error obtaining telescope name from project code.")
@@ -137,7 +138,7 @@ sub request_data {
             $ctx{'result'} = $self->_package_data_cadc($pkg);
         }
         elsif ($retrieve_scheme eq 'direct') {
-            my $result = $self->_package_data_direct($pkg, $filename);
+            my $result = $self->_package_data_direct($pkg, $project, $filename);
             return undef unless defined $result;
             $ctx{'result'} = $result;
         }
@@ -236,7 +237,13 @@ Prepare information for direct retrieval of data from the OMP.
 sub _package_data_direct {
     my $self = shift;
     my $pkg = shift;
+    my $project = shift;
     my $filename = shift;
+
+    unless ($project->directdownload) {
+        return $self->_write_error(
+            'Direct data download is not enabled for this project.');
+    }
 
     my $today = OMP::DateTools->today(1);
     my $date_limit = $today - ONE_WEEK;

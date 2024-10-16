@@ -100,6 +100,7 @@ sub new {
         Contactable => {},
         OMPAccess => {},
         ExpiryDate => undef,
+        DirectDownload => 0,
     }, $class;
 
     # Deal with arguments
@@ -1255,6 +1256,20 @@ sub expirydate {
     return $self->{'ExpiryDate'};
 }
 
+=item B<directdownload>
+
+Whether direct download of data via the OMP server is allowed.
+
+=cut
+
+sub directdownload {
+    my $self = shift;
+    if (@_) {
+        my $value = shift;
+        $self->{'DirectDownload'} = ($value ? 1 : 0);
+    }
+    return $self->{'DirectDownload'};
+}
 =back
 
 =head2 General Methods

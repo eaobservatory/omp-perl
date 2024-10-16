@@ -15,6 +15,8 @@
           <a href="/cgi-bin/retrieve_data.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;inccal=1">Retrieve data with calibrations</a>
           <br />
           <a href="/cgi-bin/retrieve_data.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;inccal=0">Retrieve data excluding calibrations</a>
+        [% ELSIF project.directdownload %]
+          <a href="/cgi-bin/retrieve_data.pl?project=[% project.projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;direct=1">Retrieve data directly from the OMP server</a>
         [% ELSE %]
             Retrieve data [this link will become active on
             [% retrieve_date.strftime('%Y-%m-%d %H:%M') | html %] UT]

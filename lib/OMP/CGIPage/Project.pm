@@ -958,6 +958,13 @@ sub process_project_changes {
             . '.';
     }
 
+    # Check whether direct download setting changed.
+    my $new_directdownload = $q->param('directdownload');
+    if ($new_directdownload xor $project->directdownload) {
+        $project->directdownload($new_directdownload ? 1 : 0);
+        push @msg, sprintf 'Direct raw data download %s.', ($new_directdownload ? 'enabled' : 'disabled');
+    }
+
     # Generate feedback message
 
     # Get OMP user object

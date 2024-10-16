@@ -223,6 +223,7 @@ CREATE TABLE `ompproj` (
   `skymin` double NOT NULL,
   `skymax` double NOT NULL,
   `expirydate` datetime DEFAULT NULL,
+  `directdownload` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`projectid`),
   KEY `idx_allocated` (`allocated`),
   KEY `idx_pending` (`pending`),
