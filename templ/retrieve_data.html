@@ -87,6 +87,21 @@
                     <input type="submit" name="submit_retrieve" value="Retrieve from CADC" />
                 </p>
             </form>
+        [% CASE 'direct' %]
+            <ul>
+                [% FOREACH obs IN result.obs %]
+                    <li>
+                        <p>
+                            [% obs.instrument | html %] [% obs.runnr | html %] [% obs.target | html %]
+                        </p>
+                        <ul>
+                            [% FOREACH file IN obs.simple_filename %]
+                                <li><a href="[% target_base %]?project=[% projectid | uri %]&amp;utdate=[% utdate | uri %]&amp;filename=[% file | uri %]">[% file | html %]</a></li>
+                            [% END %]
+                        </ul>
+                    </li>
+                [% END %]
+            </ul>
         [% CASE 'omp' %]
             <p>
                 <b>Copying files and creating tar archive(s).

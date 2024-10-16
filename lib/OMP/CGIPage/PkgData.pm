@@ -21,10 +21,14 @@ use strict;
 use warnings;
 use OMP::Error qw/:try/;
 use File::Basename;
+use IO::File;
+use Time::Seconds qw/ONE_WEEK/;
+
 our $VERSION = '0.03';
 
 use OMP::DB::Archive;
 use OMP::DB::Project;
+use OMP::DateTools;
 use OMP::PackageData;
 
 use base qw/OMP::CGIPage/;
@@ -51,10 +55,20 @@ sub request_data {
 
     my $q = $self->cgi;
 
-    my $utdate = $q->param('utdate');
+    my $utdate_str = $q->param('utdate');
     my $inccal = $q->param('inccal') // 1;
 
+    my $filename = $q->param('filename');
+    my $direct = (defined $filename) || $q->param('direct');
+    $inccal = 0 if $direct;
+
+    my $utdate = undef;
+    if ($utdate_str =~ /^(\d{4}-\d{2}-\d{2})$/a) {
+        $utdate = $1;
+    }
+
     my %ctx = (
+        target_base => $q->url(-absolute => 1),
         projectid => $projectid,
         utdate => $utdate,
         inccal => $inccal,
@@ -73,12 +87,18 @@ sub request_data {
 
         # Now determine which retrieval scheme is in play (cadc vs omp)
         my $retrieve_scheme;
-        try {
-            $retrieve_scheme = OMP::Config->getData("retrieve_scheme", telescope => $tel);
+        if ($direct) {
+            $retrieve_scheme = 'direct';
         }
-        otherwise {
-            $retrieve_scheme = 'omp';
-        };
+        else {
+            try {
+                $retrieve_scheme = OMP::Config->getData(
+                    'retrieve_scheme', telescope => $tel);
+            }
+            otherwise {
+                $retrieve_scheme = 'omp';
+            };
+        }
 
         # Go through the package data object so that we do not need to worry about
         # inconsistencies with local retrieval
@@ -115,6 +135,11 @@ sub request_data {
 
         if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i) {
             $ctx{'result'} = $self->_package_data_cadc($pkg);
+        }
+        elsif ($retrieve_scheme eq 'direct') {
+            my $result = $self->_package_data_direct($pkg, $filename);
+            return undef unless defined $result;
+            $ctx{'result'} = $result;
         }
         else {
             $ctx{'result'} = $self->_package_data($pkg);
@@ -197,6 +222,64 @@ sub _package_data_cadc {
         method => 'cadc',
         file_urls => \@files,
         run_id => $run_id,
+    };
+}
+
+=item B<_package_data_direct>
+
+Prepare information for direct retrieval of data from the OMP.
+
+    $page->_package_data_direct($pkg);
+
+=cut
+
+sub _package_data_direct {
+    my $self = shift;
+    my $pkg = shift;
+    my $filename = shift;
+
+    my $today = OMP::DateTools->today(1);
+    my $date_limit = $today - ONE_WEEK;
+    if ($pkg->utdate < $date_limit) {
+        return $self->_write_error(
+            'Direct data download is only available for recent data.');
+    }
+
+    my $obsgrp = $pkg->obsGrp;
+    my @obs = $obsgrp->obs();
+
+    if (defined $filename) {
+        die 'Invalid filename' unless $filename =~ /^([-_.a-zA-Z0-9]+)$/;
+
+        foreach my $obs (@obs) {
+            foreach my $pathname ($obs->filename) {
+                my $basename = basename($pathname);
+                if ($filename eq $basename) {
+                    return $self->_write_not_found() unless -e $pathname;
+
+                    print $self->cgi->header(
+                        -type => 'application/octet-stream',
+                        -Content_Disposition => "attachment; filename=$basename",
+                    );
+
+                    my $fh = IO::File->new($pathname, 'r');
+
+                    local $/ = undef;
+                    print <$fh>;
+
+                    $fh->close();
+
+                    return undef;
+                }
+            }
+        }
+
+        die 'Filename not recognized';
+    }
+
+    return {
+        method => 'direct',
+        obs => \@obs,
     };
 }
 
