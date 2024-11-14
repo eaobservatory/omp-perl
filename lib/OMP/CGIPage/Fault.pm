@@ -242,12 +242,12 @@ sub query_fault_output {
         # The 'Search' submit button was clicked
         %hash = %{$comp->category_hash($category)};
 
-        if ($q->param('system')) {
+        if (defined $q->param('system')) {
             my $system = $q->param('system');
             $hash{'system'} = $system if $system !~ /any/;
         }
 
-        if ($q->param('type')) {
+        if (defined $q->param('type')) {
             my $type = $q->param('type');
             $hash{'type'} = $type if $type !~ /any/;
         }
@@ -258,7 +258,7 @@ sub query_fault_output {
             $hash{'condition'} = $condition{'Chronic'};
         }
 
-        if ($q->param('status')) {
+        if (defined $q->param('status')) {
             my $status = $q->param('status');
             if ($status eq 'any') {
             }
