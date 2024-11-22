@@ -1887,6 +1887,8 @@ sub correlator {
     # get the hardware map
     my $hw_map = $self->hardware_map;
 
+    my $synth_status = _get_lo2_synth_status();
+
     # Now get the receptors of interest for this observation
     my $frontend = $cfg->frontend;
     throw OMP::Error::FatalError('Frontend setup is not available')
@@ -1996,12 +1998,29 @@ sub correlator {
             my $slot_mapping = undef;
             if (2 == scalar @hwmap) {
                 if ((exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
-                        and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
-                        and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
-                        and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
-                    $slot_mapping = [1, 0];
+                        and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})) {
+                    if ((($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
+                            and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)
+                            and not ($synth_status->{'high'}[0] and $synth_status->{'high'}[2]))
+                        or (($info{'freqconfig'}->{'LO2'}->{'SPW2'} > 7.9999e9)
+                                and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} <= 7.9999e9)
+                                and not ($synth_status->{'high'}[1] and $synth_status->{'high'}[3]))) {
+                        $slot_mapping = [1, 0];
+                    }
                 }
             }
+
+            # Temporary slot mapping to use LO2 #3 and #4 first for Namakanui,
+            # if the first spectral window is not suitable for LO2 #1 or #2.
+            if (4 == scalar @hwmap) {
+                if ((exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
+                        and not (($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
+                            ? ($synth_status->{'high'}->[0] and $synth_status->{'high'}->[1])
+                            : ($synth_status->{'low'}->[0] and $synth_status->{'low'}->[1]))) {
+                    $slot_mapping = [2, 3, 0, 1];
+                }
+            }
+
             throw OMP::Error::FatalError(
                 "Slot mapping size does not match the number of slots!")
                 if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
@@ -2115,8 +2134,6 @@ sub correlator {
     throw OMP::Error::FatalError(
         "Somehow the LO2 settings were never calculated")
         unless exists $info{freqconfig}->{LO2};
-
-    my $synth_status = _get_lo2_synth_status();
 
     # Supply default LO2 frequency to avoid tuning issues with LO2 synthesizers.
     my @lo2 = map {
