@@ -25,7 +25,7 @@ use Data::Dumper;
 
 use File::Spec;
 use Astro::Coords::Offset;
-use List::Util qw/min max all/;
+use List::Util qw/min max all sum/;
 use Scalar::Util qw/blessed/;
 use POSIX qw/ceil floor/;
 use Math::Trig qw/rad2deg/;
@@ -1887,6 +1887,8 @@ sub correlator {
     # get the hardware map
     my $hw_map = $self->hardware_map;
 
+    my $synth_status = _get_lo2_synth_status();
+
     # Now get the receptors of interest for this observation
     my $frontend = $cfg->frontend;
     throw OMP::Error::FatalError('Frontend setup is not available')
@@ -1924,245 +1926,304 @@ sub correlator {
     # Mapping from image to signal spectral windows.
     my $image_spws = $info{'freqconfig'}->{'image_spws'};
 
-    # CM and DCM bandwidth modes
-    my @cm_bwmodes;
-    my @dcm_bwmodes;
-    my @cm_map;
-    my @sbmodes;
+    # Determine possible slot orderings.
+    my $num_slots;
+    my @possible_slot_mappings = (undef);
+    do {
+        throw OMP::Error::FatalError('No active receptors appear to be available')
+            unless scalar @rec;
+        my @hwmap = $hw_map->receptor($rec[0]);
+        $num_slots = scalar @hwmap;
+        throw OMP::Error::FatalError('First receptor is not in the hardware map')
+            unless $num_slots;
 
-    # lookup from lo2 id to spectral window
-    my @lo2spw;
-
-    # Record the slot in which each signal SPW starts, so we can use the
-    # same slots for the corresponding image SPWs.
-    my %slot_start_spw = ();
-
-    # Keep track of the hardware map "slot number" which we are allocating.
-    # This will advance every time we allocate a signal spectral window.
-    my $n_slot = 0;
-
-    # loop over subbands
-    foreach my $spwid (sort keys %subbands) {
-        my $sb = $subbands{$spwid};
-
-        my $bwmode = $sb->bandwidth_mode;
-        my $sideband = ($sb->fe_sideband > 0) ? 'USB' : 'LSB';
-        my $n_cm = $sb->numcm;
-
-        # Determine hardware map slot where this SPW should start -- either our
-        # current counter, which is then advanced, or wherever the matching
-        # signal SPW started.
-        my $slot_start = undef;
-        my $image_spw = undef;
-        unless (exists $image_spws->{$spwid}) {
-            $slot_start = $slot_start_spw{$spwid} = $n_slot;
-            $n_slot += $n_cm;
-        }
-        else {
-            $image_spw = $image_spws->{$spwid};
-
-            throw OMP::Error::FatalError(
-                "Spectral window $spwid is the image of $image_spw but that SPW has not yet been allocated")
-                unless exists $slot_start_spw{$image_spw};
-
-            throw OMP::Error::FatalError(
-                "Spectral window $spwid is the image of $image_spw but they use different numbers of slots")
-                unless $n_cm == $subbands{$image_spw}->numcm;
-
-            $slot_start = $slot_start_spw{$image_spw};
-
-            throw OMP::Error::FatalError(
-                "Spectral window $spwid is the image of $image_spw but they use the same sideband ($sideband)")
-                if $sideband eq
-                (($subbands{$image_spw}->fe_sideband > 0) ? 'USB' : 'LSB');
-        }
-
-        # for each receptor, we need to assign all the subbands to the correct
-        # hardware
-        my $n_rec_allocated = 0;
-        for my $r (@rec) {
-            # If this is a sideband-separating observation, check the receptor sideband.
-            if (defined $receptor_sideband) {
-                next unless $receptor_sideband->{$r} eq $sideband;
-            }
-
-            # Get the CM mapping for this receptor
-            my @hwmap = $hw_map->receptor($r);
-            throw OMP::Error::FatalError(
-                "Receptor '$r' is not available in the ACSIS hardware map!")
-                unless @hwmap;
-
-            # Temporary slot mapping if necessary for HARP.
-            my $slot_mapping = undef;
-            if (2 == scalar @hwmap) {
-                if ((exists $info{'freqconfig'}->{'LO2'}->{'SPW1'})
-                        and (exists $info{'freqconfig'}->{'LO2'}->{'SPW2'})
-                        and ($info{'freqconfig'}->{'LO2'}->{'SPW1'} > 7.9999e9)
-                        and ($info{'freqconfig'}->{'LO2'}->{'SPW2'} <= 7.9999e9)) {
-                    $slot_mapping = [1, 0];
-                }
-            }
-            throw OMP::Error::FatalError(
-                "Slot mapping size does not match the number of slots!")
-                if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
-
-            # Some configurations actually use multiple correlator modules in
-            # a single subband so we need to take this into account when
-            # calculating the mapping.
-            #
-            # Additionally it is not possible for a mode that uses
-            # 2 correlator modules to start on an odd slot (so a dual CM mode
-            # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
-            # ensuring that this latter problem never occurs.
-            for (my $i = 0; $i < $n_cm; $i ++) {
-                my $slot_i = $slot_start + $i;
-
-                throw OMP::Error::TranslateFail(
-                    "The observation specified "
-                    . ($slot_i + 1) . " (or more) subbands but there are only "
-                    . @hwmap . " slots available for receptor '$r'")
-                    if $slot_i > $#hwmap;
-
-                my $hw = $hwmap[(defined $slot_mapping)
-                    ? $slot_mapping->[$slot_i]
-                    : $slot_i];
-
-                my $cmid = $hw->{CM_ID};
-                my $dcmid = $hw->{DCM_ID};
-                my $quadnum = $hw->{QUADRANT};
-                my $sbmode = $hw->{SB_MODES}->[0];
-                my $lo2id = $hw->{LO2};
-
-                # Correlator uses the standard bandwidth mode
-                $cm_bwmodes[$cmid] = $bwmode;
-
-                # DCM just wants the bandwidth without the channel count
-                my $dcmbw = $bwmode;
-                $dcmbw =~ s/x.*$//;
-                $dcm_bwmodes[$dcmid] = $dcmbw;
-
-                # hardware mapping to spectral window ID
-                my %map = (
-                    CM_ID => $cmid,
-                    DCM_ID => $dcmid,
-                    RECEPTOR => $r,
-                    SPW_ID => $spwid,
-                );
-
-                $cm_map[$cmid] = \%map;
-
-                # Quadrant mapping to subband mode is fixed by the hardware map
-                if (defined $sbmodes[$quadnum]) {
-                    if ($sbmodes[$quadnum] != $sbmode) {
-                        throw OMP::Error::FatalError(
-                            "Subband mode for quadrant $quadnum does not match previous setting\n");
-                    }
-                }
-                else {
-                    $sbmodes[$quadnum] = $sbmode;
-                }
-
-                # Convert lo2id to an array index
-                $lo2id --;
-
-                if (defined $image_spw) {
-                    unless (defined $lo2spw[$lo2id]) {
-                        throw OMP::Error::FatalError(
-                            "LO2 #$lo2id is being allocated to $spwid (image of $image_spw) but has no existing assignment\n");
-                    }
-                    elsif ($lo2spw[$lo2id] ne $image_spw) {
-                        throw OMP::Error::FatalError(
-                            "LO2 #$lo2id is associated with spectral windows $spwid (image of $image_spw) AND $lo2spw[$lo2id]\n");
-                    }
-                }
-                elsif (defined $lo2spw[$lo2id]) {
-                    if ($lo2spw[$lo2id] ne $spwid) {
-                        throw OMP::Error::FatalError(
-                            "LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
-                    }
-                }
-                else {
-                    $lo2spw[$lo2id] = $spwid;
-                }
-            }
-
-            $n_rec_allocated ++;
-        }
-
-        # Check that we found some receptors matching the requirements for
-        # this subband (namely the correct sideband at the moment).
+        my @subband_slots = map {$subbands{$_}->numcm}
+            grep {not exists $image_spws->{$_}} sort keys %subbands;
         throw OMP::Error::FatalError(
-            "No receptors allocated for $spwid subband ($sideband)")
-            unless $n_rec_allocated;
+            "Insufficient slots available - have $num_slots but need " . (sum @subband_slots))
+            if $num_slots < sum @subband_slots;
+
+        # Make all combinations of slot numbers and then select those allowable.
+        @possible_slot_mappings = grep {
+            my @mapping = @$_;
+            my $ok = 1;
+            my $i = 0;
+            foreach my $slots (@subband_slots) {
+                # Chained modes ($slots = 2) must start on an even CM (0 or 2)
+                # and comprise sequential CMs.
+                $ok = 0 if (($slots > 1) && ($mapping[$i] % 2))
+                    || ! all {
+                        $mapping[$i + $_] == $mapping[$i] + $_
+                    } 1 .. ($slots - 1);
+                $i += $slots;
+            }
+            $ok;
+        } _make_combinations(0 .. ($num_slots - 1));
+
+        $self->output(
+            "Correlator configuration:\n",
+            "\tNumber of slots: $num_slots\n",
+            "\tSubband slots: [" . (join ', ', @subband_slots) . "]\n",
+            "\tPossible orderings: "
+                . (join "\n\t\t", map {join ' ', map {'(' . (join ',', @$_) . ')'} @$_}
+                _array_in_blocks(6, @possible_slot_mappings)) . "\n",
+        );
+    };
+
+    # Try each slot mapping to find one where the required
+    # LO2 synthesizers are operational.
+    foreach my $slot_mapping (@possible_slot_mappings) {
+        # CM and DCM bandwidth modes
+        my @cm_bwmodes;
+        my @dcm_bwmodes;
+        my @cm_map;
+        my @sbmodes;
+
+        # lookup from lo2 id to spectral window
+        my @lo2spw;
+
+        # Record the slot in which each signal SPW starts, so we can use the
+        # same slots for the corresponding image SPWs.
+        my %slot_start_spw = ();
+
+        # Keep track of the hardware map "slot number" which we are allocating.
+        # This will advance every time we allocate a signal spectral window.
+        my $n_slot = 0;
+
+        # loop over subbands
+        foreach my $spwid (sort keys %subbands) {
+            my $sb = $subbands{$spwid};
+
+            my $bwmode = $sb->bandwidth_mode;
+            my $sideband = ($sb->fe_sideband > 0) ? 'USB' : 'LSB';
+            my $n_cm = $sb->numcm;
+
+            # Determine hardware map slot where this SPW should start -- either our
+            # current counter, which is then advanced, or wherever the matching
+            # signal SPW started.
+            my $slot_start = undef;
+            my $image_spw = undef;
+            unless (exists $image_spws->{$spwid}) {
+                $slot_start = $slot_start_spw{$spwid} = $n_slot;
+                $n_slot += $n_cm;
+            }
+            else {
+                $image_spw = $image_spws->{$spwid};
+
+                throw OMP::Error::FatalError(
+                    "Spectral window $spwid is the image of $image_spw but that SPW has not yet been allocated")
+                    unless exists $slot_start_spw{$image_spw};
+
+                throw OMP::Error::FatalError(
+                    "Spectral window $spwid is the image of $image_spw but they use different numbers of slots")
+                    unless $n_cm == $subbands{$image_spw}->numcm;
+
+                $slot_start = $slot_start_spw{$image_spw};
+
+                throw OMP::Error::FatalError(
+                    "Spectral window $spwid is the image of $image_spw but they use the same sideband ($sideband)")
+                    if $sideband eq
+                    (($subbands{$image_spw}->fe_sideband > 0) ? 'USB' : 'LSB');
+            }
+
+            # for each receptor, we need to assign all the subbands to the correct
+            # hardware
+            my $n_rec_allocated = 0;
+            for my $r (@rec) {
+                # If this is a sideband-separating observation, check the receptor sideband.
+                if (defined $receptor_sideband) {
+                    next unless $receptor_sideband->{$r} eq $sideband;
+                }
+
+                # Get the CM mapping for this receptor
+                my @hwmap = $hw_map->receptor($r);
+                throw OMP::Error::FatalError(
+                    "Receptor '$r' is not available in the ACSIS hardware map!")
+                    unless @hwmap;
+
+                # Check that the number of slots is consistent with the other receptors.
+                throw OMP::Error::FatalError(
+                    "Receptor '$r' has different number of slots than the first ($num_slots)")
+                    unless $num_slots == scalar @hwmap;
+
+                throw OMP::Error::FatalError(
+                    "Slot mapping size does not match the number of slots!")
+                    if (defined $slot_mapping and $#hwmap != $#$slot_mapping);
+
+                # Some configurations actually use multiple correlator modules in
+                # a single subband so we need to take this into account when
+                # calculating the mapping.
+                #
+                # Additionally it is not possible for a mode that uses
+                # 2 correlator modules to start on an odd slot (so a dual CM mode
+                # can either start at CM 0 or CM 2, not 1 or 3). The OT should be
+                # ensuring that this latter problem never occurs.
+                for (my $i = 0; $i < $n_cm; $i ++) {
+                    my $slot_i = $slot_start + $i;
+
+                    throw OMP::Error::TranslateFail(
+                        "The observation specified "
+                        . ($slot_i + 1) . " (or more) subbands but there are only "
+                        . @hwmap . " slots available for receptor '$r'")
+                        if $slot_i > $#hwmap;
+
+                    my $hw = $hwmap[(defined $slot_mapping)
+                        ? $slot_mapping->[$slot_i]
+                        : $slot_i];
+
+                    my $cmid = $hw->{CM_ID};
+                    my $dcmid = $hw->{DCM_ID};
+                    my $quadnum = $hw->{QUADRANT};
+                    my $sbmode = $hw->{SB_MODES}->[0];
+                    my $lo2id = $hw->{LO2};
+
+                    # Correlator uses the standard bandwidth mode
+                    $cm_bwmodes[$cmid] = $bwmode;
+
+                    # DCM just wants the bandwidth without the channel count
+                    my $dcmbw = $bwmode;
+                    $dcmbw =~ s/x.*$//;
+                    $dcm_bwmodes[$dcmid] = $dcmbw;
+
+                    # hardware mapping to spectral window ID
+                    my %map = (
+                        CM_ID => $cmid,
+                        DCM_ID => $dcmid,
+                        RECEPTOR => $r,
+                        SPW_ID => $spwid,
+                    );
+
+                    $cm_map[$cmid] = \%map;
+
+                    # Quadrant mapping to subband mode is fixed by the hardware map
+                    if (defined $sbmodes[$quadnum]) {
+                        if ($sbmodes[$quadnum] != $sbmode) {
+                            throw OMP::Error::FatalError(
+                                "Subband mode for quadrant $quadnum does not match previous setting\n");
+                        }
+                    }
+                    else {
+                        $sbmodes[$quadnum] = $sbmode;
+                    }
+
+                    # Convert lo2id to an array index
+                    $lo2id --;
+
+                    if (defined $image_spw) {
+                        unless (defined $lo2spw[$lo2id]) {
+                            throw OMP::Error::FatalError(
+                                "LO2 #$lo2id is being allocated to $spwid (image of $image_spw) but has no existing assignment\n");
+                        }
+                        elsif ($lo2spw[$lo2id] ne $image_spw) {
+                            throw OMP::Error::FatalError(
+                                "LO2 #$lo2id is associated with spectral windows $spwid (image of $image_spw) AND $lo2spw[$lo2id]\n");
+                        }
+                    }
+                    elsif (defined $lo2spw[$lo2id]) {
+                        if ($lo2spw[$lo2id] ne $spwid) {
+                            throw OMP::Error::FatalError(
+                                "LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+                        }
+                    }
+                    else {
+                        $lo2spw[$lo2id] = $spwid;
+                    }
+                }
+
+                $n_rec_allocated ++;
+            }
+
+            # Check that we found some receptors matching the requirements for
+            # this subband (namely the correct sideband at the moment).
+            throw OMP::Error::FatalError(
+                "No receptors allocated for $spwid subband ($sideband)")
+                unless $n_rec_allocated;
+        }
+
+        # Set the LO2. First we need to check that values are available that were
+        # calculated previously
+        throw OMP::Error::FatalError(
+            "Somehow the LO2 settings were never calculated")
+            unless exists $info{freqconfig}->{LO2};
+
+        # Supply default LO2 frequency to avoid tuning issues with LO2 synthesizers.
+        my @lo2 = map {
+            (not $synth_status->{'high'}->[$_])
+                ? 7.5e9
+                : ((not $synth_status->{'low'}->[$_]) ? 8.5e9 : undef)
+        } 0 .. 3;
+
+        for my $i (0 .. $#lo2spw) {
+            my $spwid = $lo2spw[$i];
+            next unless defined $spwid;
+
+            # sanity check never hurts
+            throw OMP::Error::FatalError(
+                "Spectral window $spwid does not seem to exist in LO2 array")
+                unless exists $info{freqconfig}->{LO2}->{$spwid};
+
+            # store it
+            $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
+        }
+
+        # Check whether desired LO2 synthesizers are inoperative.
+        # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
+        my $n_synth_err = 0;
+        for my $lo2index (0 .. 3) {
+            next unless defined $lo2[$lo2index];
+            my $synth = ($lo2[$lo2index] > 7.9999e9) ? 'high' : 'low';
+            if (not $synth_status->{$synth}->[$lo2index]) {
+                $n_synth_err ++;
+                $self->output(
+                    sprintf "\tFor mapping (%s) LO2 #%i (%i counting from 0) %s synth. unavailable (%.3f GHz requested)\n",
+                    ((defined $slot_mapping) ? (join ',', @$slot_mapping) :  'default'),
+                    ($lo2index + 1), $lo2index,
+                    $synth, $lo2[$lo2index] / 1.0e9);
+            }
+        }
+        next if $n_synth_err;
+
+        $self->output(
+            (sprintf "\tSelected slot order: [%s]\n",
+                ((defined $slot_mapping) ? (join ', ', @$slot_mapping) :  'default')),
+            (sprintf "\tLO2 tuning: [%s]\n",
+                (join ', ', map {sprintf '%.3f', $_ / 1.0e9} @lo2)),
+            map {sprintf "\tModule %s: %s %s %s\n",
+                    $cm_map[$_]->{'CM_ID'}, $cm_map[$_]->{'RECEPTOR'},
+                    $cm_map[$_]->{'SPW_ID'}, $cm_bwmodes[$_]
+                } grep {defined $cm_map[$_]} 0 .. $#cm_map
+        );
+
+        # Now store the mappings in the corresponding objects
+        my $corr = JAC::OCS::Config::ACSIS::ACSIS_CORR->new();
+        my $if = JAC::OCS::Config::ACSIS::ACSIS_IF->new();
+        my $map = JAC::OCS::Config::ACSIS::ACSIS_MAP->new();
+
+        # to decide on CORRTASK mapping
+        $map->hw_map($hw_map);
+
+        # Store the relevant arrays
+        $map->cm_map(@cm_map);
+        $if->bw_modes(@dcm_bwmodes);
+        $if->sb_modes(@sbmodes);
+        $corr->bw_modes(@cm_bwmodes);
+
+        $if->lo2freqs(@lo2);
+
+        # Set the LO3 to a fixed value (all the test files do this)
+        # A string since this is meant to be hard-coded to be exactly this by the DTD
+        $if->lo3freq("2000.0");
+
+        # store in the ACSIS object
+        $acsis->acsis_corr($corr);
+        $acsis->acsis_if($if);
+        $acsis->acsis_map($map);
+
+        return;
     }
 
-    # Now store the mappings in the corresponding objects
-    my $corr = JAC::OCS::Config::ACSIS::ACSIS_CORR->new();
-    my $if = JAC::OCS::Config::ACSIS::ACSIS_IF->new();
-    my $map = JAC::OCS::Config::ACSIS::ACSIS_MAP->new();
-
-    # to decide on CORRTASK mapping
-    $map->hw_map($hw_map);
-
-    # Store the relevant arrays
-    $map->cm_map(@cm_map);
-    $if->bw_modes(@dcm_bwmodes);
-    $if->sb_modes(@sbmodes);
-    $corr->bw_modes(@cm_bwmodes);
-
-    # Set the LO2. First we need to check that values are available that were
-    # calculated previously
     throw OMP::Error::FatalError(
-        "Somehow the LO2 settings were never calculated")
-        unless exists $info{freqconfig}->{LO2};
-
-    my $synth_status = _get_lo2_synth_status();
-
-    # Supply default LO2 frequency to avoid tuning issues with LO2 synthesizers.
-    my @lo2 = map {
-        (not $synth_status->{'high'}->[$_])
-            ? 7.5e9
-            : ((not $synth_status->{'low'}->[$_]) ? 8.5e9 : undef)
-    } 0 .. 3;
-
-    for my $i (0 .. $#lo2spw) {
-        my $spwid = $lo2spw[$i];
-        next unless defined $spwid;
-
-        # sanity check never hurts
-        throw OMP::Error::FatalError(
-            "Spectral window $spwid does not seem to exist in LO2 array")
-            unless exists $info{freqconfig}->{LO2}->{$spwid};
-
-        # store it
-        $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
-    }
-
-    # Check whether desired LO2 synthesizers are inoperative.
-    # Note: the acsisIf code uses this test: if (frequency <= 7999.9)
-    for my $lo2index (0 .. 3) {
-        next unless defined $lo2[$lo2index];
-        my $synth = ($lo2[$lo2index] > 7.9999e9) ? 'high' : 'low';
-        if (not $synth_status->{$synth}->[$lo2index]) {
-            throw OMP::Error::FatalError(
-                sprintf "LO2 #%i (%i counting from 0) %s synthesizer is unavailable (%.3f GHz requested)",
-                ($lo2index + 1), $lo2index,
-                $synth, $lo2[$lo2index] / 1.0e9);
-        }
-    }
-
-    $if->lo2freqs(@lo2);
-
-    # Set the LO3 to a fixed value (all the test files do this)
-    # A string since this is meant to be hard-coded to be exactly this by the DTD
-    $if->lo3freq("2000.0");
-
-    # store in the ACSIS object
-    $acsis->acsis_corr($corr);
-    $acsis->acsis_if($if);
-    $acsis->acsis_map($map);
-
-    return;
+        "Unable to find a slot mapping where the required LO2 synthesizers are available.");
 }
 
 sub _get_lo2_synth_status {
@@ -2176,6 +2237,29 @@ sub _get_lo2_synth_status {
             $_ => \@status;
         } qw/low high/
     };
+}
+
+# Create all possible orderings of the given list of items.
+sub _make_combinations {
+    return [@_] if 2 > scalar @_;
+
+    return map {
+        my $i = $_;
+        map {[$_[$i], @$_]} _make_combinations(
+            map {$_[$_]} grep {$_ != $i} 0 .. $#_)
+
+    } 0 .. $#_;
+}
+
+# Split the given list of items into blocks of the specified size.
+sub _array_in_blocks {
+    my $size = shift;
+    my @blocks = (my $block = []);
+    foreach (@_) {
+        push @blocks, ($block = []) if $size <= scalar @$block;
+        push @$block, $_;
+    }
+    return @blocks;
 }
 
 =item B<create_image_subsystems>
@@ -3847,13 +3931,7 @@ sub bandwidth_mode {
             # Subband 1 is referenced to LO channel and subband 2 to HI
             #     [ |     |:]
             #             [:|     | ]
-            my $frontend = $self->ocs_frontend($info{'instrument'});
-            if ($frontend =~ /harp/i) {
-                @refchan = ($nch_lo, $nch_hi);
-            }
-            else {
-                @refchan = ($nch_hi, $nch_lo);
-            }
+            @refchan = ($nch_lo, $nch_hi);
             @sbif = ($s->{'if'}) x 2;
         }
         elsif ($nsubband == 3) {
