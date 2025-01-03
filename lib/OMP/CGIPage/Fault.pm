@@ -927,6 +927,9 @@ sub update_resp {
     # Strip out ^M
     $text = OMP::Display->remove_cr($text);
 
+    return $self->_write_error('Fault response text cannot be blank.')
+        unless $text;
+
     my $flag = undef;
     if (defined $q->param('flag')) {
         if ($q->param('flag') =~ /^(-?\d)$/a) {
