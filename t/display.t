@@ -17,7 +17,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use strict;
 require_ok('OMP::Display');
 
@@ -34,3 +34,15 @@ is(OMP::Display->format_html_inline("a\r\n<b>\r\n\r\n<c>\r\nd", 0),
 
 is(OMP::Display->format_html_inline("a\r\n<b>\r\n\r\n<c>\r\nd", 1),
     "<p>a<br />&lt;b&gt;</p>\n<p>&lt;c&gt;<br />d</p>");
+
+is(OMP::Display->replace_omp_links('
+Plain fault: 20100101.001
+Fault with response: 20100101.001#10
+Response: #10
+',
+    fault => 20200202.002),
+    '
+Plain fault: <a href="/cgi-bin/viewfault.pl?fault=20100101.001">20100101.001</a>
+Fault with response: <a href="/cgi-bin/viewfault.pl?fault=20100101.001#response10">20100101.001#10</a>
+Response: <a href="#response10">#10</a>
+');
