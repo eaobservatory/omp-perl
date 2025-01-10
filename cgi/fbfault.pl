@@ -20,4 +20,5 @@ OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(
     'project',
     title => 'Faults',
     template => 'project_faults.html',
+    javascript => ['copy_text.js'],
 );

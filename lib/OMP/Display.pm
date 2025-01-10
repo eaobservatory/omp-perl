@@ -328,10 +328,13 @@ sub replace_omp_links {
             sprintf '<a href="%s">%s</a>',
                 $url, $url;
         }],
-        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})/a, sub {
-            my $faultid = shift;
-            sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
-                $faultid, $faultid;
+        [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}(?:#\d+)?)/a, sub {
+            my ($faultid, $response) = split '#', shift, 2;
+            $response
+                ? (sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s#response%s">%s#%s</a>',
+                    $faultid, $response, $faultid, $response)
+                : (sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
+                    $faultid, $faultid);
         }],
         [qr/((?:acsis|scuba2)_\d{5}_\d{8}T\d{6})/a, sub {
             my $obsid = shift;
