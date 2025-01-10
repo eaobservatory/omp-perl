@@ -313,7 +313,21 @@ sub prepare_edit_text {
 =item B<replace_omp_links>
 
 Apply local "OMP" formatting by recognizing text which should act
-as a link.
+as a link.  Options:
+
+=over 4
+
+=item complete_url
+
+If true, give a complete URL (using configuration entries omp-url + cgidir),
+otherwise a path-absolute URL (starting with cgidir).
+
+=item fault
+
+A fault (ID number), if formatting HTML for display on a fault page.  Adds
+processing of fault images and internal links to responses.
+
+=back
 
 =cut
 
@@ -321,6 +335,9 @@ sub replace_omp_links {
     my $self = shift;
     my $text = shift;
     my %opt = @_;
+
+    my $baseurl = $opt{'complete_url'} ? OMP::Config->getData('omp-url') : '';
+    $baseurl .= OMP::Config->getData('cgidir');
 
     my @patterns = (
         [qr/(?:(?<=>)|(?<!\S))(https?:\/\/[-._~A-Za-z0-9%:\/?#\[\]@!\$&()*+,;=]+)(?:(?=<)|(?!\S))/a, sub {
@@ -331,20 +348,20 @@ sub replace_omp_links {
         [qr/((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}(?:#\d+)?)/a, sub {
             my ($faultid, $response) = split '#', shift, 2;
             $response
-                ? (sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s#response%s">%s#%s</a>',
-                    $faultid, $response, $faultid, $response)
-                : (sprintf '<a href="/cgi-bin/viewfault.pl?fault=%s">%s</a>',
-                    $faultid, $faultid);
+                ? (sprintf '<a href="%s/viewfault.pl?fault=%s#response%s">%s#%s</a>',
+                    $baseurl, $faultid, $response, $faultid, $response)
+                : (sprintf '<a href="%s/viewfault.pl?fault=%s">%s</a>',
+                    $baseurl, $faultid, $faultid);
         }],
         [qr/((?:acsis|scuba2)_\d{5}_\d{8}T\d{6})/a, sub {
             my $obsid = shift;
-            sprintf '<a href="/cgi-bin/staffworf.pl?telescope=JCMT&amp;obsid=%s">%s</a>',
-                $obsid, $obsid;
+            sprintf '<a href="%s/staffworf.pl?telescope=JCMT&amp;obsid=%s">%s</a>',
+                $baseurl, $obsid, $obsid;
         }],
         [qr/((?:jcmt|ukirt):\d{4}-\d\d-\d\d)/aai, sub {
             my ($telescope, $utdate) = split ':', shift, 2;
-            sprintf '<a href="/cgi-bin/nightrep.pl?tel=%s&amp;utdate=%s">%s</a>',
-                (uc $telescope), $utdate, $utdate;
+            sprintf '<a href="%s/nightrep.pl?tel=%s&amp;utdate=%s">%s</a>',
+                $baseurl, (uc $telescope), $utdate, $utdate;
         }],
     );
 
@@ -353,8 +370,8 @@ sub replace_omp_links {
 
         unshift @patterns, [qr/image:([-_.A-Za-z0-9]+)/, sub {
             my $filename = shift;
-            sprintf '<img src="/cgi-bin/get_resource.pl?type=fault-image&amp;fault=%s&amp;filename=%s" alt="Image: %s"/>',
-                $faultid, $filename, $filename;
+            sprintf '<img src="%s/get_resource.pl?type=fault-image&amp;fault=%s&amp;filename=%s" alt="Image: %s"/>',
+                $baseurl, $faultid, $filename, $filename;
         }];
 
         push @patterns, [qr/(?<!\S)#([0-9]+)\b/, sub {

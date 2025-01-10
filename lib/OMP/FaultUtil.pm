@@ -49,10 +49,6 @@ Other options:
 
 =over 4
 
-=item omp_url
-
-Base URL to the OMP.  Often given by the "omp-url" configuration entry.
-
 =item max_entries
 
 Maximum number of responses to show.
@@ -67,13 +63,12 @@ sub format_fault {
     my $bottompost = shift;
     my %opt = @_;
 
-    my $omp_url = $opt{'omp_url'} // '';
     my $max_entries = $opt{'max_entries'};
 
     my $faultid = $fault->id;
 
     # Get the fault system URL
-    my $baseurl = $omp_url . OMP::Config->getData('cgidir');
+    my $baseurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
     # Set link to response page
     my $url = "$baseurl/viewfault.pl?fault=$faultid";
@@ -175,7 +170,7 @@ sub format_fault {
 
             my $text = OMP::Display->format_html($_->text, $_->preformatted);
 
-            $text = _make_fault_id_link($baseurl, $text);
+            $text = OMP::Display->replace_omp_links($text, complete_url => 1);
 
             # Add separator before each response except the first.
             if ($i ++) {
@@ -230,7 +225,7 @@ sub format_fault {
         my $text = OMP::Display->format_html(
             $responses[0]->text, $responses[0]->preformatted);
 
-        $text = _make_fault_id_link($baseurl, $text);
+        $text = OMP::Display->replace_omp_links($text, complete_url => 1);
 
         push @faulttext, "$category fault filed by $author on $date<br><br>";
 
@@ -334,21 +329,6 @@ sub compare {
     }
 
     return @diff;
-}
-
-{
-    my $fault_id;
-
-    sub _make_fault_id_link {
-        my ($baseurl, $text) = @_;
-
-        $fault_id = qr/(?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3}/a
-            unless $fault_id;
-
-        $text =~ s!($fault_id)!<a href="$baseurl/viewfault.pl?fault=$1">$1</a>!g;
-
-        return $text;
-    }
 }
 
 1;

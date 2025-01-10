@@ -17,7 +17,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use strict;
 require_ok('OMP::Display');
 
@@ -39,10 +39,26 @@ is(OMP::Display->replace_omp_links('
 Plain fault: 20100101.001
 Fault with response: 20100101.001#10
 Response: #10
+JCMT:2020-02-02
+UKIRT:2020-02-02
+acsis_00001_20240130T035159
+scuba2_00002_20240130T100556
 ',
     fault => 20200202.002),
     '
 Plain fault: <a href="/cgi-bin/viewfault.pl?fault=20100101.001">20100101.001</a>
 Fault with response: <a href="/cgi-bin/viewfault.pl?fault=20100101.001#response10">20100101.001#10</a>
 Response: <a href="#response10">#10</a>
+<a href="/cgi-bin/nightrep.pl?tel=JCMT&amp;utdate=2020-02-02">2020-02-02</a>
+<a href="/cgi-bin/nightrep.pl?tel=UKIRT&amp;utdate=2020-02-02">2020-02-02</a>
+<a href="/cgi-bin/staffworf.pl?telescope=JCMT&amp;obsid=acsis_00001_20240130T035159">acsis_00001_20240130T035159</a>
+<a href="/cgi-bin/staffworf.pl?telescope=JCMT&amp;obsid=scuba2_00002_20240130T100556">scuba2_00002_20240130T100556</a>
+');
+
+is(OMP::Display->replace_omp_links('
+20100101.001
+',
+    complete_url => 1),
+    '
+<a href="https://omp.eao.hawaii.edu/cgi-bin/viewfault.pl?fault=20100101.001">20100101.001</a>
 ');
