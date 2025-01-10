@@ -198,6 +198,7 @@ use constant {
     AC_DEHUMIDIFIER => INSECT + 3,
     ALARM_SYS       => INSECT + 4,
     ELECTRICAL      => INSECT + 5,
+    RODENT          => INSECT + 6,
 };
 
 # Even log - system.
@@ -470,6 +471,7 @@ my %DATA = (
             'Electrical' => ELECTRICAL,
             'Network' => NETWORK,
             'Computer' => COMPUTER,
+            'Rodent' => RODENT,
             'Other' => TYPEOTHER,
         },
     },
