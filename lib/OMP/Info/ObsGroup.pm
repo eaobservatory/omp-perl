@@ -896,6 +896,7 @@ sub projectStatsSimple {
         }
         my $calproj = $tel . $CAL_NAME;
         my $badproj = $tel . $BAD_OBS;
+        my $projectid_orig = undef;
 
         # If we have a TIMEGAP we want to treat it as a special observation
         # that only depends on telescope (like JCMTCAL)
@@ -982,6 +983,7 @@ sub projectStatsSimple {
                 && ($obs->status == OMP__OBS_BAD || $obs->status == OMP__OBS_JUNK)) {
             print "Observation from project $projectid is marked BAD, adding to $badproj\n"
                 if $DEBUG;
+            $projectid_orig = $projectid;
             $projectid = $badproj;
         }
 
@@ -1010,9 +1012,12 @@ sub projectStatsSimple {
         # OR if the previous project is not the same as the current project
         # We do not want to push a gap onto this array since a gap should be
         # the content [previously we pushed all gaps and then replaced them
-        # with the actual gap later on]
+        # with the actual gap later on].
+        # WARNING: we include $projectid_orig in case this is a bad observation,
+        # based on the assumption that we only look at the entry directly after
+        # a gap, so that we do not need to check whether this value has changed.
         unless ($isgap) {
-            push @{$gapproj{$ymd}{$tel}{$shifttype}}, [$gapprojid, $inst]
+            push @{$gapproj{$ymd}{$tel}{$shifttype}}, [$gapprojid, $inst, $projectid_orig]
                 if scalar(@{$gapproj{$ymd}{$tel}{$shifttype}}) == 0
                     || (ref($gapproj{$ymd}->{$tel}->{$shifttype}->[-1]) ne 'ARRAY')
                     || (ref($gapproj{$ymd}->{$tel}->{$shifttype}->[-1]) eq 'ARRAY'
@@ -1146,7 +1151,8 @@ sub projectStatsSimple {
             push @{$proj_observations{$ymd}{$shifttype}{$projectid}}, {
                 obs => $obs,
                 timespent => $timespent->seconds,
-                comment => 'Observation assigned to project',
+                comment => 'Observation assigned to project'
+                    . (defined $projectid_orig ? " (was $projectid_orig)" : ''),
             } if $trace_observations;
         }
         else {
@@ -1200,7 +1206,9 @@ sub projectStatsSimple {
 
                             # but make sure we do not extend the array indefinitely
                             # This code is more complicated in case we want to apportion
-                            # the gap to projects on either side
+                            # the gap to projects on either side.
+                            # NOTE: assignment of $projectid_orig assumes we only look at
+                            # the single following entry (see warning above).
                             my @either;
                             push @either, $projects[$i + 1]
                                 if $#projects != $i;
@@ -1213,6 +1221,7 @@ sub projectStatsSimple {
                                     next unless ref($projdata) eq 'ARRAY';
 
                                     my $proj = $projdata->[0];
+                                    my $projectid_orig = $projdata->[2];
 
                                     # Only charge to the gap if we have already charged to it
                                     # CAL should be charged to shared calibrations
@@ -1222,7 +1231,8 @@ sub projectStatsSimple {
                                         push @{$proj_observations{$ymd}{$shifttype}{$proj}}, {
                                             obs => $obs,
                                             timespent => $gap,
-                                            comment => 'Gap assigned to project',
+                                            comment => 'Gap assigned to project'
+                                                . (defined $projectid_orig ? " (was $projectid_orig)" : ''),
                                         } if $trace_observations;
 
                                         print "Adding $gap to $proj\n"
