@@ -71,7 +71,7 @@
         </tr>
     [% END %]
     [% IF ! continuation.empty %]
-        [% FOREACH contreq IN continuation %]
+        [% FOREACH contreq IN continuation.reverse %]
             <tr>
                 [% IF loop.first %]
                     <td rowspan="[% loop.size %]"><b>Continuation request[% IF loop.size > 1 %]s[% END %]:</b></td>
