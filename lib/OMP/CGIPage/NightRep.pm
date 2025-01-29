@@ -83,6 +83,10 @@ sub file_comment {
         # Insert the comment into the database.
         my $response = $comp->obs_add_comment();
         $messages = $response->{'messages'};
+
+        # obs_add_comment always returns a fixed message.  Instead of showing
+        # it, redirect to reload this page.
+        return $self->_write_redirect($self->url_absolute());
     }
 
     # Get the Info::Obs object
