@@ -20,4 +20,5 @@ OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'Observation Comment',
     template => 'obs_comment.html',
+    javascript => ['form_submit_timeout.js'],
 );
