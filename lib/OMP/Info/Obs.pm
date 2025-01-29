@@ -1191,6 +1191,7 @@ sub nightlog {
         $return{'Project'} = $self->projectid;
         $return{'Frequency'} = $self->rest_frequency() // '';
         $return{'Num. freq.'} = $self->number_of_frequencies() // '';
+        $return{'Num. rows'} = $self->rows() // '';
         my $file = $self->simple_filename() // '';
         $file =~ s/^rxh3-//i;
         $file =~ s/\.fits//i;
@@ -1199,17 +1200,18 @@ sub nightlog {
 
         $return{'_ORDER'} = [
             'Run', 'UT', 'Mode', 'Project',
-            'Frequency', 'Num. freq.', 'File', 'Shift',
+            'Frequency', 'Num. freq.', 'Num. rows', 'File', 'Shift',
         ];
 
-        $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.             File  Shift  ';
-        $return{'_STRING'} = sprintf '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s  %-7s',
+        $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.  Num. rows             File  Shift  ';
+        $return{'_STRING'} = sprintf '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %9d  %15.15s  %-7s',
             $return{'Run'},
             $return{'UT'},
             $return{'Mode'},
             $return{'Project'},
             $return{'Frequency'},
             $return{'Num. freq.'},
+            $return{'Num. rows'},
             $return{'File'},
             $return{'Shift'};
 
