@@ -4,13 +4,13 @@
 [% WRAPPER "layout.html" %]
 <h1>
     [% title | html %]
-    <a class="link_small copy_text" href="#" data-copy_text="[% fault_info.fault.id | html %]" title="Copy fault identifier">&loz;</a>
+    <a class="link_small copy_text" href="[% target_base %]?fault=[% fault_info.fault.id %]" data-copy_text="[% fault_info.fault.id | html %]" title="Copy fault identifier">&loz;</a>
 </h1>
 
 <p>
     <b>Subject:</b>
     [% fault_info.fault.subject | html %]
-    <a class="link_small copy_text" href="#" data-copy_text="[% fault_info.fault.subject | html %]" title="Copy fault subject">&loz;</a>
+    <a class="link_small copy_text" href="[% target_base %]?fault=[% fault_info.fault.id %]" data-copy_text="[% fault_info.fault.subject | html %]" title="Copy fault subject">&loz;</a>
 </p>
 
 <form method="get" action="[% target_base %]">
