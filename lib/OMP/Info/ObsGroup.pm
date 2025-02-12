@@ -850,6 +850,7 @@ sub projectStatsSimple {
 
     # We will store all calibrations in a $tel.$CAL_NAME project
     # rather than tracking them in separate hashes.
+    my $datesun = OMP::DateSun->new;
     my @warnings;
     my %other;  # Extended time, weather time and OTHER gaps by telescope
 
@@ -1029,7 +1030,7 @@ sub projectStatsSimple {
                 || (defined $startobs && defined $duration)
                 || (defined $endobs && defined $duration)) {
             # Get the extended time
-            ($timespent, my $extended) = OMP::DateSun->determine_extended(
+            ($timespent, my $extended) = $datesun->determine_extended(
                 duration => $duration,
                 start => $startobs,
                 end => $endobs,
@@ -1321,7 +1322,7 @@ sub projectStatsSimple {
                 my $refdate = OMP::DateTools->parse_date($ymd . "T12:00");
 
                 for my $tel (keys %night_totals) {
-                    my $nightlen = OMP::DateSun->determine_night_length(
+                    my $nightlen = $datesun->determine_night_length(
                         tel => $tel,
                         date => $refdate);
 
@@ -1439,6 +1440,7 @@ sub projectStatsShared {
     # If this is set to 0, all unallocated gaps will be charged to OTHER
     my $GAP_THRESHOLD = OMP::Config->getData('timegap');
 
+    my $datesun = OMP::DateSun->new;
     my @warnings;
     my %projbycal;
     my %cals;
@@ -1573,7 +1575,7 @@ sub projectStatsShared {
                 || (defined $startobs && defined $duration)
                 || (defined $endobs && defined $duration)) {
             # Get the extended time
-            ($timespent, my $extended) = OMP::DateSun->determine_extended(
+            ($timespent, my $extended) = $datesun->determine_extended(
                 duration => $duration,
                 start => $startobs,
                 end => $endobs,

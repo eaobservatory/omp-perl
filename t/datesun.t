@@ -19,16 +19,19 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 15;
+use Test::More tests => 16;
 
 use Time::Piece qw/:override/;
 use Time::Seconds;
 
 require_ok('OMP::DateSun');
 
+my $datesun = OMP::DateSun->new;
+isa_ok($datesun, 'OMP::DateSun');
+
 print "# Extended time\n";
 
-my ($projtime, $extend) = OMP::DateSun->determine_extended(
+my ($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T03:20',
     duration => 1800,
@@ -37,7 +40,7 @@ my ($projtime, $extend) = OMP::DateSun->determine_extended(
 is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T02:20',
     duration => 1800,
@@ -46,7 +49,7 @@ is($extend->seconds, 0, 'Check extended time');
 is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T05:20',
     duration => 1800,
@@ -55,7 +58,7 @@ is($extend->seconds, 0, 'Check extended time');
 is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T19:20',
     duration => 1800,
@@ -64,7 +67,7 @@ is($extend->seconds, 0, 'Check extended time');
 is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T20:20',
     duration => 1800,
@@ -74,7 +77,7 @@ is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
 # Now test the alternative options
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     start => '2002-12-10T03:20',
     end => '2002-12-10T03:50',
@@ -83,7 +86,7 @@ is($extend->seconds, 0, 'Check extended time');
 is($projtime->seconds, 1800, 'Check project time');
 is($extend->seconds, 0, 'Check extended time');
 
-($projtime, $extend) = OMP::DateSun->determine_extended(
+($projtime, $extend) = $datesun->determine_extended(
     tel => 'JCMT',
     end => '2002-12-10T03:50',
     duration => 1800,

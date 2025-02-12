@@ -121,7 +121,8 @@ sub query_queue_status {
         ($utmin, $utmax) = OMP::Config->getData('freetimeut', telescope => $telescope);
 
         # parse the values, get them back as date objects
-        ($utmin, $utmax) = OMP::DateSun->_process_freeut_range(
+        my $datesun = OMP::DateSun->new;
+        ($utmin, $utmax) = $datesun->_process_freeut_range(
                 $telescope, $today, $utmin, $utmax);
 
         # Expand range to hour boundaries.
