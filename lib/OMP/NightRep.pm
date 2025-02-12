@@ -478,6 +478,7 @@ sub hdr_accounts {
         # Store the result
         my $acctgrp = OMP::TimeAcctGroup->new(
             accounts => \@acct,
+            telescope => $self->telescope,
             DB => $self->db);
         $self->{HdrAccounts} = $acctgrp;
 
