@@ -1141,10 +1141,9 @@ sub _get_telescope {
     my @accts = $self->_get_non_special_accts;
     if (@accts) {
         my $db = OMP::DB::Project->new(
-            DB => $self->db,
-            ProjectID => $accts[0]->projectid);
+            DB => $self->db);
 
-        return $db->getTelescope();
+        return $db->getTelescope($accts[0]->projectid);
     }
     return undef;
 }

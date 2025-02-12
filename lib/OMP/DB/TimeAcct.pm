@@ -124,12 +124,14 @@ sub getTimeSpent {
     # Run the query
     my @matches = $self->queryTimeSpent($q);
 
+    my $projdb = OMP::DB::Project->new(DB => $self->db);
+
     # If we have a telescope specified must do an additional filter
     # but only if we did not do a project query
     if ($args{telescope} && ! $args{projectid}) {
         my $tel = uc($args{telescope});
         @matches = grep {
-            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($tel)
+            $projdb->verifyTelescope($tel, $_->projectid)
         } @matches;
     }
 

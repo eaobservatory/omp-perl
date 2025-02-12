@@ -394,8 +394,7 @@ sub populate {
     # the telescope from the database
     if (exists $args{projectid} && ! exists $args{telescope}) {
         $args{telescope} = OMP::DB::Project->new(
-            DB => $args{'DB'},
-            ProjectID => $args{projectid})->getTelescope();
+            DB => $args{'DB'})->getTelescope($args{projectid});
     }
     elsif (exists $args{instrument} && $args{instrument} =~ /^ACSIS/i) {
         $args{telescope} = 'JCMT';

@@ -724,7 +724,7 @@ sub cgi_to_obsgroup {
         }
         elsif (defined($projid)) {
             $telescope = OMP::DB::Project->new(
-                DB => $self->database, ProjectID => $projid)->getTelescope();
+                DB => $self->database)->getTelescope($projid);
         }
         else {
             throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");

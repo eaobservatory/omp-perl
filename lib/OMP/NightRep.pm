@@ -249,9 +249,11 @@ sub db_accounts {
 
         my @acct = $db->queryTimeSpent($query);
 
+        my $projdb = OMP::DB::Project->new(DB => $self->db);
+
         # Keep only the results for the telescope we are querying for
         @acct = grep {
-            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
+            $projdb->verifyTelescope($self->telescope, $_->projectid);
         } @acct;
 
         # Store result
@@ -893,10 +895,12 @@ sub msbs {
 
     my @results = $db->queryMSBdone($query, {'comments' => 0});
 
+    my $projdb = OMP::DB::Project->new(DB => $self->db);
+
     # Currently need to verify the telescope outside of the query
     # This verification really slows things down
     @results = grep {
-        OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
+        $projdb->verifyTelescope($self->telescope, $_->projectid);
     } @results;
 
     # Index by project id
