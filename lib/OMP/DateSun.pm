@@ -72,6 +72,7 @@ sub new {
     my $class = ref($proto) || $proto;
 
     my $self = bless {
+        SunCache => {},
     }, $class;
 
     return $self;
@@ -287,8 +288,6 @@ sub get_freeut_range {
 
 # my ($datestart, $dateend) = $datesun->_process_freeut_range( $tel, $refdate, $range1, $range2 );
 
-my %SUN_CACHE;
-
 sub _process_freeut_range {
     my $self = shift;
     my ($telescope, $refdate, @ranges) = @_;
@@ -299,6 +298,7 @@ sub _process_freeut_range {
 
     # A cache of the Sun coordinate object if needed.
     my $Sun;
+    my $SUN_CACHE = $self->{'SunCache'};
 
     my @processed;
     for my $r (@ranges) {
@@ -354,12 +354,12 @@ sub _process_freeut_range {
                 throw OMP::Error::FatalError("Odd programming error");
             }
 
-            if (exists $SUN_CACHE{$cacheKey}{$eventKey}) {
-                $out = $SUN_CACHE{$cacheKey}{$eventKey};
+            if (exists $SUN_CACHE->{$cacheKey}->{$eventKey}) {
+                $out = $SUN_CACHE->{$cacheKey}->{$eventKey};
             }
             else {
                 $out = $Sun->$method(event => $event, horizon => $sundef);
-                $SUN_CACHE{$cacheKey}{$eventKey} = $out;
+                $SUN_CACHE->{$cacheKey}->{$eventKey} = $out;
             }
 
             # and add on the offset (convert to seconds)
