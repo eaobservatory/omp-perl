@@ -106,11 +106,8 @@ sub determine_night_length {
         "A telescope must be supplied else we can not determine the valid observing times")
         unless exists $args{tel};
 
-    # key is different in api
-    $args{start} = $args{date};
-
     # Get the range for this date
-    my ($min, $max) = $self->_get_freeut_range(%args);
+    my ($min, $max) = $self->get_freeut_range(%args);
 
     return scalar($max - $min);
 }
@@ -208,7 +205,7 @@ sub determine_extended {
     }
 
     # Now we need to get the valid ranges
-    my ($min, $max) = $self->_get_freeut_range(%args);
+    my ($min, $max) = $self->get_freeut_range(date => $args{'start'}, %args);
 
     throw OMP::Error::BadArgs("Error parsing the extended boundary string")
         unless defined $min && defined $max;
@@ -249,11 +246,18 @@ sub determine_extended {
     return ($timespent, $extended);
 }
 
-# Work out what the range should be based.
-# %args needs to have keys "tel" and "start" and optionally
-# an override values "freetimeut".
+=item B<get_freeut_range>
 
-sub _get_freeut_range {
+Work out what the range should be based.
+%args needs to have keys "tel" and "date" and optionally
+an override values "freetimeut".
+
+    ($min, $max) = $datesun->get_freeut_range(
+        tel => $telescope, date => $date);
+
+=cut
+
+sub get_freeut_range {
     my $self = shift;
     my %args = @_;
 
@@ -269,7 +273,7 @@ sub _get_freeut_range {
     }
 
     # Now convert to Time::Piece object
-    my ($min, $max) = $self->_process_freeut_range($args{tel}, $args{start}, @range);
+    my ($min, $max) = $self->_process_freeut_range($args{'tel'}, $args{'date'}, @range);
 
     print "Min = $min  Max = $max  duration = " . (($max - $min) / 3600) . "\n"
         if $DEBUG;
