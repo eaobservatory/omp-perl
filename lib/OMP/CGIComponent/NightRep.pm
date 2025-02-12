@@ -566,6 +566,7 @@ sub store_time_accounting {
 
         $nr->db_accounts(OMP::TimeAcctGroup->new(
             DB => $self->database,
+            telescope => $nr->telescope,
             accounts => \@acct));
     }
 
