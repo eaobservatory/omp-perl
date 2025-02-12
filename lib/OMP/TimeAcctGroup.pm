@@ -10,6 +10,7 @@ OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
 
     $tg = OMP::TimeAcctGroup->new(
         DB => $database,
+        telescope => $telescope,
         accounts => \@accounts);
 
     @stats = $tg->timeLostStats();
@@ -55,6 +56,7 @@ accessor methods (ignoring case).
 
     $tg = OMP::TimeAcctGroup->new(
         DB => $database,
+        telescope => $telescope,
         accounts => \@accounts);
 
 Arguments are optional.
@@ -617,11 +619,11 @@ sub telescope {
     my $self = shift;
     if (@_) {
         my $tel = shift;
-        $self->{Telescope} = uc($tel);
+        $self->{Telescope} = uc($tel) if defined $tel;
     }
     else {
         # we have a request
-        if (! defined $self->{Telescope}) {
+        unless (defined $self->{Telescope}) {
             $self->{Telescope} = $self->_get_telescope();
         }
     }
@@ -743,7 +745,7 @@ C<OMP::Seconds> object.
 sub completion_stats {
     my $self = shift;
 
-    my $telescope = $self->_get_telescope();
+    my $telescope = $self->telescope();
     my @semesters = $self->_get_semesters();
     my $lowdate = $self->_get_low_date();
 
@@ -774,6 +776,7 @@ sub completion_stats {
         my @offset_accts = $tdb->queryTimeSpent($query);
         my $offset_grp = $self->new(
             accounts => \@offset_accts,
+            telescope => $telescope,
             DB => $self->db);
 
         #DEBUG
@@ -1002,7 +1005,8 @@ sub _get_accts {
     my $db = OMP::DB::Project->new(DB => $self->db);
     my %hash = ();
 
-    $hash{'telescope'} = $self->_get_telescope if defined $self->_get_telescope;
+    my $telescope = $self->telescope;
+    $hash{'telescope'} = $telescope if defined $telescope;
 
     if ($arg eq 'sci') {
         # Get all the projects in the semesters that we have time
@@ -1107,7 +1111,7 @@ Returns a list, or reference to a list.
 sub _get_semesters {
     my $self = shift;
     my @accts = $self->_get_non_special_accts;
-    my $tel = $self->_get_telescope;
+    my $tel = $self->telescope;
     my %sem = map {
         OMP::DateTools->determine_semester(date => $_->date, tel => $tel),
             undef
@@ -1126,6 +1130,9 @@ sub _get_semesters {
 Retrieve the telescope name associated with the first time account object.
 
     $tel = $self->_get_telescope();
+
+B<Note:> the C<telescope> method should be used in preference to this as it
+will store the telescope name in the object.
 
 =cut
 
