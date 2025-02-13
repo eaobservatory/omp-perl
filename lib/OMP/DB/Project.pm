@@ -163,41 +163,39 @@ name or undef if the project does not exist.
 
 =cut
 
-{
-    # Cache project -> telescope mappings
-    my %PROJTELESCOPE;
+sub getTelescope {
+    my $self = shift;
+    my $projectid = shift;
 
-    sub getTelescope {
-        my $self = shift;
-        my $projectid = shift;
+    throw OMP::Error::BadArgs('getTelescope: projectid not specified')
+        unless defined $projectid;
 
-        throw OMP::Error::BadArgs('getTelescope: projectid not specified')
-            unless defined $projectid;
+    $projectid = uc $projectid;
 
-        $projectid = uc $projectid;
+    # Cache of project -> telescope mappings
+    my $cache = $self->_result_cache('project_telescope');
 
-        my $tel;
-        # Try to get the value from our cache, otherwise go
-        # to the database
-        if (exists $PROJTELESCOPE{$projectid}) {
-            $tel = $PROJTELESCOPE{$projectid};
-        }
-        else {
-            # Use a try block since we know that _get_project_row raises
-            # an exception
-            try {
-                my $p = $self->_get_project_row($projectid);
-                $tel = uc($p->telescope);
-
-                # Cache result
-                $PROJTELESCOPE{$p->projectid} = $tel;
-            }
-            catch OMP::Error::UnknownProject with {
-                $tel = undef;
-            };
-        }
-        return $tel;
+    my $tel;
+    # Try to get the value from our cache, otherwise go
+    # to the database
+    if (exists $cache->{$projectid}) {
+        $tel = $cache->{$projectid};
     }
+    else {
+        # Use a try block since we know that _get_project_row raises
+        # an exception
+        try {
+            my $p = $self->_get_project_row($projectid);
+            $tel = uc($p->telescope);
+
+            # Cache result
+            $cache->{$p->projectid} = $tel;
+        }
+        catch OMP::Error::UnknownProject with {
+            $tel = undef;
+        };
+    }
+    return $tel;
 }
 
 =item B<verifyTelescope>
