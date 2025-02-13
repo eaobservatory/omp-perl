@@ -238,6 +238,8 @@ sub query_fault_output {
     # Setup an argument for use with the query_fault_form function
     my $hidefields = ($category ne 'ANYCAT' ? 0 : 1);
 
+    my $is_initial_view = 0;
+
     if ($q->param('search')) {
         # The 'Search' submit button was clicked
         %hash = %{$comp->category_hash($category)};
@@ -453,6 +455,7 @@ sub query_fault_output {
             date => {delta => -7, value => $t->datetime},
         );
         $title = "Displaying faults with any activity in the last 7 days";
+        $is_initial_view = 1;
     }
 
     my $show_affected = $q->param('show_affected');
@@ -466,7 +469,7 @@ sub query_fault_output {
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
-        if (! $q->param('faultsearch') and ! $faults->[0]) {
+        if ($is_initial_view and ! $faults->[0]) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
             $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
@@ -480,7 +483,7 @@ sub query_fault_output {
         if defined $search_error;
 
     # Generate a title based on the results returned
-    if ($q->param('faultsearch')) {
+    unless ($is_initial_view) {
         if ($faults->[1]) {
             $title = scalar(@$faults) . " faults returned matching your query";
         }
