@@ -254,7 +254,7 @@ sub cloudrange {
     if (@_) {
         my $range = shift;
         if (defined $range && !ref($range) && looks_like_number($range)) {
-            $range = OMP::SiteQuality::upgrade_cloud();
+            $range = OMP::SiteQuality::upgrade_cloud($range);
         }
         croak "Cloud range must be specified as an OMP::Range object"
             unless UNIVERSAL::isa($range, "OMP::Range");
