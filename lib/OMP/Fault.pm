@@ -1102,9 +1102,7 @@ sub new {
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
         TimeLost => 0,
-        Severity => undef,
         Location => undef,
-        Vehicle => undef,
         FaultDate => undef,
         Urgency => $URGENCY{Normal},
         Condition => $CONDITION{Normal},
@@ -1251,22 +1249,14 @@ Fault system (supplied as an integer - see C<faultSystems>).
 
 =cut
 
-BEGIN {
-    sub system {
-        my $self = shift;
+sub system {
+    my $self = shift;
 
-        if (@_) {
-            $self->{Vehicle}
-                = $self->{Severity}
-                = $self->{System}
-                = shift @_;
-        }
-
-        return $self->{System};
+    if (@_) {
+        $self->{System} = shift @_;
     }
 
-    *severity = \&system;
-    *vehicle = \&system;
+    return $self->{System};
 }
 
 =item B<typeText>
@@ -1306,7 +1296,7 @@ sub systemText {
 
 sub severityText {
     my $self = shift;
-    return $INVERSE{$self->category}{'SEVERITY'}{$self->severity};
+    return $INVERSE{$self->category}{'SEVERITY'}{$self->system};
 }
 
 sub location {
@@ -1324,7 +1314,7 @@ sub locationText {
 
 sub vehicleIncidentText {
     my $self = shift;
-    return $INVERSE{$self->category}{'VEHICLE'}{$self->vehicle};
+    return $INVERSE{$self->category}{'VEHICLE'}{$self->system};
 }
 
 =item B<statusText>

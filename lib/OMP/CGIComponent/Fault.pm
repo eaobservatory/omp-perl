@@ -644,15 +644,9 @@ sub parse_file_fault_form {
     }
 
     if (_is_safety($category)) {
-        $parsed{'system'} = $parsed{'severity'} = $q->param('system');
         $parsed{'location'} = $q->param('location');
     }
-    elsif (_is_vehicle_incident($category)) {
-        $parsed{'system'} = $parsed{'vehicle'} = $q->param('system');
-    }
-    else {
-        $parsed{'system'} = $q->param('system');
-    }
+    $parsed{'system'} = $q->param('system');
 
     # Determine urgency and condition
     my @checked = $q->multi_param('condition');

@@ -148,7 +148,6 @@ sub file_fault {
         category => $category,
         subject => $faultdetails{subject},
         system => $faultdetails{system},
-        severity => $faultdetails{severity},
         type => $faultdetails{type},
         status => $faultdetails{status},
         location => $faultdetails{location},
