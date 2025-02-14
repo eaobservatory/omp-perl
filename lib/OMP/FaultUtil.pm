@@ -277,6 +277,9 @@ sub compare {
             subject system type timelost faultdate urgency
             condition projects status shifttype remote
         /;
+
+        push @comparekeys, qw/location/
+            if $obja->isSafety;
     }
     elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response")
             and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {

@@ -790,6 +790,7 @@ sub _mail_fault_update {
         projects => 'Projects',
         shifttype => 'Shift Type',
         remote => 'Remote status',
+        locationText => 'Location',
     );
 
     # Compare the fault details
@@ -805,6 +806,9 @@ sub _mail_fault_update {
         }
         elsif ($_ =~ /status/) {
             $_ = 'statusText';
+        }
+        elsif ($_ eq 'location') {
+            $_ = 'locationText';
         }
 
         my $property = $property{$_};

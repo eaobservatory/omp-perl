@@ -50,22 +50,22 @@
                 </select>
             </td>
         </tr>
+        [% IF has_location %]
+            <tr>
+                <td align="right"><b>Location:</b></td>
+                <td>
+                    <select name="location">
+                        [% IF ! values.location.defined %]
+                            <option selected="selected" value="">Select a location</option>
+                        [% END %]
+                        [% FOREACH location IN locations %]
+                            <option value="[% location.0 %]" [% IF location.0 == values.location %]selected="selected"[% END %]>[% location.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+        [% END %]
         [% IF ! fault.defined %]
-            [% IF has_location %]
-                <tr>
-                    <td align="right"><b>Location:</b></td>
-                    <td>
-                        <select name="location">
-                            [% IF ! values.location.defined %]
-                                <option selected="selected" value="">Select a location</option>
-                            [% END %]
-                            [% FOREACH location IN locations %]
-                                <option value="[% location.0 %]" [% IF location.0 == values.location %]selected="selected"[% END %]>[% location .1 | html %]</option>
-                            [% END %]
-                        </select>
-                    </td>
-                </tr>
-            [% END %]
             <tr>
                 <td align="right"><b>Status:</b></td>
                 <td>
