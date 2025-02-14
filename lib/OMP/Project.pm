@@ -1340,27 +1340,17 @@ Approximate textual description of the cloud constraints. One of:
 
 =cut
 
-my @cloudlut;
 sub cloudtxt {
     my $self = shift;
     my $cloud = $self->cloudrange;
     return 'any' unless defined $cloud;
 
-    # initialise the cloud lookup array
-    if (! @cloudlut) {
-        $cloudlut[0] = 'photometric';
-        $cloudlut[$_] = 'cirrus' for (1 .. OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX);
-        $cloudlut[$_] = 'thick' for ((OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX + 1) .. 100);
-    }
-
-    my $min = max(0, (defined $cloud->min) ? int($cloud->min) : 0);
-    my $max = min(100, (defined $cloud->max) ? int($cloud->max) : 100);
-
-    my %text;  # somewhere to count how many times we have seen a key
-    my @texts; # somewhere to retain the ordering
-    for my $i ($min .. $max) {
-        $text{$cloudlut[$i]} ++;
-        push(@texts, $cloudlut[$i]) if $text{$cloudlut[$i]} == 1;
+    my @texts;
+    my %cloud_lut = OMP::SiteQuality::get_cloud_text();
+    foreach my $name (sort {$cloud_lut{$a}->min <=> $cloud_lut{$b}->min} keys %cloud_lut) {
+        # Copy range first since Number::Interval->intersection modifies the object,
+        # in case get_cloud_text ever stops making new OMP::Range objects when called.
+        push @texts, lc $name if $cloud_lut{$name}->copy->intersection($cloud);
     }
 
     if (@texts == 0) {
