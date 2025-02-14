@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 47;
+use Test::More tests => 54;
 use Data::Dumper;
 
 require_ok('OMP::Project');
@@ -224,3 +224,38 @@ $proj->cloudrange(OMP::Range->new(Min => 0, Max => 20));
 is($proj->cloudtxt,
     'cirrus or photometric',
     'Cloud text representation for 0 - 20 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 0, Max => 0));
+is($proj->cloudtxt,
+    'photometric',
+    'Cloud text representation for 0 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 0, Max => 1));
+is($proj->cloudtxt,
+    'cirrus or photometric',
+    'Cloud text representation for 0 - 1 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 1, Max => 20));
+is($proj->cloudtxt,
+    'cirrus',
+    'Cloud text representation for 1 - 20 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 1, Max => 21));
+is($proj->cloudtxt,
+    'thick or cirrus',
+    'Cloud text representation for 1 - 21 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 20, Max => 100));
+is($proj->cloudtxt,
+    'thick or cirrus',
+    'Cloud text representation for 20 - 100 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 21, Max => 100));
+is($proj->cloudtxt,
+    'thick',
+    'Cloud text representation for 21 - 100 %');
+
+$proj->cloudrange(OMP::Range->new(Min => 0, Max => 21));
+is($proj->cloudtxt,
+    'any',
+    'Cloud text representation for 0 - 21 %');

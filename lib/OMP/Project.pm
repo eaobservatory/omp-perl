@@ -1353,8 +1353,8 @@ sub cloudtxt {
         $cloudlut[$_] = 'thick' for ((OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX + 1) .. 100);
     }
 
-    my $min = max(0, int($cloud->min || 0));
-    my $max = min(100, int($cloud->max || 100));
+    my $min = max(0, (defined $cloud->min) ? int($cloud->min) : 0);
+    my $max = min(100, (defined $cloud->max) ? int($cloud->max) : 100);
 
     my %text;  # somewhere to count how many times we have seen a key
     my @texts; # somewhere to retain the ordering
