@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 17 + 9;
+use Test::More tests => 17 + 9 + 6;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -187,3 +187,13 @@ foreach my $cat (sort keys %mail_list_expect) {
         )->mail_list(),
         $mail_list_expect{$cat});
 }
+
+# Test option methods.
+is(OMP::Fault->faultCanAssocProjects('JCMT'), 1);
+is(OMP::Fault->faultCanAssocProjects('CSG'), 0);
+
+is(OMP::Fault->faultCanLoseTime('JCMT'), 1);
+is(OMP::Fault->faultCanLoseTime('DR'), 0);
+
+is(OMP::Fault->faultIsTelescope('JCMT'), 1);
+is(OMP::Fault->faultIsTelescope('OMP'), 0);

@@ -521,40 +521,30 @@ my %LOCATION_HIDDEN = (
 # Miscellaneous options for each category
 my %OPTIONS = (
     CSG => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
     },
     JCMT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
     },
-    OMP => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
-    },
     UKIRT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
     },
-    DR => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
+    OMP => {
     },
-    'SAFETY' => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
+    DR => {
+    },
+    SAFETY => {
+    },
+    FACILITY => {
+    },
+    JCMT_EVENTS => {
+    },
+    VEHICLE_INCIDENT => {
     },
 );
-
-$OPTIONS{'VEHICLE_INCIDENT'}
-    = $OPTIONS{'JCMT_EVENTS'}
-    = {%{$OPTIONS{'SAFETY'}}};
 
 # Urgency
 my %URGENCY = (
@@ -1006,7 +996,7 @@ sub faultIsTelescope {
     my $category = uc(shift);
 
     if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
-        return $OPTIONS{$category}{CAN_LOSE_TIME};
+        return $OPTIONS{$category}{IS_TELESCOPE};
     }
     else {
         return 0;
