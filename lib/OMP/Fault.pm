@@ -264,29 +264,6 @@ use constant {
     # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
-# Mailing list
-my @list_name = (
-    'CSG',
-    'JCMT',
-    'JCMT_EVENTS',
-    'UKIRT',
-    'OMP',
-    'DR',
-    'SAFETY',
-    'FACILITY',
-    'VEHICLE_INCIDENT',
-);
-
-my %MAILLIST;
-
-my $config = OMP::Config->new();
-for my $name (@list_name) {
-    $MAILLIST{$name} = [
-        grep {$_}
-        map {s/^ +//; s/ +$//; $_}
-        $config->getData('email-address.' . lc $name)];
-}
-
 my %DATA = (
     "CSG" => {
         SYSTEM => {
@@ -1842,7 +1819,11 @@ OMP configuration file.
 sub mail_list {
     my $self = shift;
     my $cat = $self->category;
-    return $MAILLIST{$cat};
+    my $config = OMP::Config->new();
+    return [
+        grep {$_}
+        map {s/^ +//; s/ +$//; $_}
+        $config->getData('email-address.' . lc $cat)];
 }
 
 =item B<mail_list_users>

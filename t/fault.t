@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 17;
+use Test::More tests => 17 + 9;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -163,3 +163,27 @@ is_deeply(OMP::Fault->faultSystems('VEHICLE_INCIDENT'), {
     '13' => 6513,
     '14' => 6514,
 });
+
+# Test mail_list method.
+my %mail_list_expect = (
+    csg => ['csg-faults@eaobservatory.org'],
+    dr => ['dr-faults@eaobservatory.org'],
+    facility => ['facility-faults@eaobservatory.org'],
+    jcmt => ['jcmt-faults@eaobservatory.org'],
+    jcmt_events => ['jcmt_event_log@eao.hawaii.edu'],
+    omp => ['omp-faults@eaobservatory.org'],
+    safety => ['safety-faults@eaobservatory.org'],
+    ukirt => ['ukirt_faults@eao.hawaii.edu'],
+    vehicle_incident => ['vehicle@eao.hawaii.edu'],
+);
+
+foreach my $cat (sort keys %mail_list_expect) {
+    is_deeply(
+        OMP::Fault->new(
+            category => $cat,
+            fault => OMP::Fault::Response->new(
+                author => $author,
+                text => 'text'),
+        )->mail_list(),
+        $mail_list_expect{$cat});
+}
