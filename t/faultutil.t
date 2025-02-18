@@ -22,7 +22,7 @@ use strict;
 require_ok('OMP::User');
 require_ok('OMP::DateTools');
 require_ok('OMP::Fault');
-require_ok('OMP::FaultUtil');
+require_ok('OMP::Fault::Util');
 require_ok('OMP::Fault::Response');
 
 my $author = OMP::User->new(
@@ -32,7 +32,7 @@ my $author = OMP::User->new(
 
 my $resp = OMP::Fault::Response->new(
     author => $author,
-    text => 'This is a test of OMP::FaultUtil',
+    text => 'This is a test of OMP::Fault::Util',
 );
 
 my %details = (
@@ -61,7 +61,7 @@ my $fault2 = OMP::Fault->new(
 
 isa_ok($fault2, 'OMP::Fault');
 
-is_deeply([OMP::FaultUtil->compare($fault, $fault2)], ['subject']);
+is_deeply([OMP::Fault::Util->compare($fault, $fault2)], ['subject']);
 
 my $fault3 = OMP::Fault->new(
     %details,
@@ -70,7 +70,7 @@ my $fault3 = OMP::Fault->new(
 
 isa_ok($fault3, 'OMP::Fault');
 
-is_deeply([OMP::FaultUtil->compare($fault, $fault3)], ['shifttype']);
+is_deeply([OMP::Fault::Util->compare($fault, $fault3)], ['shifttype']);
 
 my $fault4 = OMP::Fault->new(
     %details,
@@ -80,11 +80,11 @@ my $fault4 = OMP::Fault->new(
 
 isa_ok($fault4, 'OMP::Fault');
 
-is_deeply([OMP::FaultUtil->compare($fault, $fault4)], ['type', 'status']);
+is_deeply([OMP::Fault::Util->compare($fault, $fault4)], ['type', 'status']);
 
 my $resp2 = OMP::Fault::Response->new(
     author => $author,
     text => '<pre>Preformatted text</pre>',
     preformatted => 1);
 
-is_deeply([OMP::FaultUtil->compare($resp, $resp2)], ['text', 'preformatted']);
+is_deeply([OMP::Fault::Util->compare($resp, $resp2)], ['text', 'preformatted']);

@@ -1,14 +1,14 @@
-package OMP::FaultUtil;
+package OMP::Fault::Util;
 
 =head1 NAME
 
-OMP::FaultUtil - Fault content manipulation
+OMP::Fault::Util - Fault content manipulation
 
 =head1 SYNOPSIS
 
-    use OMP::FaultUtil;
+    use OMP::Fault::Util;
 
-    $text = OMP::FaultUtil->format_fault($fault, $bottompost);
+    $text = OMP::Fault::Util->format_fault($fault, $bottompost);
 
 =head1 DESCRIPTION
 
@@ -39,7 +39,7 @@ use OMP::Config;
 Format a fault in such a way that it is readable in a mail viewer.  This
 method retains the HTML in fault responses and uses HTML for formatting.
 
-    $text = OMP::FaultUtil->format_fault($fault, $bottompost, [%opt]);
+    $text = OMP::Fault::Util->format_fault($fault, $bottompost, [%opt]);
 
 The first argument should be an C<OMP::Fault> object.  If the second argument
 is true then responses are displayed in ascending order (newer responses appear
@@ -252,7 +252,7 @@ sub format_fault {
 
 Compare two C<OMP::Fault> or C<OMP::Fault::Response> objects.
 
-    @diff = OMP::FaultUtil->compare($fault_a, $fault_b);
+    @diff = OMP::Fault::Util->compare($fault_a, $fault_b);
 
 Takes two C<OMP::Fault> or C<OMP::Fault::Response> objects as the only arguments.
 Returns a list containing the elements where the two objects differed.  The elements

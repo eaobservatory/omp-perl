@@ -36,7 +36,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Fault;
 use OMP::DB::Fault;
-use OMP::FaultUtil;
+use OMP::Fault::Util;
 use OMP::Display;
 use OMP::Query::Fault;
 use OMP::Fault::Response;
@@ -840,7 +840,7 @@ sub update_fault {
         fault => $fault->responses->[0],
         %newdetails);
 
-    my @details_changed = OMP::FaultUtil->compare($new_f, $fault);
+    my @details_changed = OMP::Fault::Util->compare($new_f, $fault);
 
     # Our original response
     my $response = $fault->responses->[0];
@@ -848,7 +848,7 @@ sub update_fault {
     # Store details in a fault response object for comparison
     my $new_r = OMP::Fault::Response->new(author => $response->author, %newdetails);
 
-    my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
+    my @response_changed = OMP::Fault::Util->compare($new_r, $fault->responses->[0]);
 
     if ($details_changed[0] or $response_changed[0]) {
         # Changes have been made so we'll do an update

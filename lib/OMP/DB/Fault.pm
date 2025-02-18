@@ -29,7 +29,7 @@ use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::Query::Fault;
-use OMP::FaultUtil;
+use OMP::Fault::Util;
 use OMP::Error;
 use OMP::DB::User;
 use OMP::DateTools;
@@ -726,7 +726,7 @@ sub _mail_fault {
     }
 
     # Get the fault message
-    my $msg = OMP::FaultUtil->format_fault(
+    my $msg = OMP::Fault::Util->format_fault(
         $fault, 0,
         max_entries => 10,
     );
@@ -794,7 +794,7 @@ sub _mail_fault_update {
     );
 
     # Compare the fault details
-    my @details_changed = OMP::FaultUtil->compare($fault, $oldfault);
+    my @details_changed = OMP::Fault::Util->compare($fault, $oldfault);
 
     # Build up a message
     for (@details_changed) {

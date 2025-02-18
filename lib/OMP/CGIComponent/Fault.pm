@@ -32,7 +32,6 @@ use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
 use OMP::FaultGroup;
-use OMP::FaultUtil;
 
 use base qw/OMP::CGIComponent/;
 
