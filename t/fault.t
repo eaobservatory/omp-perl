@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 17 + 9 + 11;
+use Test::More tests => 22 + 9 + 11;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -45,9 +45,11 @@ isa_ok($resp, 'OMP::Fault::Response');
 my $fault = OMP::Fault->new(
     category => 'UKIRT',
     fault => $resp,
+    system => OMP::Fault::INSTRUMENT_WFCAM(),
 );
 ok($fault, 'Fault object created');
 isa_ok($fault, 'OMP::Fault');
+is($fault->systemText, 'Instrument - WFCAM');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -75,6 +77,29 @@ my $string = "$fault";
 my @lines = split "\n", $string;
 $string = join '', map {"#$_\n"} @lines;
 print $string;
+
+# Test faults in other categories.
+$fault = OMP::Fault->new(
+    category => 'VEHICLE_INCIDENT',
+    fault => OMP::Fault::Response->new(
+        author => $author,
+        text => 'text',
+    ),
+    system => OMP::Fault::VEHICLE_04(),
+);
+isa_ok($fault, 'OMP::Fault');
+is($fault->systemText, '4');
+
+$fault = OMP::Fault->new(
+    category => 'SAFETY',
+    fault => OMP::Fault::Response->new(
+        author => $author,
+        text => 'text',
+    ),
+    system => OMP::Fault::EQUIP_DAMAGE(),
+);
+isa_ok($fault, 'OMP::Fault');
+is($fault->systemText, 'Equipment damage');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {

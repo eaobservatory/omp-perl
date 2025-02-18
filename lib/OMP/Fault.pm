@@ -1290,18 +1290,13 @@ A fault can not be modified using this method.
 sub systemText {
     my $self = shift;
 
-    return $self->severityText
+    return $INVERSE{$self->category}{'SEVERITY'}{$self->system}
         if $self->isSafety;
 
-    return $self->vehicleIncidentText
+    return $INVERSE{$self->category}{'VEHICLE'}{$self->system}
         if $self->isVehicleIncident;
 
     return $INVERSE{$self->category}{SYSTEM}{$self->system};
-}
-
-sub severityText {
-    my $self = shift;
-    return $INVERSE{$self->category}{'SEVERITY'}{$self->system};
 }
 
 sub location {
@@ -1315,11 +1310,6 @@ sub location {
 sub locationText {
     my $self = shift;
     return $INVERSE_PLACE{$self->location};
-}
-
-sub vehicleIncidentText {
-    my $self = shift;
-    return $INVERSE{$self->category}{'VEHICLE'}{$self->system};
 }
 
 =item B<statusText>
