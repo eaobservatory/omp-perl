@@ -537,12 +537,15 @@ my %OPTIONS = (
     DR => {
     },
     SAFETY => {
+        HAS_LOCATION => 1,
+        SYSTEM_LABEL => 'Severity',
     },
     FACILITY => {
     },
     JCMT_EVENTS => {
     },
     VEHICLE_INCIDENT => {
+        SYSTEM_LABEL => 'Vehicle',
     },
 );
 
@@ -985,6 +988,24 @@ sub faultCanLoseTime {
     }
 }
 
+=item B<faultHasLocation>
+
+Given a fault category, return whether the faults of this category
+are associated with a location.
+
+=cut
+
+sub faultHasLocation  {
+    my $class = shift;
+    my $category = uc shift;
+
+    if (exists $OPTIONS{$category}{'HAS_LOCATION'}) {
+        return $OPTIONS{$category}{'HAS_LOCATION'};
+    }
+
+    return 0;
+}
+
 =item B<faultIsTelescope>
 
 Given a fault category, this method will return true if the category is associated with a telescope.
@@ -1001,6 +1022,23 @@ sub faultIsTelescope {
     else {
         return 0;
     }
+}
+
+=item B<getCategorySystemLabel>
+
+Get the label for the "system" parameter.
+
+=cut
+
+sub getCategorySystemLabel {
+    my $class = shift;
+    my $category = uc shift;
+
+    if (exists $OPTIONS{$category}{'SYSTEM_LABEL'}) {
+        return $OPTIONS{$category}{'SYSTEM_LABEL'};
+    }
+
+    return 'System';
 }
 
 =back
@@ -1387,11 +1425,6 @@ sub isNew {
 sub isSafety {
     my ($self) = @_;
     return 'safety' eq lc $self->category;
-}
-
-sub isNotSafety {
-    my ($self) = @_;
-    return ! $self->isSafety;
 }
 
 sub isJCMTEvents {
@@ -1921,17 +1954,14 @@ sub stringify {
         "--------------------------------------------------------------------------------\n"
         . "    Report by     :  $author\n"
         . "                                         date: $day\n"
-        .
-        ($self->isNotSafety
-            ? '    System'
-            : '    Severity')
+        . '    ' . $self->getCategorySystemLabel($self->category)
         . " is     :  $system\n"
         . "                                         time: $time\n"
         . "    Fault type is :  $type\n"
         .
-        ($self->isNotSafety
-            ? ''
-            : sprintf "    Location is   :  %s\n", $self->location)
+        ($self->faultHasLocation($self->category)
+            ? sprintf "    Location is   :  %s\n", $self->location
+            : '')
         . "                                         loss: $tlost hrs\n"
         . "    Status        :  $status\n" . "\n"
         . "    Notice will be sent to: $email\n" . "\n"

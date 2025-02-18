@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 17 + 9 + 6;
+use Test::More tests => 17 + 9 + 11;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -195,5 +195,12 @@ is(OMP::Fault->faultCanAssocProjects('CSG'), 0);
 is(OMP::Fault->faultCanLoseTime('JCMT'), 1);
 is(OMP::Fault->faultCanLoseTime('DR'), 0);
 
+is(OMP::Fault->faultHasLocation('JCMT'), 0);
+is(OMP::Fault->faultHasLocation('SAFETY'), 1);
+
 is(OMP::Fault->faultIsTelescope('JCMT'), 1);
 is(OMP::Fault->faultIsTelescope('OMP'), 0);
+
+is(OMP::Fault->getCategorySystemLabel('OMP'), 'System');
+is(OMP::Fault->getCategorySystemLabel('VEHICLE_INCIDENT'), 'Vehicle');
+is(OMP::Fault->getCategorySystemLabel('SAFETY'), 'Severity');
