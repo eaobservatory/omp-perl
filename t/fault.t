@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 22 + 9 + 11;
+use Test::More tests => 37 + 9 + 11;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -50,6 +50,11 @@ my $fault = OMP::Fault->new(
 ok($fault, 'Fault object created');
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, 'Instrument - WFCAM');
+is($fault->faultCanAssocProjects, 1);
+is($fault->faultCanLoseTime, 1);
+is($fault->faultHasLocation, 0);
+is($fault->faultIsTelescope, 1);
+is($fault->getCategorySystemLabel, 'System');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -89,6 +94,11 @@ $fault = OMP::Fault->new(
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, '4');
+is($fault->faultCanAssocProjects, 0);
+is($fault->faultCanLoseTime, 0);
+is($fault->faultHasLocation, 0);
+is($fault->faultIsTelescope, 0);
+is($fault->getCategorySystemLabel, 'Vehicle');
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -100,6 +110,11 @@ $fault = OMP::Fault->new(
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, 'Equipment damage');
+is($fault->faultCanAssocProjects, 0);
+is($fault->faultCanLoseTime, 0);
+is($fault->faultHasLocation, 1);
+is($fault->faultIsTelescope, 0);
+is($fault->getCategorySystemLabel, 'Severity');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {

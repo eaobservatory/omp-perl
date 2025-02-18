@@ -946,6 +946,16 @@ sub faultStatusClosed_VehicleIncident {
     return %VEHICLE_INCIDENT_STATUS_CLOSED;
 }
 
+=back
+
+=head2 Class or Instance Methods
+
+The following methods can be used either as class methods
+(supplying a category name) or as instance methods (using
+the category of the fault object).
+
+=over 4
+
 =item B<faultCanAssocProjects>
 
 Given a fault category, this badly named method will return true if faults for that
@@ -956,15 +966,14 @@ category can be associated with projects.
 =cut
 
 sub faultCanAssocProjects {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{CAN_ASSOC_PROJECTS}) {
-        return $OPTIONS{$category}{CAN_ASSOC_PROJECTS};
+    if (exists $OPTIONS{$category}{'CAN_ASSOC_PROJECTS'}) {
+        return $OPTIONS{$category}{'CAN_ASSOC_PROJECTS'};
     }
-    else {
-        return 0;
-    }
+
+    return 0;
 }
 
 =item B<faultCanLoseTime>
@@ -977,15 +986,14 @@ for a fault in that category.
 =cut
 
 sub faultCanLoseTime {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{CAN_LOSE_TIME}) {
-        return $OPTIONS{$category}{CAN_LOSE_TIME};
+    if (exists $OPTIONS{$category}{'CAN_LOSE_TIME'}) {
+        return $OPTIONS{$category}{'CAN_LOSE_TIME'};
     }
-    else {
-        return 0;
-    }
+
+    return 0;
 }
 
 =item B<faultHasLocation>
@@ -996,8 +1004,8 @@ are associated with a location.
 =cut
 
 sub faultHasLocation  {
-    my $class = shift;
-    my $category = uc shift;
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
     if (exists $OPTIONS{$category}{'HAS_LOCATION'}) {
         return $OPTIONS{$category}{'HAS_LOCATION'};
@@ -1013,15 +1021,14 @@ Given a fault category, this method will return true if the category is associat
 =cut
 
 sub faultIsTelescope {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
-        return $OPTIONS{$category}{IS_TELESCOPE};
+    if (exists $OPTIONS{$category}{'IS_TELESCOPE'}) {
+        return $OPTIONS{$category}{'IS_TELESCOPE'};
     }
-    else {
-        return 0;
-    }
+
+    return 0;
 }
 
 =item B<getCategorySystemLabel>
@@ -1031,8 +1038,8 @@ Get the label for the "system" parameter.
 =cut
 
 sub getCategorySystemLabel {
-    my $class = shift;
-    my $category = uc shift;
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
     if (exists $OPTIONS{$category}{'SYSTEM_LABEL'}) {
         return $OPTIONS{$category}{'SYSTEM_LABEL'};
@@ -1944,12 +1951,12 @@ sub stringify {
         "--------------------------------------------------------------------------------\n"
         . "    Report by     :  $author\n"
         . "                                         date: $day\n"
-        . '    ' . $self->getCategorySystemLabel($self->category)
+        . '    ' . $self->getCategorySystemLabel()
         . " is     :  $system\n"
         . "                                         time: $time\n"
         . "    Fault type is :  $type\n"
         .
-        ($self->faultHasLocation($self->category)
+        ($self->faultHasLocation()
             ? sprintf "    Location is   :  %s\n", $self->location
             : '')
         . "                                         loss: $tlost hrs\n"

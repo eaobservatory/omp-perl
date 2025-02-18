@@ -279,7 +279,7 @@ sub compare {
         /;
 
         push @comparekeys, qw/location/
-            if $obja->isSafety;
+            if $obja->faultHasLocation;
     }
     elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response")
             and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {
