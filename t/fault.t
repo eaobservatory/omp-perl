@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 43 + 9 + 16;
+use Test::More tests => 43 + 9 + 18;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -250,6 +250,9 @@ is(OMP::Fault->faultInitialStatus('SAFETY'), OMP::Fault::FOLLOW_UP());
 
 is(OMP::Fault->faultIsTelescope('JCMT'), 1);
 is(OMP::Fault->faultIsTelescope('OMP'), 0);
+
+is(OMP::Fault->getCategoryEntryName('JCMT'), 'Fault');
+is(OMP::Fault->getCategoryEntryName('JCMT_EVENTS'), 'Event');
 
 is(OMP::Fault->getCategorySystemLabel('OMP'), 'System');
 is(OMP::Fault->getCategorySystemLabel('VEHICLE_INCIDENT'), 'Vehicle');

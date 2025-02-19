@@ -1123,32 +1123,25 @@ sub _sidebar_fault {
     my $self = shift;
     my $cat = shift;
 
-    my %query_link = $self->_fault_sys_links;
+    if (defined $cat and $cat ne "ANYCAT") {
+        $cat = uc $cat;
 
-    if (defined $cat and uc $cat ne "ANYCAT") {
-        my ($text, $prop) = ('fault', 'a');
-        if ($cat =~ /event/i) {
-            $text = 'event';
-            $prop = 'an';
-        }
+        my $text = lc OMP::Fault->getCategoryEntryName($cat);
+        my $prop = ($text =~ /^[aeiou]/) ? 'an' : 'a';
 
         $self->side_bar(
             OMP::Fault->getCategoryFullName($cat),
             [
-                ["File $prop $text" => "filefault.pl?cat=$cat"],
-                ["View ${text}s" => $query_link{uc $cat}->{'url'}],
+                ["File $prop $text" => "/cgi-bin/filefault.pl?cat=$cat"],
+                ["View ${text}s" => "/cgi-bin/queryfault.pl?cat=$cat"],
             ]);
     }
 
     $self->side_bar(
         'Fault system',
         [
-            (
-                map {[$query_link{$_}->{'text'} => $query_link{$_}->{'url'}]}
-                grep {$_ ne 'ANYCAT'}
-                $self->_fault_sys_links_order()
-            ),
-            ['All Faults' => $query_link{'ANYCAT'}->{'url'}],
+            map {[$_->{'text'} => $_->{'url'}]}
+            $self->_fault_sys_links()
         ],
         fault_id_panel => 1);
 }
@@ -1168,87 +1161,80 @@ sub _write_category_choice {
 
     my $q = $self->cgi;
 
-    my %query = $self->_fault_sys_links;
+    # Assume "ANYCAT" is last in order, so "pop" it from the list.
+    my @links = $self->_fault_sys_links;
+    my $link_any = pop @links;
 
     $self->_write_http_header(undef, \%opt);
     $self->render_template(
         'fault_category_choice.html',
         {
             %{$self->_write_page_context_extra(\%opt)},
-            categories => [
-                map {
-                    $query{$_}
-                }
-                grep {
-                    'anycat' ne lc $_
-                } $self->_fault_sys_links_order
-            ],
-            category_any => $query{'ANYCAT'},
+            categories => \@links,
+            category_any => $link_any,
         });
 }
 
-BEGIN {
-    my @order = qw/
-        CSG OMP UKIRT JCMT JCMT_EVENTS DR FACILITY SAFETY
-        VEHICLE_INCIDENT
-    /;
+sub _fault_sys_links {
+    my $self = shift;
 
-    push @order, 'ANYCAT';
-
-    my %long_text = (
-        'CSG' => 'EAO computer services',
-        'OMP' => 'Observation Management Project',
-        'UKIRT' => 'UKIRT',
-        'JCMT' => 'JCMT',
-        'JCMT_EVENTS' => 'JCMT events',
-        'DR' => 'data reduction systems',
-        'FACILITY' => 'facilities',
-        'SAFETY' => 'safety',
-        'VEHICLE_INCIDENT' => 'vehicle incident',
-        'ANYCAT' => 'all categories',
+    my @info = (
+        {
+            category => 'CSG',
+            description => 'EAO computer services',
+        },
+        {
+            category => 'OMP',
+            description => 'the Observation Management Project',
+        },
+        {
+            category => 'UKIRT',
+            description => 'UKIRT',
+        },
+        {
+            category => 'JCMT',
+            description => 'JCMT',
+        },
+        {
+            category => 'JCMT_EVENTS',
+            full_description => 'event logging for JCMT',
+        },
+        {
+            category => 'DR',
+            description => 'data reduction systems',
+        },
+        {
+            category => 'FACILITY',
+            description => 'facilities',
+        },
+        {
+            category => 'SAFETY',
+            full_description => 'issues relating to safety',
+        },
+        {
+            category => 'VEHICLE_INCIDENT',
+            full_description => 'vehicle incident issues',
+        },
+        {
+            category => 'ANYCAT',
+            text => 'All Faults',
+            full_description => 'faults in all categories',
+        },
     );
 
-    sub _fault_sys_links {
-        my %links;
-        for my $type (@order) {
-            next if grep {$type eq $_}
-                ('SAFETY', 'JCMT_EVENTS', 'VEHICLE_INCIDENT');
-
-            $links{$type} = {
-                'url' => "/cgi-bin/queryfault.pl?cat=$type",
-                'text' => OMP::Fault->getCategoryFullName($type),
-                'extra' => 'faults relating to ' . $long_text{$type}
-            };
-        }
-
-        $links{'SAFETY'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=SAFETY',
-            'text' => 'Safety Reporting',
-            'extra' => 'issues relating to safety'
+    return map {
+        my $cat = $_->{'category'};
+        {
+            'category' => $cat,
+            'url' => "/cgi-bin/queryfault.pl?cat=$cat",
+            'text' => (exists $_->{'text'}
+                ? $_->{'text'}
+                : OMP::Fault->getCategoryFullName($cat)),
+            'extra' => (exists $_->{'full_description'}
+                ? $_->{'full_description'}
+                : 'faults relating to ' . $_->{'description'}),
         };
-
-        $links{'JCMT_EVENTS'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=JCMT_EVENTS',
-            'text' => 'JCMT Events',
-            'extra' => 'event logging for JCMT'
-        };
-
-        $links{'VEHICLE_INCIDENT'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=VEHICLE_INCIDENT',
-            'text' => 'Vehicle Incident Reporting',
-            'extra' => 'vehicle incident issues'
-        };
-
-        #  Fine tune 'ANYCAT' description.
-        $links{'ANYCAT'}->{'extra'} = 'faults in all categories';
-
-        return %links;
-    }
-
-    sub _fault_sys_links_order {
-        my ($self) = @_;
-        return @order;
-    }
+    } @info;
 }
 
 1;

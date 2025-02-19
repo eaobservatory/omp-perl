@@ -549,6 +549,7 @@ my %OPTIONS = (
     JCMT_EVENTS => {
         CATEGORY_NAME => 'JCMT Events',
         CATEGORY_NAME_SUFFIX => undef,
+        ENTRY_NAME => 'Event',
         INITIAL_STATUS => ONGOING,
     },
     VEHICLE_INCIDENT => {
@@ -1103,6 +1104,24 @@ sub _getCategoryName {
     return $name unless defined $suffix;
 
     return $name . ' ' . $suffix;
+}
+
+=item B<getCategoryEntryName>
+
+Get the name of entries in this category, e.g. "Fault"
+or "Event".
+
+=cut
+
+sub getCategoryEntryName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'ENTRY_NAME'}) {
+        return $OPTIONS{$category}{'ENTRY_NAME'};
+    }
+
+    return 'Fault';
 }
 
 =item B<getCategorySystemLabel>
