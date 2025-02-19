@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 43 + 9 + 18;
+use Test::More tests => 46 + 9 + 21;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -53,6 +53,7 @@ is($fault->systemText, 'Instrument - WFCAM');
 is($fault->faultCanAssocProjects, 1);
 is($fault->faultCanLoseTime, 1);
 is($fault->faultHasLocation, 0);
+is($fault->faultHasTimeOccurred, 1);
 is($fault->faultIsTelescope, 1);
 is($fault->getCategorySystemLabel, 'System');
 is($fault->getCategoryName, 'UKIRT');
@@ -99,6 +100,7 @@ is($fault->systemText, '4');
 is($fault->faultCanAssocProjects, 0);
 is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 0);
+is($fault->faultHasTimeOccurred, 0);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Vehicle');
 is($fault->getCategoryName, 'Vehicle Incident');
@@ -117,6 +119,7 @@ is($fault->systemText, 'Equipment damage');
 is($fault->faultCanAssocProjects, 0);
 is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 1);
+is($fault->faultHasTimeOccurred, 0);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Severity');
 is($fault->getCategoryName, 'Safety');
@@ -243,6 +246,10 @@ is(OMP::Fault->faultCanLoseTime('DR'), 0);
 
 is(OMP::Fault->faultHasLocation('JCMT'), 0);
 is(OMP::Fault->faultHasLocation('SAFETY'), 1);
+
+is(OMP::Fault->faultHasTimeOccurred('SAFETY'), 0);
+is(OMP::Fault->faultHasTimeOccurred('JCMT'), 1);
+is(OMP::Fault->faultHasTimeOccurred('JCMT_EVENTS'), 1);
 
 is(OMP::Fault->faultInitialStatus('JCMT'), OMP::Fault::OPEN());
 is(OMP::Fault->faultInitialStatus('JCMT_EVENTS'), OMP::Fault::ONGOING());

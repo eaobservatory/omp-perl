@@ -372,10 +372,7 @@ sub file_fault_form {
         fault => $fault,
         has_location => $has_location,
         has_time_loss => OMP::Fault->faultCanLoseTime($category),
-        has_time_occurred => !! (
-            OMP::Fault->faultCanLoseTime($category)
-            or $category =~ /events\b/i
-        ),
+        has_time_occurred => OMP::Fault->faultHasTimeOccurred($category),
         has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
         system_label => $sys_label,
         system_description => $sys_text,

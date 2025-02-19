@@ -550,6 +550,7 @@ my %OPTIONS = (
         CATEGORY_NAME => 'JCMT Events',
         CATEGORY_NAME_SUFFIX => undef,
         ENTRY_NAME => 'Event',
+        HAS_TIME_OCCURRED => 1,
         INITIAL_STATUS => ONGOING,
     },
     VEHICLE_INCIDENT => {
@@ -1022,6 +1023,26 @@ sub faultHasLocation  {
     }
 
     return 0;
+}
+
+=item B<faultHasTimeOccurred>
+
+Given a fault category, return whether the faults of this category
+can be associated with a time.
+
+=cut
+
+sub faultHasTimeOccurred {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    # If we have a specific setting, return it.
+    if (exists $OPTIONS{$category}{'HAS_TIME_OCCURRED'}) {
+        return $OPTIONS{$category}{'HAS_TIME_OCCURRED'};
+    }
+
+    # Otherwise assume a time can be specified if time can be lost.
+    return OMP::Fault->faultCanLoseTime($category);
 }
 
 =item B<faultInitialStatus>
