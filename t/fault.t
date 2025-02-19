@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 46 + 9 + 21;
+use Test::More tests => 46 + (9 * 5) + 21;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -215,26 +215,62 @@ is_deeply(OMP::Fault->faultSystems('VEHICLE_INCIDENT'), {
 
 # Test mail_list method.
 my %mail_list_expect = (
-    csg => ['csg-faults@eaobservatory.org'],
-    dr => ['dr-faults@eaobservatory.org'],
-    facility => ['facility-faults@eaobservatory.org'],
-    jcmt => ['jcmt-faults@eaobservatory.org'],
-    jcmt_events => ['jcmt_event_log@eao.hawaii.edu'],
-    omp => ['omp-faults@eaobservatory.org'],
-    safety => ['safety-faults@eaobservatory.org'],
-    ukirt => ['ukirt_faults@eao.hawaii.edu'],
-    vehicle_incident => ['vehicle@eao.hawaii.edu'],
+    csg => {
+        address => ['csg-faults@eaobservatory.org'],
+        name => 'CSG Faults',
+    },
+    dr => {
+        address => ['dr-faults@eaobservatory.org'],
+        name => 'DR Faults',
+    },
+    facility => {
+        address => ['facility-faults@eaobservatory.org'],
+        name => 'Facility Faults',
+    },
+    jcmt => {
+        address => ['jcmt-faults@eaobservatory.org'],
+        name => 'JCMT Faults',
+    },
+    jcmt_events => {
+        address => ['jcmt_event_log@eao.hawaii.edu'],
+        name => 'JCMT Events',
+    },
+    omp => {
+        address => ['omp-faults@eaobservatory.org'],
+        name => 'OMP Faults',
+    },
+    safety => {
+        address => ['safety-faults@eaobservatory.org'],
+        name => 'Safety Reporting',
+    },
+    ukirt => {
+        address => ['ukirt_faults@eao.hawaii.edu'],
+        name => 'UKIRT Faults',
+    },
+    vehicle_incident => {
+        address => ['vehicle@eao.hawaii.edu'],
+        name => 'Vehicle Incident Reporting',
+    },
 );
 
 foreach my $cat (sort keys %mail_list_expect) {
-    is_deeply(
-        OMP::Fault->new(
-            category => $cat,
-            fault => OMP::Fault::Response->new(
-                author => $author,
-                text => 'text'),
-        )->mail_list(),
-        $mail_list_expect{$cat});
+    my $expect = $mail_list_expect{$cat};
+    my $f = OMP::Fault->new(
+        category => $cat,
+        fault => OMP::Fault::Response->new(
+            author => $author,
+            text => 'text'),
+    );
+    is_deeply($f->mail_list(), $expect->{'address'});
+
+    # Test construction of user objects -- this part assumes just
+    # one address per list.
+    my @users = $f->mail_list_users;
+    is(1, length @users);
+    my $user = $users[0];
+    isa_ok($user, 'OMP::User');
+    is($user->email, $expect->{'address'}->[0]);
+    is($user->name, $expect->{'name'});
 }
 
 # Test option methods.

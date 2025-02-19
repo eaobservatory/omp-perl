@@ -1411,13 +1411,15 @@ A fault can not be modified using this method.
 sub systemText {
     my $self = shift;
 
-    return $INVERSE{$self->category}{'SEVERITY'}{$self->system}
-        if $self->isSafety;
+    my $category = $self->category;
 
-    return $INVERSE{$self->category}{'VEHICLE'}{$self->system}
-        if $self->isVehicleIncident;
+    return $INVERSE{$category}{'SEVERITY'}{$self->system}
+        if 'SAFETY' eq $category;
 
-    return $INVERSE{$self->category}{SYSTEM}{$self->system};
+    return $INVERSE{$category}{'VEHICLE'}{$self->system}
+        if 'VEHICLE_INCIDENT' eq $category;
+
+    return $INVERSE{$category}{'SYSTEM'}{$self->system};
 }
 
 sub location {
@@ -1531,21 +1533,6 @@ sub isNew {
 
     $t -= 129600;  # 36 hours ago
     return ($date >= $t ? 1 : 0);
-}
-
-sub isSafety {
-    my ($self) = @_;
-    return 'safety' eq lc $self->category;
-}
-
-sub isJCMTEvents {
-    my ($self) = @_;
-    return 'jcmt_events' eq lc $self->category;
-}
-
-sub isVehicleIncident {
-    my ($self) = @_;
-    return 'vehicle_incident' eq lc $self->category;
 }
 
 sub isSCUBA2Fault {
@@ -1971,13 +1958,12 @@ given by C<mail_list>.
 
 sub mail_list_users {
     my $self = shift;
-    my $category = $self->category;
+
+    my $name = $self->getCategoryFullName;
 
     return map {
         OMP::User->new(
-            'name' => $category . ($self->isJCMTEvents
-                ? ''
-                : $self->isSafety ? ' Reporting' : ' Faults'),
+            'name' => $name,
             'email' => $_,
         )
     } @{$self->mail_list};
