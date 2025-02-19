@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 37 + 9 + 11;
+use Test::More tests => 43 + 9 + 16;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -55,6 +55,8 @@ is($fault->faultCanLoseTime, 1);
 is($fault->faultHasLocation, 0);
 is($fault->faultIsTelescope, 1);
 is($fault->getCategorySystemLabel, 'System');
+is($fault->getCategoryName, 'UKIRT');
+is($fault->getCategoryFullName, 'UKIRT Faults');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -99,6 +101,8 @@ is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 0);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Vehicle');
+is($fault->getCategoryName, 'Vehicle Incident');
+is($fault->getCategoryFullName, 'Vehicle Incident Reporting');
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -115,6 +119,8 @@ is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 1);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Severity');
+is($fault->getCategoryName, 'Safety');
+is($fault->getCategoryFullName, 'Safety Reporting');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {
@@ -238,9 +244,16 @@ is(OMP::Fault->faultCanLoseTime('DR'), 0);
 is(OMP::Fault->faultHasLocation('JCMT'), 0);
 is(OMP::Fault->faultHasLocation('SAFETY'), 1);
 
+is(OMP::Fault->faultInitialStatus('JCMT'), OMP::Fault::OPEN());
+is(OMP::Fault->faultInitialStatus('JCMT_EVENTS'), OMP::Fault::ONGOING());
+is(OMP::Fault->faultInitialStatus('SAFETY'), OMP::Fault::FOLLOW_UP());
+
 is(OMP::Fault->faultIsTelescope('JCMT'), 1);
 is(OMP::Fault->faultIsTelescope('OMP'), 0);
 
 is(OMP::Fault->getCategorySystemLabel('OMP'), 'System');
 is(OMP::Fault->getCategorySystemLabel('VEHICLE_INCIDENT'), 'Vehicle');
 is(OMP::Fault->getCategorySystemLabel('SAFETY'), 'Severity');
+
+is(OMP::Fault->getCategoryFullName('OMP'), 'OMP Faults');
+is(OMP::Fault->getCategoryFullName('JCMT_EVENTS'), 'JCMT Events');

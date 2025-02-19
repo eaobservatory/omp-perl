@@ -1123,12 +1123,6 @@ sub _sidebar_fault {
     my $self = shift;
     my $cat = shift;
 
-    my $suffix = $cat =~ /events/i
-        ? ''
-        : 'safety' eq lc $cat || 'vehicle_incident' eq lc $cat
-            ? 'Reporting'
-            : 'Faults';
-
     my %query_link = $self->_fault_sys_links;
 
     if (defined $cat and uc $cat ne "ANYCAT") {
@@ -1139,7 +1133,7 @@ sub _sidebar_fault {
         }
 
         $self->side_bar(
-            "$cat $suffix",
+            OMP::Fault->getCategoryFullName($cat),
             [
                 ["File $prop $text" => "filefault.pl?cat=$cat"],
                 ["View ${text}s" => $query_link{uc $cat}->{'url'}],
@@ -1222,7 +1216,7 @@ BEGIN {
 
             $links{$type} = {
                 'url' => "/cgi-bin/queryfault.pl?cat=$type",
-                'text' => "$type Faults",
+                'text' => OMP::Fault->getCategoryFullName($type),
                 'extra' => 'faults relating to ' . $long_text{$type}
             };
         }

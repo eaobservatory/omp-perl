@@ -537,14 +537,23 @@ my %OPTIONS = (
     DR => {
     },
     SAFETY => {
+        CATEGORY_NAME => 'Safety',
+        CATEGORY_NAME_SUFFIX => 'Reporting',
         HAS_LOCATION => 1,
         SYSTEM_LABEL => 'Severity',
+        INITIAL_STATUS => FOLLOW_UP,
     },
     FACILITY => {
+        CATEGORY_NAME => 'Facility',
     },
     JCMT_EVENTS => {
+        CATEGORY_NAME => 'JCMT Events',
+        CATEGORY_NAME_SUFFIX => undef,
+        INITIAL_STATUS => ONGOING,
     },
     VEHICLE_INCIDENT => {
+        CATEGORY_NAME => 'Vehicle Incident',
+        CATEGORY_NAME_SUFFIX => 'Reporting',
         SYSTEM_LABEL => 'Vehicle',
     },
 );
@@ -1014,6 +1023,26 @@ sub faultHasLocation  {
     return 0;
 }
 
+=item B<faultInitialStatus>
+
+Given a fault category, return a suggested initial status
+value.  (Note thus is not currently applied as the default
+when constructing an OMP::Fault object, but the value returned
+could be used when showing a fault filing form.)
+
+=cut
+
+sub faultInitialStatus  {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'INITIAL_STATUS'}) {
+        return $OPTIONS{$category}{'INITIAL_STATUS'};
+    }
+
+    return OPEN;
+}
+
 =item B<faultIsTelescope>
 
 Given a fault category, this method will return true if the category is associated with a telescope.
@@ -1029,6 +1058,51 @@ sub faultIsTelescope {
     }
 
     return 0;
+}
+
+=item B<getCategoryName>
+
+Get the name (capitalized for display) of the category.
+
+=cut
+
+sub getCategoryName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return $self->_getCategoryName($category, 0);
+}
+
+=item B<getCategoryFullName>
+
+Get the full name of the category followed by the suffix, if any,
+e.g. "Faults" or "Reporting".
+
+=cut
+
+sub getCategoryFullName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return $self->_getCategoryName($category, 1);
+}
+
+sub _getCategoryName {
+    my $self = shift;
+    my $category = shift;
+    my $full = shift;
+
+    my $name = (exists $OPTIONS{$category}{'CATEGORY_NAME'})
+        ? $OPTIONS{$category}{'CATEGORY_NAME'}
+        : $category;
+
+    return $name unless $full;
+
+    my $suffix = (exists $OPTIONS{$category}{'CATEGORY_NAME_SUFFIX'})
+        ? $OPTIONS{$category}{'CATEGORY_NAME_SUFFIX'}
+        : 'Faults';
+
+    return $name unless defined $suffix;
+
+    return $name . ' ' . $suffix;
 }
 
 =item B<getCategorySystemLabel>

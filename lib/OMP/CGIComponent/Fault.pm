@@ -84,7 +84,7 @@ sub fault_table {
             my $date = localtime($epoch);
             return OMP::DateTools->display_date($date);
         },
-        system_label => _get_system_label($fault->category),
+        system_label => $fault->getCategorySystemLabel(),
         allow_edit => ! $noedit,
         target => $self->page->url_absolute(),
         statuses => \@statuses,
@@ -110,8 +110,6 @@ sub query_fault_form {
     my $hidefields = shift;
 
     my $q = $self->cgi;
-
-    my $sys_label = _get_system_label($category);
 
     my @systems;
     my @types;
@@ -153,7 +151,7 @@ sub query_fault_form {
             'subject',
             'both',
         ],
-        system_label => $sys_label,
+        system_label => OMP::Fault->getCategorySystemLabel($category),
         systems => \@systems,
         types => \@types,
         statuses => \@status,
@@ -198,17 +196,21 @@ sub file_fault_form {
     my $fault = $args{fault};
     my $q = $self->cgi;
 
-    my $is_safety = _is_safety($category);
+    my $has_location = OMP::Fault->faultHasLocation($category);
 
     # Create values and labels for the popup_menus
     my @systems;
     {
+        # TODO: have OMP::Fault return an ordered structure instead?
         my $systems = OMP::Fault->faultSystems($category);
-        my @sys_key = keys %$systems;
-        my @system_values = _sort_values(\@sys_key, $systems, $category);
-        my %system_labels = map {$systems->{$_}, $_} @sys_key;
-        @systems = map {[$_, $system_labels{$_}]}
-            _sort_values(\@sys_key, $systems, $category);
+
+        my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
+            ? (sub {$a <=> $b})
+            : (sub {$a cmp $b});
+
+        @systems = map {[$systems->{$_}, $_]}
+            sort $sort
+            keys %$systems;
     }
 
     my $types = OMP::Fault->faultTypes($category);
@@ -222,16 +224,10 @@ sub file_fault_form {
 
     # Location (for "Safety" category).
     my @locations;
-    if ($is_safety) {
+    if ($has_location) {
         my %places = OMP::Fault->faultLocation_Safety;
         @locations = map {[$places{$_}, $_]} sort keys %places;
     }
-
-    my $sys_text = _is_vehicle_incident($category)
-        ? 'vehicle'
-        : $is_safety
-            ? 'severity level'
-            : 'system';
 
     # Set defaults.  There's probably a better way of doing what I'm about
     # to do...
@@ -244,7 +240,7 @@ sub file_fault_form {
             system => undef,
             type => undef,
             location => undef,
-            status => ($is_safety ? OMP::Fault::FOLLOW_UP : OMP::Fault::OPEN),
+            status => OMP::Fault->faultInitialStatus($category),
             loss => undef,
             time => undef,
             tz => 'HST',
@@ -356,8 +352,6 @@ sub file_fault_form {
         }
     }
 
-    my $sys_label = _get_system_label($category);
-
     my %shifts = OMP::Fault->shiftTypes($category);
     my @shifts = map {[$_ => $shifts{$_}]} sort keys %shifts;
 
@@ -368,10 +362,15 @@ sub file_fault_form {
     push @conditions, (['chronic', 'Chronic', 'condition'])
         if defined $fault;
 
+    # TODO: use OMP::Fault for the "severity level" logic?
+    my $sys_label = OMP::Fault->getCategorySystemLabel($category);
+    my $sys_text = lc $sys_label;
+    $sys_text .= ' level' if $sys_text eq 'severity';
+
     return {
         target => $self->page->url_absolute(),
         fault => $fault,
-        has_location => $is_safety,
+        has_location => $has_location,
         has_time_loss => OMP::Fault->faultCanLoseTime($category),
         has_time_occurred => !! (
             OMP::Fault->faultCanLoseTime($category)
@@ -590,15 +589,9 @@ sub category_title {
     my $self = shift;
     my $cat = shift;
 
-    return _is_safety($cat)
-        ? "$cat Reporting"
-        : _is_jcmt_events($cat)
-            ? 'JCMT Events'
-            : _is_vehicle_incident($cat)
-                ? 'Vehicle Incident Reporting'
-                : lc $cat ne 'anycat'
-                    ? "$cat Faults"
-                    : 'All Faults';
+    return 'All Faults' if 'ANYCAT' eq uc $cat;
+
+    return OMP::Fault->getCategoryFullName($cat);
 }
 
 =item B<parse_file_fault_form>
@@ -642,7 +635,7 @@ sub parse_file_fault_form {
         $parsed{'shifttype'} = undef;
     }
 
-    if (_is_safety($category)) {
+    if (OMP::Fault->faultHasLocation($category)) {
         $parsed{'location'} = $q->param('location');
     }
     $parsed{'system'} = $q->param('system');
@@ -868,51 +861,6 @@ sub _sort_by_fault_time {
             $a->filedate <=> $b->filedate
         } @file)
     ];
-}
-
-sub _get_system_label {
-    my ($cat) = @_;
-
-    return _is_safety($cat)
-        ? 'Severity'
-        : _is_vehicle_incident($cat)
-            ? 'Vehicle'
-            : 'System';
-}
-
-sub _sort_values {
-    my ($keys, $sys, $cat, $mode) = @_;
-
-    unless ($cat) {
-        $mode = 'alpha'
-            unless scalar grep($mode eq $_, qw[ num alphanum ]);
-    }
-    elsif (_is_vehicle_incident($cat)) {
-        $mode = 'num';
-    }
-
-    my $sort = $mode eq 'num'
-        ? sub {$a <=> $b}
-        : $mode eq 'alphanum'
-            ? sub {$a <=> $b || $a cmp $b}
-            : sub {$a cmp $b};
-
-    return map {$sys->{$_}} sort $sort @{$keys};
-}
-
-sub _is_safety {
-    my ($cat) = @_;
-    return 'safety' eq lc $cat;
-}
-
-sub _is_jcmt_events {
-    my ($cat) = @_;
-    return 'jcmt_events' eq lc $cat;
-}
-
-sub _is_vehicle_incident {
-    my ($cat) = @_;
-    return 'vehicle_incident' eq lc $cat;
 }
 
 1;
