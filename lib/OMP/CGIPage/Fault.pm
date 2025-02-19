@@ -99,27 +99,19 @@ sub file_fault {
 
     # Make sure all the necessary params were provided
     my %params = (
-        Subject => "subject",
-        "Fault report" => "message",
-        Type => "type",
-        System => "system",
+        subject => 'Subject',
+        message => 'Fault report',
+        type => 'Type',
+        system => OMP::Fault->getCategorySystemLabel($category),
     );
 
-    # Adjust for "Safety" category.
-    if ('safety' eq lc $category) {
-        delete $params{'System'};
-        $params{'Location'} = 'location';
-        $params{'Severity'} = 'system';
-    }
-    elsif ('vehicle_incident' eq lc $category) {
-        delete $params{'System'};
-        $params{'Vehicle'} = 'system';
-    }
+    $params{'location'} = 'Location'
+        if OMP::Fault->faultHasLocation($category);
 
     my @error;
     for (keys %params) {
-        if (length($q->param($params{$_})) < 1) {
-            push @error, $_;
+        if (length($q->param($_)) < 1) {
+            push @error, $params{$_};
         }
     }
 
@@ -592,11 +584,13 @@ sub view_fault {
 
     if ($q->param('respond')) {
         # Make sure all the necessary params were provided
-        my %params = (Response => "text",);
+        my %params = (
+            text => 'Response',
+        );
         my @error;
         for (keys %params) {
-            if (length($q->param($params{$_})) < 1) {
-                push @error, $_;
+            if (length($q->param($_)) < 1) {
+                push @error, $params{$_};
             }
         }
 
