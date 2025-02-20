@@ -1530,6 +1530,8 @@ sub isOpen {
         REFER_TO_SAFETY_COMMITTEE(),
         COMMISSIONING(),
         ONGOING(),
+        KNOWN_FAULT(),
+        SUSPENDED(),
     );
 }
 

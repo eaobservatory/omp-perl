@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 46 + (9 * 5) + 21 + 15;
+use Test::More tests => 46 + (9 * 5) + 21 + 15 + (16 * 2);
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -425,3 +425,29 @@ is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}}], [
     'Duplicate',
     'Won\'t be fixed',
 ]);
+
+# Check that the "isOpen", "faultStatusOpen" and "faultStatusClosed" methods agree.
+my %status = OMP::Fault->faultStatus;
+my %status_open = map {$_ => 1} values %{{OMP::Fault->faultStatusOpen}};
+my %status_closed = map {$_ => 1} values %{{OMP::Fault->faultStatusClosed}};
+while (my ($status_text, $status_value) = each %status) {
+    my $f = OMP::Fault->new(
+        category => 'OMP',
+        fault => OMP::Fault::Response->new(
+            author => $author,
+            text => 'text'),
+        status => $status_value,
+    );
+    if ($f->isOpen) {
+        ok(exists $status_open{$status_value},
+            "open status $status_text in open list");
+        ok(! exists $status_closed{$status_value},
+            "open status $status_text not in closed list");
+    }
+    else {
+        ok(! exists $status_open{$status_value},
+            "closed status $status_text not in open list");
+        ok(exists $status_closed{$status_value},
+            "closed status $status_text in closed list");
+    }
+}
