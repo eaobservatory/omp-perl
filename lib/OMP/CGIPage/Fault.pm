@@ -83,7 +83,7 @@ Creates a page with a form for for filing a fault, or submit a fault.
 sub file_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    # Should be undef: my $fault = shift;
 
     my $q = $self->cgi;
 
@@ -155,6 +155,7 @@ sub file_fault {
     $fault->timelost($faultdetails{timelost}) if $faultdetails{timelost};
 
     # Submit the fault the the database
+    my $faultid;
     my @message = ();
     try {
         my $fdb = OMP::DB::Fault->new(DB => $self->database);
@@ -198,7 +199,7 @@ Display output of a fault query
 sub query_fault_output {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    # Should be undef: my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
@@ -536,25 +537,23 @@ Display a page showing a fault and providing a form for responding
 to the fault, or process the view_fault_content "respond" and "close fault"
 forms.
 
-    $page->view_fault($category, $faultid);
+    $page->view_fault($category, $fault);
 
 =cut
 
 sub view_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     return $self->_write_error('Fault ID not specified.')
-        unless $faultid;
+        unless defined $fault;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $fault = $fdb->getFault($faultid);
-    return $self->_write_error("Fault [$faultid] not found.")
-        unless defined $fault;
 
     my $show = $self->decoded_url_param('show') // 'nonhidden';
     my $order = $self->decoded_url_param('order') // 'asc';
@@ -768,24 +767,23 @@ Display a page with a form for updating fault details, or
 Take parameters from the fault update page and update
 the fault.
 
-    $page->update_fault_content($category, $faultid);
+    $page->update_fault_content($category, $fault);
 
 =cut
 
 sub update_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
     return $self->_write_error('Fault ID not specified.')
-        unless $faultid;
+        unless defined $fault;
 
-    # Get the fault
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $fault = $fdb->getFault($faultid);
 
     unless ($q->param('submit_update')) {
         return {
@@ -856,14 +854,14 @@ sub update_fault {
 Create a form for updating fault details, or submit changes
 to a fault response.
 
-    $page->update_resp($category, $faultid);
+    $page->update_resp($category, $fault);
 
 =cut
 
 sub update_resp {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
@@ -871,15 +869,10 @@ sub update_resp {
     my $respid = $self->decoded_url_param('respid');
 
     return $self->_write_error("A fault ID and response ID must be provided.")
-        unless ($faultid and $respid);
+        unless ($respid and defined $fault);
 
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-
-    # Get the fault
-    my $fault = $fdb->getFault($faultid);
-
-    return $self->_write_error("Unable to retrieve fault with ID [$faultid]")
-        unless defined $fault;
 
     unless ($q->param('respond')) {
         return {
@@ -1018,7 +1011,9 @@ sub fault_summary_content {
 =item B<_write_page_extra>
 
 Method to prepare extra information for the L<write_page> system.  For the
-fault system, attempt to identify the category and fault ID.
+fault system, attempt to identify the category and fault.  If a fault ID
+was given, the fault is retrieved from the database, added to the handler
+method arguments and used to determine the category.
 
 =cut
 
@@ -1028,11 +1023,10 @@ sub _write_page_extra {
     my $q = $self->cgi;
 
     my $cat;
+    my $fault;
     my $faultid = $self->decoded_url_param('fault');
 
     if (defined $faultid) {
-        my $fault;
-
         $faultid = OMP::General->extract_faultid("[${faultid}]");
         croak 'Invalid fault ID' unless defined $faultid;
 
@@ -1069,7 +1063,7 @@ sub _write_page_extra {
         return {abort => 1};
     }
 
-    return {args => [$cat, $faultid]};
+    return {args => [$cat, $fault]};
 }
 
 =item B<_sidebar_fault>
