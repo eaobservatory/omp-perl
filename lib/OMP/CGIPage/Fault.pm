@@ -125,8 +125,6 @@ sub file_fault {
         };
     }
 
-    my %status = OMP::Fault->faultStatus;
-
     # Get the fault details
     my %faultdetails = $comp->parse_file_fault_form($category);
 
@@ -212,15 +210,6 @@ sub query_fault_output {
     my $maxdate;
     my %hash;
 
-    # XML query to return faults from the last 14 days
-    my %faultstatus = 'safety' eq lc $category
-        ? OMP::Fault->faultStatus_Safety
-        : 'jcmt_events' eq lc $category
-            ? OMP::Fault->faultStatus_JCMTEvents
-            : 'vehicle_incident' eq lc $category
-                ? OMP::Fault->faultStatus_VehicleIncident
-                : OMP::Fault->faultStatus;
-
     my %currenthash = (
         %{$comp->category_hash($category)},
         date => {delta => -14, value => $t->datetime},
@@ -253,28 +242,17 @@ sub query_fault_output {
 
         if (defined $q->param('status')) {
             my $status = $q->param('status');
+            my @cat_not_any = ($category eq 'ANYCAT') ? () : ($category);
             if ($status eq 'any') {
             }
             elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
-                my %status = (
-                    OMP::Fault->faultStatusClosed,
-                    OMP::Fault->faultStatusClosed_Safety,
-                    OMP::Fault->faultStatusClosed_JCMTEvents,
-                    OMP::Fault->faultStatusClosed_VehicleIncident,
-                );
-
+                my %status = OMP::Fault->faultStatusClosed(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
             elsif ($status eq "all_open") {
                 # Do a query on all open statuses
-                my %status = (
-                    OMP::Fault->faultStatusOpen,
-                    OMP::Fault->faultStatusOpen_Safety,
-                    OMP::Fault->faultStatusOpen_JCMTEvents,
-                    OMP::Fault->faultStatusOpen_VehicleIncident,
-                );
-
+                my %status = OMP::Fault->faultStatusOpen(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
             else {
@@ -611,14 +589,6 @@ sub view_fault {
 
         # Now update the status if necessary
         if ($status != $fault->status) {
-            # Lookup table for status
-            my %status = (
-                OMP::Fault->faultStatus(),
-                OMP::Fault->faultStatus_Safety,
-                OMP::Fault->faultStatus_JCMTEvents,
-                OMP::Fault->faultStatus_VehicleIncident,
-            );
-
             # Change status in fault object
             $fault->status($status);
 
@@ -656,9 +626,6 @@ sub view_fault {
 
     }
     elsif ($q->param('change_status')) {
-        # Lookup table for status
-        my %status = OMP::Fault->faultStatus();
-
         my $status = $q->param('status');
 
         if ($status != $fault->status) {
@@ -979,9 +946,6 @@ sub fault_summary_content {
     my $maxdate = shift;
     my %args = @_;
 
-    my %status = OMP::Fault->faultStatus;
-    my %statusOpen = OMP::Fault->faultStatusOpen;
-
     # Store faults by system and type
     my %faults;
     my %totals;
@@ -1006,7 +970,7 @@ sub fault_summary_content {
 
         # Store open faults and closed major faults
         my $status;
-        if (exists $statusOpen{$_->statusText}) {
+        if ($_->isOpen) {
             $status = 'open';
         }
         else {

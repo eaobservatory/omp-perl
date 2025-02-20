@@ -752,13 +752,7 @@ selection menu, and list of an array reference value
 sub get_status_labels {
     my ($self, $fault) = @_;
 
-    my %status = $fault->isJCMTEvents
-        ? OMP::Fault->faultStatus_JCMTEvents
-        : $fault->isSafety
-            ? OMP::Fault->faultStatus_Safety
-            : $fault->isVehicleIncident
-                ? OMP::Fault->faultStatus_VehicleIncident
-                : OMP::Fault->faultStatus;
+    my %status = $fault->faultStatus;
 
     # Pop-up menu labels.
     my %label = map {$status{$_}, $_} %status;
@@ -786,23 +780,14 @@ C<ANYCAT>.  (It is somehwhat similar to I<get_status_labels>.)
 sub _get_status_labels_by_name {
     my ($cat) = @_;
 
-    $cat = lc $cat;
-
-    my $default = '_default_';
-    my %method = (
-        $default => 'faultStatus',
-        'safety' => 'faultStatus_Safety',
-        'jcmt_events' => 'faultStatus_JCMTEvents',
-        'vehicle_incident' => 'faultStatus_VehicleIncident',
-    );
+    $cat = uc $cat;
 
     my %status;
-    if ($cat =~ m/^any/i) {
-        %status = map {OMP::Fault->$_()} values %method;
+    if ($cat =~ /^ANY/) {
+        %status = OMP::Fault->faultStatus;
     }
     else {
-        my $method = $method{exists $method{$cat} ? $cat : $default};
-        %status = OMP::Fault->$method();
+        %status = OMP::Fault->faultStatus($cat);
     }
 
     my $labels = {map {$status{$_}, $_} %status};

@@ -589,7 +589,7 @@ my %STATUS_CLOSED = (
 my %SAFETY_STATUS_OPEN = (
     'Immediate action required' => IMMEDIATE_ACTION,
     'Follow up required' => FOLLOW_UP,
-    'Refer to safety commitee' => REFER_TO_SAFETY_COMMITTEE,
+    'Refer to safety committee' => REFER_TO_SAFETY_COMMITTEE,
 );
 
 my %SAFETY_STATUS_CLOSED = (
@@ -856,6 +856,16 @@ sub faultCondition {
     return %CONDITION;
 }
 
+=back
+
+=head2 Class or Instance Methods
+
+The following methods can be used either as class methods
+(supplying a category name) or as instance methods (using
+the category of the fault object).
+
+=over 4
+
 =item B<faultStatus>
 
 Return a hash containing the different statuses that can be associated
@@ -863,11 +873,31 @@ with a fault.
 
     %status = OMP::Fault->faultStatus();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatus {
-    my $class = shift;
-    return %STATUS;
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
+
+    if (defined $category) {
+        return %SAFETY_STATUS
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS
+            if $category eq 'VEHICLE_INCIDENT';
+
+        return %STATUS;
+    }
+
+    my %combined = (
+        %STATUS, %SAFETY_STATUS,
+        %JCMT_EVENTS_STATUS, %VEHICLE_INCIDENT_STATUS);
+
+    return %combined;
 }
 
 =item B<faultStatusOpen>
@@ -876,13 +906,32 @@ Return a hash containing the statuses that can represent an open fault.
 
     %status = OMP::Fault->faultStatusOpen();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatusOpen {
-    my $class = shift;
-    return %STATUS_OPEN;
-}
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
+    if (defined $category) {
+        return %SAFETY_STATUS_OPEN
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS_OPEN
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS_OPEN
+            if $category eq 'VEHICLE_INCIDENT';
+
+        return %STATUS_OPEN;
+    }
+
+    my %combined = (
+        %STATUS_OPEN, %SAFETY_STATUS_OPEN,
+        %JCMT_EVENTS_STATUS_OPEN, %VEHICLE_INCIDENT_STATUS_OPEN);
+
+    return %combined;
+}
 
 =item B<faultStatusClosed>
 
@@ -890,26 +939,31 @@ Return a hash containing the statuses that can represent a closed fault.
 
     %status = OMP::Fault->faultStatusClosed();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatusClosed {
-    my $class = shift;
-    return %STATUS_CLOSED;
-}
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
-sub faultStatus_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS;
-}
+    if (defined $category) {
+        return %SAFETY_STATUS_CLOSED
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS_CLOSED
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS_CLOSED
+            if $category eq 'VEHICLE_INCIDENT';
 
-sub faultStatusOpen_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS_OPEN;
-}
+        return %STATUS_CLOSED;
+    }
 
-sub faultStatusClosed_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS_CLOSED;
+    my %combined = (
+        %STATUS_CLOSED, %SAFETY_STATUS_CLOSED,
+        %JCMT_EVENTS_STATUS_CLOSED, %VEHICLE_INCIDENT_STATUS_CLOSED);
+
+    return %combined;
 }
 
 sub faultLocation_Safety {
@@ -926,46 +980,6 @@ sub faultLocation_Safety {
 
     return %non_hidden;
 }
-
-sub faultStatus_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS;
-}
-
-sub faultStatusOpen_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS_OPEN;
-}
-
-sub faultStatusClosed_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS_CLOSED;
-}
-
-sub faultStatus_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS;
-}
-
-sub faultStatusOpen_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS_OPEN;
-}
-
-sub faultStatusClosed_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS_CLOSED;
-}
-
-=back
-
-=head2 Class or Instance Methods
-
-The following methods can be used either as class methods
-(supplying a category name) or as instance methods (using
-the category of the fault object).
-
-=over 4
 
 =item B<faultCanAssocProjects>
 

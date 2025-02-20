@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 46 + (9 * 5) + 21;
+use Test::More tests => 46 + (9 * 5) + 21 + 15;
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -303,3 +303,125 @@ is(OMP::Fault->getCategorySystemLabel('SAFETY'), 'Severity');
 
 is(OMP::Fault->getCategoryFullName('OMP'), 'OMP Faults');
 is(OMP::Fault->getCategoryFullName('JCMT_EVENTS'), 'JCMT Events');
+
+# Test "status" list methods.
+is_deeply([sort keys %{{OMP::Fault->faultStatus()}}], [
+    'Closed',
+    'Commissioning',
+    'Complete',
+    'Duplicate',
+    'Follow up required',
+    'Immediate action required',
+    'Known fault',
+    'No further action',
+    'Not a fault',
+    'Ongoing',
+    'Open',
+    'Open - Will be fixed',
+    'Refer to safety committee',
+    'Suspended',
+    'Won\'t be fixed',
+    'Works for me',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusOpen()}}], [
+    'Commissioning',
+    'Follow up required',
+    'Immediate action required',
+    'Known fault',
+    'Ongoing',
+    'Open',
+    'Open - Will be fixed',
+    'Refer to safety committee',
+    'Suspended',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusClosed()}}], [
+    'Closed',
+    'Complete',
+    'Duplicate',
+    'No further action',
+    'Not a fault',
+    'Won\'t be fixed',
+    'Works for me',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatus('JCMT')}}], [
+    'Closed',
+    'Duplicate',
+    'Not a fault',
+    'Open',
+    'Open - Will be fixed',
+    'Suspended',
+    'Won\'t be fixed',
+    'Works for me',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('JCMT')}}], [
+    'Open',
+    'Open - Will be fixed',
+    'Suspended',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('JCMT')}}], [
+    'Closed',
+    'Duplicate',
+    'Not a fault',
+    'Won\'t be fixed',
+    'Works for me',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatus('SAFETY')}}], [
+    'Closed',
+    'Follow up required',
+    'Immediate action required',
+    'No further action',
+    'Refer to safety committee',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('SAFETY')}}], [
+    'Follow up required',
+    'Immediate action required',
+    'Refer to safety committee',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('SAFETY')}}], [
+    'Closed',
+    'No further action',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatus('JCMT_EVENTS')}}], [
+    'Commissioning',
+    'Complete',
+    'Ongoing',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('JCMT_EVENTS')}}], [
+    'Commissioning',
+    'Ongoing',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('JCMT_EVENTS')}}], [
+    'Complete',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}}], [
+    'Closed',
+    'Duplicate',
+    'Known fault',
+    'Open',
+    'Open - Will be fixed',
+    'Won\'t be fixed',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('VEHICLE_INCIDENT')}}], [
+    'Known fault',
+    'Open',
+    'Open - Will be fixed',
+]);
+
+is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}}], [
+    'Closed',
+    'Duplicate',
+    'Won\'t be fixed',
+]);
