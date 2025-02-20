@@ -137,7 +137,7 @@
                     <br />
                     <label>
                         <input type="checkbox" name="summary" value="true" [% IF form_info.values.summary %]checked="checked"[% END %] />
-                        Organize by system/type
+                        Organize by [% form_info.system_label | lower | html %]/type
                     </label>
                 </td>
             <tr>

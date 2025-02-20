@@ -486,7 +486,7 @@ Show a list of faults.
         orderby => 'response',
         descending => 1,
         url => "fbfault.pl",
-        showcat => 1,
+        category => $category,
     );
 
 Takes the following key/value pairs as arguments:
@@ -512,9 +512,10 @@ Should be either 'response' (to sort by date of
 latest response) 'filedate', 'timelost' (by amount
 of time lost) or 'relevance'.
 
-=item showcat
+=item category
 
-True if a category column should be displayed.
+The category name, if a search has been performed for a particular
+category of faults.  If "ANYCAT" then a category column should be displayed.
 
 =back
 
@@ -529,6 +530,7 @@ sub show_faults {
     my @faults = @{$args{faults}};
     my $descending = $args{descending};
     my $url = $args{url} || 'viewfault.pl';
+    my $category = $args{'category'};
 
     my $q = $self->cgi;
 
@@ -568,11 +570,12 @@ sub show_faults {
     }
 
     return {
-        show_cat => $args{'showcat'},
+        show_cat => ($category eq 'ANYCAT'),
         show_time_lost => ($stats->timelost > 0),
         show_projects => $args{'show_affected'},
         faults => \@faults,
         view_url => ($url . (($url =~ /\?/) ? '&' : '?') . 'fault='),
+        system_label => OMP::Fault->getCategorySystemLabel($category),
     };
 }
 

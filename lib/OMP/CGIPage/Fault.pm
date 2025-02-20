@@ -489,8 +489,8 @@ sub query_fault_output {
         }
 
         my %showfaultargs = (
+            category => $category,
             faults => $faults,
-            showcat => ($category ne 'ANYCAT' ? 0 : 1),
             show_affected => $show_affected,
         );
 
