@@ -13,22 +13,6 @@
     <a class="link_small copy_text" href="[% target_base %]?fault=[% fault_info.fault.id %]" data-copy_text="[% fault_info.fault.subject | html %]" title="Copy fault subject">&loz;</a>
 </p>
 
-<form method="get" action="[% target_base %]">
-    <p>
-        <select name="order">
-            <option [% IF filter_info.order == "asc" %]selected="selected"[% END %] value="asc">Ascending</option>
-            <option [% IF filter_info.order == "desc" %]selected="selected"[% END %] value="desc">Descending</option>
-        </select>
-        <select name="show">
-            <option [% IF filter_info.show == "automatic" %]selected="selected"[% END %]value="automatic">Automatic</option>
-            <option [% IF filter_info.show == "nonhidden" %]selected="selected"[% END %]value="nonhidden">Non-hidden</option>
-            <option [% IF filter_info.show == "all" %]selected="selected"[% END %] value="all">All</option>
-        </select>
-        <input type="submit" name="" value="Filter" />
-        <input type="hidden" name="fault" value="[% fault_info.fault.id %]" />
-    <p>
-</form>
-
 [% IF missing_fields.defined %]
     <p>The following fields were not filled in:</p>
 
@@ -38,6 +22,22 @@
         [% END %]
     </ul>
 [% ELSE %]
+    <form method="get" action="[% target_base %]">
+        <p>
+            <select name="order">
+                <option [% IF filter_info.order == "asc" %]selected="selected"[% END %] value="asc">Ascending</option>
+                <option [% IF filter_info.order == "desc" %]selected="selected"[% END %] value="desc">Descending</option>
+            </select>
+            <select name="show">
+                <option [% IF filter_info.show == "automatic" %]selected="selected"[% END %]value="automatic">Automatic</option>
+                <option [% IF filter_info.show == "nonhidden" %]selected="selected"[% END %]value="nonhidden">Non-hidden</option>
+                <option [% IF filter_info.show == "all" %]selected="selected"[% END %] value="all">All</option>
+            </select>
+            <input type="submit" name="" value="Filter" />
+            <input type="hidden" name="fault" value="[% fault_info.fault.id %]" />
+        <p>
+    </form>
+
     [% render_fault_thread(fault_info) %]
 [% END %]
 
