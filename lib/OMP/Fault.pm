@@ -966,8 +966,34 @@ sub faultStatusClosed {
     return %combined;
 }
 
-sub faultLocation_Safety {
-    my $class = shift;
+=item B<faultLocation>
+
+Return a hash containing locations which can be specified in faults.
+
+    %location = OMP::Fault->faultLocation($category, %options);
+
+Options:
+
+=over 4
+
+=item include_hidden
+
+Include hidden locations.
+
+=back
+
+B<Note:> if passing options but not specifying a category, the
+first (positional) argument should be C<undef>.  The category
+selection is not currently used (as there is only one set of
+locations) but is retained in the interface to match other methods
+and in case different sets of locations are defined in the future.
+
+=cut
+
+sub faultLocation {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : shift;
+    $category = uc $category if defined $category;
     my %opt = @_;
 
     return %LOCATION if $opt{'include_hidden'};

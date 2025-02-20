@@ -225,7 +225,7 @@ sub file_fault_form {
     # Location (for "Safety" category).
     my @locations;
     if ($has_location) {
-        my %places = OMP::Fault->faultLocation_Safety;
+        my %places = OMP::Fault->faultLocation($category);
         @locations = map {[$places{$_}, $_]} sort keys %places;
     }
 

@@ -126,7 +126,7 @@ is($fault->getCategoryName, 'Safety');
 is($fault->getCategoryFullName, 'Safety Reporting');
 
 # Test safety fault locations.  By default we should now hide "JAC".
-is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {
+is_deeply({OMP::Fault->faultLocation(undef, include_hidden => 1)}, {
     'In transit' => 4000,
     JAC => 4001,
     HP => 4002,
@@ -135,7 +135,7 @@ is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {
     EAO => 4005,
 });
 
-is_deeply({OMP::Fault->faultLocation_Safety()}, {
+is_deeply({OMP::Fault->faultLocation()}, {
     'In transit' => 4000,
     HP => 4002,
     JCMT => 4003,
