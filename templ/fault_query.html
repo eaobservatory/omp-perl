@@ -48,7 +48,7 @@
         <table cellspacing="0" cellpadding="3" border="0" bgcolor="#dcdcf2">
             <tr>
                 <td colspan="2">
-                    <b>Find faults:</b>
+                    <b>Find [% form_info.entry_name | lower | html %]s:</b>
                     [% FOREACH action IN form_info.actions %]
                         <label>
                             <input type="radio" name="action" value="[% action.0 | html %]" [% IF form_info.values.action == action.0 %]checked="checked"[% END %] />
@@ -119,7 +119,7 @@
                     [% IF form_info.show_timelost %]
                         <label>
                             <input type="checkbox" name="timelost" value="true" [% IF form_info.values.timelost %]checked="checked"[% END %] />
-                            Return time-losing faults only
+                            Return time-losing [% form_info.entry_name | lower | html %]s only
                         </label>
                         <br />
                     [% END %]
@@ -132,7 +132,7 @@
                     [% END %]
                     <label>
                         <input type="checkbox" name="chronic" value="true" [% IF form_info.values.chronic %]checked="checked"[% END %] />
-                        Return chronic faults only
+                        Return chronic [% form_info.entry_name | lower | html %]s only
                     </label>
                     <br />
                     <label>
@@ -162,9 +162,9 @@
             <tr>
                 <td colspan="2" bgcolor="#babadd">
                     <b>Or display</b>
-                    <input type="submit" name="major" value="Major faults"/>
-                    <input type="submit" name="recent" value="Recent faults (2 days)"/>
-                    <input type="submit" name="current" value="Current faults (14 days)"/>
+                    <input type="submit" name="major" value="Major [% form_info.entry_name | lower | html %]s"/>
+                    <input type="submit" name="recent" value="Recent [% form_info.entry_name | lower | html %]s (2 days)"/>
+                    <input type="submit" name="current" value="Current [% form_info.entry_name | lower | html %]s (14 days)"/>
                 </td>
             </tr>
         </table>

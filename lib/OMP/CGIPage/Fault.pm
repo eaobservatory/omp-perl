@@ -89,9 +89,13 @@ sub file_fault {
 
     my $comp = $self->fault_component;
 
+    my $page_title = sprintf '%s: File %s',
+        $comp->category_title($category),
+        OMP::Fault->getCategoryEntryName($category);
+
     unless ($q->param('submit_file')) {
         return {
-            title => $comp->category_title($category) . ': File Fault',
+            title => $page_title,
             missing_fields => undef,
             %{$comp->file_fault_form($category)},
         };
@@ -119,7 +123,7 @@ sub file_fault {
     my @title;
     if ($error[0]) {
         return {
-            title => $comp->category_title($category) . ': File Fault',
+            title => $page_title,
             missing_fields => \@error,
             %{$comp->file_fault_form($category)},
         };
@@ -509,7 +513,9 @@ sub query_fault_output {
     }
 
     return {
-        title => $comp->category_title($category) . ': ' . 'View Faults',
+        title => (sprintf '%s: View %ss',
+            $comp->category_title($category),
+            OMP::Fault->getCategoryEntryName($category)),
         message => $title,
         form_info => $comp->query_fault_form($category, $hidefields),
         fault_list => $fault_info,
@@ -562,6 +568,11 @@ sub view_fault {
         order => $order,
     );
 
+    my $page_title = sprintf '%s: View %s: %s',
+        $comp->category_title($category),
+        OMP::Fault->getCategoryEntryName($category),
+        $faultid;
+
     if ($q->param('respond')) {
         # Make sure all the necessary params were provided
         my %params = (
@@ -577,7 +588,7 @@ sub view_fault {
         # Put the form back up if params are missing
         if ($error[0]) {
             return {
-                title => $comp->category_title($category) . ': View Fault: ' . $faultid,
+                title => $page_title,
                 fault_info => $comp->fault_table($fault),
                 response_info => $comp->response_form(fault => $fault),
                 missing_fields => \@error,
@@ -749,7 +760,7 @@ sub view_fault {
         }
 
         return {
-            title => $comp->category_title($category) . ': View Fault: ' . $faultid,
+            title => $page_title,
             fault_info => $comp->fault_table($fault),
             response_info => $comp->response_form(fault => $fault),
             missing_fields => undef,
@@ -787,7 +798,10 @@ sub update_fault {
 
     unless ($q->param('submit_update')) {
         return {
-            title => $comp->category_title($category) . ': Update Fault [' . $faultid . ']',
+            title => (sprintf '%s: Update %s: %s',
+                $comp->category_title($category),
+                OMP::Fault->getCategoryEntryName($category),
+                $faultid),
             missing_fields => undef,
             %{$comp->file_fault_form($fault->category, fault => $fault)},
         };
@@ -876,7 +890,9 @@ sub update_resp {
 
     unless ($q->param('respond')) {
         return {
-            title => $comp->category_title($category) . ': Update Response [' . $faultid . ']',
+            title => (sprintf '%s: Update Response: %s',
+                $comp->category_title($category),
+                $faultid),
             response_info => $comp->response_form(fault => $fault, respid => $respid),
         };
     }

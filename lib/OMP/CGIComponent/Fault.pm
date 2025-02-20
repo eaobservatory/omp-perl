@@ -152,6 +152,7 @@ sub query_fault_form {
             'both',
         ],
         system_label => OMP::Fault->getCategorySystemLabel($category),
+        entry_name => OMP::Fault->getCategoryEntryName($category),
         systems => \@systems,
         types => \@types,
         statuses => \@status,
