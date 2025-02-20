@@ -1051,13 +1051,13 @@ sub _write_page_extra {
     else {
         $cat = uc $self->decoded_url_param('cat');
 
-        my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
-        undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');
+        undef $cat unless $cat eq 'ANYCAT'
+            or grep {$cat eq $_} OMP::Fault->faultCategories;
     }
 
     $self->_sidebar_fault($cat);
 
-    unless ((defined $cat)) {
+    unless (defined $cat) {
         $self->_write_category_choice();
 
         return {abort => 1};
