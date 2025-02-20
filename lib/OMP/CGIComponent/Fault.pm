@@ -235,7 +235,7 @@ sub file_fault_form {
     my @projects = ();
     my @warnings = ();
 
-    unless ($fault) {
+    unless (defined $fault) {
         %defaults = (
             system => undef,
             type => undef,

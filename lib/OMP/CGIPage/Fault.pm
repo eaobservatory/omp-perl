@@ -438,7 +438,7 @@ sub query_fault_output {
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
-        if ($is_initial_view and ! $faults->[0]) {
+        if ($is_initial_view and not scalar @$faults) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
             $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
@@ -453,10 +453,11 @@ sub query_fault_output {
 
     # Generate a title based on the results returned
     unless ($is_initial_view) {
-        if ($faults->[1]) {
-            $title = scalar(@$faults) . " faults returned matching your query";
+        my $nfaults = scalar @$faults;
+        if ($nfaults > 1) {
+            $title = $nfaults . " faults returned matching your query";
         }
-        elsif ($faults->[0]) {
+        elsif ($nfaults == 1) {
             $title = "1 fault returned matching your query";
         }
         else {
@@ -470,13 +471,17 @@ sub query_fault_output {
     my $sort_order = $self->decoded_url_param('sort_order') // 'descending';
     my $orderby = $self->decoded_url_param('orderby') // 'response';
 
-    # Show results as a summary if that option was checked
-    if ($q->param('summary') and $faults->[0]) {
+    unless (scalar @$faults) {
+        # No faults found - nothing to do.
+    }
+    elsif ($q->param('summary')) {
+        # Show results as a summary if that option was checked
+
         $fault_summary = $self->fault_summary_content(
             $category, $faults, $mindate, $maxdate,
             show_affected => $show_affected);
     }
-    elsif ($faults->[0]) {
+    else {
         # Total up and display time lost
         for (@$faults) {
             $total_loss += $_->timelost;
@@ -495,13 +500,11 @@ sub query_fault_output {
             }
         }
 
-        if ($faults->[0]) {
-            unless ($sort_order eq "ascending") {
-                $showfaultargs{descending} = 1;
-            }
-
-            $fault_info = $comp->show_faults(%showfaultargs);
+        unless ($sort_order eq "ascending") {
+            $showfaultargs{descending} = 1;
         }
+
+        $fault_info = $comp->show_faults(%showfaultargs);
     }
 
     return {
@@ -551,7 +554,7 @@ sub view_fault {
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
     my $fault = $fdb->getFault($faultid);
     return $self->_write_error("Fault [$faultid] not found.")
-        unless $fault;
+        unless defined $fault;
 
     my $show = $self->decoded_url_param('show') // 'nonhidden';
     my $order = $self->decoded_url_param('order') // 'asc';
@@ -876,7 +879,7 @@ sub update_resp {
     my $fault = $fdb->getFault($faultid);
 
     return $self->_write_error("Unable to retrieve fault with ID [$faultid]")
-        unless $fault;
+        unless defined $fault;
 
     unless ($q->param('respond')) {
         return {
