@@ -220,7 +220,8 @@ sub getAssociations {
     # Cant use standard interface for ASSOCTABLE query since
     # OMP::Query::Fault does not yet know how to query the ASSOCTABLE
     my $ref = $self->_db_retrieve_data_ashash(
-        "SELECT faultid FROM $ASSOCTABLE WHERE projectid = ?", $projectid);
+        "SELECT faultid FROM $ASSOCTABLE WHERE projectid = ? ORDER BY faultid ASC",
+        $projectid);
     my @ids = map {$_->{faultid}} @$ref;
 
     return @ids if $idonly;

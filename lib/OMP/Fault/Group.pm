@@ -112,6 +112,9 @@ All previous faults are removed when new faults are stored.  Takes
 either an array or array reference containing objects of class
 C<OMP::Fault> as an argument.
 
+B<Note:> faults are now stored in the order given, rather than being
+sorted (as was done previously).
+
 =cut
 
 sub faults {
@@ -134,8 +137,8 @@ sub faults {
                 unless UNIVERSAL::isa($_, "OMP::Fault");
         }
 
-        # Store the fault objects (sorted)
-        @{$self->{FaultArray}} = sort {$a->faultid <=> $b->faultid} @faults;
+        # Store the fault objects (in the order given).
+        $self->{'FaultArray'} = \@faults;
 
         # Clear old time lost values and categories
         $self->timelost(undef);
