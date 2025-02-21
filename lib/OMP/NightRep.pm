@@ -321,52 +321,20 @@ sub faults {
         # Retrieve faults from the fault database
         my $fdb = OMP::DB::Fault->new(DB => $self->db);
 
-        my %hash;
-        # We have to do two separate queries in order to get back faults that
-        # were filed on and occurred on the reporting dates
+        my $query = OMP::Query::Fault->new(HASH => {
+            EXPR__DT => {or => {
+                # Faults filed on the dates we are reporting for:
+                date => $self->_get_date_hash(),
 
-        # Query to get faults filed on the dates we are reaporting for
-        $hash{'filed'} = {
-            date => $self->_get_date_hash(),
+                # Faults that occurred on the dates we are reporting for:
+                faultdate => $self->_get_date_hash(),
+            }},
             category => $self->telescope,
             isfault => {boolean => 1},
-        };
+        });
 
-        # Query to get faults that occurred on the dates we are reporting for
-        $hash{'actual'} = {
-            faultdate => $self->_get_date_hash(),
-            category => $self->telescope,
-        };
-
-        # Do both queries and merge the results
-        my %results;
-        for my $queryname (keys %hash) {
-            my $query = OMP::Query::Fault->new(HASH => $hash{$queryname});
-
-            my $resultgrp = $fdb->queryFaults(
-                $query, no_text => 1, no_projects => 1);
-
-            for ($resultgrp->faults) {
-                # Use fault date epoch followed by ID for key so that we can
-                # sort properly and maintain uniqueness
-                if ($queryname =~ /filed/) {
-                    # Don't keep results that have an actual date if they were
-                    # returned by our "filed on" query
-                    if (! $_->faultdate) {
-                        $results{$_->date->epoch . $_->id} = $_;
-                    }
-                }
-                else {
-                    $results{$_->date->epoch . $_->id} = $_;
-                }
-            }
-        }
-        # Convert result hash to array, then to fault group object
-        my @results = map {$results{$_}} sort keys %results;
-
-        my $fgroup = OMP::Fault::Group->new(faults => \@results);
-
-        $self->{Faults} = $fgroup;
+        $self->{'Faults'} = $fdb->queryFaults(
+            $query, no_text => 1, no_projects => 1);
     }
 
     return $self->{Faults};
