@@ -123,8 +123,9 @@ sub faults {
         # Store the fault objects (sorted)
         @{$self->{FaultArray}} = sort {$a->faultid <=> $b->faultid} @faults;
 
-        # Clear old time lost values
+        # Clear old time lost values and categories
         $self->timelost(undef);
+        $self->categories(undef);
     }
 
     if (wantarray) {
@@ -318,13 +319,13 @@ sub categories {
     if (@_) {
         unless (defined $_[0]) {
             # Unset value since the argument was undef
-            $self->{Categories} = undef;
+            $self->{Categories} = [];
         }
         else {
-            my @categories = shift;
+            my @categories = @_;
 
             # Make sure categories are valid
-            my %validcats = map {$_, undef} OMP::Fault->categories;
+            my %validcats = map {$_, undef} OMP::Fault->faultCategories;
             for (@categories) {
                 throw OMP::Error::BadArgs("Category names must be valid.")
                     unless exists($validcats{$_});
