@@ -532,7 +532,7 @@ sub faultRateStats {
     my %defaults = (
         bin => 1,
         filed => 0,
-        stardate => undef,
+        startdate => undef,
         loss => 0,
         average => 0,
     );
