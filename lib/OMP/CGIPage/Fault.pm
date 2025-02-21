@@ -434,19 +434,19 @@ sub query_fault_output {
 
     my $show_affected = $q->param('show_affected');
 
-    my $faults;
+    my $faultgrp;
     my $search_error = undef;
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
     try {
-        $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%hash), %queryopt);
+        $faultgrp = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%hash), %queryopt);
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
-        if ($is_initial_view and not scalar @$faults) {
+        if ($is_initial_view and not $faultgrp->numfaults) {
             $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-            $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
+            $faultgrp = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
         }
     }
     otherwise {
@@ -457,8 +457,8 @@ sub query_fault_output {
         if defined $search_error;
 
     # Generate a title based on the results returned
+    my $nfaults = $faultgrp->numfaults;
     unless ($is_initial_view) {
-        my $nfaults = scalar @$faults;
         if ($nfaults > 1) {
             $title = $nfaults . " faults returned matching your query";
         }
@@ -476,25 +476,22 @@ sub query_fault_output {
     my $sort_order = $self->decoded_url_param('sort_order') // 'descending';
     my $orderby = $self->decoded_url_param('orderby') // 'response';
 
-    unless (scalar @$faults) {
+    unless ($nfaults) {
         # No faults found - nothing to do.
     }
     elsif ($q->param('summary')) {
         # Show results as a summary if that option was checked
 
         $fault_summary = $self->fault_summary_content(
-            $category, $faults, $mindate, $maxdate,
+            $category, $faultgrp, $mindate, $maxdate,
             show_affected => $show_affected);
     }
     else {
-        # Total up and display time lost
-        for (@$faults) {
-            $total_loss += $_->timelost;
-        }
+        $total_loss = $faultgrp->timelost->hours;
 
         my %showfaultargs = (
             category => $category,
-            faults => $faults,
+            faults => $faultgrp,
             show_affected => $show_affected,
         );
 
@@ -943,8 +940,8 @@ Create a page summarizing faults for a particular category, or all categories.
 
     fault_summary_content($category, $faults, $mindate, $maxdate, %args);
 
-First argument is an array of C<OMP::Fault> objects.
-The second and third arguments, each a C<Time::Piece> object,
+Second argument is an C<OMP::Fault::Group> object.
+The third and forth arguments, each a C<Time::Piece> object,
 can be provided to display the date range used for the query that returned
 the faults provided as the first argument.
 
@@ -953,7 +950,7 @@ the faults provided as the first argument.
 sub fault_summary_content {
     my $self = shift;
     my $category = shift;
-    my $faults = shift;
+    my $faultgrp = shift;
     my $mindate = shift;
     my $maxdate = shift;
     my %args = @_;
@@ -968,7 +965,7 @@ sub fault_summary_content {
     my $totalfiled = 0;
     $totals{open} = 0;
 
-    for (@$faults) {
+    for ($faultgrp->faults) {
         $totals{$_->systemText} ++;
         $timelost += $_->timelost;
 
@@ -999,7 +996,7 @@ sub fault_summary_content {
 
     return {
         show_projects => $args{'show_affected'},
-        num_faults => (scalar @$faults),
+        num_faults => $faultgrp->numfaults,
         num_faults_filed => $totalfiled,
         date_min => $mindate,
         date_max => $maxdate,

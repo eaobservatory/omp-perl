@@ -136,11 +136,12 @@ sub details {
     });
 
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $faults = $fdb->queryFaults($faultquery);
+    my $faultgrp = $fdb->queryFaults(
+        $faultquery, no_text => 1, no_projects => 1);
 
     # Sort by category
     my %faults;
-    map {push @{$faults{$_->category}}, $_} @$faults;
+    map {push @{$faults{$_->category}}, $_} $faultgrp->faults;
 
     $self->side_bar(
         'User ' . $user->name,

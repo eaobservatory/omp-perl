@@ -31,7 +31,6 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::Fault::Group;
 
 use base qw/OMP::CGIComponent/;
 
@@ -483,7 +482,7 @@ sub response_form {
 Show a list of faults.
 
     $comp->show_faults(
-        faults => \@faults,
+        faults => $faultgroup,
         orderby => 'response',
         descending => 1,
         url => "fbfault.pl",
@@ -496,7 +495,7 @@ Takes the following key/value pairs as arguments:
 
 =item faults
 
-A reference to an array of C<OMP::Fault> objects.
+An C<OMP::Fault::Group> object containing the faults to show.
 
 =item descending
 
@@ -528,7 +527,7 @@ sub show_faults {
     my $self = shift;
     my %args = @_;
 
-    my @faults = @{$args{faults}};
+    my $stats = $args{faults};
     my $descending = $args{descending};
     my $url = $args{url} || 'viewfault.pl';
     my $category = $args{'category'};
@@ -537,7 +536,7 @@ sub show_faults {
 
     # Generate stats so we can decide to show fields like "time lost"
     # only if any faults have lost time
-    my $stats = OMP::Fault::Group->new(faults => \@faults);
+    my @faults = $stats->faults;
 
     my $order = $args{'orderby'};
 

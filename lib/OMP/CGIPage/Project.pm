@@ -67,23 +67,22 @@ sub fb_fault_content {
     my $faultcomp = OMP::CGIComponent::Fault->new(page => $self);
 
     my $faultdb = OMP::DB::Fault->new(DB => $self->database);
-    my @faults = $faultdb->getAssociations($projectid, 0);
+    my $faultgrp = $faultdb->getAssociations($projectid, 0);
 
     # Display the first fault if a fault isnt specified in the URL
     my $showfault;
     my $faultid = $self->decoded_url_param('fault');
     if ($faultid) {
-        my %faults = map {$_->faultid, $_} @faults;
-        $showfault = $faults{$faultid};
+        $showfault = $faultgrp->getFault($faultid);
     }
     else {
-        $showfault = $faults[0];
+        $showfault = (scalar $faultgrp->faults)->[0];
     }
 
     return {
         project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         fault_list => $faultcomp->show_faults(
-            faults => \@faults,
+            faults => $faultgrp,
             descending => 0,
             url => "fbfault.pl?project=$projectid"),
         fault_info => (defined $showfault

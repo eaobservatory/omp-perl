@@ -19,12 +19,15 @@
 
 use strict;
 
-use Test::More tests => 10;
+use Test::More tests => 12;
 
 require_ok('OMP::Fault::Group');
 
 my $grp = OMP::Fault::Group->new();
 isa_ok($grp, 'OMP::Fault::Group');
+
+is($grp->numfaults, 0);
+is($grp->getFault('20250101.001'), undef);
 
 # Try setting time lost and categores.
 $grp->timelost(41);

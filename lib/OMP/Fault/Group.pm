@@ -85,6 +85,20 @@ sub new {
 
 =over 4
 
+=item B<numfaults>
+
+Return the number of faults in the group.
+
+=cut
+
+sub numfaults {
+    my $self = shift;
+
+    my $faults = $self->faults;
+
+    return scalar @$faults;
+}
+
 =item B<faults>
 
 Retrieve (or set) the group of faults.
@@ -136,6 +150,27 @@ sub faults {
         # Return an array reference
         return $self->{FaultArray};
     }
+}
+
+=item B<getFault>
+
+Retreive a fault from the group by fault ID.
+
+    my $fault = $f->getFault($faultid);
+
+Returns undef if the given ID is not found in the group.
+
+=cut
+
+sub getFault {
+    my $self = shift;
+    my $faultid = shift;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        return $fault if $fault->id eq $faultid;
+    }
+
+    return undef;
 }
 
 =item B<shifttypes>

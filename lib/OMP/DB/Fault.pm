@@ -12,7 +12,7 @@ OMP::DB::Fault - Fault database manipulation
     $faultid = $db->fileFault($fault);
     $db->respondFault($faultid, $response);
     $fault = $db->getFault($faultid);
-    $faults = $db->queryFaults($query);
+    $faultgroup = $db->queryFaults($query);
 
 =head1 DESCRIPTION
 
@@ -29,6 +29,7 @@ use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::Query::Fault;
+use OMP::Fault::Group;
 use OMP::Fault::Util;
 use OMP::Error;
 use OMP::DB::User;
@@ -149,7 +150,7 @@ sub getFault {
         faultid => $id,
     });
 
-    my $result = $self->queryFaults($query);
+    my $result = $self->_query_faultdb($query);
 
     if (scalar(@$result) > 1) {
         throw OMP::Error::FatalError(
@@ -162,10 +163,12 @@ sub getFault {
 
 =item B<queryFaults>
 
-Query the fault database and retrieve the matching fault objects.
+Query the fault database and retrieve the matching fault objects
+in an C<OMP::Fault::Group>.
+
 Queries must be supplied as C<OMP::Query::Fault> objects.
 
-    $faults = $db->queryFaults($query, %options);
+    $faultgroup = $db->queryFaults($query, %options);
 
 Options can be given to optimize the query strategy for the
 desired purpose:
@@ -188,7 +191,9 @@ sub queryFaults {
     my $self = shift;
     my $query = shift;
 
-    return $self->_query_faultdb($query, @_);
+    return OMP::Fault::Group->new(
+        faults => $self->_query_faultdb($query, @_),
+    );
 }
 
 =item B<getAssociations>
@@ -196,13 +201,13 @@ sub queryFaults {
 Retrieve the fault IDs (or optionally fault objects) associated
 with the specified project ID.
 
-    @faults = $db->getAssociations('M01BU52');
+    $faultgroup = $db->getAssociations('M01BU52');
     @faultids = $db->getAssociations('M01BU52', 1);
 
 If the optional second argument is true only the fault IDs
 are retrieved.
 
-Can return an empty list if there is no relevant association.
+Can return an empty group/list if there is no relevant association.
 
 =cut
 
@@ -217,12 +222,13 @@ sub getAssociations {
         "SELECT faultid FROM $ASSOCTABLE WHERE projectid = ?", $projectid);
     my @ids = map {$_->{faultid}} @$ref;
 
+    return @ids if $idonly;
+
     # Now we have all the fault IDs
     # Do we want to convert to fault object
-    @ids = map {$self->getFault($_)} @ids
-        unless $idonly;
-
-    return @ids;
+    return OMP::Fault::Group->new(
+        faults => [map {$self->getFault($_)} @ids],
+    );
 }
 
 =item B<updateFault>

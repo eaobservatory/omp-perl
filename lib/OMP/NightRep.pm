@@ -343,9 +343,10 @@ sub faults {
         for my $queryname (keys %hash) {
             my $query = OMP::Query::Fault->new(HASH => $hash{$queryname});
 
-            my $results = $fdb->queryFaults($query);
+            my $resultgrp = $fdb->queryFaults(
+                $query, no_text => 1, no_projects => 1);
 
-            for (@$results) {
+            for ($resultgrp->faults) {
                 # Use fault date epoch followed by ID for key so that we can
                 # sort properly and maintain uniqueness
                 if ($queryname =~ /filed/) {
