@@ -95,9 +95,9 @@
                             [% END %]
                         </td>
                         <td>
-                            <b>Status:</b>
                             [% IF fault_info.allow_edit %]
                                 <form method="post" action="[% fault_info.target %]">
+                                    <b>Status:</b>
                                     <select name="status">
                                         [% FOREACH status IN fault_info.statuses %]
                                             <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
@@ -106,6 +106,7 @@
                                     <input type="submit" name="change_status" value="Change"/>
                                 </form>
                             [% ELSE %]
+                                <b>Status:</b>
                                 [% fault.statusText | html %]
                             [% END %]
                         </td>
