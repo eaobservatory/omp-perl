@@ -133,10 +133,10 @@ sub respondFault {
 
 Retrieve the specified fault from the database.
 
-    $fault = $db->getFault($id);
+    $fault = $db->getFault($id, %options);
 
 Returned as a C<OMP::Fault> object. Returns undef if the fault can not
-be found in the database.
+be found in the database.  C<%options> are as for C<queryFaults>.
 
 =cut
 
@@ -150,7 +150,7 @@ sub getFault {
         faultid => $id,
     });
 
-    my $result = $self->_query_faultdb($query);
+    my $result = $self->_query_faultdb($query, @_);
 
     if (scalar(@$result) > 1) {
         throw OMP::Error::FatalError(
@@ -205,7 +205,8 @@ with the specified project ID.
     @faultids = $db->getAssociations('M01BU52', 1);
 
 If the optional second argument is true only the fault IDs
-are retrieved.
+are retrieved.  Otherwise the fault objects are retrieved
+(excluding the project list).
 
 Can return an empty group/list if there is no relevant association.
 
@@ -227,7 +228,7 @@ sub getAssociations {
     # Now we have all the fault IDs
     # Do we want to convert to fault object
     return OMP::Fault::Group->new(
-        faults => [map {$self->getFault($_)} @ids],
+        faults => [map {$self->getFault($_, no_projects => 1)} @ids],
     );
 }
 
