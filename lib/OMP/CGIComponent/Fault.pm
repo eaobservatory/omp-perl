@@ -84,6 +84,7 @@ sub fault_table {
             return OMP::DateTools->display_date($date);
         },
         system_label => $fault->getCategorySystemLabel(),
+        entry_name => $fault->getCategoryEntryName(),
         allow_edit => ! $noedit,
         target => $self->page->url_absolute(),
         statuses => \@statuses,
@@ -374,6 +375,7 @@ sub file_fault_form {
         has_time_loss => OMP::Fault->faultCanLoseTime($category),
         has_time_occurred => OMP::Fault->faultHasTimeOccurred($category),
         has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
+        entry_name => OMP::Fault->getCategoryEntryName($category),
         system_label => $sys_label,
         system_description => $sys_text,
         systems => \@systems,

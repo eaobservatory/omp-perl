@@ -224,6 +224,8 @@ sub query_fault_output {
     my $hidefields = ($category ne 'ANYCAT' ? 0 : 1);
 
     my $is_initial_view = 0;
+    my $is_preset_view = 0;
+    my $entry_name = OMP::Fault->getCategoryEntryName($category);
 
     if ($q->param('search')) {
         # The 'Search' submit button was clicked
@@ -409,6 +411,8 @@ sub query_fault_output {
             date => {delta => -14, value => $t->datetime},
             timelost => {min => 2},
         );
+        $title = sprintf 'Displaying major %ss from the last 14 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     elsif ($q->param('recent')) {
         # Faults active in the last 36 hours
@@ -416,11 +420,14 @@ sub query_fault_output {
             %{$comp->category_hash($category)},
             date => {delta => -2, value => $t->datetime},
         );
+        $title = sprintf 'Displaying %ss with any activity in the last 2 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     elsif ($q->param('current')) {
         # Faults within the last 14 days
         %hash = %currenthash;
-        $title = "Displaying faults with any activity in the last 14 days";
+        $title = sprintf 'Displaying %ss with any activity in the last 14 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     else {
         # Initial display of query page
@@ -428,7 +435,7 @@ sub query_fault_output {
             %{$comp->category_hash($category)},
             date => {delta => -7, value => $t->datetime},
         );
-        $title = "Displaying faults with any activity in the last 7 days";
+        $title = sprintf 'Displaying %ss with any activity in the last 7 days', lc $entry_name;
         $is_initial_view = 1;
     }
 
@@ -444,7 +451,9 @@ sub query_fault_output {
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
         if ($is_initial_view and not $faultgrp->numfaults) {
-            $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
+            $title = sprintf
+                'No active %ss in the last 7 days, displaying %ss for the last 14 days',
+                lc $entry_name, lc $entry_name;
 
             $faultgrp = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
         }
@@ -458,15 +467,15 @@ sub query_fault_output {
 
     # Generate a title based on the results returned
     my $nfaults = $faultgrp->numfaults;
-    unless ($is_initial_view) {
+    unless ($is_initial_view or $is_preset_view) {
         if ($nfaults > 1) {
-            $title = $nfaults . " faults returned matching your query";
+            $title = sprintf '%i %ss returned matching your query', $nfaults, lc $entry_name;
         }
         elsif ($nfaults == 1) {
-            $title = "1 fault returned matching your query";
+            $title = sprintf '1 %s returned matching your query', lc $entry_name;
         }
         else {
-            $title = "No faults found matching your query";
+            $title = sprintf 'No %ss found matching your query', lc $entry_name;
         }
     }
 
@@ -512,7 +521,7 @@ sub query_fault_output {
     return {
         title => (sprintf '%s: View %ss',
             $comp->category_title($category),
-            OMP::Fault->getCategoryEntryName($category)),
+            $entry_name),
         message => $title,
         form_info => $comp->query_fault_form($category, $hidefields),
         fault_list => $fault_info,
@@ -521,7 +530,7 @@ sub query_fault_output {
         selected_order_by => $orderby,
         order_bys => [map {[$_->[0], $_->[1], $self->url_absolute('orderby', $_->[0])]}
             [filedate => 'file date'],
-            [faulttime => 'fault time'],
+            [faulttime => 'time occurred'],
             [response => 'date of last response'],
             [timelost => 'time lost'],
             [relevance => 'relevance'],
@@ -1012,6 +1021,7 @@ sub fault_summary_content {
             my $lastresponse = $localtime - $locallast;
             return sprintf('%d', $lastresponse->days);
         },
+        entry_name => OMP::Fault->getCategoryEntryName($category),
     };
 }
 

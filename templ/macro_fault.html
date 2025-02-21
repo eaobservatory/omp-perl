@@ -83,7 +83,7 @@
                     [% END %]
                     <tr bgcolor="#ffffff">
                         <td>
-                            <b>Actual time of failure:</b>
+                            <b>Actual time occurred:</b>
                             [% IF fault.faultdate %]
                                 [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
                                     <a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(fault.faultdate) | html %]</a>
@@ -137,7 +137,7 @@
                     [% IF fault_info.allow_edit %]
                         <tr bgcolor="#ffffff">
                             <td>&nbsp;</td>
-                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Click here to update or edit this fault</a></span></td>
+                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Update or edit this [% fault_info.entry_name | lower | html %]</a></span></td>
                         </tr>
                     [% END %]
                     [% FOREACH response IN fault.responses %]

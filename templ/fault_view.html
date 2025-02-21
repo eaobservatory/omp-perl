@@ -41,7 +41,7 @@
     [% render_fault_thread(fault_info) %]
 [% END %]
 
-<h2>Respond to this fault</h2>
+<h2>Respond to this [% fault_info.entry_name | lower | html %]</h2>
 
 [% render_response_form(response_info) %]
 [% END %]
