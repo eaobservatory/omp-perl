@@ -1,14 +1,14 @@
-package OMP::FaultGroup;
+package OMP::Fault::Group;
 
 =head1 NAME
 
-OMP::FaultGroup - Information on groups of OMP::Fault objects
+OMP::Fault::Group - Information on groups of OMP::Fault objects
 
 =head1 SYNOPSIS
 
-    use OMP::FaultGroup;
+    use OMP::Fault::Group;
 
-    $f = OMP::FaultGroup->new(faults => \@faults);
+    $f = OMP::Fault::Group->new(faults => \@faults);
 
     $f->summary('html');
 
@@ -48,13 +48,13 @@ be used to populate the object. The key names must match the names of
 the accessor methods (ignoring case). If they do not match they are
 ignored (for now).
 
-    $f = OMP::FaultGroup->new(%args);
+    $f = OMP::Fault::Group->new(%args);
 
 Arguments are optional.
 
 Additionally, a key named 'faults' pointing to an array reference
 containing C<OMP::Fault> objects may be passed as an argument. If
-this is the case, then the C<OMP::FaultGroup> object can provide
+this is the case, then the C<OMP::Fault::Group> object can provide
 a summary of all of the faults passed.
 
 =cut
@@ -380,7 +380,7 @@ sub populate {
 =item B<summary>
 
 Presents a summary of the information contained in the
-C<OMP::FaultGroup> object.
+C<OMP::Fault::Group> object.
 
     $summary = $f->summary('html');
 

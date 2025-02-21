@@ -31,7 +31,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::FaultGroup;
+use OMP::Fault::Group;
 
 use base qw/OMP::CGIComponent/;
 
@@ -537,7 +537,7 @@ sub show_faults {
 
     # Generate stats so we can decide to show fields like "time lost"
     # only if any faults have lost time
-    my $stats = OMP::FaultGroup->new(faults => \@faults);
+    my $stats = OMP::Fault::Group->new(faults => \@faults);
 
     my $order = $args{'orderby'};
 

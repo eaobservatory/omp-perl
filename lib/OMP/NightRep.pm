@@ -47,7 +47,7 @@ use OMP::Query::Shift;
 use OMP::DateTools;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
-use OMP::FaultGroup;
+use OMP::Fault::Group;
 use OMP::DB::MSBDone;
 use OMP::Query::MSBDone;
 use OMP::DB::Project;
@@ -298,12 +298,12 @@ sub delta_day {
 =item B<faults>
 
 The faults relevant to this telescope and reporting period.  The faults
-are represented by an C<OMP::FaultGroup> object.
+are represented by an C<OMP::Fault::Group> object.
 
     $fault_group = $nr->faults;
     $nr->faults($fault_group);
 
-Accepts and returns an C<OMP::FaultGroup> object.
+Accepts and returns an C<OMP::Fault::Group> object.
 
 =cut
 
@@ -312,8 +312,8 @@ sub faults {
     if (@_) {
         my $fgroup = $_[0];
         throw OMP::Error::BadArgs(
-            "Must provide faults as an OMP::FaultGroup object")
-            unless UNIVERSAL::isa($fgroup, 'OMP::FaultGroup');
+            "Must provide faults as an OMP::Fault::Group object")
+            unless UNIVERSAL::isa($fgroup, 'OMP::Fault::Group');
 
         $self->{Faults} = $fgroup;
     }
@@ -363,7 +363,7 @@ sub faults {
         # Convert result hash to array, then to fault group object
         my @results = map {$results{$_}} sort keys %results;
 
-        my $fgroup = OMP::FaultGroup->new(faults => \@results);
+        my $fgroup = OMP::Fault::Group->new(faults => \@results);
 
         $self->{Faults} = $fgroup;
     }
@@ -375,11 +375,11 @@ sub faults {
 
 The faults relevant to this telescope and reporting period, stored in
 a hash with keys of the shifttype.  The faults are represented by an
-C<OMP::FaultGroup> object.
+C<OMP::Fault::Group> object.
 
     $faults_shift = $nr->faultsbyshift;
 
-Returns a hash of C<OMP::FaultGroup> objects. Cannot be used to set
+Returns a hash of C<OMP::Fault::Group> objects. Cannot be used to set
 the faults.
 
 =cut
@@ -397,7 +397,7 @@ sub faultsbyshift {
     my %resulthash;
     for my $shift (@shifttypes) {
         my @results = grep {$_->shifttype eq $shift} @faultlist;
-        my $fgroup = OMP::FaultGroup->new(faults => \@results);
+        my $fgroup = OMP::Fault::Group->new(faults => \@results);
 
         # $shift can be an empty string as the database allows Faults to
         # have a NULL shifttype. Therefore convert empty string to
