@@ -340,65 +340,6 @@ sub faults {
     return $self->{Faults};
 }
 
-=item B<faultsbyshift>
-
-The faults relevant to this telescope and reporting period, stored in
-a hash with keys of the shifttype.  The faults are represented by an
-C<OMP::Fault::Group> object.
-
-    $faults_shift = $nr->faultsbyshift;
-
-Returns a hash of C<OMP::Fault::Group> objects. Cannot be used to set
-the faults.
-
-=cut
-
-sub faultsbyshift {
-    my $self = shift;
-    my $faults = $self->faults;
-    my @faultlist = $faults->faults;
-
-    # Get all shifttypes
-    my @shifttypes = $faults->shifttypes;
-
-    # Create a hash with shifttypes as keys and faults as the objects
-
-    my %resulthash;
-    for my $shift (@shifttypes) {
-        my @results = grep {$_->shifttype eq $shift} @faultlist;
-        my $fgroup = OMP::Fault::Group->new(faults => \@results);
-
-        # $shift can be an empty string as the database allows Faults to
-        # have a NULL shifttype. Therefore convert empty string to
-        # UNKNOWN here so time accounting works.
-        my $shiftname = $shift;
-        if ($shift eq '') {
-            $shiftname = 'UNKNOWN';
-        }
-        $resulthash{$shiftname} = $fgroup;
-    }
-
-    return %resulthash;
-}
-
-=item B<faults_by_date>
-
-Return reference to hash of faults organized by date.
-
-=cut
-
-sub faults_by_date {
-    my $self = shift;
-
-    my %faults;
-    for my $f ($self->faults->faults) {
-        my $time = gmtime($f->date->epoch);
-        push @{$faults{$time->ymd}}, $f;
-    }
-
-    return \%faults;
-}
-
 =item B<hdr_accounts>
 
 Return time accounts derived from the data headers.  Time accounts are
@@ -981,14 +922,14 @@ timelost when called without arguments.
 sub timelostbyshift {
     my $self = shift;
     my $arg = shift;
-    my %faults = $self->faultsbyshift;
+    my $faults = $self->faults->by_shift;
 
     return undef
-        unless %faults;
+        unless %$faults;
 
     my %results;
-    for my $shift (keys %faults) {
-        my $shiftfaults = $faults{$shift};
+    for my $shift (keys %$faults) {
+        my $shiftfaults = $faults->{$shift};
 
         if ($arg && $arg eq "technical") {
             $results{$shift} = $shiftfaults->timelostTechnical;

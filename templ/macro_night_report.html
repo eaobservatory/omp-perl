@@ -311,7 +311,7 @@
             <td width="80" align="right">Loss / hr</td>
             <td width="80" align="right">Shift</td>
         </tr>
-        [% FOREACH date IN night_report.faults_by_date %]
+        [% FOREACH date IN night_report.faults.by_date %]
             [% SET timecellclass = 'time_a' %]
             [% IF night_report.delta_day != 1 %]
                 [% SET timecellclass = 'time_' _ date.value.0.date.day _ '_a' %]
@@ -320,7 +320,7 @@
                     <td colspan="3">&nbsp;</td>
                 </tr>
             [% END %]
-            [% FOREACH fault IN date.value %]
+            [% FOREACH fault IN date.value.faults %]
                 <tr class="sum_other" valign="top">
                     <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_small">[% fault.id | html %]</a></td>
 

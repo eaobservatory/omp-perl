@@ -385,6 +385,68 @@ sub categories {
     }
 }
 
+=item B<by_shift>
+
+Organize faults by shift type.
+
+    $shifts = $f->by_shift;
+
+Returns a reference to a hash of C<OMP::Fault::Group> objects.
+
+Any faults without a shift type will be returned in the hash
+key "UNKNOWN".
+
+=cut
+
+sub by_shift {
+    my $self = shift;
+
+    my %result;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        # Convert undef / empty string to "UNKNOWN".
+        my $shift = $fault->shifttype || 'UNKNOWN';
+
+        unless (exists $result{$shift}) {
+            $result{$shift} = $self->new(faults => [$fault]);
+        }
+        else {
+            push @{scalar $result{$shift}->faults}, $fault;
+        }
+    }
+
+    return \%result;
+}
+
+=item B<by_date>
+
+Return a reference to a hash of faults organized by date.
+
+    $dates = $f->by_shift;
+
+Each entry in the hash is another C<OMP::Fault::Group> object.
+
+=cut
+
+sub by_date {
+    my $self = shift;
+
+    my %result;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        my $date = $fault->date->ymd;
+
+        unless (exists $result{$date}) {
+            $result{$date} = $self->new(faults => [$fault]);
+        }
+        else {
+            push @{scalar $result{$date}->faults}, $fault;
+        }
+    }
+
+    return \%result;
+}
+
 =back
 
 =head2 General Methods
