@@ -20,7 +20,11 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 46 + (9 * 5) + 21 + 15 + (16 * 2);
+use Test::More tests => 47
+    + (9 * 5)  # Mailing lists
+    + 23  # Options
+    + 15  # Status lists
+    + (16 * 2);  # Open/closed methods
 use strict;
 require_ok('OMP::User');
 require_ok('OMP::Fault');
@@ -58,6 +62,7 @@ is($fault->faultIsTelescope, 1);
 is($fault->getCategorySystemLabel, 'System');
 is($fault->getCategoryName, 'UKIRT');
 is($fault->getCategoryFullName, 'UKIRT Faults');
+is($fault->getCategoryEntryNameQualified, 'UKIRT fault');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -296,6 +301,8 @@ is(OMP::Fault->faultIsTelescope('OMP'), 0);
 
 is(OMP::Fault->getCategoryEntryName('JCMT'), 'Fault');
 is(OMP::Fault->getCategoryEntryName('JCMT_EVENTS'), 'Event');
+is(OMP::Fault->getCategoryEntryNameQualified('JCMT'), 'JCMT fault');
+is(OMP::Fault->getCategoryEntryNameQualified('JCMT_EVENTS'), 'JCMT event');
 
 is(OMP::Fault->getCategorySystemLabel('OMP'), 'System');
 is(OMP::Fault->getCategorySystemLabel('VEHICLE_INCIDENT'), 'Vehicle');

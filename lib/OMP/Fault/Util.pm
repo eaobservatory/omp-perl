@@ -82,10 +82,12 @@ sub format_fault {
     my $system = $fault->systemText;
     my $type = $fault->typeText;
     my $loss = $fault->timelost;
-    my $category = $fault->category;
     my $shifttype = $fault->shifttype;
     my $remote = $fault->remote;
     my $projects = $fault->projects;
+    my $entryName = lc $fault->getCategoryEntryName;
+    my $entryNameQualified = $fault->getCategoryEntryNameQualified;
+    my $systemLabel = $fault->getCategorySystemLabel;
 
     # Don't show the status if there is only the initial filing and it is 'Open'
     my $status = $responses[1] || $fault->statusText !~ /open/i
@@ -103,7 +105,7 @@ sub format_fault {
 
     # Create the fault meta info portion of our message
     my $meta = sprintf "<pre>%-58s %s",
-        "<b>System:</b> $system",
+        "<b>${systemLabel}:</b> $system",
         "<b>Fault type:</b> $type";
 
     $meta .= sprintf "<br>%-58s %s",
@@ -134,7 +136,7 @@ sub format_fault {
 
         # Include a response link at the top for convenience.
         push @faulttext,
-            "To respond to this fault go to $responselink<br>--------------------------------<br><br>";
+            "To respond to this $entryName go to $responselink<br>--------------------------------<br><br>";
 
         my @order;
         my $heading = undef;
@@ -151,7 +153,7 @@ sub format_fault {
             my $author = $fault->author->html;
             my $date = OMP::DateTools->display_date(
                 scalar localtime($fault->filedate->epoch));
-            $heading = "$category fault filed by $author on $date<br>";
+            $heading = "$entryNameQualified filed by $author on $date<br>";
         }
 
         push @faulttext,
@@ -180,7 +182,7 @@ sub format_fault {
 
             if ($_->isfault) {
                 push @faulttext,
-                    "$category fault filed by $author on $date<br><br>";
+                    "$entryNameQualified filed by $author on $date<br><br>";
 
              # The meta data should appear right after the initial filing unless
                 # we are bottom posting in which case it appears right before
@@ -227,7 +229,7 @@ sub format_fault {
 
         $text = OMP::Display->replace_omp_links($text, complete_url => 1);
 
-        push @faulttext, "$category fault filed by $author on $date<br><br>";
+        push @faulttext, "$entryNameQualified filed by $author on $date<br><br>";
 
         # Make it noticeable if this fault is urgent
         push @faulttext,
@@ -243,7 +245,7 @@ sub format_fault {
 
     # Add the response link to the bottom of our message
     push @faulttext,
-        "--------------------------------<br>To respond to this fault go to $responselink<br>";
+        "--------------------------------<br>To respond to this $entryName go to $responselink<br>";
 
     return join '', @faulttext;
 }

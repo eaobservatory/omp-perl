@@ -1185,6 +1185,26 @@ sub getCategoryEntryName {
     return 'Fault';
 }
 
+=item B<getCategoryEntryNameQualified>
+
+Get the name of entries in this category, in lower case, prefixed
+with the name of the category e.g. "JCMT fault" or "JCMT event".
+
+=cut
+
+sub getCategoryEntryNameQualified {
+    my $self = shift;
+
+    my $catName = $self->getCategoryName(@_);
+    my $entryName = lc $self->getCategoryEntryName(@_);
+
+    # If the category name already ends with the entry name,
+    # remove it to avoid duplication.
+    $catName =~ s/ ${entryName}s?$//i;
+
+    return $catName . ' ' . $entryName;
+}
+
 =item B<getCategorySystemLabel>
 
 Get the label for the "system" parameter.
