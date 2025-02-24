@@ -99,6 +99,7 @@ sub print_reporting_breakdown {
     my $total_pending = 0;
     my $total_proj = 0.0;
     my %items;
+    my %proj_details = ();
     $total += $faultloss;
 
     foreach my $proj (keys %acct) {
@@ -109,7 +110,8 @@ sub print_reporting_breakdown {
 
         # No determine_country method exists, so we'll get project
         # details instead
-        my $details = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
+        my $details = $proj_details{$proj}
+            = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
 
         my $country = $details->country;
         #countrylist .= " $country" if ($country !~ /$countrylist/);
@@ -204,16 +206,18 @@ sub print_reporting_breakdown {
         my $cnr = 0;
         foreach my $country (@countrylist) {
             my $done_first = 0;
-            foreach my $proj (keys %acct) {
+            foreach my $proj (sort keys %acct) {
                 my ($ptime, $pcountry) = split(/\@/, $items{$proj});
                 if ($pcountry eq $country) {
-                    printf "%-10.10s %6.2f hrs", $proj, abs($ptime);
-                    printf "    %-3.3s %6.2f hrs", $country,
-                        $country_totals[$cnr]
-                        if ($done_first eq 0);
-                    $done_first++;
-                    print "   [pending]" if ($ptime < 0);
-                    print "\n";
+                    my $details = $proj_details{$proj};
+                    my $heading = ($done_first ++)
+                        ? "                 "
+                        : (sprintf "%-3.3s %6.2f hrs   ", $country, $country_totals[$cnr]);
+                    my $plabel = ($ptime < 0)
+                        ? '[pending]'
+                        : '         ';
+                    printf "%s %-10.10s %6.2f hrs %s %20.20s\n",
+                        $heading, $proj, abs($ptime), $plabel, $details->title;
                 }
             }
             print "\n" if ($done_first > 0);
