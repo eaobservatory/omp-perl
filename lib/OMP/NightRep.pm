@@ -911,37 +911,41 @@ sub timelost {
 }
 =item B<timelostbyshift>
 
-Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.  Timelost to
-technical or non-technical faults can be returned by calling with
-an argument of either "technical" or "non-technical."  Returns total
-timelost when called without arguments.
+Time lost to faults on this night and telescope, organized by shift
+and type.
+
+    my $timelost = $nr->timelostbyshift;
+
+Returns a reference to a hash by shift.  Each entry is another
+hash with keys "total", "technical" and "non-technical"
+giving the time as a C<Time::Seconds> object.
+
+B<Note:> this method has a different interface to C<timelost>
+so that, once we construct groups of faults by type, we obtain
+all three types of time at once.
 
 =cut
 
 sub timelostbyshift {
     my $self = shift;
-    my $arg = shift;
+
     my $faults = $self->faults->by_shift;
-
-    return undef
-        unless %$faults;
-
     my %results;
+
     for my $shift (keys %$faults) {
         my $shiftfaults = $faults->{$shift};
 
-        if ($arg && $arg eq "technical") {
-            $results{$shift} = $shiftfaults->timelostTechnical;
-        }
-        elsif ($arg && $arg eq "non-technical") {
-            $results{$shift} = $shiftfaults->timelostNonTechnical;
-        }
-        else {
-            $results{$shift} = $shiftfaults->timelost;
-        }
+        # The OMP::Fault::Group object should cache the results for the
+        # three types of time lost, so call all three methods while
+        # we have the "by_shift" group available.
+        $results{$shift} = {
+            total => $shiftfaults->timelost,
+            technical => $shiftfaults->timelostTechnical,
+            'non-technical' => $shiftfaults->timelostNonTechnical,
+        };
     }
-    return %results;
+
+    return \%results;
 }
 
 =item B<timeObserved>
@@ -1239,9 +1243,7 @@ sub get_time_summary {
     my $self = shift;
 
     my %acct = $self->accounting_db();
-    my %timelostbyshift = $self->timelostbyshift;
-    my %timelost_technical = $self->timelostbyshift('technical');
-    my %timelost_nontechnical = $self->timelostbyshift('non-technical');
+    my $timelostbyshift = $self->timelostbyshift;
 
     my @shifts;
     for my $key (keys %acct) {
@@ -1250,8 +1252,8 @@ sub get_time_summary {
         }
     }
     # Only include faultshifts if time was charged.
-    for my $shift (keys %timelostbyshift) {
-        my $losttime = $timelostbyshift{$shift};
+    for my $shift (keys %$timelostbyshift) {
+        my $losttime = $timelostbyshift->{$shift}->{'total'};
         if ((! exists($acct{$shift})) && ($shift ne '') && ($losttime > 0)) {
             push @shifts, $shift;
         }
@@ -1274,9 +1276,9 @@ sub get_time_summary {
         my $result = $self->_get_time_summary_shift(
             ($shiftresults{$shift} // {}),
             ($acct{$shift} // {}),
-            $timelostbyshift{$shift},
-            $timelost_technical{$shift},
-            $timelost_nontechnical{$shift});
+            $timelostbyshift->{$shift}->{'total'},
+            $timelostbyshift->{$shift}->{'technical'},
+            $timelostbyshift->{$shift}->{'non-technical'});
         $result->{'shift'} = $shift;
         push @shift_info, $result;
     }

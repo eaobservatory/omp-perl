@@ -568,7 +568,7 @@ sub time_accounting {
     my %times = $nr->accounting(trace_observations => 1);
     my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
 
-    my %timelostbyshift = $nr->timelostbyshift;
+    my $timelostbyshift = $nr->timelostbyshift;
 
     my @all_shifts = qw/NIGHT EO DAY OTHER/;
 
@@ -580,11 +580,11 @@ sub time_accounting {
     my @shifts = grep {
         $shift_added{$_}
         or exists $times{$_}
-        or (exists $timelostbyshift{$_} and $timelostbyshift{$_} > 0)
+        or (exists $timelostbyshift->{$_} and $timelostbyshift->{$_}->{'total'} > 0)
     } @all_shifts;
 
     # Add any additional shifts from the database.  (E.g. "UNKNOWN".)
-    foreach my $shift (keys %times, keys %timelostbyshift) {
+    foreach my $shift (keys %times, keys %$timelostbyshift) {
         push @shifts, $shift if defined $shift and $shift ne '' and not grep {$shift eq $_} @shifts;
     }
 
@@ -593,7 +593,7 @@ sub time_accounting {
             $nr->telescope,
             $_,
             $times{$_},
-            $timelostbyshift{$_})
+            $timelostbyshift->{$_}->{'total'})
     } @shifts;
 
     my @errors = ();

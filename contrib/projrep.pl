@@ -240,13 +240,12 @@ print "";
 
 my %shiftacct = $nr->accounting_db('byshftprj');
 
-my %faultlosses = $nr->timelostbyshift;
-my %techfaultlosses = $nr->timelostbyshift('technical');
-my @faultshifts = (keys %faultlosses);
-my @shifts = (keys %shiftacct);
+my $faultlosses = $nr->timelostbyshift;
+my @faultshifts = keys %$faultlosses;
+my @shifts = keys %shiftacct;
 
 for my $shift (@faultshifts) {
-    my $losttime = $faultlosses{$shift};
+    my $losttime = $faultlosses->{$shift}->{'total'};
     if ((!exists($shiftacct{$shift})) && ($shift ne '') && ($losttime > 0)) {
         push @shifts, $shift;
     }
@@ -257,9 +256,9 @@ if (@shifts > 1) {
         print "_________________________________________________________________________\n";
         print "$shift\n";
 
-        if (exists $faultlosses{$shift}) {
-            $faultloss = $faultlosses{$shift}->hours;
-            $technicalloss = $techfaultlosses{$shift}->hours;
+        if (exists $faultlosses->{$shift}) {
+            $faultloss = $faultlosses->{$shift}->{'total'}->hours;
+            $technicalloss = $faultlosses->{$shift}->{'technical'}->hours;
         }
         else {
             $faultloss = 0.0;
