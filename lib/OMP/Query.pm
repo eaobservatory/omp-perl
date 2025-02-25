@@ -1140,7 +1140,7 @@ sub _process_elements {
                 }
                 $href->{$key} = \%hash;
             }
-            elsif ($val->isa("OMP::RANGE")) {
+            elsif ($val->isa("OMP::Range")) {
                 $val->min($cb->($val->min)) if defined $val->min;
                 $val->max($cb->($val->max)) if defined $val->max;
             }
