@@ -70,8 +70,7 @@ sub fault_table {
     # Get available statuses
     my @statuses;
     unless ($noedit) {
-        my ($labels, $values) = $self->get_status_labels($fault);
-        @statuses = map {[$_, $labels->{$_}]} @$values;
+        @statuses = $self->get_status_labels($fault);
     }
 
     my %shifts = OMP::Fault->shiftTypes($fault->category);
@@ -122,12 +121,10 @@ sub query_fault_form {
         @types = map {[$types->{$_}, $_]} sort keys %$types;
     }
 
-    (undef, my $status) = _get_status_labels_by_name($category);
-
     my @status = (
         [all_open => 'All open'],
         [all_closed => 'All closed'],
-        map {[$status->{$_}, $_]} sort keys %$status
+        _get_status_labels_by_name($category),
     );
 
     return {
@@ -217,11 +214,7 @@ sub file_fault_form {
     my $types = OMP::Fault->faultTypes($category);
     my @types = map {[$types->{$_}, $_]} sort keys %$types;
 
-    my @statuses;
-    {
-        (undef, my $status) = _get_status_labels_by_name($category);
-        @statuses = map {[$status->{$_}, $_]} sort keys %$status;
-    }
+    my @statuses = _get_status_labels_by_name($category);
 
     # Location (for "Safety" category).
     my @locations;
@@ -431,8 +424,7 @@ sub response_form {
     croak "Must provide a fault object\n"
         unless UNIVERSAL::isa($fault, "OMP::Fault");
 
-    my ($labels, $values) = $self->get_status_labels($fault);
-    my @statuses = map {[$_, $labels->{$_}]} @$values;
+    my @statuses = $self->get_status_labels($fault);
 
     # Set defaults.
     my %defaults;
@@ -747,10 +739,10 @@ sub category_hash {
 
 =item B<get_status_labels>
 
-Given a L<OMP::Fault> object, returns a a hash reference of labels for HTML
-selection menu, and list of an array reference value
+Given a L<OMP::Fault> object, return a list of [value, name]
+pairs for use in an HTML selection menu.
 
-    ($labels, $status) = $comp->get_status_labels($fault);
+    @statuses = $comp->get_status_labels($fault);
 
 =cut
 
@@ -759,10 +751,7 @@ sub get_status_labels {
 
     my %status = $fault->faultStatus;
 
-    # Pop-up menu labels.
-    my %label = map {$status{$_}, $_} %status;
-
-    return (\%label, [values %status]);
+    return map {[$status{$_}, $_]} sort keys %status;
 }
 
 =back
@@ -773,12 +762,13 @@ sub get_status_labels {
 
 =item B<_get_status_labels_by_name>
 
-Given a fault category name, returns a hash reference (status values as keys,
-names as values for HTML selection list) and a hash reference of status (reverse
-of first argument).  All of the status types are returned for category of
+Given a fault category name, return a list of [value, name] pairs
+for an HTML selection list).
+
+All of the status types are returned for category of
 C<ANYCAT>.  (It is somehwhat similar to I<get_status_labels>.)
 
-    ($labels, $status_values) = _get_status_labels_by_name('OMP');
+    @statuses = _get_status_labels_by_name('OMP');
 
 =cut
 
@@ -795,9 +785,7 @@ sub _get_status_labels_by_name {
         %status = OMP::Fault->faultStatus($cat);
     }
 
-    my $labels = {map {$status{$_}, $_} %status};
-
-    return ($labels, \%status);
+    return map {[$status{$_}, $_]} sort keys %status;
 }
 
 =item B<_sort_by_fault_time>
