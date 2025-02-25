@@ -308,8 +308,9 @@ while ($ut <= $endut) {
 
     # Get fault loss
     # (human fault loss would be difference between next two)
-    my $faultloss = $nr->timelost->hours;
-    my $technicalloss = $nr->timelost('technical')->hours;
+    my $timelost = $nr->timelost;
+    my $faultloss = $timelost->{'total'}->hours;
+    my $technicalloss = $timelost->{'technical'}->hours;
     $total += $faultloss;
 
     # Cycle over each project and count the time

@@ -881,34 +881,27 @@ sub shiftComments {
 
 =item B<timelost>
 
-Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.  Timelost to
-technical or non-technical faults can be returned by calling with
-an argument of either "technical" or "non-technical."  Returns total
-timelost when called without arguments.
+Time lost to faults on this night and telescope, organized by type.
+
+    my $timelost = $nr->timelostbyshift;
+
+Returns a reference to as hash with keys "total", "technical" and
+"non-technical" giving the time as a C<Time::Seconds> object.
 
 =cut
 
 sub timelost {
     my $self = shift;
-    my $arg = shift;
+
     my $faults = $self->faults;
 
-    return undef
-        unless defined $faults;
-
-    if ($arg) {
-        if ($arg eq "technical") {
-            return $faults->timelostTechnical;
-        }
-        elsif ($arg eq "non-technical") {
-            return $faults->timelostNonTechnical;
-        }
-    }
-    else {
-        return ($faults->timelost ? $faults->timelost : Time::Seconds->new(0));
-    }
+    return {
+        total => $faults->timelost,
+        technical => $faults->timelostTechnical,
+        'non-technical' => $faults->timelostNonTechnical,
+    };
 }
+
 =item B<timelostbyshift>
 
 Time lost to faults on this night and telescope, organized by shift
@@ -919,10 +912,6 @@ and type.
 Returns a reference to a hash by shift.  Each entry is another
 hash with keys "total", "technical" and "non-technical"
 giving the time as a C<Time::Seconds> object.
-
-B<Note:> this method has a different interface to C<timelost>
-so that, once we construct groups of faults by type, we obtain
-all three types of time at once.
 
 =cut
 
@@ -1262,12 +1251,13 @@ sub get_time_summary {
     my $overall_info;
     do {
         my %overallresults = $self->accounting_db("byproject");
+        my $timelost = $self->timelost;
         $overall_info = $self->_get_time_summary_shift(
             \%overallresults,
             undef,
-            $self->timelost,
-            $self->timelost('technical'),
-            $self->timelost('non-technical'));
+            $timelost->{'total'},
+            $timelost->{'technical'},
+            $timelost->{'non-technical'});
     };
 
     my %shiftresults = $self->accounting_db('byshftprj');

@@ -78,8 +78,9 @@ my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF/;
 
 my %acct = $nr->accounting_db('byproject');
 
-my $faultloss = $nr->timelost->hours;
-my $technicalloss = $nr->timelost('technical')->hours;
+my $timelost = $nr->timelost;
+my $faultloss = $timelost->{'total'}->hours;
+my $technicalloss = $timelost->{'technical'}->hours;
 #my %items;
 
 #my $total = 0;

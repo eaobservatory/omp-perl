@@ -195,8 +195,9 @@ while ($ut <= $endut) {
 
     my %acct = $nr->accounting_db('byproject');
 
-    my $faultloss = $nr->timelost->hours;
-    my $technicalloss = $nr->timelost('technical')->hours;
+    my $timelost = $nr->timelost;
+    my $faultloss = $timelost->{'total'}->hours;
+    my $technicalloss = $timelost->{'technical'}->hours;
     my %items;
 
     $total += $faultloss;
