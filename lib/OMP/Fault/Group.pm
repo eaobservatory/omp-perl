@@ -232,9 +232,9 @@ sub timelost {
     elsif (! defined $self->{TimeLost}) {
         # Calculate time lost since the value is not already cached
         my @faults = $self->faults;
-        my $timelost = 0;
-        my $timelost_nontech = 0;
-        my $timelost_technical = 0;
+        my $timelost = Time::Seconds->new(0);
+        my $timelost_nontech = Time::Seconds->new(0);
+        my $timelost_technical = Time::Seconds->new(0);
         for my $fault (@faults) {
             my $loss = Time::Seconds->new($fault->timelost * ONE_HOUR);
 
@@ -255,12 +255,7 @@ sub timelost {
         $self->timelostTechnical($timelost_technical);
     }
 
-    unless (defined $self->{TimeLost}) {
-        return Time::Seconds->new(0);
-    }
-    else {
-        return $self->{TimeLost};
-    }
+    return $self->{TimeLost};
 }
 
 =item B<timelostTechnical>
@@ -296,7 +291,7 @@ sub timelostTechnical {
         $self->timelost();
     }
 
-    return $self->{TimeLostTechnical} // Time::Seconds->new(0);
+    return $self->{TimeLostTechnical};
 }
 
 =item B<timelostNonTechnical>
@@ -332,7 +327,7 @@ sub timelostNonTechnical {
         $self->timelost();
     }
 
-    return $self->{TimeLostNonTechnical} // Time::Seconds->new(0);
+    return $self->{TimeLostNonTechnical};
 }
 
 =item B<categories>

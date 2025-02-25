@@ -19,7 +19,7 @@
 
 use strict;
 
-use Test::More tests => 16 + 20;
+use Test::More tests => 22 + 20;
 
 require_ok('OMP::General');
 require_ok('OMP::User');
@@ -40,6 +40,9 @@ $grp->timelostNonTechnical(32);
 is($grp->timelost, 41);
 is($grp->timelostTechnical, 16);
 is($grp->timelostNonTechnical, 32);
+isa_ok($grp->timelost, 'Time::Seconds');
+isa_ok($grp->timelostTechnical, 'Time::Seconds');
+isa_ok($grp->timelostNonTechnical, 'Time::Seconds');
 
 $grp->categories(qw/OMP DR/);
 is_deeply([$grp->categories], [qw/OMP DR/]);
@@ -50,6 +53,9 @@ $grp->faults([]);
 is($grp->timelost, 0);
 is($grp->timelostTechnical, 0);
 is($grp->timelostNonTechnical, 0);
+isa_ok($grp->timelost, 'Time::Seconds');
+isa_ok($grp->timelostTechnical, 'Time::Seconds');
+isa_ok($grp->timelostNonTechnical, 'Time::Seconds');
 
 is_deeply([$grp->categories], []);
 
