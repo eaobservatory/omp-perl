@@ -31,7 +31,6 @@ use OMP::General;
 use OMP::Error qw/:try/;
 
 use Astro::Catalog;
-use Compress::Zlib;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 # Inherit server specific class
@@ -91,13 +90,7 @@ sub storeProgram {
     my @headers;
     try {
         # Attempt to gunzip it if it looks like a gzip stream
-        if (substr($xml, 0, 2) eq chr(0x1f) . chr(0x8b)) {
-            # GZIP magic number verifies
-            $xml = Compress::Zlib::memGunzip($xml);
-            throw OMP::Error::SpStoreFail(
-                "Science program looked like a gzip byte stream but did not uncompress correctly")
-                unless defined $xml;
-        }
+        $xml = $class->uncompressGivenItem($xml);
 
         # Create a science program object
         my $sp = OMP::SciProg->new(XML => $xml);
@@ -280,14 +273,7 @@ sub SpInsertCat {
     my ($sp, @info);
     try {
         # Attempt to gunzip it if it looks like a gzip stream
-        if (substr($xml, 0, 2) eq chr(0x1f) . chr(0x8b)) {
-            # GZIP magic number verifies
-            my $tmp = Compress::Zlib::memGunzip($xml);
-
-            if (defined $tmp) {
-                $xml = $tmp;
-            }
-        }
+        $xml = $class->uncompressGivenItem($xml);
 
         # Create a science program from the string
         $sp = OMP::SciProg->new(XML => $xml);

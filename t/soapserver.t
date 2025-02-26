@@ -20,7 +20,7 @@ use strict;
 use Compress::Zlib;
 use OMP::Error qw/:try/;
 
-use Test::More tests => 10;
+use Test::More tests => 15;
 
 require_ok('OMP::SOAPServer');
 require_ok('OMP::SciProg');
@@ -45,6 +45,7 @@ try {
 } catch OMP::Error with {
     $E = shift;
 };
+ok(defined $E);
 is($E->text, 'Unrecognised return type',
     'Error on bad return type');
 
@@ -66,3 +67,22 @@ do {
     my $soap = OMP::SOAPServer->compressReturnedItem($sp, 'XML');
     isa_ok($soap, 'SOAP::Data');
 };
+
+# Check functionality of "uncompressGivenItem" method.
+is(OMP::SOAPServer->uncompressGivenItem('plain text'),
+    'plain text',
+    '"Uncompress" plain text');
+
+is(OMP::SOAPServer->uncompressGivenItem("\x1f\x8b\x08\x00\xe3\x64\xbe\x67\x00\x03\x2b\x49\x2d\x2e\x01\x00\x0c\x7e\x7f\xd8\x04\x00\x00\x00"),
+    'test',
+    'Uncompress gzipped data');
+
+undef $E;
+try {
+    OMP::SOAPServer->uncompressGivenItem("\x1f\x8bXXXX");
+} catch OMP::Error with {
+    $E = shift;
+};
+ok(defined $E);
+like($E->text, qr/did not uncompress correctly/,
+    'Error on failure to uncompress gzipped data');

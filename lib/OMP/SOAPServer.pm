@@ -34,6 +34,8 @@ use OMP::DB::Backend;
 use OMP::Config;
 use OMP::Constants qw/:status :logging/;
 use OMP::Display;
+use OMP::Error qw/:try/;
+
 use OMP::General;
 use OMP::NetTools;
 
@@ -243,6 +245,28 @@ sub _find_return_type {
     }
 
     throw OMP::Error::FatalError("Unrecognised return type");
+}
+
+=item B<uncompressGivenItem>
+
+Given data sent by a SOAP client, check whether it appears to
+have been gzipped.  If so, uncompress it.
+
+=cut
+
+sub uncompressGivenItem {
+    my $class = shift;
+    my $xml = shift;
+
+    if (substr($xml, 0, 2) eq chr(0x1f) . chr(0x8b)) {
+        # GZIP magic number verifies
+        $xml = Compress::Zlib::memGunzip($xml);
+        throw OMP::Error::SpStoreFail(
+            "Science program looked like a gzip byte stream but did not uncompress correctly")
+            unless defined $xml;
+    }
+
+    return $xml;
 }
 
 =item B<throwException>
