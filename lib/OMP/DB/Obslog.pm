@@ -280,16 +280,13 @@ sub getComment {
     my $allcomments = shift;
 
     my %hash;
+    my %options;
 
     # If $allcomments is true, then we don't want to limit
     # the query. Otherwise, we want to retrive comments
     # only for which obsactive = 1.
-    my %obsactive;
-    if (defined($allcomments)) {
-        %obsactive = ();
-    }
-    else {
-        %obsactive = (obsactive => {boolean => 1});
+    unless ($allcomments) {
+        $hash{'obsactive'} = {boolean => 1};
     }
 
     if (UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap")) {
@@ -303,10 +300,10 @@ sub getComment {
 
         # Query the old way for timegap comments
         %hash = (
+            %hash,
             instrument => $obs->instrument,
             runnr => $obs->runnr,
             date => $t->ymd . 'T' . $t->hms,
-            %obsactive,
         );
     }
     else {
@@ -316,13 +313,13 @@ sub getComment {
         }
 
         # Query only on obsid for normal comments
-        %hash = (
-            obsid => $obs->obsid,
-        );
+        $hash{'obsid'} = $obs->obsid;
+
+        $options{'allow_dateless'} = 1;
     }
 
     my $query = OMP::Query::Obslog->new(HASH => \%hash);
-    my @results = $self->queryComments($query);
+    my @results = $self->queryComments($query, \%options);
 
     # Return based on context and arguments.
     return (wantarray ? @results : \@results);
