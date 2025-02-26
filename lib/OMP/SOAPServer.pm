@@ -41,7 +41,6 @@ use OMP::NetTools;
 
 # Different Science program return types
 use constant OMP__SCIPROG_XML => 0;
-use constant OMP__SCIPROG_OBJ => 1;
 use constant OMP__SCIPROG_GZIP => 2;
 use constant OMP__SCIPROG_AUTO => 3;
 
@@ -151,8 +150,7 @@ for the C<_find_return_type> method.
 
 If the return type is not defined, the value returned should be in XML.
 
-Note that for cases XML and GZIP, these will be Base64 encoded if returned
-via a SOAP request. Requests for OMP::SciProg will pass through untouched.
+Note that the output will be Base64 encoded if returned via a SOAP request.
 
 =cut
 
@@ -163,26 +161,22 @@ sub compressReturnedItem {
 
     my $rettype = $class->_find_return_type($rettype_name);
 
-    if ($rettype != OMP__SCIPROG_OBJ) {
-        # Return the stringified form, compressed if
-        # its length is greater than the threshold value
-        # or force gzip if requested
-        my $string = "$sp";
+    # Return the stringified form, compressed if
+    # its length is greater than the threshold value
+    # or force gzip if requested
+    my $string = "$sp";
 
-        if ($rettype == OMP__SCIPROG_GZIP
-                || ($rettype == OMP__SCIPROG_AUTO && length($string) > GZIP_THRESHOLD)) {
-            $string = Compress::Zlib::memGzip($string);
-            throw OMP::Error::FatalError(
-                "Unable to gzip compress science program")
-                unless defined $string;
-        }
-
-        return (exists $ENV{'HTTP_SOAPACTION'})
-            ? SOAP::Data->type(base64 => $string)
-            : $string;
+    if ($rettype == OMP__SCIPROG_GZIP
+            || ($rettype == OMP__SCIPROG_AUTO && length($string) > GZIP_THRESHOLD)) {
+        $string = Compress::Zlib::memGzip($string);
+        throw OMP::Error::FatalError(
+            "Unable to gzip compress science program")
+            unless defined $string;
     }
 
-    return $sp;
+    return (exists $ENV{'HTTP_SOAPACTION'})
+        ? SOAP::Data->type(base64 => $string)
+        : $string;
 }
 
 =item B<_find_return_type>
@@ -199,10 +193,6 @@ Valid types are:
 =item "XML" OMP__SCIPROG_XML
 
 Plain text XML.
-
-=item "OBJECT" OMP__SCIPROG_OBJ
-
-Perl OMP::SciProg object.
 
 =item "GZIP" OMP__SCIPROG_GZIP
 
@@ -233,9 +223,6 @@ sub _find_return_type {
     # Translate input strings to constants
     if ($rettype eq 'XML') {
         return OMP__SCIPROG_XML;
-    }
-    elsif ($rettype eq 'OBJECT') {
-        return OMP__SCIPROG_OBJ;
     }
     elsif ($rettype eq 'GZIP') {
         return OMP__SCIPROG_GZIP;
