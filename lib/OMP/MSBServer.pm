@@ -36,17 +36,7 @@ use OMP::Info::Comment;
 use OMP::Constants qw/:done/;
 use OMP::Error qw/:try/;
 
-use Compress::Zlib;
 use Time::HiRes qw/tv_interval gettimeofday/;
-
-# Different Science program return types
-use constant OMP__SCIPROG_XML => 0;
-use constant OMP__SCIPROG_OBJ => 1;
-use constant OMP__SCIPROG_GZIP => 2;
-use constant OMP__SCIPROG_AUTO => 3;
-
-# GZIP threshold in bytes
-use constant GZIP_THRESHOLD => 30_000;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer/;
@@ -74,14 +64,8 @@ Returns nothing is no MSB is found.  Throws I<OMP::Error> exception on
 errors.
 
 A second argument controls what form the returned MSB should
-take.
-
-    # The gzip output will be base64 encoded.
-    $gzip_base64 = OMP::MSBServer->fetchMSB($key, 'GZIP');
-
-The following values can be used to specify different return types:
-I<GZIP>, I<AUTO>, I<XML> (default).
-See also I<_find_return_type> function.
+take, see the C<OMP::SOAPServer::compressReturnedItem> function
+for details.
 
 B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
 
@@ -90,12 +74,6 @@ B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
 sub fetchMSB {
     my $class = shift;
     my ($key, $rettype) = @_;
-
-    $rettype = _find_return_type($rettype);
-
-    throw OMP::Error::BadArgs
-        "Return type OMP__SCIPROG_OBJ (object) is not supported yet"
-        if $rettype == OMP__SCIPROG_OBJ;
 
     my $t0 = [gettimeofday];
     OMP::General->log_message("fetchMSB: Begin.\nKey=$key\n");
@@ -129,16 +107,14 @@ sub fetchMSB {
     # so that the OM and Java Sp class know what to do.
     my $spprog = $msb->dummy_sciprog_xml();
 
-    my $log =
-        sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
-        tv_interval($t0), $msb->projectID, $msb->checksum;
+    my $converted = $class->compressReturnedItem(
+        encode('UTF-8', $spprog), $rettype);
 
-    my ($converted, $zipped) = _convert_sciprog(
-        encode('UTF-8', $spprog), $rettype, $log);
+    OMP::General->log_message(sprintf
+        "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
+        tv_interval($t0), $msb->projectID, $msb->checksum);
 
-    return $zipped
-        ? SOAP::Data->type('base64' => $converted)
-        : $converted;
+    return $converted;
 }
 
 =item B<fetchCalProgram>
@@ -155,37 +131,8 @@ The first argument is the name of the telescope that is
 associated with the calibration program to be returned.
 
 A second argument controls what form the returned science program should
-take.
-
-    $gzip = OMP::MSBServer->fetchCalProgram($telescope, "GZIP");
-
-The following values can be used to specify different return
-types:
-
-=over 4
-
-=item "XML" OMP__SCIPROG_XML
-
-(Default)  Plain text XML.
-
-=item "OBJECT" OMP__SCIPROG_OBJ
-
-Perl OMP::SciProg object.
-
-=item "GZIP" OMP__SCIPROG_GZIP
-
-Gzipped XML.
-
-=item "AUTO" OMP__SCIPROG_AUTO
-
-Plain text or gzip depending on size
-
-=back
-
-These are not exported and are defined in the OMP::SpServer namespace.
-
-Note that for cases XML and GZIP, these will be Base64 encoded if returned
-via a SOAP request.
+take, see the C<OMP::SOAPServer::compressReturnedItem> function
+for details.
 
 B<Note>: exposed privately via SOAP by C<msbsrv.pl>.
 
@@ -195,8 +142,6 @@ sub fetchCalProgram {
     my $class = shift;
     my $telescope = shift;
     my $rettype = shift;
-
-    $rettype = _find_return_type($rettype);
 
     my $t0 = [gettimeofday];
     OMP::General->log_message(
@@ -228,13 +173,12 @@ sub fetchCalProgram {
     # a problem where we cant use die (it becomes throw)
     $class->throwException($E) if defined $E;
 
-    my ($converted) = _convert_sciprog(
-        $sp, $rettype,
+    my $converted = $class->compressReturnedItem($sp, $rettype);
+
+    OMP::General->log_message(
         "fetchCalProgram: Complete in " . tv_interval($t0) . " seconds\n");
 
-    return exists $ENV{HTTP_SOAPACTION}
-        ? SOAP::Data->type(base64 => $converted)
-        : $converted;
+    return $converted;
 }
 
 =item B<queryMSB>
@@ -570,124 +514,6 @@ sub getTypeColumns {
     $class->throwException($E) if defined $E;
 
     return \@result;
-}
-
-=item B<_convert_sciprog>
-
-Returns a list of converted string and compression indicating flag,
-given a string, return type, and optional message of non zero length
-to log.
-
-    # Compress if needed, save converted string & compression flag.
-    ($converted, $compressed) = _convert_sciprog($var, OMP__SCIPROG_AUTO);
-
-    # Compress, log message, save only converted string.
-    ($converted) = _convert_sciprog($var, OMP__SCIPROG_GZIP, "log this");
-
-If the string cannot be compressed, L<OMP::Error::FatalError>
-exception is thrown.  Behaviour based on a return type (see
-I<_find_return_type> function for details):
-
-=over 4
-
-=item *
-
-If type is I<OMP__SCIPROG_OBJ>, value of C<$var> is returned as is.
-
-=item *
-
-If type is I<OMP__SCIPROG_AUTO>, return value of C<$var> will be
-compressed only if its length exceeds L<GZIP_THRESHOLD>.
-
-=item *
-
-If type is I<OMP__SCIPROG_GZIP>, compressed value of C<$var> is
-returned.
-
-=item *
-
-For all other types, stringyfied value of C<$var> is returned.
-
-=back
-
-=cut
-
-sub _convert_sciprog {
-
-    my ($in, $type, $log) = @_;
-
-    return ($in)
-        if $type == OMP__SCIPROG_OBJ;
-
-    # Return the stringified form, compressed if asked or needed.
-    my ($string, $zipped) = ("$in");
-
-    if ($type == OMP__SCIPROG_GZIP
-            || ($type == OMP__SCIPROG_AUTO && length $string > GZIP_THRESHOLD)) {
-        $string = Compress::Zlib::memGzip($string)
-            or throw OMP::Error::FatalError "Unable to gzip compress science program";
-
-        $zipped ++;
-    }
-
-    OMP::General->log_message($log)
-        if defined $log && length $log;
-
-    return ($string, $zipped);
-}
-
-=item B<_find_return_type>
-
-Returns one of OMP__SCIPROG* value given a text description
-irrespective of case.
-
-    $type = _find_return_type('auto');
-
-Valid types are:
-
-=over 4
-
-=item "XML" OMP__SCIPROG_XML
-
-Plain text XML.
-
-=item "OBJECT" OMP__SCIPROG_OBJ
-
-Perl OMP::SciProg object.
-
-=item "GZIP" OMP__SCIPROG_GZIP
-
-Gzipped XML.
-
-=item "AUTO" OMP__SCIPROG_AUTO
-
-Plain text or gzip depending on size.
-
-=back
-
-C<AUTO> type implies compression when length of the output of other
-methods (I<fetchCalProgram> and I<fetchMSB> for example) exceeds
-I<GZIP_THRESHOLD> which is currently 30,000.
-
-These are not exported and are defined in the I<OMP::SpServer> namespace.
-
-=cut
-
-sub _find_return_type {
-    my ($rettype) = @_;
-
-    $rettype = OMP__SCIPROG_XML unless defined $rettype;
-    $rettype = uc($rettype);
-
-    # Translate input strings to constants
-    if ($rettype !~ /^\d$/a) {
-        $rettype = OMP__SCIPROG_XML if $rettype eq 'XML';
-        $rettype = OMP__SCIPROG_OBJ if $rettype eq 'OBJECT';
-        $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
-        $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
-    }
-
-    return $rettype;
 }
 
 1;

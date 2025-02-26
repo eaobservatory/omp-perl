@@ -25,7 +25,9 @@ use strict;
 use warnings;
 
 # External dependencies
+use Compress::Zlib;
 use SOAP::Lite;
+
 use OMP::Auth;
 use OMP::DB::Auth;
 use OMP::DB::Backend;
@@ -34,6 +36,15 @@ use OMP::Constants qw/:status :logging/;
 use OMP::Display;
 use OMP::General;
 use OMP::NetTools;
+
+# Different Science program return types
+use constant OMP__SCIPROG_XML => 0;
+use constant OMP__SCIPROG_OBJ => 1;
+use constant OMP__SCIPROG_GZIP => 2;
+use constant OMP__SCIPROG_AUTO => 3;
+
+# GZIP threshold in bytes
+use constant GZIP_THRESHOLD => 30_000;
 
 our $VERSION = '2.000';
 
@@ -127,6 +138,111 @@ Returns a connection object of type C<OMP::DB::Backend>.
             return $db;
         }
     }
+}
+
+=item B<compressReturnedItem>
+
+The first argument must be a science program object or XML.
+
+The second argument (if defined) should be the return type as defined
+for the C<_find_return_type> method.
+
+If the return type is not defined, the value returned should be in XML.
+
+Note that for cases XML and GZIP, these will be Base64 encoded if returned
+via a SOAP request. Requests for OMP::SciProg will pass through untouched.
+
+=cut
+
+sub compressReturnedItem {
+    my $class = shift;
+    my $sp = shift;
+    my $rettype_name = shift;
+
+    my $rettype = $class->_find_return_type($rettype_name);
+
+    if ($rettype != OMP__SCIPROG_OBJ) {
+        # Return the stringified form, compressed if
+        # its length is greater than the threshold value
+        # or force gzip if requested
+        my $string = "$sp";
+
+        if ($rettype == OMP__SCIPROG_GZIP
+                || ($rettype == OMP__SCIPROG_AUTO && length($string) > GZIP_THRESHOLD)) {
+            $string = Compress::Zlib::memGzip($string);
+            throw OMP::Error::FatalError(
+                "Unable to gzip compress science program")
+                unless defined $string;
+        }
+
+        return (exists $ENV{'HTTP_SOAPACTION'})
+            ? SOAP::Data->type(base64 => $string)
+            : $string;
+    }
+
+    return $sp;
+}
+
+=item B<_find_return_type>
+
+Returns one OMP__SCIPROG constant value given a text description
+irrespective of case.
+
+    $type = OMP::SOAPServer->_find_return_type('auto');
+
+Valid types are:
+
+=over 4
+
+=item "XML" OMP__SCIPROG_XML
+
+Plain text XML.
+
+=item "OBJECT" OMP__SCIPROG_OBJ
+
+Perl OMP::SciProg object.
+
+=item "GZIP" OMP__SCIPROG_GZIP
+
+Gzipped XML.
+
+=item "AUTO" OMP__SCIPROG_AUTO
+
+Plain text or gzip depending on size.
+
+=back
+
+C<AUTO> type implies compression when the length of the text
+exceeds C<GZIP_THRESHOLD> which is currently 30,000.
+
+The constants are not exported and are defined in
+the C<OMP::SOAPServer> namespace.
+
+=cut
+
+sub _find_return_type {
+    my $class = shift;
+    my $rettype = shift;
+
+    return OMP__SCIPROG_XML unless defined $rettype;
+
+    $rettype = uc $rettype;
+
+    # Translate input strings to constants
+    if ($rettype eq 'XML') {
+        return OMP__SCIPROG_XML;
+    }
+    elsif ($rettype eq 'OBJECT') {
+        return OMP__SCIPROG_OBJ;
+    }
+    elsif ($rettype eq 'GZIP') {
+        return OMP__SCIPROG_GZIP;
+    }
+    elsif ($rettype eq 'AUTO') {
+        return OMP__SCIPROG_AUTO;
+    }
+
+    throw OMP::Error::FatalError("Unrecognised return type");
 }
 
 =item B<throwException>
