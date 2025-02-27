@@ -146,6 +146,7 @@ sub accounts {
 
         # Clear cached values
         $self->totaltime(undef);
+        $self->confirmed_time(undef);
         $self->totaltime_non_ext(undef);
         $self->cal_time(undef);
         $self->clear_time(undef);
@@ -191,11 +192,14 @@ sub totaltime {
         # Calculate total time since it isn't cached
         my @accounts = $self->accounts;
         my $timespent = Time::Seconds->new(0);
+        my $confirmed = Time::Seconds->new(0);
         for my $acct (@accounts) {
             $timespent += $acct->timespent;
+            $confirmed += $acct->timespent if $acct->confirmed;
         }
         # Store total
         $self->{TotalTime} = $timespent;
+        $self->confirmed_time($confirmed);
     }
 
     unless (defined $self->{TotalTime}) {
@@ -204,6 +208,46 @@ sub totaltime {
     else {
         return $self->{TotalTime};
     }
+}
+
+=item B<confirmed_time>
+
+Total time which is marked as confirmed.  Returned as a
+C<Time::Seconds> object.
+
+    $confirmed = $tg->confirmed_time();
+
+Can be passed a value or undef to set/unset the time, otherwise
+calls C<totaltime> to ensure a value is available.
+
+=cut
+
+sub confirmed_time {
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ConfirmedTime', $_[0]);
+    }
+    elsif (! defined $self->{'ConfirmedTime'}) {
+        # Call "totaltime" since it will also cache the confirmed time.
+        $self->totaltime();
+    }
+
+    return $self->{'ConfirmedTime'};
+}
+
+=item B<unconfirmed_time>
+
+Return the total unconfirmed time.
+
+B<Note:> this method can not be used to set the time.  It simply returns
+the value C<totaltime> - C<confirmed_time>.
+
+=cut
+
+sub unconfirmed_time {
+    my $self = shift;
+
+    return $self->totaltime - $self->confirmed_time;
 }
 
 =item B<totaltime_non_ext>
