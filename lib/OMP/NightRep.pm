@@ -239,7 +239,11 @@ sub db_accounts {
 
         # Get our sql query
         my $query = OMP::Query::TimeAcct->new(HASH => {
-             date => $self->_get_date_hash(timeacct => 1)
+             date => $self->_get_date_hash(timeacct => 1),
+             EXPR__TEL => {or => {
+                telescope => $self->telescope,
+                projectid => {like => $self->telescope . '%'},
+            }},
         });
 
         # Get the time accounting statistics from
@@ -248,13 +252,6 @@ sub db_accounts {
         # one per project now that there are multiple shift types etc.
 
         my @acct = $db->queryTimeSpent($query);
-
-        my $projdb = OMP::DB::Project->new(DB => $self->db);
-
-        # Keep only the results for the telescope we are querying for
-        @acct = grep {
-            $projdb->verifyTelescope($self->telescope, $_->projectid);
-        } @acct;
 
         # Store result
         my $acctgrp = OMP::Project::TimeAcct::Group->new(
@@ -801,17 +798,10 @@ sub msbs {
             OMP__DONE_ABORTED,
         ],
         date => {delta => $self->delta_day, value => $self->date->ymd},
+        telescope => $self->telescope,
     });
 
     my @results = $db->queryMSBdone($query, {'comments' => 0});
-
-    my $projdb = OMP::DB::Project->new(DB => $self->db);
-
-    # Currently need to verify the telescope outside of the query
-    # This verification really slows things down
-    @results = grep {
-        $projdb->verifyTelescope($self->telescope, $_->projectid);
-    } @results;
 
     # Index by project id
     my %index;
