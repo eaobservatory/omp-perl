@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 47;
+use Test::More tests => 48;
 use Time::Piece qw/:override/;
 require_ok('OMP::Project::TimeAcct');
 
@@ -28,9 +28,11 @@ my $acct = OMP::Project::TimeAcct->new(
     projectid => 'Blah',
     date => scalar(gmtime),
     timespent => 1800,
+    telescope => 'JCMT',
 );
 
 isa_ok($acct, 'OMP::Project::TimeAcct');
+is($acct->telescope, 'JCMT', 'retrieve telescope from object');
 
 $acct->incTime(1800);
 is($acct->timespent->seconds, 3600, 'test incTime with number');

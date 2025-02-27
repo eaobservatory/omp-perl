@@ -50,18 +50,21 @@ sub sql {
 
     throw OMP::Error::DBMalformedQuery(
         "sql method invoked with incorrect number of arguments\n")
-        unless scalar(@_) == 1;
+        unless scalar(@_) == 2;
 
     # get the table name
     my $accttable = shift;
+    my $projtable = shift;
 
     # generate the WHERE clause from the query hash
     my $subsql = $self->_qhash_tosql();
-    my $where = '';
-    $where = " WHERE $subsql " if $subsql;
 
     # Now add this to the template
-    my $sql = "SELECT * FROM $accttable $where";
+    my $sql = "SELECT A.*, P.telescope"
+        . " FROM $accttable AS A LEFT OUTER JOIN $projtable AS P"
+        . " ON (A.projectid = P.projectid)";
+
+    $sql .= " WHERE $subsql " if $subsql;
 
     return $sql;
 }
@@ -107,6 +110,12 @@ sub _post_process_hash {
             uc(shift)
         },
         [qw/projectid/]);
+
+    for (qw/projectid/) {
+        if (exists $href->{$_}) {
+            $href->{'A.' . $_} = delete $href->{$_};
+        }
+    }
 
     # Remove attributes since we dont need them anymore
     delete $href->{_attr};

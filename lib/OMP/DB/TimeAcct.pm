@@ -351,7 +351,9 @@ sub _run_timeacct_query {
     my $query = shift;
 
     # get the SQL
-    my $sql = $query->sql($ACCTTABLE);
+    my $sql = $query->sql(
+        $ACCTTABLE,
+        $OMP::DB::Project::PROJTABLE);
     #print "SQL: $sql\n";
 
     # run it

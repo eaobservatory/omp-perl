@@ -94,6 +94,7 @@ sub new {
         Remote => undef,
         Comment => undef,
         Observations => undef,
+        Telescope => undef,
     }, $class;
 
     # Deal with arguments
@@ -289,6 +290,28 @@ sub observations {
         $self->{'Observations'} = shift;
     }
     return $self->{'Observations'};
+}
+
+=item B<telescope>
+
+Name of telescope.
+
+    $tel = $t->telescope();
+
+May only be present if the time accounting record relates to a standard
+observing project such that the database was able to determine the telescope
+by matching the project ID to an entry in the C<ompproj> table.
+
+=cut
+
+sub telescope {
+    my $self = shift;
+    if (@_) {
+        my $telescope = shift;
+        $telescope = uc $telescope if defined $telescope;
+        $self->{'Telescope'} = $telescope;
+    }
+    return $self->{'Telescope'};
 }
 
 =back
