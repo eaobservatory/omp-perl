@@ -792,18 +792,18 @@ sub completion_stats {
     printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
 
     # Get all accounts grouped by UT date
-    my %groups = $self->group_by_ut(1);
+    my $groups = $self->by_date(1);
 
     # Map Y values to X (date)
     my $sci_total = 0;
     my (@sci_cumul, @fault, @weather, @ec);
-    for my $x (sort keys %groups) {
-        $sci_total += $groups{$x}->science_time;
+    for my $x (sort keys %$groups) {
+        $sci_total += $groups->{$x}->science_time;
 
         push @sci_cumul, [$x, $sci_total / $final_alloc * 100];
-        push @weather, [$x, $groups{$x}->weather_loss->hours];
-        push @ec, [$x, $groups{$x}->ec_time->hours];
-        push @fault, [$x, $groups{$x}->fault_loss->hours];
+        push @weather, [$x, $groups->{$x}->weather_loss->hours];
+        push @ec, [$x, $groups->{$x}->ec_time->hours];
+        push @fault, [$x, $groups->{$x}->fault_loss->hours];
     }
 
     my %returnhash = (
@@ -827,20 +827,20 @@ sub completion_stats {
     return %returnhash;
 }
 
-=item B<group_by_ut>
+=item B<by_date>
 
 Group all the C<OMP::Project::TimeAcct> objects by UT date.  Store
 each group in an C<OMP::Project::TimeAcct::Group> object.  Return a hash indexed
 by UT date where each key points to an C<OMP::Project::TimeAcct::Group> object.
 
-    %groups = $tg->group_by_ut(1);
+    $groups = $tg->by_date(1);
 
 If the optional argument is true, The returned hash is indexed by
 an integer modified Julian date.
 
 =cut
 
-sub group_by_ut {
+sub by_date {
     my $self = shift;
     my $mjd = shift;
     my @acct = $self->accounts;
@@ -861,7 +861,7 @@ sub group_by_ut {
         );
     }
 
-    return %accts;
+    return \%accts;
 }
 
 =item B<populate>
