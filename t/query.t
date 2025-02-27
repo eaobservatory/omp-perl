@@ -1,7 +1,7 @@
 #!perl
 
 use strict;
-use Test::More tests => 5;
+use Test::More tests => 11;
 
 require_ok('OMP::Query');
 
@@ -16,6 +16,7 @@ my %expect = (
     eta => ['B < B', 'C > C'],
     theta => ['DDD', 'EEE'],
     mu => [1234],
+    nu => {like => 'III'},
 
     _attr => {
         alpha => {},
@@ -28,7 +29,8 @@ my %expect = (
         theta => {},
         mu => {
             delta => 3,
-        }
+        },
+        nu => {},
     },
 
     EXPR__1 => {
@@ -73,6 +75,7 @@ my $query = OMP::Query->new(XML => '<Query>
         <lambda>HHH</lambda>
     </not>
     <mu delta="3">1234</mu>
+    <nu><like>III</like></nu>
 </Query>');
 
 isa_ok($query, 'OMP::Query');
@@ -108,6 +111,9 @@ my $query2 = OMP::Query->new(HASH => {
         value => 1234,
         delta => 3,
     },
+    nu => {
+        like => 'III',
+    },
 });
 
 isa_ok($query2, 'OMP::Query');
@@ -115,3 +121,13 @@ isa_ok($query2, 'OMP::Query');
 my $hash2 = $query2->raw_query_hash;
 
 is_deeply($hash2, \%expect);
+
+# Check some entries in the processed query hash.
+my $qhash = $query2->query_hash;
+
+isa_ok($qhash->{'beta'}, 'OMP::Range');
+isa_ok($qhash->{'gamma'}, 'OMP::Range');
+isa_ok($qhash->{'delta'}, 'OMP::Query::Null');
+isa_ok($qhash->{'epsilon'}, 'OMP::Query::Null');
+isa_ok($qhash->{'zeta'}, 'OMP::Query::Null');
+isa_ok($qhash->{'nu'}, 'OMP::Query::Like');

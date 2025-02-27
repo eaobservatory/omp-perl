@@ -434,6 +434,9 @@ sub _create_sql_recurse {
     elsif (eval {$entry->isa('OMP::Query::In')}) {
         $sql = $self->_querify($column, $entry->values(), 'in');
     }
+    elsif (eval {$entry->isa('OMP::Query::Like')}) {
+        $sql = $self->_querify($column, $entry->value(), 'explicitlike');
+    }
     elsif (eval {$entry->isa('OMP::Query::SubQuery')}) {
         my $expr = $entry->expression;
         my $table = $entry->table;
@@ -688,7 +691,7 @@ sub _add_text_to_hash {
 
     # Check to see if we have a special key
     $secondkey = '' unless defined $secondkey;
-    my $special = ($secondkey =~ /max|min|null/ ? 1 : 0);
+    my $special = ($secondkey =~ /max|min|null|like/ ? 1 : 0);
 
     # primary key is the secondkey if we are not special
     $key = $secondkey unless $special or length($secondkey) eq 0;
@@ -957,6 +960,9 @@ sub _post_process_hash {
             elsif (exists $href->{$key}->{'any'}) {
                 $href->{$key} = OMP::Query::Any->new();
             }
+            elsif (exists $href->{$key}->{'like'}) {
+                $href->{$key} = OMP::Query::Like->new(value => $href->{$key}->{'like'});
+            }
             else {
                 # Convert to OMP::Range object
                 $href->{$key} = OMP::Range->new(
@@ -1034,19 +1040,8 @@ sub _querify {
         return "($name IN (" . (join ', ', map {"\"$_\""} @$value) . '))';
     }
 
-    # Lookup table for comparators
-    my %cmptable = (
-        equal => '=',
-        min => '>=',
-        max => '<=',
-        like => 'like',
-    );
-
-    # Convert the string form to SQL form
-    throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
-        unless exists $cmptable{$cmp};
-
-    # add pattern matches and always quote if we have like
+    # Add pattern matches (and always quote) if we have "like" expression
+    # used for a "TEXTFIELD" search.
     my $quote;
     if ($cmp eq 'like') {
         $quote = "'";
@@ -1055,9 +1050,26 @@ sub _querify {
         $value =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
         $value = '%' . $value . '%';
     }
+    elsif ($cmp eq 'explicitlike') {
+        $quote = "'";
+    }
     else {
         $quote = '';
     }
+
+    # Lookup table for comparators.  Map explicit like operators specified
+    # in the query to "like" now that we have dealt with text searches.
+    my %cmptable = (
+        equal => '=',
+        min => '>=',
+        max => '<=',
+        like => 'like',
+        explicitlike => 'like',
+    );
+
+    # Convert the string form to SQL form
+    throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
+        unless exists $cmptable{$cmp};
 
     # Also quote if we have word characters or a semicolon
     $quote = "'" if $value =~ /[A-Za-z:]/;
@@ -1143,6 +1155,9 @@ sub _process_elements {
             elsif ($val->isa("OMP::Range")) {
                 $val->min($cb->($val->min)) if defined $val->min;
                 $val->max($cb->($val->max)) if defined $val->max;
+            }
+            elsif ($val->isa('OMP::Query::Like')) {
+                $val->value($cb->($val->value));
             }
             else {
                 throw OMP::Error::DBMalformedQuery(
@@ -1326,6 +1341,23 @@ sub values {
     my $self = shift;
     $self->{'values'} = shift if @_;
     return $self->{'values'};
+}
+
+package OMP::Query::Like;
+
+sub new {
+    my $class = shift;
+    my %opt = @_;
+
+    return bless {
+        value => $opt{'value'},
+    }, $class;
+}
+
+sub value {
+    my $self = shift;
+    $self->{'value'} = shift if @_;
+    return $self->{'value'};
 }
 
 package OMP::Query::SubQuery;
