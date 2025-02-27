@@ -53,6 +53,7 @@ use OMP::Error qw/:try/;
 use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
+use OMP::DB::Project;
 use OMP::DB::User;
 use OMP::Query::MSBDone;
 use OMP::DateTools;
@@ -658,7 +659,9 @@ sub _fetch_msb_done_info {
     my $query = shift;
 
     # Generate the SQL
-    my $sql = $query->sql($MSBDONETABLE);
+    my $sql = $query->sql(
+        $MSBDONETABLE,
+        $OMP::DB::Project::PROJTABLE);
 
     # Run the query
     my $ref = $self->_db_retrieve_data_ashash($sql);
@@ -962,6 +965,7 @@ sub _reorganize_msb_done {
                 ),
                 instrument => $row->{instrument},
                 projectid => $row->{projectid},
+                telescope => $row->{'telescope'},
                 nrepeats => 0,  # initial value
                 comments => [OMP::Info::Comment->new(%details)],
             );
