@@ -40,7 +40,7 @@ use OMP::Query::Archive;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::DB::TimeAcct;
-use OMP::TimeAcctGroup;
+use OMP::Project::TimeAcct::Group;
 use OMP::Query::TimeAcct;
 use OMP::DB::Shift;
 use OMP::Query::Shift;
@@ -211,12 +211,12 @@ sub date_end {
 =item B<db_accounts>
 
 Return time accounts from the time accounting database. Time accounts
-are represented by an C<OMP::TimeAcctGroup> object.
+are represented by an C<OMP::Project::TimeAcct::Group> object.
 
     $acct = $nr->db_accounts();
     $nr->db_accounts($acct);
 
-Accepts a C<OMP::TimeAcctGroup> object.  Returns undef if no accounts
+Accepts a C<OMP::Project::TimeAcct::Group> object.  Returns undef if no accounts
 were retrieved from the time accounting database.
 
 =cut
@@ -227,8 +227,8 @@ sub db_accounts {
         my $acctgrp = $_[0];
 
         throw OMP::Error::BadArgs(
-            "Accounts must be provided as an OMP::TimeAcctGroup object")
-            unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+            "Accounts must be provided as an OMP::Project::TimeAcct::Group object")
+            unless UNIVERSAL::isa($acctgrp, 'OMP::Project::TimeAcct::Group');
 
         $self->{DBAccounts} = $acctgrp;
     }
@@ -257,7 +257,7 @@ sub db_accounts {
         } @acct;
 
         # Store result
-        my $acctgrp = OMP::TimeAcctGroup->new(
+        my $acctgrp = OMP::Project::TimeAcct::Group->new(
             accounts => \@acct,
             telescope => $self->telescope,
             DB => $self->db,
@@ -343,12 +343,12 @@ sub faults {
 =item B<hdr_accounts>
 
 Return time accounts derived from the data headers.  Time accounts are
-represented by an C<OMP::TimeAcctGroup> object.
+represented by an C<OMP::Project::TimeAcct::Group> object.
 
     $acctgrp = $nr->hdr_accounts(%options);
     $nr->hdr_accounts($acctgrp);
 
-Accepts an C<OMP::TimeAcctGroup> object.  Returns undef list if no time
+Accepts an C<OMP::Project::TimeAcct::Group> object.  Returns undef list if no time
 accounts could be obtained from the data headers.
 
 =cut
@@ -359,8 +359,8 @@ sub hdr_accounts {
     if (1 == scalar @_) {
         my $acctgrp = $_[0];
         throw OMP::Error::BadArgs(
-            "Accounts must be provided as an OMP::TimeAcctGroup object")
-            unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+            "Accounts must be provided as an OMP::Project::TimeAcct::Group object")
+            unless UNIVERSAL::isa($acctgrp, 'OMP::Project::TimeAcct::Group');
 
         $self->{HdrAccounts} = $acctgrp;
     }
@@ -388,7 +388,7 @@ sub hdr_accounts {
         }
 
         # Store the result
-        my $acctgrp = OMP::TimeAcctGroup->new(
+        my $acctgrp = OMP::Project::TimeAcct::Group->new(
             accounts => \@acct,
             telescope => $self->telescope,
             DB => $self->db);

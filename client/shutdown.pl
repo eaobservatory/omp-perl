@@ -83,7 +83,7 @@ use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::DB::Shift;
 use OMP::DB::TimeAcct;
-use OMP::TimeAcctGroup;
+use OMP::Project::TimeAcct::Group;
 use OMP::DB::User;
 
 our $DEBUG = 0;
@@ -255,7 +255,7 @@ while ($currentdt <= $enddt) {
 }
 
 # Store accounts to a group for simple statistics
-my $tacctgrp = OMP::TimeAcctGroup->new(accounts => \@taccts);
+my $tacctgrp = OMP::Project::TimeAcct::Group->new(accounts => \@taccts);
 
 # Display time accounts and shiftlog comments
 print 'Time accounts created (' . scalar(@taccts) . ")\n";

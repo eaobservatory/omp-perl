@@ -38,6 +38,7 @@ use OMP::Info::ObsGroup;
 use OMP::DB::Obslog;
 use OMP::DB::Project;
 use OMP::Project::TimeAcct;
+use OMP::Project::TimeAcct::Group;
 use OMP::DB::TimeAcct;
 use OMP::Error qw/:try/;
 
@@ -564,7 +565,7 @@ sub store_time_accounting {
         my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
-        $nr->db_accounts(OMP::TimeAcctGroup->new(
+        $nr->db_accounts(OMP::Project::TimeAcct::Group->new(
             DB => $self->database,
             telescope => $nr->telescope,
             accounts => \@acct));

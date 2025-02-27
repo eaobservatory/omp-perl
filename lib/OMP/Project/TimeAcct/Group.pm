@@ -1,14 +1,14 @@
-package OMP::TimeAcctGroup;
+package OMP::Project::TimeAcct::Group;
 
 =head1 NAME
 
-OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
+OMP::Project::TimeAcct::Group - Information on a group of OMP::Project::TimeAcct objects
 
 =head1 SYNOPSIS
 
-    use OMP::TimeAcctGroup;
+    use OMP::Project::TimeAcct::Group;
 
-    $tg = OMP::TimeAcctGroup->new(
+    $tg = OMP::Project::TimeAcct::Group->new(
         DB => $database,
         telescope => $telescope,
         accounts => \@accounts);
@@ -54,7 +54,7 @@ Object constructor. Takes a hash as an argument, the keys of which can
 be used to populate the object.  The keys must match the names of the
 accessor methods (ignoring case).
 
-    $tg = OMP::TimeAcctGroup->new(
+    $tg = OMP::Project::TimeAcct::Group->new(
         DB => $database,
         telescope => $telescope,
         accounts => \@accounts);
@@ -830,8 +830,8 @@ sub completion_stats {
 =item B<group_by_ut>
 
 Group all the C<OMP::Project::TimeAcct> objects by UT date.  Store
-each group in an C<OMP::TimeAcctGroup> object.  Return a hash indexed
-by UT date where each key points to an C<OMP::TimeAcctGroup> object.
+each group in an C<OMP::Project::TimeAcct::Group> object.  Return a hash indexed
+by UT date where each key points to an C<OMP::Project::TimeAcct::Group> object.
 
     %groups = $tg->group_by_ut(1);
 
@@ -852,7 +852,7 @@ sub group_by_ut {
         push @{$accts{$acct->date->$method}}, $acct;
     }
 
-    # Convert each group into an OMP::TimeAcctGroup object
+    # Convert each group into an OMP::Project::TimeAcct::Group object
     for my $ut (keys %accts) {
         $accts{$ut} = $self->new(
             accounts => $accts{$ut},
