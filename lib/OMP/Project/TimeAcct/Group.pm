@@ -845,7 +845,7 @@ sub by_date {
     my $mjd = shift;
     my @acct = $self->accounts;
 
-    my $method = ($mjd ? "mjd" : "strftime('%Y%m%d')");
+    my $method = ($mjd ? 'mjd' : 'ymd');
     # Group by UT date
     my %accts;
     for my $acct (@acct) {
