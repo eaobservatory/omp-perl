@@ -76,7 +76,7 @@ my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF/;
 
 #print scalar $nr->astext();
 
-my %acct = $nr->accounting_db('byproject');
+my $acct = $nr->accounting_db('byproject');
 
 my $timelost = $nr->timelost;
 my $faultloss = $timelost->{'total'}->hours;
@@ -234,20 +234,20 @@ print
 ...Observing Summary:
 
 ";
-print_reporting_breakdown($faultloss, $technicalloss, 1, \%acct);
+print_reporting_breakdown($faultloss, $technicalloss, 1, $acct);
 print "...Observing Summary By shift:\n\n";
 
 print "";
 
-my %shiftacct = $nr->accounting_db('byshftprj');
+my $shiftacct = $nr->accounting_db('byshftprj');
 
 my $faultlosses = $nr->timelostbyshift;
 my @faultshifts = keys %$faultlosses;
-my @shifts = keys %shiftacct;
+my @shifts = keys %$shiftacct;
 
 for my $shift (@faultshifts) {
     my $losttime = $faultlosses->{$shift}->{'total'};
-    if ((!exists($shiftacct{$shift})) && ($shift ne '') && ($losttime > 0)) {
+    if ((!exists($shiftacct->{$shift})) && ($shift ne '') && ($losttime > 0)) {
         push @shifts, $shift;
     }
 }
@@ -265,9 +265,8 @@ if (@shifts > 1) {
             $faultloss = 0.0;
             $technicalloss = 0.0;
         }
-        if (exists $shiftacct{$shift}) {
-            %acct = %{$shiftacct{$shift}};
-            print_reporting_breakdown($faultloss, $technicalloss, 0, \%acct);
+        if (exists $shiftacct->{$shift}) {
+            print_reporting_breakdown($faultloss, $technicalloss, 0, $shiftacct->{$shift});
         }
     }
 }

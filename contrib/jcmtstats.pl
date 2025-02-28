@@ -193,7 +193,7 @@ while ($ut <= $endut) {
 
     my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
 
-    my %acct = $nr->accounting_db('byproject');
+    my $acct = $nr->accounting_db('byproject');
 
     my $timelost = $nr->timelost;
     my $faultloss = $timelost->{'total'}->hours;
@@ -204,9 +204,9 @@ while ($ut <= $endut) {
 
     my $total_proj = 0.0;
 
-    foreach my $proj (keys %acct) {
+    foreach my $proj (keys %$acct) {
         next if $proj =~ /^$tel/;
-        my $account = $acct{$proj};
+        my $account = $acct->{$proj};
         $total += $account->{total}->hours;
         $total_proj += $account->{total}->hours;
 
@@ -231,7 +231,7 @@ while ($ut <= $endut) {
     my @country_totals;
     foreach my $country (split(/\s+/, $countrylist)) {
         my $ctotal = 0.0;
-        foreach my $proj (keys %acct) {
+        foreach my $proj (keys %$acct) {
             my ($ptime, $pcountry) = split(/\@/, $items{$proj});
             $ctotal += abs($ptime) if ($pcountry eq $country);
         }
@@ -241,10 +241,10 @@ while ($ut <= $endut) {
     foreach my $proj (qw/WEATHER OTHER EXTENDED CAL _SHUTDOWN/) {
         my $time = 0.0;
         my $pending;
-        if (exists $acct{$tel . $proj}) {
-            $time = $acct{$tel . $proj}->{total}->hours;
-            if ($acct{$tel . $proj}->{pending}) {
-                $pending += $acct{$tel . $proj}->{pending}->hours;
+        if (exists $acct->{$tel . $proj}) {
+            $time = $acct->{$tel . $proj}->{total}->hours;
+            if ($acct->{$tel . $proj}->{pending}) {
+                $pending += $acct->{$tel . $proj}->{pending}->hours;
             }
             $total += $time
                 unless ($proj eq 'EXTENDED' or $proj eq '_SHUTDOWN');

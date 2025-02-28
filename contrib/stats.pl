@@ -300,7 +300,7 @@ while ($ut <= $endut) {
         telescope => $tel,
         delta_day => $delta,
     );
-    my %acct = $nr->accounting_db('byproject');
+    my $acct = $nr->accounting_db('byproject');
 
     my $total = 0;
     my $total_pending = 0;
@@ -317,11 +317,11 @@ while ($ut <= $endut) {
     my %items;
     $items{"eac"} = 0.0;
     my $total_proj = 0.0;
-    foreach my $proj (keys %acct) {
+    foreach my $proj (keys %$acct) {
         # Special projects start with the Tel name (a bit of a hack this if)
         next if $proj =~ /^$tel/;
 
-        my $account = $acct{$proj};
+        my $account = $acct->{$proj};
         $total += $account->{total}->hours;
         $total_proj += $account->{total}->hours;
 
@@ -350,10 +350,10 @@ while ($ut <= $endut) {
     foreach my $queue (qw/WEATHER OTHER EXTENDED CAL _SHUTDOWN/) {
         my $time = 0.0;
         my $pending;
-        if (exists $acct{$tel . $queue}) {
-            $time = $acct{$tel . $queue}->{total}->hours;
-            if ($acct{$tel . $queue}->{pending}) {
-                $pending += $acct{$tel . $queue}->{pending}->hours;
+        if (exists $acct->{$tel . $queue}) {
+            $time = $acct->{$tel . $queue}->{total}->hours;
+            if ($acct->{$tel . $queue}->{pending}) {
+                $pending += $acct->{$tel . $queue}->{pending}->hours;
             }
             $total += $time unless $queue =~ /EXTENDED/;
         }
