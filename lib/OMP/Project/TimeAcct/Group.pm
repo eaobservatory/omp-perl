@@ -979,6 +979,145 @@ sub remdupe {
     return 1;
 }
 
+=item B<summary>
+
+Summarize the contents of the time accounting records.
+
+    $summary = $tg->summary($format);
+
+where C<$format> controls the contents of the hash returned
+to the user. Valid formats are:
+
+=over 4
+
+=item all
+
+Return a hash with keys "total", "confirmed", "pending"
+regardless of the mix of projects or dates.
+
+=item bydate
+
+Hash includes primary keys of UT date (YYYY-MM-DD)
+where each sub-hash contains keys as for "all".
+
+=item byproject
+
+Hash includes primary keys of project ID where
+where each sub-hash contains keys as for "all".
+
+=item byprojdate
+
+Hash includes primary keys of project and each
+project hash contains keys of UT date. The corresponding
+sub-hash contains keys as for "all".
+
+=item byshftprj
+
+Hash includes primary keys of $shifttype", and each
+sub-hash contains keys of project. Their sub-hashes
+have keys of UT date, and theirs have keys as for
+"all".
+
+=item byshftremprj
+
+Hash includes primary keys made by combining
+ShiftType and Remote stauts, and each sub-hash
+contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
+as for "all".
+
+=back
+
+The UT hash key is of the form "YYYY-MM-DD". Project ID is upper cased.
+
+ShiftType-Remote hash key is always a combination of UPPERCASED "$shifttype_$remote"
+
+=cut
+
+sub summary {
+    my $self = shift;
+    my $format = lc shift;
+
+    my @acct = $self->accounts;
+
+    # loop over each object populating a results hash
+    my %results;
+    for my $acct (@acct) {
+        # extract the information
+        my $p = $acct->projectid;
+        my $t = $acct->timespent;
+        my $ut = $acct->date->strftime('%Y-%m-%d');
+        my $c = $acct->confirmed;
+        my $shft = $acct->shifttype;
+        $shft = 'UNKNOWN' unless defined $shft;
+        my $rem = $acct->remote;
+        unless (defined $rem) {
+            $rem = "UNKNOWN";
+        }
+        my $shftrem = "$shft" . "_" . "$rem";
+
+        # big switch statement
+        my $ref;
+        if ($format eq 'all') {
+            # top level hash
+            $ref = \%results;
+        }
+        elsif ($format eq 'bydate') {
+            # store using UT date
+            unless (exists $results{$ut}) {
+                $results{$ut} = {};
+            }
+            $ref = $results{$ut};
+        }
+        elsif ($format eq 'byproject') {
+            # store using project ID
+            unless (exists $results{$p}) {
+                $results{$p} = {};
+            }
+            $ref = $results{$p};
+        }
+        elsif ($format eq 'byprojdate') {
+            # store using project ID AND ut date
+            unless (exists $results{$p}{$ut}) {
+                $results{$p}{$ut} = {};
+            }
+            $ref = $results{$p}{$ut};
+        }
+        elsif ($format eq 'byshftprj') {
+            # store using shifttype AND  projectID
+            unless (exists $results{$shft}{$p}) {
+                $results{$shft}{$p} = {};
+            }
+            $ref = $results{$shft}{$p};
+
+        }
+        elsif ($format eq 'byshftremprj') {
+            unless (exists $results{$shftrem}{$p}) {
+                $results{$shftrem}{$p} = {};
+            }
+            $ref = $results{$shftrem}{$p};
+        }
+        else {
+            throw OMP::Error::FatalError(
+                "Unknown format for TimeAcct summarizing: $format");
+        }
+
+        $ref->{pending} = Time::Seconds->new(0) unless exists $ref->{pending};
+        $ref->{confirmed} = Time::Seconds->new(0) unless exists $ref->{confirmed};
+        $ref->{total} = Time::Seconds->new(0) unless exists $ref->{total};
+
+        # now store/increment the time
+        if ($c) {
+            $ref->{confirmed} += $t;
+        }
+        else {
+            $ref->{pending} += $t;
+        }
+        $ref->{total} += $t;
+    }
+
+    return \%results;
+}
+
 =back
 
 =head2 Internal Methods

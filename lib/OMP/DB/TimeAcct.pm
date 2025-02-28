@@ -200,13 +200,16 @@ sub setTimeSpent {
 
     # get a summary of all the project data
     # grouped by project ID and UT date
-    my %projects = OMP::Project::TimeAcct->summarizeTimeAcct(
-        'byprojdate', @acct);
+    my $projects = OMP::Project::TimeAcct::Group->new(
+        accounts => \@acct,
+    )->summary('byprojdate');
 
     # now need to recalculate the time spent for each project
-    for my $proj (keys %projects) {
+    for my $projectid (keys %$projects) {
+        my $project = $projects->{$projectid};
+
         # update the OMP::DB::Project object with the current project id
-        $projdb->projectid($proj);
+        $projdb->projectid($projectid);
 
         # Some of the projects are not real (eg WEATHER, SCUBA)
         # so in those cases we just skip
@@ -214,46 +217,48 @@ sub setTimeSpent {
         next unless $projdb->verifyProject();
 
         # get the new totals
-        my $all = $self->getTimeSpent(projectid => $proj);
+        my $all = $self->getTimeSpent(projectid => $projectid);
 
         # calculate the totals for this project only
-        my %results = OMP::Project::TimeAcct->summarizeTimeAcct('all', $all->accounts);
-        my $pending = $results{pending};
-        my $used = $results{confirmed};
+        my $results = $all->summary('all');
+        my $pending = $results->{'pending'};
+        my $used = $results->{'confirmed'};
 
         # get the project object
-        my $project = $projdb->_get_project_row;
+        my $project_row = $projdb->_get_project_row;
 
         # Modify the project
-        $project->pending($pending);
-        $project->remaining($project->allocated - $used);
+        $project_row->pending($pending);
+        $project_row->remaining($project_row->allocated - $used);
 
         # Update the contents in the table
-        $projdb->_update_project_row($project);
+        $projdb->_update_project_row($project_row);
 
         # notify the feedback system - this is based on what was actually
         # changed rather than everything (hence we use %projects and not $all)
-        for my $ut (keys %{$projects{$proj}}) {
-            $self->projectid($proj);
+        for my $ut (keys %$project) {
+            $self->projectid($projectid);
             my ($subject, $text);
             # the message depends on whether we have pending >0 or
             # confirmed >0 [can only be one or the other]
-            if (exists $projects{$proj}{$ut}{pending}
-                    && $projects{$proj}{$ut}{pending} > 0) {
+            if (exists $project->{$ut}{pending}
+                    && $project->{$ut}{pending} > 0) {
                 # pending
-                $subject = "[$proj] Adjust time awaiting confirmation for UT $ut";
-                $text = "The amount of time awaiting confirmation for UT $ut is now $projects{$proj}{$ut}{pending} seconds";
+                my $time = $project->{$ut}{'pending'};
+                $subject = "[$projectid] Adjust time awaiting confirmation for UT $ut";
+                $text = "The amount of time awaiting confirmation for UT $ut is now $time seconds";
             }
-            elsif (exists $projects{$proj}{$ut}{confirmed}
-                    && $projects{$proj}{$ut}{confirmed} > 0) {
+            elsif (exists $project->{$ut}{confirmed}
+                    && $project->{$ut}{confirmed} > 0) {
                 # confirmed
-                $subject = "[$proj] Time spent on project $proj now confirmed for UT $ut";
-                $text = "Confirmed that $projects{$proj}{$ut}{confirmed} seconds was assigned to project $proj for UT date $ut";
+                my $time = $project->{$ut}{'confirmed'};
+                $subject = "[$projectid] Time spent on project $projectid now confirmed for UT $ut";
+                $text = "Confirmed that $time seconds was assigned to project $projectid for UT date $ut";
             }
             else {
                 # both zero
-                $subject = "[$proj] No time spent on project for UT $ut";
-                $text = "The time assigned to project $proj for UT date $ut has been reset to zero seconds";
+                $subject = "[$projectid] No time spent on project for UT $ut";
+                $text = "The time assigned to project $projectid for UT date $ut has been reset to zero seconds";
             }
 
             $self->_notify_feedback_system(

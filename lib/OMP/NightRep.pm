@@ -626,23 +626,21 @@ sub accounting_db {
     my $return_format = shift;
 
     my $acctgrp = $self->db_accounts;
-    my @dbacct = $acctgrp->accounts;
 
     my %results;
 
     if ($return_format) {
         # Returning data
         # Combine Time accounting info for a multiple nights.  See documentation
-        # for summarizeTimeAcct method in OMP::Project::TimeAcct
-        %results = OMP::Project::TimeAcct->summarizeTimeAcct($return_format, @dbacct)
-            if defined $dbacct[0];
+        # for summary method in OMP::Project::TimeAcct::Group
+        %results = %{$acctgrp->summary($return_format)};
     }
     else {
         # Returning objects
         #  Convert to a hash with keys shifttype and project [since we can guarantee one instance of a
         # project for a single UT date and project]
         # Ensure we get separate time accts for each shift.
-        for my $acct (@dbacct) {
+        for my $acct ($acctgrp->accounts) {
             $results{$acct->shifttype}{$acct->projectid} = $acct;
         }
     }
