@@ -1307,7 +1307,9 @@ sub _get_semesters {
 
 =item B<_get_telescope>
 
-Retrieve the telescope name associated with the first time account object.
+Retrieve the telescope name associated with the first time account object
+which has one, or retrieve from the database the telescope name for the
+project ID of the first non-special account object.
 
     $tel = $self->_get_telescope();
 
@@ -1318,6 +1320,12 @@ will store the telescope name in the object.
 
 sub _get_telescope {
     my $self = shift;
+
+    foreach my $acct (@{$self->accounts}) {
+        my $telescope = $acct->telescope;
+        return $telescope if defined $telescope;
+    }
+
     my @accts = $self->_get_non_special_accts;
     if (@accts) {
         my $db = OMP::DB::Project->new(
@@ -1325,6 +1333,7 @@ sub _get_telescope {
 
         return $db->getTelescope($accts[0]->projectid);
     }
+
     return undef;
 }
 

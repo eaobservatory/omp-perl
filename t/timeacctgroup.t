@@ -16,7 +16,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 10 + 43;
+use Test::More tests => 11 + 43;
 use Time::Piece qw/:override/;
 
 require_ok('OMP::Project::TimeAcct');
@@ -36,6 +36,7 @@ my $tg = OMP::Project::TimeAcct::Group->new(
             projectid => 'M25AP888',
             timespent => 7200,
             confirmed => 0,
+            telescope => 'JCMT',
         ),
     ]);
 
@@ -46,6 +47,7 @@ is($tg->confirmed_time->hours, 1.0, 'confirmed time');
 is($tg->unconfirmed_time->hours, 2.0, 'unconfirmed time');
 isa_ok($tg->{'TotalTime'}, 'Time::Seconds');
 isa_ok($tg->{'ConfirmedTime'}, 'Time::Seconds');
+is($tg->telescope, 'JCMT', 'determine telescope from group');
 
 # Time attributes should be cleared when we set a new list of objects.
 $tg->accounts([]);
