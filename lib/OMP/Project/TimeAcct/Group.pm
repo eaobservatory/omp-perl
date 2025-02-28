@@ -1203,14 +1203,13 @@ Reset the time or store a new time for one of the object properties.
 sub _mutate_time {
     my $self = shift;
     my $key = shift;
-    my $value = shift;
+    my $time = shift;
 
-    unless (defined $value) {
+    unless (defined $time) {
         $self->{$key} = undef;
     }
     else {
         # Set the new value
-        my $time = shift;
         $time = Time::Seconds->new($time)
             unless UNIVERSAL::isa($time, "Time::Seconds");
 
