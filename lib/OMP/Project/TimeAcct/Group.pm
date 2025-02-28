@@ -817,11 +817,8 @@ sub completion_stats {
             date => {max => $lowdate->datetime},
             projectid => [keys %projectids],
         });
-        my @offset_accts = $tdb->queryTimeSpent($query);
-        my $offset_grp = $self->new(
-            accounts => \@offset_accts,
-            telescope => $telescope,
-            DB => $self->db);
+        my $offset_grp = $tdb->queryTimeSpent($query);
+        $offset_grp->telescope($telescope);
 
         #DEBUG
         printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n",

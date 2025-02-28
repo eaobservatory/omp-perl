@@ -247,18 +247,14 @@ sub db_accounts {
         });
 
         # Get the time accounting statistics from
-        # the TimeAcct table. These are returned as a list of
-        # Project::TimeAcct.pm objects. Note that there will be more than
+        # the TimeAcct table. These are returned as an
+        # OMP::Project::TimeAcct::Group object. Note that there will be more than
         # one per project now that there are multiple shift types etc.
 
-        my @acct = $db->queryTimeSpent($query);
+        my $acctgrp = $db->queryTimeSpent($query);
 
         # Store result
-        my $acctgrp = OMP::Project::TimeAcct::Group->new(
-            accounts => \@acct,
-            telescope => $self->telescope,
-            DB => $self->db,
-        );
+        $acctgrp->telescope($self->telescope);
 
         $self->{DBAccounts} = $acctgrp;
     }

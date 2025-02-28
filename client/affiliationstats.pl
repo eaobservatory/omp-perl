@@ -120,11 +120,12 @@ else {
     # time 00:00:00 in them.
     my $query = OMP::Query::TimeAcct->new(HASH => {
         date => {min => $date_start, max => $date_end},
+        telescope => $telescope,
     });
 
     my %project_records;
 
-    foreach my $record ($timeacct_db->queryTimeSpent($query)) {
+    foreach my $record ($timeacct_db->queryTimeSpent($query)->accounts) {
         push @{$project_records{$record->projectid}}, $record;
     }
 
@@ -139,7 +140,6 @@ else {
         otherwise {
         };
         next unless (defined $project)
-            and $project->telescope eq $telescope
             and $project->primaryqueue ne 'LAP';
 
         my $observed = 0.0;

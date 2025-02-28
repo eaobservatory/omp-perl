@@ -274,22 +274,7 @@ sub project_home {
     my $adb = OMP::DB::TimeAcct->new(DB => $self->database);
 
     # Because of shifttypes, there may be more than one shift per night.
-    my @accounts = $adb->getTimeSpent(projectid => $project->projectid);
-
-    # Display nights where data was taken
-    my %accounts = ();
-    # Sort account objects by night
-    for my $acc (@accounts) {
-        my $ymd = $acc->date->ymd;
-        unless (exists $accounts{$ymd}) {
-            $accounts{$ymd} = {
-                confirmed => 0.0,
-                unconfirmed => 0.0,
-            };
-        }
-        $accounts{$ymd}->{$acc->confirmed ? 'confirmed' : 'unconfirmed'}
-            += $acc->timespent->hours;
-    }
+    my $accounts = $adb->getTimeSpent(projectid => $project->projectid);
 
     # Some instruments do not allow data retrieval. For now, assume that
     # we can not retrieve if any of the instruments in the project are marked as such.
@@ -334,7 +319,7 @@ sub project_home {
             . (lc $project->telescope)
             . '/proposal_by_code?code=',
         today => OMP::DateTools->today(),
-        accounts => \%accounts,
+        accounts => $accounts->by_date,
         cannot_retrieve => $cannot_retrieve,
         msbs_observed => ((scalar @$nights)
             ? $msbcomp->fb_msb_observed($projectid)

@@ -149,14 +149,13 @@
                     <a href="/cgi-bin/utprojlog.pl?project=[% project.projectid %]&utdate=[% ymd %][% IF cannot_retrieve %]&noretrv=1[% END %]">[% ymd %]</a>
                 </td>
                 <td>
-                    [% IF timeacct.confirmed > 0 || timeacct.unconfirmed > 0 %]
-                        [% IF timeacct.confirmed > 0 %]
-                            [% timeacct.confirmed | format("%.2f hours") %]
+                    [% IF timeacct.totaltime %]
+                        [% IF timeacct.confirmed_time %]
+                            [% timeacct.confirmed_time.hours | format("%.2f hours") %]
                         [% END %]
-                        [% IF timeacct.unconfirmed > 0 %]
-                            (Unconfirmed: [% timeacct.unconfirmed | format ("%.2f hours") %])
+                        [% IF timeacct.unconfirmed_time %]
+                            (Unconfirmed: [% timeacct.unconfirmed_time.hours | format ("%.2f hours") %])
                         [% END %]
-
                     [% ELSE %]
                         (No science data charged)
                     [% END %]
