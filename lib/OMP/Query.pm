@@ -328,7 +328,7 @@ sub _qhash_tosql {
     # [tried it with a grep but it didnt work first
     # time out - may come back to this later]
     my @keys;
-    for my $entry (keys %$query) {
+    for my $entry (sort keys %$query) {
         next if $entry =~ /^_/;
         next if grep /^$entry$/, @$skip;
         push @keys, $entry;
@@ -435,7 +435,7 @@ sub _create_sql_recurse {
         $sql = $self->_querify($column, $entry->values(), 'in');
     }
     elsif (eval {$entry->isa('OMP::Query::Like')}) {
-        $sql = $self->_querify($column, $entry->value(), 'explicitlike');
+        $sql = $self->_querify($column, $entry->value(), 'like');
     }
     elsif (eval {$entry->isa('OMP::Query::SubQuery')}) {
         my $expr = $entry->expression;
@@ -1040,31 +1040,18 @@ sub _querify {
         return "($name IN (" . (join ', ', map {"\"$_\""} @$value) . '))';
     }
 
-    # Add pattern matches (and always quote) if we have "like" expression
-    # used for a "TEXTFIELD" search.
-    my $quote;
+    # Always quote if we have "like" expression.
+    my $quote = '';
     if ($cmp eq 'like') {
         $quote = "'";
-
-        # Alter our search string for case-insensitivity
-        $value =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
-        $value = '%' . $value . '%';
-    }
-    elsif ($cmp eq 'explicitlike') {
-        $quote = "'";
-    }
-    else {
-        $quote = '';
     }
 
-    # Lookup table for comparators.  Map explicit like operators specified
-    # in the query to "like" now that we have dealt with text searches.
+    # Lookup table for comparators.
     my %cmptable = (
         equal => '=',
         min => '>=',
         max => '<=',
         like => 'like',
-        explicitlike => 'like',
     );
 
     # Convert the string form to SQL form
