@@ -514,7 +514,7 @@ sub sql {
     my @sql;
     my $href = $self->query_hash;
 
-    foreach my $t (keys %$href) {
+    foreach my $t (sort keys %$href) {
         # Construct the the where clauses. Depends on which
         # additional queries are defined
         next if $t eq 'telescope';
@@ -653,6 +653,25 @@ sub _post_process_hash {
 
     # Do the generic pre-processing
     $self->SUPER::_post_process_hash($href);
+
+    for my $key (keys %$href) {
+        next if $key =~ /^_/;
+
+        my $entry = $href->{$key};
+
+        if (eval {$entry->isa('OMP::Range')}) {
+            my $max = $entry->max;
+
+            # We need to redefine the max date so that this check will be
+            # exclusive on the maximum, so that we don't return entries
+            # from the UKIRT archive for the day we want plus the next
+            # day (because dates in the UKIRT archive only have a resolution
+            # of one day and not one second)
+            if (defined $max and eval {$max->isa('Time::Piece')}) {
+                $entry->max($max - 1);
+            }
+        }
+    }
 
     # If we're looking at a file, we don't need to do these translations.
     if ($self->isfile) {
@@ -971,7 +990,7 @@ sub _qhash_tosql {
     # time out - may come back to this later]
 
     my @keys;
-    for my $entry (keys %$query) {
+    for my $entry (sort keys %$query) {
         next if $entry =~ /^_/;
         next if grep /^$entry$/, @$skip;
 
@@ -1060,16 +1079,6 @@ sub _create_sql_recurse {
     elsif (UNIVERSAL::isa($entry, "OMP::Range")) {
         # A Range object
         my %range = $entry->minmax_hash;
-
-        # We need to redefine the max date so that this check will be
-        # exclusive on the maximum, so that we don't return entries
-        # from the UKIRT archive for the day we want plus the next
-        # day (because dates in the UKIRT archive only have a resolution
-        # of one day and not one second)
-        if (UNIVERSAL::isa($range{'max'}, "Time::Piece")) {
-            $range{'max'} -= 1;
-            bless $range{'max'}, ref($range{'min'});
-        }
 
         # an AND clause
         $sql = join(' AND ', map {
