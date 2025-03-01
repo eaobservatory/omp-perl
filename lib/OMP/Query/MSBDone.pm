@@ -156,15 +156,6 @@ sub _post_process_hash {
         # Skip private keys
         next if $key =~ /^_/;
 
-        # Protect against rounding errors
-        # Not sure we need this so leave it out for now
-        # if ($key eq 'faultid') {
-        # Need to loop over each fault
-        # $href->{$key} = [map {
-        #     OMP::Range->new(
-        #         Min => ($_ - 0.0005),
-        #         Max => ($_ + 0.0005))
-        # } @{$href->{$key}}];
     }
 
     # Need to upper case these
