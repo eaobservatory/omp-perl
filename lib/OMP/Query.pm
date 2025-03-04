@@ -759,6 +759,10 @@ Converted to OR expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
 Converted to NOT expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
+=item and =E<gt> \%subquery
+
+Converted to AND expresion.  (Key name is arbitrary, should start C<EXPR__>.)
+
 =item min, max
 
 Left as is.
@@ -768,6 +772,10 @@ Left as is.
 Left as is.
 
 =item any =E<gt> 1
+
+Left as is.
+
+=item in =E<gt> \@values
 
 Left as is.
 
@@ -795,6 +803,12 @@ sub _process_given_hash {
                 $query{$key} = {
                     _JOIN => 'OR',
                     $self->_process_given_hash($value->{'or'})};
+                next;
+            }
+            elsif (exists $value->{'and'}) {
+                $query{$key} = {
+                    _JOIN => 'AND',
+                    $self->_process_given_hash($value->{'and'})};
                 next;
             }
             elsif (exists $value->{'not'}) {
@@ -962,6 +976,9 @@ sub _post_process_hash {
             }
             elsif (exists $href->{$key}->{'like'}) {
                 $href->{$key} = OMP::Query::Like->new(value => $href->{$key}->{'like'});
+            }
+            elsif (exists $href->{$key}->{'in'}) {
+                $href->{$key} = OMP::Query::In->new(values => $href->{$key}->{'in'});
             }
             else {
                 # Convert to OMP::Range object
