@@ -18,7 +18,8 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 47;
+use Test::More tests => 50;
+use Scalar::Util qw/refaddr/;
 
 require_ok('OMP::Info');
 require_ok('OMP::Info::Obs');
@@ -123,6 +124,18 @@ my $msb = OMP::Info::MSB->new(
 
 ok($msb, 'MSB');
 is($msb->obscount, 2, 'check obscount');
+
+# Check operation of shallow_copy method.
+my $copy = $msb->shallow_copy;
+isa_ok($copy, 'OMP::Info::MSB');
+
+# (need to give is_deeply unblessed references here)
+is_deeply({%$copy}, {%$msb}, 'Shallow copy of MSB matches original');
+my $orig_obs_ref = $msb->{'observations'};
+my $copy_obs_ref = $copy->{'observations'};
+ok(((ref $orig_obs_ref) and (ref $copy_obs_ref)
+    and ((refaddr $orig_obs_ref) ne (refaddr $copy_obs_ref))),
+    'Copy of MSB has different top-level array');
 
 my $sciprog = OMP::Info::SciProg->new(
     projectid => 'SERV01',
