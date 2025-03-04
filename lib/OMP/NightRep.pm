@@ -101,6 +101,7 @@ sub new {
         DB => undef,
         ADB => undef,
         PrivateComments => 0,
+        MSBsDone => undef,
         },
         $class;
 
@@ -769,6 +770,53 @@ sub obs {
 
 =item B<msbs>
 
+Get or retrieve the MSBs observed.
+
+If MSBs were not provided and are not already present, query the C<MSBDone>
+database for relevant activity.  MSBs are fetched with all information
+for the matching transaction IDs, which can be retrieved individually using
+the C<historyMSBtid> method.
+
+=cut
+
+sub msbs {
+    my $self = shift;
+
+    if (@_) {
+        my $msbs = shift;
+
+        throw OMP::Error::BadArgs(
+            'Must provide MSBs as an array of OMP::Info::MSB')
+            unless ('ARRAY' eq ref $msbs
+                and not grep {not eval {$_->isa('OMP::Info::MSB')}} @$msbs);
+
+        # NOTE: currently stores the reference to the given array.
+        $self->{'MSBsDone'} = $msbs;
+    }
+    elsif (not defined $self->{'MSBsDone'}) {
+        my $db = OMP::DB::MSBDone->new(DB => $self->db);
+
+        my $query = OMP::Query::MSBDone->new(HASH => {
+            status => [
+                OMP__DONE_DONE,
+                OMP__DONE_REJECTED,
+                OMP__DONE_SUSPENDED,
+                OMP__DONE_ABORTED,
+            ],
+            date => {delta => $self->delta_day, value => $self->date->ymd},
+            telescope => $self->telescope,
+        });
+
+        # Request "transactions" so that we get any MSBs comments which
+        # may have been added on other days.
+        $self->{'MSBsDone'} = $db->queryMSBdone($query, {transactions => 1});
+    }
+
+    return $self->{'MSBsDone'};
+}
+
+=item B<msbs_by_project>
+
 Retrieve MSB information for the night and telescope in question.
 
 Information is returned in a hash indexed by project ID and with
@@ -776,27 +824,12 @@ values of C<OMP::Info::MSB> objects.
 
 =cut
 
-sub msbs {
+sub msbs_by_project {
     my $self = shift;
-
-    my $db = OMP::DB::MSBDone->new(DB => $self->db);
-
-    my $query = OMP::Query::MSBDone->new(HASH => {
-        status => [
-            OMP__DONE_DONE,
-            OMP__DONE_REJECTED,
-            OMP__DONE_SUSPENDED,
-            OMP__DONE_ABORTED,
-        ],
-        date => {delta => $self->delta_day, value => $self->date->ymd},
-        telescope => $self->telescope,
-    });
-
-    my @results = $db->queryMSBdone($query, {'comments' => 0});
 
     # Index by project id
     my %index;
-    for my $msb (@results) {
+    for my $msb (@{$self->msbs}) {
         my $proj = $msb->projectid;
 
         $index{$proj} = [] unless exists $index{$proj};
@@ -805,6 +838,37 @@ sub msbs {
     }
 
     return \%index;
+}
+
+=item B<historyMSBtid>
+
+Retrieve MSB information by transaction ID.  This should be similar
+to the C<OMP::DB::MSBDone-E<gt>historyMSBtid> method, but uses the
+MSB information (hopefully cached) from this object's C<msbs> method.
+
+    $msb = $self->historyMSBtid($msbtid);
+
+Returns a shallow clone of the original C<OMP::Info::MSB> object with
+the comments list replaced with a list containing only those comments
+which match the given C<msbtid> value.
+
+=cut
+
+sub historyMSBtid {
+    my $self = shift;
+    my $tid = shift;
+    return undef unless defined $tid;
+
+    foreach my $msb (@{$self->msbs}) {
+        my @comments = $msb->msbtid($tid);
+        next unless scalar @comments;
+
+        my $copy = $msb->shallow_copy;
+        $copy->comments(\@comments);
+        return $copy;
+    }
+
+    return undef;
 }
 
 =item B<scienceTime>
@@ -1093,7 +1157,7 @@ sub astext {
     # Add MSB summary here
     $str .= "Observation summary\n\n";
 
-    my $msbs = $self->msbs;
+    my $msbs = $self->msbs_by_project;
 
     for my $proj (keys %$msbs) {
         $str .= "  $proj\n";
@@ -1614,8 +1678,6 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::DB::MSBDone->new(DB => $self->db);
-
     my $old_sum = '';
     my $old_tid = '';
 
@@ -1684,13 +1746,7 @@ sub get_obs_summary {
                 # Get any activity associated with this MSB accept.
                 my $history;
                 if ($has_msbtid) {
-                    try {
-                        $history = $msbdb->historyMSBtid($msbtid);
-                    }
-                    otherwise {
-                        my $E = shift;
-                        print STDERR $E;
-                    };
+                    $history = $self->historyMSBtid($msbtid);
                 }
 
                 if (defined $history) {
