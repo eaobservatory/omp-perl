@@ -1124,6 +1124,21 @@ sub summary {
 
 =over 4
 
+=item B<_get_special_pattern>
+
+Create regexp to filter out special projects.
+
+=cut
+
+sub _get_special_pattern {
+    my $self = shift;
+
+    my $telpart = join '|', OMP::Config->getData('defaulttel');
+    my $specpart = join '|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/;
+
+    return qr/^(?:(?:${telpart})(?:${specpart}))|__FAULT__$/;
+}
+
 =item B<_get_non_special_accts>
 
 Return only non-special accounts.
@@ -1135,14 +1150,11 @@ Return only non-special accounts.
 sub _get_non_special_accts {
     my $self = shift;
 
-    # Create regexp to filter out special projects
-    my $telpart = join('|', OMP::Config->getData('defaulttel'));
-    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/);
-    my $regexp = qr/^(${telpart})(${specpart})$/;
+    my $regexp = $self->_get_special_pattern;
 
     # Filter out "__FAULT__" accounts and accounts that are named
     # something like TELESCOPECAL, etc.
-    my @acct = grep {$_->projectid !~ $regexp and $_->projectid ne '__FAULT__'}
+    my @acct = grep {$_->projectid !~ $regexp}
         $self->accounts;
 
     if (wantarray) {
@@ -1360,6 +1372,31 @@ sub _mutate_time {
 
         $self->{$key} = $time;
     }
+}
+
+=item B<_get_projects>
+
+Get a list of the project IDs included in the time accounting records.
+
+    $projects = $self->_get_projects($include_special);
+
+=cut
+
+sub _get_projects {
+    my $self = shift;
+    my $include_special = shift;
+
+    my $special_pattern = $self->_get_special_pattern;
+
+    my %projects = ();
+    for my $acct ($self->accounts) {
+        my $projectid = $acct->projectid;
+        next unless $include_special or $projectid !~ $special_pattern;
+
+        $projects{$projectid} = 1;
+    }
+
+    return [keys %projects];
 }
 
 1;
