@@ -84,6 +84,7 @@ sub new {
         ShutdownTime => undef,
         Telescope => undef,
         WeatherLoss => undef,
+        ProjectDetails => undef,
     }, $class;
 
     if (@_) {
@@ -157,6 +158,7 @@ sub accounts {
         $self->weather_loss(undef);
         $self->science_time(undef);
         $self->ec_time(undef);
+        $self->project_details(undef);
     }
 
     if (wantarray) {
@@ -724,6 +726,48 @@ sub db {
     return $self->{'DB'};
 }
 
+=item B<project_details>
+
+Hash (reference) of project information.  Keys are project IDs and
+values are OMP::Project objects as returned by calling
+C<OMP::DB::Project-E<gt>listProjects> with the list of project IDs
+given by the C<_get_projects> method.
+
+    my $projects = $tg->project_details;
+
+=cut
+
+sub project_details {
+    my $self = shift;
+
+    if (scalar @_) {
+        my $details = shift;
+        unless (defined $details) {
+            $self->{'ProjectDetails'} = undef;
+        }
+        else {
+            throw OMP::Error::BadArgs(
+                'project_details must be a HASH reference')
+                unless 'HASH' eq ref $details;
+
+            $self->{'ProjectDetails'} = $details;
+        }
+    }
+    elsif (not defined $self->{'ProjectDetails'}) {
+        my $db = OMP::DB::Project->new(DB => $self->db);
+
+        my $query = OMP::Query::Project->new(HASH => {
+            projectid => {in => $self->_get_projects},
+        });
+
+        my $projects = $db->listProjects($query);
+
+        $self->{'ProjectDetails'} = {map {$_->projectid => $_} @$projects};
+    }
+
+    return $self->{'ProjectDetails'};
+}
+
 =back
 
 =head2 General Methods
@@ -1192,39 +1236,22 @@ sub _get_accts {
     # Return immediately if we didn't get any accounts back
     return unless defined $acct[0];
 
-    # Get project objects, using a different query depending on whether
-    # we are returning science or engineering accounts
-    my $db = OMP::DB::Project->new(DB => $self->db);
-    my %hash = ();
-
-    my $telescope = $self->telescope;
-    $hash{'telescope'} = $telescope if defined $telescope;
-
-    if ($arg eq 'sci') {
-        # Get all the projects in the semesters that we have time
-        # accounts for.
-        $hash{'semester'} = $self->_get_semesters();
-    }
-    else {
-        # Get projects in the EC queue
-        $hash{'country'} = 'EC';
-        $hash{'isprimary'} = 1;
-    }
-
-    my $query = OMP::Query::Project->new(HASH => \%hash);
-    my $projects = $db->listProjects($query);
-    my %projects = map {$_->projectid, $_} @$projects;
+    # Get project objects
+    my $projects = $self->project_details;
 
     if ($arg eq 'sci') {
         # Only keep non-EC projects
         @acct = grep {
-            exists $projects{$_->projectid}
-                and $projects{$_->projectid}->isScience
+            exists $projects->{$_->projectid}
+                and $projects->{$_->projectid}->isScience
         } @acct;
     }
     else {
         # Only keep EC projects
-        @acct = grep {exists $projects{$_->projectid}} @acct;
+        @acct = grep {
+            exists $projects->{$_->projectid}
+                and not $projects->{$_->projectid}->isScience
+        } @acct;
     }
 
     if (wantarray) {
