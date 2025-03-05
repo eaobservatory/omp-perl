@@ -240,14 +240,16 @@ sub observed {
             push @{$sorted{$projectid}}, $msb;
         }
 
+        my $project_info = OMP::DB::MSB->new(
+            DB => $self->database)->getSciProgInfoMultiple([keys %sorted]);
+
         $projects = [map {
             my $projectid = $_;
-            my $msbdb = OMP::DB::MSB->new(DB => $self->database, ProjectID => $projectid);
-            my $sp = $msbdb->getSciProgInfo();
-            my $msb_info = $comp->msb_comments(\@{$sorted{$projectid}}, $sp);
             {
                 project_id => $projectid,
-                msb_info => $msb_info,
+                msb_info => $comp->msb_comments(
+                    $sorted{$projectid},
+                    $project_info->{$projectid}),
             };
         } sort keys %sorted];
     }
