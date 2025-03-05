@@ -50,7 +50,6 @@ use OMP::Query::Fault;
 use OMP::Fault::Group;
 use OMP::DB::MSBDone;
 use OMP::Query::MSBDone;
-use OMP::DB::Project;
 use Time::Piece qw/:override/;
 use OMP::Mail;
 use OMP::Display;
@@ -1279,6 +1278,9 @@ sub get_time_summary {
     my $acct = $self->accounting_db();
     my $timelostbyshift = $self->timelostbyshift;
 
+    # Get the details of all projects mentioned in the time accounting.
+    my $project_details = $self->db_accounts->project_details;
+
     my @shifts;
     for my $key (keys %$acct) {
         unless (! defined $key || $key eq '' || $key eq $WARNKEY) {
@@ -1302,7 +1304,8 @@ sub get_time_summary {
             undef,
             $timelost->{'total'},
             $timelost->{'technical'},
-            $timelost->{'non-technical'});
+            $timelost->{'non-technical'},
+            $project_details);
     };
 
     my $shiftresults = $self->accounting_db('byshftprj');
@@ -1313,7 +1316,8 @@ sub get_time_summary {
             ($acct->{$shift} // {}),
             $timelostbyshift->{$shift}->{'total'},
             $timelostbyshift->{$shift}->{'technical'},
-            $timelostbyshift->{$shift}->{'non-technical'});
+            $timelostbyshift->{$shift}->{'non-technical'},
+            $project_details);
         $result->{'shift'} = $shift;
         push @shift_info, $result;
     }
@@ -1426,7 +1430,8 @@ sub get_time_summary_combined {
 
 sub _get_time_summary_shift {
     my ($self, $shiftresults, $shiftacct,
-        $timelost, $timelost_technical, $timelost_nontechnical) = @_;
+        $timelost, $timelost_technical, $timelost_nontechnical,
+        $project_details) = @_;
 
     my $tel = $self->telescope;
 
@@ -1483,9 +1488,13 @@ sub _get_time_summary_shift {
     for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        my $details = OMP::DB::Project->new(DB => $self->db, ProjectID => $proj)->projectDetails();
+        my $country = 'UNKNOWN';
 
-        push @{$proj_by_country{$details->country}}, $proj;
+        if (exists $project_details->{$proj}) {
+            $country = $project_details->{$proj}->country;
+        }
+
+        push @{$proj_by_country{$country}}, $proj;
     }
 
     my @country;
