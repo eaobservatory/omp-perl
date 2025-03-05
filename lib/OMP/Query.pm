@@ -1163,6 +1163,9 @@ sub _process_elements {
             elsif ($val->isa('OMP::Query::Like')) {
                 $val->value($cb->($val->value));
             }
+            elsif ($val->isa('OMP::Query::In')) {
+                $val->values([map {$cb->($_)} @{$val->values}]);
+            }
             else {
                 throw OMP::Error::DBMalformedQuery(
                     "Unable to process class of type '$ref'");
