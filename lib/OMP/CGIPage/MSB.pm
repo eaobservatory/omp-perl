@@ -257,7 +257,6 @@ sub observed {
     return {
         target => $self->url_absolute(),
         target_base => $q->url(-absolute => 1),
-        telescopes => [$projdb->listTelescopes],
         values => {
             telescope => $telescope,
             utdate => $utdate,
