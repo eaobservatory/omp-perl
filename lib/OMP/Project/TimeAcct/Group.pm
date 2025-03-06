@@ -754,15 +754,22 @@ sub project_details {
         }
     }
     elsif (not defined $self->{'ProjectDetails'}) {
-        my $db = OMP::DB::Project->new(DB => $self->db);
+        my $projectids = $self->_get_projects;
 
-        my $query = OMP::Query::Project->new(HASH => {
-            projectid => {in => $self->_get_projects},
-        });
+        unless (scalar @$projectids) {
+            $self->{'ProjectDetails'} = {};
+        }
+        else {
+            my $db = OMP::DB::Project->new(DB => $self->db);
 
-        my $projects = $db->listProjects($query);
+            my $query = OMP::Query::Project->new(HASH => {
+                projectid => {in => $projectids},
+            });
 
-        $self->{'ProjectDetails'} = {map {$_->projectid => $_} @$projects};
+            my $projects = $db->listProjects($query);
+
+            $self->{'ProjectDetails'} = {map {$_->projectid => $_} @$projects};
+        }
     }
 
     return $self->{'ProjectDetails'};
