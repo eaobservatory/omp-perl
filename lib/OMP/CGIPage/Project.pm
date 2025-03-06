@@ -120,7 +120,7 @@ sub list_projects {
         map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $1 => 1}
         grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
 
-    undef $semester if $semester =~ /any/i;
+    undef $semester if $semester eq '';
     undef $support if $support eq '';
     undef $country if $country eq '';
 
