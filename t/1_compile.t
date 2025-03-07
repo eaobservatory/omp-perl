@@ -25,7 +25,7 @@
 use strict;
 use warnings;
 
-use JAC::Setup qw/ocsq jsa dataverify/;
+use JAC::Setup qw/ocsq jsa dataverify ocscfg hdrtrans/;
 
 use Test; # Not really needed since we don't use ok()
 
