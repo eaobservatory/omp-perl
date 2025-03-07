@@ -1,0 +1,197 @@
+=head1 Observation Management Project
+
+This is the main repository for the Observation Management Project (OMP),
+containing Perl components.  It includes:
+
+=over 4
+
+=item *
+
+Database access and query modules.
+
+=item *
+
+Web interface.
+
+=item *
+
+"MSB" and "Sp" (science program) SOAP services.
+
+=item *
+
+JCMT translator.
+
+=item *
+
+JCMT archiving (enterdata) software.
+
+=item *
+
+Filter script for the "flex" email service.
+
+=item *
+
+Various programs and other scripts.
+
+=back
+
+=head2 Configuration
+
+The OMP configuration system is accessed by the C<OMP::Config> module.  It
+uses the following files:
+
+=over 4
+
+=item F<cfg/omp.cfg>
+
+Main configuration file.
+
+=item F<cfg/omp-dev.cfg>
+
+"Development" configuration file, used in place of the main configuration
+if the file F<cfg/.omp-test> exists.
+
+This file includes the F<omp-dev.css> stylesheet (with red layout elements)
+and sets the theme color to red in order to make the web interface of a
+development version easy to identify.
+
+It also specifies an C<arc-database-prefix> of "dev" in order to select
+the development version of the archive databases.
+
+=item F<cfg/jcmt.cfg>, F<cfg/ukirt.cfg>
+
+Telescope-specific configuration.
+
+=item F<ompsite.cfg>, F<ompsite-dev.cfg>
+
+Site configuration files, as selected by the C<siteconfig> parameter in the
+main (or development) configuration file.  Typically located outside this
+repository.  Includes the database settings, including the selection of either
+the C<omp> or C<devomp> database for the OMP tables.
+
+=back
+
+In addition, the CGI scripts use the following files to prepare
+their environment settings:
+
+=over 4
+
+=item F<cgi/omp-cgi-init.pl>
+
+For the web interface CGI scripts.
+
+=item F<server/omp-srv-init.pl>
+
+For the SOAP services.
+
+=back
+
+=head2 Development
+
+=head3 Test Suite
+
+This repository includes a number of test (F<.t>) scripts in the F<t> directory.
+To run these, prepare a F<Makefile> by running F<Makefile.PL> with whichever
+installation of Perl you wish to use for the tests.  Then apply its C<test> rule:
+
+    perl Makefile.PL
+    make test
+
+Note that the first test, F<1_compile.t>, attempts to load each OMP module
+individually in a fresh Perl environment.  Since this can be quite
+time-consuming, this test scan be skipped by setting the environment variable
+C<SKIP_COMPILE_TEST>.
+
+=head3 Database Test Suite
+
+The F<t-db> directory contains a number of test scripts which interact with
+the (development version of the) database.  Please see the F<README> file
+in that directory for more information.
+
+=head3 Translator Test Suite
+
+The F<t-tr> directory contains various MSBs and reference translations to
+OCS config. XML.  Please see the F<Makefile> in that directory for
+more information.
+
+=head3 Running a Local Web Server
+
+Running a test copy of the OMP web interface via a server installed
+in a location other than the default will require some adjustments
+to the configuration.
+
+In the C<[default]> section, set the C<cookie-domain> to the name
+you will use to access the server (noting that C<127.0.0.1> is not
+the same as C<localhost> here) and disable the requirement for
+cookies to be passed by HTTPS.
+
+    cookie-domain=127.0.0.1
+    cookie-secure=0
+
+If your web server is incapable of performing proper HTTP redirects
+from CGI scripts (such as the server mentioned below),
+select C<www-meta-refresh> instead:
+
+    www-meta-refresh=1
+
+Then set the C<www-templ> directory to the templates directory of
+this repository:
+
+    www-templ=REPOSITORY/templ
+
+Finally configure the installation paths in the C<[web-install]>
+section of the configuration.  You will need to set
+C<public> and C<private> to wherever you want the public and
+private web services to be installed, C<omplib> to the library
+directory of this repository and C<initpath> to the location
+where the CGI "init" files will be installed, typically
+inside the C<cgi-bin> directory of the C<public> installation.
+
+    public = INSTALL/omp
+    private = INSTALL/omp-private
+    omplib = REPOSITORY/lib
+    initpath = INSTALL/omp/cgi-bin
+
+The documentation for these settings can be viewed with:
+
+    perldoc admin/installcgi.pl
+
+Finally you can check where each file would be installed with
+the following command:
+
+    admin/installcgi.pl --images --dry-run
+
+If everything looks correct then this command can be repeated
+without the C<--dry-run> option to perform the installation.
+
+Finally you will need to run a web server capable of executing
+CGI scripts.  One possible example is the C<http.server> module
+included with Python.  It can be run via a script such
+as the following from your install directory:
+
+    #!/bin/bash
+
+    cd omp
+    python3 -m http.server --cgi 8010
+
+If you wish to serve both the public and private interfaces,
+it is possible to do this using two servers on different
+port numbers via a script such as:
+
+    #!/bin/bash
+
+    set -m
+
+    cd omp
+    python3 -m http.server --cgi 8010 &
+    PIDPUB=$!
+
+    cd ../omp-private
+    python3 -m http.server --cgi 8020 &
+    PIDPRIV=$!
+
+    trap "kill $PIDPUB; kill $PIDPRIV" SIGINT
+
+    wait
+
+=cut
