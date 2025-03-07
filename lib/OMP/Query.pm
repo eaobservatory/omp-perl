@@ -420,7 +420,7 @@ sub _create_sql_recurse {
         # an AND clause
         $sql = join(" AND ",
             map {$self->_querify($column, $range{$_}, $_);}
-            keys %range);
+            reverse sort keys %range);
     }
     elsif (UNIVERSAL::isa($entry, 'OMP::Query::Any')) {
         # Do nothing.
@@ -444,13 +444,13 @@ sub _create_sql_recurse {
 
         # Assume operator is "IN" for now.
         $sql = "($column IN (SELECT $expr FROM $table WHERE "
-            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} keys %$subquery)
+            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} sort keys %$subquery)
             . '))';
     }
     elsif (ref($entry) eq 'HASH') {
         # Call myself but join with an OR or AND
         my @chunks = map {$self->_create_sql_recurse($_, $entry->{$_})}
-            keys %$entry;
+            sort keys %$entry;
 
         # Use an OR by default but if we have a key _JOIN then use it
         my $j = (exists $entry->{_JOIN} ? uc($entry->{_JOIN}) : "OR");
