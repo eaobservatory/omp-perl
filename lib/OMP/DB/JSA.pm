@@ -642,12 +642,14 @@ sub _run_change_sql {
 
     my $dbh = $self->dbhandle;
 
-    return $dbh->do($sql, undef, @bind)
+    my $result = $dbh->do($sql, undef, @bind)
         or do {
             $dbh->rollback() if $self->use_transaction();
             $log->error('rollback; ' , $dbh->errstr);
             throw OMP::Error::DBError( $dbh->errstr );
         };
+
+    return $result;
 }
 
 {

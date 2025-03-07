@@ -518,8 +518,10 @@ sub _query_userdb_expensive {
 
     $dbh->trace(0);
 
-    return $dbh->selectall_arrayref($sql, {'Slice' => {}}, values %check)
+    my $result = $dbh->selectall_arrayref($sql, {'Slice' => {}}, values %check)
         or throw OMP::Error::FatalError $dbh->errstr;
+
+    return $result;
 }
 
 =item B<_convert_columns>

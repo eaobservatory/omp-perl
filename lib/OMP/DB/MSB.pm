@@ -1834,8 +1834,10 @@ sub _really_fetch_sciprog {
 
     # Instantiate a new Science Program object
     # The file name is derived automatically
-    return OMP::SciProg->new(XML => $xml)
+    my $sp = OMP::SciProg->new(XML => $xml)
         or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
+
+    return $sp;
 }
 
 =item B<_db_fetch_sciprog>
