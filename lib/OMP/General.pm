@@ -846,6 +846,25 @@ sub rot13 {
     return @in;
 }
 
+=item B<uc_if_defined>
+
+Given a value which may be C<undef>, return the result of applying C<uc> to
+it if it is defined, or return C<undef> otherwise.  This can be used to
+avoid "uninitialized value" warnings when using C<uc>.
+
+    $upper = OMP::General->uc_if_defined($value);
+
+=cut
+
+sub uc_if_defined {
+    my $self = shift;
+    my $value = shift;
+
+    return undef unless defined $value;
+
+    return uc $value;
+}
+
 =back
 
 =head2 References
