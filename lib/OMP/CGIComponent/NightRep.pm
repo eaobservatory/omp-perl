@@ -89,7 +89,9 @@ sub obs_table_text {
         $showcomments = 1;
     }
 
-    my $nr = OMP::NightRep->new(DB => $self->database);
+    my $nr = OMP::NightRep->new(
+        DB => $self->database,
+        telescope => $options{'telescope'});
     my $summary = $nr->get_obs_summary(obsgroup => $obsgroup, %options);
 
     unless (defined $summary) {

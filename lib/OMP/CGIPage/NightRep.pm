@@ -123,8 +123,18 @@ sub list_observations_txt {
     my $self = shift;
     my $projectid = shift;
 
+    my $proj;
+    try {
+        $proj = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    }
+    otherwise {
+        my $E = shift;
+        croak "Unable to retrieve the details of this project:\n$E";
+    };
+
+    my $telescope = $proj->telescope;
+
     my $query = $self->cgi;
-    my $qv = $query->Vars;
 
     my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
@@ -149,11 +159,13 @@ sub list_observations_txt {
         print "Error: $errortext\n";
     };
 
-    my %options;
-    $options{'showcomments'} = 1;
-    $options{'ascending'} = 1;
     try {
-        $comp->obs_table_text($obsgroup, %options, projectid => $projectid);
+        $comp->obs_table_text(
+            $obsgroup,
+            showcomments => 1,
+            ascending => 1,
+            projectid => $projectid,
+            telescope => $telescope);
     }
     catch OMP::Error with {
         my $Error = shift;
@@ -421,7 +433,9 @@ sub projlog_content {
                 size => 64,
             })));
 
-            my $nr = OMP::NightRep->new(DB => $self->database);
+            my $nr = OMP::NightRep->new(
+                DB => $self->database,
+                telescope => $telescope);
             $obs_summary = $nr->get_obs_summary(obsgroup => $grp);
         }
     }
