@@ -217,9 +217,10 @@ sub extract_projectid {
     my $class = shift;
     my $string = shift;
 
-    my $projid;
-
-    if ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai  # JCMT [inc serv, FB and A/B suffix]
+    unless (defined $string) {
+        # No string from which to extract.
+    }
+    elsif ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzf]\d+([a-z]|fb)?)\b/aai  # JCMT [inc serv, FB and A/B suffix]
             or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai          # JCMT E&C
             or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai          # JCMT Guaranteed Time
             or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai       # JCMT Legacy Surveys
@@ -229,17 +230,16 @@ sub extract_projectid {
             or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/aai     # SHADES proposal
             or $string =~ /\b([A-Za-z]+CAL(?:OLD)?)\b/aai    # Things like JCMTCAL
             ) {
-        $projid = $1;
+        return $1;
     }
-
-    if ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai) {          # Staff projects TJ02
-        $projid = $1;
-        undef $projid
-            if $projid =~ /^s[uinc]\d+$/aai                  # but not JCMT service abbrev
+    elsif ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/aai) {       # Staff projects TJ02
+        my $projid = $1;
+        return $projid
+            unless $projid =~ /^s[uinc]\d+$/aai              # but not JCMT service abbrev
             or $projid =~ /^ec\d+$/aai;                      # or E&C abbrev
     }
 
-    return $projid;
+    return undef;
 }
 
 =item B<extract_faultid>

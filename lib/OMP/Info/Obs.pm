@@ -1793,7 +1793,7 @@ sub previews_sorted {
 
     return [
         sort {
-            $a->subscan_number <=> $b->subscan_number
+            ($a->subscan_number // 0) <=> ($b->subscan_number // 0)
             || $a->suffix cmp $b->suffix
         }
         grep {not ((defined $group) and ($group xor $_->group))}

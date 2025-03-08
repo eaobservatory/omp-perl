@@ -717,9 +717,9 @@ sub cgi_to_obsgroup {
 
     my $qv = $q->Vars;
     $ut = (defined($ut) ? $ut : $qv->{'ut'});
-    $inst = (defined($inst) ? $inst : uc($qv->{'inst'}));
+    $inst = (defined($inst) ? $inst : OMP::General->uc_if_defined($qv->{'inst'}));
     $projid = (defined($projid) ? $projid : $qv->{'projid'});
-    $telescope = (defined($telescope) ? $telescope : uc($qv->{'telescope'}));
+    $telescope = (defined($telescope) ? $telescope : OMP::General->uc_if_defined($qv->{'telescope'}));
 
     if (! defined($telescope) || length($telescope . '') == 0) {
         if (defined($inst) && length($inst . '') != 0) {

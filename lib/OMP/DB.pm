@@ -111,7 +111,7 @@ All project IDs are upper-cased automatically.
 sub projectid {
     my $self = shift;
     if (@_) {
-        $self->{ProjectID} = uc(shift);
+        $self->{ProjectID} = OMP::General->uc_if_defined(shift);
     }
     return $self->{ProjectID};
 }

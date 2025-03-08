@@ -1072,10 +1072,14 @@ sub _write_page_extra {
         $cat = $fault->category;
     }
     else {
-        $cat = uc $self->decoded_url_param('cat');
+        $cat = $self->decoded_url_param('cat');
 
-        undef $cat unless $cat eq 'ANYCAT'
-            or grep {$cat eq $_} OMP::Fault->faultCategories;
+        if (defined $cat) {
+            $cat = uc $cat;
+
+            undef $cat unless $cat eq 'ANYCAT'
+                or grep {$cat eq $_} OMP::Fault->faultCategories;
+        }
     }
 
     $self->_sidebar_fault($cat);
