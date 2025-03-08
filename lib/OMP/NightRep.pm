@@ -795,7 +795,7 @@ sub msbs {
     elsif (not defined $self->{'MSBsDone'}) {
         my $db = OMP::DB::MSBDone->new(DB => $self->db);
 
-        my $query = OMP::Query::MSBDone->new(HASH => {
+        my %hash = (
             status => [
                 OMP__DONE_DONE,
                 OMP__DONE_REJECTED,
@@ -803,8 +803,13 @@ sub msbs {
                 OMP__DONE_ABORTED,
             ],
             date => {delta => $self->delta_day, value => $self->date->ymd},
-            telescope => $self->telescope,
-        });
+        );
+
+        if (defined $self->telescope) {
+            $hash{'telescope'} = $self->telescope;
+        }
+
+        my $query = OMP::Query::MSBDone->new(HASH => \%hash);
 
         # Request "transactions" so that we get any MSBs comments which
         # may have been added on other days.
