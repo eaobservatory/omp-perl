@@ -19,6 +19,8 @@ use strict;
 
 use Test::More tests => 4;
 
+use JAC::Setup qw/hdrtrans/;
+
 require_ok('OMP::MSBServer');
 
 my $cols = OMP::MSBServer->getResultColumns('JCMT');

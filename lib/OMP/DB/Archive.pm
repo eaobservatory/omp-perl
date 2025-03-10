@@ -29,8 +29,6 @@ use 5.006;
 use strict;
 use warnings;
 
-use JAC::Setup qw/hdrtrans/;
-
 use OMP::Query::Archive;
 use OMP::DB::Archive::Cache;
 use OMP::Constants qw/:logging/;
@@ -40,7 +38,6 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Config;
 use OMP::Util::FITS;
-use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;

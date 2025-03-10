@@ -24,6 +24,8 @@ use warnings;
 
 use Test::More tests => 41;
 
+use JAC::Setup qw/hdrtrans/;
+
 require_ok('OMP::SciProg');
 require_ok('OMP::DB::MSB');
 

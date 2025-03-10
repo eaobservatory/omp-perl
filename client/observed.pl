@@ -73,6 +73,8 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
+use JAC::Setup qw/hdrtrans/;
+
 use OMP::DB::Archive;
 use OMP::Config;
 use OMP::Constants qw/:fb :logging/;

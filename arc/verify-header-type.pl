@@ -81,7 +81,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use JAC::Setup qw/dataverify ocscfg/;
+use JAC::Setup qw/dataverify ocscfg hdrtrans/;
 
 my $DEBUG = 0;
 

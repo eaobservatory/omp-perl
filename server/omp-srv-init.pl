@@ -26,5 +26,8 @@ BEGIN {
 # config file
 use lib OMPLIB;
 
+# Use "JAC" path for "local" modules.
+use JAC::Setup qw/ocsq ocscfg hdrtrans/;
+
 # Return value from script
 1;

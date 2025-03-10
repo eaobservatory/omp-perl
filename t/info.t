@@ -21,6 +21,8 @@
 use Test::More tests => 50;
 use Scalar::Util qw/refaddr/;
 
+use JAC::Setup qw/hdrtrans/;
+
 require_ok('OMP::Info');
 require_ok('OMP::Info::Obs');
 require_ok('OMP::Info::MSB');

@@ -17,6 +17,7 @@
 
 use strict;
 
+use JAC::Setup qw/hdrtrans/;
 use Compress::Zlib;
 use OMP::Error qw/:try/;
 

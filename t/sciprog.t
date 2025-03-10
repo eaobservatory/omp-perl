@@ -24,6 +24,8 @@ use strict;
 use Test::More tests => 297;
 use Data::Dumper;
 
+use JAC::Setup qw/hdrtrans/;
+
 require_ok('OMP::SciProg');
 
 # The MSB summary is indexed by checksum

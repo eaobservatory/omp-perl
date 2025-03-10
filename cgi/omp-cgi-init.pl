@@ -34,6 +34,9 @@ use CGI::Carp qw/fatalsToBrowser/;
 # config file
 use lib OMPLIB;
 
+# Use "JAC" path for "local" modules.
+use JAC::Setup qw/ocsq ocscfg hdrtrans/;
+
 # Unbuffered output
 $| = 1;
 

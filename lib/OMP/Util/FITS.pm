@@ -17,8 +17,6 @@ This class provides routines for processing FITS header information.
 use strict;
 use warnings::register;
 
-use JAC::Setup qw/hdrtrans/;
-
 use Astro::FITS::HdrTrans;
 use Astro::FITS::Header;
 use List::MoreUtils qw/any all/;

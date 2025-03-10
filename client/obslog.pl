@@ -126,8 +126,14 @@ use FindBin;
 
 BEGIN {
     use constant OMPLIB => "$FindBin::RealBin/../lib";
+
     use lib OMPLIB;
+
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
+        unless exists $ENV{'OMP_CFG_DIR'};
 }
+
+use JAC::Setup qw/hdrtrans/;
 
 use OMP::DB::Archive;
 use OMP::Constants;
@@ -139,11 +145,6 @@ use OMP::Config;
 use OMP::Error qw/:try/;
 use OMP::Util::Client;
 use OMP::Util::File;
-
-BEGIN {
-    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
-        unless exists $ENV{'OMP_CFG_DIR'};
-}
 
 use OMP::DB::Obslog;
 use OMP::Query::Obslog;

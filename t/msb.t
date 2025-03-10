@@ -20,6 +20,8 @@
 
 use Test::More tests => 9;
 
+use JAC::Setup qw/hdrtrans/;
+
 use_ok('OMP::SciProg');
 use_ok('OMP::MSB');
 
