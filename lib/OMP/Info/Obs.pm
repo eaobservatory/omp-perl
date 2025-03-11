@@ -2203,7 +2203,8 @@ sub _populate {
             my %subsys;
             my @suborder;
             foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
-                my $subid = $subhdr->{$idkey};
+                next unless %$subhdr;
+                my $subid = $subhdr->{$idkey} // 'UNKNOWN';
                 unless (exists $subsys{$subid}) {
                     $subsys{$subid} = [];
                     push @suborder, $subid;
