@@ -1174,6 +1174,46 @@ sub _process_elements {
     }
 }
 
+=item B<_set_subquery_table>
+
+Modify the query hash by searching for SubQuery objects for
+which the C<filter> function returns a true value and setting
+their C<table> attribute to the given value.
+
+    $q->_set_subquery_table($table, $filter, [\%qhash]);
+
+(The third argument of a hash reference is used when this method recurses.)
+
+=cut
+
+sub _set_subquery_table {
+    my $self = shift;
+    my $table = shift;
+    my $filter = shift;
+    my $qhash = shift;
+
+    unless (defined $qhash) {
+        $qhash = $self->query_hash;
+    }
+    foreach my $key (keys %$qhash) {
+        my $ref = ref $qhash->{$key};
+        my $val = $qhash->{$key};
+
+        if (not $ref) {
+        }
+        elsif ($ref eq "ARRAY") {
+        }
+        elsif ($ref eq "HASH") {
+            $self->_set_subquery_table($table, $filter, $val);
+        }
+        elsif ($val->isa('OMP::Query::SubQuery')) {
+            if ($filter->($key, $val)) {
+                $val->table($table);
+            }
+        }
+    }
+}
+
 =back
 
 =head1 Query XML
