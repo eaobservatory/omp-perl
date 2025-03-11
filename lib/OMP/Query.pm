@@ -1170,6 +1170,9 @@ sub _process_elements {
             elsif ($val->isa('OMP::Query::In')) {
                 $val->values([map {$cb->($_)} @{$val->values}]);
             }
+            elsif ($val->isa('OMP::Query::SubQuery')) {
+                # Do not try to manipulate subquery.
+            }
             else {
                 throw OMP::Error::DBMalformedQuery(
                     "Unable to process class of type '$ref'");
