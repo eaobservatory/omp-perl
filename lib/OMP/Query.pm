@@ -443,9 +443,13 @@ sub _create_sql_recurse {
         my $subquery = $entry->query;
 
         # Assume operator is "IN" for now.
-        $sql = "($column IN (SELECT $expr FROM $table WHERE "
-            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} sort keys %$subquery)
-            . '))';
+        my $condition = "SELECT $expr FROM $table";
+        if (scalar %$subquery) {
+            $condition .= " WHERE "
+            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} sort keys %$subquery);
+        }
+
+        $sql = "($column IN ($condition))";
     }
     elsif (ref($entry) eq 'HASH') {
         # Call myself but join with an OR or AND
