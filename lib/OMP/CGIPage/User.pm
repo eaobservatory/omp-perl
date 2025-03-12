@@ -18,6 +18,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use JSON;
 our $VERSION = '2.000';
 
 use OMP::Config;
@@ -192,6 +193,48 @@ sub list_users {
         letters => \@alphabet,
         users => $users,
     };
+}
+
+sub query_users {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    my $type = $q->param('type');
+
+    my %hash = (
+        obfuscated => {boolean => 0},
+    );
+
+    unless (defined $type) {
+    }
+    elsif ($type eq 'support') {
+        $hash{'project_capacity'} = 'SUPPORT';
+    }
+    elsif ($type eq 'fault') {
+        $hash{'fault_author'} = 1;
+    }
+    else {
+        die 'Unknown type';
+    }
+
+    my $udb = OMP::DB::User->new(DB => $self->database);
+    my $users = $udb->queryUsers(OMP::Query::User->new(HASH => \%hash));
+
+    my @list = ();
+    foreach my $user (@$users) {
+        push @list, {
+            value => $user->userid,
+            text => $user->name,
+        };
+    }
+
+    print $q->header(
+        -type => 'application/json',
+        -charset => 'utf-8',
+        -expires => '+1h',
+    );
+
+    print encode_json(\@list);
 }
 
 =item B<edit_details>

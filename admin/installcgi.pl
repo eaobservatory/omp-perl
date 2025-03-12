@@ -95,6 +95,7 @@ my @pubfiles = qw/
     utprojlog.pl
     viewfault.pl wwwobserved.pl
     copy_text.js fault_summary.js form_submit_timeout.js log_in.js
+    query_user.pl
     sched_edit.js
     selectize.css selectize.js
     submit_on_change.js

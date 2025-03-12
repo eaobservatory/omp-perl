@@ -66,9 +66,12 @@ sub sql {
 
     throw OMP::Error::DBMalformedQuery(
         "sql method invoked with incorrect number of arguments\n")
-        unless scalar(@_) == 1;
+        unless scalar(@_) == 3;
 
-    my ($usertable) = @_;
+    my ($usertable, $projusertable, $faultbodytable) = @_;
+
+    $self->_set_subquery_table($faultbodytable, sub {my ($key, $subq) = @_; $subq->expression eq 'DISTINCT author'});
+    $self->_set_subquery_table($projusertable, sub {my ($key, $subq) = @_; $subq->expression eq 'DISTINCT userid'});
 
     # Generate the WHERE clause from the query hash
     my $subsql = $self->_qhash_tosql();
@@ -145,6 +148,26 @@ sub _post_process_hash {
             $href->{$key} = $href->{$_};
             delete $href->{$_};
         }
+    }
+
+    # Construct subqueries if needed.
+    if (exists $href->{'project_capacity'}) {
+        my $capacity = $href->{'project_capacity'};
+        $href->{'project_capacity'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT userid',
+                query => {
+                    capacity => $capacity,
+                }),
+        };
+    }
+
+    if (exists $href->{'fault_author'}) {
+        $href->{'fault_author'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT author',
+                query => {}),
+        };
     }
 
     # Remove attributes since we dont need them anymore
