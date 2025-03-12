@@ -1187,9 +1187,15 @@ Modify the query hash by searching for SubQuery objects for
 which the C<filter> function returns a true value and setting
 their C<table> attribute to the given value.
 
-    $q->_set_subquery_table($table, $filter, [\%qhash]);
+    $q->_set_subquery_table($table, $filter, [\%qhash, $parent]);
 
-(The third argument of a hash reference is used when this method recurses.)
+(The 3rd and 4th arguments of a hash reference and parent key name
+are used when this method recurses.)
+
+The C<filter> function is called with the parent key (if present),
+key and SubQuery object.
+
+    $filter->($parent, $key, $subquery)
 
 =cut
 
@@ -1198,6 +1204,7 @@ sub _set_subquery_table {
     my $table = shift;
     my $filter = shift;
     my $qhash = shift;
+    my $parent = shift;
 
     unless (defined $qhash) {
         $qhash = $self->query_hash;
@@ -1211,10 +1218,10 @@ sub _set_subquery_table {
         elsif ($ref eq "ARRAY") {
         }
         elsif ($ref eq "HASH") {
-            $self->_set_subquery_table($table, $filter, $val);
+            $self->_set_subquery_table($table, $filter, $val, $key);
         }
         elsif ($val->isa('OMP::Query::SubQuery')) {
-            if ($filter->($key, $val)) {
+            if ($filter->($parent, $key, $val)) {
                 $val->table($table);
             }
         }

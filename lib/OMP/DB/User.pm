@@ -450,7 +450,7 @@ sub _query_userdb {
     my $query = shift;
 
     # TODO: obtain table names from DB classes (preferably without circular imports)
-    my $sql = $query->sql($USERTABLE, 'ompprojuser', 'ompfaultbody');
+    my $sql = $query->sql($USERTABLE, 'ompprojuser', 'ompfaultbody', 'ompobslog', 'ompshiftlog');
 
     # Fetch
     my $ref = $self->_db_retrieve_data_ashash($sql);

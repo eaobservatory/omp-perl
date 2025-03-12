@@ -61,7 +61,7 @@ sub sql {
 
     # If we are doing a query by instrument, fill in the name
     # of the observation table in the subquery.
-    $self->_set_subquery_table($obstable, sub {my ($key, $subq) = @_; $key eq 'P.projectid';});
+    $self->_set_subquery_table($obstable, sub {$_[0] eq 'instrument';});
 
     # Generate the WHERE clause from the query hash
     # Note that we ignore elevation, airmass and date since

@@ -213,6 +213,12 @@ sub query_users {
     elsif ($type eq 'fault') {
         $hash{'fault_author'} = 1;
     }
+    elsif ($type eq 'obslog') {
+        $hash{'obslog_author'} = 1;
+    }
+    elsif ($type eq 'shiftlog') {
+        $hash{'shiftlog_author'} = 1;
+    }
     else {
         die 'Unknown type';
     }
