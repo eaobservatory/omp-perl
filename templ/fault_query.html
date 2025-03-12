@@ -58,8 +58,12 @@
                 </td>
             <tr>
                 <td colspan="2">
-                    <b>By user <small>(ID)</small></b>
-                    <input type="text" name="author" size="17" maxlength="32" value="[% form_info.values.author | html %]" />
+                    <b>By user:</b>
+                    <div style="display: inline-block; width: 50ex;">
+                        <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=fault" data-selected="[% form_info.values.userid | html %]">
+                            <option value="">Loading&hellip;</option>
+                        </select>
+                    </div>
                 </td>
             <tr>
                 <td valign="top" align="right">

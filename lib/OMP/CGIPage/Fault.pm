@@ -268,17 +268,10 @@ sub query_fault_output {
             }
         }
 
-        if ($q->param('author')) {
-            my $author = uc($q->param('author'));
+        if ($q->param('userid')) {
+            die 'Invalid userid' unless $q->param('userid') =~ /^([A-Z]+[0-9]*)$/;
 
-            # Get the user object (this will automatically
-            # map the an alias to a user ID)
-            my $user = OMP::DB::User->new(DB => $self->database)->getUser($author);
-
-            croak "Could not find user '$author'"
-                unless $user;
-
-            $hash{'author'} = $user->userid;
+            $hash{'author'} = $1;
         }
 
         # Generate the date portion of our query

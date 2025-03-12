@@ -159,7 +159,7 @@ sub query_fault_form {
             timezone => (scalar $q->param('timezone') // 'HST'),
             text_search => (scalar $q->param('text_search') // 'both'),
             map {$_ => scalar $q->param($_)}
-                qw/author mindate maxdate days system type status
+                qw/userid mindate maxdate days system type status
                 timelost show_affected chronic summary
                 text text_boolean/,
         },

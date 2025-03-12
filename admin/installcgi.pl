@@ -98,6 +98,7 @@ my @pubfiles = qw/
     query_user.pl
     sched_edit.js
     selectize.css selectize.js
+    select_userid.js
     submit_on_change.js
     table_filter.js time_accounting.js time_set_now.js
     user_list.js

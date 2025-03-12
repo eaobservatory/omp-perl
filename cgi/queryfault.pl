@@ -20,5 +20,5 @@ OMP::CGIPage::Fault->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'Fault Query',
     template => 'fault_query.html',
-    javascript => ['fault_summary.js'],
+    javascript => ['fault_summary.js', 'selectize.js', 'select_userid.js'],
 );
