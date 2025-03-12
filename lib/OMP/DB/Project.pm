@@ -482,7 +482,7 @@ USER_SQL
 Retrieve all the countries associated with projects in the specified
 semesters and for the specified telescope.
 
-    @countries = $projdb->listSupport(
+    @countries = $projdb->listCountries(
         telescope => $tel,
         semester => \@semesters);
 
