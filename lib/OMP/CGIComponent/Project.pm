@@ -63,11 +63,6 @@ sub list_projects_form {
     # Make sure the current semester is a selectable option
     push @sem, $sem unless grep {$_ =~ /$sem/i} @sem;
 
-    my @support =
-        sort {$a->[0] cmp $b->[0]}
-        map {[$_->userid, $_->name]}
-        $db->listSupport;
-
     # Take serv out of the countries list
     my @countries = grep {$_ !~ /^serv$/i}
         $db->listCountries(telescope => $telescope);
@@ -87,7 +82,6 @@ sub list_projects_form {
             [0 => 'Disabled'],
             [all => 'Both'],
         ],
-        supports => \@support,
         countries => [sort @countries],
         instruments => [qw/SCUBA-2 HARP AWEOWEO UU ALAIHI KUNTUR/],
         orders => [

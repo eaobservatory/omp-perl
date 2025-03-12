@@ -43,12 +43,13 @@
         </tr>
         <tr>
             <td align='right'>Support:</td>
-            <td><select name="support" >
-                <option [% UNLESS values.support.defined %]selected="selected"[% END %] value="">Any</option>
-                [% FOREACH support IN supports %]
-                    <option [% IF support.0 == values.support %]selected="selected"[% END %] value="[% support.0 | html %]">[% support.1 | html %]</option>
-                [% END %]
-            </select></td>
+            <td>
+                <div style="display: inline-block; width: 40ex;">
+                    <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=support" data-selected="[% values.userid | html %]">
+                        <option value="">Loading&hellip;</option>
+                    </select>
+                </div>
+            </td>
         </tr>
         <tr>
             <td align='right'>Order by:</td>

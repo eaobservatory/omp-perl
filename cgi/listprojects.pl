@@ -20,4 +20,5 @@ OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'List Projects',
     template => 'project_list.html',
+    javascript => ['selectize.js', 'select_userid.js'],
 );

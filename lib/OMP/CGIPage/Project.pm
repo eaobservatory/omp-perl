@@ -112,7 +112,7 @@ sub list_projects {
     my $semester = $q->param('semester');
     my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
     my $status = ($q->param('status') eq 'all' ? undef : $q->param('status'));
-    my $support = $q->param('support');
+    my $support = $q->param('userid');
     my $country = $q->param('country');
     my $order = $q->param('order');
 
@@ -121,20 +121,25 @@ sub list_projects {
         grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
 
     undef $semester if $semester eq '';
-    undef $support if $support eq '';
     undef $country if $country eq '';
 
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => {
+    my %hash = (
         (defined $state ? (state => {boolean => $state}) : ()),
         (defined $status ? (status => $status) : ()),
         (defined $semester ? (semester => $semester) : ()),
-        (defined $support ? (support => $support) : ()),
         (defined $country ? (country => [split /\+/, $country]) : ()),
         (%$instrument ? (instrument => [keys %$instrument]) : ()),
         telescope => $telescope,
-    }));
+    );
+
+    if ($support) {
+        die 'Invalid userid' unless $support =~ /^([A-Z]+[0-9]*)$/;
+        $hash{'support'} = $1;
+    }
+
+    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => \%hash));
 
     my @sorted = ();
     if (@$projects) {
@@ -218,7 +223,7 @@ sub list_projects {
             semester => $semester,
             state => $state,
             status => $status,
-            support => $support,
+            userid => $support,
             country => $country,
             order => $order,
             instrument => $instrument,
