@@ -129,7 +129,7 @@
                     </td>
                     <td>
                         [% FOREACH support IN project.support %]
-                            [% support.userid %][% UNLESS loop.last %],[% END %]
+                            <a href="/cgi-bin/userdetails.pl?user=[% support.userid | html %]">[% support.name | html %]</a>[% UNLESS loop.last %],[% END %]
                         [% END %]
                     </td>
                     <td align="center">
