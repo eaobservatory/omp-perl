@@ -174,7 +174,7 @@ sub shiftlog_search {
         text => '',
         text_boolean => 0,
         period => 'arbitrary',
-        author => '',
+        userid => '',
         mindate => '',
         maxdate => '',
         days => '',

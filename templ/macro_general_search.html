@@ -1,7 +1,11 @@
-[% MACRO render_common_fields(values) BLOCK %]
+[% MACRO render_common_fields(values, user_type) BLOCK %]
     <p>
-        <b>User <small>(ID)</small>:</b>
-        <input type="text" name="author" size="17" maxlength="32" value="[% values.author | html %]" />
+        <b>User:</b>
+        <div style="display: inline-block; width: 40ex;">
+            <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=[% user_type %]" data-selected="[% values.userid | html %]">
+                <option value="">Loading&hellip;</option>
+            </select>
+        </div>
     </p>
     <p>
         <label>

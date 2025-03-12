@@ -20,4 +20,5 @@ OMP::CGIPage::NightRep->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'Search Observing Report',
     template => 'obs_log_search.html',
+    javascript => ['selectize.js', 'select_userid.js'],
 );

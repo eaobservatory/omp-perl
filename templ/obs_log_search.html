@@ -3,7 +3,7 @@
 <h1>Search Observation Log</h1>
 
 <form method="post" action="[% form_info.target %]">
-    [% render_common_fields(form_info.values) %]
+    [% render_common_fields(form_info.values, "obslog") %]
     [% render_search_text_field(form_info.values) %]
     <p>
         <b>Comment type:</b>
