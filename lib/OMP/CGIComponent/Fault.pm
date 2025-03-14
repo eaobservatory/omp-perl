@@ -138,11 +138,6 @@ sub query_fault_form {
             [file => 'filed'],
             [activity => 'with any activity'],
         ],
-        periods => [
-            [arbitrary => 'between dates'],
-            [days => 'in the last'],
-            [last_month => 'in the last calendar month'],
-        ],
         text_searches => [
             'text',
             'subject',
