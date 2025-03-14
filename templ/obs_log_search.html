@@ -3,27 +3,40 @@
 <h1>Search Observation Log</h1>
 
 <form method="post" action="[% form_info.target %]">
-    [% render_common_fields(form_info.values, "obslog") %]
-    [% render_search_text_field(form_info.values) %]
-    <p>
-        <b>Comment type:</b>
-        <select name="type">
-            <option value="">All</option>
-            <option value="obs" [% IF form_info.values.type == "obs" %]selected="selected"[% END %]>Observation</option>
-            <option value="gap" [% IF form_info.values.type == "gap" %]selected="selected"[% END %]>Time gap</option>
-        </select>
-    </p>
-    <p>
-        <b>Comment active:</b>
-        <label>
-            <input type="checkbox" name="active" [% IF form_info.values.active %]checked="checked"[% END %] />
-            (last comment by user)
-        </label>
-    </p>
-    [% render_sort_fields(form_info.values) %]
-    <p>
-        <input type="submit" name="search" value="Search"/>
-    </p>
+    <table>
+        [% render_common_fields(form_info.values, "obslog") %]
+        [% render_search_text_field(form_info.values) %]
+        <tr>
+            <td>
+                <b>Comment type:</b>
+            </td>
+            <td>
+                <select name="type">
+                    <option value="">All</option>
+                    <option value="obs" [% IF form_info.values.type == "obs" %]selected="selected"[% END %]>Observation</option>
+                    <option value="gap" [% IF form_info.values.type == "gap" %]selected="selected"[% END %]>Time gap</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Comment active:</b>
+            </td>
+            <td>
+                <label>
+                    <input type="checkbox" name="active" [% IF form_info.values.active %]checked="checked"[% END %] />
+                    (last comment by user)
+                </label>
+            </td>
+        </tr>
+        [% render_sort_fields(form_info.values) %]
+        <tr>
+            <td>&nbsp;</td>
+            <td>
+                <input type="submit" name="search" value="Search"/>
+            </td>
+        </tr>
+    </table>
 </form>
 
 [% IF message.defined %]

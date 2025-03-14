@@ -1,51 +1,68 @@
 [% MACRO render_common_fields(values, user_type) BLOCK %]
-    <p>
-        <b>User:</b>
-        <div style="display: inline-block; width: 40ex;">
-            <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=[% user_type %]" data-selected="[% values.userid | html %]">
-                <option value="">Loading&hellip;</option>
-            </select>
-        </div>
-    </p>
-    <p>
-        <label>
-            <input type="radio" name="period" value="arbitrary" [% IF values.period == "arbitrary" %]checked="checked"[% END %] />
-            Between dates
-        </label>
-        <small>(YYYYMMDD)</small>
+    <tr>
+        <td>
+            <b>User:</b>
+        </td>
+        <td>
+            <div style="display: inline-block; width: 40ex;">
+                <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=[% user_type %]" data-selected="[% values.userid | html %]">
+                    <option value="">Loading&hellip;</option>
+                </select>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td rowspan="2">
+            <b>Date:</b>
+        </td>
+        <td>
+            <label>
+                <input type="radio" name="period" value="arbitrary" [% IF values.period == "arbitrary" %]checked="checked"[% END %] />
+                Between dates
+            </label>
 
-        <input type="text" name="mindate" size="18" maxlength="32" value="[% values.mindate %]" />
-        and
-        <input type="text" name="maxdate" size="18" maxlength="32" value="[% values.maxdate %]" />
-    </p>
-    <p>
-        <label>
-            <input type="radio" name="period" value="days" [% IF values.period == "days" %]checked="checked"[% END %] />
-            In the last
-        </label>
-        <input type="text" name="days" size="5" maxlength="5" value="[% values.days %]" />
-        days
-    </p>
+            <input type="text" name="mindate" size="14" maxlength="32" value="[% values.mindate %]" placeholder="YYYYMMDD" />
+            and
+            <input type="text" name="maxdate" size="14" maxlength="32" value="[% values.maxdate %]" placeholder="YYYYMMDD" />
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label>
+                <input type="radio" name="period" value="days" [% IF values.period == "days" %]checked="checked"[% END %] />
+                In the last
+            </label>
+            <input type="text" name="days" size="5" maxlength="5" value="[% values.days %]" />
+            days
+        </td>
+    </tr>
 [% END -%]
 [% MACRO render_search_text_field(values) BLOCK %]
-    <p>
-        <b>Text:</b>
-        <input type="text" name="text" size="44" maxlength="256" value="[% values.text | html %]"/>
-        (<label><input type="checkbox" name="text_boolean" value="1" [% IF values.text_boolean %]checked="checked"[% END %] /> boolean mode</label>
-        <a href="https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode" target="_blank">?</a>)
-    </p>
-
+    <tr>
+        <td>
+            <b>Text:</b>
+        </td>
+        <td>
+            <input type="text" name="text" size="44" maxlength="256" value="[% values.text | html %]"/>
+            (<label><input type="checkbox" name="text_boolean" value="1" [% IF values.text_boolean %]checked="checked"[% END %] /> boolean mode</label>
+            <a href="https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode" target="_blank">?</a>)
+        </td>
+    </tr>
 [% END -%]
 [% MACRO render_sort_fields(values) BLOCK %]
-    <p>
-        <b>Sort by:</b>
-        <select name="sort_by">
-            <option value="relevance" [% IF values.sort_by == "relevance" %]selected="selected"[% END %]>Relevance</option>
-            <option value="date" [% IF values.sort_by == "date" %]selected="selected"[% END %]>Date</option>
-        </select>
-        <select name="sort_order">
-            <option value="descending" [% IF values.sort_order == "descending" %]selected="selected"[% END %]>Descending</option>
-            <option value="ascending" [% IF values.sort_order == "ascending" %]selected="selected"[% END %]>Ascending</option>
-        </select>
-    </p>
+    <tr>
+        <td>
+            <b>Sort by:</b>
+        </td>
+        <td>
+            <select name="sort_by">
+                <option value="relevance" [% IF values.sort_by == "relevance" %]selected="selected"[% END %]>Relevance</option>
+                <option value="date" [% IF values.sort_by == "date" %]selected="selected"[% END %]>Date</option>
+            </select>
+            <select name="sort_order">
+                <option value="descending" [% IF values.sort_order == "descending" %]selected="selected"[% END %]>Descending</option>
+                <option value="ascending" [% IF values.sort_order == "ascending" %]selected="selected"[% END %]>Ascending</option>
+            </select>
+        </td>
+    </tr>
 [% END -%]
