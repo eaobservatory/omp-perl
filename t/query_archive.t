@@ -18,7 +18,7 @@
 # Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 8;
 
 require_ok('OMP::Query::Archive');
 
@@ -35,8 +35,35 @@ my @sql = $q->sql;
 is(scalar @sql, 1);
 
 is($sql[0],
-    "SELECT *, J.date_obs AS 'date_obs' , J.date_end AS 'date_end'"
-    . " FROM jcmt.COMMON J ,jcmt.SCUBA2 S2 "
+    "SELECT *, J.date_obs AS 'date_obs', J.date_end AS 'date_end'"
+    . " FROM jcmt.COMMON J JOIN jcmt.SCUBA2 S2 ON J.obsid = S2.obsid"
     . " WHERE ((J.date_obs >= '2024-04-01 00:00:00' AND J.date_obs <= '2025-04-30 23:59:59'))"
-    . " AND ((( UPPER( J.instrume ) = UPPER( 'SCUBA-2' ) )))"
-    . " AND (J.obsid = S2.obsid)");
+    . " AND ((( UPPER( J.instrume ) = UPPER( 'SCUBA-2' ) )))");
+
+@sql = OMP::Query::Archive->new(HASH => {
+    instrument => 'HARP',
+    date => {
+        min => '2024-04-01',
+        max => '2025-05-01',
+    },
+})->sql;
+is(scalar @sql, 1);
+is($sql[0],
+    "SELECT *, J.date_obs AS 'date_obs', J.date_end AS 'date_end'"
+    . " FROM jcmt.COMMON J JOIN jcmt.ACSIS A ON J.obsid = A.obsid"
+    . " WHERE ((J.date_obs >= '2024-04-01 00:00:00' AND J.date_obs <= '2025-04-30 23:59:59'))"
+    . " AND ((( UPPER( J.instrume ) = UPPER( 'HARP' ) )))");
+
+@sql = OMP::Query::Archive->new(HASH => {
+    instrument => 'RxH3',
+    date => {
+        min => '2024-04-01',
+        max => '2025-05-01',
+    },
+})->sql;
+is(scalar @sql, 1);
+is($sql[0],
+    "SELECT *, J.date_obs AS 'date_obs', J.date_end AS 'date_end'"
+    . " FROM jcmt.COMMON J JOIN jcmt.RXH3 H3 ON J.obsid = H3.obsid"
+    . " WHERE ((J.date_obs >= '2024-04-01 00:00:00' AND J.date_obs <= '2025-04-30 23:59:59'))"
+    . " AND ((( UPPER( J.instrume ) = UPPER( 'RXH3' ) )))");

@@ -107,20 +107,20 @@ our %insttable = (
 
 our %jointable = (
     $GSDTAB => {
-        $SUBTAB => '(G.`sca#` = H.`sca#`)',
+        $SUBTAB => 'G.`sca#` = H.`sca#`',
     },
     $UKIRTTAB => {
-        $UFTITAB => '(U.idkey = F.idkey)',
-        $CGS4TAB => '(U.idkey = C.idkey)',
-        $UISTTAB => '(U.idkey = I.idkey)',
-        $IRCAMTAB => '(U.idkey = I.idkey)',
-        $WFCAMTAB => '(U.idkey = W.idkey)',
-        $MICHELLETAB => '(U.idkey = M.idkey)',
+        $UFTITAB => 'U.idkey = F.idkey',
+        $CGS4TAB => 'U.idkey = C.idkey',
+        $UISTTAB => 'U.idkey = I.idkey',
+        $IRCAMTAB => 'U.idkey = I.idkey',
+        $WFCAMTAB => 'U.idkey = W.idkey',
+        $MICHELLETAB => 'U.idkey = M.idkey',
     },
     $JCMTTAB => {
-        $ACSISTAB => '(J.obsid = A.obsid)',
-        $SCUBA2TAB => '(J.obsid = S2.obsid)',
-        $RXH3TAB => '(J.obsid = H3.obsid)',
+        $ACSISTAB => 'J.obsid = A.obsid',
+        $SCUBA2TAB => 'J.obsid = S2.obsid',
+        $RXH3TAB => 'J.obsid = H3.obsid',
     },
 );
 
@@ -488,37 +488,37 @@ sub sql {
         next unless $subsql;
 
         # Form the join.
+        my $tables = $insttable{$t};
         my @join;
-        if ($#{$insttable{$t}} > 0) {
-            for (my $i = 1; $i <= $#{$insttable{$t}}; $i ++) {
-                my $join = $jointable{$insttable{$t}[0]}{$insttable{$t}[$i]};
-                push @join, $join;
-            }
-        }
 
-        my @where = grep {$_} ($subsql, @join);
-        my $where = '';
-        $where = " WHERE " . join(" AND ", @where)
-            if @where;
+        # Add the first table to the list.
+        push @join, $tables->[0];
+
+        # Add join expression for subsequent tables.
+        for (my $i = 1; $i <= $#$tables; $i ++) {
+            push @join,
+                'JOIN', $tables->[$i],
+                'ON', $jointable{$tables->[0]}{$tables->[$i]};
+        }
 
         # Now need to put this SQL into the template query
         # Need to switch on telescope
-        my $tables = join(" ,", @{$insttable{$t}});
+        my $from = join ' ', @join;
         my $tel = $self->telescope;
         my $sql;
         if ($tel eq 'JCMT') {
-            $sql = "SELECT *, ";
-            $sql .= $lut{date}->{$insttable{$t}->[0]} . " AS 'date_obs' ";
-            if (defined($lut{dateend}->{$insttable{$t}->[0]})) {
-                $sql .= ", "
-                    . $lut{dateend}->{$insttable{$t}->[0]}
-                    . " AS 'date_end' ";
+            $sql = 'SELECT *, '
+                . $lut{date}->{$tables->[0]} . " AS 'date_obs'";
+            if (defined($lut{dateend}->{$tables->[0]})) {
+                $sql .= ', '
+                    . $lut{dateend}->{$tables->[0]}
+                    . " AS 'date_end'";
             }
-            $sql .= "FROM $tables $where";
+            $sql .= " FROM $from WHERE $subsql";
         }
         elsif ($tel eq 'UKIRT') {
             # UKIRT - query common table first
-            $sql = "SELECT * FROM $tables $where ORDER BY UT_DATE";
+            $sql = "SELECT * FROM $from WHERE $subsql ORDER BY UT_DATE";
         }
         else {
             throw OMP::Error::DBMalformedQuery(
