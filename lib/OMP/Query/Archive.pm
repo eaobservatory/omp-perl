@@ -417,28 +417,6 @@ sub obsid {
     return;
 }
 
-=item B<_tables>
-
-List of database tables used for this query. They are usually
-just joined by a comma and placed in the initial line of the
-SQL.
-
-    $q->_tables(@tables);
-    @tables = $q->_tables;
-
-In principal the entries should match values stored in the global
-table variables used in this class but we do not check this.
-
-=cut
-
-sub _tables {
-    my $self = shift;
-    if (@_) {
-        $self->{Tables} = [@_];
-    }
-    return @{$self->{Tables}};
-}
-
 =back
 
 =head2 General Methods
@@ -702,35 +680,29 @@ sub _post_process_hash {
     # Loop over instruments if specified
     # This is required for a sanity check to make sure incorrect combos are
     # trapped
-    my %tables;
     my %insts;
     if (exists $href->{instrument}) {
         my %tels;
         for (@{$href->{instrument}}) {
             my $inst = uc($_);
             if ($inst eq "SCUBA") {
-                $tables{$SCUTAB} ++;
                 $tels{JCMT} ++;
                 $insts{SCUBA} ++;
             }
             elsif ($inst =~ /^SCUBA-?2/i) {
-                $tables{$SCUBA2TAB} ++;
                 $tels{JCMT} ++;
                 $insts{'SCUBA-2'} ++;
             }
             elsif ($inst =~ /^RXH3/i) {
-                $tables{$RXH3TAB} ++;
                 $tels{JCMT} ++;
                 $insts{'RXH3'} ++;
             }
             elsif ($inst =~ /^(HARP|GLT|ALAIHI|UU|AWEOWEO|KUNTUR)/i) {
                 # Only new data for harp so no GSD
-                $tables{$JCMTTAB} ++;
                 $tels{JCMT} ++;
                 $insts{ACSIS} ++;
             }
             elsif ($inst =~ /^ACSIS/i) {
-                $tables{$JCMTTAB} ++;
                 $tels{JCMT} ++;
 
                 # ACSIS is a backend, not an instrument.  So if $insts{ACSIS} is set,
@@ -739,30 +711,24 @@ sub _post_process_hash {
             elsif ($inst =~ /^UKT/) {
                 # must be old JCMT
                 $tels{JCMT} ++;
-                $tables{$GSDTAB} ++;
                 $insts{HETERODYNE} ++;
             }
             elsif ($inst =~ /^(RX|HETERODYNE)/i) {
                 # can make a decision to trim if we have a date
                 if (defined $newjcmt) {
                     unless ($newjcmt) {
-                        $tables{$GSDTAB} ++;
                         $insts{HETERODYNE} ++;
                     }
                     else {
                         $insts{ACSIS} ++;
-                        $tables{$JCMTTAB} ++;
                     }
                 }
                 else {
-                    $tables{$GSDTAB} ++;
-                    $tables{$JCMTTAB} ++;
                     $insts{HETERODYNE} ++;
                 }
                 $tels{JCMT} ++;
             }
             elsif ($inst =~ $ukirt_inst) {
-                $tables{$UKIRTTAB} ++;
                 $tels{UKIRT} ++;
                 $insts{$inst} ++;
             }
@@ -775,7 +741,6 @@ sub _post_process_hash {
         # No instrument specified so we must select the tables
         my $tel = $href->{telescope}->[0];
         if (defined $tel && $tel eq 'UKIRT') {
-            $tables{$UKIRTTAB} ++;
             $insts{CGS4} ++;
             $insts{IRCAM} ++;
             $insts{UFTI} ++;
@@ -786,9 +751,6 @@ sub _post_process_hash {
         elsif (defined $tel && $tel eq 'JCMT') {
             if (defined $newjcmt) {
                 if ($newjcmt) {
-                    $tables{$JCMTTAB} ++;
-                    $tables{$ACSISTAB} ++;
-                    $tables{$FILESTAB} ++;
                     $insts{ACSIS} ++;
                     $insts{'SCUBA-2'} ++;
                     $insts{'RXH3'} ++;
@@ -796,8 +758,6 @@ sub _post_process_hash {
                 else {
                     $insts{SCUBA} ++;
                     $insts{HETERODYNE} ++;
-                    $tables{$SCUTAB} ++;
-                    $tables{$GSDTAB} ++;
                 }
             }
             else {
@@ -806,22 +766,14 @@ sub _post_process_hash {
                 $insts{'SCUBA-2'} ++;
                 $insts{HETERODYNE} ++;
                 $insts{'RXH3'} ++;
-                $tables{$SCUTAB} ++;
-                $tables{$GSDTAB} ++;
-                $tables{$JCMTTAB} ++;
-                $tables{$ACSISTAB} ++;
-                $tables{$FILESTAB} ++;
             }
         }
         else {
             throw OMP::Error::DBMalformedQuery(
-                "Unable to determine tables from telescope name "
+                "Unable to determine instruments from telescope name "
                 . (defined $tel ? "'$tel'" : "'<undef>'"));
         }
     }
-
-    # Now store the selected tables
-    $self->_tables(keys %tables);
 
     # Translate the query to be keyed by instrument.
     # Note that this ruins the hash to a certain extent.
