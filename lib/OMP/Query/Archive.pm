@@ -45,23 +45,9 @@ our $WFCAMTAB = 'ukirt.WFCAM W';
 our $MICHELLETAB = 'ukirt.MICHELLE M';
 our $JCMTTAB = 'jcmt.COMMON J';
 our $ACSISTAB = 'jcmt.ACSIS A';
-our $AFILESTAB = 'jcmt.FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
-
-# Extra description for Tim: In the %jointable the $AFILESTAB and
-# $S2FILESTAB are used as hash keys. Now, these both point to the same
-# table, so they both interpolate to the same string. When that
-# happens, the join string for the SCUBA-2 files table overwrites that
-# for the ACSIS files table, and if you're doing ACSIS lookups it
-# tries to join against the SCUBA-2 table, which clearly doesn't
-# work. If we add the space to the end of the $AFILESTAB string it
-# doesn't affect the resulting SQL statement, but the two keys become
-# unique and thus the hash works as it should.
-
+our $FILESTAB = 'jcmt.FILES F';
 our $SCUBA2TAB = 'jcmt.SCUBA2 S2';
-our $S2FILESTAB = 'jcmt.FILES F';
-
 our $RXH3TAB = 'jcmt.RXH3 H3';
-our $RXH3FILESTAB = 'jcmt.FILES F  '; # Two extra spaces, to distinguish as above.
 
 {
     my $cf = OMP::Config->new;
@@ -70,36 +56,31 @@ our $RXH3FILESTAB = 'jcmt.FILES F  '; # Two extra spaces, to distinguish as abov
     my $prefix = $cf->getData('arc-database-prefix');
 
     if ($prefix) {
-        my %db;
         # Need to keep list of table references here in sync with above.
-        $db{'jcmt'} = [
-            \$JCMTTAB,
-            \$ACSISTAB,
-            \$AFILESTAB,
-            \$SCUBA2TAB,
-            \$S2FILESTAB,
-            \$RXH3TAB,
-            \$RXH3FILESTAB,
-        ];
-
-        $db{'jcmt_tms'} = [
-            \$SCUTAB,
-            \$GSDTAB,
-            \$SUBTAB,
-            \$SPHTAB,
-        ];
-
-        $db{'ukirt'} = [
-            \$UKIRTTAB,
-            \$UFTITAB,
-            \$CGS4TAB,
-            \$UISTTAB,
-            \$IRCAMTAB,
-            \$WFCAMTAB,
-            \$MICHELLETAB,
-        ];
-
-        my $keys = join '|', keys %db;
+        my %db = (
+            jcmt => [
+                \$JCMTTAB,
+                \$ACSISTAB,
+                \$FILESTAB,
+                \$SCUBA2TAB,
+                \$RXH3TAB,
+            ],
+            jcmt_tms => [
+                \$SCUTAB,
+                \$GSDTAB,
+                \$SUBTAB,
+                \$SPHTAB,
+            ],
+            ukirt => [
+                \$UKIRTTAB,
+                \$UFTITAB,
+                \$CGS4TAB,
+                \$UISTTAB,
+                \$IRCAMTAB,
+                \$WFCAMTAB,
+                \$MICHELLETAB,
+            ],
+        );
 
         for my $key (keys %db) {
             # The Switchroo.
@@ -120,7 +101,6 @@ our %insttable = (
     SCUBA => [$SCUTAB],
     HETERODYNE => [$GSDTAB, $SUBTAB],
     ACSIS => [$JCMTTAB, $ACSISTAB],
-    #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
     'SCUBA-2' => [$JCMTTAB, $SCUBA2TAB],
     RXH3 => [$JCMTTAB, $RXH3TAB],
 );
@@ -139,11 +119,8 @@ our %jointable = (
     },
     $JCMTTAB => {
         $ACSISTAB => '(J.obsid = A.obsid)',
-        $AFILESTAB => '(A.obsid_subsysnr = F.obsid_subsysnr)',
         $SCUBA2TAB => '(J.obsid = S2.obsid)',
-        $S2FILESTAB => '(S2.obsid_subsysnr = F.obsid_subsysnr)',
         $RXH3TAB => '(J.obsid = H3.obsid)',
-        $RXH3FILESTAB => '(H3.obsid_subsysnr = F.obsid_subsysnr)',
     },
 );
 
@@ -804,7 +781,7 @@ sub _post_process_hash {
                 if ($newjcmt) {
                     $tables{$JCMTTAB} ++;
                     $tables{$ACSISTAB} ++;
-                    $tables{$AFILESTAB} ++;
+                    $tables{$FILESTAB} ++;
                     $insts{ACSIS} ++;
                     $insts{'SCUBA-2'} ++;
                     $insts{'RXH3'} ++;
@@ -826,7 +803,7 @@ sub _post_process_hash {
                 $tables{$GSDTAB} ++;
                 $tables{$JCMTTAB} ++;
                 $tables{$ACSISTAB} ++;
-                $tables{$AFILESTAB} ++;
+                $tables{$FILESTAB} ++;
             }
         }
         else {

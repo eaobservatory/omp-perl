@@ -763,7 +763,7 @@ sub _prepare_FILES_select {
         ORDER BY obsid_subsysnr
 _SQL_
 
-    $sql = sprintf $sql, $OMP::Query::Archive::AFILESTAB;
+    $sql = sprintf $sql, $OMP::Query::Archive::FILESTAB;
 
     # $ENV{'OMP_SITE_CONFIG'} =
     #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg';
