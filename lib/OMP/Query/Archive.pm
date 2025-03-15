@@ -496,7 +496,14 @@ sub sql {
         # additional queries are defined
         next if $t eq 'telescope';
 
-        my $subsql = $self->_qhash_tosql([qw/telescope/], $t);
+        my $subsql;
+        do {
+            # Locally override the query hash attribute so that we can
+            # call the base class _qhash_tosql method.  (Note QHash should
+            # normally be only accessed via the query_hash method.)
+            local $self->{QHash} = $href->{$t};
+            $subsql = $self->_qhash_tosql([qw/telescope/]);
+        };
 
         # if there is no sql returned here then we have an open query
         # so skip this telescope
@@ -926,65 +933,6 @@ sub _adjust_instrument {
     }
 
     return;
-}
-
-=item B<_qhash_tosql>
-
-Convert a query hash to a SQL WHERE clause. Called by sub-classes
-in order prior to inserting the clause into the main SQL query.
-
-    $where = $q->_qhash_tosql(\@skip);
-
-First argument is a reference to an array that contains the names of
-keys in the query hash that should be skipped when constructing the
-SQL.
-
-Returned SQL segment does not include "WHERE".
-
-=cut
-
-sub _qhash_tosql {
-    my $self = shift;
-    my $skip = shift;
-    my $inst = shift;
-
-    $skip = [] unless defined $skip;
-
-    # Retrieve the perl version of the query
-    my $href = $self->query_hash;
-    my $query;
-    if (defined($inst)) {
-        $query = $href->{$inst};
-    }
-    else {
-        $query = $href;
-    }
-
-    # Remove the elements that are not "useful"
-    # ie those that start with _ and those that
-    # are in the skip array
-    # [tried it with a grep but it didnt work first
-    # time out - may come back to this later]
-
-    my @keys;
-    for my $entry (sort keys %$query) {
-        next if $entry =~ /^_/;
-        next if grep /^$entry$/, @$skip;
-
-        push @keys, $entry;
-    }
-
-    # Walk through the hash generating the core SQL
-    # a chunk at a time - skipping if required
-    my @sql = grep {defined $_}
-        map {$self->_create_sql_recurse($_, $query->{$_})}
-        @keys;
-
-    # Now join it all together with an AND
-    my $clause = join ' AND ', @sql;
-
-    # Return the clause
-    return $clause;
 }
 
 =item B><_querify>
