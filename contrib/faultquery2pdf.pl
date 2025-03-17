@@ -22,7 +22,7 @@ use OMP::Display;
 use OMP::Fault;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
-use OMP::FaultUtil;
+use OMP::Fault::Util;
 
 # Specify text phrases to search for.
 
@@ -103,10 +103,10 @@ sub query_to_pdf {
 
     my $fdb = OMP::DB::Fault->new(DB => $db);
     my $query = OMP::Query::Fault->new(HASH => $hash);
-    my $faults = $fdb->queryFaults($query);
+    my $faultgrp = $fdb->queryFaults($query);
     my $toprint = '';
 
-    foreach my $f (@$faults) {
+    foreach my $f ($faultgrp->faults) {
         # Get the subject and fault ID
         my $subject = $f->subject;
         my $faultid = $f->id;
@@ -114,7 +114,7 @@ sub query_to_pdf {
         print "$name: $faultid $subject\n";
 
         # Get the raw fault text
-        my $text = OMP::FaultUtil->format_fault($f, 1);
+        my $text = OMP::Fault::Util->format_fault($f, 1);
 
         # Convert it to plain text
         my $plaintext = OMP::Display->html2plain($text);

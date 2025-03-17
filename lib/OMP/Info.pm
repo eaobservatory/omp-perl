@@ -91,6 +91,51 @@ sub configure {
     }
 }
 
+=item B<shallow_copy>
+
+Create a shallow copy of an C<OMP::Info> object.  Any (unblessed) ARRAY or
+HASH reference at the top level is replaced with a new ARRAY or HASH with
+the same contents (including the same references) while anything else is
+copied as-is to the new object.
+
+    $copy = $object->shallow_copy;
+
+The ARRAY and HASH accessor methods created by this class will write into
+an existing ARRAY or HASH attribute, so these replacements are necessary
+to prevent such assignments from altering the content of the original object.
+(Of course if any other mutable object or structure inside the object is
+changed then the change will still appear in the original object.)
+
+B<See also:> the C<copy> method of C<OMP::Info::Obs> (which uses
+C<Storable::dclone> to make a deep copy, thereby more thoroughly isolating
+the copy from the original object).
+
+=cut
+
+sub shallow_copy {
+    my $self = shift;
+
+    my $copy = bless {}, ref $self;
+
+    foreach my $key (keys %$self) {
+        my $value = $self->{$key};
+        if ('ARRAY' eq ref $value) {
+            # Create new top-level array.
+            $copy->{$key} = [@$value];
+        }
+        elsif ('HASH' eq ref $value) {
+            # Create new top-level hash.
+            $copy->{$key} = {%$value};
+        }
+        else {
+            # Copy scalars, objects (and other references).
+            $copy->{$key} = $value;
+        }
+    }
+
+    return $copy;
+}
+
 =back
 
 =head1 Class methods

@@ -82,6 +82,8 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
+use JAC::Setup qw/hdrtrans/;
+
 use OMP::DB::Archive;
 use OMP::DateTools;
 use OMP::DB::Backend;
@@ -156,15 +158,18 @@ my $output = OMP::DB::MSBDone->new(DB => $dbb)->observedMSBs(
 # Need to convert the OMP::Info::MSB with comments to a time
 # series. [yes this was how they were stored originally]
 my %TITLES;  # MSB titles indexed by checksum
+my $projdb = OMP::DB::Project->new(DB => $dbb);
 my @msbs;
 for my $msb (@$output) {
-    next unless OMP::DB::Project->new(DB => $dbb, ProjectID => $msb->projectid)->verifyTelescope($telescope);
+    my $projectid = $msb->projectid;
+    next unless $projdb->verifyTelescope($telescope, $projectid);
+
     my $title = $msb->title;
     $TITLES{$msb->checksum} = $msb->title;
     for my $c ($msb->comments) {
         my $newmsb = $msb->new(
             checksum => $msb->checksum,
-            projectid => $msb->projectid,
+            projectid => $projectid,
         );
         $newmsb->comments($c);
 

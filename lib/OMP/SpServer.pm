@@ -31,17 +31,7 @@ use OMP::General;
 use OMP::Error qw/:try/;
 
 use Astro::Catalog;
-use Compress::Zlib;
 use Time::HiRes qw/tv_interval gettimeofday/;
-
-# Different Science program return types
-use constant OMP__SCIPROG_XML => 0;
-use constant OMP__SCIPROG_OBJ => 1;
-use constant OMP__SCIPROG_GZIP => 2;
-use constant OMP__SCIPROG_AUTO => 3;
-
-# GZIP threshold in bytes
-use constant GZIP_THRESHOLD => 30_000;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer/;
@@ -100,13 +90,7 @@ sub storeProgram {
     my @headers;
     try {
         # Attempt to gunzip it if it looks like a gzip stream
-        if (substr($xml, 0, 2) eq chr(0x1f) . chr(0x8b)) {
-            # GZIP magic number verifies
-            $xml = Compress::Zlib::memGunzip($xml);
-            throw OMP::Error::SpStoreFail(
-                "Science program looked like a gzip byte stream but did not uncompress correctly")
-                unless defined $xml;
-        }
+        $xml = $class->uncompressGivenItem($xml);
 
         # Create a science program object
         my $sp = OMP::SciProg->new(XML => $xml);
@@ -189,94 +173,6 @@ sub storeProgram {
     return [$string, $timestamp], @headers;
 }
 
-=item B<compressReturnedItem>
-
-The first argument must be a science program object or XML.
-
-The second argument (if defined) should be the return type as defined below.
-
-The following values can be used to specify different return
-types:
-
-=over 4
-
-=item "XML" OMP__SCIPROG_XML
-
-(Default) Plain text XML.
-
-=item "OBJECT" OMP__SCIPROG_OBJ
-
-Perl OMP::SciProg object.
-
-=item "GZIP" OMP__SCIPROG_GZIP
-
-Gzipped XML.
-
-=item "AUTO" OMP__SCIPROG_AUTO
-
-Plain text or gzip depending on size.
-
-=back
-
-These are not exported and are defined in the OMP::SpServer namespace.
-
-If the return type is not defined, the value returned should be in XML.
-
-Note that for cases XML and GZIP, these will be Base64 encoded if returned
-via a SOAP request. Requests for OMP::SciProg will pass through untouched.
-
-=cut
-
-sub compressReturnedItem {
-    my $sp = shift;
-    my $rettype = shift;
-
-    $rettype = OMP__SCIPROG_XML unless defined $rettype;
-    $rettype = uc($rettype);
-
-    OMP::General->log_message("Format=$rettype\n");
-
-    # Translate input strings to constants
-    if ($rettype !~ /^\d$/a) {
-        if ($rettype eq 'XML') {
-            $rettype = OMP__SCIPROG_XML;
-        }
-        elsif ($rettype eq 'OBJECT') {
-            $rettype = OMP__SCIPROG_OBJ;
-        }
-        elsif ($rettype eq 'GZIP') {
-            $rettype = OMP__SCIPROG_GZIP;
-        }
-        elsif ($rettype eq 'AUTO') {
-            $rettype = OMP__SCIPROG_AUTO;
-        }
-        else {
-            throw OMP::Error::FatalError("Unrecognised return type");
-        }
-    }
-
-    if ($rettype != OMP__SCIPROG_OBJ) {
-        # Return the stringified form, compressed if
-        # its length is greater than the threshold value
-        # or force gzip if requested
-        my $string = "$sp";
-
-        if ($rettype == OMP__SCIPROG_GZIP
-                || ($rettype == OMP__SCIPROG_AUTO && length($string) > GZIP_THRESHOLD)) {
-            $string = Compress::Zlib::memGzip("$sp");
-            throw OMP::Error::FatalError(
-                "Unable to gzip compress science program")
-                unless defined $string;
-        }
-
-        $sp = (exists $ENV{HTTP_SOAPACTION})
-            ? SOAP::Data->type(base64 => $string)
-            : $string;
-    }
-
-    return $sp;
-}
-
 =item B<fetchProgram>
 
 Retrieve a science program from the database.
@@ -288,7 +184,7 @@ program (encoded in base64 for speed over SOAP if we are using
 SOAP).
 
 A final argument controls what form the returned science program should
-take.  See B<compressReturnedItem>
+take.  See C<OMP::SOAPServer::compressReturnedItem>.
 
 B<Note>: exposed publicly via SOAP by C<spsrv.pl>.
 
@@ -337,7 +233,7 @@ sub fetchProgram {
     # a problem where we cant use die (it becomes throw)
     $class->throwException($E) if defined $E;
 
-    my $string = compressReturnedItem($sp, $rettype);
+    my $string = $class->compressReturnedItem($sp, $rettype);
 
     OMP::General->log_message(
         "fetchProgram: Complete in " . tv_interval($t0) . " seconds\n");
@@ -349,7 +245,8 @@ sub fetchProgram {
 
 Given a science program and a JCMT-format source catalogue, clone
 any blank MSBs inserting the catalogue information and return the
-result. An optional return type can be specified. See B<compressReturnedItem>
+result. An optional return type can be specified.
+See C<OMP::SOAPServer::compressReturnedItem>.
 
     [$xml, $info] = OMP::SpServer->SpInsertCat($xml, $catalogue);
     [$xml, $info] = OMP::SpServer->SpInsertCat($xml, $catalogue, "GZIP");
@@ -376,14 +273,7 @@ sub SpInsertCat {
     my ($sp, @info);
     try {
         # Attempt to gunzip it if it looks like a gzip stream
-        if (substr($xml, 0, 2) eq chr(0x1f) . chr(0x8b)) {
-            # GZIP magic number verifies
-            my $tmp = Compress::Zlib::memGunzip($xml);
-
-            if (defined $tmp) {
-                $xml = $tmp;
-            }
-        }
+        $xml = $class->uncompressGivenItem($xml);
 
         # Create a science program from the string
         $sp = OMP::SciProg->new(XML => $xml);
@@ -418,7 +308,7 @@ sub SpInsertCat {
 
     my $infostr = join("\n", @info) . "\n";
 
-    my $spstr = compressReturnedItem($sp, $rettype);
+    my $spstr = $class->compressReturnedItem($sp, $rettype);
 
     # Ensure response is sent as text even if it contains special characters.
     $infostr = SOAP::Data->type(string => $infostr)

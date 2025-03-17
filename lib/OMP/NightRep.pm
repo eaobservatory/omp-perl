@@ -17,7 +17,7 @@ OMP::NightRep - Generalized routines to details from a given night
     $obs = $nr->obs;
     $faultgroup = $nr->faults;
     $timelost = $nr->timelost;
-    @acct = $nr->accounting;
+    $acct = $nr->accounting;
     $weather = $nr->weatherLoss;
 
 =head1 DESCRIPTION
@@ -40,17 +40,16 @@ use OMP::Query::Archive;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::DB::TimeAcct;
-use OMP::TimeAcctGroup;
+use OMP::Project::TimeAcct::Group;
 use OMP::Query::TimeAcct;
 use OMP::DB::Shift;
 use OMP::Query::Shift;
 use OMP::DateTools;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
-use OMP::FaultGroup;
+use OMP::Fault::Group;
 use OMP::DB::MSBDone;
 use OMP::Query::MSBDone;
-use OMP::DB::Project;
 use Time::Piece qw/:override/;
 use OMP::Mail;
 use OMP::Display;
@@ -101,6 +100,7 @@ sub new {
         DB => undef,
         ADB => undef,
         PrivateComments => 0,
+        MSBsDone => undef,
         },
         $class;
 
@@ -211,12 +211,12 @@ sub date_end {
 =item B<db_accounts>
 
 Return time accounts from the time accounting database. Time accounts
-are represented by an C<OMP::TimeAcctGroup> object.
+are represented by an C<OMP::Project::TimeAcct::Group> object.
 
     $acct = $nr->db_accounts();
     $nr->db_accounts($acct);
 
-Accepts a C<OMP::TimeAcctGroup> object.  Returns undef if no accounts
+Accepts a C<OMP::Project::TimeAcct::Group> object.  Returns undef if no accounts
 were retrieved from the time accounting database.
 
 =cut
@@ -227,8 +227,8 @@ sub db_accounts {
         my $acctgrp = $_[0];
 
         throw OMP::Error::BadArgs(
-            "Accounts must be provided as an OMP::TimeAcctGroup object")
-            unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+            "Accounts must be provided as an OMP::Project::TimeAcct::Group object")
+            unless UNIVERSAL::isa($acctgrp, 'OMP::Project::TimeAcct::Group');
 
         $self->{DBAccounts} = $acctgrp;
     }
@@ -239,27 +239,22 @@ sub db_accounts {
 
         # Get our sql query
         my $query = OMP::Query::TimeAcct->new(HASH => {
-             date => $self->_get_date_hash(timeacct => 1)
+             date => $self->_get_date_hash(timeacct => 1),
+             EXPR__TEL => {or => {
+                telescope => $self->telescope,
+                projectid => {like => $self->telescope . '%'},
+            }},
         });
 
         # Get the time accounting statistics from
-        # the TimeAcct table. These are returned as a list of
-        # Project::TimeAcct.pm objects. Note that there will be more than
+        # the TimeAcct table. These are returned as an
+        # OMP::Project::TimeAcct::Group object. Note that there will be more than
         # one per project now that there are multiple shift types etc.
 
-        my @acct = $db->queryTimeSpent($query);
-
-        # Keep only the results for the telescope we are querying for
-        @acct = grep {
-            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
-        } @acct;
+        my $acctgrp = $db->queryTimeSpent($query);
 
         # Store result
-        my $acctgrp = OMP::TimeAcctGroup->new(
-            accounts => \@acct,
-            telescope => $self->telescope,
-            DB => $self->db,
-        );
+        $acctgrp->telescope($self->telescope);
 
         $self->{DBAccounts} = $acctgrp;
     }
@@ -296,12 +291,12 @@ sub delta_day {
 =item B<faults>
 
 The faults relevant to this telescope and reporting period.  The faults
-are represented by an C<OMP::FaultGroup> object.
+are represented by an C<OMP::Fault::Group> object.
 
     $fault_group = $nr->faults;
     $nr->faults($fault_group);
 
-Accepts and returns an C<OMP::FaultGroup> object.
+Accepts and returns an C<OMP::Fault::Group> object.
 
 =cut
 
@@ -310,8 +305,8 @@ sub faults {
     if (@_) {
         my $fgroup = $_[0];
         throw OMP::Error::BadArgs(
-            "Must provide faults as an OMP::FaultGroup object")
-            unless UNIVERSAL::isa($fgroup, 'OMP::FaultGroup');
+            "Must provide faults as an OMP::Fault::Group object")
+            unless UNIVERSAL::isa($fgroup, 'OMP::Fault::Group');
 
         $self->{Faults} = $fgroup;
     }
@@ -319,124 +314,34 @@ sub faults {
         # Retrieve faults from the fault database
         my $fdb = OMP::DB::Fault->new(DB => $self->db);
 
-        my %hash;
-        # We have to do two separate queries in order to get back faults that
-        # were filed on and occurred on the reporting dates
+        my $query = OMP::Query::Fault->new(HASH => {
+            EXPR__DT => {or => {
+                # Faults filed on the dates we are reporting for:
+                date => $self->_get_date_hash(),
 
-        # Query to get faults filed on the dates we are reaporting for
-        $hash{'filed'} = {
-            date => $self->_get_date_hash(),
+                # Faults that occurred on the dates we are reporting for:
+                faultdate => $self->_get_date_hash(),
+            }},
             category => $self->telescope,
             isfault => {boolean => 1},
-        };
+        });
 
-        # Query to get faults that occurred on the dates we are reporting for
-        $hash{'actual'} = {
-            faultdate => $self->_get_date_hash(),
-            category => $self->telescope,
-        };
-
-        # Do both queries and merge the results
-        my %results;
-        for my $queryname (keys %hash) {
-            my $query = OMP::Query::Fault->new(HASH => $hash{$queryname});
-
-            my $results = $fdb->queryFaults($query);
-
-            for (@$results) {
-                # Use fault date epoch followed by ID for key so that we can
-                # sort properly and maintain uniqueness
-                if ($queryname =~ /filed/) {
-                    # Don't keep results that have an actual date if they were
-                    # returned by our "filed on" query
-                    if (! $_->faultdate) {
-                        $results{$_->date->epoch . $_->id} = $_;
-                    }
-                }
-                else {
-                    $results{$_->date->epoch . $_->id} = $_;
-                }
-            }
-        }
-        # Convert result hash to array, then to fault group object
-        my @results = map {$results{$_}} sort keys %results;
-
-        my $fgroup = OMP::FaultGroup->new(faults => \@results);
-
-        $self->{Faults} = $fgroup;
+        $self->{'Faults'} = $fdb->queryFaults(
+            $query, no_text => 1, no_projects => 1);
     }
 
     return $self->{Faults};
 }
 
-=item B<faultsbyshift>
-
-The faults relevant to this telescope and reporting period, stored in
-a hash with keys of the shifttype.  The faults are represented by an
-C<OMP::FaultGroup> object.
-
-    $faults_shift = $nr->faultsbyshift;
-
-Returns a hash of C<OMP::FaultGroup> objects. Cannot be used to set
-the faults.
-
-=cut
-
-sub faultsbyshift {
-    my $self = shift;
-    my $faults = $self->faults;
-    my @faultlist = $faults->faults;
-
-    # Get all shifttypes
-    my @shifttypes = $faults->shifttypes;
-
-    # Create a hash with shifttypes as keys and faults as the objects
-
-    my %resulthash;
-    for my $shift (@shifttypes) {
-        my @results = grep {$_->shifttype eq $shift} @faultlist;
-        my $fgroup = OMP::FaultGroup->new(faults => \@results);
-
-        # $shift can be an empty string as the database allows Faults to
-        # have a NULL shifttype. Therefore convert empty string to
-        # UNKNOWN here so time accounting works.
-        my $shiftname = $shift;
-        if ($shift eq '') {
-            $shiftname = 'UNKNOWN';
-        }
-        $resulthash{$shiftname} = $fgroup;
-    }
-
-    return %resulthash;
-}
-
-=item B<faults_by_date>
-
-Return reference to hash of faults organized by date.
-
-=cut
-
-sub faults_by_date {
-    my $self = shift;
-
-    my %faults;
-    for my $f ($self->faults->faults) {
-        my $time = gmtime($f->date->epoch);
-        push @{$faults{$time->ymd}}, $f;
-    }
-
-    return \%faults;
-}
-
 =item B<hdr_accounts>
 
 Return time accounts derived from the data headers.  Time accounts are
-represented by an C<OMP::TimeAcctGroup> object.
+represented by an C<OMP::Project::TimeAcct::Group> object.
 
     $acctgrp = $nr->hdr_accounts(%options);
     $nr->hdr_accounts($acctgrp);
 
-Accepts an C<OMP::TimeAcctGroup> object.  Returns undef list if no time
+Accepts an C<OMP::Project::TimeAcct::Group> object.  Returns undef list if no time
 accounts could be obtained from the data headers.
 
 =cut
@@ -447,8 +352,8 @@ sub hdr_accounts {
     if (1 == scalar @_) {
         my $acctgrp = $_[0];
         throw OMP::Error::BadArgs(
-            "Accounts must be provided as an OMP::TimeAcctGroup object")
-            unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+            "Accounts must be provided as an OMP::Project::TimeAcct::Group object")
+            unless UNIVERSAL::isa($acctgrp, 'OMP::Project::TimeAcct::Group');
 
         $self->{HdrAccounts} = $acctgrp;
     }
@@ -476,8 +381,9 @@ sub hdr_accounts {
         }
 
         # Store the result
-        my $acctgrp = OMP::TimeAcctGroup->new(
+        my $acctgrp = OMP::Project::TimeAcct::Group->new(
             accounts => \@acct,
+            telescope => $self->telescope,
             DB => $self->db);
         $self->{HdrAccounts} = $acctgrp;
 
@@ -621,7 +527,7 @@ Optionally this can be limited by SHIFTTYPE and by REMOTE status.
 Data from the accounting database may or may not be confirmed time.
 For data from the data headers the confirmed status is not relevant.
 
-    %details = $nr->accounting(%options);
+    $details = $nr->accounting(%options);
 
 A special key, "__WARNINGS__" includes any warnings generated by the
 accounting query (a reference to an array of strings). See
@@ -635,15 +541,13 @@ sub accounting {
     my %opt = @_;
 
     # Hash for the results
-    my %results;
+    my %results = (
+        # Get the time accounting info
+        DB => $self->accounting_db(),
 
-    # Get the time accounting info
-    my %db = $self->accounting_db();
-    $results{DB} = \%db;
-
-    # Get the info from the headers
-    my %hdr = $self->accounting_hdr(%opt);
-    $results{DATA} = \%hdr;
+        # Get the info from the headers
+        DATA => $self->accounting_hdr(%opt),
+    );
 
     # Now generate a combined hash
     my %combo;
@@ -668,7 +572,7 @@ sub accounting {
         }
     }
 
-    return %combo;
+    return \%combo;
 }
 
 =item B<accounting_db>
@@ -683,8 +587,8 @@ This is a cut down version of the C<accounting> method that returns
 details from all methods of determining project accounting including
 estimates.
 
-    %projects = $nr->accounting_db();
-    %projects = $nr->accounting_db($data);
+    $projects = $nr->accounting_db();
+    $projects = $nr->accounting_db($data);
 
 This method takes an optional argument determining the return format. Valid formats are:
 
@@ -720,28 +624,25 @@ sub accounting_db {
     my $return_format = shift;
 
     my $acctgrp = $self->db_accounts;
-    my @dbacct = $acctgrp->accounts;
-
-    my %results;
 
     if ($return_format) {
         # Returning data
         # Combine Time accounting info for a multiple nights.  See documentation
-        # for summarizeTimeAcct method in OMP::Project::TimeAcct
-        %results = OMP::Project::TimeAcct->summarizeTimeAcct($return_format, @dbacct)
-            if defined $dbacct[0];
-    }
-    else {
-        # Returning objects
-        #  Convert to a hash with keys shifttype and project [since we can guarantee one instance of a
-        # project for a single UT date and project]
-        # Ensure we get separate time accts for each shift.
-        for my $acct (@dbacct) {
-            $results{$acct->shifttype}{$acct->projectid} = $acct;
-        }
+        # for summary method in OMP::Project::TimeAcct::Group
+        return $acctgrp->summary($return_format);
     }
 
-    return %results;
+    # Returning objects
+    #  Convert to a hash with keys shifttype and project [since we can guarantee one instance of a
+    # project for a single UT date and project]
+    # Ensure we get separate time accts for each shift.
+    my %results;
+
+    for my $acct ($acctgrp->accounts) {
+        $results{$acct->shifttype}{$acct->projectid} = $acct;
+    }
+
+    return \%results;
 }
 
 =item B<accounting_hdr>
@@ -749,7 +650,7 @@ sub accounting_db {
 Return time accounting statistics generated from the data headers
 for this night.
 
-    %details = $nr->accounting_hdr();
+    $details = $nr->accounting_hdr();
 
 Returned as a hash with top level keys of shift types, and second
 level keys are project type.
@@ -782,7 +683,7 @@ sub accounting_hdr {
     }
     $shifts{$WARNKEY} = $warnings;
 
-    return %shifts;
+    return \%shifts;
 }
 
 =item B<ecTime>
@@ -868,6 +769,58 @@ sub obs {
 
 =item B<msbs>
 
+Get or retrieve the MSBs observed.
+
+If MSBs were not provided and are not already present, query the C<MSBDone>
+database for relevant activity.  MSBs are fetched with all information
+for the matching transaction IDs, which can be retrieved individually using
+the C<historyMSBtid> method.
+
+=cut
+
+sub msbs {
+    my $self = shift;
+
+    if (@_) {
+        my $msbs = shift;
+
+        throw OMP::Error::BadArgs(
+            'Must provide MSBs as an array of OMP::Info::MSB')
+            unless ('ARRAY' eq ref $msbs
+                and not grep {not eval {$_->isa('OMP::Info::MSB')}} @$msbs);
+
+        # NOTE: currently stores the reference to the given array.
+        $self->{'MSBsDone'} = $msbs;
+    }
+    elsif (not defined $self->{'MSBsDone'}) {
+        my $db = OMP::DB::MSBDone->new(DB => $self->db);
+
+        my %hash = (
+            status => [
+                OMP__DONE_DONE,
+                OMP__DONE_REJECTED,
+                OMP__DONE_SUSPENDED,
+                OMP__DONE_ABORTED,
+            ],
+            date => {delta => $self->delta_day, value => $self->date->ymd},
+        );
+
+        if (defined $self->telescope) {
+            $hash{'telescope'} = $self->telescope;
+        }
+
+        my $query = OMP::Query::MSBDone->new(HASH => \%hash);
+
+        # Request "transactions" so that we get any MSBs comments which
+        # may have been added on other days.
+        $self->{'MSBsDone'} = $db->queryMSBdone($query, {transactions => 1});
+    }
+
+    return $self->{'MSBsDone'};
+}
+
+=item B<msbs_by_project>
+
 Retrieve MSB information for the night and telescope in question.
 
 Information is returned in a hash indexed by project ID and with
@@ -875,32 +828,12 @@ values of C<OMP::Info::MSB> objects.
 
 =cut
 
-sub msbs {
+sub msbs_by_project {
     my $self = shift;
-
-    my $db = OMP::DB::MSBDone->new(DB => $self->db);
-
-    my $query = OMP::Query::MSBDone->new(HASH => {
-        status => [
-            OMP__DONE_DONE,
-            OMP__DONE_REJECTED,
-            OMP__DONE_SUSPENDED,
-            OMP__DONE_ABORTED,
-        ],
-        date => {delta => $self->delta_day, value => $self->date->ymd},
-    });
-
-    my @results = $db->queryMSBdone($query, {'comments' => 0});
-
-    # Currently need to verify the telescope outside of the query
-    # This verification really slows things down
-    @results = grep {
-        OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($self->telescope)
-    } @results;
 
     # Index by project id
     my %index;
-    for my $msb (@results) {
+    for my $msb (@{$self->msbs}) {
         my $proj = $msb->projectid;
 
         $index{$proj} = [] unless exists $index{$proj};
@@ -909,6 +842,37 @@ sub msbs {
     }
 
     return \%index;
+}
+
+=item B<historyMSBtid>
+
+Retrieve MSB information by transaction ID.  This should be similar
+to the C<OMP::DB::MSBDone-E<gt>historyMSBtid> method, but uses the
+MSB information (hopefully cached) from this object's C<msbs> method.
+
+    $msb = $self->historyMSBtid($msbtid);
+
+Returns a shallow clone of the original C<OMP::Info::MSB> object with
+the comments list replaced with a list containing only those comments
+which match the given C<msbtid> value.
+
+=cut
+
+sub historyMSBtid {
+    my $self = shift;
+    my $tid = shift;
+    return undef unless defined $tid;
+
+    foreach my $msb (@{$self->msbs}) {
+        my @comments = $msb->msbtid($tid);
+        next unless scalar @comments;
+
+        my $copy = $msb->shallow_copy;
+        $copy->comments(\@comments);
+        return $copy;
+    }
+
+    return undef;
 }
 
 =item B<scienceTime>
@@ -966,67 +930,60 @@ sub shiftComments {
 
 =item B<timelost>
 
-Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.  Timelost to
-technical or non-technical faults can be returned by calling with
-an argument of either "technical" or "non-technical."  Returns total
-timelost when called without arguments.
+Time lost to faults on this night and telescope, organized by type.
+
+    my $timelost = $nr->timelostbyshift;
+
+Returns a reference to as hash with keys "total", "technical" and
+"non-technical" giving the time as a C<Time::Seconds> object.
 
 =cut
 
 sub timelost {
     my $self = shift;
-    my $arg = shift;
+
     my $faults = $self->faults;
 
-    return undef
-        unless defined $faults;
-
-    if ($arg) {
-        if ($arg eq "technical") {
-            return $faults->timelostTechnical;
-        }
-        elsif ($arg eq "non-technical") {
-            return $faults->timelostNonTechnical;
-        }
-    }
-    else {
-        return ($faults->timelost ? $faults->timelost : Time::Seconds->new(0));
-    }
+    return {
+        total => $faults->timelost,
+        technical => $faults->timelostTechnical,
+        'non-technical' => $faults->timelostNonTechnical,
+    };
 }
+
 =item B<timelostbyshift>
 
-Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.  Timelost to
-technical or non-technical faults can be returned by calling with
-an argument of either "technical" or "non-technical."  Returns total
-timelost when called without arguments.
+Time lost to faults on this night and telescope, organized by shift
+and type.
+
+    my $timelost = $nr->timelostbyshift;
+
+Returns a reference to a hash by shift.  Each entry is another
+hash with keys "total", "technical" and "non-technical"
+giving the time as a C<Time::Seconds> object.
 
 =cut
 
 sub timelostbyshift {
     my $self = shift;
-    my $arg = shift;
-    my %faults = $self->faultsbyshift;
 
-    return undef
-        unless %faults;
-
+    my $faults = $self->faults->by_shift;
     my %results;
-    for my $shift (keys %faults) {
-        my $shiftfaults = $faults{$shift};
 
-        if ($arg && $arg eq "technical") {
-            $results{$shift} = $shiftfaults->timelostTechnical;
-        }
-        elsif ($arg && $arg eq "non-technical") {
-            $results{$shift} = $shiftfaults->timelostNonTechnical;
-        }
-        else {
-            $results{$shift} = $shiftfaults->timelost;
-        }
+    for my $shift (keys %$faults) {
+        my $shiftfaults = $faults->{$shift};
+
+        # The OMP::Fault::Group object should cache the results for the
+        # three types of time lost, so call all three methods while
+        # we have the "by_shift" group available.
+        $results{$shift} = {
+            total => $shiftfaults->timelost,
+            technical => $shiftfaults->timelostTechnical,
+            'non-technical' => $shiftfaults->timelostNonTechnical,
+        };
     }
-    return %results;
+
+    return \%results;
 }
 
 =item B<timeObserved>
@@ -1204,7 +1161,7 @@ sub astext {
     # Add MSB summary here
     $str .= "Observation summary\n\n";
 
-    my $msbs = $self->msbs;
+    my $msbs = $self->msbs_by_project;
 
     for my $proj (keys %$msbs) {
         $str .= "  $proj\n";
@@ -1323,45 +1280,49 @@ and previous ashtml / projectsummary_ashtml methods.
 sub get_time_summary {
     my $self = shift;
 
-    my %acct = $self->accounting_db();
-    my %timelostbyshift = $self->timelostbyshift;
-    my %timelost_technical = $self->timelostbyshift('technical');
-    my %timelost_nontechnical = $self->timelostbyshift('non-technical');
+    my $acct = $self->accounting_db();
+    my $timelostbyshift = $self->timelostbyshift;
+
+    # Get the details of all projects mentioned in the time accounting.
+    my $project_details = $self->db_accounts->project_details;
 
     my @shifts;
-    for my $key (keys %acct) {
+    for my $key (keys %$acct) {
         unless (! defined $key || $key eq '' || $key eq $WARNKEY) {
             push @shifts, $key;
         }
     }
     # Only include faultshifts if time was charged.
-    for my $shift (keys %timelostbyshift) {
-        my $losttime = $timelostbyshift{$shift};
-        if ((! exists($acct{$shift})) && ($shift ne '') && ($losttime > 0)) {
+    for my $shift (keys %$timelostbyshift) {
+        my $losttime = $timelostbyshift->{$shift}->{'total'};
+        if ((! exists($acct->{$shift})) && ($shift ne '') && ($losttime > 0)) {
             push @shifts, $shift;
         }
     }
 
     my $overall_info;
     do {
-        my %overallresults = $self->accounting_db("byproject");
+        my $overallresults = $self->accounting_db("byproject");
+        my $timelost = $self->timelost;
         $overall_info = $self->_get_time_summary_shift(
-            \%overallresults,
+            $overallresults,
             undef,
-            $self->timelost,
-            $self->timelost('technical'),
-            $self->timelost('non-technical'));
+            $timelost->{'total'},
+            $timelost->{'technical'},
+            $timelost->{'non-technical'},
+            $project_details);
     };
 
-    my %shiftresults = $self->accounting_db('byshftprj');
+    my $shiftresults = $self->accounting_db('byshftprj');
     my @shift_info;
     foreach my $shift (@shifts) {
         my $result = $self->_get_time_summary_shift(
-            ($shiftresults{$shift} // {}),
-            ($acct{$shift} // {}),
-            $timelostbyshift{$shift},
-            $timelost_technical{$shift},
-            $timelost_nontechnical{$shift});
+            ($shiftresults->{$shift} // {}),
+            ($acct->{$shift} // {}),
+            $timelostbyshift->{$shift}->{'total'},
+            $timelostbyshift->{$shift}->{'technical'},
+            $timelostbyshift->{$shift}->{'non-technical'},
+            $project_details);
         $result->{'shift'} = $shift;
         push @shift_info, $result;
     }
@@ -1474,7 +1435,8 @@ sub get_time_summary_combined {
 
 sub _get_time_summary_shift {
     my ($self, $shiftresults, $shiftacct,
-        $timelost, $timelost_technical, $timelost_nontechnical) = @_;
+        $timelost, $timelost_technical, $timelost_nontechnical,
+        $project_details) = @_;
 
     my $tel = $self->telescope;
 
@@ -1531,9 +1493,13 @@ sub _get_time_summary_shift {
     for my $proj (keys %$shiftresults) {
         next if $proj =~ /^$tel/;
 
-        my $details = OMP::DB::Project->new(DB => $self->db, ProjectID => $proj)->projectDetails();
+        my $country = 'UNKNOWN';
 
-        push @{$proj_by_country{$details->country}}, $proj;
+        if (exists $project_details->{$proj}) {
+            $country = $project_details->{$proj}->country;
+        }
+
+        push @{$proj_by_country{$country}}, $proj;
     }
 
     my @country;
@@ -1726,8 +1692,6 @@ sub get_obs_summary {
     my $currentinst = undef;
     my $currentblock = undef;
 
-    my $msbdb = OMP::DB::MSBDone->new(DB => $self->db);
-
     my $old_sum = '';
     my $old_tid = '';
 
@@ -1796,13 +1760,7 @@ sub get_obs_summary {
                 # Get any activity associated with this MSB accept.
                 my $history;
                 if ($has_msbtid) {
-                    try {
-                        $history = $msbdb->historyMSBtid($msbtid);
-                    }
-                    otherwise {
-                        my $E = shift;
-                        print STDERR $E;
-                    };
+                    $history = $self->historyMSBtid($msbtid);
                 }
 
                 if (defined $history) {

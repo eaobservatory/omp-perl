@@ -276,7 +276,7 @@
     <h2>MSB summary</h2>
 
     <table class="sum_table" cellspacing="0" width="800">
-        [% FOREACH project IN night_report.msbs %]
+        [% FOREACH project IN night_report.msbs_by_project %]
             <tr class="sum_other">
                 <td><a href="/cgi-bin/projecthome.pl?project=[% project.key | uri %]" class="link_dark">[% project.key | html %]</a></td>
                 <td>Name</td>
@@ -311,7 +311,7 @@
             <td width="80" align="right">Loss / hr</td>
             <td width="80" align="right">Shift</td>
         </tr>
-        [% FOREACH date IN night_report.faults_by_date %]
+        [% FOREACH date IN night_report.faults.by_date %]
             [% SET timecellclass = 'time_a' %]
             [% IF night_report.delta_day != 1 %]
                 [% SET timecellclass = 'time_' _ date.value.0.date.day _ '_a' %]
@@ -320,7 +320,7 @@
                     <td colspan="3">&nbsp;</td>
                 </tr>
             [% END %]
-            [% FOREACH fault IN date.value %]
+            [% FOREACH fault IN date.value.faults %]
                 <tr class="sum_other" valign="top">
                     <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_small">[% fault.id | html %]</a></td>
 
@@ -472,10 +472,10 @@
                                         [% label_status | html %]
                                         <br />
                                         <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a>
-                                        [% IF obs.previews.size > 0 %]
+                                        [% IF obs.previews.defined && ! obs.previews.empty %]
                                             <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
                                         [% END %]
-                                        <a class="link_dark_small copy_text" href="#" data-copy_text="[% obs.obsid %]" title="Copy observation ID">&loz;</a>
+                                        <a class="link_dark_small copy_text" href="[% worf_url(telescope='JCMT', obsid=obs.obsid) %]" data-copy_text="[% obs.obsid %]" title="Copy observation ID">&loz;</a>
                                     </td>
                                 [% END %]
                             </tr>

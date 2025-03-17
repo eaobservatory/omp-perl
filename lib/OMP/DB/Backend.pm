@@ -142,6 +142,13 @@ later date.
 Caching of subclasses will work so long as the sub class constructor
 calls the base class constructor.
 
+Caching is automatically disabled if the environment variable C<MOD_PERL>
+exists, under the assumption that C<Apache::DBI> is being used to handle
+caching of database connections.  Therefore when running under
+C<mod_perl>, the C<Apache::DBI> module must be installed and pre-loaded,
+e.g. by using the directive C<PerlModule Apache::DBI> in the Apache
+configuration file which loads C<mod_perl> itself.
+
 =cut
 
 my %CACHE;
@@ -149,6 +156,8 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $nocache = shift;
+
+    $nocache ||= exists $ENV{'MOD_PERL'};
 
     if (! $nocache && defined $CACHE{$class}) {
         return $CACHE{$class};

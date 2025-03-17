@@ -66,9 +66,14 @@ sub sql {
 
     throw OMP::Error::DBMalformedQuery(
         "sql method invoked with incorrect number of arguments\n")
-        unless scalar(@_) == 1;
+        unless scalar(@_) == 5;
 
-    my ($usertable) = @_;
+    my ($usertable, $projusertable, $faultbodytable, $obslogtable, $shiftlogtable) = @_;
+
+    $self->_set_subquery_table($faultbodytable, sub {$_[0] eq 'fault_author'});
+    $self->_set_subquery_table($projusertable, sub {$_[0] eq 'project_capacity'});
+    $self->_set_subquery_table($obslogtable, sub {$_[0] eq 'obslog_author'});
+    $self->_set_subquery_table($shiftlogtable, sub {$_[0] eq 'shiftlog_author'});
 
     # Generate the WHERE clause from the query hash
     my $subsql = $self->_qhash_tosql();
@@ -145,6 +150,42 @@ sub _post_process_hash {
             $href->{$key} = $href->{$_};
             delete $href->{$_};
         }
+    }
+
+    # Construct subqueries if needed.
+    if (exists $href->{'project_capacity'}) {
+        my $capacity = $href->{'project_capacity'};
+        $href->{'project_capacity'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT userid',
+                query => {
+                    capacity => $capacity,
+                }),
+        };
+    }
+
+    if (exists $href->{'fault_author'}) {
+        $href->{'fault_author'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT author',
+                query => {}),
+        };
+    }
+
+    if (exists $href->{'shiftlog_author'}) {
+        $href->{'shiftlog_author'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT author',
+                query => {}),
+        };
+    }
+
+    if (exists $href->{'obslog_author'}) {
+        $href->{'obslog_author'} = {
+            userid => OMP::Query::SubQuery->new(
+                expression => 'DISTINCT commentauthor',
+                query => {}),
+        };
     }
 
     # Remove attributes since we dont need them anymore

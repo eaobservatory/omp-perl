@@ -67,23 +67,22 @@ sub fb_fault_content {
     my $faultcomp = OMP::CGIComponent::Fault->new(page => $self);
 
     my $faultdb = OMP::DB::Fault->new(DB => $self->database);
-    my @faults = $faultdb->getAssociations($projectid, 0);
+    my $faultgrp = $faultdb->getAssociations($projectid, 0);
 
     # Display the first fault if a fault isnt specified in the URL
     my $showfault;
     my $faultid = $self->decoded_url_param('fault');
     if ($faultid) {
-        my %faults = map {$_->faultid, $_} @faults;
-        $showfault = $faults{$faultid};
+        $showfault = $faultgrp->getFault($faultid);
     }
     else {
-        $showfault = $faults[0];
+        $showfault = (scalar $faultgrp->faults)->[0];
     }
 
     return {
         project => OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails(),
         fault_list => $faultcomp->show_faults(
-            faults => \@faults,
+            faults => $faultgrp,
             descending => 0,
             url => "fbfault.pl?project=$projectid"),
         fault_info => (defined $showfault
@@ -113,7 +112,7 @@ sub list_projects {
     my $semester = $q->param('semester');
     my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
     my $status = ($q->param('status') eq 'all' ? undef : $q->param('status'));
-    my $support = $q->param('support');
+    my $support = $q->param('userid');
     my $country = $q->param('country');
     my $order = $q->param('order');
 
@@ -121,21 +120,26 @@ sub list_projects {
         map {die 'invalid instrument' unless /^([-_A-Za-z0-9]+)$/; $1 => 1}
         grep {defined $_ and $_ ne 'Any'} $q->multi_param('instrument')};
 
-    undef $semester if $semester =~ /any/i;
-    undef $support if $support eq '';
+    undef $semester if $semester eq '';
     undef $country if $country eq '';
 
     OMP::General->log_message("Projects list retrieved by user " . $self->auth->user->userid);
 
-    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => {
+    my %hash = (
         (defined $state ? (state => {boolean => $state}) : ()),
         (defined $status ? (status => $status) : ()),
         (defined $semester ? (semester => $semester) : ()),
-        (defined $support ? (support => $support) : ()),
         (defined $country ? (country => [split /\+/, $country]) : ()),
         (%$instrument ? (instrument => [keys %$instrument]) : ()),
         telescope => $telescope,
-    }));
+    );
+
+    if ($support) {
+        die 'Invalid userid' unless $support =~ /^([A-Z]+[0-9]*)$/;
+        $hash{'support'} = $1;
+    }
+
+    my $projects = OMP::DB::Project->new(DB => $self->database)->listProjects(OMP::Query::Project->new(HASH => \%hash));
 
     my @sorted = ();
     if (@$projects) {
@@ -219,7 +223,7 @@ sub list_projects {
             semester => $semester,
             state => $state,
             status => $status,
-            support => $support,
+            userid => $support,
             country => $country,
             order => $order,
             instrument => $instrument,
@@ -275,22 +279,7 @@ sub project_home {
     my $adb = OMP::DB::TimeAcct->new(DB => $self->database);
 
     # Because of shifttypes, there may be more than one shift per night.
-    my @accounts = $adb->getTimeSpent(projectid => $project->projectid);
-
-    # Display nights where data was taken
-    my %accounts = ();
-    # Sort account objects by night
-    for my $acc (@accounts) {
-        my $ymd = $acc->date->ymd;
-        unless (exists $accounts{$ymd}) {
-            $accounts{$ymd} = {
-                confirmed => 0.0,
-                unconfirmed => 0.0,
-            };
-        }
-        $accounts{$ymd}->{$acc->confirmed ? 'confirmed' : 'unconfirmed'}
-            += $acc->timespent->hours;
-    }
+    my $accounts = $adb->getTimeSpent(projectid => $project->projectid);
 
     # Some instruments do not allow data retrieval. For now, assume that
     # we can not retrieve if any of the instruments in the project are marked as such.
@@ -335,7 +324,7 @@ sub project_home {
             . (lc $project->telescope)
             . '/proposal_by_code?code=',
         today => OMP::DateTools->today(),
-        accounts => \%accounts,
+        accounts => $accounts->by_date,
         cannot_retrieve => $cannot_retrieve,
         msbs_observed => ((scalar @$nights)
             ? $msbcomp->fb_msb_observed($projectid)

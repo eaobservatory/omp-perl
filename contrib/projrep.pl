@@ -76,10 +76,11 @@ my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF/;
 
 #print scalar $nr->astext();
 
-my %acct = $nr->accounting_db('byproject');
+my $acct = $nr->accounting_db('byproject');
 
-my $faultloss = $nr->timelost->hours;
-my $technicalloss = $nr->timelost('technical')->hours;
+my $timelost = $nr->timelost;
+my $faultloss = $timelost->{'total'}->hours;
+my $technicalloss = $timelost->{'technical'}->hours;
 #my %items;
 
 #my $total = 0;
@@ -99,6 +100,7 @@ sub print_reporting_breakdown {
     my $total_pending = 0;
     my $total_proj = 0.0;
     my %items;
+    my %proj_details = ();
     $total += $faultloss;
 
     foreach my $proj (keys %acct) {
@@ -109,7 +111,8 @@ sub print_reporting_breakdown {
 
         # No determine_country method exists, so we'll get project
         # details instead
-        my $details = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
+        my $details = $proj_details{$proj}
+            = OMP::DB::Project->new(DB => $db, ProjectID => $proj)->projectDetails();
 
         my $country = $details->country;
         #countrylist .= " $country" if ($country !~ /$countrylist/);
@@ -204,16 +207,18 @@ sub print_reporting_breakdown {
         my $cnr = 0;
         foreach my $country (@countrylist) {
             my $done_first = 0;
-            foreach my $proj (keys %acct) {
+            foreach my $proj (sort keys %acct) {
                 my ($ptime, $pcountry) = split(/\@/, $items{$proj});
                 if ($pcountry eq $country) {
-                    printf "%-10.10s %6.2f hrs", $proj, abs($ptime);
-                    printf "    %-3.3s %6.2f hrs", $country,
-                        $country_totals[$cnr]
-                        if ($done_first eq 0);
-                    $done_first++;
-                    print "   [pending]" if ($ptime < 0);
-                    print "\n";
+                    my $details = $proj_details{$proj};
+                    my $heading = ($done_first ++)
+                        ? "                 "
+                        : (sprintf "%-3.3s %6.2f hrs   ", $country, $country_totals[$cnr]);
+                    my $plabel = ($ptime < 0)
+                        ? '[pending]'
+                        : '         ';
+                    printf "%s %-10.10s %6.2f hrs %s %20.20s\n",
+                        $heading, $proj, abs($ptime), $plabel, $details->title;
                 }
             }
             print "\n" if ($done_first > 0);
@@ -229,21 +234,20 @@ print
 ...Observing Summary:
 
 ";
-print_reporting_breakdown($faultloss, $technicalloss, 1, \%acct);
+print_reporting_breakdown($faultloss, $technicalloss, 1, $acct);
 print "...Observing Summary By shift:\n\n";
 
 print "";
 
-my %shiftacct = $nr->accounting_db('byshftprj');
+my $shiftacct = $nr->accounting_db('byshftprj');
 
-my %faultlosses = $nr->timelostbyshift;
-my %techfaultlosses = $nr->timelostbyshift('technical');
-my @faultshifts = (keys %faultlosses);
-my @shifts = (keys %shiftacct);
+my $faultlosses = $nr->timelostbyshift;
+my @faultshifts = keys %$faultlosses;
+my @shifts = keys %$shiftacct;
 
 for my $shift (@faultshifts) {
-    my $losttime = $faultlosses{$shift};
-    if ((!exists($shiftacct{$shift})) && ($shift ne '') && ($losttime > 0)) {
+    my $losttime = $faultlosses->{$shift}->{'total'};
+    if ((!exists($shiftacct->{$shift})) && ($shift ne '') && ($losttime > 0)) {
         push @shifts, $shift;
     }
 }
@@ -253,17 +257,16 @@ if (@shifts > 1) {
         print "_________________________________________________________________________\n";
         print "$shift\n";
 
-        if (exists $faultlosses{$shift}) {
-            $faultloss = $faultlosses{$shift}->hours;
-            $technicalloss = $techfaultlosses{$shift}->hours;
+        if (exists $faultlosses->{$shift}) {
+            $faultloss = $faultlosses->{$shift}->{'total'}->hours;
+            $technicalloss = $faultlosses->{$shift}->{'technical'}->hours;
         }
         else {
             $faultloss = 0.0;
             $technicalloss = 0.0;
         }
-        if (exists $shiftacct{$shift}) {
-            %acct = %{$shiftacct{$shift}};
-            print_reporting_breakdown($faultloss, $technicalloss, 0, \%acct);
+        if (exists $shiftacct->{$shift}) {
+            print_reporting_breakdown($faultloss, $technicalloss, 0, $shiftacct->{$shift});
         }
     }
 }

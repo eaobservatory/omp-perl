@@ -328,7 +328,7 @@ sub _qhash_tosql {
     # [tried it with a grep but it didnt work first
     # time out - may come back to this later]
     my @keys;
-    for my $entry (keys %$query) {
+    for my $entry (sort keys %$query) {
         next if $entry =~ /^_/;
         next if grep /^$entry$/, @$skip;
         push @keys, $entry;
@@ -420,7 +420,7 @@ sub _create_sql_recurse {
         # an AND clause
         $sql = join(" AND ",
             map {$self->_querify($column, $range{$_}, $_);}
-            keys %range);
+            reverse sort keys %range);
     }
     elsif (UNIVERSAL::isa($entry, 'OMP::Query::Any')) {
         # Do nothing.
@@ -434,20 +434,27 @@ sub _create_sql_recurse {
     elsif (eval {$entry->isa('OMP::Query::In')}) {
         $sql = $self->_querify($column, $entry->values(), 'in');
     }
+    elsif (eval {$entry->isa('OMP::Query::Like')}) {
+        $sql = $self->_querify($column, $entry->value(), 'like');
+    }
     elsif (eval {$entry->isa('OMP::Query::SubQuery')}) {
         my $expr = $entry->expression;
         my $table = $entry->table;
         my $subquery = $entry->query;
 
         # Assume operator is "IN" for now.
-        $sql = "($column IN (SELECT $expr FROM $table WHERE "
-            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} keys %$subquery)
-            . '))';
+        my $condition = "SELECT $expr FROM $table";
+        if (scalar %$subquery) {
+            $condition .= " WHERE "
+            . (join ' AND ', map {$self->_create_sql_recurse($_, $subquery->{$_})} sort keys %$subquery);
+        }
+
+        $sql = "($column IN ($condition))";
     }
     elsif (ref($entry) eq 'HASH') {
         # Call myself but join with an OR or AND
         my @chunks = map {$self->_create_sql_recurse($_, $entry->{$_})}
-            keys %$entry;
+            sort keys %$entry;
 
         # Use an OR by default but if we have a key _JOIN then use it
         my $j = (exists $entry->{_JOIN} ? uc($entry->{_JOIN}) : "OR");
@@ -688,7 +695,7 @@ sub _add_text_to_hash {
 
     # Check to see if we have a special key
     $secondkey = '' unless defined $secondkey;
-    my $special = ($secondkey =~ /max|min|null/ ? 1 : 0);
+    my $special = ($secondkey =~ /max|min|null|like/ ? 1 : 0);
 
     # primary key is the secondkey if we are not special
     $key = $secondkey unless $special or length($secondkey) eq 0;
@@ -756,6 +763,10 @@ Converted to OR expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
 Converted to NOT expresion.  (Key name is arbitrary, should start C<EXPR__>.)
 
+=item and =E<gt> \%subquery
+
+Converted to AND expresion.  (Key name is arbitrary, should start C<EXPR__>.)
+
 =item min, max
 
 Left as is.
@@ -765,6 +776,10 @@ Left as is.
 Left as is.
 
 =item any =E<gt> 1
+
+Left as is.
+
+=item in =E<gt> \@values
 
 Left as is.
 
@@ -792,6 +807,12 @@ sub _process_given_hash {
                 $query{$key} = {
                     _JOIN => 'OR',
                     $self->_process_given_hash($value->{'or'})};
+                next;
+            }
+            elsif (exists $value->{'and'}) {
+                $query{$key} = {
+                    _JOIN => 'AND',
+                    $self->_process_given_hash($value->{'and'})};
                 next;
             }
             elsif (exists $value->{'not'}) {
@@ -957,6 +978,12 @@ sub _post_process_hash {
             elsif (exists $href->{$key}->{'any'}) {
                 $href->{$key} = OMP::Query::Any->new();
             }
+            elsif (exists $href->{$key}->{'like'}) {
+                $href->{$key} = OMP::Query::Like->new(value => $href->{$key}->{'like'});
+            }
+            elsif (exists $href->{$key}->{'in'}) {
+                $href->{$key} = OMP::Query::In->new(values => $href->{$key}->{'in'});
+            }
             else {
                 # Convert to OMP::Range object
                 $href->{$key} = OMP::Range->new(
@@ -1034,7 +1061,13 @@ sub _querify {
         return "($name IN (" . (join ', ', map {"\"$_\""} @$value) . '))';
     }
 
-    # Lookup table for comparators
+    # Always quote if we have "like" expression.
+    my $quote = '';
+    if ($cmp eq 'like') {
+        $quote = "'";
+    }
+
+    # Lookup table for comparators.
     my %cmptable = (
         equal => '=',
         min => '>=',
@@ -1045,19 +1078,6 @@ sub _querify {
     # Convert the string form to SQL form
     throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
         unless exists $cmptable{$cmp};
-
-    # add pattern matches and always quote if we have like
-    my $quote;
-    if ($cmp eq 'like') {
-        $quote = "'";
-
-        # Alter our search string for case-insensitivity
-        $value =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
-        $value = '%' . $value . '%';
-    }
-    else {
-        $quote = '';
-    }
 
     # Also quote if we have word characters or a semicolon
     $quote = "'" if $value =~ /[A-Za-z:]/;
@@ -1140,13 +1160,69 @@ sub _process_elements {
                 }
                 $href->{$key} = \%hash;
             }
-            elsif ($val->isa("OMP::RANGE")) {
+            elsif ($val->isa("OMP::Range")) {
                 $val->min($cb->($val->min)) if defined $val->min;
                 $val->max($cb->($val->max)) if defined $val->max;
+            }
+            elsif ($val->isa('OMP::Query::Like')) {
+                $val->value($cb->($val->value));
+            }
+            elsif ($val->isa('OMP::Query::In')) {
+                $val->values([map {$cb->($_)} @{$val->values}]);
+            }
+            elsif ($val->isa('OMP::Query::SubQuery')) {
+                # Do not try to manipulate subquery.
             }
             else {
                 throw OMP::Error::DBMalformedQuery(
                     "Unable to process class of type '$ref'");
+            }
+        }
+    }
+}
+
+=item B<_set_subquery_table>
+
+Modify the query hash by searching for SubQuery objects for
+which the C<filter> function returns a true value and setting
+their C<table> attribute to the given value.
+
+    $q->_set_subquery_table($table, $filter, [\%qhash, $parent]);
+
+(The 3rd and 4th arguments of a hash reference and parent key name
+are used when this method recurses.)
+
+The C<filter> function is called with the parent key (if present),
+key and SubQuery object.
+
+    $filter->($parent, $key, $subquery)
+
+=cut
+
+sub _set_subquery_table {
+    my $self = shift;
+    my $table = shift;
+    my $filter = shift;
+    my $qhash = shift;
+    my $parent = shift;
+
+    unless (defined $qhash) {
+        $qhash = $self->query_hash;
+    }
+    foreach my $key (keys %$qhash) {
+        my $ref = ref $qhash->{$key};
+        my $val = $qhash->{$key};
+
+        if (not $ref) {
+        }
+        elsif ($ref eq "ARRAY") {
+        }
+        elsif ($ref eq "HASH") {
+            $self->_set_subquery_table($table, $filter, $val, $key);
+        }
+        elsif ($val->isa('OMP::Query::SubQuery')) {
+            if ($filter->($parent, $key, $val)) {
+                $val->table($table);
             }
         }
     }
@@ -1326,6 +1402,23 @@ sub values {
     my $self = shift;
     $self->{'values'} = shift if @_;
     return $self->{'values'};
+}
+
+package OMP::Query::Like;
+
+sub new {
+    my $class = shift;
+    my %opt = @_;
+
+    return bless {
+        value => $opt{'value'},
+    }, $class;
+}
+
+sub value {
+    my $self = shift;
+    $self->{'value'} = shift if @_;
+    return $self->{'value'};
 }
 
 package OMP::Query::SubQuery;

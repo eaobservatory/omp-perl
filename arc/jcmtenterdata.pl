@@ -173,7 +173,7 @@ BEGIN {
     $ENV{'OMP_SITE_CONFIG'} = '/jac_sw/etc/enterdata/enterdata.cfg';
 }
 
-use JAC::Setup qw/jsa dataverify/;
+use JAC::Setup qw/jsa dataverify hdrtrans/;
 
 use OMP::Util::File;
 

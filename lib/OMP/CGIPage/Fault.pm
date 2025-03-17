@@ -36,7 +36,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Fault;
 use OMP::DB::Fault;
-use OMP::FaultUtil;
+use OMP::Fault::Util;
 use OMP::Display;
 use OMP::Query::Fault;
 use OMP::Fault::Response;
@@ -83,15 +83,19 @@ Creates a page with a form for for filing a fault, or submit a fault.
 sub file_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    # Should be undef: my $fault = shift;
 
     my $q = $self->cgi;
 
     my $comp = $self->fault_component;
 
+    my $page_title = sprintf '%s: File %s',
+        $comp->category_title($category),
+        OMP::Fault->getCategoryEntryName($category);
+
     unless ($q->param('submit_file')) {
         return {
-            title => $comp->category_title($category) . ': File Fault',
+            title => $page_title,
             missing_fields => undef,
             %{$comp->file_fault_form($category)},
         };
@@ -99,27 +103,19 @@ sub file_fault {
 
     # Make sure all the necessary params were provided
     my %params = (
-        Subject => "subject",
-        "Fault report" => "message",
-        Type => "type",
-        System => "system",
+        subject => 'Subject',
+        message => 'Fault report',
+        type => 'Type',
+        system => OMP::Fault->getCategorySystemLabel($category),
     );
 
-    # Adjust for "Safety" category.
-    if ('safety' eq lc $category) {
-        delete $params{'System'};
-        $params{'Location'} = 'location';
-        $params{'Severity'} = 'system';
-    }
-    elsif ('vehicle_incident' eq lc $category) {
-        delete $params{'System'};
-        $params{'Vehicle'} = 'system';
-    }
+    $params{'location'} = 'Location'
+        if OMP::Fault->faultHasLocation($category);
 
     my @error;
     for (keys %params) {
-        if (length($q->param($params{$_})) < 1) {
-            push @error, $_;
+        if (length($q->param($_)) < 1) {
+            push @error, $params{$_};
         }
     }
 
@@ -127,13 +123,11 @@ sub file_fault {
     my @title;
     if ($error[0]) {
         return {
-            title => $comp->category_title($category) . ': File Fault',
+            title => $page_title,
             missing_fields => \@error,
             %{$comp->file_fault_form($category)},
         };
     }
-
-    my %status = OMP::Fault->faultStatus;
 
     # Get the fault details
     my %faultdetails = $comp->parse_file_fault_form($category);
@@ -148,7 +142,6 @@ sub file_fault {
         category => $category,
         subject => $faultdetails{subject},
         system => $faultdetails{system},
-        severity => $faultdetails{severity},
         type => $faultdetails{type},
         status => $faultdetails{status},
         location => $faultdetails{location},
@@ -166,6 +159,7 @@ sub file_fault {
     $fault->timelost($faultdetails{timelost}) if $faultdetails{timelost};
 
     # Submit the fault the the database
+    my $faultid;
     my @message = ();
     try {
         my $fdb = OMP::DB::Fault->new(DB => $self->database);
@@ -209,7 +203,7 @@ Display output of a fault query
 sub query_fault_output {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    # Should be undef: my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
@@ -221,15 +215,6 @@ sub query_fault_output {
     my $maxdate;
     my %hash;
 
-    # XML query to return faults from the last 14 days
-    my %faultstatus = 'safety' eq lc $category
-        ? OMP::Fault->faultStatus_Safety
-        : 'jcmt_events' eq lc $category
-            ? OMP::Fault->faultStatus_JCMTEvents
-            : 'vehicle_incident' eq lc $category
-                ? OMP::Fault->faultStatus_VehicleIncident
-                : OMP::Fault->faultStatus;
-
     my %currenthash = (
         %{$comp->category_hash($category)},
         date => {delta => -14, value => $t->datetime},
@@ -237,6 +222,10 @@ sub query_fault_output {
 
     # Setup an argument for use with the query_fault_form function
     my $hidefields = ($category ne 'ANYCAT' ? 0 : 1);
+
+    my $is_initial_view = 0;
+    my $is_preset_view = 0;
+    my $entry_name = OMP::Fault->getCategoryEntryName($category);
 
     if ($q->param('search')) {
         # The 'Search' submit button was clicked
@@ -260,28 +249,17 @@ sub query_fault_output {
 
         if (defined $q->param('status')) {
             my $status = $q->param('status');
+            my @cat_not_any = ($category eq 'ANYCAT') ? () : ($category);
             if ($status eq 'any') {
             }
             elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
-                my %status = (
-                    OMP::Fault->faultStatusClosed,
-                    OMP::Fault->faultStatusClosed_Safety,
-                    OMP::Fault->faultStatusClosed_JCMTEvents,
-                    OMP::Fault->faultStatusClosed_VehicleIncident,
-                );
-
+                my %status = OMP::Fault->faultStatusClosed(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
             elsif ($status eq "all_open") {
                 # Do a query on all open statuses
-                my %status = (
-                    OMP::Fault->faultStatusOpen,
-                    OMP::Fault->faultStatusOpen_Safety,
-                    OMP::Fault->faultStatusOpen_JCMTEvents,
-                    OMP::Fault->faultStatusOpen_VehicleIncident,
-                );
-
+                my %status = OMP::Fault->faultStatusOpen(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
             else {
@@ -290,17 +268,10 @@ sub query_fault_output {
             }
         }
 
-        if ($q->param('author')) {
-            my $author = uc($q->param('author'));
+        if ($q->param('userid')) {
+            die 'Invalid userid' unless $q->param('userid') =~ /^([A-Z]+[0-9]*)$/;
 
-            # Get the user object (this will automatically
-            # map the an alias to a user ID)
-            my $user = OMP::DB::User->new(DB => $self->database)->getUser($author);
-
-            croak "Could not find user '$author'"
-                unless $user;
-
-            $hash{'author'} = $user->userid;
+            $hash{'author'} = $1;
         }
 
         # Generate the date portion of our query
@@ -433,6 +404,8 @@ sub query_fault_output {
             date => {delta => -14, value => $t->datetime},
             timelost => {min => 2},
         );
+        $title = sprintf 'Displaying major %ss from the last 14 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     elsif ($q->param('recent')) {
         # Faults active in the last 36 hours
@@ -440,11 +413,14 @@ sub query_fault_output {
             %{$comp->category_hash($category)},
             date => {delta => -2, value => $t->datetime},
         );
+        $title = sprintf 'Displaying %ss with any activity in the last 2 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     elsif ($q->param('current')) {
         # Faults within the last 14 days
         %hash = %currenthash;
-        $title = "Displaying faults with any activity in the last 14 days";
+        $title = sprintf 'Displaying %ss with any activity in the last 14 days', lc $entry_name;
+        $is_preset_view = 1;
     }
     else {
         # Initial display of query page
@@ -452,24 +428,27 @@ sub query_fault_output {
             %{$comp->category_hash($category)},
             date => {delta => -7, value => $t->datetime},
         );
-        $title = "Displaying faults with any activity in the last 7 days";
+        $title = sprintf 'Displaying %ss with any activity in the last 7 days', lc $entry_name;
+        $is_initial_view = 1;
     }
 
     my $show_affected = $q->param('show_affected');
 
-    my $faults;
+    my $faultgrp;
     my $search_error = undef;
     my %queryopt = (no_text => 1, no_projects => ! $show_affected);
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
     try {
-        $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%hash), %queryopt);
+        $faultgrp = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%hash), %queryopt);
 
         # If this is the initial display of faults and no recent faults were
         # returned, display faults for the last 14 days.
-        if (! $q->param('faultsearch') and ! $faults->[0]) {
-            $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
+        if ($is_initial_view and not $faultgrp->numfaults) {
+            $title = sprintf
+                'No active %ss in the last 7 days, displaying %ss for the last 14 days',
+                lc $entry_name, lc $entry_name;
 
-            $faults = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
+            $faultgrp = $fdb->queryFaults(OMP::Query::Fault->new(HASH => \%currenthash), %queryopt);
         }
     }
     otherwise {
@@ -480,15 +459,16 @@ sub query_fault_output {
         if defined $search_error;
 
     # Generate a title based on the results returned
-    if ($q->param('faultsearch')) {
-        if ($faults->[1]) {
-            $title = scalar(@$faults) . " faults returned matching your query";
+    my $nfaults = $faultgrp->numfaults;
+    unless ($is_initial_view or $is_preset_view) {
+        if ($nfaults > 1) {
+            $title = sprintf '%i %ss returned matching your query', $nfaults, lc $entry_name;
         }
-        elsif ($faults->[0]) {
-            $title = "1 fault returned matching your query";
+        elsif ($nfaults == 1) {
+            $title = sprintf '1 %s returned matching your query', lc $entry_name;
         }
         else {
-            $title = "No faults found matching your query";
+            $title = sprintf 'No %ss found matching your query', lc $entry_name;
         }
     }
 
@@ -498,21 +478,22 @@ sub query_fault_output {
     my $sort_order = $self->decoded_url_param('sort_order') // 'descending';
     my $orderby = $self->decoded_url_param('orderby') // 'response';
 
-    # Show results as a summary if that option was checked
-    if ($q->param('summary') and $faults->[0]) {
+    unless ($nfaults) {
+        # No faults found - nothing to do.
+    }
+    elsif ($q->param('summary')) {
+        # Show results as a summary if that option was checked
+
         $fault_summary = $self->fault_summary_content(
-            $category, $faults, $mindate, $maxdate,
+            $category, $faultgrp, $mindate, $maxdate,
             show_affected => $show_affected);
     }
-    elsif ($faults->[0]) {
-        # Total up and display time lost
-        for (@$faults) {
-            $total_loss += $_->timelost;
-        }
+    else {
+        $total_loss = $faultgrp->timelost->hours;
 
         my %showfaultargs = (
-            faults => $faults,
-            showcat => ($category ne 'ANYCAT' ? 0 : 1),
+            category => $category,
+            faults => $faultgrp,
             show_affected => $show_affected,
         );
 
@@ -523,17 +504,17 @@ sub query_fault_output {
             }
         }
 
-        if ($faults->[0]) {
-            unless ($sort_order eq "ascending") {
-                $showfaultargs{descending} = 1;
-            }
-
-            $fault_info = $comp->show_faults(%showfaultargs);
+        unless ($sort_order eq "ascending") {
+            $showfaultargs{descending} = 1;
         }
+
+        $fault_info = $comp->show_faults(%showfaultargs);
     }
 
     return {
-        title => $comp->category_title($category) . ': ' . 'View Faults',
+        title => (sprintf '%s: View %ss',
+            $comp->category_title($category),
+            $entry_name),
         message => $title,
         form_info => $comp->query_fault_form($category, $hidefields),
         fault_list => $fault_info,
@@ -542,7 +523,7 @@ sub query_fault_output {
         selected_order_by => $orderby,
         order_bys => [map {[$_->[0], $_->[1], $self->url_absolute('orderby', $_->[0])]}
             [filedate => 'file date'],
-            [faulttime => 'fault time'],
+            [faulttime => 'time occurred'],
             [response => 'date of last response'],
             [timelost => 'time lost'],
             [relevance => 'relevance'],
@@ -561,25 +542,23 @@ Display a page showing a fault and providing a form for responding
 to the fault, or process the view_fault_content "respond" and "close fault"
 forms.
 
-    $page->view_fault($category, $faultid);
+    $page->view_fault($category, $fault);
 
 =cut
 
 sub view_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     return $self->_write_error('Fault ID not specified.')
-        unless $faultid;
+        unless defined $fault;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $fault = $fdb->getFault($faultid);
-    return $self->_write_error("Fault [$faultid] not found.")
-        unless $fault;
 
     my $show = $self->decoded_url_param('show') // 'nonhidden';
     my $order = $self->decoded_url_param('order') // 'asc';
@@ -588,20 +567,27 @@ sub view_fault {
         order => $order,
     );
 
+    my $page_title = sprintf '%s: View %s: %s',
+        $comp->category_title($category),
+        OMP::Fault->getCategoryEntryName($category),
+        $faultid;
+
     if ($q->param('respond')) {
         # Make sure all the necessary params were provided
-        my %params = (Response => "text",);
+        my %params = (
+            text => 'Response',
+        );
         my @error;
         for (keys %params) {
-            if (length($q->param($params{$_})) < 1) {
-                push @error, $_;
+            if (length($q->param($_)) < 1) {
+                push @error, $params{$_};
             }
         }
 
         # Put the form back up if params are missing
         if ($error[0]) {
             return {
-                title => $comp->category_title($category) . ': View Fault: ' . $faultid,
+                title => $page_title,
                 fault_info => $comp->fault_table($fault),
                 response_info => $comp->response_form(fault => $fault),
                 missing_fields => \@error,
@@ -615,14 +601,6 @@ sub view_fault {
 
         # Now update the status if necessary
         if ($status != $fault->status) {
-            # Lookup table for status
-            my %status = (
-                OMP::Fault->faultStatus(),
-                OMP::Fault->faultStatus_Safety,
-                OMP::Fault->faultStatus_JCMTEvents,
-                OMP::Fault->faultStatus_VehicleIncident,
-            );
-
             # Change status in fault object
             $fault->status($status);
 
@@ -660,9 +638,6 @@ sub view_fault {
 
     }
     elsif ($q->param('change_status')) {
-        # Lookup table for status
-        my %status = OMP::Fault->faultStatus();
-
         my $status = $q->param('status');
 
         if ($status != $fault->status) {
@@ -784,7 +759,7 @@ sub view_fault {
         }
 
         return {
-            title => $comp->category_title($category) . ': View Fault: ' . $faultid,
+            title => $page_title,
             fault_info => $comp->fault_table($fault),
             response_info => $comp->response_form(fault => $fault),
             missing_fields => undef,
@@ -802,28 +777,30 @@ Display a page with a form for updating fault details, or
 Take parameters from the fault update page and update
 the fault.
 
-    $page->update_fault_content($category, $faultid);
+    $page->update_fault_content($category, $fault);
 
 =cut
 
 sub update_fault {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
 
     return $self->_write_error('Fault ID not specified.')
-        unless $faultid;
+        unless defined $fault;
 
-    # Get the fault
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $fault = $fdb->getFault($faultid);
 
     unless ($q->param('submit_update')) {
         return {
-            title => $comp->category_title($category) . ': Update Fault [' . $faultid . ']',
+            title => (sprintf '%s: Update %s: %s',
+                $comp->category_title($category),
+                OMP::Fault->getCategoryEntryName($category),
+                $faultid),
             missing_fields => undef,
             %{$comp->file_fault_form($fault->category, fault => $fault)},
         };
@@ -838,7 +815,7 @@ sub update_fault {
         fault => $fault->responses->[0],
         %newdetails);
 
-    my @details_changed = OMP::FaultUtil->compare($new_f, $fault);
+    my @details_changed = OMP::Fault::Util->compare($new_f, $fault);
 
     # Our original response
     my $response = $fault->responses->[0];
@@ -846,7 +823,7 @@ sub update_fault {
     # Store details in a fault response object for comparison
     my $new_r = OMP::Fault::Response->new(author => $response->author, %newdetails);
 
-    my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
+    my @response_changed = OMP::Fault::Util->compare($new_r, $fault->responses->[0]);
 
     if ($details_changed[0] or $response_changed[0]) {
         # Changes have been made so we'll do an update
@@ -890,14 +867,14 @@ sub update_fault {
 Create a form for updating fault details, or submit changes
 to a fault response.
 
-    $page->update_resp($category, $faultid);
+    $page->update_resp($category, $fault);
 
 =cut
 
 sub update_resp {
     my $self = shift;
     my $category = shift;
-    my $faultid = shift;
+    my $fault = shift;
 
     my $q = $self->cgi;
     my $comp = $self->fault_component;
@@ -905,19 +882,16 @@ sub update_resp {
     my $respid = $self->decoded_url_param('respid');
 
     return $self->_write_error("A fault ID and response ID must be provided.")
-        unless ($faultid and $respid);
+        unless ($respid and defined $fault);
 
+    my $faultid = $fault->id;
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-
-    # Get the fault
-    my $fault = $fdb->getFault($faultid);
-
-    return $self->_write_error("Unable to retrieve fault with ID [$faultid]")
-        unless $fault;
 
     unless ($q->param('respond')) {
         return {
-            title => $comp->category_title($category) . ': Update Response [' . $faultid . ']',
+            title => (sprintf '%s: Update Response: %s',
+                $comp->category_title($category),
+                $faultid),
             response_info => $comp->response_form(fault => $fault, respid => $respid),
         };
     }
@@ -968,8 +942,8 @@ Create a page summarizing faults for a particular category, or all categories.
 
     fault_summary_content($category, $faults, $mindate, $maxdate, %args);
 
-First argument is an array of C<OMP::Fault> objects.
-The second and third arguments, each a C<Time::Piece> object,
+Second argument is an C<OMP::Fault::Group> object.
+The third and forth arguments, each a C<Time::Piece> object,
 can be provided to display the date range used for the query that returned
 the faults provided as the first argument.
 
@@ -978,13 +952,10 @@ the faults provided as the first argument.
 sub fault_summary_content {
     my $self = shift;
     my $category = shift;
-    my $faults = shift;
+    my $faultgrp = shift;
     my $mindate = shift;
     my $maxdate = shift;
     my %args = @_;
-
-    my %status = OMP::Fault->faultStatus;
-    my %statusOpen = OMP::Fault->faultStatusOpen;
 
     # Store faults by system and type
     my %faults;
@@ -996,7 +967,7 @@ sub fault_summary_content {
     my $totalfiled = 0;
     $totals{open} = 0;
 
-    for (@$faults) {
+    for ($faultgrp->faults) {
         $totals{$_->systemText} ++;
         $timelost += $_->timelost;
 
@@ -1010,7 +981,7 @@ sub fault_summary_content {
 
         # Store open faults and closed major faults
         my $status;
-        if (exists $statusOpen{$_->statusText}) {
+        if ($_->isOpen) {
             $status = 'open';
         }
         else {
@@ -1027,7 +998,7 @@ sub fault_summary_content {
 
     return {
         show_projects => $args{'show_affected'},
-        num_faults => (scalar @$faults),
+        num_faults => $faultgrp->numfaults,
         num_faults_filed => $totalfiled,
         date_min => $mindate,
         date_max => $maxdate,
@@ -1043,6 +1014,7 @@ sub fault_summary_content {
             my $lastresponse = $localtime - $locallast;
             return sprintf('%d', $lastresponse->days);
         },
+        entry_name => OMP::Fault->getCategoryEntryName($category),
     };
 }
 
@@ -1055,7 +1027,9 @@ sub fault_summary_content {
 =item B<_write_page_extra>
 
 Method to prepare extra information for the L<write_page> system.  For the
-fault system, attempt to identify the category and fault ID.
+fault system, attempt to identify the category and fault.  If a fault ID
+was given, the fault is retrieved from the database, added to the handler
+method arguments and used to determine the category.
 
 =cut
 
@@ -1065,11 +1039,10 @@ sub _write_page_extra {
     my $q = $self->cgi;
 
     my $cat;
+    my $fault;
     my $faultid = $self->decoded_url_param('fault');
 
     if (defined $faultid) {
-        my $fault;
-
         $faultid = OMP::General->extract_faultid("[${faultid}]");
         croak 'Invalid fault ID' unless defined $faultid;
 
@@ -1092,21 +1065,25 @@ sub _write_page_extra {
         $cat = $fault->category;
     }
     else {
-        $cat = uc $self->decoded_url_param('cat');
+        $cat = $self->decoded_url_param('cat');
 
-        my %categories = map {uc($_), undef} OMP::Fault->faultCategories;
-        undef $cat unless (exists $categories{$cat} or $cat eq 'ANYCAT');
+        if (defined $cat) {
+            $cat = uc $cat;
+
+            undef $cat unless $cat eq 'ANYCAT'
+                or grep {$cat eq $_} OMP::Fault->faultCategories;
+        }
     }
 
     $self->_sidebar_fault($cat);
 
-    unless ((defined $cat)) {
+    unless (defined $cat) {
         $self->_write_category_choice();
 
         return {abort => 1};
     }
 
-    return {args => [$cat, $faultid]};
+    return {args => [$cat, $fault]};
 }
 
 =item B<_sidebar_fault>
@@ -1121,38 +1098,25 @@ sub _sidebar_fault {
     my $self = shift;
     my $cat = shift;
 
-    my $suffix = $cat =~ /events/i
-        ? ''
-        : 'safety' eq lc $cat || 'vehicle_incident' eq lc $cat
-            ? 'Reporting'
-            : 'Faults';
+    if (defined $cat and $cat ne "ANYCAT") {
+        $cat = uc $cat;
 
-    my %query_link = $self->_fault_sys_links;
-
-    if (defined $cat and uc $cat ne "ANYCAT") {
-        my ($text, $prop) = ('fault', 'a');
-        if ($cat =~ /event/i) {
-            $text = 'event';
-            $prop = 'an';
-        }
+        my $text = lc OMP::Fault->getCategoryEntryName($cat);
+        my $prop = ($text =~ /^[aeiou]/) ? 'an' : 'a';
 
         $self->side_bar(
-            "$cat $suffix",
+            OMP::Fault->getCategoryFullName($cat),
             [
-                ["File $prop $text" => "filefault.pl?cat=$cat"],
-                ["View ${text}s" => $query_link{uc $cat}->{'url'}],
+                ["File $prop $text" => "/cgi-bin/filefault.pl?cat=$cat"],
+                ["View ${text}s" => "/cgi-bin/queryfault.pl?cat=$cat"],
             ]);
     }
 
     $self->side_bar(
         'Fault system',
         [
-            (
-                map {[$query_link{$_}->{'text'} => $query_link{$_}->{'url'}]}
-                grep {$_ ne 'ANYCAT'}
-                $self->_fault_sys_links_order()
-            ),
-            ['All Faults' => $query_link{'ANYCAT'}->{'url'}],
+            map {[$_->{'text'} => $_->{'url'}]}
+            $self->_fault_sys_links()
         ],
         fault_id_panel => 1);
 }
@@ -1172,87 +1136,80 @@ sub _write_category_choice {
 
     my $q = $self->cgi;
 
-    my %query = $self->_fault_sys_links;
+    # Assume "ANYCAT" is last in order, so "pop" it from the list.
+    my @links = $self->_fault_sys_links;
+    my $link_any = pop @links;
 
     $self->_write_http_header(undef, \%opt);
     $self->render_template(
         'fault_category_choice.html',
         {
             %{$self->_write_page_context_extra(\%opt)},
-            categories => [
-                map {
-                    $query{$_}
-                }
-                grep {
-                    'anycat' ne lc $_
-                } $self->_fault_sys_links_order
-            ],
-            category_any => $query{'ANYCAT'},
+            categories => \@links,
+            category_any => $link_any,
         });
 }
 
-BEGIN {
-    my @order = qw/
-        CSG OMP UKIRT JCMT JCMT_EVENTS DR FACILITY SAFETY
-        VEHICLE_INCIDENT
-    /;
+sub _fault_sys_links {
+    my $self = shift;
 
-    push @order, 'ANYCAT';
-
-    my %long_text = (
-        'CSG' => 'EAO computer services',
-        'OMP' => 'Observation Management Project',
-        'UKIRT' => 'UKIRT',
-        'JCMT' => 'JCMT',
-        'JCMT_EVENTS' => 'JCMT events',
-        'DR' => 'data reduction systems',
-        'FACILITY' => 'facilities',
-        'SAFETY' => 'safety',
-        'VEHICLE_INCIDENT' => 'vehicle incident',
-        'ANYCAT' => 'all categories',
+    my @info = (
+        {
+            category => 'CSG',
+            description => 'EAO computer services',
+        },
+        {
+            category => 'OMP',
+            description => 'the Observation Management Project',
+        },
+        {
+            category => 'UKIRT',
+            description => 'UKIRT',
+        },
+        {
+            category => 'JCMT',
+            description => 'JCMT',
+        },
+        {
+            category => 'JCMT_EVENTS',
+            full_description => 'event logging for JCMT',
+        },
+        {
+            category => 'DR',
+            description => 'data reduction systems',
+        },
+        {
+            category => 'FACILITY',
+            description => 'facilities',
+        },
+        {
+            category => 'SAFETY',
+            full_description => 'issues relating to safety',
+        },
+        {
+            category => 'VEHICLE_INCIDENT',
+            full_description => 'vehicle incident issues',
+        },
+        {
+            category => 'ANYCAT',
+            text => 'All Faults',
+            full_description => 'faults in all categories',
+        },
     );
 
-    sub _fault_sys_links {
-        my %links;
-        for my $type (@order) {
-            next if grep {$type eq $_}
-                ('SAFETY', 'JCMT_EVENTS', 'VEHICLE_INCIDENT');
-
-            $links{$type} = {
-                'url' => "/cgi-bin/queryfault.pl?cat=$type",
-                'text' => "$type Faults",
-                'extra' => 'faults relating to ' . $long_text{$type}
-            };
-        }
-
-        $links{'SAFETY'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=SAFETY',
-            'text' => 'Safety Reporting',
-            'extra' => 'issues relating to safety'
+    return map {
+        my $cat = $_->{'category'};
+        {
+            'category' => $cat,
+            'url' => "/cgi-bin/queryfault.pl?cat=$cat",
+            'text' => (exists $_->{'text'}
+                ? $_->{'text'}
+                : OMP::Fault->getCategoryFullName($cat)),
+            'extra' => (exists $_->{'full_description'}
+                ? $_->{'full_description'}
+                : 'faults relating to ' . $_->{'description'}),
         };
-
-        $links{'JCMT_EVENTS'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=JCMT_EVENTS',
-            'text' => 'JCMT Events',
-            'extra' => 'event logging for JCMT'
-        };
-
-        $links{'VEHICLE_INCIDENT'} = {
-            'url' => '/cgi-bin/queryfault.pl?cat=VEHICLE_INCIDENT',
-            'text' => 'Vehicle Incident Reporting',
-            'extra' => 'vehicle incident issues'
-        };
-
-        #  Fine tune 'ANYCAT' description.
-        $links{'ANYCAT'}->{'extra'} = 'faults in all categories';
-
-        return %links;
-    }
-
-    sub _fault_sys_links_order {
-        my ($self) = @_;
-        return @order;
-    }
+    } @info;
 }
 
 1;

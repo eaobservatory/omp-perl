@@ -7,7 +7,7 @@
             <td><b>ID</b></td>
             <td><b>Subject</b></td>
             <td><b>Filed by</b></td>
-            <td><b>System</b></td>
+            <td><b>[% fault_info.system_label | html %]</b></td>
             <td><b>Type</b></td>
             <td><b>Status</b></td>
             [% IF fault_info.show_time_lost %]
@@ -83,7 +83,7 @@
                     [% END %]
                     <tr bgcolor="#ffffff">
                         <td>
-                            <b>Actual time of failure:</b>
+                            <b>Actual time occurred:</b>
                             [% IF fault.faultdate %]
                                 [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
                                     <a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(fault.faultdate) | html %]</a>
@@ -95,9 +95,9 @@
                             [% END %]
                         </td>
                         <td>
-                            <b>Status:</b>
                             [% IF fault_info.allow_edit %]
                                 <form method="post" action="[% fault_info.target %]">
+                                    <b>Status:</b>
                                     <select name="status">
                                         [% FOREACH status IN fault_info.statuses %]
                                             <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
@@ -106,6 +106,7 @@
                                     <input type="submit" name="change_status" value="Change"/>
                                 </form>
                             [% ELSE %]
+                                <b>Status:</b>
                                 [% fault.statusText | html %]
                             [% END %]
                         </td>
@@ -136,7 +137,7 @@
                     [% IF fault_info.allow_edit %]
                         <tr bgcolor="#ffffff">
                             <td>&nbsp;</td>
-                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Click here to update or edit this fault</a></span></td>
+                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Update or edit this [% fault_info.entry_name | lower | html %]</a></span></td>
                         </tr>
                     [% END %]
                     [% FOREACH response IN fault.responses %]
@@ -150,7 +151,7 @@
                                    <tr bgcolor="[% bgcolor %]">
                                         <td>
                                             <b>Response <a name="response[% response.respnum %]">#[% response.respnum %]</a></b>
-                                            <a class="copy_text" href="#" data-copy_text="[% uri_fault_id %]#[% response.respnum %]" title="Copy fault and response identifier">&loz;</a>
+                                            <a class="copy_text" href="#response[% response.respnum %]" data-copy_text="[% uri_fault_id %]#[% response.respnum %]" title="Copy fault and response identifier">&loz;</a>
                                             by: [% render_user_name(response.author) %]
                                         </td>
                                         <td>

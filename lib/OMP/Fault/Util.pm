@@ -1,14 +1,14 @@
-package OMP::FaultUtil;
+package OMP::Fault::Util;
 
 =head1 NAME
 
-OMP::FaultUtil - Fault content manipulation
+OMP::Fault::Util - Fault content manipulation
 
 =head1 SYNOPSIS
 
-    use OMP::FaultUtil;
+    use OMP::Fault::Util;
 
-    $text = OMP::FaultUtil->format_fault($fault, $bottompost);
+    $text = OMP::Fault::Util->format_fault($fault, $bottompost);
 
 =head1 DESCRIPTION
 
@@ -39,7 +39,7 @@ use OMP::Config;
 Format a fault in such a way that it is readable in a mail viewer.  This
 method retains the HTML in fault responses and uses HTML for formatting.
 
-    $text = OMP::FaultUtil->format_fault($fault, $bottompost, [%opt]);
+    $text = OMP::Fault::Util->format_fault($fault, $bottompost, [%opt]);
 
 The first argument should be an C<OMP::Fault> object.  If the second argument
 is true then responses are displayed in ascending order (newer responses appear
@@ -82,10 +82,12 @@ sub format_fault {
     my $system = $fault->systemText;
     my $type = $fault->typeText;
     my $loss = $fault->timelost;
-    my $category = $fault->category;
     my $shifttype = $fault->shifttype;
     my $remote = $fault->remote;
     my $projects = $fault->projects;
+    my $entryName = lc $fault->getCategoryEntryName;
+    my $entryNameQualified = $fault->getCategoryEntryNameQualified;
+    my $systemLabel = $fault->getCategorySystemLabel;
 
     # Don't show the status if there is only the initial filing and it is 'Open'
     my $status = $responses[1] || $fault->statusText !~ /open/i
@@ -103,7 +105,7 @@ sub format_fault {
 
     # Create the fault meta info portion of our message
     my $meta = sprintf "<pre>%-58s %s",
-        "<b>System:</b> $system",
+        "<b>${systemLabel}:</b> $system",
         "<b>Fault type:</b> $type";
 
     $meta .= sprintf "<br>%-58s %s",
@@ -134,7 +136,7 @@ sub format_fault {
 
         # Include a response link at the top for convenience.
         push @faulttext,
-            "To respond to this fault go to $responselink<br>--------------------------------<br><br>";
+            "To respond to this $entryName go to $responselink<br>--------------------------------<br><br>";
 
         my @order;
         my $heading = undef;
@@ -151,7 +153,7 @@ sub format_fault {
             my $author = $fault->author->html;
             my $date = OMP::DateTools->display_date(
                 scalar localtime($fault->filedate->epoch));
-            $heading = "$category fault filed by $author on $date<br>";
+            $heading = "$entryNameQualified filed by $author on $date<br>";
         }
 
         push @faulttext,
@@ -180,7 +182,7 @@ sub format_fault {
 
             if ($_->isfault) {
                 push @faulttext,
-                    "$category fault filed by $author on $date<br><br>";
+                    "$entryNameQualified filed by $author on $date<br><br>";
 
              # The meta data should appear right after the initial filing unless
                 # we are bottom posting in which case it appears right before
@@ -227,7 +229,7 @@ sub format_fault {
 
         $text = OMP::Display->replace_omp_links($text, complete_url => 1);
 
-        push @faulttext, "$category fault filed by $author on $date<br><br>";
+        push @faulttext, "$entryNameQualified filed by $author on $date<br><br>";
 
         # Make it noticeable if this fault is urgent
         push @faulttext,
@@ -243,7 +245,7 @@ sub format_fault {
 
     # Add the response link to the bottom of our message
     push @faulttext,
-        "--------------------------------<br>To respond to this fault go to $responselink<br>";
+        "--------------------------------<br>To respond to this $entryName go to $responselink<br>";
 
     return join '', @faulttext;
 }
@@ -252,7 +254,7 @@ sub format_fault {
 
 Compare two C<OMP::Fault> or C<OMP::Fault::Response> objects.
 
-    @diff = OMP::FaultUtil->compare($fault_a, $fault_b);
+    @diff = OMP::Fault::Util->compare($fault_a, $fault_b);
 
 Takes two C<OMP::Fault> or C<OMP::Fault::Response> objects as the only arguments.
 Returns a list containing the elements where the two objects differed.  The elements
@@ -277,6 +279,9 @@ sub compare {
             subject system type timelost faultdate urgency
             condition projects status shifttype remote
         /;
+
+        push @comparekeys, qw/location/
+            if $obja->faultHasLocation;
     }
     elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response")
             and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {

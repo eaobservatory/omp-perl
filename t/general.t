@@ -28,7 +28,7 @@ use Test::More tests => 2
     + 5 # project extract fail
     + 1 # fault extract
     + 1 # fault extract fail
-    + 9;
+    + 11;
 
 use Time::Piece qw/:override/;
 use Time::Seconds;
@@ -339,3 +339,6 @@ print "# Numerical utilities\n";
 is(OMP::General::nint(123.456), 123, 'nint(123.456)');
 
 is(OMP::General::nearest_mult(129, 64), 128, 'nearest_mult(129, 64)');
+
+is(OMP::General->uc_if_defined(undef), undef, 'uc_if_defined on undefined value');
+is(OMP::General->uc_if_defined('xyz'), 'XYZ', 'uc_if_defined on defined string');

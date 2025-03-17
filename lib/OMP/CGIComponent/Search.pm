@@ -46,7 +46,7 @@ sub read_search_common {
 
     $values{'text_boolean'} = ($q->param('text_boolean') ? 1 : 0);
 
-    foreach (qw/text period author mindate maxdate days/) {
+    foreach (qw/text period userid mindate maxdate days/) {
         my $val = $q->param($_);
         $values{$_} = $val if defined $val;
     }
@@ -98,16 +98,12 @@ sub common_search_hash {
         $message = 'No query text specified.';
     }
 
-    if ($values->{'author'}) {
-        my $author = uc $values->{'author'};
-
-        my $user = OMP::DB::User->new(DB => $self->database)->getUser($author);
-
-        unless ($user) {
-            $message = "Could not find user '$author'.";
+    if ($values->{'userid'}) {
+        if ($values->{'userid'} =~ /^([A-Z]+[0-9]*)$/) {
+            $hash{$authorfield} = $1;
         }
         else {
-            $hash{$authorfield} = $user->userid;
+            $message = 'Invalid user ID.';
         }
     }
 

@@ -70,6 +70,7 @@ sub new {
         Locked => 0,
         ProjectID => undef,
         DB => undef,
+        ResultCache => undef,
     };
 
     # create the object (else we cant use accessor methods)
@@ -110,7 +111,7 @@ All project IDs are upper-cased automatically.
 sub projectid {
     my $self = shift;
     if (@_) {
-        $self->{ProjectID} = uc(shift);
+        $self->{ProjectID} = OMP::General->uc_if_defined(shift);
     }
     return $self->{ProjectID};
 }
@@ -213,6 +214,40 @@ sub db {
         $self->_dbhandle(shift);
     }
     return $self->{DB};
+}
+
+=item B<_result_cache>
+
+Retrieve reference to this object's result cache.  This hash will
+be created the first time this method is called.  If a key is specified
+then the value of that key will be returned instead, also initializes to
+a hash reference on first usage.
+
+    $cache = $db->_result_cache;
+    $part = $db->_result_cache('my_part');
+
+=cut
+
+sub _result_cache {
+    my $self = shift;
+
+    my $cache = $self->{'ResultCache'};
+    unless (defined $cache) {
+        $cache = $self->{'ResultCache'} = {};
+    }
+
+    if (@_) {
+        my $key = shift;
+        if (exists $cache->{$key}) {
+            return $cache->{$key};
+        }
+
+        my $part = $cache->{$key} = {};
+
+        return $part;
+    }
+
+    return $cache;
 }
 
 =back

@@ -264,29 +264,6 @@ use constant {
     # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
-# Mailing list
-my @list_name = (
-    'CSG',
-    'JCMT',
-    'JCMT_EVENTS',
-    'UKIRT',
-    'OMP',
-    'DR',
-    'SAFETY',
-    'FACILITY',
-    'VEHICLE_INCIDENT',
-);
-
-my %MAILLIST;
-
-my $config = OMP::Config->new();
-for my $name (@list_name) {
-    $MAILLIST{$name} = [
-        grep {$_}
-        map {s/^ +//; s/ +$//; $_}
-        $config->getData('email-address.' . lc $name)];
-}
-
 my %DATA = (
     "CSG" => {
         SYSTEM => {
@@ -544,40 +521,44 @@ my %LOCATION_HIDDEN = (
 # Miscellaneous options for each category
 my %OPTIONS = (
     CSG => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
     },
     JCMT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
     },
-    OMP => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
-    },
     UKIRT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
     },
-    DR => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
+    OMP => {
     },
-    'SAFETY' => {
-        CAN_LOSE_TIME => 0,
-        CAN_ASSOC_PROJECTS => 0,
-        IS_TELESCOPE => 0,
+    DR => {
+    },
+    SAFETY => {
+        CATEGORY_NAME => 'Safety',
+        CATEGORY_NAME_SUFFIX => 'Reporting',
+        HAS_LOCATION => 1,
+        SYSTEM_LABEL => 'Severity',
+        INITIAL_STATUS => FOLLOW_UP,
+    },
+    FACILITY => {
+        CATEGORY_NAME => 'Facility',
+    },
+    JCMT_EVENTS => {
+        CATEGORY_NAME => 'JCMT Events',
+        CATEGORY_NAME_SUFFIX => undef,
+        ENTRY_NAME => 'Event',
+        HAS_TIME_OCCURRED => 1,
+        INITIAL_STATUS => ONGOING,
+    },
+    VEHICLE_INCIDENT => {
+        CATEGORY_NAME => 'Vehicle Incident',
+        CATEGORY_NAME_SUFFIX => 'Reporting',
+        SYSTEM_LABEL => 'Vehicle',
     },
 );
-
-$OPTIONS{'VEHICLE_INCIDENT'}
-    = $OPTIONS{'JCMT_EVENTS'}
-    = {%{$OPTIONS{'SAFETY'}}};
 
 # Urgency
 my %URGENCY = (
@@ -608,7 +589,7 @@ my %STATUS_CLOSED = (
 my %SAFETY_STATUS_OPEN = (
     'Immediate action required' => IMMEDIATE_ACTION,
     'Follow up required' => FOLLOW_UP,
-    'Refer to safety commitee' => REFER_TO_SAFETY_COMMITTEE,
+    'Refer to safety committee' => REFER_TO_SAFETY_COMMITTEE,
 );
 
 my %SAFETY_STATUS_CLOSED = (
@@ -875,6 +856,16 @@ sub faultCondition {
     return %CONDITION;
 }
 
+=back
+
+=head2 Class or Instance Methods
+
+The following methods can be used either as class methods
+(supplying a category name) or as instance methods (using
+the category of the fault object).
+
+=over 4
+
 =item B<faultStatus>
 
 Return a hash containing the different statuses that can be associated
@@ -882,11 +873,31 @@ with a fault.
 
     %status = OMP::Fault->faultStatus();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatus {
-    my $class = shift;
-    return %STATUS;
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
+
+    if (defined $category) {
+        return %SAFETY_STATUS
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS
+            if $category eq 'VEHICLE_INCIDENT';
+
+        return %STATUS;
+    }
+
+    my %combined = (
+        %STATUS, %SAFETY_STATUS,
+        %JCMT_EVENTS_STATUS, %VEHICLE_INCIDENT_STATUS);
+
+    return %combined;
 }
 
 =item B<faultStatusOpen>
@@ -895,13 +906,32 @@ Return a hash containing the statuses that can represent an open fault.
 
     %status = OMP::Fault->faultStatusOpen();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatusOpen {
-    my $class = shift;
-    return %STATUS_OPEN;
-}
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
+    if (defined $category) {
+        return %SAFETY_STATUS_OPEN
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS_OPEN
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS_OPEN
+            if $category eq 'VEHICLE_INCIDENT';
+
+        return %STATUS_OPEN;
+    }
+
+    my %combined = (
+        %STATUS_OPEN, %SAFETY_STATUS_OPEN,
+        %JCMT_EVENTS_STATUS_OPEN, %VEHICLE_INCIDENT_STATUS_OPEN);
+
+    return %combined;
+}
 
 =item B<faultStatusClosed>
 
@@ -909,30 +939,61 @@ Return a hash containing the statuses that can represent a closed fault.
 
     %status = OMP::Fault->faultStatusClosed();
 
+B<Note:> if called as a class method without specifying a category,
+returns a combined set of statuses from all categories.
+
 =cut
 
 sub faultStatusClosed {
-    my $class = shift;
-    return %STATUS_CLOSED;
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
+
+    if (defined $category) {
+        return %SAFETY_STATUS_CLOSED
+            if $category eq 'SAFETY';
+        return %JCMT_EVENTS_STATUS_CLOSED
+            if $category eq 'JCMT_EVENTS';
+        return %VEHICLE_INCIDENT_STATUS_CLOSED
+            if $category eq 'VEHICLE_INCIDENT';
+
+        return %STATUS_CLOSED;
+    }
+
+    my %combined = (
+        %STATUS_CLOSED, %SAFETY_STATUS_CLOSED,
+        %JCMT_EVENTS_STATUS_CLOSED, %VEHICLE_INCIDENT_STATUS_CLOSED);
+
+    return %combined;
 }
 
-sub faultStatus_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS;
-}
+=item B<faultLocation>
 
-sub faultStatusOpen_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS_OPEN;
-}
+Return a hash containing locations which can be specified in faults.
 
-sub faultStatusClosed_Safety {
-    my $class = shift;
-    return %SAFETY_STATUS_CLOSED;
-}
+    %location = OMP::Fault->faultLocation($category, %options);
 
-sub faultLocation_Safety {
-    my $class = shift;
+Options:
+
+=over 4
+
+=item include_hidden
+
+Include hidden locations.
+
+=back
+
+B<Note:> if passing options but not specifying a category, the
+first (positional) argument should be C<undef>.  The category
+selection is not currently used (as there is only one set of
+locations) but is retained in the interface to match other methods
+and in case different sets of locations are defined in the future.
+
+=cut
+
+sub faultLocation {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : shift;
+    $category = uc $category if defined $category;
     my %opt = @_;
 
     return %LOCATION if $opt{'include_hidden'};
@@ -946,36 +1007,6 @@ sub faultLocation_Safety {
     return %non_hidden;
 }
 
-sub faultStatus_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS;
-}
-
-sub faultStatusOpen_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS_OPEN;
-}
-
-sub faultStatusClosed_JCMTEvents {
-    my $class = shift;
-    return %JCMT_EVENTS_STATUS_CLOSED;
-}
-
-sub faultStatus_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS;
-}
-
-sub faultStatusOpen_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS_OPEN;
-}
-
-sub faultStatusClosed_VehicleIncident {
-    my $class = shift;
-    return %VEHICLE_INCIDENT_STATUS_CLOSED;
-}
-
 =item B<faultCanAssocProjects>
 
 Given a fault category, this badly named method will return true if faults for that
@@ -986,15 +1017,14 @@ category can be associated with projects.
 =cut
 
 sub faultCanAssocProjects {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{CAN_ASSOC_PROJECTS}) {
-        return $OPTIONS{$category}{CAN_ASSOC_PROJECTS};
+    if (exists $OPTIONS{$category}{'CAN_ASSOC_PROJECTS'}) {
+        return $OPTIONS{$category}{'CAN_ASSOC_PROJECTS'};
     }
-    else {
-        return 0;
-    }
+
+    return 0;
 }
 
 =item B<faultCanLoseTime>
@@ -1007,15 +1037,72 @@ for a fault in that category.
 =cut
 
 sub faultCanLoseTime {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{CAN_LOSE_TIME}) {
-        return $OPTIONS{$category}{CAN_LOSE_TIME};
+    if (exists $OPTIONS{$category}{'CAN_LOSE_TIME'}) {
+        return $OPTIONS{$category}{'CAN_LOSE_TIME'};
     }
-    else {
-        return 0;
+
+    return 0;
+}
+
+=item B<faultHasLocation>
+
+Given a fault category, return whether the faults of this category
+are associated with a location.
+
+=cut
+
+sub faultHasLocation  {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'HAS_LOCATION'}) {
+        return $OPTIONS{$category}{'HAS_LOCATION'};
     }
+
+    return 0;
+}
+
+=item B<faultHasTimeOccurred>
+
+Given a fault category, return whether the faults of this category
+can be associated with a time.
+
+=cut
+
+sub faultHasTimeOccurred {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    # If we have a specific setting, return it.
+    if (exists $OPTIONS{$category}{'HAS_TIME_OCCURRED'}) {
+        return $OPTIONS{$category}{'HAS_TIME_OCCURRED'};
+    }
+
+    # Otherwise assume a time can be specified if time can be lost.
+    return OMP::Fault->faultCanLoseTime($category);
+}
+
+=item B<faultInitialStatus>
+
+Given a fault category, return a suggested initial status
+value.  (Note thus is not currently applied as the default
+when constructing an OMP::Fault object, but the value returned
+could be used when showing a fault filing form.)
+
+=cut
+
+sub faultInitialStatus  {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'INITIAL_STATUS'}) {
+        return $OPTIONS{$category}{'INITIAL_STATUS'};
+    }
+
+    return OPEN;
 }
 
 =item B<faultIsTelescope>
@@ -1025,15 +1112,114 @@ Given a fault category, this method will return true if the category is associat
 =cut
 
 sub faultIsTelescope {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
 
-    if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
-        return $OPTIONS{$category}{CAN_LOSE_TIME};
+    if (exists $OPTIONS{$category}{'IS_TELESCOPE'}) {
+        return $OPTIONS{$category}{'IS_TELESCOPE'};
     }
-    else {
-        return 0;
+
+    return 0;
+}
+
+=item B<getCategoryName>
+
+Get the name (capitalized for display) of the category.
+
+=cut
+
+sub getCategoryName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return $self->_getCategoryName($category, 0);
+}
+
+=item B<getCategoryFullName>
+
+Get the full name of the category followed by the suffix, if any,
+e.g. "Faults" or "Reporting".
+
+=cut
+
+sub getCategoryFullName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return $self->_getCategoryName($category, 1);
+}
+
+sub _getCategoryName {
+    my $self = shift;
+    my $category = shift;
+    my $full = shift;
+
+    my $name = (exists $OPTIONS{$category}{'CATEGORY_NAME'})
+        ? $OPTIONS{$category}{'CATEGORY_NAME'}
+        : $category;
+
+    return $name unless $full;
+
+    my $suffix = (exists $OPTIONS{$category}{'CATEGORY_NAME_SUFFIX'})
+        ? $OPTIONS{$category}{'CATEGORY_NAME_SUFFIX'}
+        : 'Faults';
+
+    return $name unless defined $suffix;
+
+    return $name . ' ' . $suffix;
+}
+
+=item B<getCategoryEntryName>
+
+Get the name of entries in this category, e.g. "Fault"
+or "Event".
+
+=cut
+
+sub getCategoryEntryName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'ENTRY_NAME'}) {
+        return $OPTIONS{$category}{'ENTRY_NAME'};
     }
+
+    return 'Fault';
+}
+
+=item B<getCategoryEntryNameQualified>
+
+Get the name of entries in this category, in lower case, prefixed
+with the name of the category e.g. "JCMT fault" or "JCMT event".
+
+=cut
+
+sub getCategoryEntryNameQualified {
+    my $self = shift;
+
+    my $catName = $self->getCategoryName(@_);
+    my $entryName = lc $self->getCategoryEntryName(@_);
+
+    # If the category name already ends with the entry name,
+    # remove it to avoid duplication.
+    $catName =~ s/ ${entryName}s?$//i;
+
+    return $catName . ' ' . $entryName;
+}
+
+=item B<getCategorySystemLabel>
+
+Get the label for the "system" parameter.
+
+=cut
+
+sub getCategorySystemLabel {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+
+    if (exists $OPTIONS{$category}{'SYSTEM_LABEL'}) {
+        return $OPTIONS{$category}{'SYSTEM_LABEL'};
+    }
+
+    return 'System';
 }
 
 =back
@@ -1102,9 +1288,7 @@ sub new {
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
         TimeLost => 0,
-        Severity => undef,
         Location => undef,
-        Vehicle => undef,
         FaultDate => undef,
         Urgency => $URGENCY{Normal},
         Condition => $CONDITION{Normal},
@@ -1251,22 +1435,14 @@ Fault system (supplied as an integer - see C<faultSystems>).
 
 =cut
 
-BEGIN {
-    sub system {
-        my $self = shift;
+sub system {
+    my $self = shift;
 
-        if (@_) {
-            $self->{Vehicle}
-                = $self->{Severity}
-                = $self->{System}
-                = shift @_;
-        }
-
-        return $self->{System};
+    if (@_) {
+        $self->{System} = shift @_;
     }
 
-    *severity = \&system;
-    *vehicle = \&system;
+    return $self->{System};
 }
 
 =item B<typeText>
@@ -1295,18 +1471,15 @@ A fault can not be modified using this method.
 sub systemText {
     my $self = shift;
 
-    return $self->severityText
-        if $self->isSafety;
+    my $category = $self->category;
 
-    return $self->vehicleIncidentText
-        if $self->isVehicleIncident;
+    return $INVERSE{$category}{'SEVERITY'}{$self->system}
+        if 'SAFETY' eq $category;
 
-    return $INVERSE{$self->category}{SYSTEM}{$self->system};
-}
+    return $INVERSE{$category}{'VEHICLE'}{$self->system}
+        if 'VEHICLE_INCIDENT' eq $category;
 
-sub severityText {
-    my $self = shift;
-    return $INVERSE{$self->category}{'SEVERITY'}{$self->severity};
+    return $INVERSE{$category}{'SYSTEM'}{$self->system};
 }
 
 sub location {
@@ -1320,11 +1493,6 @@ sub location {
 sub locationText {
     my $self = shift;
     return $INVERSE_PLACE{$self->location};
-}
-
-sub vehicleIncidentText {
-    my $self = shift;
-    return $INVERSE{$self->category}{'VEHICLE'}{$self->vehicle};
 }
 
 =item B<statusText>
@@ -1408,6 +1576,8 @@ sub isOpen {
         REFER_TO_SAFETY_COMMITTEE(),
         COMMISSIONING(),
         ONGOING(),
+        KNOWN_FAULT(),
+        SUSPENDED(),
     );
 }
 
@@ -1425,26 +1595,6 @@ sub isNew {
 
     $t -= 129600;  # 36 hours ago
     return ($date >= $t ? 1 : 0);
-}
-
-sub isSafety {
-    my ($self) = @_;
-    return 'safety' eq lc $self->category;
-}
-
-sub isNotSafety {
-    my ($self) = @_;
-    return ! $self->isSafety;
-}
-
-sub isJCMTEvents {
-    my ($self) = @_;
-    return 'jcmt_events' eq lc $self->category;
-}
-
-sub isVehicleIncident {
-    my ($self) = @_;
-    return 'vehicle_incident' eq lc $self->category;
 }
 
 sub isSCUBA2Fault {
@@ -1852,7 +2002,11 @@ OMP configuration file.
 sub mail_list {
     my $self = shift;
     my $cat = $self->category;
-    return $MAILLIST{$cat};
+    my $config = OMP::Config->new();
+    return [
+        grep {$_}
+        map {s/^ +//; s/ +$//; $_}
+        $config->getData('email-address.' . lc $cat)];
 }
 
 =item B<mail_list_users>
@@ -1866,13 +2020,12 @@ given by C<mail_list>.
 
 sub mail_list_users {
     my $self = shift;
-    my $category = $self->category;
+
+    my $name = $self->getCategoryFullName;
 
     return map {
         OMP::User->new(
-            'name' => $category . ($self->isJCMTEvents
-                ? ''
-                : $self->isSafety ? ' Reporting' : ' Faults'),
+            'name' => $name,
             'email' => $_,
         )
     } @{$self->mail_list};
@@ -1960,17 +2113,14 @@ sub stringify {
         "--------------------------------------------------------------------------------\n"
         . "    Report by     :  $author\n"
         . "                                         date: $day\n"
-        .
-        ($self->isNotSafety
-            ? '    System'
-            : '    Severity')
+        . '    ' . $self->getCategorySystemLabel()
         . " is     :  $system\n"
         . "                                         time: $time\n"
         . "    Fault type is :  $type\n"
         .
-        ($self->isNotSafety
-            ? ''
-            : sprintf "    Location is   :  %s\n", $self->location)
+        ($self->faultHasLocation()
+            ? sprintf "    Location is   :  %s\n", $self->location
+            : '')
         . "                                         loss: $tlost hrs\n"
         . "    Status        :  $status\n" . "\n"
         . "    Notice will be sent to: $email\n" . "\n"

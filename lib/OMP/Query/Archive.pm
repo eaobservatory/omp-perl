@@ -45,23 +45,9 @@ our $WFCAMTAB = 'ukirt.WFCAM W';
 our $MICHELLETAB = 'ukirt.MICHELLE M';
 our $JCMTTAB = 'jcmt.COMMON J';
 our $ACSISTAB = 'jcmt.ACSIS A';
-our $AFILESTAB = 'jcmt.FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
-
-# Extra description for Tim: In the %jointable the $AFILESTAB and
-# $S2FILESTAB are used as hash keys. Now, these both point to the same
-# table, so they both interpolate to the same string. When that
-# happens, the join string for the SCUBA-2 files table overwrites that
-# for the ACSIS files table, and if you're doing ACSIS lookups it
-# tries to join against the SCUBA-2 table, which clearly doesn't
-# work. If we add the space to the end of the $AFILESTAB string it
-# doesn't affect the resulting SQL statement, but the two keys become
-# unique and thus the hash works as it should.
-
+our $FILESTAB = 'jcmt.FILES F';
 our $SCUBA2TAB = 'jcmt.SCUBA2 S2';
-our $S2FILESTAB = 'jcmt.FILES F';
-
 our $RXH3TAB = 'jcmt.RXH3 H3';
-our $RXH3FILESTAB = 'jcmt.FILES F  '; # Two extra spaces, to distinguish as above.
 
 {
     my $cf = OMP::Config->new;
@@ -70,36 +56,31 @@ our $RXH3FILESTAB = 'jcmt.FILES F  '; # Two extra spaces, to distinguish as abov
     my $prefix = $cf->getData('arc-database-prefix');
 
     if ($prefix) {
-        my %db;
         # Need to keep list of table references here in sync with above.
-        $db{'jcmt'} = [
-            \$JCMTTAB,
-            \$ACSISTAB,
-            \$AFILESTAB,
-            \$SCUBA2TAB,
-            \$S2FILESTAB,
-            \$RXH3TAB,
-            \$RXH3FILESTAB,
-        ];
-
-        $db{'jcmt_tms'} = [
-            \$SCUTAB,
-            \$GSDTAB,
-            \$SUBTAB,
-            \$SPHTAB,
-        ];
-
-        $db{'ukirt'} = [
-            \$UKIRTTAB,
-            \$UFTITAB,
-            \$CGS4TAB,
-            \$UISTTAB,
-            \$IRCAMTAB,
-            \$WFCAMTAB,
-            \$MICHELLETAB,
-        ];
-
-        my $keys = join '|', keys %db;
+        my %db = (
+            jcmt => [
+                \$JCMTTAB,
+                \$ACSISTAB,
+                \$FILESTAB,
+                \$SCUBA2TAB,
+                \$RXH3TAB,
+            ],
+            jcmt_tms => [
+                \$SCUTAB,
+                \$GSDTAB,
+                \$SUBTAB,
+                \$SPHTAB,
+            ],
+            ukirt => [
+                \$UKIRTTAB,
+                \$UFTITAB,
+                \$CGS4TAB,
+                \$UISTTAB,
+                \$IRCAMTAB,
+                \$WFCAMTAB,
+                \$MICHELLETAB,
+            ],
+        );
 
         for my $key (keys %db) {
             # The Switchroo.
@@ -120,30 +101,26 @@ our %insttable = (
     SCUBA => [$SCUTAB],
     HETERODYNE => [$GSDTAB, $SUBTAB],
     ACSIS => [$JCMTTAB, $ACSISTAB],
-    #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
     'SCUBA-2' => [$JCMTTAB, $SCUBA2TAB],
     RXH3 => [$JCMTTAB, $RXH3TAB],
 );
 
 our %jointable = (
     $GSDTAB => {
-        $SUBTAB => '(G.`sca#` = H.`sca#`)',
+        $SUBTAB => 'G.`sca#` = H.`sca#`',
     },
     $UKIRTTAB => {
-        $UFTITAB => '(U.idkey = F.idkey)',
-        $CGS4TAB => '(U.idkey = C.idkey)',
-        $UISTTAB => '(U.idkey = I.idkey)',
-        $IRCAMTAB => '(U.idkey = I.idkey)',
-        $WFCAMTAB => '(U.idkey = W.idkey)',
-        $MICHELLETAB => '(U.idkey = M.idkey)',
+        $UFTITAB => 'U.idkey = F.idkey',
+        $CGS4TAB => 'U.idkey = C.idkey',
+        $UISTTAB => 'U.idkey = I.idkey',
+        $IRCAMTAB => 'U.idkey = I.idkey',
+        $WFCAMTAB => 'U.idkey = W.idkey',
+        $MICHELLETAB => 'U.idkey = M.idkey',
     },
     $JCMTTAB => {
-        $ACSISTAB => '(J.obsid = A.obsid)',
-        $AFILESTAB => '(A.obsid_subsysnr = F.obsid_subsysnr)',
-        $SCUBA2TAB => '(J.obsid = S2.obsid)',
-        $S2FILESTAB => '(S2.obsid_subsysnr = F.obsid_subsysnr)',
-        $RXH3TAB => '(J.obsid = H3.obsid)',
-        $RXH3FILESTAB => '(H3.obsid_subsysnr = F.obsid_subsysnr)',
+        $ACSISTAB => 'J.obsid = A.obsid',
+        $SCUBA2TAB => 'J.obsid = S2.obsid',
+        $RXH3TAB => 'J.obsid = H3.obsid',
     },
 );
 
@@ -440,28 +417,6 @@ sub obsid {
     return;
 }
 
-=item B<_tables>
-
-List of database tables used for this query. They are usually
-just joined by a comma and placed in the initial line of the
-SQL.
-
-    $q->_tables(@tables);
-    @tables = $q->_tables;
-
-In principal the entries should match values stored in the global
-table variables used in this class but we do not check this.
-
-=cut
-
-sub _tables {
-    my $self = shift;
-    if (@_) {
-        $self->{Tables} = [@_];
-    }
-    return @{$self->{Tables}};
-}
-
 =back
 
 =head2 General Methods
@@ -514,49 +469,56 @@ sub sql {
     my @sql;
     my $href = $self->query_hash;
 
-    foreach my $t (keys %$href) {
+    foreach my $t (sort keys %$href) {
         # Construct the the where clauses. Depends on which
         # additional queries are defined
         next if $t eq 'telescope';
 
-        my $subsql = $self->_qhash_tosql([qw/telescope/], $t);
+        my $subsql;
+        do {
+            # Locally override the query hash attribute so that we can
+            # call the base class _qhash_tosql method.  (Note QHash should
+            # normally be only accessed via the query_hash method.)
+            local $self->{QHash} = $href->{$t};
+            $subsql = $self->_qhash_tosql([qw/telescope/]);
+        };
 
         # if there is no sql returned here then we have an open query
         # so skip this telescope
         next unless $subsql;
 
         # Form the join.
+        my $tables = $insttable{$t};
         my @join;
-        if ($#{$insttable{$t}} > 0) {
-            for (my $i = 1; $i <= $#{$insttable{$t}}; $i ++) {
-                my $join = $jointable{$insttable{$t}[0]}{$insttable{$t}[$i]};
-                push @join, $join;
-            }
-        }
 
-        my @where = grep {$_} ($subsql, @join);
-        my $where = '';
-        $where = " WHERE " . join(" AND ", @where)
-            if @where;
+        # Add the first table to the list.
+        push @join, $tables->[0];
+
+        # Add join expression for subsequent tables.
+        for (my $i = 1; $i <= $#$tables; $i ++) {
+            push @join,
+                'JOIN', $tables->[$i],
+                'ON', $jointable{$tables->[0]}{$tables->[$i]};
+        }
 
         # Now need to put this SQL into the template query
         # Need to switch on telescope
-        my $tables = join(" ,", @{$insttable{$t}});
+        my $from = join ' ', @join;
         my $tel = $self->telescope;
         my $sql;
         if ($tel eq 'JCMT') {
-            $sql = "SELECT *, ";
-            $sql .= $lut{date}->{$insttable{$t}->[0]} . " AS 'date_obs' ";
-            if (defined($lut{dateend}->{$insttable{$t}->[0]})) {
-                $sql .= ", "
-                    . $lut{dateend}->{$insttable{$t}->[0]}
-                    . " AS 'date_end' ";
+            $sql = 'SELECT *, '
+                . $lut{date}->{$tables->[0]} . " AS 'date_obs'";
+            if (defined($lut{dateend}->{$tables->[0]})) {
+                $sql .= ', '
+                    . $lut{dateend}->{$tables->[0]}
+                    . " AS 'date_end'";
             }
-            $sql .= "FROM $tables $where";
+            $sql .= " FROM $from WHERE $subsql";
         }
         elsif ($tel eq 'UKIRT') {
             # UKIRT - query common table first
-            $sql = "SELECT * FROM $tables $where ORDER BY UT_DATE";
+            $sql = "SELECT * FROM $from WHERE $subsql ORDER BY UT_DATE";
         }
         else {
             throw OMP::Error::DBMalformedQuery(
@@ -654,6 +616,25 @@ sub _post_process_hash {
     # Do the generic pre-processing
     $self->SUPER::_post_process_hash($href);
 
+    for my $key (keys %$href) {
+        next if $key =~ /^_/;
+
+        my $entry = $href->{$key};
+
+        if (eval {$entry->isa('OMP::Range')}) {
+            my $max = $entry->max;
+
+            # We need to redefine the max date so that this check will be
+            # exclusive on the maximum, so that we don't return entries
+            # from the UKIRT archive for the day we want plus the next
+            # day (because dates in the UKIRT archive only have a resolution
+            # of one day and not one second)
+            if (defined $max and eval {$max->isa('Time::Piece')}) {
+                $entry->max($max - 1);
+            }
+        }
+    }
+
     # If we're looking at a file, we don't need to do these translations.
     if ($self->isfile) {
         return;
@@ -699,35 +680,29 @@ sub _post_process_hash {
     # Loop over instruments if specified
     # This is required for a sanity check to make sure incorrect combos are
     # trapped
-    my %tables;
     my %insts;
     if (exists $href->{instrument}) {
         my %tels;
         for (@{$href->{instrument}}) {
             my $inst = uc($_);
             if ($inst eq "SCUBA") {
-                $tables{$SCUTAB} ++;
                 $tels{JCMT} ++;
                 $insts{SCUBA} ++;
             }
             elsif ($inst =~ /^SCUBA-?2/i) {
-                $tables{$SCUBA2TAB} ++;
                 $tels{JCMT} ++;
                 $insts{'SCUBA-2'} ++;
             }
             elsif ($inst =~ /^RXH3/i) {
-                $tables{$RXH3TAB} ++;
                 $tels{JCMT} ++;
                 $insts{'RXH3'} ++;
             }
             elsif ($inst =~ /^(HARP|GLT|ALAIHI|UU|AWEOWEO|KUNTUR)/i) {
                 # Only new data for harp so no GSD
-                $tables{$JCMTTAB} ++;
                 $tels{JCMT} ++;
                 $insts{ACSIS} ++;
             }
             elsif ($inst =~ /^ACSIS/i) {
-                $tables{$JCMTTAB} ++;
                 $tels{JCMT} ++;
 
                 # ACSIS is a backend, not an instrument.  So if $insts{ACSIS} is set,
@@ -736,30 +711,24 @@ sub _post_process_hash {
             elsif ($inst =~ /^UKT/) {
                 # must be old JCMT
                 $tels{JCMT} ++;
-                $tables{$GSDTAB} ++;
                 $insts{HETERODYNE} ++;
             }
             elsif ($inst =~ /^(RX|HETERODYNE)/i) {
                 # can make a decision to trim if we have a date
                 if (defined $newjcmt) {
                     unless ($newjcmt) {
-                        $tables{$GSDTAB} ++;
                         $insts{HETERODYNE} ++;
                     }
                     else {
                         $insts{ACSIS} ++;
-                        $tables{$JCMTTAB} ++;
                     }
                 }
                 else {
-                    $tables{$GSDTAB} ++;
-                    $tables{$JCMTTAB} ++;
                     $insts{HETERODYNE} ++;
                 }
                 $tels{JCMT} ++;
             }
             elsif ($inst =~ $ukirt_inst) {
-                $tables{$UKIRTTAB} ++;
                 $tels{UKIRT} ++;
                 $insts{$inst} ++;
             }
@@ -772,7 +741,6 @@ sub _post_process_hash {
         # No instrument specified so we must select the tables
         my $tel = $href->{telescope}->[0];
         if (defined $tel && $tel eq 'UKIRT') {
-            $tables{$UKIRTTAB} ++;
             $insts{CGS4} ++;
             $insts{IRCAM} ++;
             $insts{UFTI} ++;
@@ -783,9 +751,6 @@ sub _post_process_hash {
         elsif (defined $tel && $tel eq 'JCMT') {
             if (defined $newjcmt) {
                 if ($newjcmt) {
-                    $tables{$JCMTTAB} ++;
-                    $tables{$ACSISTAB} ++;
-                    $tables{$AFILESTAB} ++;
                     $insts{ACSIS} ++;
                     $insts{'SCUBA-2'} ++;
                     $insts{'RXH3'} ++;
@@ -793,8 +758,6 @@ sub _post_process_hash {
                 else {
                     $insts{SCUBA} ++;
                     $insts{HETERODYNE} ++;
-                    $tables{$SCUTAB} ++;
-                    $tables{$GSDTAB} ++;
                 }
             }
             else {
@@ -803,22 +766,14 @@ sub _post_process_hash {
                 $insts{'SCUBA-2'} ++;
                 $insts{HETERODYNE} ++;
                 $insts{'RXH3'} ++;
-                $tables{$SCUTAB} ++;
-                $tables{$GSDTAB} ++;
-                $tables{$JCMTTAB} ++;
-                $tables{$ACSISTAB} ++;
-                $tables{$AFILESTAB} ++;
             }
         }
         else {
             throw OMP::Error::DBMalformedQuery(
-                "Unable to determine tables from telescope name "
+                "Unable to determine instruments from telescope name "
                 . (defined $tel ? "'$tel'" : "'<undef>'"));
         }
     }
-
-    # Now store the selected tables
-    $self->_tables(keys %tables);
 
     # Translate the query to be keyed by instrument.
     # Note that this ruins the hash to a certain extent.
@@ -930,168 +885,6 @@ sub _adjust_instrument {
     }
 
     return;
-}
-
-=item B<_qhash_tosql>
-
-Convert a query hash to a SQL WHERE clause. Called by sub-classes
-in order prior to inserting the clause into the main SQL query.
-
-    $where = $q->_qhash_tosql(\@skip);
-
-First argument is a reference to an array that contains the names of
-keys in the query hash that should be skipped when constructing the
-SQL.
-
-Returned SQL segment does not include "WHERE".
-
-=cut
-
-sub _qhash_tosql {
-    my $self = shift;
-    my $skip = shift;
-    my $inst = shift;
-
-    $skip = [] unless defined $skip;
-
-    # Retrieve the perl version of the query
-    my $href = $self->query_hash;
-    my $query;
-    if (defined($inst)) {
-        $query = $href->{$inst};
-    }
-    else {
-        $query = $href;
-    }
-
-    # Remove the elements that are not "useful"
-    # ie those that start with _ and those that
-    # are in the skip array
-    # [tried it with a grep but it didnt work first
-    # time out - may come back to this later]
-
-    my @keys;
-    for my $entry (keys %$query) {
-        next if $entry =~ /^_/;
-        next if grep /^$entry$/, @$skip;
-
-        push @keys, $entry;
-    }
-
-    # Walk through the hash generating the core SQL
-    # a chunk at a time - skipping if required
-    my @sql = grep {defined $_}
-        map {$self->_create_sql_recurse($_, $query->{$_})}
-        @keys;
-
-    # Now join it all together with an AND
-    my $clause = join ' AND ', @sql;
-
-    # Return the clause
-    return $clause;
-}
-
-=item B<_create_sql_recurse>
-
-Routine called to translate each key of the query hash into SQL.
-Separated from C<_qhash_tosql> in order to allow recursion.
-Returns a chunk of SQL
-
-    $sql = $self->_create_sql($column, $entry);
-
-where C<$column> is the database column name and
-C<$entry> can be
-
-=over 4
-
-=item *
-
-An array of values that will be ORed.
-
-=item *
-
-An OMP::Range object.
-
-=item *
-
-A hash containing items to be ORed
-using the rules for OMP::Range and array refs
-[hence recursion].
-
-=back
-
-KLUGE: If the key begins with TEXTFIELD__ a "like" match
-will be performed rather than a "=". This is so that text fields
-can be queried.
-
-Column names beginning with an _ are ignored.
-
-Any ranges made up of Time::Piece objects will have one second
-subtracted from the end date, such that date ranges are inclusive
-on the minimum and exclusive on the maximum.
-
-=cut
-
-sub _create_sql_recurse {
-    my $self = shift;
-    my $column = shift;
-    my $entry = shift;
-
-    return undef if $column =~ /^_/;
-
-    my $sql;
-
-    if (ref($entry) eq 'ARRAY') {
-        # default to actual column name and simple equality
-        my $colname = $column;
-        my $cmp = "equal";
-        if ($colname =~ /^TEXTFIELD__/) {
-            $colname =~ s/^TEXTFIELD__//;
-            $cmp = "like";
-        }
-
-        # use an OR join [must surround it with parentheses]
-        $sql = '('
-            . join(' OR ', map {
-                $self->_querify($colname, $_, $cmp);
-            } @{$entry})
-            . ')';
-    }
-    elsif (UNIVERSAL::isa($entry, "OMP::Range")) {
-        # A Range object
-        my %range = $entry->minmax_hash;
-
-        # We need to redefine the max date so that this check will be
-        # exclusive on the maximum, so that we don't return entries
-        # from the UKIRT archive for the day we want plus the next
-        # day (because dates in the UKIRT archive only have a resolution
-        # of one day and not one second)
-        if (UNIVERSAL::isa($range{'max'}, "Time::Piece")) {
-            $range{'max'} -= 1;
-            bless $range{'max'}, ref($range{'min'});
-        }
-
-        # an AND clause
-        $sql = join(' AND ', map {
-            $self->_querify($column, $range{$_}, $_);
-        } keys %range);
-    }
-    elsif (ref($entry) eq 'HASH') {
-        # Call myself but join with an OR
-        my @chunks = map {
-            $self->_create_sql_recurse($_, $entry->{$_});
-        } keys %$entry;
-
-        # Need to bracket each of the sub entries
-        $sql = '(' . join(' OR ', map {"($_)"} @chunks) . ')';
-    }
-    else {
-        throw OMP::Error::DBMalformedQuery(
-            "Query hash contained a non-ARRAY non-OMP::Range non-HASH for $column: $entry\n");
-    }
-
-    # print "SQL: $column: $sql\n";
-    return $sql;
 }
 
 =item B><_querify>

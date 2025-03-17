@@ -31,8 +31,6 @@ use 5.006;
 use strict;
 use warnings;
 
-use JAC::Setup qw/hdrtrans/;
-
 use Carp;
 use OMP::Range;
 use OMP::DateTools;
@@ -1191,6 +1189,7 @@ sub nightlog {
         $return{'Project'} = $self->projectid;
         $return{'Frequency'} = $self->rest_frequency() // '';
         $return{'Num. freq.'} = $self->number_of_frequencies() // '';
+        $return{'Num. rows'} = $self->rows() // '';
         my $file = $self->simple_filename() // '';
         $file =~ s/^rxh3-//i;
         $file =~ s/\.fits//i;
@@ -1199,17 +1198,18 @@ sub nightlog {
 
         $return{'_ORDER'} = [
             'Run', 'UT', 'Mode', 'Project',
-            'Frequency', 'Num. freq.', 'File', 'Shift',
+            'Frequency', 'Num. freq.', 'Num. rows', 'File', 'Shift',
         ];
 
-        $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.             File  Shift  ';
-        $return{'_STRING'} = sprintf '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %15.15s  %-7s',
+        $return{'_STRING_HEADER'} = 'Run  UT                    Mode      Project  Frequency  Num. freq.  Num. rows             File  Shift  ';
+        $return{'_STRING'} = sprintf '%3s  %8s  %16.16s  %11.11s  %9.0f  %10d  %9d  %15.15s  %-7s',
             $return{'Run'},
             $return{'UT'},
             $return{'Mode'},
             $return{'Project'},
             $return{'Frequency'},
             $return{'Num. freq.'},
+            $return{'Num. rows'},
             $return{'File'},
             $return{'Shift'};
 
@@ -1791,7 +1791,7 @@ sub previews_sorted {
 
     return [
         sort {
-            $a->subscan_number <=> $b->subscan_number
+            ($a->subscan_number // 0) <=> ($b->subscan_number // 0)
             || $a->suffix cmp $b->suffix
         }
         grep {not ((defined $group) and ($group xor $_->group))}
@@ -2203,7 +2203,8 @@ sub _populate {
             my %subsys;
             my @suborder;
             foreach my $subhdr (@{$header->{'SUBHEADERS'}}) {
-                my $subid = $subhdr->{$idkey};
+                next unless %$subhdr;
+                my $subid = $subhdr->{$idkey} // 'UNKNOWN';
                 unless (exists $subsys{$subid}) {
                     $subsys{$subid} = [];
                     push @suborder, $subid;

@@ -8,7 +8,9 @@ OMP::DateSun - Date related methods based on sunrise, sunset
 
     use OMP::DateSun;
 
-    $length = OMP::DateSun->determine_night_length(
+    my $datesun = OMP::DateSun->new();
+
+    $length = $datesun->determine_night_length(
         date => $date, tel => 'JCMT');
 
 =head1 DESCRIPTION
@@ -53,7 +55,32 @@ our $DEBUG = 0;
 
 =head1 METHODS
 
-There are no instance methods, only class (static) methods.
+=head2 Constructor
+
+=over 4
+
+=item B<new>
+
+Construct a new object.
+
+    my $datesun = OMP::DateSun->new();
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+
+    my $self = bless {
+        SunCache => {},
+    }, $class;
+
+    return $self;
+}
+
+=back
+
+=head2 General Methods
 
 =over 4
 
@@ -63,7 +90,7 @@ Given the start and end times for the night defined in the "freetimeut"
 config parameter, return the nominal length of the night as a
 Time::Seconds object.
 
-    $length = OMP::DateSun->determine_night_length(
+    $length = $datesun->determine_night_length(
         date => $date,
         tel => 'JCMT');
 
@@ -73,18 +100,15 @@ times if required.
 =cut
 
 sub determine_night_length {
-    my $class = shift;
+    my $self = shift;
     my %args = @_;
 
     throw OMP::Error::BadArgs(
         "A telescope must be supplied else we can not determine the valid observing times")
         unless exists $args{tel};
 
-    # key is different in api
-    $args{start} = $args{date};
-
     # Get the range for this date
-    my ($min, $max) = $class->_get_freeut_range(%args);
+    my ($min, $max) = $self->get_freeut_range(%args);
 
     return scalar($max - $min);
 }
@@ -95,19 +119,19 @@ Given a start and end time, or a start time and duration, return
 the time that should be charged to a project and the time that
 should be treated as EXTENDED time.
 
-    ($project, $extended) = OMP::DateSun->determine_extended(
+    ($project, $extended) = $datesun->determine_extended(
         start => $start,
         end => $end,
         tel => 'JCMT',
     );
 
-    ($project, $extended) = OMP::DateSun->determine_extended(
+    ($project, $extended) = $datesun->determine_extended(
         start => $start,
         tel => 'UKIRT',
         duration => $duration,
     );
 
-    ($project, $extended) = OMP::DateSun->determine_extended(
+    ($project, $extended) = $datesun->determine_extended(
         duration => $duration,
         tel => 'UKIRT',
         end => $end,
@@ -124,7 +148,7 @@ into objects if scalars are detected. Returns Time::Seconds objects.
 # a config file
 
 sub determine_extended {
-    my $class = shift;
+    my $self = shift;
     my %args = @_;
 
     throw OMP::Error::BadArgs(
@@ -182,7 +206,7 @@ sub determine_extended {
     }
 
     # Now we need to get the valid ranges
-    my ($min, $max) = $class->_get_freeut_range(%args);
+    my ($min, $max) = $self->get_freeut_range(date => $args{'start'}, %args);
 
     throw OMP::Error::BadArgs("Error parsing the extended boundary string")
         unless defined $min && defined $max;
@@ -223,12 +247,19 @@ sub determine_extended {
     return ($timespent, $extended);
 }
 
-# Work out what the range should be based.
-# %args needs to have keys "tel" and "start" and optionally
-# an override values "freetimeut".
+=item B<get_freeut_range>
 
-sub _get_freeut_range {
-    my $class = shift;
+Work out what the range should be based.
+%args needs to have keys "tel" and "date" and optionally
+an override values "freetimeut".
+
+    ($min, $max) = $datesun->get_freeut_range(
+        tel => $telescope, date => $date);
+
+=cut
+
+sub get_freeut_range {
+    my $self = shift;
     my %args = @_;
 
     # We assume that the UT date matches that of the start and end times
@@ -243,7 +274,7 @@ sub _get_freeut_range {
     }
 
     # Now convert to Time::Piece object
-    my ($min, $max) = $class->_process_freeut_range($args{tel}, $args{start}, @range);
+    my ($min, $max) = $self->_process_freeut_range($args{'tel'}, $args{'date'}, @range);
 
     print "Min = $min  Max = $max  duration = " . (($max - $min) / 3600) . "\n"
         if $DEBUG;
@@ -255,12 +286,10 @@ sub _get_freeut_range {
 # Input values can be given as either UT numbers HH:MM format or as the
 # phrase "sunrise+NN" or "sunset+NN" where NN is in minutes.
 
-# my ($datestart, $dateend) = $class->_process_freeut_range( $tel, $refdate, $range1, $range2 );
-
-my %SUN_CACHE;
+# my ($datestart, $dateend) = $datesun->_process_freeut_range( $tel, $refdate, $range1, $range2 );
 
 sub _process_freeut_range {
-    my $class = shift;
+    my $self = shift;
     my ($telescope, $refdate, @ranges) = @_;
 
     throw OMP::Error::BadArgs(
@@ -269,6 +298,7 @@ sub _process_freeut_range {
 
     # A cache of the Sun coordinate object if needed.
     my $Sun;
+    my $SUN_CACHE = $self->{'SunCache'};
 
     my @processed;
     for my $r (@ranges) {
@@ -324,12 +354,12 @@ sub _process_freeut_range {
                 throw OMP::Error::FatalError("Odd programming error");
             }
 
-            if (exists $SUN_CACHE{$cacheKey}{$eventKey}) {
-                $out = $SUN_CACHE{$cacheKey}{$eventKey};
+            if (exists $SUN_CACHE->{$cacheKey}->{$eventKey}) {
+                $out = $SUN_CACHE->{$cacheKey}->{$eventKey};
             }
             else {
                 $out = $Sun->$method(event => $event, horizon => $sundef);
-                $SUN_CACHE{$cacheKey}{$eventKey} = $out;
+                $SUN_CACHE->{$cacheKey}->{$eventKey} = $out;
             }
 
             # and add on the offset (convert to seconds)

@@ -38,6 +38,7 @@ use OMP::Info::ObsGroup;
 use OMP::DB::Obslog;
 use OMP::DB::Project;
 use OMP::Project::TimeAcct;
+use OMP::Project::TimeAcct::Group;
 use OMP::DB::TimeAcct;
 use OMP::Error qw/:try/;
 
@@ -88,7 +89,9 @@ sub obs_table_text {
         $showcomments = 1;
     }
 
-    my $nr = OMP::NightRep->new(DB => $self->database);
+    my $nr = OMP::NightRep->new(
+        DB => $self->database,
+        telescope => $options{'telescope'});
     my $summary = $nr->get_obs_summary(obsgroup => $obsgroup, %options);
 
     unless (defined $summary) {
@@ -564,8 +567,9 @@ sub store_time_accounting {
         my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
 
-        $nr->db_accounts(OMP::TimeAcctGroup->new(
+        $nr->db_accounts(OMP::Project::TimeAcct::Group->new(
             DB => $self->database,
+            telescope => $nr->telescope,
             accounts => \@acct));
     }
 
@@ -713,9 +717,9 @@ sub cgi_to_obsgroup {
 
     my $qv = $q->Vars;
     $ut = (defined($ut) ? $ut : $qv->{'ut'});
-    $inst = (defined($inst) ? $inst : uc($qv->{'inst'}));
+    $inst = (defined($inst) ? $inst : OMP::General->uc_if_defined($qv->{'inst'}));
     $projid = (defined($projid) ? $projid : $qv->{'projid'});
-    $telescope = (defined($telescope) ? $telescope : uc($qv->{'telescope'}));
+    $telescope = (defined($telescope) ? $telescope : OMP::General->uc_if_defined($qv->{'telescope'}));
 
     if (! defined($telescope) || length($telescope . '') == 0) {
         if (defined($inst) && length($inst . '') != 0) {
@@ -723,7 +727,7 @@ sub cgi_to_obsgroup {
         }
         elsif (defined($projid)) {
             $telescope = OMP::DB::Project->new(
-                DB => $self->database, ProjectID => $projid)->getTelescope();
+                DB => $self->database)->getTelescope($projid);
         }
         else {
             throw OMP::Error("OMP::CGIComponent::NightRep: Cannot determine telescope!\n");

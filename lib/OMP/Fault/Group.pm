@@ -1,14 +1,14 @@
-package OMP::FaultGroup;
+package OMP::Fault::Group;
 
 =head1 NAME
 
-OMP::FaultGroup - Information on groups of OMP::Fault objects
+OMP::Fault::Group - Information on groups of OMP::Fault objects
 
 =head1 SYNOPSIS
 
-    use OMP::FaultGroup;
+    use OMP::Fault::Group;
 
-    $f = OMP::FaultGroup->new(faults => \@faults);
+    $f = OMP::Fault::Group->new(faults => \@faults);
 
     $f->summary('html');
 
@@ -48,13 +48,13 @@ be used to populate the object. The key names must match the names of
 the accessor methods (ignoring case). If they do not match they are
 ignored (for now).
 
-    $f = OMP::FaultGroup->new(%args);
+    $f = OMP::Fault::Group->new(%args);
 
 Arguments are optional.
 
 Additionally, a key named 'faults' pointing to an array reference
 containing C<OMP::Fault> objects may be passed as an argument. If
-this is the case, then the C<OMP::FaultGroup> object can provide
+this is the case, then the C<OMP::Fault::Group> object can provide
 a summary of all of the faults passed.
 
 =cut
@@ -85,6 +85,20 @@ sub new {
 
 =over 4
 
+=item B<numfaults>
+
+Return the number of faults in the group.
+
+=cut
+
+sub numfaults {
+    my $self = shift;
+
+    my $faults = $self->faults;
+
+    return scalar @$faults;
+}
+
 =item B<faults>
 
 Retrieve (or set) the group of faults.
@@ -97,6 +111,9 @@ Retrieve (or set) the group of faults.
 All previous faults are removed when new faults are stored.  Takes
 either an array or array reference containing objects of class
 C<OMP::Fault> as an argument.
+
+B<Note:> faults are now stored in the order given, rather than being
+sorted (as was done previously).
 
 =cut
 
@@ -120,11 +137,12 @@ sub faults {
                 unless UNIVERSAL::isa($_, "OMP::Fault");
         }
 
-        # Store the fault objects (sorted)
-        @{$self->{FaultArray}} = sort {$a->faultid <=> $b->faultid} @faults;
+        # Store the fault objects (in the order given).
+        $self->{'FaultArray'} = \@faults;
 
-        # Clear old time lost values
+        # Clear old time lost values and categories
         $self->timelost(undef);
+        $self->categories(undef);
     }
 
     if (wantarray) {
@@ -135,6 +153,27 @@ sub faults {
         # Return an array reference
         return $self->{FaultArray};
     }
+}
+
+=item B<getFault>
+
+Retreive a fault from the group by fault ID.
+
+    my $fault = $f->getFault($faultid);
+
+Returns undef if the given ID is not found in the group.
+
+=cut
+
+sub getFault {
+    my $self = shift;
+    my $faultid = shift;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        return $fault if $fault->id eq $faultid;
+    }
+
+    return undef;
 }
 
 =item B<shifttypes>
@@ -193,9 +232,9 @@ sub timelost {
     elsif (! defined $self->{TimeLost}) {
         # Calculate time lost since the value is not already cached
         my @faults = $self->faults;
-        my $timelost = 0;
-        my $timelost_nontech = 0;
-        my $timelost_technical = 0;
+        my $timelost = Time::Seconds->new(0);
+        my $timelost_nontech = Time::Seconds->new(0);
+        my $timelost_technical = Time::Seconds->new(0);
         for my $fault (@faults) {
             my $loss = Time::Seconds->new($fault->timelost * ONE_HOUR);
 
@@ -216,12 +255,7 @@ sub timelost {
         $self->timelostTechnical($timelost_technical);
     }
 
-    unless (defined $self->{TimeLost}) {
-        return Time::Seconds->new(0);
-    }
-    else {
-        return $self->{TimeLost};
-    }
+    return $self->{TimeLost};
 }
 
 =item B<timelostTechnical>
@@ -257,7 +291,7 @@ sub timelostTechnical {
         $self->timelost();
     }
 
-    return $self->{TimeLostTechnical} // Time::Seconds->new(0);
+    return $self->{TimeLostTechnical};
 }
 
 =item B<timelostNonTechnical>
@@ -293,7 +327,7 @@ sub timelostNonTechnical {
         $self->timelost();
     }
 
-    return $self->{TimeLostNonTechnical} // Time::Seconds->new(0);
+    return $self->{TimeLostNonTechnical};
 }
 
 =item B<categories>
@@ -318,13 +352,13 @@ sub categories {
     if (@_) {
         unless (defined $_[0]) {
             # Unset value since the argument was undef
-            $self->{Categories} = undef;
+            $self->{Categories} = [];
         }
         else {
-            my @categories = shift;
+            my @categories = @_;
 
             # Make sure categories are valid
-            my %validcats = map {$_, undef} OMP::Fault->categories;
+            my %validcats = map {$_, undef} OMP::Fault->faultCategories;
             for (@categories) {
                 throw OMP::Error::BadArgs("Category names must be valid.")
                     unless exists($validcats{$_});
@@ -344,6 +378,68 @@ sub categories {
     else {
         return join ',', @{$self->{Categories}};
     }
+}
+
+=item B<by_shift>
+
+Organize faults by shift type.
+
+    $shifts = $f->by_shift;
+
+Returns a reference to a hash of C<OMP::Fault::Group> objects.
+
+Any faults without a shift type will be returned in the hash
+key "UNKNOWN".
+
+=cut
+
+sub by_shift {
+    my $self = shift;
+
+    my %result;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        # Convert undef / empty string to "UNKNOWN".
+        my $shift = $fault->shifttype || 'UNKNOWN';
+
+        unless (exists $result{$shift}) {
+            $result{$shift} = $self->new(faults => [$fault]);
+        }
+        else {
+            push @{scalar $result{$shift}->faults}, $fault;
+        }
+    }
+
+    return \%result;
+}
+
+=item B<by_date>
+
+Return a reference to a hash of faults organized by date.
+
+    $dates = $f->by_shift;
+
+Each entry in the hash is another C<OMP::Fault::Group> object.
+
+=cut
+
+sub by_date {
+    my $self = shift;
+
+    my %result;
+
+    foreach my $fault (@{scalar $self->faults}) {
+        my $date = $fault->date->ymd;
+
+        unless (exists $result{$date}) {
+            $result{$date} = $self->new(faults => [$fault]);
+        }
+        else {
+            push @{scalar $result{$date}->faults}, $fault;
+        }
+    }
+
+    return \%result;
 }
 
 =back
@@ -380,7 +476,7 @@ sub populate {
 =item B<summary>
 
 Presents a summary of the information contained in the
-C<OMP::FaultGroup> object.
+C<OMP::Fault::Group> object.
 
     $summary = $f->summary('html');
 
@@ -531,7 +627,7 @@ sub faultRateStats {
     my %defaults = (
         bin => 1,
         filed => 0,
-        stardate => undef,
+        startdate => undef,
         loss => 0,
         average => 0,
     );

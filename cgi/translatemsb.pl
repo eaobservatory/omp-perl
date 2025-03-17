@@ -13,7 +13,6 @@ BEGIN {
     }
 }
 
-use JAC::Setup qw/ocsq ocscfg/;
 use OMP::CGIPage::Project;
 
 OMP::CGIPage::Project->new(cgi => CGI->new())->write_page(

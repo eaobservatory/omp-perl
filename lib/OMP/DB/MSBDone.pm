@@ -53,6 +53,7 @@ use OMP::Error qw/:try/;
 use OMP::Constants qw/:done/;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
+use OMP::DB::Project;
 use OMP::DB::User;
 use OMP::Query::MSBDone;
 use OMP::DateTools;
@@ -539,7 +540,8 @@ they were added) or only those matching the specific query. If the
 value is false only the comments matched by the query are returned.
 
 Similarly for C<transactions>, all the comments related to a
-transaction id will be returned if true.
+transaction id will be returned if true.  Only one of these
+options should be specified.
 
 Returns an array of results in list context, or a reference to an
 array of results in scalar context.
@@ -553,37 +555,20 @@ sub queryMSBdone {
 
     # First read the rows from the database table
     # and get the array ref
-    my @rows = $self->_fetch_msb_done_info($query);
+    my $rows = $self->_fetch_msb_done_info($query);
+
+    # If we want to expand the query to everything for the matching checksum
+    # (and projectid) or msbtid, do this first, before resolving users.
+    if ($more->{'comments'}) {
+        $rows = $self->_get_comments_for_checksum($rows);
+    }
+    elsif ($more->{'transactions'}) {
+        $rows = $self->_get_comments_for_tid($rows);
+    }
 
     # Now reorganize the data structure to better match
-    # our output format
-    my $msbs = $self->_reorganize_msb_done(\@rows);
-
-    # If all the comments are required then we now need
-    # to loop through this hash and refetch the data
-    # using a different query.
-    # The query should tell us whether this is required.
-    # Note that there is a possibility of infinite looping
-    # since historyMSB calls this routine
-    if ($more->{'comments'}) {
-        my %updated;
-        while (my ($key, $msb) = each %$msbs) {
-            # over write the previous entry
-            my $checksum = $msb->checksum();
-            my $projectid = $msb->projectid();
-
-            # The historyMSB method doesn't allow us to specify
-            # a project ID directly, so create another instance of
-            # this class to do the query...
-            my $dbproj = $self->new(ProjectID => $projectid, DB => $self->db());
-            $updated{$key} = $dbproj->historyMSB($checksum);
-        }
-        $msbs = \%updated;
-    }
-
-    if ($more->{'transactions'}) {
-        $msbs = $self->_get_comments_for_tid($msbs);
-    }
+    # our output format.
+    my $msbs = $self->_reorganize_msb_done($rows);
 
     # Create an array from the hash. Sort by projectid
     # and then by target and date of most recent comment
@@ -643,13 +628,9 @@ Retrieve the information from the MSB done table using the supplied
 query.  Can retrieve the most recent information or all information
 associated with the MSB.
 
-In scalar context returns the first match via a reference to a hash.
+Returns all matches as a reference to a list of hash references:
 
-    $msbinfo = $db->_fetch_msb_done_info($query);
-
-In list context returns all matches as a list of hash references:
-
-    @allmsbinfo = $db->_fetch_msb_done_info($query);
+    $allmsbinfo = $db->_fetch_msb_done_info($query);
 
 =cut
 
@@ -658,48 +639,109 @@ sub _fetch_msb_done_info {
     my $query = shift;
 
     # Generate the SQL
-    my $sql = $query->sql($MSBDONETABLE);
+    my $sql = $query->sql(
+        $MSBDONETABLE,
+        $OMP::DB::Project::PROJTABLE);
 
     # Run the query
-    my $ref = $self->_db_retrieve_data_ashash($sql);
+    return $self->_db_retrieve_data_ashash($sql);
+}
 
-    # If they want all the info just return the ref
-    # else return the first entry
-    if (wantarray) {
-        return @$ref;
+=item B<_get_comments_for_checksum>
+
+Given an array reference of hashes, returns an the updated array
+reference which has comments for all the checksums originally present
+(also matched by projectid in case multiple projects have the
+same MSB).
+
+    $rows = $self->_get_comments_for_checksum($rows);
+
+=cut
+
+sub _get_comments_for_checksum {
+    my ($self, $rows) = @_;
+
+    # Group the checksum values by project ID, using hashes for uniqueness.
+    my %projects = ();
+    foreach my $row (values @$rows) {
+        $projects{$row->{'projectid'}}->{$row->{'checksum'}} = 1;
     }
-    else {
-        my $hashref = (defined $ref->[0] ? $ref->[0] : {});
-        return $hashref;
+
+    # If there were no results (which probably means the input was empty
+    # as all rows should have project & checksum), abort now.
+    return $rows unless scalar %projects;
+
+    # Prepare sub-query expressions for each project.
+    my @exprs = ();
+    foreach my $project (keys %projects) {
+        my @checksums = keys %{$projects{$project}};
+        unless (1 < scalar @checksums) {
+            push @exprs, {projectid => $project, checksum => $checksums[0]};
+        }
+        else {
+            push @exprs, {projectid => $project, checksum => {in => \@checksums}};
+        }
     }
+
+    # Assemble the expressions into a query: if more than one, then an "or"
+    # over all the combinations of project "and" checksum.
+    my $hash;
+    unless (1 < scalar @exprs) {
+        $hash = $exprs[0];
+    }
+    else  {
+        my %hash;
+        my $i = 0;
+        foreach my $expr (@exprs) {
+            $hash{'EXPR__' . ++ $i} = {and => $expr};
+        }
+        $hash = {'EXPR__PC' => {or => \%hash}};
+    }
+
+    # Perform the query.
+    my $query = OMP::Query::MSBDone->new(HASH => $hash);
+
+    return $self->_fetch_msb_done_info($query);
 }
 
 =item B<_get_comments_for_tid>
 
-Given a hash reference of C<OMP::Info::MSB> objects, returns the updated hash
+Given an array reference of hashes, returns an the updated array
 reference which has comments for all the transaction ids originally present.
 
-  $msbs = $self->_get_comments_for_tid( $msbs );
+    $rows = $self->_get_comments_for_tid($rows);
 
 =cut
 
 sub _get_comments_for_tid {
-    my ($self, $msbs) = @_;
-    my %seen;
-    foreach my $key (keys %$msbs) {
-        foreach my $tid ($msbs->{$key}->msbtid) {
-            my $new = $self->historyMSBtid($tid);
+    my ($self, $rows) = @_;
 
-            unless ($seen{$key} ++) {
-                $msbs->{$key} = $new;
-            }
-            else {
-                $msbs->{$key}->addComment($_) for $new->comments;
-            }
+    # Make a hash (for uniqueness) of msbtid values.
+    my @notid = ();
+    my %tids = ();
+    foreach my $row (values @$rows) {
+        unless (defined $row->{'msbtid'}) {
+            push @notid, $row;
+        }
+        else {
+            $tids{$_} = 1 foreach $row->{'msbtid'}
         }
     }
 
-    return $msbs;
+    # If there were no rows with msbtid, abort now.
+    return $rows unless scalar %tids;
+
+    # Query for the desired msbtid values.
+    my $query = OMP::Query::MSBDone->new(HASH => {
+        msbtid => {in => [keys %tids]},
+    });
+
+    my $newrows = $self->_fetch_msb_done_info($query);
+
+    # If there were originally rows with no msbtid, include those.
+    push @$newrows, @notid if scalar @notid;
+
+    return $newrows;
 }
 
 =item B<_add_msb_done_info>
@@ -932,8 +974,8 @@ sub _reorganize_msb_done {
         # characters on our MSB checksums
         $row->{checksum} =~ s/^\x00//;
 
-        # Prepare comment details
-        my %details = (
+        # Prepare comment
+        my $comment = OMP::Info::Comment->new(
             text => $row->{comment},
             date => $row->{'date'},
             status => $row->{status},
@@ -941,7 +983,7 @@ sub _reorganize_msb_done {
         );
 
         # Specify comment author if there is one
-        ($row->{userid}) and $details{author} = $users->{$row->{userid}};
+        $comment->author($users->{$row->{'userid'}}) if $row->{'userid'};
 
         # See if we've met this MSB already.  Organize by project
         # and checksum since checksum alone is not always unique.
@@ -949,7 +991,7 @@ sub _reorganize_msb_done {
 
         if (exists $msbs{$key}) {
             # Add the new comment.
-            $msbs{$key}->addComment(OMP::Info::Comment->new(%details));
+            $msbs{$key}->addComment($comment);
         }
         else {
             # Populate a new entry.
@@ -962,8 +1004,9 @@ sub _reorganize_msb_done {
                 ),
                 instrument => $row->{instrument},
                 projectid => $row->{projectid},
+                telescope => $row->{'telescope'},
                 nrepeats => 0,  # initial value
-                comments => [OMP::Info::Comment->new(%details)],
+                comments => [$comment],
             );
         }
 

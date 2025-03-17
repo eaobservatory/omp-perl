@@ -1,15 +1,16 @@
-package OMP::TimeAcctGroup;
+package OMP::Project::TimeAcct::Group;
 
 =head1 NAME
 
-OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
+OMP::Project::TimeAcct::Group - Information on a group of OMP::Project::TimeAcct objects
 
 =head1 SYNOPSIS
 
-    use OMP::TimeAcctGroup;
+    use OMP::Project::TimeAcct::Group;
 
-    $tg = OMP::TimeAcctGroup->new(
+    $tg = OMP::Project::TimeAcct::Group->new(
         DB => $database,
+        telescope => $telescope,
         accounts => \@accounts);
 
     @stats = $tg->timeLostStats();
@@ -53,8 +54,9 @@ Object constructor. Takes a hash as an argument, the keys of which can
 be used to populate the object.  The keys must match the names of the
 accessor methods (ignoring case).
 
-    $tg = OMP::TimeAcctGroup->new(
+    $tg = OMP::Project::TimeAcct::Group->new(
         DB => $database,
+        telescope => $telescope,
         accounts => \@accounts);
 
 Arguments are optional.
@@ -82,6 +84,7 @@ sub new {
         ShutdownTime => undef,
         Telescope => undef,
         WeatherLoss => undef,
+        ProjectDetails => undef,
     }, $class;
 
     if (@_) {
@@ -144,6 +147,7 @@ sub accounts {
 
         # Clear cached values
         $self->totaltime(undef);
+        $self->confirmed_time(undef);
         $self->totaltime_non_ext(undef);
         $self->cal_time(undef);
         $self->clear_time(undef);
@@ -154,6 +158,7 @@ sub accounts {
         $self->weather_loss(undef);
         $self->science_time(undef);
         $self->ec_time(undef);
+        $self->project_details(undef);
     }
 
     if (wantarray) {
@@ -189,11 +194,14 @@ sub totaltime {
         # Calculate total time since it isn't cached
         my @accounts = $self->accounts;
         my $timespent = Time::Seconds->new(0);
+        my $confirmed = Time::Seconds->new(0);
         for my $acct (@accounts) {
             $timespent += $acct->timespent;
+            $confirmed += $acct->timespent if $acct->confirmed;
         }
         # Store total
         $self->{TotalTime} = $timespent;
+        $self->confirmed_time($confirmed);
     }
 
     unless (defined $self->{TotalTime}) {
@@ -202,6 +210,46 @@ sub totaltime {
     else {
         return $self->{TotalTime};
     }
+}
+
+=item B<confirmed_time>
+
+Total time which is marked as confirmed.  Returned as a
+C<Time::Seconds> object.
+
+    $confirmed = $tg->confirmed_time();
+
+Can be passed a value or undef to set/unset the time, otherwise
+calls C<totaltime> to ensure a value is available.
+
+=cut
+
+sub confirmed_time {
+    my $self = shift;
+    if (@_) {
+        $self->_mutate_time('ConfirmedTime', $_[0]);
+    }
+    elsif (! defined $self->{'ConfirmedTime'}) {
+        # Call "totaltime" since it will also cache the confirmed time.
+        $self->totaltime();
+    }
+
+    return $self->{'ConfirmedTime'};
+}
+
+=item B<unconfirmed_time>
+
+Return the total unconfirmed time.
+
+B<Note:> this method can not be used to set the time.  It simply returns
+the value C<totaltime> - C<confirmed_time>.
+
+=cut
+
+sub unconfirmed_time {
+    my $self = shift;
+
+    return $self->totaltime - $self->confirmed_time;
 }
 
 =item B<totaltime_non_ext>
@@ -617,11 +665,11 @@ sub telescope {
     my $self = shift;
     if (@_) {
         my $tel = shift;
-        $self->{Telescope} = uc($tel);
+        $self->{Telescope} = uc($tel) if defined $tel;
     }
     else {
         # we have a request
-        if (! defined $self->{Telescope}) {
+        unless (defined $self->{Telescope}) {
             $self->{Telescope} = $self->_get_telescope();
         }
     }
@@ -676,6 +724,55 @@ sub db {
     }
 
     return $self->{'DB'};
+}
+
+=item B<project_details>
+
+Hash (reference) of project information.  Keys are project IDs and
+values are OMP::Project objects as returned by calling
+C<OMP::DB::Project-E<gt>listProjects> with the list of project IDs
+given by the C<_get_projects> method.
+
+    my $projects = $tg->project_details;
+
+=cut
+
+sub project_details {
+    my $self = shift;
+
+    if (scalar @_) {
+        my $details = shift;
+        unless (defined $details) {
+            $self->{'ProjectDetails'} = undef;
+        }
+        else {
+            throw OMP::Error::BadArgs(
+                'project_details must be a HASH reference')
+                unless 'HASH' eq ref $details;
+
+            $self->{'ProjectDetails'} = $details;
+        }
+    }
+    elsif (not defined $self->{'ProjectDetails'}) {
+        my $projectids = $self->_get_projects;
+
+        unless (scalar @$projectids) {
+            $self->{'ProjectDetails'} = {};
+        }
+        else {
+            my $db = OMP::DB::Project->new(DB => $self->db);
+
+            my $query = OMP::Query::Project->new(HASH => {
+                projectid => {in => $projectids},
+            });
+
+            my $projects = $db->listProjects($query);
+
+            $self->{'ProjectDetails'} = {map {$_->projectid => $_} @$projects};
+        }
+    }
+
+    return $self->{'ProjectDetails'};
 }
 
 =back
@@ -743,7 +840,7 @@ C<OMP::Seconds> object.
 sub completion_stats {
     my $self = shift;
 
-    my $telescope = $self->_get_telescope();
+    my $telescope = $self->telescope();
     my @semesters = $self->_get_semesters();
     my $lowdate = $self->_get_low_date();
 
@@ -771,10 +868,8 @@ sub completion_stats {
             date => {max => $lowdate->datetime},
             projectid => [keys %projectids],
         });
-        my @offset_accts = $tdb->queryTimeSpent($query);
-        my $offset_grp = $self->new(
-            accounts => \@offset_accts,
-            DB => $self->db);
+        my $offset_grp = $tdb->queryTimeSpent($query);
+        $offset_grp->telescope($telescope);
 
         #DEBUG
         printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n",
@@ -789,18 +884,18 @@ sub completion_stats {
     printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
 
     # Get all accounts grouped by UT date
-    my %groups = $self->group_by_ut(1);
+    my $groups = $self->by_date(1);
 
     # Map Y values to X (date)
     my $sci_total = 0;
     my (@sci_cumul, @fault, @weather, @ec);
-    for my $x (sort keys %groups) {
-        $sci_total += $groups{$x}->science_time;
+    for my $x (sort keys %$groups) {
+        $sci_total += $groups->{$x}->science_time;
 
         push @sci_cumul, [$x, $sci_total / $final_alloc * 100];
-        push @weather, [$x, $groups{$x}->weather_loss->hours];
-        push @ec, [$x, $groups{$x}->ec_time->hours];
-        push @fault, [$x, $groups{$x}->fault_loss->hours];
+        push @weather, [$x, $groups->{$x}->weather_loss->hours];
+        push @ec, [$x, $groups->{$x}->ec_time->hours];
+        push @fault, [$x, $groups->{$x}->fault_loss->hours];
     }
 
     my %returnhash = (
@@ -824,32 +919,32 @@ sub completion_stats {
     return %returnhash;
 }
 
-=item B<group_by_ut>
+=item B<by_date>
 
 Group all the C<OMP::Project::TimeAcct> objects by UT date.  Store
-each group in an C<OMP::TimeAcctGroup> object.  Return a hash indexed
-by UT date where each key points to an C<OMP::TimeAcctGroup> object.
+each group in an C<OMP::Project::TimeAcct::Group> object.  Return a hash indexed
+by UT date where each key points to an C<OMP::Project::TimeAcct::Group> object.
 
-    %groups = $tg->group_by_ut(1);
+    $groups = $tg->by_date(1);
 
 If the optional argument is true, The returned hash is indexed by
 an integer modified Julian date.
 
 =cut
 
-sub group_by_ut {
+sub by_date {
     my $self = shift;
     my $mjd = shift;
     my @acct = $self->accounts;
 
-    my $method = ($mjd ? "mjd" : "strftime('%Y%m%d')");
+    my $method = ($mjd ? 'mjd' : 'ymd');
     # Group by UT date
     my %accts;
     for my $acct (@acct) {
         push @{$accts{$acct->date->$method}}, $acct;
     }
 
-    # Convert each group into an OMP::TimeAcctGroup object
+    # Convert each group into an OMP::Project::TimeAcct::Group object
     for my $ut (keys %accts) {
         $accts{$ut} = $self->new(
             accounts => $accts{$ut},
@@ -858,7 +953,7 @@ sub group_by_ut {
         );
     }
 
-    return %accts;
+    return \%accts;
 }
 
 =item B<populate>
@@ -935,11 +1030,165 @@ sub remdupe {
     return 1;
 }
 
+=item B<summary>
+
+Summarize the contents of the time accounting records.
+
+    $summary = $tg->summary($format);
+
+where C<$format> controls the contents of the hash returned
+to the user. Valid formats are:
+
+=over 4
+
+=item all
+
+Return a hash with keys "total", "confirmed", "pending"
+regardless of the mix of projects or dates.
+
+=item bydate
+
+Hash includes primary keys of UT date (YYYY-MM-DD)
+where each sub-hash contains keys as for "all".
+
+=item byproject
+
+Hash includes primary keys of project ID where
+where each sub-hash contains keys as for "all".
+
+=item byprojdate
+
+Hash includes primary keys of project and each
+project hash contains keys of UT date. The corresponding
+sub-hash contains keys as for "all".
+
+=item byshftprj
+
+Hash includes primary keys of $shifttype", and each
+sub-hash contains keys of project. Their sub-hashes
+have keys of UT date, and theirs have keys as for
+"all".
+
+=item byshftremprj
+
+Hash includes primary keys made by combining
+ShiftType and Remote stauts, and each sub-hash
+contains keys of project, then UTDATE belwo that. Their sub-hashes have keys
+as for "all".
+
+=back
+
+The UT hash key is of the form "YYYY-MM-DD". Project ID is upper cased.
+
+ShiftType-Remote hash key is always a combination of UPPERCASED "$shifttype_$remote"
+
+=cut
+
+sub summary {
+    my $self = shift;
+    my $format = lc shift;
+
+    my @acct = $self->accounts;
+
+    # loop over each object populating a results hash
+    my %results;
+    for my $acct (@acct) {
+        # extract the information
+        my $p = $acct->projectid;
+        my $t = $acct->timespent;
+        my $ut = $acct->date->strftime('%Y-%m-%d');
+        my $c = $acct->confirmed;
+        my $shft = $acct->shifttype;
+        $shft = 'UNKNOWN' unless defined $shft;
+        my $rem = $acct->remote;
+        unless (defined $rem) {
+            $rem = "UNKNOWN";
+        }
+        my $shftrem = "$shft" . "_" . "$rem";
+
+        # big switch statement
+        my $ref;
+        if ($format eq 'all') {
+            # top level hash
+            $ref = \%results;
+        }
+        elsif ($format eq 'bydate') {
+            # store using UT date
+            unless (exists $results{$ut}) {
+                $results{$ut} = {};
+            }
+            $ref = $results{$ut};
+        }
+        elsif ($format eq 'byproject') {
+            # store using project ID
+            unless (exists $results{$p}) {
+                $results{$p} = {};
+            }
+            $ref = $results{$p};
+        }
+        elsif ($format eq 'byprojdate') {
+            # store using project ID AND ut date
+            unless (exists $results{$p}{$ut}) {
+                $results{$p}{$ut} = {};
+            }
+            $ref = $results{$p}{$ut};
+        }
+        elsif ($format eq 'byshftprj') {
+            # store using shifttype AND  projectID
+            unless (exists $results{$shft}{$p}) {
+                $results{$shft}{$p} = {};
+            }
+            $ref = $results{$shft}{$p};
+
+        }
+        elsif ($format eq 'byshftremprj') {
+            unless (exists $results{$shftrem}{$p}) {
+                $results{$shftrem}{$p} = {};
+            }
+            $ref = $results{$shftrem}{$p};
+        }
+        else {
+            throw OMP::Error::FatalError(
+                "Unknown format for TimeAcct summarizing: $format");
+        }
+
+        $ref->{pending} = Time::Seconds->new(0) unless exists $ref->{pending};
+        $ref->{confirmed} = Time::Seconds->new(0) unless exists $ref->{confirmed};
+        $ref->{total} = Time::Seconds->new(0) unless exists $ref->{total};
+
+        # now store/increment the time
+        if ($c) {
+            $ref->{confirmed} += $t;
+        }
+        else {
+            $ref->{pending} += $t;
+        }
+        $ref->{total} += $t;
+    }
+
+    return \%results;
+}
+
 =back
 
 =head2 Internal Methods
 
 =over 4
+
+=item B<_get_special_pattern>
+
+Create regexp to filter out special projects.
+
+=cut
+
+sub _get_special_pattern {
+    my $self = shift;
+
+    my $telpart = join '|', OMP::Config->getData('defaulttel');
+    my $specpart = join '|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/;
+
+    return qr/^(?:(?:${telpart})(?:${specpart}))|__FAULT__$/;
+}
 
 =item B<_get_non_special_accts>
 
@@ -952,14 +1201,11 @@ Return only non-special accounts.
 sub _get_non_special_accts {
     my $self = shift;
 
-    # Create regexp to filter out special projects
-    my $telpart = join('|', OMP::Config->getData('defaulttel'));
-    my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER _SHUTDOWN/);
-    my $regexp = qr/^(${telpart})(${specpart})$/;
+    my $regexp = $self->_get_special_pattern;
 
     # Filter out "__FAULT__" accounts and accounts that are named
     # something like TELESCOPECAL, etc.
-    my @acct = grep {$_->projectid !~ $regexp and $_->projectid ne '__FAULT__'}
+    my @acct = grep {$_->projectid !~ $regexp}
         $self->accounts;
 
     if (wantarray) {
@@ -997,38 +1243,22 @@ sub _get_accts {
     # Return immediately if we didn't get any accounts back
     return unless defined $acct[0];
 
-    # Get project objects, using a different query depending on whether
-    # we are returning science or engineering accounts
-    my $db = OMP::DB::Project->new(DB => $self->db);
-    my %hash = ();
-
-    $hash{'telescope'} = $self->_get_telescope if defined $self->_get_telescope;
-
-    if ($arg eq 'sci') {
-        # Get all the projects in the semesters that we have time
-        # accounts for.
-        $hash{'semester'} = $self->_get_semesters();
-    }
-    else {
-        # Get projects in the EC queue
-        $hash{'country'} = 'EC';
-        $hash{'isprimary'} = 1;
-    }
-
-    my $query = OMP::Query::Project->new(HASH => \%hash);
-    my $projects = $db->listProjects($query);
-    my %projects = map {$_->projectid, $_} @$projects;
+    # Get project objects
+    my $projects = $self->project_details;
 
     if ($arg eq 'sci') {
         # Only keep non-EC projects
         @acct = grep {
-            exists $projects{$_->projectid}
-                and $projects{$_->projectid}->isScience
+            exists $projects->{$_->projectid}
+                and $projects->{$_->projectid}->isScience
         } @acct;
     }
     else {
         # Only keep EC projects
-        @acct = grep {exists $projects{$_->projectid}} @acct;
+        @acct = grep {
+            exists $projects->{$_->projectid}
+                and not $projects->{$_->projectid}->isScience
+        } @acct;
     }
 
     if (wantarray) {
@@ -1107,7 +1337,7 @@ Returns a list, or reference to a list.
 sub _get_semesters {
     my $self = shift;
     my @accts = $self->_get_non_special_accts;
-    my $tel = $self->_get_telescope;
+    my $tel = $self->telescope;
     my %sem = map {
         OMP::DateTools->determine_semester(date => $_->date, tel => $tel),
             undef
@@ -1123,22 +1353,33 @@ sub _get_semesters {
 
 =item B<_get_telescope>
 
-Retrieve the telescope name associated with the first time account object.
+Retrieve the telescope name associated with the first time account object
+which has one, or retrieve from the database the telescope name for the
+project ID of the first non-special account object.
 
     $tel = $self->_get_telescope();
+
+B<Note:> the C<telescope> method should be used in preference to this as it
+will store the telescope name in the object.
 
 =cut
 
 sub _get_telescope {
     my $self = shift;
+
+    foreach my $acct (@{$self->accounts}) {
+        my $telescope = $acct->telescope;
+        return $telescope if defined $telescope;
+    }
+
     my @accts = $self->_get_non_special_accts;
     if (@accts) {
         my $db = OMP::DB::Project->new(
-            DB => $self->db,
-            ProjectID => $accts[0]->projectid);
+            DB => $self->db);
 
-        return $db->getTelescope();
+        return $db->getTelescope($accts[0]->projectid);
     }
+
     return undef;
 }
 
@@ -1153,19 +1394,43 @@ Reset the time or store a new time for one of the object properties.
 sub _mutate_time {
     my $self = shift;
     my $key = shift;
-    my $value = shift;
+    my $time = shift;
 
-    unless (defined $value) {
+    unless (defined $time) {
         $self->{$key} = undef;
     }
     else {
         # Set the new value
-        my $time = shift;
         $time = Time::Seconds->new($time)
             unless UNIVERSAL::isa($time, "Time::Seconds");
 
         $self->{$key} = $time;
     }
+}
+
+=item B<_get_projects>
+
+Get a list of the project IDs included in the time accounting records.
+
+    $projects = $self->_get_projects($include_special);
+
+=cut
+
+sub _get_projects {
+    my $self = shift;
+    my $include_special = shift;
+
+    my $special_pattern = $self->_get_special_pattern;
+
+    my %projects = ();
+    for my $acct ($self->accounts) {
+        my $projectid = $acct->projectid;
+        next unless $include_special or $projectid !~ $special_pattern;
+
+        $projects{$projectid} = 1;
+    }
+
+    return [keys %projects];
 }
 
 1;

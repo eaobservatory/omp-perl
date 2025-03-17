@@ -3,7 +3,7 @@ use strict;
 use Test::More tests => 1 + 4 + 4 + 4;
 use Test::Number::Delta;
 
-use JAC::Setup qw/jsa dataverify/;
+use JAC::Setup qw/jsa dataverify hdrtrans/;
 use OMP::EnterData::SCUBA2;
 use OMP::Util::File;
 

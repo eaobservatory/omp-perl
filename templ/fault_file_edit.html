@@ -50,22 +50,22 @@
                 </select>
             </td>
         </tr>
+        [% IF has_location %]
+            <tr>
+                <td align="right"><b>Location:</b></td>
+                <td>
+                    <select name="location">
+                        [% IF ! values.location.defined %]
+                            <option selected="selected" value="">Select a location</option>
+                        [% END %]
+                        [% FOREACH location IN locations %]
+                            <option value="[% location.0 %]" [% IF location.0 == values.location %]selected="selected"[% END %]>[% location.1 | html %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+        [% END %]
         [% IF ! fault.defined %]
-            [% IF has_location %]
-                <tr>
-                    <td align="right"><b>Location:</b></td>
-                    <td>
-                        <select name="location">
-                            [% IF ! values.location.defined %]
-                                <option selected="selected" value="">Select a location</option>
-                            [% END %]
-                            [% FOREACH location IN locations %]
-                                <option value="[% location.0 %]" [% IF location.0 == values.location %]selected="selected"[% END %]>[% location .1 | html %]</option>
-                            [% END %]
-                        </select>
-                    </td>
-                </tr>
-            [% END %]
             <tr>
                 <td align="right"><b>Status:</b></td>
                 <td>
@@ -88,7 +88,7 @@
         [% END %]
         [% IF has_time_occurred %]
             <tr valign="top">
-                <td align="right"><b>Time of fault:</b></td>
+                <td align="right"><b>Time occurred:</b></td>
                 <td>
                     <input type="text" name="time" size="20" maxlength="128" value="[% values.time | html %]" />
                     &nbsp;
@@ -161,7 +161,7 @@
             </tr>
         [% END %]
         <tr valign="top">
-            <td align="right"><b>This fault is:</b></td>
+            <td align="right"><b>This [% entry_name | lower | html %] is:</b></td>
             <td>
                 [% FOREACH condition IN conditions %]
                     <label><input type="checkbox" name="condition" value="[% condition.0 | html %]" [% IF values.${condition.2} %]checked="checked"[% END %] /> [% condition.1 | html %]</label>
@@ -174,7 +174,7 @@
                 [% IF fault.defined %]
                     <input type="submit" name="submit_update" value="Submit changes" />
                 [% ELSE %]
-                    <input type="submit" name="submit_file" value="Submit fault" />
+                    <input type="submit" name="submit_file" value="Submit [% entry_name | lower | html %]" />
                 [% END %]
                 [% IF fault.defined %]
                     <input type="hidden" name="status" value="[% values.status | html %]" />

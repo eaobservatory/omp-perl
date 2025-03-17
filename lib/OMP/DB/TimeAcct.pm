@@ -27,6 +27,7 @@ our $VERSION = '2.000';
 
 use OMP::Error qw/:try/;
 use OMP::Project::TimeAcct;
+use OMP::Project::TimeAcct::Group;
 use OMP::Query::TimeAcct;
 use OMP::DateTools;
 use OMP::General;
@@ -49,34 +50,16 @@ or projects.
 Retrieve the time accounting details for the specified project and/or
 UT date.
 
-When called in list context returns all the C<OMP::Project::TimeAcct>
-objects that are relevant.
-
-    @accounts = $db->getTimeAccounting(projectid => $proj);
-    @accpimts = $db->getTimeAccounting(utdate => $date);
+    $accounts = $db->getTimeSpent(projectid => $proj);
+    $accounts = $db->getTimeSpent(utdate => $date);
 
 The date must either be supplied as a Time::Piece object
 or in YYYY-MM-DD format. If a telescope is specified along with
 the UT date, the resulting projects will be filtered by telescope.
 
-    @accpimts = $db->getTimeAccounting(utdate => $date, telescope => 'JCMT');
+    $accounts = $db->getTimeSpent(utdate => $date, telescope => 'JCMT');
 
-When a request for a project query is called in scalar context
-returns a reference to an array containing two elements:
-
-=over 4
-
-=item *
-
-the total approved time
-
-=item *
-
-the total time awaiting approval
-
-=back
-
-Scalar context has no meaning for a UT date query.
+Returns an C<OMP::Project::TimeAcct::Group> object.
 
 =cut
 
@@ -85,56 +68,51 @@ sub getTimeSpent {
     my %args = @_;
 
     # check
-    if (! exists $args{projectid} && ! exists $args{utdate}) {
+    unless (exists $args{'projectid'} or exists $args{'utdate'}) {
         throw OMP::Error::BadArgs(
-            "getTimeAccounting: must have either a projectid or UT date");
+            "getTimeSpent: must have either a projectid or UT date");
+    }
+
+    my %hash = ();
+    my %group_args = ();
+
+    if (exists $args{'projectid'}) {
+        $hash{'projectid'} = $args{'projectid'};
     }
 
     # if we had a date just extract the year, month and day
-    my $date;
-    if ($args{utdate}) {
-        if (UNIVERSAL::isa($args{utdate}, "Time::Piece")) {
-            $date = $args{utdate}->strftime('%Y-%m-%d');
+    if (exists $args{'utdate'}) {
+        my $date = $args{'utdate'};
+        if (UNIVERSAL::isa($date, 'Time::Piece')) {
+            $date = $date->strftime('%Y-%m-%d');
         }
-        else {
-            $date = $args{utdate};
-        }
+
+        $hash{'date'} = {delta => 0.99999, value => $date};
     }
 
     # if we have a shifttype use that.
-    my $shifttype;
-    if ($args{shifttype}) {
-        $shifttype = $args{shifttype};
+    if (exists $args{'shifttype'}) {
+        $hash{'shifttype'} = $args{'shifttype'};
+    }
+
+    if (exists $args{'telescope'}) {
+        my $tel = $args{'telescope'};
+        $hash{'EXPR__TEL'} = {or => {
+            telescope => $tel,
+            projectid => {like => $tel . '%'},
+        }};
+        $group_args{'telescope'} = $tel;
     }
 
     # Create the query object
     # Note that we do not want to go exactly one day forward here
-    my $q = OMP::Query::TimeAcct->new(HASH => {
-        ((exists $args{'projectid'})
-            ? (projectid => $args{'projectid'})
-            : ()),
-        ($date
-            ? (date => {delta => 0.99999, value => $date})
-            : ()),
-        ($shifttype
-            ? (shifttype => $shifttype)
-            : ()),
-    });
+    my $q = OMP::Query::TimeAcct->new(HASH => \%hash);
 
     # Run the query
-    my @matches = $self->queryTimeSpent($q);
+    my $group = $self->queryTimeSpent($q);
+    $group->populate(%group_args);
 
-    # If we have a telescope specified must do an additional filter
-    # but only if we did not do a project query
-    if ($args{telescope} && ! $args{projectid}) {
-        my $tel = uc($args{telescope});
-        @matches = grep {
-            OMP::DB::Project->new(DB => $self->db, ProjectID => $_->projectid)->verifyTelescope($tel)
-        } @matches;
-    }
-
-    # determine context?
-    return @matches;
+    return $group;
 }
 
 =item B<verifyTimeAcctEntry>
@@ -160,13 +138,13 @@ sub verifyTimeAcctEntry {
 
     # until we get tau bands and other things included in the allocation
     # this is essentially getTimeSpent
-    my @results = $self->getTimeSpent(
+    my $result = $self->getTimeSpent(
         projectid => $ref->projectid,
         utdate => $ref->date,
         shifttype => $ref->shifttype);
 
     # return the result
-    return $results[0];
+    return $result->accounts->[0];
 }
 
 
@@ -174,9 +152,9 @@ sub verifyTimeAcctEntry {
 
 Do a generic query on the time accounting database. The argument
 must be a C<OMP::Query::TimeAcct> object. Returns all the
-matches as C<OMP::Project::TimeAcct> objects.
+matches in an C<OMP::Project::TimeAcct::Group> object.
 
-    @matches = $db->queryTimeSpent($q);
+    $matches = $db->queryTimeSpent($q);
 
 =cut
 
@@ -187,8 +165,9 @@ sub queryTimeSpent {
     # run the query
     my @results = $self->_run_timeacct_query($query);
 
-    # context check?
-    return @results;
+    return OMP::Project::TimeAcct::Group->new(
+        DB => $self->db,
+        accounts => \@results);
 }
 
 =item B<setTimeSpent>
@@ -221,13 +200,16 @@ sub setTimeSpent {
 
     # get a summary of all the project data
     # grouped by project ID and UT date
-    my %projects = OMP::Project::TimeAcct->summarizeTimeAcct(
-        'byprojdate', @acct);
+    my $projects = OMP::Project::TimeAcct::Group->new(
+        accounts => \@acct,
+    )->summary('byprojdate');
 
     # now need to recalculate the time spent for each project
-    for my $proj (keys %projects) {
+    for my $projectid (keys %$projects) {
+        my $project = $projects->{$projectid};
+
         # update the OMP::DB::Project object with the current project id
-        $projdb->projectid($proj);
+        $projdb->projectid($projectid);
 
         # Some of the projects are not real (eg WEATHER, SCUBA)
         # so in those cases we just skip
@@ -235,46 +217,48 @@ sub setTimeSpent {
         next unless $projdb->verifyProject();
 
         # get the new totals
-        my @all = $self->getTimeSpent(projectid => $proj);
+        my $all = $self->getTimeSpent(projectid => $projectid);
 
         # calculate the totals for this project only
-        my %results = OMP::Project::TimeAcct->summarizeTimeAcct('all', @all);
-        my $pending = $results{pending};
-        my $used = $results{confirmed};
+        my $results = $all->summary('all');
+        my $pending = $results->{'pending'};
+        my $used = $results->{'confirmed'};
 
         # get the project object
-        my $project = $projdb->_get_project_row;
+        my $project_row = $projdb->_get_project_row;
 
         # Modify the project
-        $project->pending($pending);
-        $project->remaining($project->allocated - $used);
+        $project_row->pending($pending);
+        $project_row->remaining($project_row->allocated - $used);
 
         # Update the contents in the table
-        $projdb->_update_project_row($project);
+        $projdb->_update_project_row($project_row);
 
         # notify the feedback system - this is based on what was actually
-        # changed rather than everything (hence we use %projects and not @all)
-        for my $ut (keys %{$projects{$proj}}) {
-            $self->projectid($proj);
+        # changed rather than everything (hence we use %projects and not $all)
+        for my $ut (keys %$project) {
+            $self->projectid($projectid);
             my ($subject, $text);
             # the message depends on whether we have pending >0 or
             # confirmed >0 [can only be one or the other]
-            if (exists $projects{$proj}{$ut}{pending}
-                    && $projects{$proj}{$ut}{pending} > 0) {
+            if (exists $project->{$ut}{pending}
+                    && $project->{$ut}{pending} > 0) {
                 # pending
-                $subject = "[$proj] Adjust time awaiting confirmation for UT $ut";
-                $text = "The amount of time awaiting confirmation for UT $ut is now $projects{$proj}{$ut}{pending} seconds";
+                my $time = $project->{$ut}{'pending'};
+                $subject = "[$projectid] Adjust time awaiting confirmation for UT $ut";
+                $text = "The amount of time awaiting confirmation for UT $ut is now $time seconds";
             }
-            elsif (exists $projects{$proj}{$ut}{confirmed}
-                    && $projects{$proj}{$ut}{confirmed} > 0) {
+            elsif (exists $project->{$ut}{confirmed}
+                    && $project->{$ut}{confirmed} > 0) {
                 # confirmed
-                $subject = "[$proj] Time spent on project $proj now confirmed for UT $ut";
-                $text = "Confirmed that $projects{$proj}{$ut}{confirmed} seconds was assigned to project $proj for UT date $ut";
+                my $time = $project->{$ut}{'confirmed'};
+                $subject = "[$projectid] Time spent on project $projectid now confirmed for UT $ut";
+                $text = "Confirmed that $time seconds was assigned to project $projectid for UT date $ut";
             }
             else {
                 # both zero
-                $subject = "[$proj] No time spent on project for UT $ut";
-                $text = "The time assigned to project $proj for UT date $ut has been reset to zero seconds";
+                $subject = "[$projectid] No time spent on project for UT $ut";
+                $text = "The time assigned to project $projectid for UT date $ut has been reset to zero seconds";
             }
 
             $self->_notify_feedback_system(
@@ -349,7 +333,9 @@ sub _run_timeacct_query {
     my $query = shift;
 
     # get the SQL
-    my $sql = $query->sql($ACCTTABLE);
+    my $sql = $query->sql(
+        $ACCTTABLE,
+        $OMP::DB::Project::PROJTABLE);
     #print "SQL: $sql\n";
 
     # run it

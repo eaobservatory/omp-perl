@@ -118,11 +118,9 @@ sub query_queue_status {
         $utmax = OMP::DateTools->parse_date($today->ymd() . 'T23:59:59');
     }
     else {
-        ($utmin, $utmax) = OMP::Config->getData('freetimeut', telescope => $telescope);
-
-        # parse the values, get them back as date objects
-        ($utmin, $utmax) = OMP::DateSun->_process_freeut_range(
-                $telescope, $today, $utmin, $utmax);
+        my $datesun = OMP::DateSun->new;
+        ($utmin, $utmax) = $datesun->get_freeut_range(
+                tel => $telescope, date => $today);
 
         # Expand range to hour boundaries.
         $utmin -= ONE_MINUTE * $utmin->min() if $utmin->min() > 0;

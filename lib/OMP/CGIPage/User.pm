@@ -18,6 +18,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use JSON;
 our $VERSION = '2.000';
 
 use OMP::Config;
@@ -136,11 +137,12 @@ sub details {
     });
 
     my $fdb = OMP::DB::Fault->new(DB => $self->database);
-    my $faults = $fdb->queryFaults($faultquery);
+    my $faultgrp = $fdb->queryFaults(
+        $faultquery, no_text => 1, no_projects => 1);
 
     # Sort by category
     my %faults;
-    map {push @{$faults{$_->category}}, $_} @$faults;
+    map {push @{$faults{$_->category}}, $_} $faultgrp->faults;
 
     $self->side_bar(
         'User ' . $user->name,
@@ -191,6 +193,54 @@ sub list_users {
         letters => \@alphabet,
         users => $users,
     };
+}
+
+sub query_users {
+    my $self = shift;
+
+    my $q = $self->cgi;
+    my $type = $q->param('type');
+
+    my %hash = (
+        obfuscated => {boolean => 0},
+    );
+
+    unless (defined $type) {
+    }
+    elsif ($type eq 'support') {
+        $hash{'project_capacity'} = 'SUPPORT';
+    }
+    elsif ($type eq 'fault') {
+        $hash{'fault_author'} = 1;
+    }
+    elsif ($type eq 'obslog') {
+        $hash{'obslog_author'} = 1;
+    }
+    elsif ($type eq 'shiftlog') {
+        $hash{'shiftlog_author'} = 1;
+    }
+    else {
+        die 'Unknown type';
+    }
+
+    my $udb = OMP::DB::User->new(DB => $self->database);
+    my $users = $udb->queryUsers(OMP::Query::User->new(HASH => \%hash));
+
+    my @list = ();
+    foreach my $user (@$users) {
+        push @list, {
+            value => $user->userid,
+            text => $user->name,
+        };
+    }
+
+    print $q->header(
+        -type => 'application/json',
+        -charset => 'utf-8',
+        -expires => '+1h',
+    );
+
+    print encode_json(\@list);
 }
 
 =item B<edit_details>

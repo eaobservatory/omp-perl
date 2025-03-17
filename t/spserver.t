@@ -18,6 +18,8 @@
 
 use Test::More tests => 5;
 
+use JAC::Setup qw/hdrtrans/;
+
 require_ok('OMP::SpServer');
 
 my $result = OMP::SpServer->getOTVersionInfo();

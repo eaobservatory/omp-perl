@@ -31,8 +31,6 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::Error qw/:try/;
 use OMP::Fault;
-use OMP::FaultGroup;
-use OMP::FaultUtil;
 
 use base qw/OMP::CGIComponent/;
 
@@ -72,8 +70,7 @@ sub fault_table {
     # Get available statuses
     my @statuses;
     unless ($noedit) {
-        my ($labels, $values) = $self->get_status_labels($fault);
-        @statuses = map {[$_, $labels->{$_}]} @$values;
+        @statuses = $self->get_status_labels($fault);
     }
 
     my %shifts = OMP::Fault->shiftTypes($fault->category);
@@ -85,12 +82,13 @@ sub fault_table {
             my $date = localtime($epoch);
             return OMP::DateTools->display_date($date);
         },
-        system_label => _get_system_label($fault->category),
+        system_label => $fault->getCategorySystemLabel(),
+        entry_name => $fault->getCategoryEntryName(),
         allow_edit => ! $noedit,
         target => $self->page->url_absolute(),
         statuses => \@statuses,
         has_shift_type => !!%shifts,
-        category_is_telescope => OMP::Fault->faultIsTelescope($fault->category),
+        category_is_telescope => $fault->faultIsTelescope(),
     };
 }
 
@@ -112,8 +110,6 @@ sub query_fault_form {
 
     my $q = $self->cgi;
 
-    my $sys_label = _get_system_label($category);
-
     my @systems;
     my @types;
 
@@ -125,12 +121,10 @@ sub query_fault_form {
         @types = map {[$types->{$_}, $_]} sort keys %$types;
     }
 
-    (undef, my $status) = _get_status_labels_by_name($category);
-
     my @status = (
         [all_open => 'All open'],
         [all_closed => 'All closed'],
-        map {[$status->{$_}, $_]} sort keys %$status
+        _get_status_labels_by_name($category),
     );
 
     return {
@@ -144,17 +138,13 @@ sub query_fault_form {
             [file => 'filed'],
             [activity => 'with any activity'],
         ],
-        periods => [
-            [arbitrary => 'between dates'],
-            [days => 'in the last'],
-            [last_month => 'in the last calendar month'],
-        ],
         text_searches => [
             'text',
             'subject',
             'both',
         ],
-        system_label => $sys_label,
+        system_label => OMP::Fault->getCategorySystemLabel($category),
+        entry_name => OMP::Fault->getCategoryEntryName($category),
         systems => \@systems,
         types => \@types,
         statuses => \@status,
@@ -164,7 +154,7 @@ sub query_fault_form {
             timezone => (scalar $q->param('timezone') // 'HST'),
             text_search => (scalar $q->param('text_search') // 'both'),
             map {$_ => scalar $q->param($_)}
-                qw/author mindate maxdate days system type status
+                qw/userid mindate maxdate days system type status
                 timelost show_affected chronic summary
                 text text_boolean/,
         },
@@ -199,40 +189,34 @@ sub file_fault_form {
     my $fault = $args{fault};
     my $q = $self->cgi;
 
-    my $is_safety = _is_safety($category);
+    my $has_location = OMP::Fault->faultHasLocation($category);
 
     # Create values and labels for the popup_menus
     my @systems;
     {
+        # TODO: have OMP::Fault return an ordered structure instead?
         my $systems = OMP::Fault->faultSystems($category);
-        my @sys_key = keys %$systems;
-        my @system_values = _sort_values(\@sys_key, $systems, $category);
-        my %system_labels = map {$systems->{$_}, $_} @sys_key;
-        @systems = map {[$_, $system_labels{$_}]}
-            _sort_values(\@sys_key, $systems, $category);
+
+        my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
+            ? (sub {$a <=> $b})
+            : (sub {$a cmp $b});
+
+        @systems = map {[$systems->{$_}, $_]}
+            sort $sort
+            keys %$systems;
     }
 
     my $types = OMP::Fault->faultTypes($category);
     my @types = map {[$types->{$_}, $_]} sort keys %$types;
 
-    my @statuses;
-    {
-        (undef, my $status) = _get_status_labels_by_name($category);
-        @statuses = map {[$status->{$_}, $_]} sort keys %$status;
-    }
+    my @statuses = _get_status_labels_by_name($category);
 
     # Location (for "Safety" category).
     my @locations;
-    if ($is_safety) {
-        my %places = OMP::Fault->faultLocation_Safety;
+    if ($has_location) {
+        my %places = OMP::Fault->faultLocation($category);
         @locations = map {[$places{$_}, $_]} sort keys %places;
     }
-
-    my $sys_text = _is_vehicle_incident($category)
-        ? 'vehicle'
-        : $is_safety
-            ? 'severity level'
-            : 'system';
 
     # Set defaults.  There's probably a better way of doing what I'm about
     # to do...
@@ -240,12 +224,12 @@ sub file_fault_form {
     my @projects = ();
     my @warnings = ();
 
-    unless ($fault) {
+    unless (defined $fault) {
         %defaults = (
             system => undef,
             type => undef,
             location => undef,
-            status => ($is_safety ? OMP::Fault::FOLLOW_UP : OMP::Fault::OPEN),
+            status => OMP::Fault->faultInitialStatus($category),
             loss => undef,
             time => undef,
             tz => 'HST',
@@ -357,8 +341,6 @@ sub file_fault_form {
         }
     }
 
-    my $sys_label = _get_system_label($category);
-
     my %shifts = OMP::Fault->shiftTypes($category);
     my @shifts = map {[$_ => $shifts{$_}]} sort keys %shifts;
 
@@ -369,16 +351,19 @@ sub file_fault_form {
     push @conditions, (['chronic', 'Chronic', 'condition'])
         if defined $fault;
 
+    # TODO: use OMP::Fault for the "severity level" logic?
+    my $sys_label = OMP::Fault->getCategorySystemLabel($category);
+    my $sys_text = lc $sys_label;
+    $sys_text .= ' level' if $sys_text eq 'severity';
+
     return {
         target => $self->page->url_absolute(),
         fault => $fault,
-        has_location => $is_safety,
+        has_location => $has_location,
         has_time_loss => OMP::Fault->faultCanLoseTime($category),
-        has_time_occurred => !! (
-            OMP::Fault->faultCanLoseTime($category)
-            or $category =~ /events\b/i
-        ),
+        has_time_occurred => OMP::Fault->faultHasTimeOccurred($category),
         has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
+        entry_name => OMP::Fault->getCategoryEntryName($category),
         system_label => $sys_label,
         system_description => $sys_text,
         systems => \@systems,
@@ -434,8 +419,7 @@ sub response_form {
     croak "Must provide a fault object\n"
         unless UNIVERSAL::isa($fault, "OMP::Fault");
 
-    my ($labels, $values) = $self->get_status_labels($fault);
-    my @statuses = map {[$_, $labels->{$_}]} @$values;
+    my @statuses = $self->get_status_labels($fault);
 
     # Set defaults.
     my %defaults;
@@ -487,11 +471,11 @@ sub response_form {
 Show a list of faults.
 
     $comp->show_faults(
-        faults => \@faults,
+        faults => $faultgroup,
         orderby => 'response',
         descending => 1,
         url => "fbfault.pl",
-        showcat => 1,
+        category => $category,
     );
 
 Takes the following key/value pairs as arguments:
@@ -500,7 +484,7 @@ Takes the following key/value pairs as arguments:
 
 =item faults
 
-A reference to an array of C<OMP::Fault> objects.
+An C<OMP::Fault::Group> object containing the faults to show.
 
 =item descending
 
@@ -517,9 +501,10 @@ Should be either 'response' (to sort by date of
 latest response) 'filedate', 'timelost' (by amount
 of time lost) or 'relevance'.
 
-=item showcat
+=item category
 
-True if a category column should be displayed.
+The category name, if a search has been performed for a particular
+category of faults.  If "ANYCAT" then a category column should be displayed.
 
 =back
 
@@ -531,15 +516,16 @@ sub show_faults {
     my $self = shift;
     my %args = @_;
 
-    my @faults = @{$args{faults}};
+    my $stats = $args{faults};
     my $descending = $args{descending};
     my $url = $args{url} || 'viewfault.pl';
+    my $category = $args{'category'};
 
     my $q = $self->cgi;
 
     # Generate stats so we can decide to show fields like "time lost"
     # only if any faults have lost time
-    my $stats = OMP::FaultGroup->new(faults => \@faults);
+    my @faults = $stats->faults;
 
     my $order = $args{'orderby'};
 
@@ -573,11 +559,12 @@ sub show_faults {
     }
 
     return {
-        show_cat => $args{'showcat'},
+        show_cat => ($category eq 'ANYCAT'),
         show_time_lost => ($stats->timelost > 0),
         show_projects => $args{'show_affected'},
         faults => \@faults,
         view_url => ($url . (($url =~ /\?/) ? '&' : '?') . 'fault='),
+        system_label => OMP::Fault->getCategorySystemLabel($category),
     };
 }
 
@@ -591,15 +578,9 @@ sub category_title {
     my $self = shift;
     my $cat = shift;
 
-    return _is_safety($cat)
-        ? "$cat Reporting"
-        : _is_jcmt_events($cat)
-            ? 'JCMT Events'
-            : _is_vehicle_incident($cat)
-                ? 'Vehicle Incident Reporting'
-                : lc $cat ne 'anycat'
-                    ? "$cat Faults"
-                    : 'All Faults';
+    return 'All Faults' if 'ANYCAT' eq uc $cat;
+
+    return OMP::Fault->getCategoryFullName($cat);
 }
 
 =item B<parse_file_fault_form>
@@ -643,16 +624,10 @@ sub parse_file_fault_form {
         $parsed{'shifttype'} = undef;
     }
 
-    if (_is_safety($category)) {
-        $parsed{'system'} = $parsed{'severity'} = $q->param('system');
+    if (OMP::Fault->faultHasLocation($category)) {
         $parsed{'location'} = $q->param('location');
     }
-    elsif (_is_vehicle_incident($category)) {
-        $parsed{'system'} = $parsed{'vehicle'} = $q->param('system');
-    }
-    else {
-        $parsed{'system'} = $q->param('system');
-    }
+    $parsed{'system'} = $q->param('system');
 
     # Determine urgency and condition
     my @checked = $q->multi_param('condition');
@@ -759,28 +734,19 @@ sub category_hash {
 
 =item B<get_status_labels>
 
-Given a L<OMP::Fault> object, returns a a hash reference of labels for HTML
-selection menu, and list of an array reference value
+Given a L<OMP::Fault> object, return a list of [value, name]
+pairs for use in an HTML selection menu.
 
-    ($labels, $status) = $comp->get_status_labels($fault);
+    @statuses = $comp->get_status_labels($fault);
 
 =cut
 
 sub get_status_labels {
     my ($self, $fault) = @_;
 
-    my %status = $fault->isJCMTEvents
-        ? OMP::Fault->faultStatus_JCMTEvents
-        : $fault->isSafety
-            ? OMP::Fault->faultStatus_Safety
-            : $fault->isVehicleIncident
-                ? OMP::Fault->faultStatus_VehicleIncident
-                : OMP::Fault->faultStatus;
+    my %status = $fault->faultStatus;
 
-    # Pop-up menu labels.
-    my %label = map {$status{$_}, $_} %status;
-
-    return (\%label, [values %status]);
+    return map {[$status{$_}, $_]} sort keys %status;
 }
 
 =back
@@ -791,40 +757,30 @@ sub get_status_labels {
 
 =item B<_get_status_labels_by_name>
 
-Given a fault category name, returns a hash reference (status values as keys,
-names as values for HTML selection list) and a hash reference of status (reverse
-of first argument).  All of the status types are returned for category of
+Given a fault category name, return a list of [value, name] pairs
+for an HTML selection list).
+
+All of the status types are returned for category of
 C<ANYCAT>.  (It is somehwhat similar to I<get_status_labels>.)
 
-    ($labels, $status_values) = _get_status_labels_by_name('OMP');
+    @statuses = _get_status_labels_by_name('OMP');
 
 =cut
 
 sub _get_status_labels_by_name {
     my ($cat) = @_;
 
-    $cat = lc $cat;
-
-    my $default = '_default_';
-    my %method = (
-        $default => 'faultStatus',
-        'safety' => 'faultStatus_Safety',
-        'jcmt_events' => 'faultStatus_JCMTEvents',
-        'vehicle_incident' => 'faultStatus_VehicleIncident',
-    );
+    $cat = uc $cat;
 
     my %status;
-    if ($cat =~ m/^any/i) {
-        %status = map {OMP::Fault->$_()} values %method;
+    if ($cat =~ /^ANY/) {
+        %status = OMP::Fault->faultStatus;
     }
     else {
-        my $method = $method{exists $method{$cat} ? $cat : $default};
-        %status = OMP::Fault->$method();
+        %status = OMP::Fault->faultStatus($cat);
     }
 
-    my $labels = {map {$status{$_}, $_} %status};
-
-    return ($labels, \%status);
+    return map {[$status{$_}, $_]} sort keys %status;
 }
 
 =item B<_sort_by_fault_time>
@@ -875,51 +831,6 @@ sub _sort_by_fault_time {
             $a->filedate <=> $b->filedate
         } @file)
     ];
-}
-
-sub _get_system_label {
-    my ($cat) = @_;
-
-    return _is_safety($cat)
-        ? 'Severity'
-        : _is_vehicle_incident($cat)
-            ? 'Vehicle'
-            : 'System';
-}
-
-sub _sort_values {
-    my ($keys, $sys, $cat, $mode) = @_;
-
-    unless ($cat) {
-        $mode = 'alpha'
-            unless scalar grep($mode eq $_, qw[ num alphanum ]);
-    }
-    elsif (_is_vehicle_incident($cat)) {
-        $mode = 'num';
-    }
-
-    my $sort = $mode eq 'num'
-        ? sub {$a <=> $b}
-        : $mode eq 'alphanum'
-            ? sub {$a <=> $b || $a cmp $b}
-            : sub {$a cmp $b};
-
-    return map {$sys->{$_}} sort $sort @{$keys};
-}
-
-sub _is_safety {
-    my ($cat) = @_;
-    return 'safety' eq lc $cat;
-}
-
-sub _is_jcmt_events {
-    my ($cat) = @_;
-    return 'jcmt_events' eq lc $cat;
-}
-
-sub _is_vehicle_incident {
-    my ($cat) = @_;
-    return 'vehicle_incident' eq lc $cat;
 }
 
 1;

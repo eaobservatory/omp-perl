@@ -2,7 +2,7 @@ use strict;
 
 use Test::More tests => 1 + 30 + 5 + 2;
 
-use JAC::Setup qw/jsa dataverify/;
+use JAC::Setup qw/jsa dataverify hdrtrans/;
 use OMP::EnterData;
 use OMP::Util::File;
 

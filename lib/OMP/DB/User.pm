@@ -449,7 +449,8 @@ sub _query_userdb {
     my $self = shift;
     my $query = shift;
 
-    my $sql = $query->sql($USERTABLE);
+    # TODO: obtain table names from DB classes (preferably without circular imports)
+    my $sql = $query->sql($USERTABLE, 'ompprojuser', 'ompfaultbody', 'ompobslog', 'ompshiftlog');
 
     # Fetch
     my $ref = $self->_db_retrieve_data_ashash($sql);
@@ -518,8 +519,10 @@ sub _query_userdb_expensive {
 
     $dbh->trace(0);
 
-    return $dbh->selectall_arrayref($sql, {'Slice' => {}}, values %check)
+    my $result = $dbh->selectall_arrayref($sql, {'Slice' => {}}, values %check)
         or throw OMP::Error::FatalError $dbh->errstr;
+
+    return $result;
 }
 
 =item B<_convert_columns>

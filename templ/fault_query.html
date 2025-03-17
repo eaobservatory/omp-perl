@@ -45,11 +45,12 @@
 
 [% BLOCK query_form %]
     <form method="get" action="[% form_info.target %]">
-        <input type="hidden" name="faultsearch" value="true"/> <!-- TODO: remove need for this? -->
         <table cellspacing="0" cellpadding="3" border="0" bgcolor="#dcdcf2">
             <tr>
-                <td colspan="2">
-                    <b>Find faults:</b>
+                <td>
+                    <b>Find [% form_info.entry_name | lower | html %]s:</b>
+                </td>
+                <td>
                     [% FOREACH action IN form_info.actions %]
                         <label>
                             <input type="radio" name="action" value="[% action.0 | html %]" [% IF form_info.values.action == action.0 %]checked="checked"[% END %] />
@@ -58,56 +59,82 @@
                     [% END %]
                 </td>
             <tr>
-                <td colspan="2">
-                    <b>By user <small>(ID)</small></b>
-                    <input type="text" name="author" size="17" maxlength="32" value="[% form_info.values.author | html %]" />
+                <td>
+                    <b>By user:</b>
+                </td>
+                <td>
+                    <div style="display: inline-block; width: 50ex;">
+                        <select name="userid" data-userlist="/cgi-bin/query_user.pl?type=fault" data-selected="[% form_info.values.userid | html %]">
+                            <option value="">Loading&hellip;</option>
+                        </select>
+                    </div>
                 </td>
             <tr>
-                <td valign="top" align="right">
-                    [% FOREACH period IN form_info.periods %]
-                        <label>
-                            <input type="radio" name="period" value="[% period.0 | html %]" [% IF form_info.values.period == period.0 %]checked="checked"[% END %] />
-                            [% period.1 | html %]
-                        </label>
-                        [% IF ! loop.last %]
-                            <br />
-                        [% END %]
-                    [% END %]
+                <td rowspan="3">
+                    <b>Date:</b>
                 </td>
-                <td valign="top">
-                    <small>(YYYYMMDD)</small>
-                    <input type="text" name="mindate" size="18" maxlength="32" value="[% form_info.values.mindate %]" />
+                <td>
+                    <label>
+                        <input type="radio" name="period" value="arbitrary" [% IF form_info.values.period == "arbitrary" %]checked="checked"[% END %] />
+                        Between dates
+                    </label>
+                    <input type="text" name="mindate" size="14" maxlength="32" value="[% form_info.values.mindate %]" placeholder="YYYYMMDD" />
                     and
-                    <input type="text" name="maxdate" size="18" maxlength="32" value="[% form_info.values.maxdate %]" />
+                    <input type="text" name="maxdate" size="14" maxlength="32" value="[% form_info.values.maxdate %]" placeholder="YYYYMMDD" />
                     &nbsp;
                     <select name="timezone">
                         [% FOREACH tz IN ['UT', 'HST'] %]
                             <option [% IF tz == form_info.values.timezone %]selected="selected"[% END %] value="[% tz %]">[% tz %]</option>
                         [% END %]
                     </select>
-                    <br />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label>
+                        <input type="radio" name="period" value="days" [% IF form_info.values.period == "days" %]checked="checked"[% END %] />
+                        In the last
+                    </label>
                     <input type="text" name="days" size="5" maxlength="5" value="[% form_info.values.days %]" />
                     days
                 </td>
+            </tr>
             <tr>
-                <td colspan="2">
-                    [% IF form_info.show_id_fields %]
-                    <b>[% form_info.system_label %]</b>
+                <td>
+                    <label>
+                        <input type="radio" name="period" value="last_month" [% IF form_info.values.period == "last_month" %]checked="checked"[% END %] />
+                        In the last calendar month
+                    </label>
+                </td>
+            </tr>
+            [% IF form_info.show_id_fields %]
+                <tr>
+                    <td>
+                        <b>[% form_info.system_label %]:</b>
+                    </td>
+                    <td>
                         <select name="system">
                             <option [% IF ! form_info.values.system.defined %]selected="selected"[% END %] value="any">Any</option>
                             [% FOREACH system IN form_info.systems %]
                                 <option [% IF form_info.values.system == system.0 %]selected="selected"[% END %] value="[% system.0 %]">[% system.1 | html %]</option>
                             [% END %]
                         </select>
-                        <b>Type</b>
+                        &nbsp;
+                        <b>Type:</b>
                         <select name="type">
                             <option [% IF ! form_info.values.type.defined %]selected="selected"[% END %] value="any">Any</option>
                             [% FOREACH type IN form_info.types %]
                                 <option [% IF form_info.values.type == type.0 %]selected="selected"[% END %] value="[% type.0 %]">[% type.1 | html %]</option>
                             [% END %]
                         </select>
-                    [% END %]
-                    <b>Status</b>
+                    </td>
+                </tr>
+            [% END %]
+            <tr>
+                <td>
+                    <b>Status:</b>
+                </td>
+                <td>
                     <select name="status">
                         <option [% IF ! form_info.values.status.defined %]selected="selected"[% END %] value="any">Any</option>
                         [% FOREACH status IN form_info.statuses %]
@@ -116,11 +143,14 @@
                     </select>
                 </td>
             <tr>
-                <td colspan="2">
+                <td>
+                    <b>Options:</b>
+                </td>
+                <td>
                     [% IF form_info.show_timelost %]
                         <label>
                             <input type="checkbox" name="timelost" value="true" [% IF form_info.values.timelost %]checked="checked"[% END %] />
-                            Return time-losing faults only
+                            Return time-losing [% form_info.entry_name | lower | html %]s only
                         </label>
                         <br />
                     [% END %]
@@ -133,17 +163,19 @@
                     [% END %]
                     <label>
                         <input type="checkbox" name="chronic" value="true" [% IF form_info.values.chronic %]checked="checked"[% END %] />
-                        Return chronic faults only
+                        Return chronic [% form_info.entry_name | lower | html %]s only
                     </label>
                     <br />
                     <label>
                         <input type="checkbox" name="summary" value="true" [% IF form_info.values.summary %]checked="checked"[% END %] />
-                        Organize by system/type
+                        Organize by [% form_info.system_label | lower | html %]/type
                     </label>
                 </td>
             <tr>
-                <td colspan=2>
-                    <b>Search in:</b>
+                <td rowspan="2">
+                    <b>Search:</b>
+                </td>
+                <td>
                         [% FOREACH text_search IN form_info.text_searches %]
                         <label>
                             <input type="radio" name="text_search" value="[% text_search | html %]" [% IF form_info.values.text_search == text_search %]checked="checked"[% END %] />
@@ -154,18 +186,20 @@
                         <a href="https://mariadb.com/kb/en/full-text-index-overview/#in-boolean-mode" target="_blank">?</a>)
                 </td>
             <tr>
-                <td colspan=2>
+                <td>
                     <input type="text" name="text" size="44" maxlength="256" value="[% form_info.values.text | html %]"/>
                     &nbsp;&nbsp;
                     <input type="submit" name="search" value="Search"/>
                 </td>
                 <input type="hidden" name="cat" value="[% form_info.category | html %]"/>
             <tr>
-                <td colspan="2" bgcolor="#babadd">
-                    <b>Or display</b>
-                    <input type="submit" name="major" value="Major faults"/>
-                    <input type="submit" name="recent" value="Recent faults (2 days)"/>
-                    <input type="submit" name="current" value="Current faults (14 days)"/>
+                <td bgcolor="#babadd">
+                    <b>Or display:</b>
+                </td>
+                <td bgcolor="#babadd">
+                    <input type="submit" name="major" value="Major [% form_info.entry_name | lower | html %]s"/>
+                    <input type="submit" name="recent" value="Recent [% form_info.entry_name | lower | html %]s (2 days)"/>
+                    <input type="submit" name="current" value="Current [% form_info.entry_name | lower | html %]s (14 days)"/>
                 </td>
             </tr>
         </table>

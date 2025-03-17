@@ -113,7 +113,9 @@ sub display_page {
 
     $grp->attach_previews($previews);
 
-    my $nr = OMP::NightRep->new(DB => $self->database);
+    my $nr = OMP::NightRep->new(
+        DB => $self->database,
+        telescope => $telescope);
 
     return {
         projectid => $projectid,

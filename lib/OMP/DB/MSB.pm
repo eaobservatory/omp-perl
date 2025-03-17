@@ -464,6 +464,41 @@ sub getSciProgInfo {
     );
 }
 
+=item B<getSciProgInfoMultiple>
+
+Retrieves summary information (as C<getSciProgInfo>) for multiple projects,
+returning a hash (reference) by project ID.  Assumes that neither observations
+nor timestamps are required.
+
+    my $projects = $db->getSciProgInfoMultiple(\@projectids);
+
+=cut
+
+sub getSciProgInfoMultiple {
+    my $self = shift;
+    my $projects = shift;
+
+    return {} unless scalar @$projects;
+
+    my $sql = sprintf 'SELECT * FROM %s WHERE projectid IN (%s)',
+        $OMP::DB::Project::MSBTABLE,
+        (join ', ', ('?') x scalar @$projects);
+
+    my $ref = $self->_db_retrieve_data_ashash($sql, @$projects);
+
+    my %result = ();
+    foreach my $msb ($self->_msb_row_to_msb_object(@$ref)) {
+        push @{$result{$msb->projectid}}, $msb;
+    }
+
+    return {
+        map {
+            $_ => OMP::Info::SciProg->new(
+                projectid => $_,
+                msb => $result{$_})
+        } keys %result};
+}
+
 =item B<fetchMSB>
 
 Retrieve an MSB (in the form of an OMP::MSB object) from the database.
@@ -1799,8 +1834,10 @@ sub _really_fetch_sciprog {
 
     # Instantiate a new Science Program object
     # The file name is derived automatically
-    return OMP::SciProg->new(XML => $xml)
+    my $sp = OMP::SciProg->new(XML => $xml)
         or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
+
+    return $sp;
 }
 
 =item B<_db_fetch_sciprog>

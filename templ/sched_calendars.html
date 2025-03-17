@@ -26,7 +26,7 @@ password-free access to corresponding schedule entries.
             <td><tt>[% calendar.pattern | html %]</tt></td>
             <td style="text-align: center;">[% IF calendar.include_holiday %]&check;[% ELSE %]&cross;[% END %]</td>
             <td><tt style="user-select: all;">[% base_url _ '?token=' _ calendar.token %]</tt></td>
-            <td><a class="copy_text" href="#" data-copy_text="[% base_url _ '?token=' _ calendar.token %]" title="Copy URL">&loz;</a></td>
+            <td><a class="copy_text" href="[% base_url _ '?token=' _ calendar.token %]" data-copy_text="[% base_url _ '?token=' _ calendar.token %]" title="Copy URL">&loz;</a></td>
         </tr>
     [% END %]
 </table>

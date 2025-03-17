@@ -83,6 +83,10 @@ sub file_comment {
         # Insert the comment into the database.
         my $response = $comp->obs_add_comment();
         $messages = $response->{'messages'};
+
+        # obs_add_comment always returns a fixed message.  Instead of showing
+        # it, redirect to reload this page.
+        return $self->_write_redirect($self->url_absolute());
     }
 
     # Get the Info::Obs object
@@ -119,8 +123,18 @@ sub list_observations_txt {
     my $self = shift;
     my $projectid = shift;
 
+    my $proj;
+    try {
+        $proj = OMP::DB::Project->new(DB => $self->database, ProjectID => $projectid)->projectDetails();
+    }
+    otherwise {
+        my $E = shift;
+        croak "Unable to retrieve the details of this project:\n$E";
+    };
+
+    my $telescope = $proj->telescope;
+
     my $query = $self->cgi;
-    my $qv = $query->Vars;
 
     my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
@@ -145,11 +159,13 @@ sub list_observations_txt {
         print "Error: $errortext\n";
     };
 
-    my %options;
-    $options{'showcomments'} = 1;
-    $options{'ascending'} = 1;
     try {
-        $comp->obs_table_text($obsgroup, %options, projectid => $projectid);
+        $comp->obs_table_text(
+            $obsgroup,
+            showcomments => 1,
+            ascending => 1,
+            projectid => $projectid,
+            telescope => $telescope);
     }
     catch OMP::Error with {
         my $Error = shift;
@@ -417,7 +433,9 @@ sub projlog_content {
                 size => 64,
             })));
 
-            my $nr = OMP::NightRep->new(DB => $self->database);
+            my $nr = OMP::NightRep->new(
+                DB => $self->database,
+                telescope => $telescope);
             $obs_summary = $nr->get_obs_summary(obsgroup => $grp);
         }
     }
@@ -477,7 +495,7 @@ sub obslog_search {
         text => '',
         text_boolean => 0,
         period => 'arbitrary',
-        author => '',
+        userid => '',
         mindate => '',
         maxdate => '',
         days => '',
@@ -561,10 +579,10 @@ sub time_accounting {
         date => $utdate, telescope => $tel,
         include_private_comments => 1);
 
-    my %times = $nr->accounting(trace_observations => 1);
-    my $warnings = delete $times{$OMP::NightRep::WARNKEY} // [];
+    my $times = $nr->accounting(trace_observations => 1);
+    my $warnings = delete $times->{$OMP::NightRep::WARNKEY} // [];
 
-    my %timelostbyshift = $nr->timelostbyshift;
+    my $timelostbyshift = $nr->timelostbyshift;
 
     my @all_shifts = qw/NIGHT EO DAY OTHER/;
 
@@ -575,12 +593,12 @@ sub time_accounting {
     }
     my @shifts = grep {
         $shift_added{$_}
-        or exists $times{$_}
-        or (exists $timelostbyshift{$_} and $timelostbyshift{$_} > 0)
+        or exists $times->{$_}
+        or (exists $timelostbyshift->{$_} and $timelostbyshift->{$_}->{'total'} > 0)
     } @all_shifts;
 
     # Add any additional shifts from the database.  (E.g. "UNKNOWN".)
-    foreach my $shift (keys %times, keys %timelostbyshift) {
+    foreach my $shift (keys %$times, keys %$timelostbyshift) {
         push @shifts, $shift if defined $shift and $shift ne '' and not grep {$shift eq $_} @shifts;
     }
 
@@ -588,8 +606,8 @@ sub time_accounting {
         $comp->time_accounting_shift(
             $nr->telescope,
             $_,
-            $times{$_},
-            $timelostbyshift{$_})
+            $times->{$_},
+            $timelostbyshift->{$_}->{'total'})
     } @shifts;
 
     my @errors = ();

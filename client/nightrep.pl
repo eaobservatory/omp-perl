@@ -81,6 +81,8 @@ use Pod::Usage;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
+use JAC::Setup qw/hdrtrans/;
+
 # OMP Classes
 use OMP::DB::Archive;
 use OMP::DB::Backend;

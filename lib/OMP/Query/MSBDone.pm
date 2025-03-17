@@ -92,9 +92,10 @@ sub sql {
 
     throw OMP::Error::DBMalformedQuery(
         "sql method invoked with incorrect number of arguments\n")
-        unless scalar(@_) == 1;
+        unless scalar(@_) == 2;
 
-    my ($donetable) = @_;
+    my $donetable = shift;
+    my $projtable = shift;
 
     # Generate the WHERE clause from the query hash
     # Note that we ignore elevation, airmass and date since
@@ -104,19 +105,16 @@ sub sql {
     # subclass
     my $subsql = $self->_qhash_tosql();
 
-    # Construct the the where clause. Depends on which
-    # additional queries are defined
-    my @where = grep {$_} ($subsql);
-    my $where = '';
-    $where = " WHERE " . join(" AND ", @where)
-        if @where;
-
     # Now need to put this SQL into the template query
     # This returns a row per response
     # So will duplicate static fault info
-    my $sql = "(SELECT * FROM $donetable $where)";
+    my $sql = 'SELECT D.*, P.telescope'
+        . " FROM $donetable AS D JOIN $projtable AS P"
+        . ' ON (D.projectid = P.projectid)';
 
-    return "$sql\n";
+    $sql .= " WHERE $subsql " if $subsql;
+
+    return $sql;
 }
 
 =item B<_root_element>
@@ -158,19 +156,16 @@ sub _post_process_hash {
         # Skip private keys
         next if $key =~ /^_/;
 
-        # Protect against rounding errors
-        # Not sure we need this so leave it out for now
-        # if ($key eq 'faultid') {
-        # Need to loop over each fault
-        # $href->{$key} = [map {
-        #     OMP::Range->new(
-        #         Min => ($_ - 0.0005),
-        #         Max => ($_ + 0.0005))
-        # } @{$href->{$key}}];
     }
 
     # Need to upper case these
     $self->_process_elements($href, sub {uc(shift)}, [qw/projectid/]);
+
+    for (qw/projectid title/) {
+        if (exists $href->{$_}) {
+            $href->{'D.' . $_} = delete $href->{$_};
+        }
+    }
 
     # Remove attributes since we dont need them anymore
     delete $href->{_attr};

@@ -73,6 +73,8 @@ BEGIN {
 
 use lib OMPLIB;
 
+use JAC::Setup qw/hdrtrans/;
+
 use Getopt::Long;
 use Pod::Usage;
 use Astro::FITS::Header::Item;

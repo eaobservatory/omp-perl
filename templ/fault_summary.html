@@ -1,25 +1,26 @@
+[% SET entry_name_lower = summary.entry_name.lower %]
 <p>
-  <b>Faults returned by query:</b> [% summary.num_faults %]
+  <b>[% summary.entry_name | html %]s returned by query:</b> [% summary.num_faults %]
   <br />
   [% IF summary.date_min.defined && summary.date_max.defined %]
   <b>Query period:</b> [% summary.date_min.strftime('%Y%m%d %H:%M') %] &ndash; [% summary.date_max.strftime('%Y%m%d %H:%M %Z') %]
   <br />
   [% END %]
-  <b>Matching faults filed in period:</b> [% summary.num_faults_filed %]
+  <b>Matching [% entry_name_lower | html %]s filed in period:</b> [% summary.num_faults_filed %]
   <br />
   <b>Total time lost:</b> [% summary.time_lost_total %] hours
   <br />
-  <b>Open faults:</b> [% summary.total.open %]
+  <b>Open [% entry_name_lower %]s:</b> [% summary.total.open %]
 </p>
 
 [% IF summary.total.open > 0 %]
     [% SET toggleDef = 'show' %]
     [% SET toggleClass = 'hide' %]
-    [% SET toggleText = 'Show closed faults' %]
+    [% SET toggleText = 'Show closed ' _ entry_name_lower _ 's' %]
 [% ELSE %]
     [% SET toggleDef = 'hide' %]
     [% SET toggleClass = 'show' %]
-    [% SET toggleText = 'Hide closed faults' %]
+    [% SET toggleText = 'Hide closed ' _ entry_name_lower _ 's' %]
 [% END %]
 
 [% SET all_systems = '' %][% FOREACH system IN summary.system_ids.values %][% SET all_systems = all_systems _ ",'" _ system _ "'" %][% END %]
@@ -30,7 +31,7 @@
             <table width="100%" cellspacing="0" cellpadding="2" border="0">
                 <tr>
                     <td colspan="7">
-                        <font size="+1"><b>All faults</b></font>
+                        <font size="+1"><b>All [% entry_name_lower | html %]s</b></font>
                         [% IF (summary.total.open > 0) && (summary.total.closed > 0) %]
                             &nbsp;
                             <a href="#" class="link_option" onclick="toggle('function__toggleClosed'[% all_systems %]); return false"><img border="0" src="/images/[% toggleDef %].gif" width="10" height="10" id="imgfunction__toggleClosed" /></a>
@@ -59,7 +60,7 @@
                                 <tr>
                                 <td class="row_closed_title" colspan="4">
                                     <a class="link_option" href="#" onclick="toggle('[% system_id %]'); return false"><img border="0" src="/images/[% toggleDef %].gif" width="10" height="10" id="img[% system_id %]" /></a>
-                                    <a class="link_option" href="#" onclick="toggle('[% system_id %]'); return false">Closed faults</a>
+                                    <a class="link_option" href="#" onclick="toggle('[% system_id %]'); return false">Closed [% entry_name_lower | html %]s</a>
                                 </td>
                                 <td class="row_closed"><span id="info[% system_id %]" value="[% summary.time_lost.$status.$system %]">
                                     [% IF toggleClass == 'hide' %]

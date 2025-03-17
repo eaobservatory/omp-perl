@@ -41,11 +41,11 @@ function toggleFunction(ID) {
   var img = document.getElementById("img" + ID);
   var current = (functionTag.getAttribute('function') == 'hide') ? 'show' : 'hide';
   if (current == 'hide') {
-    functionTag.innerHTML = 'Hide closed faults';
+    functionTag.innerHTML = functionTag.innerHTML.replace('Show', 'Hide');
     functionTag.setAttribute('function', 'hide');
     img.src = '/images/hide.gif'
   } else {
-    functionTag.innerHTML = 'Show closed faults';
+    functionTag.innerHTML = functionTag.innerHTML.replace('Hide', 'Show');
     functionTag.setAttribute('function', 'show');
     img.src = '/images/show.gif'
   }
