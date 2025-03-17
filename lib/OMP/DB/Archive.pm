@@ -641,142 +641,57 @@ sub _query_arcdb {
     return @return;
 }
 
-sub _add_files_in_obs {
-    my ($self, $list, $file_key) = @_;
-
-    return
-        unless $list && ref $list;
-
-    my ($st, $dbh) = $self->_prepare_FILES_select();
-
-    return
-        unless $st && ref $st
-        && $dbh && ref $dbh;
-
-    for my $obs (@{$list}) {
-        my $header = $obs->hdrhash()
-            or next;
-
-        my @file = $self->_add_files(
-            'header' => $header,
-            'st-handle' => $st,
-            'db-handle' => $dbh,
-            'file-key' => $file_key);
-
-        next unless scalar @file;
-
-        $obs->filename(@file);
-    }
-
-    return;
-}
-
 sub _add_files_in_headers {
     my ($self, $list, $file_key) = @_;
 
     return
         unless $list
         && ref $list
-        && scalar @{$list};
-
-    my ($st, $dbh) = $self->_prepare_FILES_select();
-
-    return
-        unless $st && ref $st
-        && $dbh && ref $dbh;
-
-    for my $header (@{$list}) {
-
-        $self->_add_files(
-            'header' => $header,
-            'st-handle' => $st,
-            'db-handle' => $dbh,
-            'file-key' => $file_key);
-    }
-
-    return;
-}
-
-sub _add_files {
-    my $self = shift;
-    my (%arg) = @_;
-
-    my ($header, $st, $dbh, $key) =
-        @arg{qw/header st-handle db-handle file-key/};
-
-    $key = 'filename' unless defined $key;
-
-    return if _any_filename($header);
-
-    my @file = $self->_fetch_files(
-        'st-handle' => $st,
-        'db-handle' => $dbh,
-        'header' => $header);
-
-    $header->{$key} = \@file;
-
-    return @file if wantarray();
-    return;
-}
-
-sub _fetch_files {
-    my $self = shift;
-    my (%arg) = @_;
+        && scalar @$list;
 
     my $id_key = 'obsid_subsysnr';
-    my ($st, $dbh, $header) = @arg{qw/st-handle db-handle header/};
 
-    my @id = _get_header_values($header, $id_key);
-    unless (scalar @id) {
-        warn "No $id_key found\n";
-        return;
-    }
-
-    my (@file);
-    for my $id (@id) {
-        my $rv = $st->execute($id);
-        $rv or throw OMP::Error::DBError "execute() failed ($rv): ",
-            $st->errstr();
-
-        my @results;
-        while (my $row = $st->fetchrow_arrayref()) {
-            push @results, @$row;
-        }
-
-        throw OMP::Error::DBError 'Error with fetchrow_array(): ',
-            $dbh->errstr()
-            unless @results;
-
-        push @file, @results;
-    }
-
-    return @file;
-}
-
-sub _prepare_FILES_select {
-    my $self = shift;
-
-    my $sql = <<'_SQL_';
-        SELECT file_id
-        FROM %s
-        WHERE obsid_subsysnr = ?
-        ORDER BY obsid_subsysnr
-_SQL_
-
-    $sql = sprintf $sql, $OMP::Query::Archive::FILESTAB;
-
-    # $ENV{'OMP_SITE_CONFIG'} =
-    #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg';
-    # my $cfg = OMP::Config->new('force' => 1);
+    $file_key = 'filename' unless defined $file_key;
 
     my $dbh = $self->_dbhandle();
 
-    my $st = $dbh->prepare($sql)
+    my $st = $dbh->prepare(sprintf
+            'SELECT file_id FROM %s WHERE obsid_subsysnr = ? ORDER BY obsid_subsysnr',
+            $OMP::Query::Archive::FILESTAB)
         or throw OMP::Error::DBError
-        'Error with prepare() of file statement: ',
-        $dbh->errstr();
+            'Error with prepare() of file statement: ',
+            $dbh->errstr();
 
-    return ($st, $dbh);
+    foreach my $header (@$list) {
+        unless (_any_filename($header)) {
+            my @id = _get_header_values($header, $id_key);
+
+            unless (scalar @id) {
+                warn "No $id_key found\n";
+                next;
+            }
+
+            my @file;
+
+            foreach my $id (@id) {
+                my $rv = $st->execute($id);
+                $rv or throw OMP::Error::DBError "execute() failed ($rv): ",
+                    $st->errstr();
+
+                my $results = $st->fetchall_arrayref();
+
+                throw OMP::Error::DBError 'Error with fetchall_arrayref(): ',
+                    $dbh->errstr()
+                    unless defined $results and @$results;
+
+                foreach my $row (@$results) {
+                    push @file, $row->[0];
+                }
+            }
+
+            $header->{$file_key} = \@file;
+        }
+    }
 }
 
 sub _any_filename {
