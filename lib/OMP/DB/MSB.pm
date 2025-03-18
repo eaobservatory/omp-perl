@@ -2638,24 +2638,14 @@ sub _run_query {
     # tests, jumping out when we have enough matches.
     my $MAX_ID = 250;
     my @observations;
-    my $start_index = 0;
-    # make sure we use <= in case we have, say, 1 MSB matching
-    # so that 0 (index) <= 0 ($#$ref)
-    while ($start_index <= $#$ref) {
-        my $end_index = ($start_index + $MAX_ID < $#$ref ? $start_index + $MAX_ID : $#$ref);
-
-        my @clauses = map {" msbid = " . $_->{msbid} . ' '}
-            @$ref[$start_index .. $end_index];
-
-        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE "
-            . join(" OR ", @clauses)
-            . " ORDER BY obsid ASC";
+    foreach my $chunk (OMP::General->array_in_chunks([map {$_->{'msbid'}} @$ref], $MAX_ID)) {
+        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE msbid IN ("
+            . join(', ', @$chunk)
+            . ") ORDER BY obsid ASC";
 
         my $obsref = $self->_db_retrieve_data_ashash($sql);
 
         push @observations, @$obsref;
-
-        $start_index = $end_index + 1;
     }
 
     $t1 = [gettimeofday];
