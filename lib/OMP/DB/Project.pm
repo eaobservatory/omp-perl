@@ -1004,16 +1004,6 @@ sub _get_projects {
     # N projects, where N is the value of $MAX_ID
     my $MAX_ID = 100;
     my $utable = $OMP::DB::User::USERTABLE;  #--- Proj user table ---#
-    my $uproj_alias = 'P';
-    my $userquery_sql = <<"USER_SQL";
-        SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
-            $uproj_alias.contactable, $uproj_alias.affiliation, $uproj_alias.omp_access,
-            U.uname, U.email
-        FROM $PROJUSERTABLE $uproj_alias, $utable U
-        WHERE $uproj_alias.userid = U.userid AND
-USER_SQL
-
-    my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE WHERE ";
 
     my %projroles;
     my %projcontactable;
@@ -1021,22 +1011,21 @@ USER_SQL
     my %projqueue;
     my %projadj;
     my %projpri_queue;
-    my $start_index = 0;
-    while ($start_index <= $#$ref) {
-        my $end_index = ($start_index + $MAX_ID < $#$ref ? $start_index + $MAX_ID : $#$ref);
-        my $proj_list = join(",",
-            map {"\"" . $_->{projectid} . "\""}
-                @$ref[$start_index .. $end_index]);
+    foreach my $chunk (OMP::General->array_in_chunks(
+            [map {$_->{'projectid'}} @$ref], $MAX_ID)) {
+        my $placeholder = join ', ', ('?') x scalar @$chunk;
+
+        my $userquery_sql = 'SELECT P.projectid, P.userid, P.capacity,'
+            . ' P.contactable, P.affiliation, P.omp_access, U.uname, U.email'
+            . " FROM $PROJUSERTABLE P JOIN $utable U ON P.userid = U.userid"
+            . " WHERE projectid IN ($placeholder)"
+            . ' ORDER BY P.projectid, P.capacity, P.capacity_order';
+
+        my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE"
+            . " WHERE projectid IN ($placeholder)";
 
         # First do the user info query
-        $sql = $userquery_sql . <<"WHERE_ORDER_SQL";
-            projectid in ($proj_list)
-            ORDER BY $uproj_alias.projectid,
-                $uproj_alias.capacity,
-                $uproj_alias.capacity_order
-WHERE_ORDER_SQL
-
-        my $userref = $self->_db_retrieve_data_ashash($sql);
+        my $userref = $self->_db_retrieve_data_ashash($userquery_sql, @$chunk);
 
         # Loop over the results and assign to different roles
         for my $row (@$userref) {
@@ -1061,8 +1050,7 @@ WHERE_ORDER_SQL
         }
 
         # Now do the queue info query
-        $sql = $queuequery_sql . "projectid in ($proj_list)";
-        my $queueref = $self->_db_retrieve_data_ashash($sql);
+        my $queueref = $self->_db_retrieve_data_ashash($queuequery_sql, @$chunk);
 
         # Loop over results and store for later assignment to project objects
         for my $row (@$queueref) {
@@ -1077,12 +1065,7 @@ WHERE_ORDER_SQL
             $projpri_queue{$projectid} = uc($row->{country})
                 if $row->{isprimary};
         }
-
-        $start_index = $end_index + 1;
     }
-
-    # First create a OMP::DB::User object
-    my $udb = OMP::DB::User->new(DB => $self->db);
 
     # Loop over each project
     my @projects;
