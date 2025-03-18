@@ -449,7 +449,7 @@ sub sql {
     # by msbid and by country. Have not really worked out why
     # we need DISTINCT here....
     my $top_sql = "SELECT
-         DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
+         DISTINCT M.msbid, Q.country, COUNT(*) AS nobs
             FROM $msbtable M,$obstable O, $projtable P "
         . join(" ", @join_tables)
         . "  WHERE M.msbid = O.msbid
