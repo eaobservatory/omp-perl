@@ -66,6 +66,11 @@ A help message.
 
 This manual page.
 
+=item B<--plot> FILENAME
+
+Name of file to which to save plot.  Should end in C<.pdf> or C<.png>.
+If not specified, use X display window.
+
 =back
 
 =cut
@@ -103,7 +108,8 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects, $tau);
+my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects,
+    $tau, $plot_filename);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
@@ -114,6 +120,7 @@ my $status = GetOptions(
     "project=s" => \@projects,
     "tel=s" => \$tel,
     'tau=s' => \$tau,
+    'plot=s' => \$plot_filename,
 );
 
 pod2usage(1) if $help;
@@ -256,7 +263,22 @@ if ($@) {
     die "Plotting of results unavailable: $@\n";
 }
 
-Graphics::PLplot::plsdev('xwin');
+my $plot_device = 'xcairo';
+if (defined $plot_filename) {
+    if ($plot_filename =~ /\.pdf/) {
+        $plot_device = 'pdfcairo';
+    }
+    elsif ($plot_filename =~ /\.png/) {
+        $plot_device = 'pngcairo';
+    }
+    else {
+        print STDERR "Plot filename extension not recognized.  Please use .png or .pdf\n";
+        undef $plot_filename;
+    }
+}
+
+Graphics::PLplot::plsdev($plot_device);
+Graphics::PLplot::plsfnam($plot_filename) if defined $plot_filename;
 Graphics::PLplot::plinit();
 Graphics::PLplot::pladv(0);
 
@@ -310,10 +332,6 @@ for my $i (0 .. $#rahist) {
         if $i % 2;
 }
 
-my $outfile = 'ra_coverage.eps';
-save_plot($outfile);
-print "Histogram written to file $outfile\n";
-
 Graphics::PLplot::plend();
 exit;
 
@@ -328,25 +346,6 @@ sub plfbox {
     Graphics::PLplot::plcol0(1);
     Graphics::PLplot::pllsty(1);
     Graphics::PLplot::plline(\@x, \@y);
-}
-
-# Taken from x20.t
-
-sub save_plot {
-    my $fname = shift;
-
-    my $cur_strm = Graphics::PLplot::plgstrm();
-    my $new_strm = Graphics::PLplot::plmkstrm();
-
-    # Need a white background so drop colour for now
-    Graphics::PLplot::plsdev('ps');
-    Graphics::PLplot::plsfnam($fname);
-
-    Graphics::PLplot::plcpstrm($cur_strm, 0);
-    Graphics::PLplot::plreplot();
-    Graphics::PLplot::plend1();
-
-    Graphics::PLplot::plsstrm($cur_strm);
 }
 
 # print the text histogram
