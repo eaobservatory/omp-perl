@@ -2704,9 +2704,6 @@ sub _run_query {
         my $msb = $row->{msbid};
         $row->{observations} = $msbs{$msb};
 
-        # delete the spurious "nobs" key that is created by the join
-        delete $row->{nobs};
-
         # and move the newpriority column over the priority since
         # I have not yet worked out how to force PostGres to order by
         # a new column that matches a previous column
