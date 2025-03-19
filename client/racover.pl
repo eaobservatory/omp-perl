@@ -48,7 +48,8 @@ Country to query. Defaults to all countries.
 
 =item B<-instrument>
 
-Restrict the query to a specific instrumnet. Default to all.
+Restrict the query to a specific instrument. Default to all.
+Can be repeated to select multiple instruments.
 
 =item B<-tau>
 
@@ -108,14 +109,14 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects,
+my ($help, $man, $version, $tel, $semester, $country, @instruments, @projects,
     $tau, $plot_filename);
 my $status = GetOptions(
     "help" => \$help,
     "man" => \$man,
     "version" => \$version,
     "semester=s" => \$semester,
-    "instrument=s" => \$instrument,
+    "instrument=s" => \@instruments,
     "country=s" => \$country,
     "project=s" => \@projects,
     "tel=s" => \$tel,
@@ -135,8 +136,8 @@ if ($version) {
 my $db = OMP::DB::Backend->new();
 
 # Form instrument string
-$instrument = uc($instrument) if defined $instrument;
-my $inststr = (defined $instrument ? "Instrument $instrument" : '');
+@instruments = map {uc $_} @instruments;
+my $inststr = (@instruments ? ('Instrument ' . join ', ', @instruments) : '');
 
 # Look for projects
 @projects = split /,/, join(',', @projects);
@@ -238,7 +239,7 @@ for my $proj (@projects) {
     # Get the histogram for this program
     my @local = OMP::SciProgStats->ra_coverage(
         $sp,
-        instrument => $instrument,
+        (@instruments ? (instrument => \@instruments) : ()),
         tau => $tau);
 
     # And increment the global sum

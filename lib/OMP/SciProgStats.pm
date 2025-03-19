@@ -52,7 +52,8 @@ Allowed keys are:
 
 =item instrument
 
-Specify an instrument for which the coverage is calculated.
+Specify an instrument for which the coverage is calculated,
+or a reference to a list of instruments.
 
 =item tau
 
@@ -66,6 +67,11 @@ sub ra_coverage {
     my $class = shift;
     my $sp = shift;
     my %args = @_;
+
+    my $instruments = (exists $args{'instrument'})
+        ? ((ref $args{'instrument'})
+            ? $args{'instrument'} : [$args{'instrument'}])
+        : undef;
 
     # Initialise histogram
     my @rahist = map {0} (0 .. 23);
@@ -89,8 +95,9 @@ sub ra_coverage {
 
         for my $obs (@observations) {
             # skip if we are specifically looking for one instrument
-            next if (defined $args{instrument}
-                && $obs->{instrument} ne $args{instrument});
+            if (defined $instruments) {
+                next unless grep {$obs->{instrument} eq $_} @$instruments;
+            }
 
             my $target = $obs->{coords};
             if ($target->type ne 'RADEC') {
