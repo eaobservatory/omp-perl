@@ -98,6 +98,7 @@ sub fb_msb_output {
         target => $self->url_absolute(),
         prog_info => $prog_info,
         comment_msb_checksum => $checksum,
+        is_staff => (!! $self->auth->is_staff),
         messages => \@messages,
         pretty_print_seconds => sub {
             return Time::Seconds->new($_[0])->pretty_print;
