@@ -83,7 +83,7 @@
                     <td>[% obs.instrument | html %]</td>
                     <td>[% obs.target | html %]</td>
                     <td>[% obs.coords | html %]</td>
-                    <td>[% obs.waveband | html %]</td>
+                    <td>[% obs.waveband.natural({format => 1}) | html %]</td>
                 </tr>
             [% END %]
         </table>
