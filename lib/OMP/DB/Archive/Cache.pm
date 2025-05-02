@@ -91,6 +91,8 @@ sub store_archive {
         throw OMP::Error::BadArgs("Must supply a query to store information in cache");
     }
 
+    return unless $self->simple_query($query);
+
     return unless $self->_use_cache($query);
 
     unless (defined $obsgrp) {
