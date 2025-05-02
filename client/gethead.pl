@@ -25,6 +25,8 @@ UKIRT is not supported (yet).
 
 =head1 OPTIONS
 
+=over 4
+
 =item B<-obsid>
 
 Observation unique identifier. Used in preference to all other
