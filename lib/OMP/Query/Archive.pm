@@ -432,10 +432,19 @@ Should probably return true if the query spans the current
 date. This is useful for determining whether a query should
 use caching or be allowed to go to the database.
 
+B<Note>: always returns 0 if the query has an obsid.  This is because
+OMP::DB::Archive::queryArc wants to treat obsid queries as not "today".
+An obsid query will likely not contain a date range, so allowing this
+method to proceed and call "daterange" will cause an error.
+
 =cut
 
 sub istoday {
     my $self = shift;
+
+    if (defined $self->obsid) {
+        return 0;
+    }
 
     my $date = $self->daterange->min;
     my $currentdate = gmtime;

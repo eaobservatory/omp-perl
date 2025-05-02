@@ -515,15 +515,9 @@ sub queryArc {
             "FallbackToFiles and SkipDBLookup are both set to return no information.");
     }
 
-    # Always use the database for obsid queries since that is completely constrained.
-    my $istoday = 0;
-    if (defined $query->obsid) {
-        $istoday = 0;
-    }
-    else {
-        # Determine whether we are "today"
-        $istoday = $query->istoday;
-    }
+    # Determine whether we are "today", where we always use the database for obsid
+    # queries since that is completely constrained [istoday() should return 0].
+    my $istoday = $query->istoday;
 
     # Control whether we have queried the DB or not
     # True means we have done a successful query.
