@@ -502,12 +502,24 @@ sub simple_query {
 
     my $simple = 1;
 
-    foreach my $key (keys %$query_hash) {
-        if (uc($key) ne 'DATE'
-                and uc($key) ne 'INSTRUMENT'
-                and uc($key) ne 'TELESCOPE'
-                and uc($key) ne 'PROJECTID'
-                and uc($key) ne '_ATTR') {
+    foreach my $rawkey (keys %$query_hash) {
+        my $key = uc $rawkey;
+        if ($key eq '_ATTR'
+                or $key eq 'DATE') {
+            # Ignore these keys.
+        }
+        elsif ($key eq 'INSTRUMENT'
+                or $key eq 'TELESCOPE'
+                or $key eq 'PROJECTID') {
+            # Not simple if there are multiple values.
+            my $val = $query_hash->{$rawkey};
+            if ('ARRAY' eq ref $val and 1 < scalar @$val) {
+                $simple = 0;
+                last;
+            }
+        }
+        else {
+            # Key not recognized here, so query not simple.
             $simple = 0;
             last;
         }
