@@ -474,17 +474,25 @@ sub sql {
         # additional queries are defined
         next if $t eq 'telescope';
 
+        my $subhash = $href->{$t};
+
+        # Skip if there are no constraints, e.g. if none of the query
+        # parameters have entries for this table in %lut. (Need to check this
+        # because the query_hash method will regenerate if QHash is empty.)
+        next unless scalar %$subhash;
+
         my $subsql;
         do {
             # Locally override the query hash attribute so that we can
             # call the base class _qhash_tosql method.  (Note QHash should
             # normally be only accessed via the query_hash method.)
-            local $self->{QHash} = $href->{$t};
+            local $self->{QHash} = $subhash;
             $subsql = $self->_qhash_tosql([qw/telescope/]);
         };
 
-        # if there is no sql returned here then we have an open query
-        # so skip this telescope
+        # If there is no SQL returned here then we have an open query
+        # so skip this telescope (should probably already have skipped due
+        # to an empty $subhash above).
         next unless $subsql;
 
         # Form the join.
