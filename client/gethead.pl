@@ -123,9 +123,6 @@ my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => OMP::Util::File->new);
 
-$arcdb->skip_cache_query();
-$arcdb->skip_cache_making();
-
 my $obs = $arcdb->getObs(%args);
 
 if ($obs) {
