@@ -41,8 +41,6 @@ use Time::Seconds;
 
 our $VERSION = '2.000';
 
-our $TEMPDIR = OMP::Config->getData('cachedir');
-
 =head1 METHODS
 
 =head2 Constructor
@@ -59,6 +57,7 @@ sub new {
 
     my $self = bless {
         memcache => {},
+        CacheDir => undef,
     }, $class;
 
     return $self;
@@ -101,6 +100,7 @@ sub store_archive {
     $retainhdr = (defined($retainhdr) ? $retainhdr : 0);
 
     # Check to make sure the cache directory exists. If it doesn't, create it.
+    my $TEMPDIR = $self->_cache_dir;
     unless (-d $TEMPDIR) {
         mkdir $TEMPDIR
             or throw OMP::Error::CacheFailure("Error creating temporary directory for cache: $!");
@@ -553,7 +553,6 @@ sub _filename_from_query {
     my $qhash = $query->query_hash;
 
     my ($telescope, $instrument, $startdate, $enddate, $projectid);
-    my $filename = $TEMPDIR . "/";
 
     if (defined($qhash->{'telescope'})) {
         if (ref($qhash->{'telescope'}) eq "ARRAY") {
@@ -620,11 +619,12 @@ sub _filename_from_query {
         $enddate = (defined($daterange->max) ? $daterange->max->datetime : undef);
     }
 
-    $filename .= (defined($startdate) ? $startdate : "");
-    $filename .= (defined($enddate) ? $enddate : "");
-    $filename .= (defined($telescope) ? $telescope : "");
-    $filename .= (defined($instrument) ? $instrument : "");
-    $filename .= (defined($projectid) ? $projectid : "");
+    my $filename = $self->_cache_dir . "/"
+        . (defined($startdate) ? $startdate : "")
+        . (defined($enddate) ? $enddate : "")
+        . (defined($telescope) ? $telescope : "")
+        . (defined($instrument) ? $instrument : "")
+        . (defined($projectid) ? $projectid : "");
 
     $query->isfile($isfile);
 
@@ -663,6 +663,26 @@ sub _use_cache {
     };
 
     return $use;
+}
+
+=item B<_cache_dir>
+
+Get or set directory in which to store cache files.  By default this
+is given by the C<cachedir> configuration entry.
+
+=cut
+
+sub _cache_dir {
+    my $self = shift;
+
+    if (@_) {
+        $self->{'CacheDir'} = shift;
+    }
+    elsif (not defined $self->{'CacheDir'}) {
+        $self->{'CacheDir'} = OMP::Config->getData('cachedir');
+    }
+
+    return $self->{'CacheDir'};
 }
 
 1;
