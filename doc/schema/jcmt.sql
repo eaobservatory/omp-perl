@@ -49,6 +49,10 @@ CREATE TABLE `ACSIS` (
   `specid` tinyint(4) DEFAULT NULL,
   `asn_id` varchar(32) DEFAULT NULL,
   `track_sb` varchar(70) DEFAULT NULL,
+  `rot_pa` double DEFAULT NULL,
+  `rot_crd` varchar(70) DEFAULT NULL,
+  `rot_iast` double DEFAULT NULL,
+  `rot_iaen` double DEFAULT NULL,
   PRIMARY KEY (`obsid_subsysnr`),
   KEY `idx_ACSIS_3` (`obsid`,`subsysnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
