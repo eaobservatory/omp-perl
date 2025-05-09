@@ -42,6 +42,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
+use OMP::DB::Feedback;
 use OMP::DB::Project;
 use OMP::DB::ProjAffiliation;
 use OMP::Constants qw/:done :fb :logging/;
@@ -872,31 +873,22 @@ sub doneMSB {
             "Not sending first-accept message: telescope is not JCMT");
     }
     else {
-      # Check if project has had any msbs marked as DONE/ACCEPTED on this night.
-        my $msbdonedb = OMP::DB::MSBDone->new(
+        # Check if we already sent the "first accepted" message for this project tonight.
+        my $fdb = OMP::DB::Feedback->new(
             ProjectID => $self->projectid,
             DB => $self->db);
 
-        # This gets all observations, even if they weren't accepted.
-        my @msbsdonetonight = $msbdonedb->observedMSBs(usenow => 1, comments => 0);
-
-        # For now, check which ones were accepted by looking at status --
-        # this should be first object. OMP__DONE_DONE is the accepted state.
-        my $proj_already_accepted = 0;
-        foreach my $msb (@msbsdonetonight) {
-            foreach my $comment (@{$msb->comments}) {
-                my $status = $comment->status;
-                if ($status == OMP__DONE_DONE) {
-                    $proj_already_accepted ++;
-                }
-            }
-        }
+        my $comments = $fdb->getComments(
+            date => OMP::DateTools->today,
+            status => undef,
+            msgtype => OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT,
+        );
 
         # If its the first accepted observation for this night from this project, send an email.
         # (Allow one acceptance -- the one we just performed.)
-        if ($proj_already_accepted > 1) {
+        if (scalar @$comments) {
             OMP::General->log_message(
-                "Not sending first-accept message: an MSB was already accepted");
+                "Not sending first-accept message: message was already sent");
         }
         else {
             my $projectid = $self->projectid;
