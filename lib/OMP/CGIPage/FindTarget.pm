@@ -124,21 +124,21 @@ sub _show_output {
     my $tel = '';
     my $ttel = $q->param('tel');
     if ($ttel =~ /^(\w+)$/a) {
-        $tel = $ttel;
+        $tel = $1;
     }
 
     # Separation
     my $sep = 600;
     my $ssep = $q->param('sep');
     if ($ssep =~ /^(\d+)$/a) {
-        $sep = $ssep;
+        $sep = $1;
     }
 
     # Semester
     my $sem;
     my $ssem = $q->param('sem');
     if ($ssem =~ /^([\w\d]+)$/a) {
-        $sem = $ssem;
+        $sem = $1;
         $sem =~ s/^m//i;
     }
     else {
