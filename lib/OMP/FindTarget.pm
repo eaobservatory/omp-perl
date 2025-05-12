@@ -155,9 +155,6 @@ sub find_targets {
     --------------------------------------------------------------
     };
 
-    # Disconnect from DB server
-    $db->disconnect();
-
     return $row_ref unless wantarray;
     return ($row_ref, $dsep);
 }
