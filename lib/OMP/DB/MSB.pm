@@ -42,6 +42,7 @@ use OMP::Error qw/:try/;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
+use OMP::DB::Feedback;
 use OMP::DB::Project;
 use OMP::DB::ProjAffiliation;
 use OMP::Constants qw/:done :fb :logging/;
@@ -872,31 +873,22 @@ sub doneMSB {
             "Not sending first-accept message: telescope is not JCMT");
     }
     else {
-      # Check if project has had any msbs marked as DONE/ACCEPTED on this night.
-        my $msbdonedb = OMP::DB::MSBDone->new(
+        # Check if we already sent the "first accepted" message for this project tonight.
+        my $fdb = OMP::DB::Feedback->new(
             ProjectID => $self->projectid,
             DB => $self->db);
 
-        # This gets all observations, even if they weren't accepted.
-        my @msbsdonetonight = $msbdonedb->observedMSBs(usenow => 1, comments => 0);
-
-        # For now, check which ones were accepted by looking at status --
-        # this should be first object. OMP__DONE_DONE is the accepted state.
-        my $proj_already_accepted = 0;
-        foreach my $msb (@msbsdonetonight) {
-            foreach my $comment (@{$msb->comments}) {
-                my $status = $comment->status;
-                if ($status == OMP__DONE_DONE) {
-                    $proj_already_accepted ++;
-                }
-            }
-        }
+        my $comments = $fdb->getComments(
+            date => OMP::DateTools->today,
+            status => undef,
+            msgtype => OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT,
+        );
 
         # If its the first accepted observation for this night from this project, send an email.
         # (Allow one acceptance -- the one we just performed.)
-        if ($proj_already_accepted > 1) {
+        if (scalar @$comments) {
             OMP::General->log_message(
-                "Not sending first-accept message: an MSB was already accepted");
+                "Not sending first-accept message: message was already sent");
         }
         else {
             my $projectid = $self->projectid;
@@ -2638,24 +2630,14 @@ sub _run_query {
     # tests, jumping out when we have enough matches.
     my $MAX_ID = 250;
     my @observations;
-    my $start_index = 0;
-    # make sure we use <= in case we have, say, 1 MSB matching
-    # so that 0 (index) <= 0 ($#$ref)
-    while ($start_index <= $#$ref) {
-        my $end_index = ($start_index + $MAX_ID < $#$ref ? $start_index + $MAX_ID : $#$ref);
-
-        my @clauses = map {" msbid = " . $_->{msbid} . ' '}
-            @$ref[$start_index .. $end_index];
-
-        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE "
-            . join(" OR ", @clauses)
-            . " ORDER BY obsid ASC";
+    foreach my $chunk (OMP::General->array_in_chunks([map {$_->{'msbid'}} @$ref], $MAX_ID)) {
+        $sql = "SELECT * FROM $OMP::DB::Project::OBSTABLE WHERE msbid IN ("
+            . join(', ', @$chunk)
+            . ") ORDER BY obsid ASC";
 
         my $obsref = $self->_db_retrieve_data_ashash($sql);
 
         push @observations, @$obsref;
-
-        $start_index = $end_index + 1;
     }
 
     $t1 = [gettimeofday];
@@ -2713,9 +2695,6 @@ sub _run_query {
     for my $row (@$ref) {
         my $msb = $row->{msbid};
         $row->{observations} = $msbs{$msb};
-
-        # delete the spurious "nobs" key that is created by the join
-        delete $row->{nobs};
 
         # and move the newpriority column over the priority since
         # I have not yet worked out how to force PostGres to order by

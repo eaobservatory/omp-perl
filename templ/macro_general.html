@@ -1,11 +1,11 @@
 [% MACRO render_user_name(user) BLOCK %]
     <a href="/cgi-bin/userdetails.pl?user=[% user.userid | uri %]">[% user.name | html %]</a>
-[% END -%]
+[%- END %]
 [% MACRO render_hidden_fields(fields) BLOCK %]
     [% FOREACH field IN fields %]
         <input type="hidden" name="[% field.key | html %]" value="[% field.value | html %]" />
     [% END %]
-[% END -%]
+[%- END %]
 [% MACRO render_date_select(target, ut_date, fields, extra) BLOCK %]
     [% USE target_url = url(target, fields) %]
     <form method="get" action="[% target %]">
@@ -21,4 +21,4 @@
             [% extra %]
         </p>
     </form>
-[% END -%]
+[%- END %]

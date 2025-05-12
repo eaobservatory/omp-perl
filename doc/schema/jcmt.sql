@@ -49,6 +49,10 @@ CREATE TABLE `ACSIS` (
   `specid` tinyint(4) DEFAULT NULL,
   `asn_id` varchar(32) DEFAULT NULL,
   `track_sb` varchar(70) DEFAULT NULL,
+  `rot_pa` double DEFAULT NULL,
+  `rot_crd` varchar(70) DEFAULT NULL,
+  `rot_iast` double DEFAULT NULL,
+  `rot_iaen` double DEFAULT NULL,
   PRIMARY KEY (`obsid_subsysnr`),
   KEY `idx_ACSIS_3` (`obsid`,`subsysnr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -126,8 +130,8 @@ CREATE TABLE `COMMON` (
   `chop_thr` double DEFAULT NULL,
   `jigl_cnt` int(11) DEFAULT NULL,
   `jigl_nam` varchar(70) DEFAULT NULL,
-  `jigl_pa` double DEFAULT NULL,
-  `jigl_crd` varchar(12) DEFAULT NULL,
+  `jig_pa` double DEFAULT NULL,
+  `jig_crd` varchar(12) DEFAULT NULL,
   `map_hght` double DEFAULT NULL,
   `map_pa` double DEFAULT NULL,
   `map_wdth` double DEFAULT NULL,

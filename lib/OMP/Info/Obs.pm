@@ -1115,8 +1115,8 @@ sub nightlog {
         $return{'Tau225'} = sprintf("%.$form{'tau-dec'}f", $self->tau);
         $return{'Seeing'} = sprintf("%.$form{'seeing-dec'}f", $self->seeing);
         $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
-        $return{'Pol In?'} = defined($self->pol_in) ? $self->pol_in : '';
-        $return{'FTS In?'} = defined($self->fts_in) ? $self->fts_in : '';
+        $return{'Pol In?'} = defined($self->pol_in) ? ($self->pol_in ? 'T' : 'F') : '?';
+        $return{'FTS In?'} = defined($self->fts_in) ? ($self->fts_in ? 'T' : 'F') : '?';
         $return{'Bolometers'} = $self->bolometers;
         $return{'RA'} = defined($self->coords) ? $self->coords->ra(format => 's') : '';
         $return{'Dec'} = defined($self->coords) ? $self->coords->dec(format => 's') : '';
@@ -1950,16 +1950,10 @@ sub _populate_basic_from_generic {
     $self->pol($generic->{POLARIMETRY}) if exists $generic->{'POLARIMETRY'};
 
     if (defined($generic->{POLARIMETER})) {
-        $self->pol_in($generic->{POLARIMETER} ? 'T' : 'F');
-    }
-    else {
-        $self->pol_in('unknown');
+        $self->pol_in(!! $generic->{POLARIMETER});
     }
     if (defined $generic->{'FOURIER_TRANSFORM_SPECTROMETER'}) {
-        $self->fts_in($generic->{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
-    }
-    else {
-        $self->fts_in('unknown');
+        $self->fts_in(!! $generic->{'FOURIER_TRANSFORM_SPECTROMETER'});
     }
 
     $self->switch_mode($generic->{SWITCH_MODE}) if exists $generic->{'SWITCH_MODE'};
@@ -2227,6 +2221,15 @@ sub _populate {
                 $merged->tiereturnsref(1);
                 tie my %mergedhdr, (ref $merged), $merged;
                 my %sub = $translation_class->translate_from_FITS(\%mergedhdr);
+
+                # Delete generic headers which were probably inferred wrongly
+                # (e.g. POLARIMETER because INBEAM was likely the same, so not present).
+                foreach (qw/
+                        FOURIER_TRANSFORM_SPECTROMETER
+                        POLARIMETER
+                        /) {
+                    delete $sub{$_} if exists $sub{$_};
+                }
 
                 # Copy generic headers which are problematic not to have (e.g. waveband
                 # is not constructed without INSTRUMENT.)

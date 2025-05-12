@@ -25,6 +25,8 @@ UKIRT is not supported (yet).
 
 =head1 OPTIONS
 
+=over 4
+
 =item B<-obsid>
 
 Observation unique identifier. Used in preference to all other
@@ -122,9 +124,6 @@ else {
 my $arcdb = OMP::DB::Archive->new(
     DB => OMP::DB::Backend::Archive->new,
     FileUtil => OMP::Util::File->new);
-
-$arcdb->skip_cache_query();
-$arcdb->skip_cache_making();
 
 my $obs = $arcdb->getObs(%args);
 

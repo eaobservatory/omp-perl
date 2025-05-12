@@ -45,6 +45,7 @@ if ($] >= 5.006 && $] < 5.008) {
   eval "use utf8;";
 }
 use Carp;
+use List::Util qw/min/;
 use OMP::Constants qw/:logging/;
 use OMP::Range;
 use OMP::NetTools;
@@ -885,6 +886,35 @@ sub hashref_keys_size {
     my ($self, $r) = @_;
     return unless defined $r and ref $r;
     return scalar keys %{$r};
+}
+
+=item B<array_in_chunks>
+
+Divides the given array into chunks of up to the given maximum number
+of entries.
+
+    foreach my $chunk (OMP::General->array_in_chunks(\@array, $max)) {
+        ...
+    }
+
+If not specified, C<$max> defaults to 100.
+
+=cut
+
+sub array_in_chunks {
+    my $class = shift;
+    my $array = shift;
+    my $max = shift // 100;
+
+    my @result;
+
+    for (my $i = 0; $i <= $#$array; $i += $max) {
+        my $j = min $i + $max - 1, $#$array;
+
+        push @result, [@$array[$i .. $j]];
+    }
+
+    return @result;
 }
 
 1;

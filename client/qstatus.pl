@@ -47,6 +47,7 @@ Limit query to given opacity.
 =item B<--instrument>
 
 Limit query to given instrument.
+Can be repeated to select multiple instruments.
 
 =item B<--affiliation>
 
@@ -96,7 +97,7 @@ our $DEBUG = 0;
 our $VERSION = '2.000';
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $instrument, $opacity,
+my ($help, $man, $version, $tel, $country, $semester, @instruments, $opacity,
     $affiliation, $full_day, $plot_file);
 my $status = GetOptions(
     "help" => \$help,
@@ -104,7 +105,7 @@ my $status = GetOptions(
     "version" => \$version,
     "country=s" => \$country,
     "semester=s" => \$semester,
-    'instrument=s' => \$instrument,
+    'instrument=s' => \@instruments,
     'tau=s' => \$opacity,
     'affiliation=s' => \$affiliation,
     'plot=s' => \$plot_file,
@@ -149,7 +150,7 @@ do {
         telescope => $telescope,
         ($country ? (country => $country) : ()),
         ($semester ? (semester => $semester) : ()),
-        ($instrument ? (instrument => $instrument) : ()),
+        ((scalar @instruments) ? (instrument => \@instruments) : ()),
         ($opacity ? (tau => $opacity) : ()),
         affiliation => $affiliation,
         full_day => $full_day,

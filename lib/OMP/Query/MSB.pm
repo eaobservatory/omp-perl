@@ -449,7 +449,7 @@ sub sql {
     # by msbid and by country. Have not really worked out why
     # we need DISTINCT here....
     my $top_sql = "SELECT
-         DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
+         DISTINCT M.msbid, Q.country, COUNT(*) AS nobs
             FROM $msbtable M,$obstable O, $projtable P "
         . join(" ", @join_tables)
         . "  WHERE M.msbid = O.msbid
@@ -765,20 +765,16 @@ sub _post_process_hash {
 
     # These entries are in more than one table so we have to
     # explicitly choose the MSB table
-    for (qw/projectid timeest telescope/) {
+    for (qw/projectid timeest telescope msbid/) {
         if (exists $href->{$_}) {
-            my $key = "M.$_";
-            $href->{$key} = $href->{$_};
-            delete $href->{$_};
+            $href->{"M.$_"} = delete $href->{$_};
         }
     }
 
     # And these are found in the queue table
     for (qw/country tagpriority/) {
         if (exists $href->{$_}) {
-            my $key = "Q.$_";
-            $href->{$key} = $href->{$_};
-            delete $href->{$_};
+            $href->{"Q.$_"} = delete $href->{$_};
         }
     }
 

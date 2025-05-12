@@ -91,42 +91,62 @@ sub _show_output {
 
     my @msg = (); # Message buffer.
 
-    my ($ra, $dec, $sep, $proj, $tel, $sem);
-
     # Project:
+    my $proj = '';
     my $prj = $q->param('projid');
-    ($prj =~ /^([\w\/\*]+)$/a ) &&  ($proj = "$1") || ($proj = "");
+    if ($prj =~ /^([\w\/]+)$/a) {
+        $proj = $1;
+    }
 
-    # RA
-    my $rra = $q->param('ra');
-    $rra =~ s/\ /\:/g;
-    $rra =~ s/^\s+//;
-    $rra =~ s/\s+$//;
-    ($proj eq "" && $rra =~ /^([\d\:\.\ ]+)$/a) && ($ra = "$1") || ($ra = "");
+    my $ra = '';
+    my $dec = '';
+    unless ($proj) {
+        # RA
+        my $rra = $q->param('ra');
+        $rra =~ s/\ /\:/g;
+        $rra =~ s/^\s+//;
+        $rra =~ s/\s+$//;
+        if ($rra =~ /^([\d\:\.\ ]+)$/a) {
+            $ra = $1;
+        }
 
-    # Dec
-    my $ddec = $q->param('dec');
-    $ddec =~ s/\ /\:/g;
-    $ddec =~ s/^\s+//;
-    $ddec =~ s/\s+$//;
-    ($proj eq "" && $ddec =~ /^([-+\d\:\.\ ]+)$/a) && ($dec = "$1") || ($dec = "");
+        # Dec
+        my $ddec = $q->param('dec');
+        $ddec =~ s/\ /\:/g;
+        $ddec =~ s/^\s+//;
+        $ddec =~ s/\s+$//;
+        if ($ddec =~ /^([-+\d\:\.\ ]+)$/a) {
+            $dec = $1;
+        }
+    }
 
     # Telescope
+    my $tel = '';
     my $ttel = $q->param('tel');
-    ( $ttel =~ /^(\w+)$/a ) && ($tel = $ttel) || ($tel = "");
+    if ($ttel =~ /^(\w+)$/a) {
+        $tel = $1;
+    }
 
     # Separation
+    my $sep = 600;
     my $ssep = $q->param('sep');
-    ( $ssep =~ /^(\d+)$/a ) && ($sep = $ssep) || ($sep = "600");
+    if ($ssep =~ /^(\d+)$/a) {
+        $sep = $1;
+    }
 
     # Semester
-    my $ssem= $q->param('sem');
-    ( $ssem =~ /^([\w\d\*]+)$/a ) && ($sem = $ssem) || ($sem = OMP::DateTools->determine_semester(tel => $tel));
-    $sem =~ s/^m//i;
+    my $sem;
+    my $ssem = $q->param('sem');
+    if ($ssem =~ /^([\w\d]+)$/a) {
+        $sem = $1;
+        $sem =~ s/^m//i;
+    }
+    else {
+        $sem = OMP::DateTools->determine_semester(tel => $tel);
+    }
 
-    if ( $ra eq "" || $dec eq "" and $proj eq "" ) {
-      push @msg, "Error: must specify a valid project or a RA,Dec!";
-      push @msg, "RA, dec: '$rra', '$ddec'; Proj: '$prj'";
+    if ($ra eq "" || $dec eq "" and $proj eq "") {
+        push @msg, "Error: must specify a valid project or a RA,Dec";
     }
 
     my ($targets, $results, $result_sep);

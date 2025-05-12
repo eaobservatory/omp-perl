@@ -79,17 +79,16 @@ sub find_targets {
                     sin(PI()/2 - Q2.dec2000)*sin(PI()/2 - Q.dec2000)*cos(Q2.ra2000 - Q.ra2000),
                 12))) AS separation,
                 Q.ra2000, Q.dec2000, Q.instrument
-            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::Project::MSBTABLE M, $OMP::DB::Project::OBSTABLE Q,
-                $OMP::DB::Project::PROJTABLE P2, $OMP::DB::Project::MSBTABLE M2, $OMP::DB::Project::OBSTABLE Q2
+            FROM $OMP::DB::Project::PROJTABLE P
+                JOIN $OMP::DB::Project::MSBTABLE M ON M.projectid = P.projectid
+                JOIN $OMP::DB::Project::OBSTABLE Q ON Q.msbid = M.msbid
+                JOIN $OMP::DB::Project::PROJTABLE P2 ON P2.projectid <> P.projectid
+                JOIN $OMP::DB::Project::MSBTABLE M2 ON M2.projectid = P2.projectid
+                JOIN $OMP::DB::Project::OBSTABLE Q2 ON Q2.msbid = M2.msbid
             WHERE P2.projectid LIKE \"$proj\"
-                AND M2.projectid = P2.projectid
-                AND Q2.msbid = M2.msbid
                 AND P2.telescope LIKE \"$tel\"
                 AND Q2.coordstype = \"RADEC\"
-                AND P.projectid NOT LIKE P2.projectid
                 AND P.projectid NOT LIKE '%EC%'
-                AND M.projectid = P.projectid
-                AND Q.msbid = M.msbid
                 AND P.telescope LIKE \"$tel\"
                 AND P.semester LIKE \"$sem\"
                 AND Q.coordstype = 'RADEC' and P.state=1
@@ -121,10 +120,10 @@ sub find_targets {
                     sin(PI()/2 - $dec_rad)*sin(PI()/2 - Q.dec2000)*cos($ra_rad - Q.ra2000),
                 12))) AS separation,
                 Q.ra2000, Q.dec2000, Q.instrument
-            FROM $OMP::DB::Project::PROJTABLE P, $OMP::DB::Project::MSBTABLE M, $OMP::DB::Project::OBSTABLE Q
+            FROM $OMP::DB::Project::PROJTABLE P
+                JOIN $OMP::DB::Project::MSBTABLE M ON M.projectid = P.projectid
+                JOIN $OMP::DB::Project::OBSTABLE Q ON Q.msbid = M.msbid
             WHERE P.projectid NOT LIKE '%EC%'
-                AND M.projectid = P.projectid
-                AND Q.msbid = M.msbid
                 AND P.telescope LIKE \"$tel\"
                 AND P.semester LIKE \"$sem\"
                 AND Q.coordstype = \"RADEC\" AND P.state=1
@@ -155,9 +154,6 @@ sub find_targets {
      Error:       Executing DB query: $DBI::errstr
     --------------------------------------------------------------
     };
-
-    # Disconnect from DB server
-    $db->disconnect();
 
     return $row_ref unless wantarray;
     return ($row_ref, $dsep);

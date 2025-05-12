@@ -316,8 +316,11 @@ sub faults {
 
         my $query = OMP::Query::Fault->new(HASH => {
             EXPR__DT => {or => {
-                # Faults filed on the dates we are reporting for:
-                date => $self->_get_date_hash(),
+                EXPR__DTF => {and => {
+                    # Faults filed on the dates we are reporting for:
+                    date => $self->_get_date_hash(),
+                    faultdate => {null => 1},
+                }},
 
                 # Faults that occurred on the dates we are reporting for:
                 faultdate => $self->_get_date_hash(),

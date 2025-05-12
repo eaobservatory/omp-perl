@@ -83,7 +83,7 @@
                     <td>[% obs.instrument | html %]</td>
                     <td>[% obs.target | html %]</td>
                     <td>[% obs.coords | html %]</td>
-                    <td>[% obs.waveband | html %]</td>
+                    <td>[% obs.waveband.natural({format => 1}) | html %]</td>
                 </tr>
             [% END %]
         </table>
@@ -92,6 +92,10 @@
             <p>
                 <input type="hidden" name="checksum" value="[% msb.checksum | html %]" />
                 <input type="submit" name="submit_add_comment" value="Add comment" />
+                [% IF is_staff %]
+                    &nbsp; &nbsp;
+                    <a href="/cgi-bin/translatemsb.pl?project=[% project.projectid %]&checksum=[% msb.checksum %]">translate</a>
+                [% END %]
             </p>
         </form>
     [% END %]

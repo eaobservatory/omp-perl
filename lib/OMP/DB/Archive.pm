@@ -515,15 +515,9 @@ sub queryArc {
             "FallbackToFiles and SkipDBLookup are both set to return no information.");
     }
 
-    # Always use the database for obsid queries since that is completely constrained.
-    my $istoday = 0;
-    if (defined $query->obsid) {
-        $istoday = 0;
-    }
-    else {
-        # Determine whether we are "today"
-        $istoday = $query->istoday;
-    }
+    # Determine whether we are "today", where we always use the database for obsid
+    # queries since that is completely constrained [istoday() should return 0].
+    my $istoday = $query->istoday;
 
     # Control whether we have queried the DB or not
     # True means we have done a successful query.
@@ -653,43 +647,44 @@ sub _add_files_in_headers {
 
     $file_key = 'filename' unless defined $file_key;
 
-    my $dbh = $self->_dbhandle();
-
-    my $st = $dbh->prepare(sprintf
-            'SELECT file_id FROM %s WHERE obsid_subsysnr = ? ORDER BY obsid_subsysnr',
-            $OMP::Query::Archive::FILESTAB)
-        or throw OMP::Error::DBError
-            'Error with prepare() of file statement: ',
-            $dbh->errstr();
+    # Prepare a list of ID values and a lookup table indicating from which
+    # header each was obtained.
+    my @all_ids = ();
+    my %id_header = ();
 
     foreach my $header (@$list) {
         unless (_any_filename($header)) {
-            my @id = _get_header_values($header, $id_key);
+            my @ids = _get_header_values($header, $id_key);
+            push @all_ids, @ids;
+            $id_header{$_} = $header foreach @ids;
+        }
+    }
 
-            unless (scalar @id) {
-                warn "No $id_key found\n";
+    return unless scalar @all_ids;
+
+    # Perform database queries for files by chunks of ID values.
+    my $dbh = $self->_dbhandle();
+
+    foreach my $chunk (OMP::General->array_in_chunks(
+            \@all_ids, 100)) {
+        my $placeholder = join ', ', ('?') x scalar @$chunk;
+
+        my $sql = sprintf
+            'SELECT obsid_subsysnr, file_id FROM %s WHERE obsid_subsysnr IN (%s)',
+            $OMP::Query::Archive::FILESTAB, $placeholder;
+
+        my $results = $dbh->selectall_arrayref($sql, {}, @$chunk)
+            or throw OMP::Error::DBError 'Error with selectall_arrayref(): '
+                . $dbh->errstr();
+
+        foreach my $row (@$results) {
+            my $id = $row->[0];
+            unless (exists ($id_header{$id})) {
+                warn "Unexpected $id_key value $id received";
                 next;
             }
-
-            my @file;
-
-            foreach my $id (@id) {
-                my $rv = $st->execute($id);
-                $rv or throw OMP::Error::DBError "execute() failed ($rv): ",
-                    $st->errstr();
-
-                my $results = $st->fetchall_arrayref();
-
-                throw OMP::Error::DBError 'Error with fetchall_arrayref(): ',
-                    $dbh->errstr()
-                    unless defined $results and @$results;
-
-                foreach my $row (@$results) {
-                    push @file, $row->[0];
-                }
-            }
-
-            $header->{$file_key} = \@file;
+            my $header = $id_header{$id};
+            push @{$header->{$file_key}}, $row->[1];
         }
     }
 }

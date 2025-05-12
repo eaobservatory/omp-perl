@@ -102,6 +102,10 @@ in C<OMP::Constants>.  Example:
 OMP__FB_MSG_COMMENT.  By default this criteria is
 ignored.
 
+=item B<date>
+
+Date of message.
+
 =back
 
 Defaults to returning comments with a status of B<OMP__FB_IMPORTANT>
@@ -125,6 +129,7 @@ sub getComments {
         status => [OMP__FB_IMPORTANT, OMP__FB_INFO,],
         msgtype => undef,
         order => 'ascending',
+        date => undef,
     );
 
     my %args = (%defaults, @_);
@@ -136,6 +141,10 @@ sub getComments {
     }
 
     $hash{'projectid'} = $self->projectid if $self->projectid;
+
+    if (defined $args{'date'}) {
+        $hash{'date'} = {delta => 1, value => $args{'date'}};
+    }
 
     # Create the query object
     my $query = OMP::Query::Feedback->new(HASH => \%hash);

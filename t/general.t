@@ -28,7 +28,8 @@ use Test::More tests => 2
     + 5 # project extract fail
     + 1 # fault extract
     + 1 # fault extract fail
-    + 11;
+    + 11
+    + 8; # array_in_chunks
 
 use Time::Piece qw/:override/;
 use Time::Seconds;
@@ -342,3 +343,51 @@ is(OMP::General::nearest_mult(129, 64), 128, 'nearest_mult(129, 64)');
 
 is(OMP::General->uc_if_defined(undef), undef, 'uc_if_defined on undefined value');
 is(OMP::General->uc_if_defined('xyz'), 'XYZ', 'uc_if_defined on defined string');
+
+# Test array_in_chunks method.
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 1000])],
+    [[1 .. 100], [101 .. 200], [201 .. 300], [301 .. 400], [401 .. 500],
+    [501 .. 600], [601 .. 700], [701 .. 800], [801 .. 900], [901 .. 1000]],
+    'array_in_chunks([1 .. 1000])');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 100], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90], [91 .. 100]],
+    'array_in_chunks([1 .. 100], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 99], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90], [91 .. 99]],
+    'array_in_chunks([1 .. 99], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 98], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90], [91 .. 98]],
+    'array_in_chunks([1 .. 98], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 92], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90], [91, 92]],
+    'array_in_chunks([1 .. 92], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 91], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90], [91]],
+    'array_in_chunks([1 .. 91], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([1 .. 90], 10)],
+    [[1 .. 10], [11 .. 20], [21 .. 30], [31 .. 40], [41 .. 50],
+    [51 .. 60], [61 .. 70], [71 .. 80], [81 .. 90]],
+    'array_in_chunks([1 .. 99], 10)');
+
+is_deeply(
+    [OMP::General->array_in_chunks([])],
+    [],
+    'array_in_chunks([])');

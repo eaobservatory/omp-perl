@@ -181,6 +181,7 @@
             <tr bgcolor="#bcbee3">
                 <td><b>MSB</b></td>
                 <td><b>Name</b></td>
+                <td><b>Target</b></td>
                 <td><b>Waveband</b></td>
                 <td><b>Instrument</b></td>
                 [% IF active %]
@@ -198,6 +199,7 @@
                 <tr>
                     <td>[% loop.count %]</td>
                     <td>[% msb.title | html %]</td>
+                    <td>[% msb.target | html %]</td>
                     <td>
                         [% FOR waveband IN msb.wavebands %]
                             [% waveband.natural({format => 1}) | html %][% IF ! loop.last %],[% END %]

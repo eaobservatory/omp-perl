@@ -278,24 +278,38 @@ sub fixup_historical_problems {
             if exists $usbrx{uc $info->{'instrument'}};
     }
 
-    # Change Uu 6GHz IF standards to 5GHz to avoid bad LO2. (If using 2x chained mode.)
     if ($info->{'PROJECTID'} =~ /^(?:JCMT)?CAL$/i
-            and 'SCIENCE' eq uc $info->{'obs_type'}
-            and 'SPITERSTAREOBS' eq uc $info->{'MODE'}
-            and 'UU' eq uc $info->{'instrument'}
-            and 2 == scalar @{$info->{'freqconfig'}->{'subsystems'}}
-            and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} - 6.0E9)
-            and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} - 6.0E9)
-            and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'rest_freq'}
-                - $info->{'freqconfig'}->{'subsystems'}->[1]->{'rest_freq'})
-            and ($info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 2048
-                or $info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 8192)
-            and ($info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 2048
-                or $info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 8192)) {
+            and 'UU' eq uc $info->{'instrument'}) {
         my $synth_status = _get_lo2_synth_status();
-        if (not all {$_} @{$synth_status->{'high'}}) {
+        my $obs_type = uc $info->{'obs_type'};
+
+        # Change Uu 6GHz IF standards to 5GHz to avoid bad LO2. (If using 2x chained mode.)
+        if ('SCIENCE' eq $obs_type
+                and 'SPITERSTAREOBS' eq uc $info->{'MODE'}
+                and 2 == scalar @{$info->{'freqconfig'}->{'subsystems'}}
+                and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} - 6.0E9)
+                and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} - 6.0E9)
+                and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'rest_freq'}
+                    - $info->{'freqconfig'}->{'subsystems'}->[1]->{'rest_freq'})
+                and ($info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 2048
+                    or $info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 8192)
+                and ($info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 2048
+                    or $info->{'freqconfig'}->{'subsystems'}->[1]->{'channels'} == 8192)
+                and (not all {$_} @{$synth_status->{'high'}})) {
             $info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} = 5.0E9;
             $info->{'freqconfig'}->{'subsystems'}->[1]->{'if'} = 5.0E9;
+        }
+        # Change Uu 6GHz IF pointing/focus to 5GHz to avoid bad LO2. (If using 1x chained mode.)
+        elsif (('POINTING' eq $obs_type or 'FOCUS' eq $obs_type)
+                and 1 == scalar @{$info->{'freqconfig'}->{'subsystems'}}
+                and 1.0E6 > abs($info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} - 6.0E9)
+                and ($info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 2048
+                    or $info->{'freqconfig'}->{'subsystems'}->[0]->{'channels'} == 8192)
+                and not (
+                    ($synth_status->{'high'}->[0] and $synth_status->{'high'}->[1])
+                    or ($synth_status->{'high'}->[2] and $synth_status->{'high'}->[3])
+                )) {
+            $info->{'freqconfig'}->{'subsystems'}->[0]->{'if'} = 5.0E9;
         }
     }
 
