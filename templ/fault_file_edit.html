@@ -82,7 +82,10 @@
                 <td align="right"><b>Time lost:</b></td>
                 <td>
                     <input type="text" name="loss" size="4" maxlength="10" value="[% values.loss | html %]" />
-                    <small>(minutes)</small>
+                    <select name="loss_unit">
+                        <option [% IF 'min' == values.loss_unit %]selected="selected"[% END %] value="min">minutes</option>
+                        <option [% IF 'hour' == values.loss_unit %]selected="selected"[% END %] value="hour">hours</option>
+                    </select>
                 </td>
             </tr>
         [% END %]

@@ -231,6 +231,7 @@ sub file_fault_form {
             location => undef,
             status => OMP::Fault->faultInitialStatus($category),
             loss => undef,
+            loss_unit => 'min',
             time => undef,
             tz => 'HST',
             subject => undef,
@@ -315,6 +316,7 @@ sub file_fault_form {
             location => $fault->location,
             type => $fault->type,
             loss => $fault->timelost * 60.0,
+            loss_unit => 'min',
             time => $faultdate,
             tz => 'HST',
             subject => $fault->subject,
@@ -642,7 +644,8 @@ sub parse_file_fault_form {
     }
 
     # Store time lost if defined (convert to hours)
-    $parsed{timelost} = $q->param('loss') / 60.0
+    $parsed{timelost} = $q->param('loss')
+        / (($q->param('loss_unit') eq 'hour') ? 1.0 : 60.0)
         if length($q->param('loss')) >= 0;
 
     # Get the associated projects
