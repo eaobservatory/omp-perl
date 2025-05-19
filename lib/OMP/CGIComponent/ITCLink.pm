@@ -311,6 +311,7 @@ sub _encode_query {
         map {$query->{$_}} sort keys $query];
 
     my $mp = Data::MessagePack->new();
+    $mp->utf8(1);
     $mp->prefer_integer();
 
     # Hedwig uses prefix 'M' to identify MessagePack format.
