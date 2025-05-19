@@ -571,6 +571,10 @@ __PACKAGE__->CreateAccessors(
     humidity => '$',
     instrument => '$',
     inst_dhs => '$',
+    intermediate_frequency => '$',
+    map_angle => '$',
+    map_height => '$',
+    map_width => '$',
     mode => '$',
     msbtid => '$',
     nexp => '$',
@@ -593,8 +597,14 @@ __PACKAGE__->CreateAccessors(
     retainhdr => '$',
     rows => '$',
     runnr => '$',
+    scan_angle => '$',
+    scan_increment => '$',
+    scan_pattern => '$',
+    scan_positions => '$',
     seeing => '$',
     shifttype => '$',
+    sideband => '$',
+    sideband_mode => '$',
     slitangle => '$',
     slitname => '$',
     spectrum_number => '$',
@@ -1962,6 +1972,17 @@ sub _populate_basic_from_generic {
     $self->user_az_corr($generic->{USER_AZIMUTH_CORRECTION}) if exists $generic->{'USER_AZIMUTH_CORRECTION'};
     $self->user_el_corr($generic->{USER_ELEVATION_CORRECTION}) if exists $generic->{'USER_ELEVATION_CORRECTION'};
     $self->tile($generic->{TILE_NUMBER}) if exists $generic->{'TILE_NUMBER'};
+
+    $self->scan_angle($generic->{'SCAN_ANGLE'}) if exists $generic->{'SCAN_ANGLE'};
+    $self->scan_pattern($generic->{'SCAN_PATTERN'}) if exists $generic->{'SCAN_PATTERN'};
+    $self->scan_increment($generic->{'SCAN_INCREMENT'}) if exists $generic->{'SCAN_INCREMENT'};
+    $self->scan_positions($generic->{'NSCAN_POSITIONS'}) if exists $generic->{'NSCAN_POSITIONS'};
+    $self->map_angle($generic->{'MAP_ANGLE'}) if exists $generic->{'MAP_ANGLE'};
+    $self->map_height($generic->{'MAP_HEIGHT'}) if exists $generic->{'MAP_HEIGHT'};
+    $self->map_width($generic->{'MAP_WIDTH'}) if exists $generic->{'MAP_WIDTH'};
+    $self->intermediate_frequency($generic->{'INTERMEDIATE_FREQUENCY'}) if exists $generic->{'INTERMEDIATE_FREQUENCY'};
+    $self->sideband($generic->{'OBSERVED_SIDEBAND'}) if exists $generic->{'OBSERVED_SIDEBAND'};
+    $self->sideband_mode($generic->{'SIDEBAND_MODE'}) if exists $generic->{'SIDEBAND_MODE'};
 }
 
 =item B<_populate>

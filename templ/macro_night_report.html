@@ -475,6 +475,12 @@
                                         [% IF obs.previews.defined && ! obs.previews.empty %]
                                             <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
                                         [% END %]
+                                        [% IF itclink.defined %]
+                                            [% SET link = itclink.scalar.observation_itc_link(obs) %]
+                                            [% IF link %]
+                                                <a class="link_dark_small" href="[% link %]">ITC</a>
+                                            [% END %]
+                                        [% END %]
                                         <a class="link_dark_small copy_text" href="[% worf_url(telescope='JCMT', obsid=obs.obsid) %]" data-copy_text="[% obs.obsid %]" title="Copy observation ID">&loz;</a>
                                     </td>
                                 [% END %]

@@ -27,6 +27,7 @@ use Time::Seconds qw/ONE_DAY/;
 
 use OMP::CGIComponent::NightRep;
 use OMP::CGIComponent::IncludeFile;
+use OMP::CGIComponent::ITCLink;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Search;
 use OMP::CGIComponent::ShiftLog;
@@ -194,6 +195,7 @@ sub night_report {
     my $comp = OMP::CGIComponent::NightRep->new(page => $self);
     my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
     my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
+    my $itclink = OMP::CGIComponent::ITCLink->new(page => $self);
 
     my $delta;
     my $utdate;
@@ -309,6 +311,8 @@ sub night_report {
             ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
             ['forecast', 'MKWC forecast', $weathercomp->forecast_plot($utdate)],
         ]),
+
+        itclink => $itclink,
     };
 }
 
