@@ -277,8 +277,12 @@ sub observation_itc_link {
 
     return undef unless defined $itc;
 
+    my $airmass = $obs->airmass;
+
+    return undef unless $airmass;
+
     $values{'tau'} = 0.0 + sprintf '%.3f', $obs->tau;
-    $values{'pos'} = 90.0 - Astro::PAL::DR2D * acos(1.0 / $obs->airmass);
+    $values{'pos'} = 90.0 - Astro::PAL::DR2D * acos(1.0 / $airmass);
     $values{'pos_type'} = 'el';
 
     return $self->_query_url(
