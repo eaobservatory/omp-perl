@@ -72,7 +72,7 @@ my $nr = OMP::NightRep->new(
     delta_day => $delta,
 );
 
-my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF/;
+my @countrylist = qw/DDT EC CA INT NL UH UK PI JLS GT JAC LAP VLBI IF TW/;
 
 #print scalar $nr->astext();
 
