@@ -4266,6 +4266,25 @@ sub SpIterFolder {
         # recursion to retain ordering
         push @iterators, $name;
 
+        my $process_auto_target = sub {
+            my $autoTarget = $self->_get_pcdata($child, 'autoTarget');
+            my $auto = $self->_str_to_bool($autoTarget);
+
+            # Can only set the global autoTarget switch to true
+            # if we have not already had a science target. If the
+            # switch is set to false then this is also a science target
+            if ($auto) {
+                $summary{autoTarget} = 1
+                    unless $summary{explicitTarget};
+            }
+            else {
+                $summary{explicitTarget} = 1;
+                $summary{autoTarget} = 0;
+            }
+
+            return $auto;
+        };
+
         # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL
         # or other iterators
         # we need to go down a level
@@ -4348,9 +4367,9 @@ sub SpIterFolder {
 
             $stare{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
+            $stare{'autoTarget'} = $process_auto_target->();
+
             push(@{$summary{$parent}{CHILDREN}}, {$name => \%stare});
-            $summary{explicitTarget} = 1;
-            $summary{autoTarget} = 0;
             $summary{type} = (exists $summary{type}
                 ? $summary{type}
                 : '?'
@@ -4361,9 +4380,9 @@ sub SpIterFolder {
             my $samptime = $self->_get_pcdata($child, "sampleTime");
             $dream{sampleTime} = $samptime if defined $samptime;
 
+            $dream{'autoTarget'} = $process_auto_target->();
+
             push @{$summary{$parent}{CHILDREN}}, {$name => \%dream};
-            $summary{explicitTarget} = 1;
-            $summary{autoTarget} = 0;
         }
         elsif ($name eq 'SpIterJiggleObs') {
             # For Het
@@ -4410,8 +4429,8 @@ sub SpIterFolder {
 
             $jiggle{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
-            $summary{explicitTarget} = 1;
-            $summary{autoTarget} = 0;
+            $jiggle{'autoTarget'} = $process_auto_target->();
+
             $summary{type} = (exists $summary{type}
                 ? $summary{type}
                 : '?'
@@ -4422,26 +4441,11 @@ sub SpIterFolder {
         elsif ($name eq 'SpIterPointingObs') {
             my $nint = $self->_get_pcdata($child, 'integrations');
             my $pix = $self->_get_pcdata($child, 'pointingPixel');
-            my $autoTarget = $self->_get_pcdata($child, 'autoTarget');
-            my $auto = $self->_str_to_bool($autoTarget);
             my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
-
-            # Focus and pointing dont need explicit targets
-            # Can only set the global autoTarget switch to true
-            # if we have not already had a science target. If the
-            # switch is set to false then this is also a science target
-            if ($auto) {
-                $summary{autoTarget} = 1
-                    unless $summary{explicitTarget};
-            }
-            else {
-                $summary{explicitTarget} = 1;
-                $summary{autoTarget} = 0;
-            }
 
             my %point = (
                 nintegrations => $nint,
-                autoTarget => $auto,
+                autoTarget => $process_auto_target->(),
                 #pointingPixel => $pix,
             );
 
@@ -4458,26 +4462,11 @@ sub SpIterFolder {
             my $npoints = $self->_get_pcdata($child, 'focusPoints');
             my $axis = $self->_get_pcdata($child, 'axis');
             my $steps = $self->_get_pcdata($child, 'steps');
-            my $autoTarget = $self->_get_pcdata($child, 'autoTarget');
-            my $auto = $self->_str_to_bool($autoTarget);
             my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
-
-            # Focus and pointing dont need explicit targets
-            # Can only set the global autoTarget switch to true
-            # if we have not already had a science target. If the
-            # switch is set to false then this is also a science target
-            if ($auto) {
-                $summary{autoTarget} = 1
-                    unless $summary{explicitTarget};
-            }
-            else {
-                $summary{explicitTarget} = 1;
-                $summary{autoTarget} = 0;
-            }
 
             my %focus = (
                 nintegrations => $nint,
-                autoTarget => $auto,
+                autoTarget => $process_auto_target->(),
                 focusPoints => $npoints,
                 focusAxis => $axis,
                 focusStep => $steps,
@@ -4559,9 +4548,6 @@ sub SpIterFolder {
             };
         }
         elsif ($name eq 'SpIterRasterObs') {
-            $summary{explicitTarget} = 1;
-            $summary{autoTarget} = 0;
-
             my %scan;
             $scan{nintegrations} = $self->_get_pcdata($child, 'integrations');
 
@@ -4609,13 +4595,13 @@ sub SpIterFolder {
             my (@scanpa) = $node->findnodes(".//PA");
             $scan{SCAN_PA} = [map {$_->textContent} @scanpa];
 
+            $scan{'autoTarget'} = $process_auto_target->();
+
             push @{$summary{$parent}{CHILDREN}}, {
                 SpIterRasterObs => \%scan,
             };
         }
         elsif ($name eq 'SpIterFTS2Obs') {
-            $summary{explicitTarget} = 1;
-            $summary{autoTarget} = 0;
             $summary{type} = 's-stare';
 
             my %fts = ();
@@ -4637,6 +4623,8 @@ sub SpIterFolder {
 
             my $samptime = $self->_get_pcdata($child, "sampleTime");
             $fts{'sampleTime'} = $samptime if defined $samptime;
+
+            $fts{'autoTarget'} = $process_auto_target->();
 
             #use Data::Dumper;
             #print "FTS HASH: " . Dumper(\%fts) . "\n";
