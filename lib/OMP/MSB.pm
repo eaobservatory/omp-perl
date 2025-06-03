@@ -3808,7 +3808,7 @@ sub SpObs {
     # that logs whenever we hit a science target (defined as an
     # science observe that does not have an autoTarget). Must default
     # to false
-    $summary{scitarget} = 0;
+    $summary{explicitTarget} = 0;
 
     # Retrieve the observation number in this MSB
     $summary{msb_obsnum} = $self->_get_attribute($el, $OBSNUM_ATTR);
@@ -4353,7 +4353,7 @@ sub SpIterFolder {
             $stare{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
             push(@{$summary{$parent}{CHILDREN}}, {$name => \%stare});
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
             $summary{type} = (exists $summary{type}
                 ? $summary{type}
@@ -4366,7 +4366,7 @@ sub SpIterFolder {
             $dream{sampleTime} = $samptime if defined $samptime;
 
             push @{$summary{$parent}{CHILDREN}}, {$name => \%dream};
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
         }
         elsif ($name eq 'SpIterJiggleObs') {
@@ -4414,7 +4414,7 @@ sub SpIterFolder {
 
             $jiggle{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
             $summary{type} = (exists $summary{type}
                 ? $summary{type}
@@ -4436,10 +4436,10 @@ sub SpIterFolder {
             # switch is set to false then this is also a science target
             if ($auto) {
                 $summary{autoTarget} = 1
-                    unless $summary{scitarget};
+                    unless $summary{explicitTarget};
             }
             else {
-                $summary{scitarget} = 1;
+                $summary{explicitTarget} = 1;
                 $summary{autoTarget} = 0;
             }
 
@@ -4472,10 +4472,10 @@ sub SpIterFolder {
             # switch is set to false then this is also a science target
             if ($auto) {
                 $summary{autoTarget} = 1
-                    unless $summary{scitarget};
+                    unless $summary{explicitTarget};
             }
             else {
-                $summary{scitarget} = 1;
+                $summary{explicitTarget} = 1;
                 $summary{autoTarget} = 0;
             }
 
@@ -4563,7 +4563,7 @@ sub SpIterFolder {
             };
         }
         elsif ($name eq 'SpIterRasterObs') {
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
 
             my %scan;
@@ -4618,7 +4618,7 @@ sub SpIterFolder {
             };
         }
         elsif ($name eq 'SpIterFTS2Obs') {
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
             $summary{type} = 's-stare';
 
@@ -4650,7 +4650,7 @@ sub SpIterFolder {
             };
         }
         elsif ($name eq 'SpIterRawXmlObs') {
-            $summary{scitarget} = 1;
+            $summary{explicitTarget} = 1;
             $summary{autoTarget} = 0;
 
             my %raw = (
