@@ -12,6 +12,17 @@
 
 [% UNLESS projectid.defined %]
     [% render_date_select(target_base, ut_date, {telescope => telescope}, '') %]
+[% ELSE %]
+    <form method="get" action="[% target_base %]">
+        <p>
+            <select name="inccal">
+                <option [% IF ! inccal %]selected="selected"[% END %] value="0">Excluding calibrations</option>
+                <option [% IF inccal %]selected="selected"[% END %] value="1">With calibrations</option>
+            </select>
+            <input type="submit" name="" value="View" />
+            [% render_hidden_fields({project => projectid, utdate => ut_date.ymd, telescope => telescope}) %]
+        </p>
+    </form>
 [% END %]
 
 [% MACRO render_thumbnails(previews) BLOCK %]
