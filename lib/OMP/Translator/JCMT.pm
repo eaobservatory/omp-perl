@@ -1374,7 +1374,8 @@ sub header_config {
     my $xfile = $self->header_exclusion_file(%info);
 
     # Read the exclusion file
-    my @toexclude = $hdr->read_header_exclusion_file($xfile);
+    my @toexclude = $hdr->read_header_exclusion_file($xfile,
+        map {$self->$_} qw/verbose outhdl/);
 
     $hdr->remove_excluded_headers(\@toexclude,
         map {$self->$_} qw/verbose outhdl/);
@@ -1388,7 +1389,8 @@ sub header_config {
     $xfile = File::Spec->catfile(
         $self->wiredir, "header", $inst . "_exclude_inst");
 
-    @toexclude = $hdr->read_header_exclusion_file($xfile);
+    @toexclude = $hdr->read_header_exclusion_file($xfile,
+        map {$self->$_} qw/verbose outhdl/);
 
     $hdr->remove_excluded_headers(\@toexclude,
         map {$self->$_} qw/verbose outhdl/);
