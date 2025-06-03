@@ -3842,10 +3842,6 @@ sub SpObs {
         . $self->msbtitle . "'\n")
         unless exists $summary{obstype};
 
-    # If we are a standard but have no target we are really an autoTarget
-    $summary{autoTarget} = 1
-        if ($summary{standard} && ! exists $summary{coords});
-
     # A skydip can have a target associated with it but it is not mandatory
     # even if useCurrentAz is false. Use two flags to indicate this.
     my $optional_coords = 0;
