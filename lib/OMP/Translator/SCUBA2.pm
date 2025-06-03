@@ -437,21 +437,6 @@ sub is_dark_or_blackbody {
     return 0;
 }
 
-=item B<standard_is_autoTarget>
-
-All SCUBA-2 calibration observations should ignore the explicit
-target in the MSB.
-
-    is_auto = $trans->standard_is_autoTarget(%info);
-
-=cut
-
-sub standard_is_autoTarget {
-    my $self = shift;
-    my %info = @_;
-    return ($info{standard} ? 1 : 0);
-}
-
 =item B<get_tracking_receptor_filter_params>
 
 Get tracking subarray filtering parameters.
