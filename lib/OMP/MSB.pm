@@ -4615,12 +4615,24 @@ sub SpIterFolder {
             my $dual = $self->_get_pcdata($child, 'isDualPort');
             $fts{'isDualPort'} = $self->_str_to_bool($dual) if defined $dual;
 
+            # Parameters for variable mode.
             my $speed = $self->_get_pcdata($child, 'ScanSpeed');
             $fts{'ScanSpeed'} = $speed if defined $speed;
 
             my $resolution = $self->_get_pcdata($child, 'resolution');
             $fts{'resolution'} = $resolution if defined $resolution;
 
+            # Parameters for step-and-integrate mode.
+            my $scan_length = $self->_get_pcdata($child, 'ScanLength');
+            $fts{'ScanLength'} = $scan_length if defined $scan_length;
+
+            my $scan_origin = $self->_get_pcdata($child, 'ScanOrigin');
+            $fts{'ScanOrigin'} = $scan_origin if defined $scan_origin;
+
+            my $step_distance = $self->_get_pcdata($child, 'StepDistance');
+            $fts{'StepDistance'} = $step_distance if defined $step_distance;
+
+            # General parameters.
             my $samptime = $self->_get_pcdata($child, "sampleTime");
             $fts{'sampleTime'} = $samptime if defined $samptime;
 
