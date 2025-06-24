@@ -37,6 +37,7 @@ use warnings;
 use Carp;
 use Data::Dumper;
 use Unicode::Normalize qw/normalize/;
+use OMP::Config;
 use OMP::DateTools;
 
 =head1 METHODS
@@ -184,12 +185,18 @@ sub getProject {
     my $cfg = shift;
     my %info = @_;
 
+    my $force_non_sci_jcmtcal = OMP::Config->getData(
+        'jcmt_translator.force_non_sci_jcmtcal');
+
     my $obs_type = lc($info{obs_type});
     my $standard = $class->getStandard($cfg, %info);
 
     my %type_non_std = map {$_ => 1} qw/science raw/;
 
-    if ($standard || (not exists $type_non_std{$obs_type}) || $info{autoTarget}) {
+    if ($force_non_sci_jcmtcal and (
+            $standard
+            || (not exists $type_non_std{$obs_type})
+            || $info{autoTarget})) {
         if ($class->VERBOSE) {
             # only warn if we are called from outside this package
             if (! $class->islocal(caller)) {

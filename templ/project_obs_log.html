@@ -64,6 +64,17 @@
 
 <h2>Observation log</h2>
 
+<form method="get" action="[% target %]">
+    <p>
+        <select name="inccal">
+            <option [% IF ! inccal %]selected="selected"[% END %] value="0">Excluding calibrations</option>
+            <option [% IF inccal %]selected="selected"[% END %] value="1">With calibrations</option>
+        </select>
+        <input type="submit" name="" value="View" />
+        [% render_hidden_fields({project => project.projectid, utdate => utdate}) %]
+    </p>
+</form>
+
 [% IF ! obs_summary.defined %]
     <p>No observations available for this night.</p>
 [% ELSE %]

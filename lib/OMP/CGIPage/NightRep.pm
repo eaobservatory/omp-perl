@@ -340,6 +340,8 @@ sub projlog_content {
     my $utdatestr = $self->decoded_url_param('utdate');
     my $no_retrieve = $self->decoded_url_param('noretrv');
 
+    my $inccal = $q->param('inccal') // 0;
+
     my $utdate;
 
     # Untaint the date string
@@ -426,7 +428,7 @@ sub projlog_content {
             ADB => $arcdb,
             projectid => $projectid,
             date => $utdate,
-            inccal => 1,
+            inccal => $inccal,
         );
 
         if ($grp->numobs > 0) {
@@ -452,6 +454,7 @@ sub projlog_content {
         utdate => $utdate,
         telescope => $telescope,
         retrieve_date => $retrieve_date,
+        inccal => $inccal,
 
         obs_summary => $obs_summary,
 

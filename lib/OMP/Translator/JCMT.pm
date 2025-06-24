@@ -643,7 +643,6 @@ sub tcs_base {
     # following target in the queue or a blank target).
     if ($info{obs_type} =~ /setup|skydip|noise/
             && ($info{coords}->type eq 'CAL'
-                || $self->standard_is_autoTarget(%info)
                 || $info{autoTarget})
             && ! $info{currentAz}
             ) {
@@ -653,12 +652,6 @@ sub tcs_base {
 
     # if we do not know the position return
     return if $info{autoTarget};
-
-    # We might want to have autoTarget calibrators
-    if ($self->standard_is_autoTarget(%info)) {
-        $self->output("Calibration observation. Ignoring specified target\n");
-        return;
-    }
 
     # if we are supposed to do do this observation at the current azimuth
     # no base position is required
@@ -1374,7 +1367,8 @@ sub header_config {
     my $xfile = $self->header_exclusion_file(%info);
 
     # Read the exclusion file
-    my @toexclude = $hdr->read_header_exclusion_file($xfile);
+    my @toexclude = $hdr->read_header_exclusion_file($xfile,
+        map {$self->$_} qw/verbose outhdl/);
 
     $hdr->remove_excluded_headers(\@toexclude,
         map {$self->$_} qw/verbose outhdl/);
@@ -1388,7 +1382,8 @@ sub header_config {
     $xfile = File::Spec->catfile(
         $self->wiredir, "header", $inst . "_exclude_inst");
 
-    @toexclude = $hdr->read_header_exclusion_file($xfile);
+    @toexclude = $hdr->read_header_exclusion_file($xfile,
+        map {$self->$_} qw/verbose outhdl/);
 
     $hdr->remove_excluded_headers(\@toexclude,
         map {$self->$_} qw/verbose outhdl/);
@@ -2128,19 +2123,6 @@ sub tracking_receptor_or_subarray {
     # Still here? We have the choice of returning undef or choosing the
     # reference receptor. For now the consensus is to return undef.
     return;
-}
-
-=item B<standard_is_autoTarget>
-
-Method to determine whether we should skip target selection if this
-is a flux/spectral standard observation. Default is not to skip.
-
-    $isauto = $trans->standard_is_autoTarget(%info);
-
-=cut
-
-sub standard_is_autoTarget {
-    return 0;
 }
 
 =item B<calc_receptor_or_subarray_mask>

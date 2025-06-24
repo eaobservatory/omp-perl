@@ -744,6 +744,25 @@ sub _determine_best_sideband {
     return $sb;
 }
 
+=item B<_safe_transition_name>
+
+Prepare "safe" version of transition name, i.e. without special
+characters.
+
+B<Note:> current implementation simply replaces lower case greek
+alpha, beta, gamma, delta with A, B, G, D respectively.
+
+=cut
+
+sub _safe_transition_name {
+    my $self = shift;
+    my $transition = shift;
+
+    $transition =~ tr/\x{03b1}\x{03b2}\x{03b3}\x{03b4}/ABGD/;
+
+    return $transition;
+}
+
 =back
 
 =head2 Config Generators
@@ -2353,8 +2372,9 @@ sub line_list {
     my $freq = $info{freqconfig}->{subsystems};
     my %lines;
     for my $s (@$freq) {
+        my $transition = $self->_safe_transition_name($s->{transition});
         my $base_key = JAC::OCS::Config::ACSIS::LineList->moltrans2key(
-            $s->{species}, $s->{transition});
+            $s->{species}, $transition);
 
         my $freq = $s->{rest_freq};
 
@@ -2380,7 +2400,7 @@ sub line_list {
         $lines{$key} = JAC::OCS::Config::ACSIS::Line->new(
             RestFreq => $freq,
             Molecule => $s->{species},
-            Transition => $s->{transition});
+            Transition => $transition);
     }
 
     # Create the line list object

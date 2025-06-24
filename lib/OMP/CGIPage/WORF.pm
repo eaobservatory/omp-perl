@@ -141,6 +141,8 @@ sub thumbnails_page {
     my $utdate = OMP::DateTools->parse_date($utdate_str);
     die 'Invalid date' unless defined $utdate;
 
+    my $inccal = $q->param('inccal') // 0;
+
     my %query = (
         telescope => $telescope,
         date => $utdate->ymd(),
@@ -151,7 +153,7 @@ sub thumbnails_page {
     my $worfimage;
     if (defined $projectid) {
         $query{'projectid'} = $projectid;
-        $query{'inccal'} = 1;
+        $query{'inccal'} = !! $inccal;
 
         $worflink = "fbworf.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
         $worfimage = "fbworfimage.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
@@ -184,6 +186,7 @@ sub thumbnails_page {
         projectid => $projectid,
         telescope => $telescope,
         ut_date => $utdate,
+        inccal => $inccal,
         observations => [
             sort {$a->startobs->epoch <=> $b->startobs->epoch}
             $grp->obs()],

@@ -437,21 +437,6 @@ sub is_dark_or_blackbody {
     return 0;
 }
 
-=item B<standard_is_autoTarget>
-
-All SCUBA-2 calibration observations should ignore the explicit
-target in the MSB.
-
-    is_auto = $trans->standard_is_autoTarget(%info);
-
-=cut
-
-sub standard_is_autoTarget {
-    my $self = shift;
-    my %info = @_;
-    return ($info{standard} ? 1 : 0);
-}
-
 =item B<get_tracking_receptor_filter_params>
 
 Get tracking subarray filtering parameters.
@@ -990,6 +975,7 @@ sub jos_config {
             unless defined $scan_length;
 
         my $inttime;
+        my $inttime_note = undef;
         my $scan_mode = $fts2->scan_mode();
         if ($scan_mode eq 'RAPID_SCAN' or $scan_mode eq 'ZPD_MODE') {
             my $scan_spd = $fts2->scan_spd();
@@ -1027,7 +1013,12 @@ sub jos_config {
                 "Could not determine observing time for FTS-2 observation because the STEP_AND INTEGRATE time was not defined")
                 unless defined $step_integrate_time;
 
-            $inttime = $step_integrate_time * $scan_length / $step_dist;
+            # Unsure how FTS-2 will round the number of steps, so for now
+            # use (1 + floor) to ensure we never calculate 0 steps.
+            my $n_steps = 1 + POSIX::floor(abs($scan_length / $step_dist));
+
+            $inttime = $step_integrate_time * $n_steps;
+            $inttime_note = "($n_steps steps)";
         }
 
         throw OMP::Error::FatalError(
@@ -1082,7 +1073,9 @@ sub jos_config {
             "\tEffective step time: $eff_step_time secs\n",
             "\tRequested integration time: $sample_time secs\n",
             "\tTo be spread over: $nms microsteps\n",
-            "\tCalculated time per scan: $inttime secs\n",
+            "\tCalculated time per scan: $inttime secs"
+                . (defined $inttime_note ? ' ' . $inttime_note : '')
+                . "\n",
             "\tNumber of steps per sequence: $jos_min\n",
             "\tNumber of cycles calculated: $num_cycles\n",
             "\tActual total time: " . ($jos_min * $num_cycles * $eff_step_time) . " secs\n");
@@ -1527,6 +1520,38 @@ sub fts2_config {
         $fts2->scan_origin($centre - $length / 2);
         $fts2->scan_spd($speed);  # OT commit 587fc38 says these are mm/s already.
         $fts2->scan_length($length);
+    }
+    elsif ($mode eq 'Step and Integrate') {
+        # In this mode the OT allows the scan length, origin
+        # and step distance (all in mm) to be specified.
+
+        my $step_dist = $info{'StepDistance'};
+        throw OMP::Error::TranslateFail('FTS-2 step distance zero or negative')
+            if $step_dist <= 0.0;
+
+        # Assume the limits are the same as variable mode so that we can move
+        # to +/- 1/2 maxlength from the center.
+        my $max_offset = OMP::Config->getData(
+            $self->cfgkey . '.fts_variable_maxlength') / 2.0;
+
+        my $scan_origin= $info{'ScanOrigin'};
+        throw OMP::Error::TranslateFail(
+            "FTS-2 step origin ($scan_origin mm) out of range (+/- $max_offset mm)")
+            if $scan_origin < - $max_offset || $scan_origin > $max_offset;
+
+        my $scan_length = $info{'ScanLength'};
+
+        # Calculate the end position to check whether it is in range.
+        my $scan_end = $scan_origin + $scan_length;
+        throw OMP::Error::TranslateFail(
+            "FTS-2 step end ($scan_origin + $scan_length = $scan_end mm) out of range (+/- $max_offset mm)")
+            if $scan_end < - $max_offset || $scan_end > $max_offset;
+
+        $fts2->scan_mode('STEP_AND_INTEGRATE');
+        $fts2->scan_dir('DIR_ARBITRARY');
+        $fts2->scan_origin($centre + $scan_origin);
+        $fts2->scan_length($scan_length);
+        $fts2->step_dist($step_dist);
     }
     else {
         throw OMP::Error::TranslateFail('Unknown FTS-2 "Special Mode": ' . $mode);
