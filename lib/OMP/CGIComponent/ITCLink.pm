@@ -246,8 +246,8 @@ sub observation_itc_link {
         }
         elsif ($type eq 'grid') {
             $values{'mm'} = 'grid';
-            # NOTE: no header for number of points - assume 1 for now?
-            $values{'n_pt'} = 1;
+            # Older data have no header for number of points - assume 1 if undefined?
+            $values{'n_pt'} = ($obs->scan_positions // 1);
         }
         elsif ($type eq 'jiggle') {
             my $positions = $obs->scan_positions;
