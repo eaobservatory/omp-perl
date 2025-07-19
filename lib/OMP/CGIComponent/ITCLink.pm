@@ -201,7 +201,7 @@ sub observation_itc_link {
         if ($instrument->{'if_option'}) {
             $values{'if'} = 0.0 + $obs->intermediate_frequency;
 
-            $values{'side'} = ($obs->sideband_mode eq 'LSB')
+            $values{'side'} = ($obs->sideband eq 'LSB')
                 ? 'lsb' : 'usb';
         }
 
