@@ -1144,6 +1144,14 @@ sub projectStatsSimple {
                     if $DEBUG;
                 $other{$ymd}{$tel}{$shifttype}{$projectid}
                     += $timespent->seconds;
+                # Assume $projectid is $WEATHER_GAP ("WEATHER") or $OTHER_GAP ("OTHER")
+                # so prefix with $tel to get, e.g. JCMTWEATHER, to match what is done
+                # when we add these to %proj_totals below.
+                push @{$proj_observations{$ymd}{$shifttype}{$tel . $projectid}}, {
+                    obs => $obs,
+                    timespent => $timespent->seconds,
+                    comment => 'Gap assigned to ' . (lc $projectid),
+                } if $trace_observations;
             }
         }
         elsif ($obs->isScience) {

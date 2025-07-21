@@ -492,6 +492,28 @@ sub getOCSCFG {
     return '';
 }
 
+=item B<getNumGridOffsets>
+
+Get the number of offsets for a grid mode observation.
+
+=cut
+
+sub getNumGridOffsets {
+    my $class = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    unless ($info{'mapping_mode'} eq 'grid' or $info{'isConvertedGridFreqSw'}) {
+        return '';
+    }
+
+    my $tcs = $cfg->tcs;
+    my $obs_area = $tcs->getObsArea();
+    my @offsets = $obs_area->offsets;
+
+    return scalar @offsets;
+}
+
 1;
 
 __END__

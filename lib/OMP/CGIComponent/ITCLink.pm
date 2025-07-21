@@ -201,7 +201,7 @@ sub observation_itc_link {
         if ($instrument->{'if_option'}) {
             $values{'if'} = 0.0 + $obs->intermediate_frequency;
 
-            $values{'side'} = ($obs->sideband_mode eq 'LSB')
+            $values{'side'} = ($obs->sideband eq 'LSB')
                 ? 'lsb' : 'usb';
         }
 
@@ -246,8 +246,8 @@ sub observation_itc_link {
         }
         elsif ($type eq 'grid') {
             $values{'mm'} = 'grid';
-            # NOTE: no header for number of points - assume 1 for now?
-            $values{'n_pt'} = 1;
+            # Older data have no header for number of points - assume 1 if undefined?
+            $values{'n_pt'} = ($obs->scan_positions // 1);
         }
         elsif ($type eq 'jiggle') {
             my $positions = $obs->scan_positions;
