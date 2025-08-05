@@ -326,6 +326,16 @@ sub subsystems {
             retainhdr => $copy->retainhdr);
         $obs->filename($subscans{$subid});
         $obs->obsidss($subid);
+
+        # Attempt to match previews to subsystems by looking at subsystem
+        # number or filter.
+        $obs->previews([
+            grep {
+                $_->subsystem_number ==
+                    ($obs->subsystem_number // $obs->filter)
+            } @{$self->previews}
+        ]);
+
         push(@obs, $obs);
     }
 
