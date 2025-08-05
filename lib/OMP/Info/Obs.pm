@@ -1820,6 +1820,48 @@ sub previews_sorted {
     ];
 }
 
+=item B<calculate_duration>
+
+Calculate the duration (as the difference between C<startobs> and C<endobs>).
+The desired unit may optionally be given as (a string starting) "min",
+"hour" or "sec", with seconds being the default.
+
+    my $minutes = $obs->calculate_duration('min');
+
+B<Note:> this method's name starts with "calculate" to distinguish it from
+the C<duration> attribute which comes from the C<EXPOSURE_TIME> generic header.
+
+=cut
+
+sub calculate_duration {
+    my $self = shift;
+    my $unit = shift;
+
+    my $start = $self->startobs;
+    my $end = $self->endobs;
+
+    return undef unless defined $start and defined $end;
+
+    my $duration = $end - $start;
+
+    if (defined $unit) {
+        if ($unit =~ /^min/i) {
+            return $duration->minutes;
+        }
+        elsif ($unit =~ /^hour/i) {
+            return $duration->hours;
+        }
+        elsif ($unit =~ /^sec/i) {
+            # This is the default.
+        }
+        else {
+            die "Unrecognized duration unit: $unit";
+        }
+    }
+
+    return $duration->seconds;
+}
+
 =back
 
 =head2 Private Methods
