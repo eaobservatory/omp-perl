@@ -1272,6 +1272,7 @@ sub nightlog {
             }
             $velocity_formatted = sprintf('%5s/%6s', $return{'Velocity'}, $return{'Velsys'});
         }
+        my $spectrum_formatted = $return{'Spectrum'} // '';
 
         $return{'Project'} = $self->projectid;
         $return{'Bandwidth Mode'} = $self->bandwidth_mode;
@@ -1285,14 +1286,14 @@ sub nightlog {
         ];
 
         $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
-        $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7s %12s %12s %-7s",
+        $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3.3s    %7s %12s %12s %-7s",
             $return{'Run'},
             $return{'UT'},
             $return{'Mode'},
             $return{'Project'},
             $return{'Source'},
             $return{'Subsystem'},
-            $return{'Spectrum'},
+            $spectrum_formatted,
             $return{'Frequency'},
             $velocity_formatted,
             $return{'Bandwidth Mode'},
