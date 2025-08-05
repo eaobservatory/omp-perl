@@ -57,7 +57,7 @@
                     <td rowspan="[% num_rows %]">
                         <a href="[% target_obs | html %]inst=[% obs.instrument | html %]&runnr=[% obs.runnr | html %]">[% obs.runnr | html %]</a>
                     </td>
-                    <td rowspan="[% num_rows %]">
+                    <td rowspan="[% num_rows %]" class="[% status_class.item(obs.status) %]">
                         [% IF obs.projectid.defined %]
                             <a href="/cgi-bin/projecthome.pl?project=[% obs.projectid | uri %]">[% obs.projectid | html %]</a>
                         [% ELSE %]
@@ -69,9 +69,10 @@
                         [% IF obs.mode.defined %]
                             <br />[% obs.mode | html %]
                         [% END %]
+                        <br />[% status_label.item(obs.status) | html %]
                     </td>
                 [% END %]
-                <td>
+                <td class="[% status_class.item(obs.status) %]">
                     [% IF ss.subsystem_number.defined %]
                         [% ss.subsystem_number | html %]
                     [% ELSIF ss.filter.defined %]

@@ -211,6 +211,8 @@ sub thumbnails_page {
         target_base => $q->url(-absolute => 1),
         target_obs => $worflink,
         target_image => $worfimage,
+        status_class => \%OMP::Info::Obs::status_class,
+        status_label => \%OMP::Info::Obs::status_label,
     };
 }
 
