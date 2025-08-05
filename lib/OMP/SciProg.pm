@@ -764,14 +764,14 @@ sub locate_msbs {
 
         if (exists $unique{$checksum}) {
             # Increment the first MSB by the amount remaining in the current MSB
-            my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
-            $unique{$checksum}->remaining($newtotal);
-
-            # Remove the current msb object from the science program tree
+            # and remove the current msb object from the science program tree
             # unless this MSB is derived from a target override survey
             # container (we can not delete the MSB xml without removing all
             # the related MSBs)
             unless ($msb->_tree->findnodes('ancestor-or-self::SpSurveyContainer')) {
+                my $newtotal = $unique{$checksum}->remaining() + $msb->remaining();
+                $unique{$checksum}->remaining($newtotal);
+
                 $msb->_tree->unbindNode();
                 $unbound = 1;
             }
