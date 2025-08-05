@@ -540,6 +540,14 @@ table.bordered caption {
   font-weight: bold;
 }
 
+table.topalign td, table.topalign th {
+    vertical-align: top;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
 div#layout_top_bar {
     position: absolute;
     left: 0;

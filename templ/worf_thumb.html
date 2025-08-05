@@ -31,29 +31,43 @@
             <a href="[% target_obs | html %]inst=[% preview.instrument | html %]&runnr=[% preview.runnr | html %]#[% preview.filename_no_size_ext | html %]"><img src="[% target_image | html %]filename=[% preview.filename %]&amp;md5sum=[% preview.md5sum | html %]" width="64" height="64" alt="[% preview.suffix | html %]" /></a>
         [% END %]
     [% ELSE %]
-        &nbsp;
+        &mdash;
     [% END %]
 [% END %]
 
-[% SET rowclass = 'row_b' %]
-<table class="sum_table" border="0">
+<table class="bordered topalign">
+    <tr>
+        <th rowspan="2">Inst.</th>
+        <th rowspan="2">Obs.</th>
+        <th rowspan="2">Information</th>
+        <th rowspan="2">Subsys.</th>
+        <th colspan="2">Preview images</th>
+    </tr>
+    <tr>
+        <th>Observation</th>
+        <th>Group</th>
+    </tr>
     [% FOREACH obs IN observations %]
         [% SET subsystems = obs.scalar.subsystems_tiny %]
         [% SET num_rows = subsystems.size %]
         [% FOREACH ss IN subsystems %]
-            <tr class="[% rowclass %]">
+            <tr>
                 [% IF loop.first %]
+                    <td rowspan="[% num_rows %]">[% obs.instrument | html %]</td>
                     <td rowspan="[% num_rows %]">
-                        Instrument: [% obs.instrument | html %]
-                        <br />Observation: [% obs.runnr | html %]
-                        [% IF obs.target.defined %]
-                            <br />Target: [% obs.target | html %]
-                        [% END %]
+                        <a href="[% target_obs | html %]inst=[% obs.instrument | html %]&runnr=[% obs.runnr | html %]">[% obs.runnr | html %]</a>
+                    </td>
+                    <td rowspan="[% num_rows %]">
                         [% IF obs.projectid.defined %]
-                            <br />Project: [% obs.projectid | html %]
+                            <a href="/cgi-bin/projecthome.pl?project=[% obs.projectid | uri %]">[% obs.projectid | html %]</a>
+                        [% ELSE %]
+                            Unknown project
+                        [% END %]
+                        [% IF obs.target.defined %]
+                            <br />[% obs.target | html %]
                         [% END %]
                         [% IF obs.mode.defined %]
-                            <br />Mode: [% obs.mode | html %]
+                            <br />[% obs.mode | html %]
                         [% END %]
                     </td>
                 [% END %]
@@ -74,7 +88,6 @@
                 </td>
             </tr>
         [% END %]
-        [% SET rowclass = (rowclass == 'row_a') ? 'row_b' : 'row_a' %]
     [% END %]
 </table>
 [% END %]
