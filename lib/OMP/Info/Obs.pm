@@ -586,6 +586,7 @@ __PACKAGE__->CreateAccessors(
     map_height => '$',
     map_width => '$',
     mode => '$',
+    msbtitle => '$',
     msbtid => '$',
     nexp => '$',
     number_of_coadds => '$',
@@ -1862,6 +1863,25 @@ sub calculate_duration {
     return $duration->seconds;
 }
 
+=item B<cleaned_msbtitle>
+
+Return a copy of the msbtitle after attempting to remove any
+suffixes added by the QT.  (E.g. (1X) or a "_done_" time.)
+
+=cut
+
+sub cleaned_msbtitle {
+    my $self = shift;
+
+    my $title = $self->msbtitle;
+    return undef unless defined $title;
+
+    $title =~ s/_done_\d+T\d+$//;
+    $title =~ s/ *\(\d+X\)$//;
+
+    return $title;
+}
+
 =back
 
 =head2 Private Methods
@@ -1901,6 +1921,7 @@ sub _populate_basic_from_generic {
 
     $self->projectid($generic->{PROJECT}) if exists $generic->{'PROJECT'};
     $self->checksum($generic->{MSBID}) if exists $generic->{'MSBID'};
+    $self->msbtitle($generic->{'MSB_TITLE'}) if exists $generic->{'MSB_TITLE'};
     $self->msbtid($generic->{MSB_TRANSACTION_ID}) if exists $generic->{'MSB_TRANSACTION_ID'};
     $self->instrument(uc $generic->{INSTRUMENT}) if exists $generic->{'INSTRUMENT'};
 
