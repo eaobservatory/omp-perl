@@ -758,8 +758,6 @@ if no path is present in the filename.
 
     $obs->filename(\@filesnames, $ensure_full_path);
 
-=back
-
 =cut
 
 sub filename {
@@ -896,6 +894,8 @@ sub removefits {
     delete $self->{_fits};
     delete $self->{_hdrhash};
 }
+
+=back
 
 =head2 General Methods
 
