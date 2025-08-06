@@ -520,10 +520,9 @@ sub store_time_accounting {
 
     my @errors = ();
     my @acct = ();
+    my @skipped = ();
 
     foreach my $info (@$shifts) {
-        next if $info->{'skip'};
-
         my $shift = $info->{'shift'};
 
         foreach my $entry (@{$info->{'entries'}}) {
@@ -552,7 +551,7 @@ sub store_time_accounting {
             my $comment = $entry->{'comment'};
             undef $comment if $comment eq '';
 
-            push @acct, OMP::Project::TimeAcct->new(
+            my $record = OMP::Project::TimeAcct->new(
                 projectid => $proj,
                 timespent => Time::Seconds->new($tot * 3600),
                 date => $date,
@@ -560,12 +559,22 @@ sub store_time_accounting {
                 shifttype => $shift,
                 comment => $comment,
             );
+
+            unless ($info->{'skip'}) {
+                push @acct, $record;
+            }
+            else {
+                push @skipped, $record;
+            }
         }
     }
 
     unless (scalar @errors) {
         my $db = OMP::DB::TimeAcct->new(DB => $self->database);
         $db->setTimeSpent(@acct);
+
+        # Include the skipped entries in the night report.
+        push @acct, @skipped;
 
         $nr->db_accounts(OMP::Project::TimeAcct::Group->new(
             DB => $self->database,
