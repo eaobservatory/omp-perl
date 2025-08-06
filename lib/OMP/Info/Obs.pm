@@ -326,6 +326,16 @@ sub subsystems {
             retainhdr => $copy->retainhdr);
         $obs->filename($subscans{$subid});
         $obs->obsidss($subid);
+
+        # Attempt to match previews to subsystems by looking at subsystem
+        # number or filter.
+        $obs->previews([
+            grep {
+                $_->subsystem_number ==
+                    ($obs->subsystem_number // $obs->filter)
+            } @{$self->previews}
+        ]);
+
         push(@obs, $obs);
     }
 
@@ -576,6 +586,7 @@ __PACKAGE__->CreateAccessors(
     map_height => '$',
     map_width => '$',
     mode => '$',
+    msbtitle => '$',
     msbtid => '$',
     nexp => '$',
     number_of_coadds => '$',
@@ -747,8 +758,6 @@ if no path is present in the filename.
 
     $obs->filename(\@filesnames, $ensure_full_path);
 
-=back
-
 =cut
 
 sub filename {
@@ -885,6 +894,8 @@ sub removefits {
     delete $self->{_fits};
     delete $self->{_hdrhash};
 }
+
+=back
 
 =head2 General Methods
 
@@ -1262,6 +1273,7 @@ sub nightlog {
             }
             $velocity_formatted = sprintf('%5s/%6s', $return{'Velocity'}, $return{'Velsys'});
         }
+        my $spectrum_formatted = $return{'Spectrum'} // '';
 
         $return{'Project'} = $self->projectid;
         $return{'Bandwidth Mode'} = $self->bandwidth_mode;
@@ -1275,14 +1287,14 @@ sub nightlog {
         ];
 
         $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
-        $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3d    %7s %12s %12s %-7s",
+        $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3.3s    %7s %12s %12s %-7s",
             $return{'Run'},
             $return{'UT'},
             $return{'Mode'},
             $return{'Project'},
             $return{'Source'},
             $return{'Subsystem'},
-            $return{'Spectrum'},
+            $spectrum_formatted,
             $return{'Frequency'},
             $velocity_formatted,
             $return{'Bandwidth Mode'},
@@ -1809,6 +1821,72 @@ sub previews_sorted {
     ];
 }
 
+=item B<calculate_duration>
+
+Calculate the duration (as the difference between C<startobs> and C<endobs>).
+The desired unit may optionally be given as (a string starting) "min",
+"hour" or "sec", with seconds being the default.  In addition "obj[ect]"
+can be specficied to return the duration object (currently of class
+C<Time::Seconds>).
+
+    my $minutes = $obs->calculate_duration('min');
+
+B<Note:> this method's name starts with "calculate" to distinguish it from
+the C<duration> attribute which comes from the C<EXPOSURE_TIME> generic header.
+
+=cut
+
+sub calculate_duration {
+    my $self = shift;
+    my $unit = shift;
+
+    my $start = $self->startobs;
+    my $end = $self->endobs;
+
+    return undef unless defined $start and defined $end;
+
+    my $duration = $end - $start;
+
+    if (defined $unit) {
+        if ($unit =~ /^obj/i) {
+            return $duration;
+        }
+        elsif ($unit =~ /^min/i) {
+            return $duration->minutes;
+        }
+        elsif ($unit =~ /^hour/i) {
+            return $duration->hours;
+        }
+        elsif ($unit =~ /^sec/i) {
+            # This is the default.
+        }
+        else {
+            die "Unrecognized duration unit: $unit";
+        }
+    }
+
+    return $duration->seconds;
+}
+
+=item B<cleaned_msbtitle>
+
+Return a copy of the msbtitle after attempting to remove any
+suffixes added by the QT.  (E.g. (1X) or a "_done_" time.)
+
+=cut
+
+sub cleaned_msbtitle {
+    my $self = shift;
+
+    my $title = $self->msbtitle;
+    return undef unless defined $title;
+
+    $title =~ s/_done_\d+T\d+$//;
+    $title =~ s/ *\(\d+X\)$//;
+
+    return $title;
+}
+
 =back
 
 =head2 Private Methods
@@ -1848,6 +1926,7 @@ sub _populate_basic_from_generic {
 
     $self->projectid($generic->{PROJECT}) if exists $generic->{'PROJECT'};
     $self->checksum($generic->{MSBID}) if exists $generic->{'MSBID'};
+    $self->msbtitle($generic->{'MSB_TITLE'}) if exists $generic->{'MSB_TITLE'};
     $self->msbtid($generic->{MSB_TRANSACTION_ID}) if exists $generic->{'MSB_TRANSACTION_ID'};
     $self->instrument(uc $generic->{INSTRUMENT}) if exists $generic->{'INSTRUMENT'};
 

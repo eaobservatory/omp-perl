@@ -1,5 +1,9 @@
 [% USE scalar -%]
-[% PROCESS "macro_night_report.html" -%]
+[% IF projectid %]
+    [% USE comment_url = url('/cgi-bin/fbobscomment.pl', project=projectid) %]
+[% ELSE %]
+    [% USE comment_url = url('/cgi-bin/staffobscomment.pl') %]
+[% END %]
 [% WRAPPER "layout.html" %]
 <h1>
     WORF Images
@@ -8,45 +12,205 @@
     [% END %]
 </h1>
 
-[% render_observation_log(obs_summary, projectid) %]
+[% SET nightlog = observation.scalar.nightlog %]
+<table class="bordered topalign">
+    <tr>
+        <th>Identification</th>
+        <th>Information</th>
+    </tr>
+    <tr>
+        <td>
+            <b>Date:</b> [% observation.utdate | html %]<br />
+            <b>Time:</b> [% nightlog.UT %]<br />
+            <b>Observation ID:</b> [% observation.obsid | html %]
+            <a class="copy_text" href="#" data-copy_text="[% observation.obsid %]" title="Copy observation ID">&loz;</a>
+        </td>
+        <td rowspan="3">
+            [% FOREACH entry IN ['Shift', 'Source', 'Mode', 'FTS In?', 'Pol In?'] %]
+                [% IF nightlog.exists(entry) %]
+                    <b>[% entry %]:</b> [% nightlog.$entry | html %]<br />
+                [% END %]
+            [% END %]
+            [% FOREACH entry_info IN [['scan_pattern', 'Scan Pattern'], ['tau', 'Opacity'], ['airmass', 'Airmass']] %]
+                [% SET entry = entry_info.0 %]
+                [% IF observation.$entry.defined %]
+                    <b>[% entry_info.1 %]:</b> [% observation.$entry.list.join(', ') | html %]<br />
+                [% END %]
+            [% END %]
+            [% SET duration = observation.calculate_duration('min') %][% IF duration.defined %]<b>Duration:</b> [% duration | format('%.1f minutes') %][% END %]
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <b>Instrument:</b> [% observation.instrument | html %]<br />
+            <b>Observation:</b> [% observation.runnr %]<br />
+            <b>Project:</b> <a href="/cgi-bin/projecthome.pl?project=[% observation.projectid | uri %]">[% observation .projectid | html %]</a>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            [% IF observation.msbtitle.defined %]
+                <b>MSB Title:</b> [% observation.cleaned_msbtitle | html %]
+                <br />
+            [% END %]
+            [% IF observation.checksum.defined %]
+                <b>MSB ID:</b> [% observation.checksum | html %]
+                <a class="copy_text" href="#" data-copy_text="[% observation.checksum %]" title="Copy MSB ID">&loz;</a>
+                <br />
+            [% END %]
+            [% IF observation.msbtid.defined %]
+                <b>MSB TID:</b> [% observation.msbtid | html %]
+                <a class="copy_text" href="#" data-copy_text="[% observation.msbtid %]" title="Copy MSB TID">&loz;</a>
+                <br />
+            [% END %]
+        </td>
+    </td>
+</table>
+
+<h2>Comments</h2>
+
+[% SET comments = observation.scalar.comments %]
+[% IF ! comments.empty %]
+    <table class="bordered topalign">
+        [% FOREACH comment IN comments %]
+            <tr>
+                <td class="[% status_class.item(comment.status) %]">[% comment.date.strftime('%F %T') | html %] UT</td>
+                <td class="[% status_class.item(comment.status) %]">[% comment.author.name | html %]</td>
+                <td class="[% status_class.item(comment.status) %]">
+                    [% FOREACH line IN comment.text.split("\n") %]
+                        [% line | html %]
+                        [% IF ! loop.last %]<br />[% END %]
+                    [% END %]
+                </td>
+                <td class="[% status_class.item(comment.status) %]">[% status_label.item(comment.status) | html %]</td>
+            </tr>
+        [% END %]
+    </table>
+[% ELSE %]
+    <p>
+        No comments available.
+    </p>
+[% END %]
+
+<p>
+    <a href="[% comment_url(ut=observation.startobs.strftime('%Y-%m-%d-%H-%M-%S'), runnr=observation.runnr, inst=observation.instrument, oid=observation.obsid) %]">Add comment</a>
+</p>
 
 [% SET n_preview = create_counter() %]
 
 [% MACRO render_images(title, previews) BLOCK %]
-    [% IF previews.size > 0 %]
-        <p>
-            [% title %]
-        </p>
-        <p>
+    <td>
+        [% IF previews.size > 0 %]
             [% FOR preview IN previews %]
                 [% CALL n_preview.nextvalue %]
                 <img src="[% target_image | html %]filename=[% preview.filename | html %]&amp;md5sum=[% preview.md5sum | html %]" width="256" height="256" alt="[% preview.suffix | html %]" id="[% preview.filename_no_size_ext | html %]" />
             [% END %]
-        </p>
-    [% END %]
+        [% ELSE %]
+            &mdash;
+        [% END %]
+    </td>
 [% END %]
 
-<h3>Preview Images</h3>
+<h2>Preview Images</h2>
 
-[% FOREACH obs IN observations %]
-    [% SET subsystems = obs.scalar.subsystems_tiny %]
+<table class="bordered topalign">
+    <tr>
+        <th rowspan="2">Subsys.</th>
+        <th rowspan="2">Information</th>
+        <th colspan="2">Images</th>
+    </tr>
+    <tr>
+        <th>Observation</th>
+        <th>Group</th>
+    </tr>
+    [% SET subsystems = observation.scalar.subsystems %]
+    [% IF observation.instrument == 'SCUBA-2' %]
+        [% SET subsystems = subsystems.reverse %]
+    [% END %]
     [% FOREACH ss IN subsystems %]
         [% IF ss.previews.size > 0 %]
-            [% IF ss.subsystem_number.defined %]
-                <h4>[% ss.subsystem_number | html %]</h4>
-            [% ELSIF ss.filter.defined %]
-                <h4>[% ss.filter | html %]</h4>
-            [% END %]
-            [% render_images('Observation', ss.previews_sorted({group => 0})) %]
-            [% render_images('Group', ss.previews_sorted({group => 1})) %]
+            <tr>
+                <th>
+                    [% IF ss.subsystem_number.defined %]
+                        [% ss.subsystem_number | html %]
+                    [% ELSIF ss.filter.defined %]
+                        [% ss.filter | html %]
+                    [% ELSE %]
+                        Unknown
+                    [% END %]
+                </th>
+                <td class="nowrap">
+                    [% SET nightlog = ss.scalar.nightlog %]
+                    [% FOREACH entry IN ['Spectrum', 'Species', 'Transition', 'Velocity', 'Velsys'] %]
+                        [% IF nightlog.exists(entry) %]
+                            <b>[% entry %]:</b> [% nightlog.$entry | html %]<br />
+                        [% END %]
+                    [% END %]
+                    <b>WB:</b> [% ss.waveband.natural({format => 1}) | html %]<br />
+                    [% IF ss.exists('bandwidth_mode') %]
+                        <b>BW:</b> [% ss.bandwidth_mode | html %]<br />
+                    [% END %]
+                    [% IF ss.exists('sideband') %]
+                        <b>SB:</b> [% ss.sideband | html %]
+                        [% IF ss.exists('sideband_mode') %]
+                            ([% ss.sideband_mode | html %])
+                        [% END %]
+                    [% END %]
+                </td>
+                [% render_images('Observation', ss.previews_sorted({group => 0})) %]
+                [% render_images('Group', ss.previews_sorted({group => 1})) %]
+            </tr>
         [% END %]
     [% END %]
+    [% IF 0 == n_preview.value %]
+        <tr>
+            <td colspan="4">No preview images available.</td>
+        </tr>
+    [% END %]
+</table>
+
+[% IF header_common.defined %]
+    <h2>Common Headers</h2>
+
+    <table class="bordered topalign">
+        <tr>
+            <th>Header</th>
+            <th>Value</th>
+        </tr>
+        [% FOREACH key IN header_common.keys.sort %]
+            <tr>
+                <td>[% key | html %]</td>
+                <td>[% header_common.$key | html %]</td>
+            </tr>
+        [% END %]
+    </table>
 [% END %]
 
-[% IF 0 == n_preview.value %]
-    <p>
-        No preview images available.
-    </p>
+[% IF header_subsys.defined %]
+    [% IF observation.instrument == 'SCUBA-2' %]
+        [% SET header_subsys = header_subsys.reverse %]
+        [% SET header_subsys_names = header_subsys_names.reverse %]
+    [% END %]
+    <h2>Subsystem Headers</h2>
+
+    <table class="bordered topalign">
+        <tr>
+            <th>Header</th>
+            [% FOREACH i IN [0 .. header_subsys.max] %]
+                <th>
+                    [% header_subsys_names.$i | html %]
+                </th>
+            [% END %]
+        </tr>
+        [% FOREACH key IN header_subsys.0.keys.sort %]
+            <tr>
+                <td>[% key | html %]</td>
+                [% FOREACH i IN [0 .. header_subsys.max] %]
+                    <td>[% header_subsys.$i.$key | html  %]</td>
+                [% END %]
+            </tr>
+        [% END %]
+    </table>
 [% END %]
 
 [% END %]

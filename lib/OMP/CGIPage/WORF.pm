@@ -25,12 +25,10 @@ use File::Spec;
 
 use OMP::DB::Archive;
 use OMP::Config;
-use OMP::CGIComponent::NightRep;
 use OMP::DateTools;
 use OMP::Error qw/:try/;
 use OMP::General;
 use OMP::Info::Obs;
-use OMP::NightRep;
 use OMP::DB::Preview;
 use OMP::Query::Preview;
 
@@ -89,7 +87,7 @@ sub display_page {
     my $adb = OMP::DB::Archive->new(
         DB => $self->database_archive,
         FileUtil => $self->fileutil);
-    my $obs = $adb->getObs(%param, retainhdr => 0);
+    my $obs = $adb->getObs(%param, retainhdr => 1);
 
     die 'No matching observation found' unless defined $obs;
 
@@ -113,17 +111,37 @@ sub display_page {
 
     $grp->attach_previews($previews);
 
-    my $nr = OMP::NightRep->new(
-        DB => $self->database,
-        telescope => $telescope);
+    # We should have only one observation -- extract a sorted list
+    # so that we can take the first entry.
+    my @observations = sort {$a->startobs->epoch <=> $b->startobs->epoch} $grp->obs();
+    die 'Observation vanished from group' unless scalar @observations;
+
+    $obs = $observations[0];
+    my %common = %{$obs->hdrhash};
+    delete $common{'FILE_ID'};
+    my $subhdr = delete $common{'SUBHEADERS'};
+
+    my @subhdr_names;
+    my $idkey = $obs->subsystem_idkey;
+    unless (exists $subhdr->[0]->{$idkey}) {
+        undef $subhdr;
+    }
+    else {
+        foreach my $s (@$subhdr) {
+            delete $s->{'FILE_ID'};
+            push @subhdr_names, $s->{'SUBSYSNR'} // $s->{'FILTER'} // 'Unknown';
+        }
+    }
 
     return {
         projectid => $projectid,
-        obs_summary => $nr->get_obs_summary(obsgroup => $grp),
-        observations => [
-            sort {$a->startobs->epoch <=> $b->startobs->epoch}
-            $grp->obs()],
+        observation => $obs,
+        header_common => \%common,
+        header_subsys => $subhdr,
+        header_subsys_names => \@subhdr_names,
         target_image => $worfimage,
+        status_class => \%OMP::Info::Obs::status_class,
+        status_label => \%OMP::Info::Obs::status_label,
     };
 }
 
@@ -193,6 +211,8 @@ sub thumbnails_page {
         target_base => $q->url(-absolute => 1),
         target_obs => $worflink,
         target_image => $worfimage,
+        status_class => \%OMP::Info::Obs::status_class,
+        status_label => \%OMP::Info::Obs::status_label,
     };
 }
 
@@ -285,10 +305,6 @@ sub display_graphic {
 1;
 
 __END__
-
-=head1 SEE ALSO
-
-C<OMP::CGIComponent::NightRep>
 
 =head1 AUTHOR
 

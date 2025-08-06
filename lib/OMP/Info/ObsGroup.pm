@@ -912,7 +912,7 @@ sub projectStatsSimple {
             if ($status == OMP__TIMEGAP_FAULT) {
                 # but we include them in the total so that the "length of night" is correct
                 my $ymd = $obs->startobs->ymd;
-                my $faultlen = $obs->endobs - $obs->startobs;
+                my $faultlen = $obs->calculate_duration('obj');
                 $night_totals{$tel}{$ymd}{$shifttype} += $faultlen;
             }
 
@@ -939,7 +939,7 @@ sub projectStatsSimple {
         }
 
         print "Processing observation from project $projectid (duration "
-            . ($obs->endobs - $obs->startobs) . " s)\n"
+            . $obs->calculate_duration . " s)\n"
             if (! $isgap && $DEBUG && $DEBUG > 1);
 
         # if we have a SCUBA project ID that seems to be a science observation

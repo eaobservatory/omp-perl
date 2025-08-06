@@ -131,7 +131,7 @@ sub observation_itc_link {
         %values = %{$itc->{'inputs'}};
 
         $values{'samp'} = 'map';
-        $values{'time'} = ($obs->endobs - $obs->startobs)->hours;
+        $values{'time'} = $obs->calculate_duration('hours');
 
         my $pattern = $obs->scan_pattern;
         if ($pattern =~ /daisy/i) {
@@ -168,7 +168,7 @@ sub observation_itc_link {
         %values = %{$itc->{'inputs'}};
 
         $values{'freq'} = $obs->rest_frequency / 1.0e9;
-        $values{'elapsed'} = ($obs->endobs - $obs->startobs)->hours;
+        $values{'elapsed'} = $obs->calculate_duration('hours');
 
         $values{'cont'} = $Data::MessagePack::Boolean::false;
         $values{'sep_off'} = $Data::MessagePack::Boolean::false;

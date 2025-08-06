@@ -19,7 +19,8 @@
 
 use strict;
 
-use Test::More tests => 29;
+use Test::More tests => 34;
+use Test::Number::Delta;
 
 use JAC::Setup qw/hdrtrans/;
 
@@ -65,6 +66,16 @@ isa_ok($obs->waveband, 'Astro::WaveBand');
 is($obs->waveband->species, 'CO');
 is($obs->obsid, 'acsis_00020_20240130T052632');
 is_deeply([$obs->obsidss], ['acsis_00020_20240130T052632_1']);
+
+my $duration = $obs->calculate_duration;
+is($duration, 202);
+$duration = $obs->calculate_duration('obj');
+isa_ok($duration, 'Time::Seconds');
+is($duration->seconds, 202);
+$duration = $obs->calculate_duration('min');
+delta_within($duration, 3.366667, 1e-6);
+$duration = $obs->calculate_duration('hour');
+delta_within($duration, 0.056111, 1e-6);
 
 my $subsystems = $obs->subsystems_tiny();
 is(ref $subsystems, 'ARRAY');
