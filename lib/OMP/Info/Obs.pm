@@ -1825,7 +1825,9 @@ sub previews_sorted {
 
 Calculate the duration (as the difference between C<startobs> and C<endobs>).
 The desired unit may optionally be given as (a string starting) "min",
-"hour" or "sec", with seconds being the default.
+"hour" or "sec", with seconds being the default.  In addition "obj[ect]"
+can be specficied to return the duration object (currently of class
+C<Time::Seconds>).
 
     my $minutes = $obs->calculate_duration('min');
 
@@ -1846,7 +1848,10 @@ sub calculate_duration {
     my $duration = $end - $start;
 
     if (defined $unit) {
-        if ($unit =~ /^min/i) {
+        if ($unit =~ /^obj/i) {
+            return $duration;
+        }
+        elsif ($unit =~ /^min/i) {
             return $duration->minutes;
         }
         elsif ($unit =~ /^hour/i) {

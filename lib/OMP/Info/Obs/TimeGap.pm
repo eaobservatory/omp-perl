@@ -153,7 +153,7 @@ sub nightlog {
         $return{'_STRING'} = $return{'_STRING_LONG'} .= 'UNKNOWN';
     }
 
-    my $length = $self->endobs - $self->startobs + 1;
+    my $length = $self->calculate_duration('obj') + 1;
     $return{'_STRING'} = $return{'_STRING_LONG'} .= sprintf("  Length: %s", $length->pretty_print);
 
     foreach my $comment ($self->comments) {
@@ -209,7 +209,7 @@ sub summary {
             $obssum .= 'UNKNOWN';
         }
 
-        my $length = $self->endobs - $self->startobs;
+        my $length = $self->calculate_duration('obj');
         $obssum .= sprintf "  Length: %s\n", $length->pretty_print;
 
         my $commentsum;
