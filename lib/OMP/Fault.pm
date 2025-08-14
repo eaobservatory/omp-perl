@@ -1287,9 +1287,7 @@ sub new {
         FaultID => undef,
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
-        TimeLost => 0,
         Location => undef,
-        FaultDate => undef,
         Urgency => $URGENCY{Normal},
         Condition => $CONDITION{Normal},
         Entity => undef,
@@ -1297,8 +1295,6 @@ sub new {
         Responses => [],
         Projects => [],
         Status => OPEN,
-        ShiftType => undef,
-        Remote => undef,
         Subject => undef,
         Relevance => undef,
     }, $class;
@@ -1307,7 +1303,9 @@ sub new {
     for my $key (sort map {lc} keys %args) {
         my $method = $key;
 
-        if ($fault->can($method)) {
+        # Do not set faultdate and timelost as these are now handled by the
+        # response objects and this class has read-only accessor methods.
+        if ($fault->can($method) and not grep {$_ eq $method} qw/faultdate timelost shifttype remote/) {
             $fault->$method($args{$key});
         }
     }
@@ -1385,45 +1383,48 @@ sub type {
 
 =item B<shifttype>
 
-ShiftType (supplied as a string).
+Shift type (as a string).  Returns the C<shifttype> of the
+first response for which it is defined.
 
     $shifttype = $fault->shifttype();
-    $fault->shifttype($shifttype);
 
 =cut
 
 sub shifttype {
     my $self = shift;
     if (@_) {
-        my $shifttype = shift;
-        if (! defined $shifttype || $shifttype eq '') {
-            $shifttype = undef;
-        }
-        $self->{ShiftType} = $shifttype;
+        croak "The OMP::Fault->shifttype accessor is a read-only method";
     }
-    return $self->{ShiftType};
-}
 
+    foreach my $resp (@{$self->responses}) {
+        my $shifttype = $resp->shifttype;
+        return $shifttype if defined $shifttype;
+    }
+
+    return undef;
+}
 
 =item B<remote>
 
-Remote (supplied as an integer).
+Remote (supplied as an integer).  Returns the C<remote> value
+of the first repsonse for which it is defined.
 
     $remote = $fault->remote();
-    $fault->remote($remote);
 
 =cut
 
 sub remote {
     my $self = shift;
     if (@_) {
-        my $remote = shift;
-        if (! defined $remote || $remote eq '') {
-            $remote = undef;
-        }
-        $self->{Remote} = $remote;
+        croak "The OMP::Fault->remote accessor is a read-only method";
     }
-    return $self->{Remote};
+
+    foreach my $resp (@{$self->responses}) {
+        my $remote = $resp->remote;
+        return $remote if defined $remote;
+    }
+
+    return undef;
 }
 
 =item B<system>
@@ -1639,44 +1640,50 @@ sub status {
 
 =item B<timelost>
 
-Time lost to the fault in hours.
+Total time lost to the fault in hours. This is the sum of the
+C<timelost> of all responses.
 
     $tl = $fault->timelost();
-    $fault->timelost($tl);
 
 =cut
 
 sub timelost {
     my $self = shift;
     if (@_) {
-        my $tl = shift;
-        # Dont need more than 2 decimal places
-        $self->{TimeLost} = sprintf("%.2f", $tl);
+        croak "The OMP::Fault->timelost accessor is a read-only method";
     }
-    return $self->{TimeLost};
+
+    my $loss = 0.0;
+    foreach my $resp (@{$self->responses}) {
+        my $resploss = $resp->timelost;
+        $loss += $resploss if defined $resploss;
+    }
+
+    return $loss;
 }
 
 =item B<faultdate>
 
 Date the fault occurred. This may be different from the date
-it was filed. Not required (default is that the date it was
-filed is good enough). Must be a C<Time::Piece> object
-(or undef).
+it was filed. Returns the C<faultdate> of the first response
+for which it is defined.
 
     $date = $fault->faultdate();
-    $fault->faultdate($date);
 
 =cut
 
 sub faultdate {
     my $self = shift;
     if (@_) {
-        my $date = shift;
-        croak "Date must be supplied as Time::Piece object"
-            if (defined $date && !UNIVERSAL::isa($date, "Time::Piece"));
-        $self->{FaultDate} = $date;
+        croak "The OMP::Fault->faultdate accessor is a read-only method";
     }
-    return $self->{FaultDate};
+
+    foreach my $resp (@{$self->responses}) {
+        my $respdate = $resp->faultdate;
+        return $respdate if defined $respdate;
+    }
+
+    return undef;
 }
 
 =item B<filedate>

@@ -112,7 +112,7 @@ sub dummy_fault {
         fault => OMP::Fault::Response->new(
             author => $dummy_author,
             text => 'text',
-            date => OMP::DateTools->parse_date($date)),
-        shifttype => $shift,
+            date => OMP::DateTools->parse_date($date),
+            shifttype => $shift),
     );
 }
