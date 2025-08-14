@@ -20,17 +20,13 @@ CREATE TABLE `ompfault` (
   `faultid` double NOT NULL,
   `category` varchar(32) NOT NULL,
   `subject` varchar(128) DEFAULT NULL,
-  `faultdate` datetime DEFAULT NULL,
   `type` int(11) NOT NULL,
   `fsystem` int(11) NOT NULL,
   `status` int(11) NOT NULL,
   `urgency` int(11) NOT NULL,
-  `timelost` double NOT NULL,
   `entity` varchar(64) DEFAULT NULL,
   `condition` int(11) DEFAULT NULL,
   `location` int(11) DEFAULT NULL,
-  `shifttype` varchar(70) DEFAULT NULL,
-  `remote` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`faultid`),
   FULLTEXT KEY `idx_ompfault_subject` (`subject`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
@@ -52,6 +48,10 @@ CREATE TABLE `ompfaultbody` (
   `respnum` int(11) NOT NULL DEFAULT 0,
   `flag` int(11) NOT NULL DEFAULT 0,
   `preformatted` tinyint(1) NOT NULL DEFAULT 1,
+  `faultdate` datetime DEFAULT NULL,
+  `timelost` double DEFAULT NULL,
+  `shifttype` varchar(70) DEFAULT NULL,
+  `remote` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`respid`),
   KEY `idx_ompfaultbody_1` (`faultid`),
   FULLTEXT KEY `idx_ompfaultbody_text` (`text`)
