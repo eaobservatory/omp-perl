@@ -73,7 +73,7 @@ sub fault_table {
         @statuses = $self->get_status_labels($fault);
     }
 
-    my %shifts = OMP::Fault->shiftTypes($fault->category);
+    my %shifts = $fault->shiftTypes();
 
     return {
         fault => $fault,
@@ -288,9 +288,10 @@ sub file_fault_form {
     }
     else {
         # We have a fault object so use it's details as our defaults
+        my $response = $fault->responses->[0];
 
         # Get the fault date (if any)
-        my $faultdate = $fault->faultdate;
+        my $faultdate = $response->faultdate;
 
         # Convert faultdate to local time
         if ($faultdate) {
@@ -308,14 +309,14 @@ sub file_fault_form {
         # Projects associated with this fault
         my @assoc = $fault->projects;
 
-        my $message = OMP::Display->prepare_edit_text($fault->responses->[0]);
+        my $message = OMP::Display->prepare_edit_text($response);
 
         %defaults = (
             system => $fault->system,
             status => $fault->status,
             location => $fault->location,
             type => $fault->type,
-            loss => $fault->timelost * 60.0,
+            loss => $response->timelost * 60.0,
             loss_unit => 'min',
             time => $faultdate,
             tz => 'HST',
@@ -324,8 +325,8 @@ sub file_fault_form {
             assoc2 => join(',', @assoc),
             urgency => $urgent,
             condition => $chronic,
-            shifttype => $fault->shifttype,
-            remote => $fault->remote,
+            shifttype => $response->shifttype,
+            remote => $response->remote,
         );
     }
 
@@ -432,9 +433,22 @@ sub response_form {
 
         my $text = OMP::Display->prepare_edit_text($resp);
 
+        my $faultdate = $resp->faultdate;
+        if ($faultdate) {
+            my $epoch = $faultdate->epoch;
+            $faultdate = localtime($epoch);
+            $faultdate = $faultdate->strftime('%Y-%m-%dT%T');
+        }
+
         %defaults = (
             text => $text,
             flag => $resp->flag,
+            loss => $resp->timelost * 60.0,
+            loss_unit => 'min',
+            time => $faultdate,
+            tz => 'HST',
+            shifttype => $resp->shifttype,
+            remote => $resp->remote,
             submitlabel => "Submit changes",
         );
     }
@@ -447,11 +461,14 @@ sub response_form {
     }
 
     # Param list values take precedence
-    for (qw/text status flag/) {
+    for (qw/text status flag loss loss_unit time tz shifttype remote/) {
         if ($q->param($_)) {
             $defaults{$_} = $q->param($_);
         }
     }
+
+    my %shifts = $fault->shiftTypes();
+    my %remotes = $fault->remoteTypes();
 
     return {
         target => $self->page->url_absolute(),
@@ -465,6 +482,10 @@ sub response_form {
             [OMP__FR_REDUNDANT, 'Redundant'],
             [OMP__FR_HIDDEN, 'Hidden'],
         ],
+        has_time_loss => $fault->faultCanLoseTime(),
+        has_time_occurred => $fault->faultHasTimeOccurred(),
+        shifts => [map {[$_ => $shifts{$_}]} sort keys %shifts],
+        remotes => [map {[$_ => $remotes{$_}]} sort keys %remotes],
     };
 }
 
@@ -609,22 +630,8 @@ sub parse_file_fault_form {
         subject => scalar $q->param('subject'),
         type => scalar $q->param('type'),
         status => scalar $q->param('status'),
+        $self->parse_form_common($category),
     );
-
-    my @params = $q->multi_param;
-    my %paramhash = map {$_ => 1} @params;
-    if (exists($paramhash{remote})) {
-        $parsed{'remote'} = $q->param('remote');
-    }
-    else {
-        $parsed{'remote'} = undef;
-    }
-    if (exists($paramhash{shifttype})) {
-        $parsed{'shifttype'} = $q->param('shifttype');
-    }
-    else {
-        $parsed{'shifttype'} = undef;
-    }
 
     if (OMP::Fault->faultHasLocation($category)) {
         $parsed{'location'} = $q->param('location');
@@ -643,11 +650,6 @@ sub parse_file_fault_form {
         $parsed{condition} = $condition{Chronic} if $_ =~ /chronic/i;
     }
 
-    # Store time lost if defined (convert to hours)
-    $parsed{timelost} = $q->param('loss')
-        / (($q->param('loss_unit') eq 'hour') ? 1.0 : 60.0)
-        if length($q->param('loss')) >= 0;
-
     # Get the associated projects
     if ($q->param('assoc') or $q->param('assoc2')) {
         my @assoc = $q->multi_param('assoc');
@@ -661,6 +663,33 @@ sub parse_file_fault_form {
         my %projects = map {uc($_), undef} @assoc, @assoc2;
         $parsed{projects} = [keys %projects];
     }
+
+    # The text.
+    my $text = $q->param('message');
+
+    $parsed{text} = OMP::Display->remove_cr($text);
+
+    return %parsed;
+}
+
+=item B<parse_form_common>
+
+Parse common elements of fault forms (for fault and response).
+
+=cut
+
+sub parse_form_common {
+    my $self = shift;
+    my $category = shift;
+
+    my $q = $self->cgi;
+
+    my %parsed = ();
+
+    # Store time lost if defined (convert to hours)
+    $parsed{timelost} = $q->param('loss')
+        / (($q->param('loss_unit') eq 'hour') ? 1.0 : 60.0)
+        if length($q->param('loss')) > 0;
 
     # If the time of fault was provided use it otherwise
     # do nothing
@@ -703,10 +732,19 @@ sub parse_file_fault_form {
         }
     }
 
-    # The text.
-    my $text = $q->param('message');
+    if (scalar $q->param('shifttype')) {
+        $parsed{'shifttype'} = $q->param('shifttype');
+    }
+    else {
+        $parsed{'shifttype'} = undef;
+    }
 
-    $parsed{text} = OMP::Display->remove_cr($text);
+    if (scalar $q->param('remote')) {
+        $parsed{'remote'} = $q->param('remote');
+    }
+    else {
+        $parsed{'remote'} = undef;
+    }
 
     return %parsed;
 }

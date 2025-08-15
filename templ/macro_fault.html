@@ -58,189 +58,283 @@
     [% SET fault = fault_info.fault %]
     [% uri_fault_id = BLOCK %][% fault.id | uri %][% END %]
     <div class="black">
-    <table width="900" bgcolor="#6161aa" cellspacing="1" cellpadding="0" border="0">
-        <tr>
-            <td>
+    <table width="900" cellspacing="0" cellpadding="3" style="border: 1px solid #6161aa;">
+        <tr bgcolor="#6161aa">
+            <td colspan="3">
                 <b class="white">Report by: [% render_user_name(fault.author) %]</b>
             </td>
         </tr>
-        <tr>
+        <tr bgcolor="#ffffff">
+            <td colspan="2"><b>Date filed:</b> [% fault_info.display_date_local(fault.filedate) | html %]</td>
+            <td width="50%"><b>[% fault_info.system_label | html %]:</b> [% fault.systemText | html %]</td>
+        </tr>
+        <tr bgcolor="#ffffff">
+            <td colspan="2">
+                [% IF fault.timelost > fault.responses.first.timelost %]
+                    <b>Total loss:</b> [% fault.timelost * 60.0 %] minutes ([% fault.timelost %] hrs)
+                [% ELSE %]
+                    &nbsp;
+                [% END %]
+            </td>
+            <td><b>Fault type:</b> [% fault.typeText | html %]</td>
+        </tr>
+        <tr bgcolor="#ffffff">
+            <td colspan="2">
+                [% IF fault.location %]
+                    <b>Location:</b> [% fault.locationText | html %]
+                [% ELSE %]
+                    &nbsp;
+                [% END %]
+            </td>
             <td>
-                <table cellpadding="3" cellspacing="0" border="0" width="100%">
-                    <tr bgcolor="#ffffff">
-                        <td><b>Date filed:</b> [% fault_info.display_date_local(fault.filedate) | html %]</td>
-                        <td><b>[% fault_info.system_label | html %]:</b> [% fault.systemText | html %]</td>
-                    </tr>
-                    <tr bgcolor="#ffffff">
-                        <td><b>Loss:</b> [% fault.timelost * 60.0 %] minutes ([% fault.timelost %] hrs)</td>
-                        <td><b>Fault type:</b> [% fault.typeText | html %]</td>
-                    </tr>
-                    [% IF fault_info.has_shift_type %]
-                        <tr bgcolor="#ffffff">
-                            <td><b>Shift type:</b> [% fault.shifttype | html %]</td>
-                            <td><b>Remote Status:</b> [% fault.remote | html %]</td>
-                        </tr>
-                    [% END %]
-                    <tr bgcolor="#ffffff">
-                        <td>
-                            <b>Actual time occurred:</b>
-                            [% IF fault.faultdate %]
-                                [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
-                                    <a href="/cgi-bin/nightrep.pl?utdate=[% fault.faultdate.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(fault.faultdate) | html %]</a>
-                                [% ELSE %]
-                                    [% fault_info.display_date_local(fault.faultdate) | html %]
-                                [% END %]
-                            [% ELSE %]
-                                unknown
+                [% IF fault_info.allow_edit %]
+                    <form method="post" action="[% fault_info.target %]">
+                        <b>Status:</b>
+                        <select name="status">
+                            [% FOREACH status IN fault_info.statuses %]
+                                <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
                             [% END %]
-                        </td>
-                        <td>
-                            [% IF fault_info.allow_edit %]
-                                <form method="post" action="[% fault_info.target %]">
-                                    <b>Status:</b>
-                                    <select name="status">
-                                        [% FOREACH status IN fault_info.statuses %]
-                                            <option [% IF status.0 == fault.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
-                                        [% END %]
-                                    </select>
-                                    <input type="submit" name="change_status" value="Change"/>
-                                </form>
-                            [% ELSE %]
-                                <b>Status:</b>
-                                [% fault.statusText | html %]
-                            [% END %]
-                        </td>
-                    </tr>
-                    [% IF fault.location %]
-                        <tr bgcolor="#ffffff">
-                            <td><b>Location:</b> [% fault.locationText | html %]</td>
-                            <td>&nbsp;</td>
-                        </tr>
+                        </select>
+                        <input type="submit" name="change_status" value="Change"/>
+                    </form>
+                [% ELSE %]
+                    <b>Status:</b>
+                    [% fault.statusText | html %]
+                [% END %]
+            </td>
+        </tr>
+        [% IF fault.projects %]
+            <tr bgcolor="#ffffff">
+                <td colspan="3">
+                    <b>Projects associated with this fault:</b>
+                    [% FOREACH project IN fault.projects %]
+                        <a href="/cgi-bin/projecthome.pl?project=[% project.upper | uri %]">[% project.upper | html %]</a>[% IF ! loop.last %],[% END %]
                     [% END %]
-                    [% IF fault.projects %]
-                        <tr bgcolor="#ffffff">
-                            <td colspan="2">
-                                <b>Projects associated with this fault:</b>
-                                [% FOREACH project IN fault.projects %]
-                                    <a href="/cgi-bin/projecthome.pl?project=[% project.upper | uri %]">[% project.upper | html %]</a>[% IF ! loop.last %],[% END %]
-                                [% END %]
-                            </td>
-                        </tr>
-                    [% END %]
-                    [% IF fault.isUrgent %]
-                        <tr bgcolor="#ffffff">
-                            <td colspan="2">
-                                <b><font color="#d10000">THIS FAULT IS URGENT</font></b>
-                            </td>
-                        </tr>
-                    [% END %]
-                    [% IF fault_info.allow_edit %]
-                        <tr bgcolor="#ffffff">
-                            <td>&nbsp;</td>
-                            <td><span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Update or edit this [% fault_info.entry_name | lower | html %]</a></span></td>
-                        </tr>
-                    [% END %]
-                    [% FOREACH response IN fault.responses %]
-                        [% SET bgcolor = response.isfault ? '#bcbce2' : '#dcdcf2' %]
-                            [% IF response.author.userid == '_HIDDEN' %]
-                                <tr bgcolor="[% bgcolor %]">
-                                    <td colspan="2"><i>([% response.text | html %])</i></td>
-                                </tr>
-                            [% ELSE %]
-                                [% IF ! response.isfault %]
-                                   <tr bgcolor="[% bgcolor %]">
-                                        <td>
-                                            <b>Response <a name="response[% response.respnum %]">#[% response.respnum %]</a></b>
-                                            <a class="copy_text" href="#response[% response.respnum %]" data-copy_text="[% uri_fault_id %]#[% response.respnum %]" title="Copy fault and response identifier">&loz;</a>
-                                            by: [% render_user_name(response.author) %]
-                                        </td>
-                                        <td>
-                                            <b>Date:</b>
-                                            [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
-                                                <a href="/cgi-bin/nightrep.pl?utdate=[% response.date.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(response.date) | html %]</a>
-                                            [% ELSE %]
-                                                [% fault_info.display_date_local(response.date) | html %]
-                                            [% END %]
-                                            [% IF fault_info.allow_edit %]
-                                                &nbsp;&nbsp;
-                                                <form method="post" action="[% fault_info.target %]" style="display: inline;">
-                                                    <input type="hidden" name="respid" value="[% response.id | html %]" />
-                                                    <input type="submit" name="submit_flag_down" value="&minus;" />
-                                                    <input type="submit" name="submit_flag_up" value="+" />
-                                                </form>
-                                                &nbsp;&nbsp;
-                                                <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
-                                            [% END %]
-                                        </td>
-                                    </tr>
-                                [% END %]
-                                <tr bgcolor="[% bgcolor %]">
-                                    <td colspan="2">
-                                        <table border="0">
-                                            <tr>
-                                                <td><font color="[% bgcolor %]">___</font></td>
-                                                <td [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% response.format_text(80) | replace_omp_links('fault', fault.id) %]</td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            [% END %]
-                        [% END %]
-                    </table>
                 </td>
             </tr>
-        </table>
+        [% END %]
+        [% IF fault.isUrgent || fault_info.allow_edit %]
+            <tr bgcolor="#ffffff">
+                <td colspan="2">
+                    [% IF fault.isUrgent %]
+                        <b style="color: red;">THIS FAULT IS URGENT</b>
+                    [% ELSE %]
+                        &nbsp;
+                    [% END %]
+                </td>
+                <td>
+                    [% IF fault_info.allow_edit %]
+                        <span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Update or edit this [% fault_info.entry_name | lower | html %]</a></span>
+                    [% ELSE %]
+                        &nbsp;
+                    [% END %]
+                </td>
+            </tr>
+        [% END %]
+        [% FOREACH response IN fault.responses %]
+            [% IF response.author.userid == '_HIDDEN' %]
+                <tr bgcolor="#bcbce2">
+                    <td colspan="3"><i>([% response.text | html %])</i></td>
+                </tr>
+            [% ELSE %]
+                [% SET bgcolor = response.isfault ? '#bcbce2' : '#dcdcf2' %]
+                [% IF ! response.isfault %]
+                   <tr bgcolor="[% bgcolor %]">
+                        <td colspan="2">
+                            <b>Response <a name="response[% response.respnum %]">#[% response.respnum %]</a></b>
+                            <a class="copy_text" href="#response[% response.respnum %]" data-copy_text="[% uri_fault_id %]#[% response.respnum %]" title="Copy fault and response identifier">&loz;</a>
+                            by: [% render_user_name(response.author) %]
+                        </td>
+                        <td>
+                            <b>Date:</b>
+                            [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
+                                <a href="/cgi-bin/nightrep.pl?utdate=[% response.date.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(response.date) | html %]</a>
+                            [% ELSE %]
+                                [% fault_info.display_date_local(response.date) | html %]
+                            [% END %]
+                            [% IF fault_info.allow_edit %]
+                                &nbsp;&nbsp;
+                                <form method="post" action="[% fault_info.target %]" style="display: inline;">
+                                    <input type="hidden" name="respid" value="[% response.id | html %]" />
+                                    <input type="submit" name="submit_flag_down" value="&minus;" />
+                                    <input type="submit" name="submit_flag_up" value="+" />
+                                </form>
+                                &nbsp;&nbsp;
+                                <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
+                            [% END %]
+                        </td>
+                    </tr>
+                [% END %]
+                [% IF (response.timelost > 0) || (fault_info.has_shift_type && response.shifttype.defined) %]
+                    <tr bgcolor="[% bgcolor %]">
+                        <td>&nbsp;</td>
+                        <td>
+                            [% IF response.timelost > 0 %]
+                                <b>Time lost:</b>
+                                [% response.timelost * 60.0 %] minutes ([% response.timelost %] hrs)
+                            [% ELSE %]
+                                &nbsp;
+                            [% END %]
+                        </td>
+                        <td>
+                            [% IF fault_info.has_shift_type && response.shifttype.defined %]
+                                <b>Shift type:</b> [% response.shifttype | html %]
+                            [% ELSE %]
+                                &nbsp;
+                            [% END %]
+                        </td>
+                    </tr>
+                [% END %]
+                [% IF response.faultdate || (fault_info.has_shift_type && response.remote.defined) %]
+                    <tr bgcolor="[% bgcolor %]">
+                        <td>&nbsp;</td>
+                        <td>
+                            [% IF response.faultdate %]
+                                <b>Actual time occurred:</b>
+                                [% IF fault_info.category_is_telescope && fault_info.allow_edit %]
+                                    <a href="/cgi-bin/nightrep.pl?utdate=[% response.faultdate.strftime("%Y-%m-%d") %]&amp;tel=[% fault.category | uri %]">[% fault_info.display_date_local(response.faultdate) | html %]</a>
+                                [% ELSE %]
+                                    [% fault_info.display_date_local(response.faultdate) | html %]
+                                [% END %]
+                            [% ELSE %]
+                                &nbsp;
+                            [% END %]
+                        </td>
+                        <td>
+                            [% IF fault_info.has_shift_type && response.remote.defined  %]
+                                <b>Remote Status:</b> [% response.remote | html %]
+                            [% ELSE %]
+                                &nbsp;
+                            [% END %]
+                        </td>
+                    </tr>
+                [% END %]
+                <tr bgcolor="[% bgcolor %]">
+                    <td width="20">&nbsp;</td>
+                    <td colspan="2" [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% response.format_text(80) | replace_omp_links('fault', fault.id) %]</td>
+                </tr>
+            [% END %]
+        [% END %]
+    </table>
     </div>
 [% END -%]
 [% MACRO render_response_form(info) BLOCK %]
     <form method="post" action="[% info.target %]" class="submit_timeout">
-        <table border="0">
-            <tr>
-                <td><b>User:</b></td>
-                <td>
-                    [% IF info.response.defined %]
-                        [% info.response.author.name | html %]
-                    [% ELSE %]
-                        [% omp_user.name | html %]
-                    [% END %]
-                </td>
-            </tr>
-            [% IF ! info.response.defined %]
-                <tr>
-                    <td><b>Status:</b></td>
-                    <td>
-                        <select name="status">
-                            [% FOREACH status IN info.statuses %]
-                                <option [% IF status.0 == info.values.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+        [% IF ! info.response.defined %]
+            <fieldset>
+                <table border="0">
+                    <tr>
+                        <td><b>User:</b></td>
+                        <td>
+                            [% IF info.response.defined %]
+                                [% info.response.author.name | html %]
+                            [% ELSE %]
+                                [% omp_user.name | html %]
                             [% END %]
-                         </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><b>Status:</b></td>
+                        <td>
+                            <select name="status">
+                                [% FOREACH status IN info.statuses %]
+                                    <option [% IF status.0 == info.values.status %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                                [% END %]
+                             </select>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+        [% END %]
+        [% IF info.has_time_loss || info.has_time_occurred %]
+            <fieldset>
+                <legend>This occurrence</legend>
+                <table border="0">
+                    [% IF info.has_time_loss %]
+                        <tr>
+                            <td><b>Time lost:</b></td>
+                            <td>
+                                <input type="text" name="loss" size="4" maxlength="10" value="[% info.values.loss | html %]" />
+                                <select name="loss_unit">
+                                    <option [% IF 'min' == info.values.loss_unit %]selected="selected"[% END %] value="min">minutes</option>
+                                    <option [% IF 'hour' == info.values.loss_unit %]selected="selected"[% END %] value="hour">hours</option>
+                                </select>
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF info.has_time_occurred %]
+                        <tr>
+                            <td><b>Time occurred:</b></td>
+                            <td>
+                                <input type="text" name="time" size="30" maxlength="128" value="[% info.values.time | html %]" placeholder="YYYY-MM-DDTHH:MM or HH:MM" />
+                                &nbsp;
+                                <select name="tz">
+                                    [% FOREACH tz IN ['UT', 'HST'] %]
+                                        <option [% IF tz == info.values.tz %]selected="selected"[% END %] value="[% tz %]">[% tz %]</option>
+                                    [% END %]
+                                </select>
+                                &nbsp;
+                                <input type="button" value="Now" class="time_set_now" />
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF info.shifts.size > 1 %]
+                        <tr>
+                            <td><b>Shift Type:</b></td>
+                            <td>
+                                <select name="shifttype">
+                                    <option value=""  [% IF ! info.values.shifttype.defined %]selected="selected"[% END %]></option>
+                                    [% FOREACH shift IN info.shifts %]
+                                        <option value="[% shift.0 | html %]" [% IF shift.0 == info.values.shifttype %]selected="selected"[% END %]>[% shift.1 | html %]</option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF info.remotes.size > 1 %]
+                        <tr>
+                            <td><b>Remote Status:</b></td>
+                            <td>
+                                <select name="remote">
+                                    <option value="" [% IF ! info.values.remote.defined %]selected="selected"[% END %]></option>
+                                    [% FOREACH remote IN info.remotes %]
+                                        <option value="[% remote.0 | html %]" [% IF remote.0 == info.values.remote %]selected="selected"[% END %]>[% remote.1 | html %]</option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                    [% END %]
+                </table>
+            </fieldset>
+        [% END %]
+        <fieldset>
+            <legend>Response</legend>
+            <table border="0">
+                <tr>
+                    <td>&nbsp;</td>
+                    <td colspan="2"><textarea name="text" rows="20" cols="72">[% info.values.text | html %]</textarea></td>
+                </tr>
+                <tr>
+                    [% IF info.response.defined %]
+                        <td><b>Flag:</b></td>
+                        <td>
+                            <select name="flag">
+                                [% FOREACH flag IN info.flags %]
+                                    <option [% IF flag.0 == info.values.flag %]selected="selected"[% END %] value="[% flag.0 %]">[% flag.1 | html %]</option>
+                                [% END %]
+                            </select>
+                        </td>
+                    [% ELSE %]
+                        <td colspan="2">&nbsp;</td>
+                    [% END %]
+                    <td align="right">
+                        <input type="submit" name="respond" value="[% info.values.submitlabel | html %]" />
+                        [% IF info.response.defined %]
+                            <input type="hidden" name="respid" value="[% info.response.id | html %]" />
+                        [% END %]
                     </td>
                 </tr>
-            [% END %]
-            <tr>
-                <td>&nbsp;</td>
-                <td><textarea name="text" rows="20" cols="72">[% info.values.text | html %]</textarea></td>
-            </tr>
-            [% IF info.response.defined %]
-            <tr>
-                <td><b>Flag:</b></td>
-                <td>
-                    <select name="flag">
-                        [% FOREACH flag IN info.flags %]
-                            <option [% IF flag.0 == info.values.flag %]selected="selected"[% END %] value="[% flag.0 %]">[% flag.1 | html %]</option>
-                        [% END %]
-                    </select>
-                </td>
-            </tr>
-            [% END %]
-            <tr>
-                <td colspan="2" align="right">
-                    <input type="submit" name="respond" value="[% info.values.submitlabel | html %]" />
-                    [% IF info.response.defined %]
-                        <input type="hidden" name="respid" value="[% info.response.id | html %]" />
-                    [% END %]
-                </td>
-            </tr>
-        </table>
+            </table>
+        </fieldset>
     </form>
 [% END -%]

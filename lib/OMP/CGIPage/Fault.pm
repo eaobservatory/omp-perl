@@ -135,6 +135,8 @@ sub file_fault {
     my $resp = OMP::Fault::Response->new(
         author => $self->auth->user,
         text => $faultdetails{text},
+        shifttype => $faultdetails{shifttype},
+        remote => $faultdetails{remote},
     );
 
     # Create the fault object
@@ -146,17 +148,15 @@ sub file_fault {
         status => $faultdetails{status},
         location => $faultdetails{location},
         urgency => $faultdetails{urgency},
-        shifttype => $faultdetails{shifttype},
-        remote => $faultdetails{remote},
         fault => $resp,
     );
 
     # The following are not always present
     $fault->projects($faultdetails{projects}) if $faultdetails{projects};
 
-    $fault->faultdate($faultdetails{faultdate}) if $faultdetails{faultdate};
+    $resp->faultdate($faultdetails{faultdate}) if $faultdetails{faultdate};
 
-    $fault->timelost($faultdetails{timelost}) if $faultdetails{timelost};
+    $resp->timelost($faultdetails{timelost}) if $faultdetails{timelost};
 
     # Submit the fault the the database
     my $faultid;
@@ -622,11 +622,17 @@ sub view_fault {
         # Strip out ^M
         $text = OMP::Display->remove_cr($text);
 
+        my %common = $comp->parse_file_fault_form($category);
+
         my $E;
         try {
             my $resp = OMP::Fault::Response->new(
                 author => $self->auth->user,
                 text => $text,
+                timelost => $common{'timelost'},
+                faultdate => $common{'faultdate'},
+                shifttype => $common{'shifttype'},
+                remote => $common{'remote'},
             );
             $fdb->respondFault($fault->id, $resp);
         }
@@ -911,6 +917,8 @@ sub update_resp {
         }
     }
 
+    my %common = $comp->parse_form_common($category);
+
     # Get the response object
     my $response = $fault->getResponse($respid);
 
@@ -918,6 +926,10 @@ sub update_resp {
     $response->text($text);
     $response->preformatted(0);
     $response->flag($flag) if defined $flag;
+    $response->timelost($common{'timelost'});
+    $response->faultdate($common{'faultdate'});
+    $response->shifttype($common{'shifttype'});
+    $response->remote($common{'remote'});
 
     # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
 

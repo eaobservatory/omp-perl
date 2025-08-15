@@ -731,3 +731,16 @@ input[type="text"], input[type="password"], input[type="number"], input[type="da
     background: #BBB;
     color: #888;
 }
+
+fieldset {
+    width: fit-content;
+    margin: 1ex 0ex 1ex 0ex;
+    padding: 0.5ex;
+    border: 1px solid #aaa;
+    border-radius: 0.5ex;
+}
+
+fieldset legend {
+    color: #444;
+    margin-left: 1ex;
+}
