@@ -107,8 +107,9 @@ sub sql {
     # This returns a row per response
     # So will duplicate static fault info
     my $select = $options{'no_text'}
-        ? "F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag"
-        : "F.*, R.*";
+        ? 'F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag'
+            . ', R.faultdate, R.timelost, R.shifttype, R.remote'
+        : 'F.*, R.*';
     $select .= ", $frel + SUBSEL.relevance AS relevance";
 
     my $sql = "SELECT $select FROM $faulttable F
@@ -183,7 +184,7 @@ sub _post_process_hash {
     }
 
     # These entries must be forced to come from Response table
-    for (qw/author date isfault text respid/) {
+    for (qw/author date isfault text respid faultdate timelost shifttype remote/) {
         if (exists $href->{$_}) {
             my $key = "R.$_";
             $href->{$key} = $href->{$_};

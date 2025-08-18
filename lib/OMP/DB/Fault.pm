@@ -362,28 +362,19 @@ sub _store_new_fault {
 
     # First store the main fault information
 
-    # Date must be formatted for MySQL
-    my $faultdate = $fault->faultdate;
-    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-        if defined $faultdate;
-
     # Insert the data into the table
     $self->_db_insert_data(
         $FAULTTABLE,
         $fault->id,
         $fault->category,
         $fault->subject,
-        $faultdate,
         $fault->type,
         $fault->system,
         $fault->status,
         $fault->urgency,
-        $fault->timelost,
         $fault->entity,
         $fault->condition,
         $fault->location,
-        $fault->shifttype,
-        $fault->remote,
     );
 
     # Insert the project association data
@@ -425,7 +416,7 @@ sub _add_new_response {
             SQL => sprintf 'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
             $FAULTBODYTABLE, $id
         },
-        @{$cols}{qw/flag preformatted/}
+        @{$cols}{qw/flag preformatted faultdate timelost shifttype remote/}
     );
 }
 
@@ -455,6 +446,11 @@ sub _prepare_response_columns {
         . $author->userid . "' invalid]")
         unless ($userid);
 
+    # Date must be formatted for MySQL
+    my $faultdate = $resp->faultdate;
+    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
+        if defined $faultdate;
+
     return {
         date => $date->strftime("%Y-%m-%d %T"),
         author => $userid,
@@ -462,6 +458,10 @@ sub _prepare_response_columns {
         text => $text,
         preformatted => $resp->preformatted,
         flag => $resp->flag,
+        faultdate => $faultdate,
+        timelost => $resp->timelost,
+        shifttype => $resp->shifttype,
+        remote => $resp->remote,
     };
 }
 
@@ -575,28 +575,19 @@ sub _update_fault_row {
         # Delete the row for this fault
         $self->_db_delete_data($FAULTTABLE, $clause);
 
-        # Date must be formatted for MySQL
-        my $faultdate = $fault->faultdate;
-        $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-            if defined $faultdate;
-
         # Insert the new values
         $self->_db_insert_data(
             $FAULTTABLE,
             $fault->id,
             $fault->category,
             $fault->subject,
-            $faultdate,
             $fault->type,
             $fault->system,
             $fault->status,
             $fault->urgency,
-            $fault->timelost,
             $fault->entity,
             $fault->condition,
             $fault->location,
-            $fault->shifttype,
-            $fault->remote,
         );
 
         # Insert the project association data
@@ -789,15 +780,11 @@ sub _mail_fault_update {
         systemText => 'System',
         typeText => 'Type',
         statusText => 'Status',
-        timelost => 'Time lost',
-        faultdate => 'Time of fault',
         subject => 'Subject',
         category => 'Category',
         urgency => 'Urgency',
         condition => 'Condition',
         projects => 'Projects',
-        shifttype => 'Shift Type',
-        remote => 'Remote status',
         locationText => 'Location',
     );
 
