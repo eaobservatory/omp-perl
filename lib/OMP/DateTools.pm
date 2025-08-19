@@ -295,7 +295,7 @@ sub yesterday {
 =item B<display_date>
 
 Given a C<Time::Piece> object return a string displaying the date in
-YYYYMMDD HH:MM:SS format and append the appropriate timezone representation.
+YYYY-MM-DD HH:MM:SS format and append the appropriate timezone representation.
 
     $datestring = OMP::DateTools->display_date($date);
 
@@ -314,7 +314,7 @@ sub display_date {
         $tz = "UT";
     }
 
-    my $string = $date->strftime("%Y%m%d %T");
+    my $string = $date->strftime('%Y-%m-%d %T');
 
     return "$string $tz";
 }
