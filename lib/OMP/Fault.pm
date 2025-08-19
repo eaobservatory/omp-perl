@@ -788,8 +788,8 @@ my %UKIRTSHIFTTYPES = (
 );
 
 sub shiftTypes {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if ($category eq 'JCMT') {
         return %JCMTSHIFTTYPES;
@@ -817,8 +817,8 @@ my %JCMTREMOTETYPES = (
 );
 
 sub remoteTypes {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if ($category eq 'JCMT') {
         return %JCMTREMOTETYPES;
