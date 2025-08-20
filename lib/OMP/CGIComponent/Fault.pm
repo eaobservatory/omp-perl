@@ -156,7 +156,7 @@ sub query_fault_form {
             text_search => (scalar $q->param('text_search') // 'both'),
             map {$_ => scalar $q->param($_)}
                 qw/userid mindate maxdate days system type status
-                timelost show_affected chronic summary
+                timelost show_affected urgent chronic summary
                 text text_boolean/,
         },
     };

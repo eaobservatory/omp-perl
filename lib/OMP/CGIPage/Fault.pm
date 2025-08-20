@@ -241,7 +241,12 @@ sub query_fault_output {
             $hash{'type'} = $type if $type !~ /any/;
         }
 
-        # Return chronic faults only?
+        # Return urgent or chronic faults only?
+        if ($q->param('urgent')) {
+            my %urgency = OMP::Fault->faultUrgency;
+            $hash{'urgency'} = $urgency{'Urgent'};
+        }
+
         if ($q->param('chronic')) {
             my %condition = OMP::Fault->faultCondition;
             $hash{'condition'} = $condition{'Chronic'};

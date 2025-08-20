@@ -162,6 +162,11 @@
                         <br />
                     [% END %]
                     <label>
+                        <input type="checkbox" name="urgent" value="true" [% IF form_info.values.urgent %]checked="checked"[% END %] />
+                        Return urgent [% form_info.entry_name | lower | html %]s only
+                    </label>
+                    <br />
+                    <label>
                         <input type="checkbox" name="chronic" value="true" [% IF form_info.values.chronic %]checked="checked"[% END %] />
                         Return chronic [% form_info.entry_name | lower | html %]s only
                     </label>
