@@ -507,6 +507,12 @@ a.index-title-link:hover   { color: #9ff; }
   background-color: #f9b1b1;
 }
 
+.cell_minor {
+  border: 1px solid #999;
+  background-color: #ccc;
+  color: #666;
+}
+
 .infobox {
   border: 1px solid #383898;
   background-color: #bcbee3;

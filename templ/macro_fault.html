@@ -21,7 +21,7 @@
                 [% IF fault_info.show_cat %]
                     <td>[% fault.category | html %]</td>
                 [% END %]
-                <td [% IF fault.isUrgent %]class="cell_standout"[% END %]>[% fault.id | html %]</td>
+                <td [% IF fault.isUrgent %]class="cell_standout"[% ELSIF fault.isChronic %]class="cell_minor"[% END %]>[% fault.id | html %]</td>
                 <td>
                     <b><a href="[% fault_info.view_url %][% fault.id | html %]">[% IF fault.subject %][% fault.subject | html %][% ELSE %][no subject][% END %]</a></b>
                     [% IF fault_info.show_projects%]
@@ -113,11 +113,13 @@
                 </td>
             </tr>
         [% END %]
-        [% IF fault.isUrgent || fault_info.allow_edit %]
+        [% IF fault.isUrgent || fault.isChronic ||  fault_info.allow_edit %]
             <tr bgcolor="#ffffff">
                 <td colspan="2">
                     [% IF fault.isUrgent %]
                         <b style="color: red;">THIS FAULT IS URGENT</b>
+                    [% ELSIF fault.isChronic %]
+                        <b style="color: grey;">This fault is chronic</b>
                     [% ELSE %]
                         &nbsp;
                     [% END %]
