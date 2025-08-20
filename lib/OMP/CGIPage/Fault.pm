@@ -274,8 +274,20 @@ sub query_fault_output {
             $hash{'author'} = $1;
         }
 
+        # Return either only faults filed, faults responded to, or occurring
+        # on a particular date.
+        my $datefield = 'date';
+        if ($q->param('action') =~ /response/) {
+            $hash{'isfault'} = {boolean => 0};
+        }
+        elsif ($q->param('action') =~ /file/) {
+            $hash{'isfault'} = {boolean => 1};
+        }
+        elsif ($q->param('action') =~ /occurred/) {
+            $datefield = 'faultdate';
+        }
+
         # Generate the date portion of our query
-        my $queryDateStr;
         if ($q->param('period') eq 'arbitrary') {
             # Get our min and max dates
             my $mindatestr = $q->param('mindate');
@@ -310,7 +322,7 @@ sub query_fault_output {
                 my %datehash = ();
                 $datehash{'min'} = $mindate->datetime if $mindate;
                 $datehash{'max'} = $maxdate->datetime if $maxdate;
-                $hash{'date'} = \%datehash;
+                $hash{$datefield} = \%datehash;
             }
 
             # Convert dates back to localtime
@@ -324,7 +336,7 @@ sub query_fault_output {
             $maxdate = localtime($t->epoch);
             $mindate = localtime($maxdate->epoch - $days * ONE_DAY);
 
-            $hash{'date'} = {delta => - $days, value => $t->datetime};
+            $hash{$datefield} = {delta => - $days, value => $t->datetime};
         }
         elsif ($q->param('period') eq 'last_month') {
             # Get results for the period between the first
@@ -350,7 +362,7 @@ sub query_fault_output {
             my $tempdate2 = Time::Piece->strptime($year . $month . $tempdate->month_last_day . "T23:59:59", "%Y%m%dT%H:%M:%S");
             $maxdate = gmtime($tempdate2->epoch);
 
-            $hash{'date'} = {
+            $hash{$datefield} = {
                 min => $mindate->datetime,
                 max => $maxdate->datetime,
             };
@@ -360,7 +372,7 @@ sub query_fault_output {
             $maxdate = localtime($maxdate->epoch);
         }
         else {
-            $hash{'date'} = {delta => -7, value => $t->ymd};
+            $hash{$datefield} = {delta => -7, value => $t->ymd};
         }
 
         # Get the text param and unescape things like &amp; &quot;
@@ -383,14 +395,6 @@ sub query_fault_output {
                     subject => $text_spec,
                 }};
             }
-        }
-
-        # Return either only faults filed or only faults responded to
-        if ($q->param('action') =~ /response/) {
-            $hash{'isfault'} = {boolean => 0};
-        }
-        elsif ($q->param('action') =~ /file/) {
-            $hash{'isfault'} = {boolean => 1};
         }
 
         if ($q->param('timelost')) {

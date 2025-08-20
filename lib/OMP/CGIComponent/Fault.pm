@@ -137,6 +137,7 @@ sub query_fault_form {
             [response => 'responded to'],
             [file => 'filed'],
             [activity => 'with any activity'],
+            [occurred => 'which occurred'],
         ],
         text_searches => [
             'text',
