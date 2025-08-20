@@ -1305,7 +1305,8 @@ sub new {
 
         # Do not set faultdate and timelost as these are now handled by the
         # response objects and this class has read-only accessor methods.
-        if ($fault->can($method) and not grep {$_ eq $method} qw/faultdate timelost shifttype remote/) {
+        if ($fault->can($method) and not grep {$_ eq $method}
+                qw/author date faultdate timelost shifttype remote/) {
             $fault->$method($args{$key});
         }
     }
@@ -1932,13 +1933,11 @@ fault.
 
 This information is retrieved from the first response object.
 
-Returns immediately if called in void context.
-
 =cut
 
 sub author {
     my $self = shift;
-    return unless defined wantarray;
+
     my $firstresp = $self->responses->[0];
     throw OMP::Error::FatalError("No fault body! Should not happen.")
         unless $firstresp;
@@ -1956,14 +1955,10 @@ time the fault response was filed will be used instead.
 
 Throws an C<OMP::Error::FatalError> if no response is attached.
 
-In void context returns nothing.
-
 =cut
 
 sub date {
     my $self = shift;
-
-    return unless defined wantarray;
 
     # Look at the fault date
     my $faultdate = $self->faultdate;
