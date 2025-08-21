@@ -484,7 +484,8 @@ sub _query_faultdb {
     # Get the SQL
     my $sql = $query->sql(
         $FAULTTABLE, $FAULTBODYTABLE,
-        no_text => $opt{'no_text'});
+        no_text => $opt{'no_text'},
+        matching_responses_only => $opt{'matching_responses_only'});
 
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash($sql);
