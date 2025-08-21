@@ -320,17 +320,19 @@ sub faults {
                     # Faults filed on the dates we are reporting for:
                     date => $self->_get_date_hash(),
                     faultdate => {null => 1},
+                    isfault => {boolean => 1},
                 }},
 
                 # Faults that occurred on the dates we are reporting for:
                 faultdate => $self->_get_date_hash(),
             }},
             category => $self->telescope,
-            isfault => {boolean => 1},
         });
 
         $self->{'Faults'} = $fdb->queryFaults(
-            $query, no_text => 1, no_projects => 1);
+            $query,
+            matching_responses_only => 1,
+            no_text => 1, no_projects => 1);
     }
 
     return $self->{Faults};
