@@ -1855,7 +1855,6 @@ the query will adjust the delta so that it returns only the correct time account
 sub _get_date_hash {
     my $self = shift;
     my %args = @_;
-    my $tag = (defined $args{tag} ? $args{tag} : "date");
 
     if ($self->date_end) {
         return {
