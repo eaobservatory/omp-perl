@@ -267,6 +267,9 @@ sub query_fault_output {
                 my %status = OMP::Fault->faultStatusOpen(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
+            elsif ($status eq 'non_duplicate') {
+                $hash{'EXPR__STAT'} = {not => {status => OMP::Fault::DUPLICATE}};
+            }
             else {
                 # Do a query on just a single status
                 $hash{'status'} = $status;

@@ -731,17 +731,18 @@ sub faultSystems {
 
     return $systems if $opt{'include_hidden'};
 
-    my $hidden = $DATA{$category}{$section . '_HIDDEN'};
+    my $hidden = $DATA{$category}{$section . '_HIDDEN'} // {};
 
     return $systems unless defined $hidden;
 
-    my %non_hidden = ();
+    my %result = ();
 
+    my $only_hidden = $opt{'only_hidden'} // 0;
     while (my ($name, $code) = each %$systems) {
-        $non_hidden{$name} = $code unless $hidden->{$code};
+        $result{$name} = $code unless $only_hidden xor $hidden->{$code};
     }
 
-    return \%non_hidden;
+    return \%result;
 }
 
 =item B<faultTypes>

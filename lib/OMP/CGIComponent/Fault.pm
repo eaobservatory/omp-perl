@@ -117,6 +117,12 @@ sub query_fault_form {
         my $systems = OMP::Fault->faultSystems($category);
         @systems = map {[$systems->{$_}, $_]} sort keys %$systems;
 
+        my $hidden_systems = OMP::Fault->faultSystems($category, only_hidden => 1);
+        if (scalar %$hidden_systems) {
+            push @systems, [];
+            push @systems, [$hidden_systems->{$_}, $_] foreach sort keys $hidden_systems;
+        }
+
         my $types = OMP::Fault->faultTypes($category);
         @types = map {[$types->{$_}, $_]} sort keys %$types;
     }
@@ -124,6 +130,8 @@ sub query_fault_form {
     my @status = (
         [all_open => 'All open'],
         [all_closed => 'All closed'],
+        [non_duplicate => 'Non-duplicate'],
+        [],
         _get_status_labels_by_name($category),
     );
 

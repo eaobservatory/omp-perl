@@ -115,14 +115,20 @@
                     <td>
                         <select name="system">
                             <option [% IF ! form_info.values.system.defined %]selected="selected"[% END %] value="any">Any</option>
+                            <hr />
                             [% FOREACH system IN form_info.systems %]
-                                <option [% IF form_info.values.system == system.0 %]selected="selected"[% END %] value="[% system.0 %]">[% system.1 | html %]</option>
+                                [% IF system.empty %]
+                                    <hr />
+                                [% ELSE %]
+                                    <option [% IF form_info.values.system == system.0 %]selected="selected"[% END %] value="[% system.0 %]">[% system.1 | html %]</option>
+                                [% END %]
                             [% END %]
                         </select>
                         &nbsp;
                         <b>Type:</b>
                         <select name="type">
                             <option [% IF ! form_info.values.type.defined %]selected="selected"[% END %] value="any">Any</option>
+                            <hr />
                             [% FOREACH type IN form_info.types %]
                                 <option [% IF form_info.values.type == type.0 %]selected="selected"[% END %] value="[% type.0 %]">[% type.1 | html %]</option>
                             [% END %]
@@ -137,8 +143,13 @@
                 <td>
                     <select name="status">
                         <option [% IF ! form_info.values.status.defined %]selected="selected"[% END %] value="any">Any</option>
+                        <hr />
                         [% FOREACH status IN form_info.statuses %]
-                            <option [% IF form_info.values.status == status.0 %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                            [% IF status.empty %]
+                                <hr />
+                            [% ELSE %]
+                                <option [% IF form_info.values.status == status.0 %]selected="selected"[% END %] value="[% status.0 %]">[% status.1 | html %]</option>
+                            [% END %]
                         [% END %]
                     </select>
                 </td>
