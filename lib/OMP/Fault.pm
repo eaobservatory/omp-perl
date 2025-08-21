@@ -1985,6 +1985,102 @@ sub relevance {
 
 =back
 
+=head2 Response Grouping Methods
+
+=over 4
+
+=item B<by_date>
+
+Return a reference to a hash of shallow copies of this fault
+organized by date.  The hash keys are date strings in YYYY-MM-DD
+format and the values contain only the responses with the
+matching date.  Responses are only included if they have
+a time of occurrence (C<faultdate> is defined) or they are
+the original filing (C<isfault> is true), in which case
+the date of filing (from C<date>) is used as a fallback value.
+
+    $shifts = $fault->by_date();
+
+=cut
+
+sub by_date {
+    my $self = shift;
+
+    my %result;
+    foreach my $response (@{$self->{'Responses'}}) {
+        my $date = $response->faultdate;
+        unless (defined $date) {
+            next unless $response->isfault;
+
+            $date = $response->date;
+        }
+
+        $date = $date->ymd();
+
+        unless (exists $result{$date}) {
+            $result{$date} = $self->_shallow_copy;
+        }
+
+        push @{$result{$date}->{'Responses'}}, $response;
+    }
+
+    return \%result;
+}
+
+=item B<by_shift>
+
+Return a reference to a hash of shallow copies of this fault
+organized by shift type.  The hash keys are shift names
+format and the values contain only the responses with the
+matching shift type.
+
+    $shifts = $fault->by_shift;
+
+Any faults without a shift type will be returned in the hash
+key "UNKNOWN".
+
+=cut
+
+sub by_shift {
+    my $self = shift;
+
+    my %result;
+    foreach my $response (@{$self->{'Responses'}}) {
+        my $shift = $response->shifttype || 'UNKNOWN';
+
+        unless (exists $result{$shift}) {
+            $result{$shift} = $self->_shallow_copy;
+        }
+
+        push @{$result{$shift}->{'Responses'}}, $response;
+    }
+
+    return \%result;
+}
+
+# Create a copy with no responses or projects.
+# See also OMP::Info::shallow_copy for a more
+# comprehensive copying of top-level structures.
+
+sub _shallow_copy {
+    my $self = shift;
+
+    my $copy = bless {
+        Responses => [],
+        Projects => [],
+    }, ref $self;
+
+    foreach my $key (keys %$self) {
+        next if grep {$key eq $_} qw/Responses Projects/;
+        my $value = $self->{$key};
+        $copy->{$key} = $value;
+    }
+
+    return $copy;
+}
+
+=back
+
 =head2 General Methods
 
 =over 4
