@@ -449,10 +449,13 @@ sub response_form {
             $faultdate = $faultdate->strftime('%Y-%m-%dT%T');
         }
 
+        my $timelost = $resp->timelost;
+        $timelost *= 60.0 if defined $timelost;
+
         %defaults = (
             text => $text,
             flag => $resp->flag,
-            loss => $resp->timelost * 60.0,
+            loss => $timelost,
             loss_unit => 'min',
             time => $faultdate,
             tz => 'HST',
