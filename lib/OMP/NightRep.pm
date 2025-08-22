@@ -316,15 +316,20 @@ sub faults {
 
         my $query = OMP::Query::Fault->new(HASH => {
             EXPR__DT => {or => {
-                EXPR__DTF => {and => {
-                    # Faults filed on the dates we are reporting for:
-                    date => $self->_get_date_hash(),
-                    faultdate => {null => 1},
-                    isfault => {boolean => 1},
-                }},
-
                 # Faults that occurred on the dates we are reporting for:
                 faultdate => $self->_get_date_hash(),
+
+                # Faults filed on the dates we are reporting for:
+                EXPR__DTF => {and => {
+                    faultdate => {null => 1},
+                    date => $self->_get_date_hash(),
+
+                    # Provided this was the original filing or an additional time loss:
+                    EXPR__DTFF => {or => {
+                        isfault => {boolean => 1},
+                        timelost => {min => 0.001},
+                    }},
+                }},
             }},
             category => $self->telescope,
         });
