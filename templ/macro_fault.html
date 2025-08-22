@@ -204,7 +204,7 @@
                         </td>
                         <td>
                             [% IF fault_info.has_shift_type && response.remote.defined  %]
-                                <b>Remote Status:</b> [% response.remote | html %]
+                                <b>Remote status:</b> [% response.remote | html %]
                             [% ELSE %]
                                 &nbsp;
                             [% END %]
@@ -282,7 +282,7 @@
                     [% END %]
                     [% IF info.shifts.size > 1 %]
                         <tr>
-                            <td><b>Shift Type:</b></td>
+                            <td><b>Shift type:</b></td>
                             <td>
                                 <select name="shifttype">
                                     <option value=""  [% IF ! info.values.shifttype.defined %]selected="selected"[% END %]></option>
@@ -295,7 +295,7 @@
                     [% END %]
                     [% IF info.remotes.size > 1 %]
                         <tr>
-                            <td><b>Remote Status:</b></td>
+                            <td><b>Remote status:</b></td>
                             <td>
                                 <select name="remote">
                                     <option value="" [% IF ! info.values.remote.defined %]selected="selected"[% END %]></option>
