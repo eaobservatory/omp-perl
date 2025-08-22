@@ -1359,7 +1359,7 @@ sub new {
     # Really need to check that someone has supplied
     # a fault body
     croak "Must supply an initial fault body"
-        unless scalar(@{$fault->responses});
+        unless scalar(@{$fault->{'Responses'}});
 
     return $fault;
 }
@@ -1426,7 +1426,7 @@ sub type {
 =item B<shifttype>
 
 Shift type (as a string).  Returns the C<shifttype> of the
-first response for which it is defined.
+first response.
 
     $shifttype = $fault->shifttype();
 
@@ -1434,22 +1434,18 @@ first response for which it is defined.
 
 sub shifttype {
     my $self = shift;
+
     if (@_) {
         croak "The OMP::Fault->shifttype accessor is a read-only method";
     }
 
-    foreach my $resp (@{$self->responses}) {
-        my $shifttype = $resp->shifttype;
-        return $shifttype if defined $shifttype;
-    }
-
-    return undef;
+    return $self->_first_response_value('shifttype');
 }
 
 =item B<remote>
 
 Remote (supplied as an integer).  Returns the C<remote> value
-of the first repsonse for which it is defined.
+of the first response.
 
     $remote = $fault->remote();
 
@@ -1457,16 +1453,12 @@ of the first repsonse for which it is defined.
 
 sub remote {
     my $self = shift;
+
     if (@_) {
         croak "The OMP::Fault->remote accessor is a read-only method";
     }
 
-    foreach my $resp (@{$self->responses}) {
-        my $remote = $resp->remote;
-        return $remote if defined $remote;
-    }
-
-    return undef;
+    return $self->_first_response_value('remote');
 }
 
 =item B<system>
@@ -1691,12 +1683,13 @@ C<timelost> of all responses.
 
 sub timelost {
     my $self = shift;
+
     if (@_) {
         croak "The OMP::Fault->timelost accessor is a read-only method";
     }
 
     my $loss = 0.0;
-    foreach my $resp (@{$self->responses}) {
+    foreach my $resp (@{$self->{'Responses'}}) {
         my $resploss = $resp->timelost;
         $loss += $resploss if defined $resploss;
     }
@@ -1707,8 +1700,7 @@ sub timelost {
 =item B<faultdate>
 
 Date the fault occurred. This may be different from the date
-it was filed. Returns the C<faultdate> of the first response
-for which it is defined.
+it was filed. Returns the C<faultdate> of the first response.
 
     $date = $fault->faultdate();
 
@@ -1716,16 +1708,12 @@ for which it is defined.
 
 sub faultdate {
     my $self = shift;
+
     if (@_) {
         croak "The OMP::Fault->faultdate accessor is a read-only method";
     }
 
-    foreach my $resp (@{$self->responses}) {
-        my $respdate = $resp->faultdate;
-        return $respdate if defined $respdate;
-    }
-
-    return undef;
+    return $self->_first_response_value('faultdate');
 }
 
 =item B<filedate>
@@ -1741,13 +1729,25 @@ Can not be set (it is derived from the first response).
 sub filedate {
     my $self = shift;
 
+    if (@_) {
+        croak "The OMP::Fault->filedate accessor is a read-only method";
+    }
+
+    return $self->_first_response_value('date');
+}
+
+# Return the value from the given accessor of the body (first response).
+sub _first_response_value {
+    my $self = shift;
+    my $method = shift;
+
     # Look at the first response
-    my $firstresp = $self->responses->[0];
+    my $firstresp = $self->{'Responses'}->[0];
 
     throw OMP::Error::FatalError("No fault body! Should not happen.")
         unless $firstresp;
 
-    return $firstresp->date;
+    return $firstresp->$method;
 }
 
 =item B<urgency>
@@ -1960,7 +1960,7 @@ sub getResponse {
     my $self = shift;
     my $respid = shift;
 
-    for (@{$self->responses}) {
+    foreach (@{$self->{'Responses'}}) {
         return $_ if $_->id eq $respid;
     }
 }
@@ -1979,11 +1979,7 @@ This information is retrieved from the first response object.
 sub author {
     my $self = shift;
 
-    my $firstresp = $self->responses->[0];
-    throw OMP::Error::FatalError("No fault body! Should not happen.")
-        unless $firstresp;
-
-    return $firstresp->author;
+    return $self->_first_response_value('author');
 }
 
 =item B<date>
