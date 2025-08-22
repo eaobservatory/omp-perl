@@ -126,6 +126,7 @@ use constant SMURF => 1067;
 use constant HEDWIG => 1068;
 use constant JSAPROC => 1069;
 use constant JSA_CADC => 1070;
+use constant BACK_END_VLBI => 1071;
 
 # FRONT_END_HARP is 2001.
 use constant {
@@ -137,6 +138,10 @@ use constant {
     SMU_TMU  => FRONT_END_HARP +  6,
     NAMAKANUI=> FRONT_END_HARP +  7,
     WX_STATN => FRONT_END_HARP +  8,
+    FRONT_END_UU => FRONT_END_HARP +  9,
+    FRONT_END_AWEOWEO => FRONT_END_HARP +  10,
+    FRONT_END_ALAIHI => FRONT_END_HARP +  11,
+    FRONT_END_KUNTUR => FRONT_END_HARP +  12,
 };
 
 # Safety - severity.
@@ -188,6 +193,7 @@ use constant {
     WORKSHOP     => TOILET + 6,
     VEHICLE_BAY  => TOILET + 7,
     CAR_PARK     => TOILET + 8,
+    STAFF_LOUNGE => TOILET + 9,
 };
 
 # Facility - type.
@@ -199,6 +205,7 @@ use constant {
     ALARM_SYS       => INSECT + 4,
     ELECTRICAL      => INSECT + 5,
     RODENT          => INSECT + 6,
+    AVIAN           => INSECT + 7,
 };
 
 # Even log - system.
@@ -274,6 +281,11 @@ my %DATA = (
             "PC/Linux" => PC_LINUX,
             "Other/Unknown" => SYSTEMOTHER,
         },
+        SYSTEM_HIDDEN => {
+            SUN_SOLARIS() => 1,
+            ALPHA_OSF() => 1,
+            VAX_VMS() => 1,
+        },
         TYPE => {
             Other => TYPEOTHER,
             Human => HUMAN,
@@ -290,8 +302,13 @@ my %DATA = (
             "Back End - ACSIS" => BACK_END_ACSIS,
             "Back End - CBE" => BACK_END_CBE,
             "Back End - IFD" => BACK_END_IFD,
+            "Back End - VLBI" => BACK_END_VLBI,
             "Front End - HARP" => FRONT_END_HARP,
-            "Front End - Namakanui" => NAMAKANUI,
+            "Front End - N\x{101}makanui" => NAMAKANUI,
+            "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
+            "Front End - \x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
+            "Front End - \x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
+            "Front End - Kuntur" => FRONT_END_KUNTUR,
             "Front End - RxA" => FRONT_END_RXA,
             "Front End - RxB" => FRONT_END_RXB,
             "Front End - RxW" => FRONT_END_RXW,
@@ -300,7 +317,7 @@ my %DATA = (
             SCUBA => SCUBA,
             'SCUBA-2' => SCUBA2,
             IFS => IFS,
-            "Water Vapor Rad." => WATER_VAPOR_RAD,
+            "Water Vapor Monitor" => WATER_VAPOR_RAD,
             "Weather Station" => WX_STATN,
             "Visitor Instruments" => INSTRUMENT_VISITOR,
             Instrument => INSTRUMENT_OTHER_UNKNOWN,
@@ -312,8 +329,11 @@ my %DATA = (
             BACK_END_DAS() => 1,
             BACK_END_CBE() => 1,
             BACK_END_IFD() => 1,
+            FRONT_END_RXA() => 1,
             FRONT_END_RXB() => 1,
             FRONT_END_RXW() => 1,
+            IFS() => 1,
+            INSTRUMENT_OTHER_UNKNOWN() => 1,
             SCUBA() => 1,
         },
         TYPE => {
@@ -395,8 +415,13 @@ my %DATA = (
             STARLINK => STARLINK,
             "ORAC-DR/PICARD" => ORAC_DR,
             SMURF => SMURF,
-            OTHER => SYSTEMOTHER,
+            'Other/Unknown' => SYSTEMOTHER,
             "JSA Processing" => JSAPROC,
+        },
+        SYSTEM_HIDDEN => {
+            JCMT_DR() => 1,
+            SURF() => 1,
+            SPECX() => 1,
         },
         TYPE => {
             Bug => BUG,
@@ -437,7 +462,11 @@ my %DATA = (
             'Workshop' => WORKSHOP,
             'Vehicle Bay' => VEHICLE_BAY,
             'Car Park' => CAR_PARK,
+            'Staff Lounge' => STAFF_LOUNGE,
             'Other' => SYSTEMOTHER,
+        },
+        SYSTEM_HIDDEN => {
+            UKIRT() => 1,
         },
         'TYPE' => {
             'Insect' => INSECT,
@@ -449,20 +478,26 @@ my %DATA = (
             'Network' => NETWORK,
             'Computer' => COMPUTER,
             'Rodent' => RODENT,
+            'Avian' => AVIAN,
             'Other' => TYPEOTHER,
         },
     },
     'JCMT_EVENTS' => {
         'SYSTEM' => {
             'ACSIS' => BACK_END_ACSIS,
+            'VLBI Back End' => BACK_END_VLBI,
             'Computer' => COMPUTER,
-            'FTS2' => FTS2,
+            'FTS-2' => FTS2,
             'HARP' => FRONT_END_HARP,
             'OCS/JOS' => OCS_JOS,
             'Pointing' => POINTING,
-            'POL2' => POL2,
+            'POL-2' => POL2,
             'Rover' => ROVER,
-            'Namakanui' => NAMAKANUI,
+            "N\x{101}makanui" => NAMAKANUI,
+            "\x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
+            "\x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
+            "\x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
+            "Kuntur" => FRONT_END_KUNTUR,
             'RxA' => FRONT_END_RXA,
             'RxW' => FRONT_END_RXW,
             'RxH3/Surface' => RXH3_SURFACE,
@@ -473,6 +508,11 @@ my %DATA = (
             'Water Vapor Monitor' => WATER_VAPOR_RAD,
             'Weather Station' => WX_STATN,
             'Other' => SYSTEMOTHER,
+        },
+        SYSTEM_HIDDEN => {
+            FRONT_END_RXA() => 1,
+            FRONT_END_RXW() => 1,
+            ROVER() => 1,
         },
         'TYPE' => {
             'Hardware' => HARDWARE,
