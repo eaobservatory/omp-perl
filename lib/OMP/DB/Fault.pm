@@ -264,7 +264,7 @@ sub updateFault {
     $self->_update_fault_row($fault);
 
     # Insert the project association data (this method deletes existing entries)
-    $self->_insert_assoc_rows($fault->id, $fault->projects);
+    $self->_insert_assoc_rows($fault->id, scalar $fault->projects);
 
     # End transaction
     $self->_dbunlock;
@@ -384,7 +384,7 @@ sub _store_new_fault {
     # In this case we dont need an entry if there are no projects
     # associated with the fault since we never do a join requiring
     # a fault id to exist.
-    $self->_insert_assoc_rows($fault->id, $fault->projects);
+    $self->_insert_assoc_rows($fault->id, scalar $fault->projects);
 
     # Now loop over responses
     for my $resp ($fault->responses) {
@@ -543,8 +543,8 @@ sub _query_faultdb {
             # Only want to do this once per fault
             unless ($opt{'no_projects'}) {
                 my $assocref = $self->_db_retrieve_data_ashash(
-                    "SELECT * FROM $ASSOCTABLE  WHERE faultid = ?", $id);
-                $faults{$id}->projects(map {$_->{projectid}} @$assocref);
+                    "SELECT projectid FROM $ASSOCTABLE WHERE faultid = ?", $id);
+                $faults{$id}->projects(map {$_->{'projectid'}} @$assocref);
             }
         }
         else {
@@ -634,7 +634,7 @@ sub _update_response_row {
 Insert fault project association entries.  Do a delete first to get rid of
 any old associations.
 
-    $db->_insert_assoc_rows($faultid, @projects);
+    $db->_insert_assoc_rows($faultid, \@projects);
 
 Takes a fault ID as the first argument and an array of project IDs as the
 second argument
@@ -644,17 +644,35 @@ second argument
 sub _insert_assoc_rows {
     my $self = shift;
     my $faultid = shift;
-    my @projects = @_;
+    my $projects = shift;
 
-    # Delete clause
-    my $clause = "faultid = $faultid";
+    # Prepare hash of existing project associations.
+    my %existing;
 
-    # Do the delete
-    $self->_db_delete_data($ASSOCTABLE, $clause);
+    my $rows = $self->_db_retrieve_data_ashash(
+        "SELECT associd, projectid FROM $ASSOCTABLE WHERE faultid = ?", $faultid);
 
-    my @entries = map {[$faultid, $_]} @projects;
-    for my $assoc (@entries) {
-        $self->_db_insert_data($ASSOCTABLE, undef, $assoc->[0], $assoc->[1]);
+    foreach my $row (@$rows) {
+        $existing{$row->{'projectid'}} = $row->{'associd'};
+    }
+
+    # Add new projects or remove from %existing.
+    foreach my $project (@$projects) {
+        if (exists $existing{$project}) {
+            delete $existing{$project};
+        }
+        else {
+            $self->_db_insert_data($ASSOCTABLE, undef, $faultid, $project);
+        }
+    }
+
+    # Delete projects remaining in %existing.
+    foreach my $associd (values %existing) {
+        die 'Undefined association ID' unless defined $associd;
+
+        $self->_db_delete_data(
+            $ASSOCTABLE,
+            "associd = $associd AND faultid = $faultid");
     }
 }
 
