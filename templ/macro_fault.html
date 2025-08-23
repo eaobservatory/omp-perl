@@ -42,10 +42,10 @@
                 [% IF fault_info.show_time_lost %]
                     [% SET time_lost = fault.timelost %]
                     <td align="center">
-                        [% IF time_lost == '0.00' %]
-                            &mdash;
+                        [% IF time_lost > 0 %]
+                            [% time_lost | format('%.2f hrs') %]
                         [% ELSE %]
-                            [% time_lost | html %] hrs
+                            &mdash;
                         [% END %]
                     </td>
                 [% END %]
@@ -71,7 +71,7 @@
         <tr bgcolor="#ffffff">
             <td colspan="2">
                 [% IF fault.timelost > fault.responses.first.timelost %]
-                    <b>Total loss:</b> [% fault.timelost * 60.0 %] minutes ([% fault.timelost %] hrs)
+                    <b>Total loss:</b> [% fault.timelost * 60.0 | format('%.0f minutes') %] ([% fault.timelost | format('%.2f hrs') %])
                 [% ELSE %]
                     &nbsp;
                 [% END %]
@@ -173,7 +173,7 @@
                         <td>
                             [% IF response.timelost > 0 %]
                                 <b>Time lost:</b>
-                                [% response.timelost * 60.0 %] minutes ([% response.timelost %] hrs)
+                                [% response.timelost * 60.0 | format('%.0f minutes') %] ([% response.timelost | format('%.2f hrs') %])
                             [% ELSE %]
                                 &nbsp;
                             [% END %]

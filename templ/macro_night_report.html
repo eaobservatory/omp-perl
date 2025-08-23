@@ -329,7 +329,7 @@
                             <td rowspan="[% loop.size %]" class="[% timecellclass %]">[% fault.date.strftime("%H:%M UT") | html %]</td>
                             <td rowspan="[% loop.size %]"><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="subject">[% fault.subject | html %]</a></td>
                         [% END %]
-                        <td class="time" align="right">[% fault.timelost | html %]</td>
+                        <td class="time" align="right">[% fault.timelost | format('%.2f') %]</td>
                         <td class="shift" align="right">[% fault.shifttype | html %]</td>
                     </tr>
                 [% END %]
