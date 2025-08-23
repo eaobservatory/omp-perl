@@ -263,6 +263,9 @@ sub updateFault {
     # Do the update
     $self->_update_fault_row($fault);
 
+    # Insert the project association data (this method deletes existing entries)
+    $self->_insert_assoc_rows($fault->id, $fault->projects);
+
     # End transaction
     $self->_dbunlock;
     $self->_db_commit_trans;
@@ -557,7 +560,7 @@ sub _query_faultdb {
 
 =item B<_update_fault_row>
 
-Delete and reinsert fault values.
+Update fault values.
 
     $db->_update_fault_row($fault);
 
@@ -570,33 +573,24 @@ sub _update_fault_row {
     my $fault = shift;
 
     if (UNIVERSAL::isa($fault, "OMP::Fault")) {
-        # Our where clause for the delete
+        # Where clause for the update.
         my $clause = "faultid = " . $fault->id;
 
-        # Delete the row for this fault
-        $self->_db_delete_data($FAULTTABLE, $clause);
+        my $cols = {
+            faultid => $fault->id,
+            category => $fault->category,
+            subject => $fault->subject,
+            type => $fault->type,
+            fsystem => $fault->system,
+            status => $fault->status,
+            urgency => $fault->urgency,
+            entity => $fault->entity,
+            condition => $fault->condition,
+            location => $fault->location,
+        };
 
-        # Insert the new values
-        $self->_db_insert_data(
-            $FAULTTABLE,
-            $fault->id,
-            $fault->category,
-            $fault->subject,
-            $fault->type,
-            $fault->system,
-            $fault->status,
-            $fault->urgency,
-            $fault->entity,
-            $fault->condition,
-            $fault->location,
-        );
-
-        # Insert the project association data
-        # In this case we dont need an entry if there are no projects
-        # associated with the fault since we never do a join requiring
-        # a fault id to exist.
-        $self->_insert_assoc_rows($fault->id, $fault->projects);
-
+        # Update the values.
+        $self->_db_update_data($FAULTTABLE, $cols, $clause);
     }
     else {
         throw OMP::Error::BadArgs(
@@ -606,7 +600,7 @@ sub _update_fault_row {
 
 =item B<_update_response_row>
 
-Delete and reinsert a fault response.
+Update a fault response.
 
     $db->_update_response_row($faultid, $response);
 
