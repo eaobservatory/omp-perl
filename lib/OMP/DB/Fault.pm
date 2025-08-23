@@ -543,7 +543,8 @@ sub _query_faultdb {
             # Only want to do this once per fault
             unless ($opt{'no_projects'}) {
                 my $assocref = $self->_db_retrieve_data_ashash(
-                    "SELECT projectid FROM $ASSOCTABLE WHERE faultid = ?", $id);
+                    "SELECT projectid FROM $ASSOCTABLE WHERE faultid = ? ORDER BY projectid ASC",
+                    $id);
                 $faults{$id}->projects(map {$_->{'projectid'}} @$assocref);
             }
         }

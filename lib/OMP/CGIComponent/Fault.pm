@@ -673,7 +673,7 @@ sub parse_file_fault_form {
 
         # Use a hash to eliminate duplicates
         my %projects = map {uc($_), undef} @assoc, @assoc2;
-        $parsed{projects} = [keys %projects];
+        $parsed{'projects'} = [sort keys %projects];
     }
 
     # The text.
