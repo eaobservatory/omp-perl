@@ -331,7 +331,7 @@ sub file_fault_form {
             tz => 'HST',
             subject => $fault->subject,
             message => $message,
-            assoc2 => join(',', @assoc),
+            assoc2 => join(' ', @assoc),
             urgency => $urgent,
             condition => $chronic,
             shifttype => $response->shifttype,
