@@ -135,6 +135,8 @@ sub file_fault {
     my $resp = OMP::Fault::Response->new(
         author => $self->auth->user,
         text => $faultdetails{text},
+        shifttype => $faultdetails{shifttype},
+        remote => $faultdetails{remote},
     );
 
     # Create the fault object
@@ -146,17 +148,15 @@ sub file_fault {
         status => $faultdetails{status},
         location => $faultdetails{location},
         urgency => $faultdetails{urgency},
-        shifttype => $faultdetails{shifttype},
-        remote => $faultdetails{remote},
         fault => $resp,
     );
 
     # The following are not always present
     $fault->projects($faultdetails{projects}) if $faultdetails{projects};
 
-    $fault->faultdate($faultdetails{faultdate}) if $faultdetails{faultdate};
+    $resp->faultdate($faultdetails{faultdate}) if $faultdetails{faultdate};
 
-    $fault->timelost($faultdetails{timelost}) if $faultdetails{timelost};
+    $resp->timelost($faultdetails{timelost}) if $faultdetails{timelost};
 
     # Submit the fault the the database
     my $faultid;
@@ -241,7 +241,12 @@ sub query_fault_output {
             $hash{'type'} = $type if $type !~ /any/;
         }
 
-        # Return chronic faults only?
+        # Return urgent or chronic faults only?
+        if ($q->param('urgent')) {
+            my %urgency = OMP::Fault->faultUrgency;
+            $hash{'urgency'} = $urgency{'Urgent'};
+        }
+
         if ($q->param('chronic')) {
             my %condition = OMP::Fault->faultCondition;
             $hash{'condition'} = $condition{'Chronic'};
@@ -262,6 +267,9 @@ sub query_fault_output {
                 my %status = OMP::Fault->faultStatusOpen(@cat_not_any);
                 $hash{'status'} = [values %status];
             }
+            elsif ($status eq 'non_duplicate') {
+                $hash{'EXPR__STAT'} = {not => {status => OMP::Fault::DUPLICATE}};
+            }
             else {
                 # Do a query on just a single status
                 $hash{'status'} = $status;
@@ -274,8 +282,20 @@ sub query_fault_output {
             $hash{'author'} = $1;
         }
 
+        # Return either only faults filed, faults responded to, or occurring
+        # on a particular date.
+        my $datefield = 'date';
+        if ($q->param('action') =~ /response/) {
+            $hash{'isfault'} = {boolean => 0};
+        }
+        elsif ($q->param('action') =~ /file/) {
+            $hash{'isfault'} = {boolean => 1};
+        }
+        elsif ($q->param('action') =~ /occurred/) {
+            $datefield = 'faultdate';
+        }
+
         # Generate the date portion of our query
-        my $queryDateStr;
         if ($q->param('period') eq 'arbitrary') {
             # Get our min and max dates
             my $mindatestr = $q->param('mindate');
@@ -310,7 +330,7 @@ sub query_fault_output {
                 my %datehash = ();
                 $datehash{'min'} = $mindate->datetime if $mindate;
                 $datehash{'max'} = $maxdate->datetime if $maxdate;
-                $hash{'date'} = \%datehash;
+                $hash{$datefield} = \%datehash;
             }
 
             # Convert dates back to localtime
@@ -324,7 +344,7 @@ sub query_fault_output {
             $maxdate = localtime($t->epoch);
             $mindate = localtime($maxdate->epoch - $days * ONE_DAY);
 
-            $hash{'date'} = {delta => - $days, value => $t->datetime};
+            $hash{$datefield} = {delta => - $days, value => $t->datetime};
         }
         elsif ($q->param('period') eq 'last_month') {
             # Get results for the period between the first
@@ -350,7 +370,7 @@ sub query_fault_output {
             my $tempdate2 = Time::Piece->strptime($year . $month . $tempdate->month_last_day . "T23:59:59", "%Y%m%dT%H:%M:%S");
             $maxdate = gmtime($tempdate2->epoch);
 
-            $hash{'date'} = {
+            $hash{$datefield} = {
                 min => $mindate->datetime,
                 max => $maxdate->datetime,
             };
@@ -360,7 +380,7 @@ sub query_fault_output {
             $maxdate = localtime($maxdate->epoch);
         }
         else {
-            $hash{'date'} = {delta => -7, value => $t->ymd};
+            $hash{$datefield} = {delta => -7, value => $t->ymd};
         }
 
         # Get the text param and unescape things like &amp; &quot;
@@ -383,14 +403,6 @@ sub query_fault_output {
                     subject => $text_spec,
                 }};
             }
-        }
-
-        # Return either only faults filed or only faults responded to
-        if ($q->param('action') =~ /response/) {
-            $hash{'isfault'} = {boolean => 0};
-        }
-        elsif ($q->param('action') =~ /file/) {
-            $hash{'isfault'} = {boolean => 1};
         }
 
         if ($q->param('timelost')) {
@@ -622,11 +634,17 @@ sub view_fault {
         # Strip out ^M
         $text = OMP::Display->remove_cr($text);
 
+        my %common = $comp->parse_file_fault_form($category);
+
         my $E;
         try {
             my $resp = OMP::Fault::Response->new(
                 author => $self->auth->user,
                 text => $text,
+                timelost => $common{'timelost'},
+                faultdate => $common{'faultdate'},
+                shifttype => $common{'shifttype'},
+                remote => $common{'remote'},
             );
             $fdb->respondFault($fault->id, $resp);
         }
@@ -911,6 +929,8 @@ sub update_resp {
         }
     }
 
+    my %common = $comp->parse_form_common($category);
+
     # Get the response object
     my $response = $fault->getResponse($respid);
 
@@ -918,6 +938,10 @@ sub update_resp {
     $response->text($text);
     $response->preformatted(0);
     $response->flag($flag) if defined $flag;
+    $response->timelost($common{'timelost'});
+    $response->faultdate($common{'faultdate'});
+    $response->shifttype($common{'shifttype'});
+    $response->remote($common{'remote'});
 
     # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
 

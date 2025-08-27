@@ -84,6 +84,10 @@ sub new {
         RespID => undef,
         RespNum => undef,
         Flag => 0,
+        TimeLost => undef,
+        FaultDate => undef,
+        ShiftType => undef,
+        Remote => undef,
     };
 
     bless $resp, $class;
@@ -264,6 +268,90 @@ sub flag {
         $self->{'Flag'} = shift;
     }
     return $self->{'Flag'};
+}
+
+=item B<timelost>
+
+Time lost to the fault in hours.
+
+    $tl = $resp->timelost();
+    $resp->timelost($tl);
+
+=cut
+
+sub timelost {
+    my $self = shift;
+    if (@_) {
+        my $tl = shift;
+        # Dont need more than 2 decimal places
+        $self->{'TimeLost'} = (defined $tl) ? sprintf('%.2f', $tl) : undef;
+    }
+    return $self->{'TimeLost'};
+}
+
+=item B<faultdate>
+
+Date the fault occurred. This may be different from the date
+it was filed. Not required (default is that the date it was
+filed is good enough). Must be a C<Time::Piece> object
+(or undef).
+
+    $date = $resp->faultdate();
+    $resp->faultdate($date);
+
+=cut
+
+sub faultdate {
+    my $self = shift;
+    if (@_) {
+        my $date = shift;
+        croak "Date must be supplied as Time::Piece object"
+            if (defined $date && !UNIVERSAL::isa($date, "Time::Piece"));
+        $self->{'FaultDate'} = $date;
+    }
+    return $self->{'FaultDate'};
+}
+
+=item B<shifttype>
+
+Shift type (supplied as a string).
+
+    $shifttype = $resp->shifttype();
+    $resp->shifttype($shifttype);
+
+=cut
+
+sub shifttype {
+    my $self = shift;
+    if (@_) {
+        my $shifttype = shift;
+        if (! defined $shifttype || $shifttype eq '') {
+            $shifttype = undef;
+        }
+        $self->{'ShiftType'} = $shifttype;
+    }
+    return $self->{'ShiftType'};
+}
+
+=item B<remote>
+
+Remote (supplied as an integer).
+
+    $remote = $resp->remote();
+    $resp->remote($remote);
+
+=cut
+
+sub remote {
+    my $self = shift;
+    if (@_) {
+        my $remote = shift;
+        if (! defined $remote || $remote eq '') {
+            $remote = undef;
+        }
+        $self->{'Remote'} = $remote;
+    }
+    return $self->{'Remote'};
 }
 
 =back

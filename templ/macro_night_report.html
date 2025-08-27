@@ -313,22 +313,26 @@
         </tr>
         [% FOREACH date IN night_report.faults.by_date %]
             [% SET timecellclass = 'time_a' %]
-            [% IF night_report.delta_day != 1 %]
-                [% SET timecellclass = 'time_' _ date.value.0.date.day _ '_a' %]
+            [% IF loop.size > 1 %]
+                [% SET timecellclass = 'time_' _ date.value.faults.first.date.day _ '_a' %]
                 <tr class="sum_other" valign="top">
                     <td class="[% timecellclass %]" colspan="2">[% date.key | html %]</td>
                     <td colspan="3">&nbsp;</td>
                 </tr>
             [% END %]
-            [% FOREACH fault IN date.value.faults %]
-                <tr class="sum_other" valign="top">
-                    <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_small">[% fault.id | html %]</a></td>
+            [% FOREACH fullfault IN date.value.faults %]
+                [% FOREACH fault IN fullfault.by_shift.values %]
+                    <tr class="sum_other" valign="top">
+                        [% IF loop.first %]
+                            <td rowspan="[% loop.size %]"><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="link_small">[% fault.id | html %]</a></td>
 
-                    <td class="[% timecellclass %]">[% fault.date.strftime("%H:%M UT") | html %]</td>
-                    <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="subject">[% fault.subject | html %]</a></td>
-                    <td class="time" align="right">[% fault.timelost | html %]</td>
-                    <td class="shift" align="right">[% fault.shifttype | html %]</td>
-                </tr>
+                            <td rowspan="[% loop.size %]" class="[% timecellclass %]">[% fault.date.strftime("%H:%M UT") | html %]</td>
+                            <td rowspan="[% loop.size %]"><a href="/cgi-bin/viewfault.pl?fault=[% fault.id | uri %]" class="subject">[% fault.subject | html %]</a></td>
+                        [% END %]
+                        <td class="time" align="right">[% fault.timelost | format('%.2f') %]</td>
+                        <td class="shift" align="right">[% fault.shifttype | html %]</td>
+                    </tr>
+                [% END %]
             [% END %]
         [% END %]
     </table>

@@ -90,10 +90,10 @@
             </tr>
         [% END %]
         [% IF has_time_occurred %]
-            <tr valign="top">
+            <tr>
                 <td align="right"><b>Time occurred:</b></td>
                 <td>
-                    <input type="text" name="time" size="20" maxlength="128" value="[% values.time | html %]" />
+                    <input type="text" name="time" size="30" maxlength="128" value="[% values.time | html %]" placeholder="YYYY-MM-DDTHH:MM or HH:MM" />
                     &nbsp;
                     <select name="tz">
                         [% FOREACH tz IN ['UT', 'HST'] %]
@@ -102,14 +102,12 @@
                     </select>
                     &nbsp;
                     <input type="button" value="Now" class="time_set_now" />
-                    <br />
-                    <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>
                 </td>
             </tr>
         [% END %]
         [% IF shifts.size > 1 %]
             <tr>
-                <td align=right><b>Shift Type:</b></td>
+                <td align="right"><b>Shift type:</b></td>
                 <td>
                     <select name="shifttype">
                         [% FOREACH shift IN shifts %]
@@ -121,7 +119,7 @@
         [% END %]
         [% IF remotes.size > 1 %]
             <tr>
-                <td align="right"><b>Remote Status:</b></td>
+                <td align="right"><b>Remote status:</b></td>
                 <td>
                     <select name="remote">
                         [% FOREACH remote IN remotes %]

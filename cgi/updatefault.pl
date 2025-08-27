@@ -20,4 +20,5 @@ OMP::CGIPage::Fault->new(cgi => CGI->new())->write_page(
     'staff',
     title => 'Update Fault',
     template => 'fault_file_edit.html',
+    javascript => ['time_set_now.js'],
 );

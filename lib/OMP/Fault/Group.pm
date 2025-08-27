@@ -388,8 +388,8 @@ Organize faults by shift type.
 
 Returns a reference to a hash of C<OMP::Fault::Group> objects.
 
-Any faults without a shift type will be returned in the hash
-key "UNKNOWN".
+B<Note:> each fault is broken into shift-specific components
+using the C<OMP::Fault-E<gt>by_shift> method.
 
 =cut
 
@@ -398,15 +398,18 @@ sub by_shift {
 
     my %result;
 
-    foreach my $fault (@{scalar $self->faults}) {
-        # Convert undef / empty string to "UNKNOWN".
-        my $shift = $fault->shifttype || 'UNKNOWN';
+    foreach my $fullfault (@{scalar $self->faults}) {
+        my $shiftfaults = $fullfault->by_shift;
 
-        unless (exists $result{$shift}) {
-            $result{$shift} = $self->new(faults => [$fault]);
-        }
-        else {
-            push @{scalar $result{$shift}->faults}, $fault;
+        foreach my $shift (keys %$shiftfaults) {
+            my $fault = $shiftfaults->{$shift};
+
+            unless (exists $result{$shift}) {
+                $result{$shift} = $self->new(faults => [$fault]);
+            }
+            else {
+                push @{scalar $result{$shift}->faults}, $fault;
+            }
         }
     }
 
@@ -417,9 +420,12 @@ sub by_shift {
 
 Return a reference to a hash of faults organized by date.
 
-    $dates = $f->by_shift;
+    $dates = $f->by_date();
 
 Each entry in the hash is another C<OMP::Fault::Group> object.
+
+B<Note:> each fault is broken into date-specific components
+using the C<OMP::Fault-E<gt>by_date> method.
 
 =cut
 
@@ -428,14 +434,18 @@ sub by_date {
 
     my %result;
 
-    foreach my $fault (@{scalar $self->faults}) {
-        my $date = $fault->date->ymd;
+    foreach my $fullfault (@{scalar $self->faults}) {
+        my $datefaults = $fullfault->by_date();
 
-        unless (exists $result{$date}) {
-            $result{$date} = $self->new(faults => [$fault]);
-        }
-        else {
-            push @{scalar $result{$date}->faults}, $fault;
+        foreach my $date (keys %$datefaults) {
+            my $fault = $datefaults->{$date};
+
+            unless (exists $result{$date}) {
+                $result{$date} = $self->new(faults => [$fault]);
+            }
+            else {
+                push @{scalar $result{$date}->faults}, $fault;
+            }
         }
     }
 

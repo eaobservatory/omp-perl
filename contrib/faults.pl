@@ -12,6 +12,8 @@ use strict;
 use FindBin;
 use File::Spec;
 use Getopt::Long;
+use Time::Piece qw/:override/;
+use Time::Seconds qw/ONE_DAY/;
 
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
@@ -24,10 +26,14 @@ BEGIN {
 use DBI;
 
 use lib OMPLIB;
+use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Fault;
+use OMP::NightRep;
+use OMP::Query::Fault;
 
-my $dbs = OMP::DB::Backend->new;
+my $dbb = OMP::DB::Backend->new;
+my $db = OMP::DB::Fault->new(DB => $dbb);
 
 my ($help, $man, $tel, $ut, $days, $events);
 my $status = GetOptions(
@@ -58,7 +64,7 @@ else {
     help();
     die "*Error*: no start ut specified\n\n";
 }
-chomp($startut);
+$startut = OMP::DateTools->parse_date($startut);
 
 # Telescope
 my $telescope = "JCMT";
@@ -67,13 +73,12 @@ if (defined($tel)) {
     $telescope = "UKIRT" if ($tel =~ /^U/i);
 }
 
+my $category = $telescope;
 if (defined($events)) {
-    $telescope = "JCMT_EVENTS";
+    $category .= "_EVENTS";
 }
 die "*Error*: telescope must be J(CMT) or U(KIRT), or events must be selected. Exiting.\n"
-    if ($telescope ne "JCMT"
-    and $telescope ne "UKIRT"
-    and $telescope ne "JCMT_EVENTS");
+    unless grep {$category eq $_} qw/JCMT UKIRT JCMT_EVENTS/;
 
 my $delta = 7;
 $delta = $days if (defined($days));
@@ -88,14 +93,8 @@ my @statusname = (
     "WILL BE FIXED"
 );
 
-# Get the connection handle
-my $db = $dbs->handle
-    or die "Error connecting to DB: $DBI::errstr";
+my $faultname = (lc OMP::Fault->getCategoryEntryName($category)) . 's';
 
-my $faultname = "faults";
-if ($telescope eq "JCMT_EVENTS") {
-    $faultname = "events";
-}
 print
 "___________________________________________________________________________
 
@@ -104,23 +103,15 @@ print
 
 ";
 
-my $current_ref = $db->selectall_arrayref(
-    qq{select
-        F.faultid,
-        date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
-        substring(subject,1,80),
-        author,
-        0.01*floor(100*timelost),
-        status
-    from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
-    where date between "$startut" and date_add("$startut", interval ${delta} day)
-        and FB.faultid = F.faultid
-        and category='${telescope}'
-        and isfault = 1
-    order by substring(subject,1,80),faultid}
-) or die "Error retrieving from DB: $DBI::errstr";
-
-# order by (-1*timelost)})  === previous sort by timelost
+# Note: OMP::NightRep currently allows telescope => JCMT_EVENTS,
+# but if that changes, should add a new method OMP::NightRep->events
+# to perform the same query in the events category.
+my $current = OMP::NightRep->new(
+    DB => $dbb,
+    date => $startut,
+    delta_day => $delta,
+    telescope => $category,
+)->faults;
 
 # Group same faults together
 
@@ -128,9 +119,8 @@ my %faults;
 
 my $totallost = 0;
 
-foreach my $row (@$current_ref) {
-    my ($faultid, $time, $subject, $author, $timelost, $status) = @$row;
-
+foreach my $fault ($current->faults) {
+    my $subject = $fault->subject;
     $subject =~ s/^\s+//;
     $subject = substr($subject,0,55);
     $subject =~ s/\s+$//;
@@ -148,35 +138,38 @@ foreach my $row (@$current_ref) {
     # Now just get rid of all spaces for key
     $subj =~ s/\s+/\_/g;
 
+    my $author = $fault->author->userid;
     $author = substr($author, 0, 5) . substr($author, -1, 1)
         if length($author) > 6 ;
 
+    my $time = (scalar localtime $fault->date->epoch)->strftime('%H:%M HST');
+    my $status = $statusname[$fault->status];
+
     if (exists $faults{$subj}) {
-        $faults{$subj}{totallost} += $timelost;
-        $faults{$subj}{listing} .= sprintf "%12.12s %8.8s  %-s\n", $faultid, $time, $subject;
+        $faults{$subj}{totallost} += $fault->timelost;
+        $faults{$subj}{listing} .= sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
         $faults{$subj}{author} .= ',' . $author
-            unless ($faults{$subj}{author} =~ /$author/i);
-        $faults{$subj}{status} = $statusname[$status]
-            if ($statusname[$status] =~ /open/i);
+            unless $faults{$subj}{author} =~ /$author/i;
+        $faults{$subj}{status} = $status if $status =~ /open/i;
     }
     else {
         my %ref;
-        $ref{totallost} = $timelost;
-        $ref{listing} = sprintf "%12.12s %8.8s  %-s\n", $faultid, $time, $subject;
+        $ref{totallost} = $fault->timelost;
+        $ref{listing} = sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
         $ref{author} = $author;
-        $ref{status} = $statusname[$status];
+        $ref{status} = $status;
         $faults{$subj} = \%ref;
     }
 }
 
 # Now print everything in from largest time lost;
 foreach my $subj (
-        sort {$faults{"$b"}{totallost} cmp $faults{"$a"}{totallost}}
+        sort {$faults{$b}{totallost} cmp $faults{$a}{totallost}}
         keys %faults) {
     printf "%s", $faults{$subj}{listing};
 
-    if ($telescope ne "JCMT_EVENTS") {
-        printf " %-21.21s %4.4s hrs lost %25.25s %s\n\n",
+    if ($category ne "JCMT_EVENTS") {
+        printf " %-21.21s %4.2f hrs lost %25.25s %s\n\n",
             $faults{$subj}{author}, $faults{$subj}{totallost}, ' ',
             $faults{$subj}{status};
     }
@@ -186,7 +179,7 @@ foreach my $subj (
 }
 
 
-if ($telescope ne "JCMT_EVENTS") {
+if ($category ne "JCMT_EVENTS") {
     print "
 
 =========================================================================
@@ -196,34 +189,34 @@ if ($telescope ne "JCMT_EVENTS") {
 ...Last week faults, still OPEN:
 
 ";
+    my %status_open = OMP::Fault->faultStatusOpen($category);
+    my $previous = $db->queryFaults(
+        OMP::Query::Fault->new(HASH => {
+            category => $category,
+            date => {
+                min => $startut - $delta * ONE_DAY,
+                max => $startut,
+            },
+            isfault => {boolean => 1},
+            status => [values %status_open],
+        }),
+        no_text => 1, no_projects => 1);
 
-    my $previous_ref = $db->selectall_arrayref(
-        qq{select
-            F.faultid,
-            date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
-            substring(subject,1,80),
-            author,
-            0.01*floor(100*timelost),
-            status
-        from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
-        where date between date_sub("$startut", interval ${delta} day) and "$startut"
-            and FB.faultid = F.faultid
-            and category='${telescope}'
-            and isfault = 1
-            and status in (0, 6)
-        order by (-1*timelost)}
-    ) or die "Error retrieving from DB: $DBI::errstr";
-
-    foreach my $row (@$previous_ref) {
-        my ($faultid, $time, $subject, $author, $timelost, $status) = @$row;
-
+    foreach my $fault ($previous->faults) {
+        my $subject = $fault->subject;
         $subject =~ s/^\s+//;
         $subject = substr($subject, 0, 55);
         $subject =~ s/\s+$//g;
 
-        printf "%12.12s %8.8s  %-s\n %-21.21s %4.4s hrs lost %25.25s %s\n\n",
-            $faultid, $time, $subject,
-            $author, $timelost, ' ', $statusname[$status];
+        my $author = $fault->author->userid;
+        $author = substr($author, 0, 5) . substr($author, -1, 1)
+            if length($author) > 6 ;
+
+        my $time = (scalar localtime $fault->date->epoch)->strftime('%H:%M HST');
+
+        printf "%12.12s %9.9s %-s\n %-21.21s %4.2f hrs lost %25s %s\n\n",
+            $fault->id, $time, $subject,
+            $author, $fault->timelost, '', $statusname[$fault->status];
     }
 
     print "
@@ -231,29 +224,26 @@ if ($telescope ne "JCMT_EVENTS") {
 
 ";
 
-    my $previous_ref = $db->selectall_arrayref(
-        qq{select
-            distinct F.faultid,
-            substring(subject,1,80),
-            0.01*floor(100*timelost),
-            status
-        from $OMP::DB::Fault::FAULTTABLE F, $OMP::DB::Fault::FAULTBODYTABLE FB
-        where date between "$startut" and date_add("$startut", interval ${delta} day)
-            and faultdate < "$startut"
-            and FB.faultid = F.faultid
-            and status = 1
-            and category='${telescope}'
-        order by F.faultid}
-    ) or die "Error retrieving from DB: $DBI::errstr";
+    $previous = $db->queryFaults(
+        OMP::Query::Fault->new(HASH => {
+            category => $category,
+            date => {
+                value => $startut,
+                delta => $delta,
+            },
+            status => 1,
+        }),
+        no_text => 1, no_projects => 1);
 
-    foreach my $row (@$previous_ref) {
-        my ($faultid, $subject, $timelost, $status) = @$row;
+    foreach my $fault ($previous->faults) {
+        next unless $fault->date < $startut;
 
+        my $subject = $fault->subject;
         $subject =~ s/^\s+//;
         $subject = substr($subject, 0, 55);
         $subject =~ s/\s+$//g;
 
-        printf "%12.12s %8.8s  %-s\n\n", $faultid, ' ', $subject;
+        printf "%12.12s %8.8s  %-s\n\n", $fault->id, ' ', $subject;
     }
 }
 else {
@@ -262,7 +252,7 @@ else {
 
 
 # DISCONNECT FROM DB SERVER
-$db->disconnect;
+$dbb->handle->disconnect;
 
 sub help () {
     print "\n";

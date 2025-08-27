@@ -652,7 +652,7 @@ sub _db_update_data {
 
     # Construct the SQL
     my $sql = "UPDATE $table SET "
-        . join(", ", map {"$_ = ?"} @change_cols)
+        . join(", ", map {"`$_` = ?"} @change_cols)
         . $clause;
 
     OMP::General->log_message("Updating DB row: $sql", OMP__LOG_DEBUG);

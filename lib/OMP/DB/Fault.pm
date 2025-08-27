@@ -263,6 +263,9 @@ sub updateFault {
     # Do the update
     $self->_update_fault_row($fault);
 
+    # Insert the project association data (this method deletes existing entries)
+    $self->_insert_assoc_rows($fault->id, scalar $fault->projects);
+
     # End transaction
     $self->_dbunlock;
     $self->_db_commit_trans;
@@ -362,35 +365,26 @@ sub _store_new_fault {
 
     # First store the main fault information
 
-    # Date must be formatted for MySQL
-    my $faultdate = $fault->faultdate;
-    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-        if defined $faultdate;
-
     # Insert the data into the table
     $self->_db_insert_data(
         $FAULTTABLE,
         $fault->id,
         $fault->category,
         $fault->subject,
-        $faultdate,
         $fault->type,
         $fault->system,
         $fault->status,
         $fault->urgency,
-        $fault->timelost,
         $fault->entity,
         $fault->condition,
         $fault->location,
-        $fault->shifttype,
-        $fault->remote,
     );
 
     # Insert the project association data
     # In this case we dont need an entry if there are no projects
     # associated with the fault since we never do a join requiring
     # a fault id to exist.
-    $self->_insert_assoc_rows($fault->id, $fault->projects);
+    $self->_insert_assoc_rows($fault->id, scalar $fault->projects);
 
     # Now loop over responses
     for my $resp ($fault->responses) {
@@ -425,7 +419,7 @@ sub _add_new_response {
             SQL => sprintf 'select coalesce(max(respnum) + 1, 0) from %s AS fb2 where faultid = %s',
             $FAULTBODYTABLE, $id
         },
-        @{$cols}{qw/flag preformatted/}
+        @{$cols}{qw/flag preformatted faultdate timelost shifttype remote/}
     );
 }
 
@@ -455,6 +449,11 @@ sub _prepare_response_columns {
         . $author->userid . "' invalid]")
         unless ($userid);
 
+    # Date must be formatted for MySQL
+    my $faultdate = $resp->faultdate;
+    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
+        if defined $faultdate;
+
     return {
         date => $date->strftime("%Y-%m-%d %T"),
         author => $userid,
@@ -462,6 +461,10 @@ sub _prepare_response_columns {
         text => $text,
         preformatted => $resp->preformatted,
         flag => $resp->flag,
+        faultdate => $faultdate,
+        timelost => $resp->timelost,
+        shifttype => $resp->shifttype,
+        remote => $resp->remote,
     };
 }
 
@@ -484,7 +487,8 @@ sub _query_faultdb {
     # Get the SQL
     my $sql = $query->sql(
         $FAULTTABLE, $FAULTBODYTABLE,
-        no_text => $opt{'no_text'});
+        no_text => $opt{'no_text'},
+        matching_responses_only => $opt{'matching_responses_only'});
 
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash($sql);
@@ -539,8 +543,9 @@ sub _query_faultdb {
             # Only want to do this once per fault
             unless ($opt{'no_projects'}) {
                 my $assocref = $self->_db_retrieve_data_ashash(
-                    "SELECT * FROM $ASSOCTABLE  WHERE faultid = ?", $id);
-                $faults{$id}->projects(map {$_->{projectid}} @$assocref);
+                    "SELECT projectid FROM $ASSOCTABLE WHERE faultid = ? ORDER BY projectid ASC",
+                    $id);
+                $faults{$id}->projects(map {$_->{'projectid'}} @$assocref);
             }
         }
         else {
@@ -556,7 +561,7 @@ sub _query_faultdb {
 
 =item B<_update_fault_row>
 
-Delete and reinsert fault values.
+Update fault values.
 
     $db->_update_fault_row($fault);
 
@@ -569,42 +574,24 @@ sub _update_fault_row {
     my $fault = shift;
 
     if (UNIVERSAL::isa($fault, "OMP::Fault")) {
-        # Our where clause for the delete
+        # Where clause for the update.
         my $clause = "faultid = " . $fault->id;
 
-        # Delete the row for this fault
-        $self->_db_delete_data($FAULTTABLE, $clause);
+        my $cols = {
+            faultid => $fault->id,
+            category => $fault->category,
+            subject => $fault->subject,
+            type => $fault->type,
+            fsystem => $fault->system,
+            status => $fault->status,
+            urgency => $fault->urgency,
+            entity => $fault->entity,
+            condition => $fault->condition,
+            location => $fault->location,
+        };
 
-        # Date must be formatted for MySQL
-        my $faultdate = $fault->faultdate;
-        $faultdate = $faultdate->strftime("%Y-%m-%d %T")
-            if defined $faultdate;
-
-        # Insert the new values
-        $self->_db_insert_data(
-            $FAULTTABLE,
-            $fault->id,
-            $fault->category,
-            $fault->subject,
-            $faultdate,
-            $fault->type,
-            $fault->system,
-            $fault->status,
-            $fault->urgency,
-            $fault->timelost,
-            $fault->entity,
-            $fault->condition,
-            $fault->location,
-            $fault->shifttype,
-            $fault->remote,
-        );
-
-        # Insert the project association data
-        # In this case we dont need an entry if there are no projects
-        # associated with the fault since we never do a join requiring
-        # a fault id to exist.
-        $self->_insert_assoc_rows($fault->id, $fault->projects);
-
+        # Update the values.
+        $self->_db_update_data($FAULTTABLE, $cols, $clause);
     }
     else {
         throw OMP::Error::BadArgs(
@@ -614,7 +601,7 @@ sub _update_fault_row {
 
 =item B<_update_response_row>
 
-Delete and reinsert a fault response.
+Update a fault response.
 
     $db->_update_response_row($faultid, $response);
 
@@ -648,7 +635,7 @@ sub _update_response_row {
 Insert fault project association entries.  Do a delete first to get rid of
 any old associations.
 
-    $db->_insert_assoc_rows($faultid, @projects);
+    $db->_insert_assoc_rows($faultid, \@projects);
 
 Takes a fault ID as the first argument and an array of project IDs as the
 second argument
@@ -658,17 +645,35 @@ second argument
 sub _insert_assoc_rows {
     my $self = shift;
     my $faultid = shift;
-    my @projects = @_;
+    my $projects = shift;
 
-    # Delete clause
-    my $clause = "faultid = $faultid";
+    # Prepare hash of existing project associations.
+    my %existing;
 
-    # Do the delete
-    $self->_db_delete_data($ASSOCTABLE, $clause);
+    my $rows = $self->_db_retrieve_data_ashash(
+        "SELECT associd, projectid FROM $ASSOCTABLE WHERE faultid = ?", $faultid);
 
-    my @entries = map {[$faultid, $_]} @projects;
-    for my $assoc (@entries) {
-        $self->_db_insert_data($ASSOCTABLE, undef, $assoc->[0], $assoc->[1]);
+    foreach my $row (@$rows) {
+        $existing{$row->{'projectid'}} = $row->{'associd'};
+    }
+
+    # Add new projects or remove from %existing.
+    foreach my $project (@$projects) {
+        if (exists $existing{$project}) {
+            delete $existing{$project};
+        }
+        else {
+            $self->_db_insert_data($ASSOCTABLE, undef, $faultid, $project);
+        }
+    }
+
+    # Delete projects remaining in %existing.
+    foreach my $associd (values %existing) {
+        die 'Undefined association ID' unless defined $associd;
+
+        $self->_db_delete_data(
+            $ASSOCTABLE,
+            "associd = $associd AND faultid = $faultid");
     }
 }
 
@@ -789,15 +794,11 @@ sub _mail_fault_update {
         systemText => 'System',
         typeText => 'Type',
         statusText => 'Status',
-        timelost => 'Time lost',
-        faultdate => 'Time of fault',
         subject => 'Subject',
         category => 'Category',
         urgency => 'Urgency',
         condition => 'Condition',
         projects => 'Projects',
-        shifttype => 'Shift Type',
-        remote => 'Remote status',
         locationText => 'Location',
     );
 

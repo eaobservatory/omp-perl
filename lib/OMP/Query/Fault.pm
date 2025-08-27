@@ -48,16 +48,28 @@ database table.
 
 Returns undef if the query could not be formed.
 
-The SQL returned by this query will include an entry for each response
-that matches (in the joined fault and response table).  This needs to
-be the case since a query on date or author must include the fault
-response table but it is therefore possible to match partial
-faults. In order to overcome this and to obtain a full fault
-(including responses) the data returned by the query must be sifted
-for fault IDs and the responses must be retrieved by additional
-queries to the response table. [we could of course create a temporary
-table with just the faultids and then do an internal query that
-gets all the faults with that faultid]
+The SQL returned by this query will include a fault if any single response
+matches the given query (using the joined fault and response tables).
+Since this may match partial faults, this filtering is performed in a
+subquery to find matching faults, which is then joined to the fault and
+response tables to retrieve all responses for the matching faults.
+
+Options:
+
+=over 4
+
+=item no_text
+
+Retrieve specific columns from the response table in order to exclude
+the full text.
+
+=item matching_responses_only
+
+Prepare a simpler query which returns only those responses which
+match the query parameters.  Relevance information is not computed
+in this case.
+
+=back
 
 =cut
 
@@ -85,6 +97,25 @@ sub sql {
     # is required we explicitly prefix "R." on all response
     # fields to make it obvious.
 
+    # Construct the the where clause. Depends on which
+    # additional queries are defined
+    my $where = $subsql ? "WHERE $subsql " : '';
+
+    my $select = $options{'no_text'}
+        ? 'F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag'
+            . ', R.faultdate, R.timelost, R.shifttype, R.remote'
+        : 'F.*, R.*';
+
+    my $order = "ORDER BY R.isfault desc, R.date";
+
+    if ($options{'matching_responses_only'}) {
+        return "SELECT $select
+            FROM $faulttable F
+            JOIN $resptable R ON F.faultid = R.faultid
+            $where
+            $order";
+    }
+
     # Reasonable join queries could be for "author", "isfault" or
     # "date". A query on "text" would required LIKE pattern matching but
     # should be possible. [isfault can be used to search for all faults
@@ -94,10 +125,6 @@ sub sql {
         $r_table = " JOIN $resptable R ON R.faultid = F.faultid ";
     }
 
-    # Construct the the where clause. Depends on which
-    # additional queries are defined
-    my $where = $subsql ? " WHERE $subsql " : '';
-
     # Determine if we have "relevance" information to prepare.
     my (@frel, @rrel);
     push @{/\bR\.\w/ ? \@rrel : \@frel}, $_ foreach $self->_qhash_relevance();
@@ -106,12 +133,9 @@ sub sql {
     # Now need to put this SQL into the template query
     # This returns a row per response
     # So will duplicate static fault info
-    my $select = $options{'no_text'}
-        ? "F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag"
-        : "F.*, R.*";
     $select .= ", $frel + SUBSEL.relevance AS relevance";
 
-    my $sql = "SELECT $select FROM $faulttable F
+    return "SELECT $select FROM $faulttable F
          JOIN $resptable R ON F.faultid = R.faultid
          JOIN (
              SELECT F.faultid, SUM($rrel) AS relevance
@@ -119,9 +143,7 @@ sub sql {
              $where
              GROUP BY F.faultid
          ) AS SUBSEL ON F.faultid = SUBSEL.faultid
-         ORDER BY R.isfault desc, R.date";
-
-    return "$sql\n";
+         $order";
 }
 
 =item B<_root_element>
@@ -183,7 +205,7 @@ sub _post_process_hash {
     }
 
     # These entries must be forced to come from Response table
-    for (qw/author date isfault text respid/) {
+    for (qw/author date isfault text respid faultdate timelost shifttype remote/) {
         if (exists $href->{$_}) {
             my $key = "R.$_";
             $href->{$key} = $href->{$_};

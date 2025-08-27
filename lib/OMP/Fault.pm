@@ -126,6 +126,7 @@ use constant SMURF => 1067;
 use constant HEDWIG => 1068;
 use constant JSAPROC => 1069;
 use constant JSA_CADC => 1070;
+use constant BACK_END_VLBI => 1071;
 
 # FRONT_END_HARP is 2001.
 use constant {
@@ -137,6 +138,10 @@ use constant {
     SMU_TMU  => FRONT_END_HARP +  6,
     NAMAKANUI=> FRONT_END_HARP +  7,
     WX_STATN => FRONT_END_HARP +  8,
+    FRONT_END_UU => FRONT_END_HARP +  9,
+    FRONT_END_AWEOWEO => FRONT_END_HARP +  10,
+    FRONT_END_ALAIHI => FRONT_END_HARP +  11,
+    FRONT_END_KUNTUR => FRONT_END_HARP +  12,
 };
 
 # Safety - severity.
@@ -188,6 +193,7 @@ use constant {
     WORKSHOP     => TOILET + 6,
     VEHICLE_BAY  => TOILET + 7,
     CAR_PARK     => TOILET + 8,
+    STAFF_LOUNGE => TOILET + 9,
 };
 
 # Facility - type.
@@ -199,6 +205,7 @@ use constant {
     ALARM_SYS       => INSECT + 4,
     ELECTRICAL      => INSECT + 5,
     RODENT          => INSECT + 6,
+    AVIAN           => INSECT + 7,
 };
 
 # Even log - system.
@@ -274,6 +281,11 @@ my %DATA = (
             "PC/Linux" => PC_LINUX,
             "Other/Unknown" => SYSTEMOTHER,
         },
+        SYSTEM_HIDDEN => {
+            SUN_SOLARIS() => 1,
+            ALPHA_OSF() => 1,
+            VAX_VMS() => 1,
+        },
         TYPE => {
             Other => TYPEOTHER,
             Human => HUMAN,
@@ -290,8 +302,13 @@ my %DATA = (
             "Back End - ACSIS" => BACK_END_ACSIS,
             "Back End - CBE" => BACK_END_CBE,
             "Back End - IFD" => BACK_END_IFD,
+            "Back End - VLBI" => BACK_END_VLBI,
             "Front End - HARP" => FRONT_END_HARP,
-            "Front End - Namakanui" => NAMAKANUI,
+            "Front End - N\x{101}makanui" => NAMAKANUI,
+            "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
+            "Front End - \x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
+            "Front End - \x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
+            "Front End - Kuntur" => FRONT_END_KUNTUR,
             "Front End - RxA" => FRONT_END_RXA,
             "Front End - RxB" => FRONT_END_RXB,
             "Front End - RxW" => FRONT_END_RXW,
@@ -300,7 +317,7 @@ my %DATA = (
             SCUBA => SCUBA,
             'SCUBA-2' => SCUBA2,
             IFS => IFS,
-            "Water Vapor Rad." => WATER_VAPOR_RAD,
+            "Water Vapor Monitor" => WATER_VAPOR_RAD,
             "Weather Station" => WX_STATN,
             "Visitor Instruments" => INSTRUMENT_VISITOR,
             Instrument => INSTRUMENT_OTHER_UNKNOWN,
@@ -312,8 +329,11 @@ my %DATA = (
             BACK_END_DAS() => 1,
             BACK_END_CBE() => 1,
             BACK_END_IFD() => 1,
+            FRONT_END_RXA() => 1,
             FRONT_END_RXB() => 1,
             FRONT_END_RXW() => 1,
+            IFS() => 1,
+            INSTRUMENT_OTHER_UNKNOWN() => 1,
             SCUBA() => 1,
         },
         TYPE => {
@@ -395,8 +415,13 @@ my %DATA = (
             STARLINK => STARLINK,
             "ORAC-DR/PICARD" => ORAC_DR,
             SMURF => SMURF,
-            OTHER => SYSTEMOTHER,
+            'Other/Unknown' => SYSTEMOTHER,
             "JSA Processing" => JSAPROC,
+        },
+        SYSTEM_HIDDEN => {
+            JCMT_DR() => 1,
+            SURF() => 1,
+            SPECX() => 1,
         },
         TYPE => {
             Bug => BUG,
@@ -437,7 +462,11 @@ my %DATA = (
             'Workshop' => WORKSHOP,
             'Vehicle Bay' => VEHICLE_BAY,
             'Car Park' => CAR_PARK,
+            'Staff Lounge' => STAFF_LOUNGE,
             'Other' => SYSTEMOTHER,
+        },
+        SYSTEM_HIDDEN => {
+            UKIRT() => 1,
         },
         'TYPE' => {
             'Insect' => INSECT,
@@ -449,20 +478,26 @@ my %DATA = (
             'Network' => NETWORK,
             'Computer' => COMPUTER,
             'Rodent' => RODENT,
+            'Avian' => AVIAN,
             'Other' => TYPEOTHER,
         },
     },
     'JCMT_EVENTS' => {
         'SYSTEM' => {
             'ACSIS' => BACK_END_ACSIS,
+            'VLBI Back End' => BACK_END_VLBI,
             'Computer' => COMPUTER,
-            'FTS2' => FTS2,
+            'FTS-2' => FTS2,
             'HARP' => FRONT_END_HARP,
             'OCS/JOS' => OCS_JOS,
             'Pointing' => POINTING,
-            'POL2' => POL2,
+            'POL-2' => POL2,
             'Rover' => ROVER,
-            'Namakanui' => NAMAKANUI,
+            "N\x{101}makanui" => NAMAKANUI,
+            "\x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
+            "\x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
+            "\x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
+            "Kuntur" => FRONT_END_KUNTUR,
             'RxA' => FRONT_END_RXA,
             'RxW' => FRONT_END_RXW,
             'RxH3/Surface' => RXH3_SURFACE,
@@ -473,6 +508,11 @@ my %DATA = (
             'Water Vapor Monitor' => WATER_VAPOR_RAD,
             'Weather Station' => WX_STATN,
             'Other' => SYSTEMOTHER,
+        },
+        SYSTEM_HIDDEN => {
+            FRONT_END_RXA() => 1,
+            FRONT_END_RXW() => 1,
+            ROVER() => 1,
         },
         'TYPE' => {
             'Hardware' => HARDWARE,
@@ -731,17 +771,18 @@ sub faultSystems {
 
     return $systems if $opt{'include_hidden'};
 
-    my $hidden = $DATA{$category}{$section . '_HIDDEN'};
+    my $hidden = $DATA{$category}{$section . '_HIDDEN'} // {};
 
     return $systems unless defined $hidden;
 
-    my %non_hidden = ();
+    my %result = ();
 
+    my $only_hidden = $opt{'only_hidden'} // 0;
     while (my ($name, $code) = each %$systems) {
-        $non_hidden{$name} = $code unless $hidden->{$code};
+        $result{$name} = $code unless $only_hidden xor $hidden->{$code};
     }
 
-    return \%non_hidden;
+    return \%result;
 }
 
 =item B<faultTypes>
@@ -788,8 +829,8 @@ my %UKIRTSHIFTTYPES = (
 );
 
 sub shiftTypes {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if ($category eq 'JCMT') {
         return %JCMTSHIFTTYPES;
@@ -817,8 +858,8 @@ my %JCMTREMOTETYPES = (
 );
 
 sub remoteTypes {
-    my $class = shift;
-    my $category = uc(shift);
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if ($category eq 'JCMT') {
         return %JCMTREMOTETYPES;
@@ -1287,9 +1328,7 @@ sub new {
         FaultID => undef,
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
-        TimeLost => 0,
         Location => undef,
-        FaultDate => undef,
         Urgency => $URGENCY{Normal},
         Condition => $CONDITION{Normal},
         Entity => undef,
@@ -1297,8 +1336,6 @@ sub new {
         Responses => [],
         Projects => [],
         Status => OPEN,
-        ShiftType => undef,
-        Remote => undef,
         Subject => undef,
         Relevance => undef,
     }, $class;
@@ -1307,7 +1344,10 @@ sub new {
     for my $key (sort map {lc} keys %args) {
         my $method = $key;
 
-        if ($fault->can($method)) {
+        # Do not set faultdate and timelost as these are now handled by the
+        # response objects and this class has read-only accessor methods.
+        if ($fault->can($method) and not grep {$_ eq $method}
+                qw/author date faultdate timelost shifttype remote/) {
             $fault->$method($args{$key});
         }
     }
@@ -1319,7 +1359,7 @@ sub new {
     # Really need to check that someone has supplied
     # a fault body
     croak "Must supply an initial fault body"
-        unless scalar(@{$fault->responses});
+        unless scalar(@{$fault->{'Responses'}});
 
     return $fault;
 }
@@ -1385,45 +1425,40 @@ sub type {
 
 =item B<shifttype>
 
-ShiftType (supplied as a string).
+Shift type (as a string).  Returns the C<shifttype> of the
+first response.
 
     $shifttype = $fault->shifttype();
-    $fault->shifttype($shifttype);
 
 =cut
 
 sub shifttype {
     my $self = shift;
-    if (@_) {
-        my $shifttype = shift;
-        if (! defined $shifttype || $shifttype eq '') {
-            $shifttype = undef;
-        }
-        $self->{ShiftType} = $shifttype;
-    }
-    return $self->{ShiftType};
-}
 
+    if (@_) {
+        croak "The OMP::Fault->shifttype accessor is a read-only method";
+    }
+
+    return $self->_first_response_value('shifttype');
+}
 
 =item B<remote>
 
-Remote (supplied as an integer).
+Remote (supplied as an integer).  Returns the C<remote> value
+of the first response.
 
     $remote = $fault->remote();
-    $fault->remote($remote);
 
 =cut
 
 sub remote {
     my $self = shift;
+
     if (@_) {
-        my $remote = shift;
-        if (! defined $remote || $remote eq '') {
-            $remote = undef;
-        }
-        $self->{Remote} = $remote;
+        croak "The OMP::Fault->remote accessor is a read-only method";
     }
-    return $self->{Remote};
+
+    return $self->_first_response_value('remote');
 }
 
 =item B<system>
@@ -1639,44 +1674,46 @@ sub status {
 
 =item B<timelost>
 
-Time lost to the fault in hours.
+Total time lost to the fault in hours. This is the sum of the
+C<timelost> of all responses.
 
     $tl = $fault->timelost();
-    $fault->timelost($tl);
 
 =cut
 
 sub timelost {
     my $self = shift;
+
     if (@_) {
-        my $tl = shift;
-        # Dont need more than 2 decimal places
-        $self->{TimeLost} = sprintf("%.2f", $tl);
+        croak "The OMP::Fault->timelost accessor is a read-only method";
     }
-    return $self->{TimeLost};
+
+    my $loss = 0.0;
+    foreach my $resp (@{$self->{'Responses'}}) {
+        my $resploss = $resp->timelost;
+        $loss += $resploss if defined $resploss;
+    }
+
+    return $loss;
 }
 
 =item B<faultdate>
 
 Date the fault occurred. This may be different from the date
-it was filed. Not required (default is that the date it was
-filed is good enough). Must be a C<Time::Piece> object
-(or undef).
+it was filed. Returns the C<faultdate> of the first response.
 
     $date = $fault->faultdate();
-    $fault->faultdate($date);
 
 =cut
 
 sub faultdate {
     my $self = shift;
+
     if (@_) {
-        my $date = shift;
-        croak "Date must be supplied as Time::Piece object"
-            if (defined $date && !UNIVERSAL::isa($date, "Time::Piece"));
-        $self->{FaultDate} = $date;
+        croak "The OMP::Fault->faultdate accessor is a read-only method";
     }
-    return $self->{FaultDate};
+
+    return $self->_first_response_value('faultdate');
 }
 
 =item B<filedate>
@@ -1692,13 +1729,25 @@ Can not be set (it is derived from the first response).
 sub filedate {
     my $self = shift;
 
+    if (@_) {
+        croak "The OMP::Fault->filedate accessor is a read-only method";
+    }
+
+    return $self->_first_response_value('date');
+}
+
+# Return the value from the given accessor of the body (first response).
+sub _first_response_value {
+    my $self = shift;
+    my $method = shift;
+
     # Look at the first response
-    my $firstresp = $self->responses->[0];
+    my $firstresp = $self->{'Responses'}->[0];
 
     throw OMP::Error::FatalError("No fault body! Should not happen.")
         unless $firstresp;
 
-    return $firstresp->date;
+    return $firstresp->$method;
 }
 
 =item B<urgency>
@@ -1911,7 +1960,7 @@ sub getResponse {
     my $self = shift;
     my $respid = shift;
 
-    for (@{$self->responses}) {
+    foreach (@{$self->{'Responses'}}) {
         return $_ if $_->id eq $respid;
     }
 }
@@ -1925,18 +1974,12 @@ fault.
 
 This information is retrieved from the first response object.
 
-Returns immediately if called in void context.
-
 =cut
 
 sub author {
     my $self = shift;
-    return unless defined wantarray;
-    my $firstresp = $self->responses->[0];
-    throw OMP::Error::FatalError("No fault body! Should not happen.")
-        unless $firstresp;
 
-    return $firstresp->author;
+    return $self->_first_response_value('author');
 }
 
 =item B<date>
@@ -1949,14 +1992,10 @@ time the fault response was filed will be used instead.
 
 Throws an C<OMP::Error::FatalError> if no response is attached.
 
-In void context returns nothing.
-
 =cut
 
 sub date {
     my $self = shift;
-
-    return unless defined wantarray;
 
     # Look at the fault date
     my $faultdate = $self->faultdate;
@@ -1979,6 +2018,102 @@ sub relevance {
     my $self = shift;
     $self->{Relevance} = shift if @_;
     return $self->{Relevance};
+}
+
+=back
+
+=head2 Response Grouping Methods
+
+=over 4
+
+=item B<by_date>
+
+Return a reference to a hash of shallow copies of this fault
+organized by date.  The hash keys are date strings in YYYY-MM-DD
+format and the values contain only the responses with the
+matching date.  Responses are only included if they have
+a time of occurrence (C<faultdate> is defined) or they are
+the original filing (C<isfault> is true), in which case
+the date of filing (from C<date>) is used as a fallback value.
+
+    $shifts = $fault->by_date();
+
+=cut
+
+sub by_date {
+    my $self = shift;
+
+    my %result;
+    foreach my $response (@{$self->{'Responses'}}) {
+        my $date = $response->faultdate;
+        unless (defined $date) {
+            next unless $response->isfault;
+
+            $date = $response->date;
+        }
+
+        $date = $date->ymd();
+
+        unless (exists $result{$date}) {
+            $result{$date} = $self->_shallow_copy;
+        }
+
+        push @{$result{$date}->{'Responses'}}, $response;
+    }
+
+    return \%result;
+}
+
+=item B<by_shift>
+
+Return a reference to a hash of shallow copies of this fault
+organized by shift type.  The hash keys are shift names
+format and the values contain only the responses with the
+matching shift type.
+
+    $shifts = $fault->by_shift;
+
+Any faults without a shift type will be returned in the hash
+key "UNKNOWN".
+
+=cut
+
+sub by_shift {
+    my $self = shift;
+
+    my %result;
+    foreach my $response (@{$self->{'Responses'}}) {
+        my $shift = $response->shifttype || 'UNKNOWN';
+
+        unless (exists $result{$shift}) {
+            $result{$shift} = $self->_shallow_copy;
+        }
+
+        push @{$result{$shift}->{'Responses'}}, $response;
+    }
+
+    return \%result;
+}
+
+# Create a copy with no responses or projects.
+# See also OMP::Info::shallow_copy for a more
+# comprehensive copying of top-level structures.
+
+sub _shallow_copy {
+    my $self = shift;
+
+    my $copy = bless {
+        Responses => [],
+        Projects => [],
+    }, ref $self;
+
+    foreach my $key (keys %$self) {
+        next if grep {$key eq $_} qw/Responses Projects/;
+        my $value = $self->{$key};
+        $copy->{$key} = $value;
+    }
+
+    return $copy;
 }
 
 =back

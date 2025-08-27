@@ -30,26 +30,30 @@ my $author = OMP::User->new(
     name => 'Test User',
 );
 
-my $resp = OMP::Fault::Response->new(
+my %respdetails = (
     author => $author,
     text => 'This is a test of OMP::Fault::Util',
-);
-
-my %details = (
-    category => 'JCMT',
-    fault => $resp,
-    subject => 'Subject',
     faultdate => OMP::DateTools->parse_date('2022-04-01T10:30'),
     timelost => 2.0,
-    system => OMP::Fault->faultSystems('JCMT')->{'Back End - ACSIS'},
-    type => OMP::Fault->faultTypes('JCMT')->{'Hardware'},
-    status => {OMP::Fault->faultStatus()}->{'Open'},
     shifttype => 'OTHER',
     remote => 1,
 );
 
+my $resp = OMP::Fault::Response->new(
+    %respdetails,
+);
+
+my %details = (
+    category => 'JCMT',
+    subject => 'Subject',
+    system => OMP::Fault->faultSystems('JCMT')->{'Back End - ACSIS'},
+    type => OMP::Fault->faultTypes('JCMT')->{'Hardware'},
+    status => {OMP::Fault->faultStatus()}->{'Open'},
+);
+
 my $fault = OMP::Fault->new(
     %details,
+    responses => $resp,
 );
 
 isa_ok($fault, 'OMP::Fault');
@@ -57,6 +61,7 @@ isa_ok($fault, 'OMP::Fault');
 my $fault2 = OMP::Fault->new(
     %details,
     subject => 'Another fault',
+    responses => $resp,
 );
 
 isa_ok($fault2, 'OMP::Fault');
@@ -65,17 +70,23 @@ is_deeply([OMP::Fault::Util->compare($fault, $fault2)], ['subject']);
 
 my $fault3 = OMP::Fault->new(
     %details,
-    shifttype => 'EO',
+    responses => OMP::Fault::Response->new(
+        %respdetails,
+        shifttype => 'EO',
+    ),
 );
 
 isa_ok($fault3, 'OMP::Fault');
 
-is_deeply([OMP::Fault::Util->compare($fault, $fault3)], ['shifttype']);
+is_deeply([OMP::Fault::Util->compare(
+    $fault->responses->[0], $fault3->responses->[0])],
+    ['shifttype']);
 
 my $fault4 = OMP::Fault->new(
     %details,
     type => OMP::Fault->faultTypes('JCMT')->{'Software'},
     status => {OMP::Fault->faultStatus()}->{'Closed'},
+    responses => $resp,
 );
 
 isa_ok($fault4, 'OMP::Fault');
@@ -85,6 +96,10 @@ is_deeply([OMP::Fault::Util->compare($fault, $fault4)], ['type', 'status']);
 my $resp2 = OMP::Fault::Response->new(
     author => $author,
     text => '<pre>Preformatted text</pre>',
-    preformatted => 1);
+    preformatted => 1,
+    shifttype => 'NIGHT',
+    remote => 0);
 
-is_deeply([OMP::Fault::Util->compare($resp, $resp2)], ['text', 'preformatted']);
+is_deeply(
+    [OMP::Fault::Util->compare($resp, $resp2)],
+    ['text', 'preformatted', 'timelost', 'faultdate', 'shifttype', 'remote']);

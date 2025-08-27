@@ -81,9 +81,9 @@ sub format_fault {
     # Store fault meta info to strings
     my $system = $fault->systemText;
     my $type = $fault->typeText;
-    my $loss = $fault->timelost;
-    my $shifttype = $fault->shifttype;
-    my $remote = $fault->remote;
+    my $loss = $responses[0]->timelost;
+    my $shifttype = $responses[0]->shifttype;
+    my $remote = $responses[0]->remote;
     my $projects = $fault->projects;
     my $entryName = lc $fault->getCategoryEntryName;
     my $entryNameQualified = $fault->getCategoryEntryNameQualified;
@@ -95,9 +95,9 @@ sub format_fault {
         : '';
 
     my $faultdatetext;
-    if ($fault->faultdate) {
+    if ($responses[0]->faultdate) {
         # Convert date to local time
-        my $faultdate = localtime($fault->faultdate->epoch);
+        my $faultdate = localtime($responses[0]->faultdate->epoch);
 
         # Now convert date to string for appending to time lost
         $faultdatetext = "hrs at " . OMP::DateTools->display_date($faultdate);
@@ -202,8 +202,31 @@ sub format_fault {
                 }
             }
             else {
-                push @faulttext,
-                    "Response filed by $author on $date<br><br>$text<br>";
+                push @faulttext, "Response filed by $author on $date<br>";
+
+                my $loss = $_->timelost;
+                if ($loss) {
+                    my $faultdatetext = '';
+                    if ($_->faultdate) {
+                        # Convert date to local time and text for display.
+                        $faultdatetext = ' at ' . OMP::DateTools->display_date(
+                            scalar localtime($_->faultdate->epoch));
+                    }
+
+                    push @faulttext, "<b>Time lost:</b> $loss hrs$faultdatetext<br>";
+
+                    my $shifttype = $_->shifttype;
+                    my $remote = $_->remote;
+
+                    if ($shifttype) {
+                        push @faulttext,
+                            "<b>Shift type:</b> $shifttype",
+                            ", <b>Remote status:</b> $remote",
+                            '<br>';
+                    }
+                }
+
+                push @faulttext, "<br>$text<br>";
             }
         }
 
@@ -259,8 +282,9 @@ Compare two C<OMP::Fault> or C<OMP::Fault::Response> objects.
 Takes two C<OMP::Fault> or C<OMP::Fault::Response> objects as the only arguments.
 Returns a list containing the elements where the two objects differed.  The elements
 are conveniently named after the accessor methods of each object type.  Some keys
-are not included in the comparison.  For C<OMP::Response> objects only the text and author keys
-are compared.  For C<OMP::Fault> objects the faultid keys are not compared.
+are not included in the comparison.  For C<OMP::Response> objects only the text, author,
+preformatted, timelost, faultdate, shifttype and remote keys are compared.
+For C<OMP::Fault> objects the faultid keys are not compared.
 
 =cut
 
@@ -276,8 +300,8 @@ sub compare {
             and UNIVERSAL::isa($objb, "OMP::Fault")) {
         # Comparing OMP::Fault objects
         @comparekeys = qw/
-            subject system type timelost faultdate urgency
-            condition projects status shifttype remote
+            subject system type urgency
+            condition projects status
         /;
 
         push @comparekeys, qw/location/
@@ -286,7 +310,10 @@ sub compare {
     elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response")
             and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {
         # Comparing OMP::Fault::Response objects
-        @comparekeys = qw/text author preformatted/;
+        @comparekeys = qw/
+            text author preformatted
+            timelost faultdate shifttype remote
+        /;
     }
     else {
         throw OMP::Error::BadArgs(

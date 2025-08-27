@@ -316,21 +316,28 @@ sub faults {
 
         my $query = OMP::Query::Fault->new(HASH => {
             EXPR__DT => {or => {
-                EXPR__DTF => {and => {
-                    # Faults filed on the dates we are reporting for:
-                    date => $self->_get_date_hash(),
-                    faultdate => {null => 1},
-                }},
-
                 # Faults that occurred on the dates we are reporting for:
                 faultdate => $self->_get_date_hash(),
+
+                # Faults filed on the dates we are reporting for:
+                EXPR__DTF => {and => {
+                    faultdate => {null => 1},
+                    date => $self->_get_date_hash(),
+
+                    # Provided this was the original filing or an additional time loss:
+                    EXPR__DTFF => {or => {
+                        isfault => {boolean => 1},
+                        timelost => {min => 0.001},
+                    }},
+                }},
             }},
             category => $self->telescope,
-            isfault => {boolean => 1},
         });
 
         $self->{'Faults'} = $fdb->queryFaults(
-            $query, no_text => 1, no_projects => 1);
+            $query,
+            matching_responses_only => 1,
+            no_text => 1, no_projects => 1);
     }
 
     return $self->{Faults};
@@ -1855,7 +1862,6 @@ the query will adjust the delta so that it returns only the correct time account
 sub _get_date_hash {
     my $self = shift;
     my %args = @_;
-    my $tag = (defined $args{tag} ? $args{tag} : "date");
 
     if ($self->date_end) {
         return {

@@ -507,6 +507,12 @@ a.index-title-link:hover   { color: #9ff; }
   background-color: #f9b1b1;
 }
 
+.cell_minor {
+  border: 1px solid #999;
+  background-color: #ccc;
+  color: #666;
+}
+
 .infobox {
   border: 1px solid #383898;
   background-color: #bcbee3;
@@ -730,4 +736,17 @@ input[type="text"], input[type="password"], input[type="number"], input[type="da
     border: 5px dashed #888;
     background: #BBB;
     color: #888;
+}
+
+fieldset {
+    width: fit-content;
+    margin: 1ex 0ex 1ex 0ex;
+    padding: 0.5ex;
+    border: 1px solid #aaa;
+    border-radius: 0.5ex;
+}
+
+fieldset legend {
+    color: #444;
+    margin-left: 1ex;
 }
