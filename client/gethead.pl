@@ -45,6 +45,14 @@ The observation run number. Requiers -ut.
 The instrument name. To be used with -ut and -runnr if there is
 some ambiguity (ie both ACSIS and SCUBA-2 wrote observation 5).
 
+=item B<-translate>
+
+Translate the headers using C<Astro::FITS::HdrTrans>.
+
+=item B<-dump>
+
+Dump C<OMP::Info::Obs> object using C<Data::Dumper> (for debugging).
+
 =item B<-version>
 
 Report the version number.
@@ -77,15 +85,17 @@ use lib OMPLIB;
 
 use JAC::Setup qw/hdrtrans/;
 
+use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
 use Astro::FITS::Header::Item;
+use Astro::FITS::HdrTrans;
 
 use OMP::DB::Archive;
 use OMP::DB::Backend::Archive;
 use OMP::Util::File;
 
-my ($ut, $inst, $runnr, $obsid, $help, $version, $man);
+my ($ut, $inst, $runnr, $obsid, $translate, $dump, $help, $version, $man);
 my $status = GetOptions(
     'help' => \$help,
     'man' => \$man,
@@ -94,6 +104,8 @@ my $status = GetOptions(
     'instrument=s' => \$inst,
     'runnr=i' => \$runnr,
     'obsid=s' => \$obsid,
+    translate => \$translate,
+    dump => \$dump,
 );
 
 pod2usage(1) if $help;
@@ -128,24 +140,44 @@ my $arcdb = OMP::DB::Archive->new(
 my $obs = $arcdb->getObs(%args);
 
 if ($obs) {
-    my $fits = $obs->fits;
-    print join("\n", sort $fits->cards), "\n";
-    my $dateobs = $obs->startobs;
-    my $mjd;
-    if (defined $dateobs) {
-        $mjd = $dateobs->mjd;
+    if ($dump) {
+        print Data::Dumper->Dump([$obs], [qw/obs/]);
     }
-    $dateobs = $obs->endobs;
-    if (defined $dateobs) {
-        my $endmjd = $dateobs->mjd;
-        $mjd = ($mjd + $endmjd) / 2.0;
+    elsif ($translate) {
+        my $header = $obs->hdrhash;
+        my %translated = Astro::FITS::HdrTrans::translate_from_FITS($header);
+        for my $k (sort keys %translated) {
+            next if $k =~ /^_/;
+            my $v = $translated{$k};
+            if ('ARRAY' eq ref $v) {
+                $v = join "\n    ", @$v;
+            }
+            elsif (eval {$v->isa('Time::Piece')}) {
+                $v = $v->datetime;
+            }
+            printf "%-20s = %s\n", $k, $v;
+        }
     }
-    my $mjdavg = Astro::FITS::Header::Item->new(
-        Keyword => "MJD-AVG",
-        Value => $mjd,
-        Type => 'FLOAT'
-    );
-    print $mjdavg . "\n";
+    else {
+        my $fits = $obs->fits;
+        print join("\n", sort $fits->cards), "\n";
+        my $dateobs = $obs->startobs;
+        my $mjd;
+        if (defined $dateobs) {
+            $mjd = $dateobs->mjd;
+        }
+        $dateobs = $obs->endobs;
+        if (defined $dateobs) {
+            my $endmjd = $dateobs->mjd;
+            $mjd = ($mjd + $endmjd) / 2.0;
+        }
+        my $mjdavg = Astro::FITS::Header::Item->new(
+            Keyword => "MJD-AVG",
+            Value => $mjd,
+            Type => 'FLOAT'
+        );
+        print $mjdavg . "\n";
+    }
 }
 
 =head1 AUTHOR
