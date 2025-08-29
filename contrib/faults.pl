@@ -29,7 +29,6 @@ use lib OMPLIB;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Fault;
-use OMP::NightRep;
 use OMP::Query::Fault;
 
 my $dbb = OMP::DB::Backend->new;
@@ -103,15 +102,33 @@ print
 
 ";
 
-# Note: OMP::NightRep currently allows telescope => JCMT_EVENTS,
-# but if that changes, should add a new method OMP::NightRep->events
-# to perform the same query in the events category.
-my $current = OMP::NightRep->new(
-    DB => $dbb,
-    date => $startut,
-    delta_day => $delta,
-    telescope => $category,
-)->faults;
+my $current = $db->queryFaults(
+    OMP::Query::Fault->new(HASH => {
+        EXPR__DT => {or => {
+            # Faults that occurred on the dates we are reporting for:
+            faultdate => {
+                value => $startut,
+                delta => $delta,
+            },
+
+            # Faults filed on the dates we are reporting for:
+            EXPR__DTF => {and => {
+                date => {
+                    value => $startut,
+                    delta => $delta,
+                },
+
+                # Provided this was the original filing or an additional time loss:
+                EXPR__DTFF => {or => {
+                    isfault => {boolean => 1},
+                    timelost => {min => 0.001},
+                }},
+            }},
+        }},
+        category => $category,
+    }),
+    matching_responses_only => 1,
+    no_text => 1, no_projects => 1);
 
 # Group same faults together
 
