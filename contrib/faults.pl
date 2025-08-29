@@ -249,7 +249,7 @@ if ($category ne "JCMT_EVENTS") {
                 value => $startut,
                 delta => $delta,
             },
-            status => 1,
+            status => OMP::Fault::CLOSED,
         }),
         no_text => 1, no_projects => 1);
 
