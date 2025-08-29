@@ -166,6 +166,7 @@ foreach my $fault ($current->faults) {
         $faults{$subj}{author} .= ',' . $author
             unless $faults{$subj}{author} =~ /$author/i;
         $faults{$subj}{status} = $status if $status =~ /open/i;
+        $faults{$subj}{'id'} = $fault->id if $fault->id < $faults{$subj}{'id'};
     }
     else {
         my %ref;
@@ -173,6 +174,7 @@ foreach my $fault ($current->faults) {
         $ref{listing} = sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
         $ref{author} = $author;
         $ref{status} = $status;
+        $ref{'id'} = $fault->id;
         $faults{$subj} = \%ref;
     }
 }
@@ -180,6 +182,7 @@ foreach my $fault ($current->faults) {
 # Now print everything in from largest time lost;
 foreach my $subj (
         sort {$faults{$b}{totallost} cmp $faults{$a}{totallost}}
+        sort {$faults{$a}{'id'} <=> $faults{$b}{'id'}}
         keys %faults) {
     printf "%s", $faults{$subj}{listing};
 
