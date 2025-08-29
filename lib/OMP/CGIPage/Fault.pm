@@ -719,6 +719,9 @@ sub view_fault {
             if ($show =~ /nonhidden/) {
                 @responses = grep {$_->flag != OMP__FR_HIDDEN} @responses;
             }
+            elsif ($show =~ /timeloss/) {
+                @responses = grep {$_->timelost > 0.001} @responses;
+            }
             elsif ($show =~ /automatic/) {
                 my $num_start = 12;
                 my $num_end = 12;
