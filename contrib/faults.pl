@@ -142,12 +142,10 @@ foreach my $fault ($current->faults) {
     $subject = substr($subject,0,55);
     $subject =~ s/\s+$//;
 
-    # Try to omit some variations and anything after a '('
+    # Try to omit some variations, anything after a '(' and xN
     my $subj = $subject;
-
-    my $index = index($subj, '(');
-    $subj = substr($subj, 0, $index) if ($index > -1);
-
+    $subj =~ s/\(.*//;
+    $subj =~ s/\bx\d+\b//;
     $subj =~ s/Errors/Error/i;
     $subj =~ s/Faults/Fault/i;
     $subj =~ s/\s+$//g;
