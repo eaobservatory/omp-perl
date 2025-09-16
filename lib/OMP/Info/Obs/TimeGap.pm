@@ -66,6 +66,9 @@ my @DATA = (
     [OMP__TIMEGAP_LOGISTICS(), {
         name => 'Logistics',
     }],
+    [OMP__TIMEGAP_ILLNESS(), {
+        name => 'Illness',
+    }],
 );
 
 # Construct original listings for compatibility.

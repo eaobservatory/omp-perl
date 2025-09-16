@@ -68,6 +68,7 @@ my @timegap = qw/
     OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
     OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
     OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS
+    OMP__TIMEGAP_ILLNESS
 /;
 
 my @logging = qw/
@@ -596,6 +597,15 @@ TSS movement, etc.)
 =cut
 
 use constant OMP__TIMEGAP_LOGISTICS => 19;
+
+=item OMP__TIMEGAP_ILLNESS
+
+A timegap caused by operator unavailability due to illness or other
+similar concern.
+
+=cut
+
+use constant OMP__TIMEGAP_ILLNESS => 20;
 
 =item OMP__TIMEGAP_UNKNOWN
 
