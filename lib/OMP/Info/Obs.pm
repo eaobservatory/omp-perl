@@ -55,31 +55,33 @@ our $VERSION = '2.000';
 
 use overload '""' => "stringify";
 
-our %status_label = (
-    OMP__OBS_GOOD() => 'Good',
-    OMP__OBS_QUESTIONABLE() => 'Questionable',
-    OMP__OBS_BAD() => 'Bad',
-    OMP__OBS_JUNK() => 'Junk',
-    OMP__OBS_REJECTED() => "Rejected",
+my @DATA = (
+    [OMP__OBS_GOOD(), {
+        name => 'Good',
+        class => 'obslog-good',
+    }],
+    [OMP__OBS_QUESTIONABLE(), {
+        name => 'Questionable',
+        class => 'obslog-questionable',
+    }],
+    [OMP__OBS_BAD(), {
+        name => 'Bad',
+        class => 'obslog-bad',
+    }],
+    [OMP__OBS_JUNK(), {
+        name => 'Junk',
+        class => 'obslog-junk',
+    }],
+    [OMP__OBS_REJECTED(), {
+        name => "Rejected",
+        class => 'obslog-rejected'
+    }],
 );
 
-# Styles for displaying observation status.
-
-our %status_class = (
-    OMP__OBS_GOOD() => 'obslog-good',
-    OMP__OBS_QUESTIONABLE() => 'obslog-questionable',
-    OMP__OBS_BAD() => 'obslog-bad',
-    OMP__OBS_JUNK() => 'obslog-junk',
-    OMP__OBS_REJECTED() => 'obslog-rejected'
-);
-
-our @status_order = (
-    OMP__OBS_GOOD(),
-    OMP__OBS_QUESTIONABLE(),
-    OMP__OBS_BAD(),
-    OMP__OBS_JUNK(),
-    OMP__OBS_REJECTED(),
-);
+# Construct original listings for compatibility.
+our %status_label = map {$_->[0] => $_->[1]->{'name'}} @DATA;
+our %status_class = map {$_->[0] => $_->[1]->{'class'}} @DATA;
+our @status_order = map {$_->[0]} @DATA;
 
 =head1 METHODS
 

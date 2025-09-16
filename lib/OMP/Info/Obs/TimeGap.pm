@@ -34,31 +34,42 @@ use base qw/OMP::Info::Obs/;
 
 our $VERSION = '2.000';
 
-our %status_label = (
-    OMP__TIMEGAP_INSTRUMENT() => 'Instrument',
-    OMP__TIMEGAP_WEATHER() => 'Weather',
-    OMP__TIMEGAP_FAULT() => 'Fault',
-    OMP__TIMEGAP_NEXT_PROJECT() => 'Next project',
-    OMP__TIMEGAP_PREV_PROJECT() => 'Last project',
-    OMP__TIMEGAP_NOT_DRIVER() => 'Observer not a driver',
-    OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime',
-    OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead',
-    OMP__TIMEGAP_LOGISTICS() => 'Logistics',
-    OMP__TIMEGAP_UNKNOWN() => 'Unknown',
+my @DATA = (
+    [OMP__TIMEGAP_UNKNOWN(), {
+        name => 'Unknown',
+    }],
+    [OMP__TIMEGAP_INSTRUMENT(), {
+        name => 'Instrument',
+    }],
+    [OMP__TIMEGAP_WEATHER(), {
+        name => 'Weather',
+    }],
+    [OMP__TIMEGAP_FAULT(), {
+        name => 'Fault',
+    }],
+    [OMP__TIMEGAP_NEXT_PROJECT(), {
+        name => 'Next project',
+    }],
+    [OMP__TIMEGAP_PREV_PROJECT(), {
+        name => 'Last project',
+    }],
+    [OMP__TIMEGAP_NOT_DRIVER(), {
+        name => 'Observer not a driver',
+    }],
+    [OMP__TIMEGAP_SCHEDULED(), {
+        name => 'Scheduled downtime',
+    }],
+    [OMP__TIMEGAP_QUEUE_OVERHEAD(), {
+        name => 'Queue overhead',
+    }],
+    [OMP__TIMEGAP_LOGISTICS(), {
+        name => 'Logistics',
+    }],
 );
 
-our @status_order = (
-    OMP__TIMEGAP_UNKNOWN(),
-    OMP__TIMEGAP_INSTRUMENT(),
-    OMP__TIMEGAP_WEATHER(),
-    OMP__TIMEGAP_FAULT(),
-    OMP__TIMEGAP_NEXT_PROJECT(),
-    OMP__TIMEGAP_PREV_PROJECT(),
-    OMP__TIMEGAP_NOT_DRIVER(),
-    OMP__TIMEGAP_SCHEDULED(),
-    OMP__TIMEGAP_QUEUE_OVERHEAD(),
-    OMP__TIMEGAP_LOGISTICS(),
-);
+# Construct original listings for compatibility.
+our %status_label = map {$_->[0] => $_->[1]->{'name'}} @DATA;
+our @status_order = map {$_->[0]} @DATA;
 
 =head1 METHODS
 
