@@ -918,10 +918,8 @@ sub projectStatsSimple {
 
             next if $status == OMP__TIMEGAP_FAULT;
 
-            if ($status == OMP__TIMEGAP_INSTRUMENT
-                    || $status == OMP__TIMEGAP_NEXT_PROJECT) {
-                # INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
-                # gaps are shared by instrument, PROJECT gaps are given to the following
+            if ($status == OMP__TIMEGAP_NEXT_PROJECT) {
+                # PROJECT gaps are given to the following
                 # project. In both cases we handle it properly in the next section.
                 # Simply let the default project ID go through since it will be ignored
                 # in a little while.
@@ -1125,18 +1123,6 @@ sub projectStatsSimple {
                         } if $trace_observations;
                     }
                 }
-            }
-            elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
-                # Simply treat this as a generic calibration
-                print STDERR "CHARGING " . $timespent->seconds . " TO INSTRUMENT GAP [$inst]\n"
-                    if $DEBUG;
-
-                $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
-                push @{$proj_observations{$ymd}{$shifttype}{$calproj}}, {
-                    obs => $obs,
-                    timespent => $timespent->seconds,
-                    comment => 'Gap assigned to calibration (instrument)',
-                } if $trace_observations;
             }
             elsif ($timespent->seconds > 0) {
                 # Just charge to OTHER [unless we have negative time gap]
