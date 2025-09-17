@@ -762,11 +762,11 @@ sub projectStats {
         OMP::Config->getData('time_accounting_mode', telescope => $tel);
 
     if ($charge_scheme =~ /shared/i) {
-        print "USING SHARED\n" if $DEBUG;
+        print STDERR "USING SHARED\n" if $DEBUG;
         return $self->projectStatsShared(%opt);
     }
     else {
-        print "USING SIMPLE\n" if $DEBUG;
+        print STDERR "USING SIMPLE\n" if $DEBUG;
         return $self->projectStatsSimple(%opt);
     }
 }
@@ -938,7 +938,7 @@ sub projectStatsSimple {
             }
         }
 
-        print "Processing observation from project $projectid (duration "
+        print STDERR "Processing observation from project $projectid (duration "
             . $obs->calculate_duration . " s)\n"
             if (! $isgap && $DEBUG && $DEBUG > 1);
 
@@ -981,7 +981,7 @@ sub projectStatsSimple {
         # if the observation is not a gap and is bad charge it to overhead. What about junk?
         if (! $isgap
                 && ($obs->status == OMP__OBS_BAD || $obs->status == OMP__OBS_JUNK)) {
-            print "Observation from project $projectid is marked BAD, adding to $badproj\n"
+            print STDERR "Observation from project $projectid is marked BAD, adding to $badproj\n"
                 if $DEBUG;
             $projectid_orig = $projectid;
             $projectid = $badproj;
@@ -1079,7 +1079,7 @@ sub projectStatsSimple {
                 # if we start to share between previous project or have a POSTPROJECT
                 # and PREVPROJECT gap type). In that case will adjust the key here
                 # to be PREVIOUS, POST or SHARED
-                print "CHARGING " . $timespent->seconds . " TO PROJECT GAP\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO PROJECT GAP\n"
                     if $DEBUG;
 
                 push @{$gapproj{$ymd}->{$tel}->{$shifttype}},
@@ -1087,7 +1087,7 @@ sub projectStatsSimple {
             }
             elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
                 # Must charge the previous project
-                print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
                     if $DEBUG;
 
                 if (defined $prevobs) {
@@ -1128,7 +1128,7 @@ sub projectStatsSimple {
             }
             elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
                 # Simply treat this as a generic calibration
-                print "CHARGING " . $timespent->seconds . " TO INSTRUMENT GAP [$inst]\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO INSTRUMENT GAP [$inst]\n"
                     if $DEBUG;
 
                 $proj_totals{$ymd}{$shifttype}{$calproj} += $timespent->seconds;
@@ -1140,7 +1140,7 @@ sub projectStatsSimple {
             }
             elsif ($timespent->seconds > 0) {
                 # Just charge to OTHER [unless we have negative time gap]
-                print "CHARGING " . $timespent->seconds . " TO $projectid\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO $projectid\n"
                     if $DEBUG;
                 $other{$ymd}{$tel}{$shifttype}{$projectid}
                     += $timespent->seconds;
@@ -1178,16 +1178,16 @@ sub projectStatsSimple {
 
     if ($DEBUG) {
         if ($DEBUG > 1) {
-            print Dumper(\%proj_totals, \%gapproj, \%other);
+            print STDERR Dumper(\%proj_totals, \%gapproj, \%other);
         }
         else {
-            print "Initial Project totals: " . Dumper(\%proj_totals);
+            print STDERR "Initial Project totals: " . Dumper(\%proj_totals);
         }
     }
 
     # And any small forgotten leftover time gaps
     # Including charging gaps between calibrations to generic calibrations
-    print "Processing gaps:\n" if $DEBUG;
+    print STDERR "Processing gaps:\n" if $DEBUG;
 
     for my $ymd (keys %gapproj) {
         for my $tel (keys %{$gapproj{$ymd}}) {
@@ -1243,7 +1243,7 @@ sub projectStatsSimple {
                                                 . (defined $projectid_orig ? " (was $projectid_orig)" : ''),
                                         } if $trace_observations;
 
-                                        print "Adding $gap to $proj\n"
+                                        print STDERR "Adding $gap to $proj\n"
                                             if $DEBUG;
                                     }
                                     else {
@@ -1255,7 +1255,7 @@ sub projectStatsSimple {
                                             comment => 'Gap assigned to calibration',
                                         } if $trace_observations;
 
-                                        print "Adding $gap to CALibration\n"
+                                        print STDERR "Adding $gap to CALibration\n"
                                             if $DEBUG;
                                     }
                                 }
@@ -1263,7 +1263,7 @@ sub projectStatsSimple {
                             else {
                                 # We should charge this to $tel OTHER
                                 # regardless of the project name
-                                print "Adding $gap to OTHER\n"
+                                print STDERR "Adding $gap to OTHER\n"
                                     if $DEBUG;
 
                                 $other{$ymd}{$tel}{$shifttype}{$OTHER_GAP} += $gap;
@@ -1278,7 +1278,7 @@ sub projectStatsSimple {
                         next unless ref($entry) eq 'HASH';
                         $other{$ymd}{$tel}{$shifttype}{$OTHER_GAP} += $entry->{OTHER};
 
-                        print "Adding " . $entry->{OTHER} . " to OTHER[2]\n"
+                        print STDERR "Adding " . $entry->{OTHER} . " to OTHER[2]\n"
                             if $DEBUG;
                     }
                 }
@@ -1286,7 +1286,7 @@ sub projectStatsSimple {
         }
     }
 
-    print "Gaps have been processed. New totals: " . Dumper(\%proj_totals)
+    print STDERR "Gaps have been processed. New totals: " . Dumper(\%proj_totals)
         if $DEBUG;
 
     # Add in the extended/weather and other time
@@ -1311,7 +1311,7 @@ sub projectStatsSimple {
         }
     }
 
-    print "Final totals: " . Dumper(\%proj_totals) if $DEBUG;
+    print STDERR "Final totals: " . Dumper(\%proj_totals) if $DEBUG;
 
     # Work out the night total
     if ($DEBUG) {
@@ -1324,7 +1324,7 @@ sub projectStatsSimple {
                 }
 
                 $total /= 3600.0;
-                printf "SHIFT %s $ymd: %.2f hrs (without extended)\n", $shifttype, $total;
+                printf STDERR "SHIFT %s $ymd: %.2f hrs (without extended)\n", $shifttype, $total;
 
                 my $refdate = OMP::DateTools->parse_date($ymd . "T12:00");
 
@@ -1333,12 +1333,12 @@ sub projectStatsSimple {
                         tel => $tel,
                         date => $refdate);
 
-                    printf "From observation data for tel $tel (inc faults): %.2f hrs\n",
+                    printf STDERR "From observation data for tel $tel (inc faults): %.2f hrs\n",
                         $night_totals{$tel}{$ymd}{$shifttype} / 3600.0;
 
                     my $extend = $night_totals{$tel}{$ymd}{$shifttype} - $nightlen;
 
-                    printf "Expected length of night = %.2f hrs (%s)\n",
+                    printf STDERR "Expected length of night = %.2f hrs (%s)\n",
                         ($nightlen / 3600),
                         ($extend >= 0
                             ? "Extended time = $extend s"
@@ -1353,11 +1353,11 @@ sub projectStatsSimple {
     my @timeacct;
     for my $ymd (keys %proj_totals) {
         my $date = OMP::DateTools->parse_date($ymd);
-        print "Date: $ymd\n" if $DEBUG;
+        print STDERR "Date: $ymd\n" if $DEBUG;
 
         for my $shifttype (keys %{$proj_totals{$ymd}}) {
             for my $proj (keys %{$proj_totals{$ymd}{$shifttype}}) {
-                printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$shifttype}{$proj} / 3600
+                printf STDERR "Project $proj : %.2f\n", $proj_totals{$ymd}{$shifttype}{$proj} / 3600
                     if $DEBUG;
 
                 my $projacct = OMP::Project::TimeAcct->new(
@@ -1636,7 +1636,7 @@ sub projectStatsShared {
                 # if we start to share between previous project or have a POSTPROJECT
                 # and PREVPROJECT gap type). In that case will adjust the key here
                 # to be PREVIOUS, POST or SHARED
-                print "CHARGING " . $timespent->seconds . " TO PROJECT GAP\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO PROJECT GAP\n"
                     if $DEBUG;
 
                 push @{$gapproj{$ymd}->{$tel}},
@@ -1644,7 +1644,7 @@ sub projectStatsShared {
             }
             elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
                 # Must charge the previous project
-                print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
                     if $DEBUG;
 
                 if (defined $prevobs) {
@@ -1675,14 +1675,14 @@ sub projectStatsShared {
             }
             elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
                 # Simply treat this as a generic calibration
-                print "CHARGING " . $timespent->seconds . " TO INSTRUMENT GAP [$inst]\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO INSTRUMENT GAP [$inst]\n"
                     if $DEBUG;
 
                 $cals{$ymd}{$inst}{$CAL_NAME} += $timespent->seconds;
             }
             elsif ($timespent->seconds > 0) {
                 # Just charge to OTHER [unless we have negative time gap]
-                print "CHARGING " . $timespent->seconds . " TO $projectid\n"
+                print STDERR "CHARGING " . $timespent->seconds . " TO $projectid\n"
                     if $DEBUG;
 
                 $other{$ymd}{$tel}{$projectid} += $timespent->seconds;
@@ -1708,7 +1708,7 @@ sub projectStatsShared {
         $prevobs = $obs if ! $isgap;
     }
 
-    print Dumper(\%projbycal, \%cals, \%other, \%gapproj) if $DEBUG;
+    print STDERR Dumper(\%projbycal, \%cals, \%other, \%gapproj) if $DEBUG;
 
     # Now go through the science observations to find the total
     # of each required calibration regardless of project
@@ -1724,7 +1724,7 @@ sub projectStatsShared {
         }
     }
 
-    print "Science calibration totals:" . Dumper(\%cal_totals) if $DEBUG;
+    print STDERR "Science calibration totals:" . Dumper(\%cal_totals) if $DEBUG;
 
     # Now we need to calculate project totals by apporitoning the
     # actual calibration data in proportion to the total amount
@@ -1767,12 +1767,12 @@ sub projectStatsShared {
         }
     }
 
-    print "Proj after science calibrations:" . Dumper(\%proj)
+    print STDERR "Proj after science calibrations:" . Dumper(\%proj)
         if $DEBUG;
 
     # And any small forgotten leftover time gaps
     # Including charging gaps between calibrations to generic calibrations
-    print "Processing gaps:\n" if $DEBUG;
+    print STDERR "Processing gaps:\n" if $DEBUG;
     for my $ymd (keys %gapproj) {
         for my $tel (keys %{$gapproj{$ymd}}) {
             # Now step through the data charging time gaps 50% each to the projects
@@ -1817,7 +1817,7 @@ sub projectStatsShared {
                                         && $proj !~ /$CAL_NAME$/) {
                                     $proj{$ymd}{$proj}{$inst} += $gap;
 
-                                    print "Adding $gap to $proj with $inst\n"
+                                    print STDERR "Adding $gap to $proj with $inst\n"
                                         if $DEBUG;
                                 }
                                 else {
@@ -1825,7 +1825,7 @@ sub projectStatsShared {
                                     # regardless of the project name
                                     $cals{$ymd}{$inst}{$CAL_NAME} += $gap;
 
-                                    print "Adding $gap to CALibration $inst\n"
+                                    print STDERR "Adding $gap to CALibration $inst\n"
                                         if $DEBUG;
                                 }
                             }
@@ -1833,7 +1833,7 @@ sub projectStatsShared {
                         else {
                             # We should charge this to $tel OTHER
                             # regardless of the project name
-                            print "Adding $gap to OTHER\n" if $DEBUG;
+                            print STDERR "Adding $gap to OTHER\n" if $DEBUG;
 
                             $other{$ymd}{$tel}{$OTHER_GAP} += $gap;
                         }
@@ -1848,15 +1848,15 @@ sub projectStatsShared {
 
                     $other{$ymd}{$tel}{$OTHER_GAP} += $entry->{OTHER};
 
-                    print "Adding " . $entry->{OTHER} . " to OTHER[2]\n"
+                    print STDERR "Adding " . $entry->{OTHER} . " to OTHER[2]\n"
                         if $DEBUG;
                 }
             }
         }
     }
 
-    print Dumper(\%proj, \%cals, \%other) if $DEBUG;
-    print "GAPS done\n" if $DEBUG;
+    print STDERR Dumper(\%proj, \%cals, \%other) if $DEBUG;
+    print STDERR "GAPS done\n" if $DEBUG;
 
     # Now need to apportion the generic calibrations amongst
     # all the projects by instrument
@@ -1884,7 +1884,7 @@ sub projectStatsShared {
         }
     }
 
-    print "Proj after adding $CAL_NAME: " . Dumper(\%proj)
+    print STDERR "Proj after adding $CAL_NAME: " . Dumper(\%proj)
         if $DEBUG;
 
     # Now go through and create a CAL entry for calibrations
@@ -1922,7 +1922,7 @@ sub projectStatsShared {
             }
             unless ($nocal) {
                 # Need to add this to cal
-                print "Adding on CAL data for $inst on $ymd of $cals{$ymd}{$inst}{$CAL_NAME}\n"
+                print STDERR "Adding on CAL data for $inst on $ymd of $cals{$ymd}{$inst}{$CAL_NAME}\n"
                     if $DEBUG;
 
                 $proj{$ymd}{$CAL_NAME}{$inst} += $cals{$ymd}{$inst}{$CAL_NAME};
@@ -1930,7 +1930,7 @@ sub projectStatsShared {
         }
     }
 
-    print "Proj after leftovers: " . Dumper(\%proj)
+    print STDERR "Proj after leftovers: " . Dumper(\%proj)
         if $DEBUG;
 
     # Now we need to add up all the projects by UT date
@@ -1969,7 +1969,7 @@ sub projectStatsShared {
         }
     }
 
-    print "Final totals: " . Dumper(\%proj_totals)
+    print STDERR "Final totals: " . Dumper(\%proj_totals)
         if $DEBUG;
 
     # Work out the night total
@@ -1981,8 +1981,8 @@ sub projectStatsShared {
             }
             $total /= 3600.0;
 
-            printf "$ymd: %.2f hrs\n", $total;
-            printf "From files: %.2f hrs\n", $night_totals{$ymd} / 3600.0;
+            printf STDERR "$ymd: %.2f hrs\n", $total;
+            printf STDERR "From files: %.2f hrs\n", $night_totals{$ymd} / 3600.0;
         }
     }
 
@@ -1992,10 +1992,10 @@ sub projectStatsShared {
     for my $ymd (keys %proj_totals) {
         my $date = OMP::DateTools->parse_date($ymd);
 
-        print "Date: $ymd\n" if $DEBUG;
+        print STDERR "Date: $ymd\n" if $DEBUG;
 
         for my $proj (keys %{$proj_totals{$ymd}}) {
-            printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj} / 3600
+            printf STDERR "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj} / 3600
                 if $DEBUG;
 
             push @timeacct, OMP::Project::TimeAcct->new(
