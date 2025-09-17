@@ -55,6 +55,7 @@ my @DATA = (
     }],
     [OMP__TIMEGAP_NOT_DRIVER(), {
         name => 'Observer not a driver',
+        hidden => 1,
     }],
     [OMP__TIMEGAP_SCHEDULED(), {
         name => 'Scheduled downtime',
@@ -279,12 +280,30 @@ sub uniqueid {
 
 Get an array of pairs of status value and label, in order.
 
+    @options = OMP::Info::Obs::TimeGap->get_status_options;
+
+Hidden values are excluded unless called as an instance method of an object
+for which the hidden value is currently selected.
+
+    @options = $timegap->get_status_options;
+
 =cut
 
 sub get_status_options {
     my $self = shift;
 
-    return map {[$_->[0], $_->[1]->{'name'}]} @DATA;
+    my $current = undef;
+
+    # If called as an instance method rather than a class method.
+    if (ref $self) {
+        $current = $self->status;
+    }
+
+    return map {[$_->[0], $_->[1]->{'name'}]}
+        grep {
+            (defined $current and $_->[0] == $current)
+            or (not $_->[1]->{'hidden'})
+        } @DATA;
 }
 
 1;
