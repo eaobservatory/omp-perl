@@ -998,157 +998,46 @@ sub RaiseComment {
         -fill => 'both',
     );
 
-    my $radioFrame = $entryFrame->Frame->pack(
+    my $radioFrame = undef;
+    my $status_i = 0;
+    foreach ($obs->get_status_options) {
+        my ($status_value, $status_name) = @$_;
+        unless ($status_i ++ % 6) {
+            my $first_row = not defined $radioFrame;
+
+            $radioFrame = $entryFrame->Frame->pack(
+                -side => 'top',
+                -fill => 'x',
+            );
+
+            my $textStatus = $radioFrame->Label(
+                -text => ($first_row
+                    ? 'Status: '
+                    : '        '
+                ),
+                -font => $opt{'font-var'},
+            )->pack(
+                -side => 'left',
+            );
+        }
+
+        my $radioButton = $radioFrame->Radiobutton(
+            -text => $status_name,
+            -value => $status_value,
+            -variable => \$status,
+            -font => $opt{'font-var'},
+        )->pack(
+            -side => 'left',
+        );
+    }
+
+    my $userFrame = $entryFrame->Frame->pack(
         -side => 'top',
         -fill => 'x',
     );
 
-    # $textStatus displays the string "Status:"
-    my $textStatus = $radioFrame->Label(
-        -text => 'Status: ',
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
-    );
-
-    if (UNIVERSAL::isa($obs, 'OMP::Info::Obs::TimeGap')) {
-        my $radioWeather = $radioFrame->Radiobutton(
-            -text => 'weather',
-            -value => OMP__TIMEGAP_WEATHER,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioInstrument = $radioFrame->Radiobutton(
-            -text => 'instrument',
-            -value => OMP__TIMEGAP_INSTRUMENT,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioFault = $radioFrame->Radiobutton(
-            -text => 'fault',
-            -value => OMP__TIMEGAP_FAULT,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioLastProject = $radioFrame->Radiobutton(
-            -text => 'last proj.',
-            -value => OMP__TIMEGAP_PREV_PROJECT,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioNextProject = $radioFrame->Radiobutton(
-            -text => 'next proj.',
-            -value => OMP__TIMEGAP_NEXT_PROJECT,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-
-        # Second row of buttons...
-        my $radioFrame2 = $entryFrame->Frame->pack(
-            -side => 'top',
-            -fill => 'x',
-        );
-
-        my $textStatus2 = $radioFrame2->Label(
-            -text => '            ',
-        )->pack(
-            -side => 'left',
-        );
-        my $radioNotDriver = $radioFrame2->Radiobutton(
-            -text => 'observer not driver',
-            -value => OMP__TIMEGAP_NOT_DRIVER,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioScheduled = $radioFrame2->Radiobutton(
-            -text => 'scheduled downtime',
-            -value => OMP__TIMEGAP_SCHEDULED,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioOverhead = $radioFrame2->Radiobutton(
-            -text => 'queue overhead',
-            -value => OMP__TIMEGAP_QUEUE_OVERHEAD,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioLogistics = $radioFrame2->Radiobutton(
-            -text => 'logistics',
-            -value => OMP__TIMEGAP_LOGISTICS,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioUnknown = $radioFrame->Radiobutton(
-            -text => 'unknown',
-            -value => OMP__TIMEGAP_UNKNOWN,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-    }
-    else {
-        my $radioGood = $radioFrame->Radiobutton(
-            -text => 'good',
-            -value => OMP__OBS_GOOD,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioBad = $radioFrame->Radiobutton(
-            -text => 'bad',
-            -value => OMP__OBS_BAD,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioJunk = $radioFrame->Radiobutton(
-            -text => 'junk',
-            -value => OMP__OBS_JUNK,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioQuestionable = $radioFrame->Radiobutton(
-            -text => 'questionable',
-            -value => OMP__OBS_QUESTIONABLE,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(
-            -side => 'left',
-        );
-        my $radioRejected = $radioFrame->Radiobutton(
-            -text => 'rejected',
-            -value => OMP__OBS_REJECTED,
-            -variable => \$status,
-            -font => $opt{'font-var'},
-        )->pack(-side => 'left',);
-
-    }
-
     # $textUser displays the current user id.
-    my $textUser = $radioFrame->Label(
+    my $textUser = $userFrame->Label(
         -text => 'Current user: ' . $user->userid,
         -font => $opt{'font-var-bold'},
     )->pack(
@@ -1342,49 +1231,27 @@ sub RaiseMultiComment {
     )->pack(
         -side => 'left',
     );
-    my $radioGood = $radioFrame->Radiobutton(
-        -text => 'good',
-        -value => OMP__OBS_GOOD,
-        -variable => \$status,
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
-    );
-    my $radioBad = $radioFrame->Radiobutton(
-        -text => 'bad',
-        -value => OMP__OBS_BAD,
-        -variable => \$status,
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
-    );
-    my $radioJunk = $radioFrame->Radiobutton(
-        -text => 'junk',
-        -value => OMP__OBS_JUNK,
-        -variable => \$status,
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
-    );
-    my $radioQuestionable = $radioFrame->Radiobutton(
-        -text => 'questionable',
-        -value => OMP__OBS_QUESTIONABLE,
-        -variable => \$status,
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
-    );
-    my $radioRejected = $radioFrame->Radiobutton(
-        -text => 'rejected',
-        -value => OMP__OBS_REJECTED,
-        -variable => \$status,
-        -font => $opt{'font-var'},
-    )->pack(
-        -side => 'left',
+
+    foreach (OMP::Info::Obs->get_status_options) {
+        my ($status_value, $status_name) = @$_;
+
+        my $radioButton = $radioFrame->Radiobutton(
+            -text => $status_name,
+            -value => $status_value,
+            -variable => \$status,
+            -font => $opt{'font-var'},
+        )->pack(
+            -side => 'left',
+        );
+    }
+
+    my $userFrame = $entryFrame->Frame->pack(
+        -side => 'top',
+        -fill => 'x',
     );
 
     # $textUser displays the current user id.
-    my $textUser = $radioFrame->Label(
+    my $textUser = $userFrame->Label(
         -text => 'Current user: ' . $user->userid,
         -font => $opt{'font-var-bold'},
     )->pack(

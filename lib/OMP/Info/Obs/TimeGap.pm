@@ -275,6 +275,18 @@ sub uniqueid {
         . sprintf('%02d', ($self->endobs->second - 1));
 }
 
+=item B<get_status_options>
+
+Get an array of pairs of status value and label, in order.
+
+=cut
+
+sub get_status_options {
+    my $self = shift;
+
+    return map {[$_->[0], $_->[1]->{'name'}]} @DATA;
+}
+
 1;
 
 __END__

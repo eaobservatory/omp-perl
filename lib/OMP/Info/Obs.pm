@@ -1889,6 +1889,18 @@ sub cleaned_msbtitle {
     return $title;
 }
 
+=item B<get_status_options>
+
+Get an array of pairs of status value and label, in order.
+
+=cut
+
+sub get_status_options {
+    my $self = shift;
+
+    return map {[$_->[0], $_->[1]->{'name'}]} @DATA;
+}
+
 =back
 
 =head2 Private Methods
