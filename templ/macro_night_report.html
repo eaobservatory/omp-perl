@@ -368,8 +368,8 @@
             <tr class="sum_other">
                 <td>
                     Color legend:
-                    [% FOREACH status IN obs_summary.status_order %]
-                        <span class="[% obs_summary.status_class.$status %]">[% obs_summary.status_label.$status %]</span>[% IF ! loop.last %],[% END %]
+                    [% FOREACH status IN obs_summary.statuses %]
+                        <span class="[% obs_summary.status_class.item(status.0) %]">[% status.1 %]</span>[% IF ! loop.last %],[% END %]
                     [% END %]
                 </td>
             </tr>

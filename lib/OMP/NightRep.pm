@@ -1694,7 +1694,7 @@ sub get_obs_summary {
 
     my %result = (
         block => [],
-        status_order => \@OMP::Info::Obs::status_order,
+        statuses => [OMP::Info::Obs->get_status_options],
         status_class => \%OMP::Info::Obs::status_class,
         status_label => \%OMP::Info::Obs::status_label,
     );

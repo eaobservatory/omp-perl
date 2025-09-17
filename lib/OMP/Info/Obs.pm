@@ -81,7 +81,6 @@ my @DATA = (
 # Construct original listings for compatibility.
 our %status_label = map {$_->[0] => $_->[1]->{'name'}} @DATA;
 our %status_class = map {$_->[0] => $_->[1]->{'class'}} @DATA;
-our @status_order = map {$_->[0]} @DATA;
 
 =head1 METHODS
 
