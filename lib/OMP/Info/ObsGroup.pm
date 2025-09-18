@@ -914,25 +914,25 @@ sub projectStatsSimple {
                 my $ymd = $obs->startobs->ymd;
                 my $faultlen = $obs->calculate_duration('obj');
                 $night_totals{$tel}{$ymd}{$shifttype} += $faultlen;
+
+                next;
             }
 
-            next if $status == OMP__TIMEGAP_FAULT;
+            if ($status == OMP__TIMEGAP_NEXT_PROJECT
+                    or $status == OMP__TIMEGAP_PREV_PROJECT) {
+                # PROJECT gaps are given to the following project
+                # or the project preceeding this gap.
 
-            if ($status == OMP__TIMEGAP_NEXT_PROJECT) {
-                # PROJECT gaps are given to the following
-                # project. In both cases we handle it properly in the next section.
+                # In both cases we handle it properly in the next section.
                 # Simply let the default project ID go through since it will be ignored
                 # in a little while.
             }
-            elsif ($status == OMP__TIMEGAP_WEATHER) {
-                $projectid = $WEATHER_GAP;
-            }
-            elsif ($status == OMP__TIMEGAP_PREV_PROJECT) {
-                # This is time that should be charged to the project
-                # preceeding this gap. For now we do not need to do anything
-            }
             else {
-                $projectid = $OTHER_GAP;
+                $projectid = $obs->get_status_assignment;
+
+                # Skip this gap if get_status_assignment indicates we should
+                # not be including it in the time accounting.
+                next unless defined $projectid;
             }
         }
 

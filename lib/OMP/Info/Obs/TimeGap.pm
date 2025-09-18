@@ -43,6 +43,7 @@ my @DATA = (
     }],
     [OMP__TIMEGAP_WEATHER(), {
         name => 'Weather',
+        assignment => 'WEATHER',
     }],
     [OMP__TIMEGAP_FAULT(), {
         name => 'Fault',
@@ -59,6 +60,7 @@ my @DATA = (
     }],
     [OMP__TIMEGAP_SCHEDULED(), {
         name => 'Scheduled downtime',
+        assignment => undef,
     }],
     [OMP__TIMEGAP_QUEUE_OVERHEAD(), {
         name => 'Queue overhead',
@@ -306,6 +308,48 @@ sub get_status_options {
             (defined $current and $_->[0] == $current)
             or (not $_->[1]->{'hidden'})
         } @DATA;
+}
+
+=item B<get_status_assignment>
+
+Get the time accounting assignment associated with gaps of this
+type.  Can either be called as an instance or class method:
+
+    $projectid = $gap->get_status_assignment;
+
+    $projectid = OMP::Info::Obs::TimeGap->get_status_assignment($status);
+
+Returns "OTHER" if no specific assignment type has been listed
+for the given status.  Returns C<undef> if the assignment type
+has specifically been listed as such, indicating that the
+gap should not be included in time accounting.
+
+B<Note:> this method has been implemented as a helper to the
+C<OMP::Info::ObsGroup-E<gt>projectStatsSimple> method,
+so it will not yet return a suitable assignment for
+statuses which that method handles individually,
+such as C<OMP__TIMEGAP_FAULT>, C<OMP__TIMEGAP_NEXT_PROJECT>
+and C<OMP__TIMEGAP_PREV_PROJECT>.
+
+B<Also note:> the assignment name is returned without
+prefix.  The telescope name might be added later,
+e.g. to change "WEATHER" to "JCMTWEATHER".
+
+=cut
+
+sub get_status_assignment {
+    my $self = shift;
+    my $status = (ref $self ? $self->status : shift);
+
+    foreach (@DATA) {
+        next unless $status == $_->[0];
+        my $status_info = $_->[1];
+
+        return $status_info->{'assignment'}
+            if exists $status_info->{'assignment'};
+    }
+
+    return 'OTHER';
 }
 
 1;
