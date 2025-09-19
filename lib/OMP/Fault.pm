@@ -1963,6 +1963,8 @@ sub getResponse {
     foreach (@{$self->{'Responses'}}) {
         return $_ if $_->id eq $respid;
     }
+
+    return undef;
 }
 
 =item B<author>
