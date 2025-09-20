@@ -117,7 +117,8 @@ sub include_file_ut {
 
 Finds and prints out the contents of a file which is to be
 found in the given subdirectory.  The caller should ensure
-that the subdirectory parameter is valid.
+that the subdirectory parameter is valid.  If multiple
+subdirectories are required, an array reference can be given.
 
     $comp->_get_resource($type, $subdirectory, $filename)
 
@@ -128,18 +129,21 @@ type guessed from the extension.
 
 sub _get_resource {
     my $self = shift;
-    my ($type, $subdirectory, $filename) = @_;
+    my ($type, $subdirectory_list, $filename) = @_;
 
     # Determine directory to search for files.
     my $directory = OMP::Config->getData('directory-' . $type);
 
     # Check directory is valid.
-    croak('Subdirectory not defined.') unless defined $subdirectory;
-    if ($subdirectory =~ /^([-_.a-zA-Z0-9]+)$/) {
-        $subdirectory = $1;
-    }
-    else {
-        croak('Subdirectory [' . $subdirectory . '] is not valid.');
+    croak('Subdirectory not defined.') unless defined $subdirectory_list;
+    my @subdirectory;
+    foreach my $subdirectory ((ref $subdirectory_list) ? @$subdirectory_list : $subdirectory_list) {
+        if ($subdirectory =~ /^([-_.a-zA-Z0-9]+)$/) {
+            push @subdirectory, $1;
+        }
+        else {
+            croak('Subdirectory [' . $subdirectory . '] is not valid.');
+        }
     }
 
     # Check filename is valid.
@@ -152,7 +156,7 @@ sub _get_resource {
         croak('File name [' . $filename . '] is not valid.');
     }
 
-    my $pathname = join('/', $directory, $subdirectory, $filename);
+    my $pathname = join('/', $directory, @subdirectory, $filename);
 
     return $self->page->_write_not_found() unless -e $pathname;
 

@@ -88,6 +88,7 @@ sub new {
         FaultDate => undef,
         ShiftType => undef,
         Remote => undef,
+        Images => undef,
     };
 
     bless $resp, $class;
@@ -352,6 +353,44 @@ sub remote {
         $self->{'Remote'} = $remote;
     }
     return $self->{'Remote'};
+}
+
+=item B<images>
+
+Collection of images associated with this response.  Currently an array of
+hashes (but could be changed to objects if necessary).  Each contains:
+
+=over 4
+
+=item B<number>
+
+The image number.
+
+=item B<suffix>
+
+"jpeg" or "png".
+
+=item B<has_scaled>
+
+Whether or not a scaled version is present.
+
+=back
+
+=cut
+
+sub images {
+    my $self = shift;
+    if (@_) {
+        my $images = shift;
+        croak 'Images must be given as an array reference'
+            unless 'ARRAY' eq ref $images;
+        foreach (@$images) {
+            croak 'Images must be given as an array of hashes'
+                unless 'HASH' eq ref $_;
+        }
+        $self->{'Images'} = $images;
+    }
+    return $self->{'Images'};
 }
 
 =back
