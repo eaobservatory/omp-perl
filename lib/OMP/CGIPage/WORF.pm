@@ -24,6 +24,7 @@ use Digest::MD5 qw/md5_hex/;
 use File::Spec;
 
 use OMP::DB::Archive;
+use OMP::CGIComponent::ITCLink;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::Error qw/:try/;
@@ -41,6 +42,8 @@ use base qw/OMP::CGIPage/;
 sub display_page {
     my $self = shift;
     my $projectid = shift;
+
+    my $itccomp = OMP::CGIComponent::ITCLink->new(page => $self);
 
     die 'Invalid telescope'
         unless $self->decoded_url_param('telescope') =~ /^([\w]+)$/a;
@@ -142,6 +145,7 @@ sub display_page {
         target_image => $worfimage,
         status_class => \%OMP::Info::Obs::status_class,
         status_label => \%OMP::Info::Obs::status_label,
+        itclink => (scalar $itccomp->observation_itc_link($obs)),
     };
 }
 

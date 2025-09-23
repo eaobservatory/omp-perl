@@ -67,6 +67,12 @@
     </td>
 </table>
 
+[% IF itclink.defined %]
+    <p>
+        <a href="[% itclink %]">ITC</a>
+    </p>
+[% END %]
+
 <h2>Comments</h2>
 
 [% SET comments = observation.scalar.comments %]
