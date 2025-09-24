@@ -377,6 +377,7 @@ HR {
 
 A {
   font-family:arial,sans-serif;
+  word-break: break-all;
 }
 
 .hide { visibility: hidden; display: none; }
