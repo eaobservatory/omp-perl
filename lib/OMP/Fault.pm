@@ -404,6 +404,7 @@ my %DATA = (
             "Feature Request" => FEATURE_REQUEST,
             Other => TYPEOTHER,
             Human => HUMAN,
+            Network => NETWORK,
         },
     },
     "DR" => {
