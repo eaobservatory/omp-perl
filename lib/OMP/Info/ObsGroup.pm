@@ -2160,6 +2160,33 @@ sub locate_timegaps {
     return;
 }
 
+=item B<filter_timegaps>
+
+Filters the list of observations such that any time gaps
+(instances of C<OMP::Info::Obs::TimeGap>) are removed
+unless they are at least the given length.
+
+    $obsgrp->filter_timegaps($gap_length);
+
+If C<$gap_length> is undefined then the configuration parameter
+C<timegap> will be used.
+
+=cut
+
+sub filter_timegaps {
+    my $self = shift;
+    my $length = shift;
+
+    $length = OMP::Config->getData('timegap') if not defined $length;
+
+    my @obs = grep {
+        (not eval {$_->isa('OMP::Info::Obs::TimeGap')})
+        or ($_->calculate_duration() >= $length)
+    } $self->obs;
+
+    $self->obs(\@obs);
+}
+
 =item B<summary>
 
 Returns a text-based summary for observations in an observation
