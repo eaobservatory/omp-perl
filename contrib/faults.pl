@@ -29,7 +29,6 @@ use lib OMPLIB;
 use OMP::DateTools;
 use OMP::DB::Backend;
 use OMP::DB::Fault;
-use OMP::NightRep;
 use OMP::Query::Fault;
 
 my $dbb = OMP::DB::Backend->new;
@@ -103,15 +102,33 @@ print
 
 ";
 
-# Note: OMP::NightRep currently allows telescope => JCMT_EVENTS,
-# but if that changes, should add a new method OMP::NightRep->events
-# to perform the same query in the events category.
-my $current = OMP::NightRep->new(
-    DB => $dbb,
-    date => $startut,
-    delta_day => $delta,
-    telescope => $category,
-)->faults;
+my $current = $db->queryFaults(
+    OMP::Query::Fault->new(HASH => {
+        EXPR__DT => {or => {
+            # Faults that occurred on the dates we are reporting for:
+            faultdate => {
+                value => $startut,
+                delta => $delta,
+            },
+
+            # Faults filed on the dates we are reporting for:
+            EXPR__DTF => {and => {
+                date => {
+                    value => $startut,
+                    delta => $delta,
+                },
+
+                # Provided this was the original filing or an additional time loss:
+                EXPR__DTFF => {or => {
+                    isfault => {boolean => 1},
+                    timelost => {min => 0.001},
+                }},
+            }},
+        }},
+        category => $category,
+    }),
+    matching_responses_only => 1,
+    no_text => 1, no_projects => 1);
 
 # Group same faults together
 
@@ -125,12 +142,10 @@ foreach my $fault ($current->faults) {
     $subject = substr($subject,0,55);
     $subject =~ s/\s+$//;
 
-    # Try to omit some variations and anything after a '('
+    # Try to omit some variations, anything after a '(' and xN
     my $subj = $subject;
-
-    my $index = index($subj, '(');
-    $subj = substr($subj, 0, $index) if ($index > -1);
-
+    $subj =~ s/\(.*//;
+    $subj =~ s/\bx\d+\b//;
     $subj =~ s/Errors/Error/i;
     $subj =~ s/Faults/Fault/i;
     $subj =~ s/\s+$//g;
@@ -151,6 +166,7 @@ foreach my $fault ($current->faults) {
         $faults{$subj}{author} .= ',' . $author
             unless $faults{$subj}{author} =~ /$author/i;
         $faults{$subj}{status} = $status if $status =~ /open/i;
+        $faults{$subj}{'id'} = $fault->id if $fault->id < $faults{$subj}{'id'};
     }
     else {
         my %ref;
@@ -158,6 +174,7 @@ foreach my $fault ($current->faults) {
         $ref{listing} = sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
         $ref{author} = $author;
         $ref{status} = $status;
+        $ref{'id'} = $fault->id;
         $faults{$subj} = \%ref;
     }
 }
@@ -165,6 +182,7 @@ foreach my $fault ($current->faults) {
 # Now print everything in from largest time lost;
 foreach my $subj (
         sort {$faults{$b}{totallost} cmp $faults{$a}{totallost}}
+        sort {$faults{$a}{'id'} <=> $faults{$b}{'id'}}
         keys %faults) {
     printf "%s", $faults{$subj}{listing};
 
@@ -231,7 +249,7 @@ if ($category ne "JCMT_EVENTS") {
                 value => $startut,
                 delta => $delta,
             },
-            status => 1,
+            status => OMP::Fault::CLOSED,
         }),
         no_text => 1, no_projects => 1);
 

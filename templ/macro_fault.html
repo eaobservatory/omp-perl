@@ -126,7 +126,9 @@
                 </td>
                 <td>
                     [% IF fault_info.allow_edit %]
-                        <span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Update or edit this [% fault_info.entry_name | lower | html %]</a></span>
+                        <span class="editlink"><a href="/cgi-bin/updatefault.pl?fault=[% uri_fault_id %]">Edit [% fault_info.entry_name | lower | html %]</a></span>
+                        &nbsp;&nbsp;
+                        <span class="editlink"><a href="/cgi-bin/respimage.pl?fault=[% uri_fault_id %]&respid=[% fault.responses.first.id | uri %]">Upload image</a></span>
                     [% ELSE %]
                         &nbsp;
                     [% END %]
@@ -161,8 +163,10 @@
                                     <input type="submit" name="submit_flag_down" value="&minus;" />
                                     <input type="submit" name="submit_flag_up" value="+" />
                                 </form>
+                                <br />
+                                <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit response</a></span>
                                 &nbsp;&nbsp;
-                                <span class="editlink"><a href="/cgi-bin/updateresp.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Edit this response</a></span>
+                                <span class="editlink"><a href="/cgi-bin/respimage.pl?fault=[% uri_fault_id %]&respid=[% response.id | uri %]">Upload image</a></span>
                             [% END %]
                         </td>
                     </tr>
@@ -215,6 +219,23 @@
                     <td width="20">&nbsp;</td>
                     <td colspan="2" [% SWITCH response.flag %][% CASE 1 %]class="faultresponse_valuable"[% CASE 2 %]class="faultresponse_invaluable"[% CASE -1 %]class="faultresponse_redundant"[% CASE -2 %]class="faultresponse_hidden"[% END %]>[% response.format_text(80) | replace_omp_links('fault', fault.id) %]</td>
                 </tr>
+                [% SET images = response.images %]
+                [% IF images %]
+                    [% FOREACH image IN images %]
+                        <tr bgcolor="[% bgcolor %]">
+                            <td>&nbsp;</td>
+                            <td colspan="2">
+                                [% IF image.has_scaled %]
+                                    <a href="/cgi-bin/get_resource.pl?type=response-image&amp;fault=[% fault.id | uri %]&amp;respid=[% response.id | uri %]&amp;filename=[% image.number | uri %].[% image.suffix | uri %]" style="cursor: zoom-in;" />
+                                        <img src="/cgi-bin/get_resource.pl?type=response-image&amp;fault=[% fault.id | uri %]&amp;respid=[% response.id | uri %]&amp;filename=[% image.number | uri %]_scaled.[% image.suffix | uri %]" alt="Image [% image.number | html %]" />
+                                    </a>
+                                [% ELSE %]
+                                    <img src="/cgi-bin/get_resource.pl?type=response-image&amp;fault=[% fault.id | uri %]&amp;respid=[% response.id | uri %]&amp;filename=[% image.number | uri %].[% image.suffix | uri %]" alt="Image [% image.number | html %]" />
+                                [% END %]
+                            </td>
+                        </tr>
+                    [% END %]
+                [% END %]
             [% END %]
         [% END %]
     </table>

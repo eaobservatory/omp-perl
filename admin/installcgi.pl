@@ -84,7 +84,7 @@ my @pubfiles = qw/
     listprojects.pl login_hedwig.pl msbhist.pl nightrep.pl obslog_text.pl
     ompusers.pl
     projecthome.pl projusers.pl props.pl pubsched.pl
-    qstatus.pl queryfault.pl retrieve_data.pl
+    qstatus.pl queryfault.pl respimage.pl retrieve_data.pl
     sched.pl schedcal.pl schedcallist.pl schedstat.pl
     searchobslog.pl searchshiftlog.pl shiftlog.pl shiftlogedit.pl
     sourceplot.pl spregion.pl spsummary.pl

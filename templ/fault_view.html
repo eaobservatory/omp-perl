@@ -30,7 +30,10 @@
             </select>
             <select name="show">
                 <option [% IF filter_info.show == "automatic" %]selected="selected"[% END %]value="automatic">Automatic</option>
+                <hr />
                 <option [% IF filter_info.show == "nonhidden" %]selected="selected"[% END %]value="nonhidden">Non-hidden</option>
+                <option [% IF filter_info.show == "timeloss" %]selected="selected"[% END %]value="timeloss">With time lost</option>
+                <hr />
                 <option [% IF filter_info.show == "all" %]selected="selected"[% END %] value="all">All</option>
             </select>
             <input type="submit" name="" value="Filter" />

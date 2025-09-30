@@ -34,31 +34,47 @@ use base qw/OMP::Info::Obs/;
 
 our $VERSION = '2.000';
 
-our %status_label = (
-    OMP__TIMEGAP_INSTRUMENT() => 'Instrument',
-    OMP__TIMEGAP_WEATHER() => 'Weather',
-    OMP__TIMEGAP_FAULT() => 'Fault',
-    OMP__TIMEGAP_NEXT_PROJECT() => 'Next project',
-    OMP__TIMEGAP_PREV_PROJECT() => 'Last project',
-    OMP__TIMEGAP_NOT_DRIVER() => 'Observer not a driver',
-    OMP__TIMEGAP_SCHEDULED() => 'Scheduled downtime',
-    OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue overhead',
-    OMP__TIMEGAP_LOGISTICS() => 'Logistics',
-    OMP__TIMEGAP_UNKNOWN() => 'Unknown',
+my @DATA = (
+    [OMP__TIMEGAP_UNKNOWN(), {
+        name => 'Unknown',
+    }],
+    [OMP__TIMEGAP_INSTRUMENT(), {
+        name => 'Instrument',
+    }],
+    [OMP__TIMEGAP_WEATHER(), {
+        name => 'Weather',
+        assignment => 'WEATHER',
+    }],
+    [OMP__TIMEGAP_FAULT(), {
+        name => 'Fault',
+    }],
+    [OMP__TIMEGAP_NEXT_PROJECT(), {
+        name => 'Next project',
+    }],
+    [OMP__TIMEGAP_PREV_PROJECT(), {
+        name => 'Last project',
+    }],
+    [OMP__TIMEGAP_NOT_DRIVER(), {
+        name => 'Observer not a driver',
+        hidden => 1,
+    }],
+    [OMP__TIMEGAP_SCHEDULED(), {
+        name => 'Scheduled downtime',
+        assignment => undef,
+    }],
+    [OMP__TIMEGAP_QUEUE_OVERHEAD(), {
+        name => 'Queue overhead',
+    }],
+    [OMP__TIMEGAP_LOGISTICS(), {
+        name => 'Logistics',
+    }],
+    [OMP__TIMEGAP_ILLNESS(), {
+        name => 'Illness',
+    }],
 );
 
-our @status_order = (
-    OMP__TIMEGAP_UNKNOWN(),
-    OMP__TIMEGAP_INSTRUMENT(),
-    OMP__TIMEGAP_WEATHER(),
-    OMP__TIMEGAP_FAULT(),
-    OMP__TIMEGAP_NEXT_PROJECT(),
-    OMP__TIMEGAP_PREV_PROJECT(),
-    OMP__TIMEGAP_NOT_DRIVER(),
-    OMP__TIMEGAP_SCHEDULED(),
-    OMP__TIMEGAP_QUEUE_OVERHEAD(),
-    OMP__TIMEGAP_LOGISTICS(),
-);
+# Construct original listings for compatibility.
+our %status_label = map {$_->[0] => $_->[1]->{'name'}} @DATA;
 
 =head1 METHODS
 
@@ -262,6 +278,78 @@ sub uniqueid {
         . sprintf('%02d', $self->endobs->hour) . ':'
         . sprintf('%02d', $self->endobs->minute) . ':'
         . sprintf('%02d', ($self->endobs->second - 1));
+}
+
+=item B<get_status_options>
+
+Get an array of pairs of status value and label, in order.
+
+    @options = OMP::Info::Obs::TimeGap->get_status_options;
+
+Hidden values are excluded unless called as an instance method of an object
+for which the hidden value is currently selected.
+
+    @options = $timegap->get_status_options;
+
+=cut
+
+sub get_status_options {
+    my $self = shift;
+
+    my $current = undef;
+
+    # If called as an instance method rather than a class method.
+    if (ref $self) {
+        $current = $self->status;
+    }
+
+    return map {[$_->[0], $_->[1]->{'name'}]}
+        grep {
+            (defined $current and $_->[0] == $current)
+            or (not $_->[1]->{'hidden'})
+        } @DATA;
+}
+
+=item B<get_status_assignment>
+
+Get the time accounting assignment associated with gaps of this
+type.  Can either be called as an instance or class method:
+
+    $projectid = $gap->get_status_assignment;
+
+    $projectid = OMP::Info::Obs::TimeGap->get_status_assignment($status);
+
+Returns "OTHER" if no specific assignment type has been listed
+for the given status.  Returns C<undef> if the assignment type
+has specifically been listed as such, indicating that the
+gap should not be included in time accounting.
+
+B<Note:> this method has been implemented as a helper to the
+C<OMP::Info::ObsGroup-E<gt>projectStatsSimple> method,
+so it will not yet return a suitable assignment for
+statuses which that method handles individually,
+such as C<OMP__TIMEGAP_FAULT>, C<OMP__TIMEGAP_NEXT_PROJECT>
+and C<OMP__TIMEGAP_PREV_PROJECT>.
+
+B<Also note:> the assignment name is returned without
+prefix.  The telescope name might be added later,
+e.g. to change "WEATHER" to "JCMTWEATHER".
+
+=cut
+
+sub get_status_assignment {
+    my $self = shift;
+    my $status = (ref $self ? $self->status : shift);
+
+    foreach (@DATA) {
+        next unless $status == $_->[0];
+        my $status_info = $_->[1];
+
+        return $status_info->{'assignment'}
+            if exists $status_info->{'assignment'};
+    }
+
+    return 'OTHER';
 }
 
 1;

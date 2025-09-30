@@ -1,3 +1,4 @@
+[% USE scalar -%]
 [% PROCESS "macro_general.html" -%]
 [% WRAPPER "layout.html" %]
 <h1>Time accounting for [% ut_date.ymd | html %] at [% telescope | html %]</h1>
@@ -169,7 +170,22 @@
                             [% status_label.$status %]
                         </td>
                         <td>[% (observation.timespent / 3600.0) | format('%.3f') %]</td>
-                        <td>[% observation.comment | html %]</td>
+                        <td>
+                            [% observation.comment | html %]
+                            [% IF observation.obs.projectid == 'TIMEGAP' %]
+                                [% SET comments = observation.obs.scalar.comments %]
+                                [% UNLESS comments.empty %]
+                                    [% SET comment = comments.last %]
+                                    <br />
+                                    [% comment.date.strftime('%F %T') | html %] UT /
+                                    [% comment.author.name | html %]:
+                                    [% FOREACH line IN comment.text.split("\n") %]
+                                        [% line | html %]
+                                        [% IF ! loop.last %]<br />[% END %]
+                                    [% END %]
+                                [% END %]
+                            [% END %]
+                        </td>
                     </tr>
                 [% END %]
             </table>

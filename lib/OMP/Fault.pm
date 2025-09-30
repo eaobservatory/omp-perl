@@ -404,6 +404,7 @@ my %DATA = (
             "Feature Request" => FEATURE_REQUEST,
             Other => TYPEOTHER,
             Human => HUMAN,
+            Network => NETWORK,
         },
     },
     "DR" => {
@@ -1963,6 +1964,8 @@ sub getResponse {
     foreach (@{$self->{'Responses'}}) {
         return $_ if $_->id eq $respid;
     }
+
+    return undef;
 }
 
 =item B<author>

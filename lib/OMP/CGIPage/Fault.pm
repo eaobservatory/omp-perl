@@ -24,6 +24,10 @@ use warnings;
 use Carp;
 our $VERSION = '2.000';
 
+use File::Path 2.10 qw/make_path/;
+use GD::Image;
+use IO::File;
+use List::Util qw/max/;
 use Time::Piece;
 use Time::Seconds qw/ONE_DAY/;
 
@@ -712,12 +716,19 @@ sub view_fault {
         return $self->_write_redirect($redirect);
     }
     else {
+        # Ensure $faultid is untainted, then look for fault images.
+        die 'Invalid fault ID' unless $faultid =~ /^(\d+\.\d+)$/; $faultid = $1;
+        my $images = $self->_list_fault_images($self->_get_fault_image_directory($faultid));
+
         if ($order !~ /asc/ or $show !~ /all/) {
             my @responses = $fault->responses;
             my $original = shift @responses;
 
             if ($show =~ /nonhidden/) {
                 @responses = grep {$_->flag != OMP__FR_HIDDEN} @responses;
+            }
+            elsif ($show =~ /timeloss/) {
+                @responses = grep {$_->timelost > 0.001} @responses;
             }
             elsif ($show =~ /automatic/) {
                 my $num_start = 12;
@@ -773,7 +784,9 @@ sub view_fault {
 
             @responses = reverse @responses if $order =~ /desc/;
 
-            $fault->responses([$original, @responses]);
+            $fault->responses([map {
+                $_->images($images->{$_->id}) if exists $images->{$_->id}; $_;
+            } $original, @responses]);
         }
 
         return {
@@ -958,6 +971,166 @@ sub update_resp {
         if defined $E;
 
     return $self->_write_redirect("/cgi-bin/viewfault.pl?fault=$faultid");
+}
+
+=item B<response_image>
+
+Create a form for uploading an image to a fault response.
+
+    $page->response_image($category, $fault);
+
+=cut
+
+sub response_image {
+    my $self = shift;
+    my $category = shift;
+    my $fault = shift;
+
+    my $q = $self->cgi;
+    my $comp = $self->fault_component;
+
+    my $faultid = $fault->id;
+    my $respid = $self->decoded_url_param('respid');
+
+    return $self->_write_error('A fault ID and response ID must be provided.')
+        unless ($respid and defined $fault);
+
+    die 'Invalid fault ID' unless $faultid =~ /^(\d+\.\d+)$/; $faultid = $1;
+    die 'Invalid response ID' unless $respid =~ /^(\d+)$/; $respid = $1;
+
+    my $response = $fault->getResponse($respid);
+    return $self->_write_error("Given response ID not found.")
+        unless defined $response;
+
+    if ($q->param('submit_upload')) {
+        my ($max_filesize, $max_width, $max_height) = OMP::Config->getData('response-image-max');
+
+        # Get the directory, find the existing images, then add this
+        # response ID as a subdirectory.
+        my $directory = $self->_get_fault_image_directory($faultid);
+        my $images = $self->_list_fault_images($directory);
+        $directory = join '/', $directory, $respid;
+
+        # Select the next available image number.
+        my $number = 1;
+        if (exists $images->{$respid}) {
+            $number = 1 + max(map {$_->{'number'}} @{$images->{$respid}});
+        }
+
+        if (my $fh = $q->upload('file')) {
+            my $info = $q->uploadInfo($fh);
+            my $type = $info->{'Content-Type'};
+            my $is_jpeg = ($type =~ /image\/jpe?g/) ? 1 : 0;
+            my $suffix = $is_jpeg ? 'jpeg' : 'png';
+
+            my $buffer;
+            my $n_read = $fh->read($buffer, $max_filesize);
+            return $self->_write_error('Could not load given file.')
+                unless $n_read;
+            return $self->_write_error('Given file exceeds maximum file size.')
+                unless $n_read < $max_filesize;
+
+            my $image = GD::Image->new($buffer);
+            $fh->close;
+
+            return $self->_write_error('Could not read image.')
+                unless defined $image;
+
+            # Create directory in which to write the image if needed.
+            make_path($directory, {chmod => 0777});
+
+            # Check whether the image needs to be scaled.
+            my ($width, $height) = $image->getBounds();
+
+            my $scale = max($width / $max_width, $height / $max_height);
+
+            if ($scale > 1) {
+                my $scaled_width = int($width / $scale);
+                my $scaled_height = int($height / $scale);
+
+                my $scaled = GD::Image->new($scaled_width, $scaled_height);
+                $scaled->copyResized(
+                    $image, 0, 0, 0, 0,
+                    $scaled_width, $scaled_height,
+                    $width, $height);
+
+                my $outscaled = join '/', $directory, sprintf '%04d_scaled.%s', $number, $suffix;
+                my $outh = IO::File->new($outscaled, 'w');
+                if ($is_jpeg) {
+                    # If a JPEG was uploaded, presumably it is a photograph,
+                    # so JPEG may also be best for the scaled version?
+                    print $outh $scaled->jpeg;
+                }
+                else {
+                    print $outh $scaled->png;
+                }
+                $outh->close;
+            }
+
+            my $outfile = join '/', $directory, sprintf '%04d.%s', $number, $suffix;
+            my $outh = IO::File->new($outfile, 'w');
+            if ($is_jpeg) {
+                # Write JPEG as recieved.
+                print $outh $buffer;
+            }
+            else {
+                # Export non-JPEG as PNG.
+                print $outh $image->png;
+            }
+            $outh->close;
+        }
+        else {
+            return $self->_write_error('No file was received.');
+        }
+
+        return $self->_write_redirect(
+            sprintf '/cgi-bin/viewfault.pl?fault=%s#response%s',
+            $faultid, $response->respnum);
+    }
+
+    return {
+        title => (sprintf '%s: Upload Image: %s',
+            $comp->category_title($category),
+            $faultid),
+        fault => $fault,
+        response => $response,
+        info => {
+            target => $self->url_absolute(),
+        },
+    };
+}
+
+sub _get_fault_image_directory {
+    my $self = shift;
+    my $fault_id = shift;
+
+    return join '/', OMP::Config->getData('directory-fault-image'), $fault_id,
+}
+
+sub _list_fault_images {
+    my $self = shift;
+    my $directory = shift;
+
+    my %result;
+
+    foreach my $filename (sort glob($directory . '/*/*.{png,jpeg}')) {
+        next unless $filename =~ /\/(\d+)\/(\d+)(_scaled)?\.(png|jpeg)$/;
+        my $respid = $1;
+        my $filenum = $2;
+        my $scaled = $3 ? 1 : 0;
+        my $suffix = $4;
+
+        unless (exists $result{$respid}->{$filenum}) {
+            $result{$respid}->{$filenum} = {has_scaled => $scaled, suffix => $suffix};
+        }
+        else {
+            $result{$respid}->{$filenum}->{'has_scaled'} = 1 if $scaled;
+        }
+    }
+
+    return {map {
+        my $r = $result{$_}; $_ => [map {{number => $_, %{$r->{$_}}}} sort {$a cmp $b} keys %$r]
+    } keys %result};
 }
 
 =item B<fault_summary_content>

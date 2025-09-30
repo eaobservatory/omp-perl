@@ -55,6 +55,11 @@ that the project had observations on the night in question.
 
 Project access not currently permitted.
 
+=item response-image
+
+As for C<fault-image>, but in a subdirectory with a numerical
+name, intended to be the response ID.
+
 =back
 
 =cut
@@ -108,6 +113,21 @@ sub get_resource {
         return $self->_write_forbidden() if defined $projectid;
 
         $subdirectory = $faultid;
+    }
+    elsif ($type eq 'response-image') {
+        return $self->_write_forbidden() if defined $projectid;
+
+        $type = 'fault-image';
+
+        my $respid = $self->decoded_url_param('respid');
+        if ($respid =~ /^([0-9]+)$/) {
+            $respid = $1;
+        }
+        else {
+            croak('Response ID [' . $respid. '] is not valid.');
+        }
+
+        $subdirectory = [$faultid, $respid];
     }
     else {
         croak "Resource type not recognized.";

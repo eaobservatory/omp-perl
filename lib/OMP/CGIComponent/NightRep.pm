@@ -175,18 +175,7 @@ sub obs_comment_form {
     my $projectid = shift;
 
     return {
-        statuses => (eval {$obs->isa('OMP::Info::Obs::TimeGap')}
-            ? [
-                map {
-                    [$_ => $OMP::Info::Obs::TimeGap::status_label{$_}]
-                } @OMP::Info::Obs::TimeGap::status_order
-            ]
-            : [
-                map {
-                    [$_ => $OMP::Info::Obs::status_label{$_}]
-                } @OMP::Info::Obs::status_order
-            ]
-        ),
+        statuses => [$obs->get_status_options()],
     };
 }
 

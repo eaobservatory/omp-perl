@@ -1,0 +1,27 @@
+[% WRAPPER "layout.html" %]
+<h1>[% title | html %]</h1>
+
+<p>
+    Uploading image to [% fault.getCategoryEntryName | lower %]
+    [% fault.id | html %]
+    [% IF response.isfault %]
+        original message.
+    [% ELSE %]
+        response
+        #[% response.respnum %].
+    [% END %]
+</p>
+
+<form method="post" action="[% info.target %]" class="submit_timeout" enctype="multipart/form-data">
+    <table border="0">
+        <tr>
+            <td><b>File:</b></td>
+            <td><input type="file" name="file" accept="image/png,image/jpeg,image/gif" /></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</th>
+            <td><input type="submit" name="submit_upload" value="Upload" />
+        </tr>
+    </table>
+</form>
+[% END %]
