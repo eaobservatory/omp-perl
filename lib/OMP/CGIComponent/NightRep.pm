@@ -742,7 +742,7 @@ sub cgi_to_obsgroup {
     );
 
     $options{'inccal'} = $inccal if $inccal;
-    $options{'timegap'} = OMP::Config->getData('timegap') if $timegap;
+    $options{'timegap'} = undef if $timegap;
     $options{'telescope'} = $telescope if defined $telescope;
     $options{'projectid'} = $projid if defined $projid;
     $options{'instrument'} = $inst if defined($inst) && length($inst . '') > 0;
