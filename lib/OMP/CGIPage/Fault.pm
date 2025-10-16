@@ -26,6 +26,7 @@ our $VERSION = '2.000';
 
 use File::Path 2.10 qw/make_path/;
 use GD::Image;
+use Image::ExifTool;
 use IO::File;
 use List::Util qw/max/;
 use Time::Piece;
@@ -1038,6 +1039,21 @@ sub response_image {
 
             # Create directory in which to write the image if needed.
             make_path($directory, {chmod => 0777});
+
+            # Check whether the image is a rotated photograph.
+            my $tool = Image::ExifTool->new;
+            $tool->ExtractInfo(\$buffer);
+            my $orientation = $tool->GetValue('Orientation', 'ValueConv') || 1;
+
+            if ($orientation == 3) {
+                $image = $image->copyRotate180();
+            }
+            elsif ($orientation == 6) {
+                $image = $image->copyRotate90();
+            }
+            elsif ($orientation == 8) {
+                $image = $image->copyRotate270();
+            }
 
             # Check whether the image needs to be scaled.
             my ($width, $height) = $image->getBounds();
