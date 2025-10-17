@@ -19,6 +19,6 @@ OMP::CGIPage::Sched->new(cgi => CGI->new())->write_page(
     \&OMP::CGIPage::Sched::sched_edit,
     'staff',
     title => 'Edit Telescope Schedule',
-    javascript => ['sched_edit.js'],
+    javascript => ['sched_edit.js', 'sched_nav.js'],
     template => 'sched_view_edit.html',
 );
