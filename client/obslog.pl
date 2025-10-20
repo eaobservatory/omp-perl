@@ -775,8 +775,7 @@ sub rescan {
             %obs = (NONE => undef);
         }
         else {
-            my $gaplength = OMP::Config->getData('timegap');
-            $grp->locate_timegaps($dbb, $gaplength);
+            $grp->locate_timegaps($dbb);
 
             %obs = $grp->groupby('instrument');
             grp_to_ref($grp);

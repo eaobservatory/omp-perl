@@ -628,6 +628,9 @@ sub time_accounting {
         }
 
         unless (scalar @errors) {
+            # Remove small time gaps included for time accounting.
+            $nr->obs->filter_timegaps();
+
             $nr->mail_report if $q->param('send_mail');
 
             return $self->_write_redirect(

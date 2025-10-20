@@ -2033,6 +2033,9 @@ and sorts the C<ObsGroup> object by time.
 
     $obsgrp->locate_timegaps($db, $gap_length);
 
+If C<$gap_length> is undefined then the configuration parameter
+C<timegap> will be used.
+
 A timegap is inserted if there are more than C<gap_length> seconds between
 the completion of one observation (taken to be the value of the C<end_obs>
 accessor) and the start of the next (taken to be the value of the
@@ -2050,6 +2053,8 @@ sub locate_timegaps {
     throw OMP::Error::FatalError(
         'locate_timegapsThe DB argument must be an OMP::DB::Backend object')
         unless eval {$db->isa('OMP::DB::Backend')};
+
+    $length = OMP::Config->getData('timegap') if not defined $length;
 
     my @obslist;
     my $counter = 0;
@@ -2158,6 +2163,33 @@ sub locate_timegaps {
     $self->sort_by_time;
 
     return;
+}
+
+=item B<filter_timegaps>
+
+Filters the list of observations such that any time gaps
+(instances of C<OMP::Info::Obs::TimeGap>) are removed
+unless they are at least the given length.
+
+    $obsgrp->filter_timegaps($gap_length);
+
+If C<$gap_length> is undefined then the configuration parameter
+C<timegap> will be used.
+
+=cut
+
+sub filter_timegaps {
+    my $self = shift;
+    my $length = shift;
+
+    $length = OMP::Config->getData('timegap') if not defined $length;
+
+    my @obs = grep {
+        (not eval {$_->isa('OMP::Info::Obs::TimeGap')})
+        or ($_->calculate_duration() >= $length)
+    } $self->obs;
+
+    $self->obs(\@obs);
 }
 
 =item B<summary>

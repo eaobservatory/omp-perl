@@ -1236,7 +1236,7 @@ sub astext {
     $str .= "Observation Log\n\n";
 
     my $grp = $self->obs;
-    $grp->locate_timegaps($self->db, OMP::Config->getData("timegap"));
+    $grp->locate_timegaps($self->db);
     my $tmp = $grp->summary('72col');
     $str .= defined $tmp ? $tmp : '';
 
@@ -1626,7 +1626,7 @@ sub get_obs_summary {
     }
     else {
         $obsgroup = $self->obs();
-        $obsgroup->locate_timegaps($self->db, OMP::Config->getData('timegap'));
+        $obsgroup->locate_timegaps($self->db);
     }
 
     my $sort;
