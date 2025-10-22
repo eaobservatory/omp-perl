@@ -636,7 +636,7 @@ Search for projects which should be continued in the given semester.
 
     $projects = $projdb->find_projects_for_continuation($telescope, $semester);
 
-B<Note:> includes enabled projects with continuation requests greater
+B<Note:> includes projects with continuation requests greater
 than the given semester, so that if a continuation request is added for
 the next semester, the project can first move to the current semester.
 
@@ -653,8 +653,7 @@ sub find_projects_for_continuation {
         . ' AS P ON C.projectid = P.projectid'
         . ' WHERE C.semester >= ?'
         . ' AND P.semester < ?'
-        . ' AND P.telescope = ?'
-        . ' AND P.state',
+        . ' AND P.telescope = ?',
         $semester, $semester, $telescope);
 
     my @projects = map {$_->{'projectid'}} @$results;
