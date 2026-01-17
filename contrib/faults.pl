@@ -12,6 +12,7 @@ use strict;
 use FindBin;
 use File::Spec;
 use Getopt::Long;
+use List::MoreUtils qw/uniq/;
 use Time::Piece qw/:override/;
 use Time::Seconds qw/ONE_DAY/;
 
@@ -153,26 +154,29 @@ foreach my $fault ($current->faults) {
     # Now just get rid of all spaces for key
     $subj =~ s/\s+/\_/g;
 
-    my $author = $fault->author->userid;
-    $author = substr($author, 0, 5) . substr($author, -1, 1)
-        if length($author) > 6 ;
+    my @author = ();
+    foreach my $response ($fault->responses) {
+        my $author = $response->author->userid;
+        $author = substr($author, 0, 5) . substr($author, -1, 1)
+            if length($author) > 6 ;
+        push @author, $author;
+    }
 
     my $time = (scalar localtime $fault->date->epoch)->strftime('%H:%M HST');
     my $status = $statusname[$fault->status];
 
     if (exists $faults{$subj}) {
         $faults{$subj}{totallost} += $fault->timelost;
-        $faults{$subj}{listing} .= sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
-        $faults{$subj}{author} .= ',' . $author
-            unless $faults{$subj}{author} =~ /$author/i;
+        $faults{$subj}{listing} .= sprintf "%12.12s %9.9s %-48.48s\n", $fault->id, $time, $subject;
+        push @{$faults{$subj}{'author'}}, @author;
         $faults{$subj}{status} = $status if $status =~ /open/i;
         $faults{$subj}{'id'} = $fault->id if $fault->id < $faults{$subj}{'id'};
     }
     else {
         my %ref;
         $ref{totallost} = $fault->timelost;
-        $ref{listing} = sprintf "%12.12s %9.9s %-s\n", $fault->id, $time, $subject;
-        $ref{author} = $author;
+        $ref{listing} = sprintf "%12.12s %9.9s %-48.48s\n", $fault->id, $time, $subject;
+        $ref{'author'} = \@author;
         $ref{status} = $status;
         $ref{'id'} = $fault->id;
         $faults{$subj} = \%ref;
@@ -186,13 +190,14 @@ foreach my $subj (
         keys %faults) {
     printf "%s", $faults{$subj}{listing};
 
+    my $author = join ',', uniq @{$faults{$subj}{'author'}};
     if ($category ne "JCMT_EVENTS") {
-        printf " %-21.21s %4.2f hrs lost %25.25s %s\n\n",
-            $faults{$subj}{author}, $faults{$subj}{totallost}, ' ',
+        printf " %-44.44s %6.2f hrs lost %s\n\n",
+            $author, $faults{$subj}{totallost},
             $faults{$subj}{status};
     }
     else {
-        printf " %-21.21s\n\n", $faults{$subj}{author};
+        printf " %-44.44s\n\n", $author;
     }
 }
 
@@ -226,15 +231,22 @@ if ($category ne "JCMT_EVENTS") {
         $subject = substr($subject, 0, 55);
         $subject =~ s/\s+$//g;
 
-        my $author = $fault->author->userid;
-        $author = substr($author, 0, 5) . substr($author, -1, 1)
-            if length($author) > 6 ;
+        my @author = ();
+        foreach my $response ($fault->responses) {
+            my $timelost = $response->timelost // 0.0;
+            next if (scalar @author) && ! ($timelost > 0.0);
+            my $author = $response->author->userid;
+            $author = substr($author, 0, 5) . substr($author, -1, 1)
+                if length($author) > 6 ;
+            push @author, $author;
+        }
+        my $author = join ',', uniq @author;
 
         my $time = (scalar localtime $fault->date->epoch)->strftime('%H:%M HST');
 
-        printf "%12.12s %9.9s %-s\n %-21.21s %4.2f hrs lost %25s %s\n\n",
+        printf "%12.12s %9.9s %-48.48s\n %-44.44s %6.2f hrs lost %s\n\n",
             $fault->id, $time, $subject,
-            $author, $fault->timelost, '', $statusname[$fault->status];
+            $author, $fault->timelost, $statusname[$fault->status];
     }
 
     print "
@@ -261,7 +273,19 @@ if ($category ne "JCMT_EVENTS") {
         $subject = substr($subject, 0, 55);
         $subject =~ s/\s+$//g;
 
-        printf "%12.12s %8.8s  %-s\n\n", $fault->id, ' ', $subject;
+        my @author = ();
+        foreach my $response ($fault->responses) {
+            next if $response->date < $startut;
+            my $author = $response->author->userid;
+            $author = substr($author, 0, 5) . substr($author, -1, 1)
+                if length($author) > 6 ;
+            push @author, $author;
+        }
+        my $author = join ',', uniq @author;
+
+        printf "%-22.22s %-48.48s\n %-44.44s %6.2f hrs lost %s\n\n",
+            $fault->id, $subject,
+            $author, $fault->timelost, $statusname[$fault->status];;
     }
 }
 else {
