@@ -336,6 +336,7 @@ sub projlog_content {
     my $shiftcomp = OMP::CGIComponent::ShiftLog->new(page => $self);
     my $weathercomp = OMP::CGIComponent::Weather->new(page => $self);
     my $includecomp = OMP::CGIComponent::IncludeFile->new(page => $self);
+    my $itclink = OMP::CGIComponent::ITCLink->new(page => $self);
 
     my $utdatestr = $self->decoded_url_param('utdate');
     my $no_retrieve = $self->decoded_url_param('noretrv');
@@ -474,6 +475,8 @@ sub projlog_content {
             grep {$_->[2]}
             ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
         ],
+
+        itclink => $itclink,
         };
 }
 
