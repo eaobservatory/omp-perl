@@ -221,7 +221,7 @@ sub extract_projectid {
     unless (defined $string) {
         # No string from which to extract.
     }
-    elsif ($string =~ /\b([msre]\d\d[abxyzw][junchidpltvkzfr]\d+([a-z]|fb)?)\b/aai  # JCMT [inc serv, FB and A/B suffix]
+    elsif ($string =~ /\b([msref]\d\d[abxyzw][junchidpltvkzfr]\d+([a-z]|fb)?)\b/aai  # JCMT [inc serv, FB and A/B suffix]
             or $string =~ /\b(m\d\d[ab]ec\d+)\b/aai          # JCMT E&C
             or $string =~ /\b(m\d\d[ab]gt\d+)\b/aai          # JCMT Guaranteed Time
             or $string =~ /\b(mjls[sgncdjty]\d+)\b/aai       # JCMT Legacy Surveys
