@@ -17,7 +17,14 @@
         <p>[% top_bar_title %]</p>
     </div>
     [% END %]
+    <div id="layout_side_control">
+        <a href="#" id="layout_side_show_hide">&equiv; Show/hide menu</a>
+    </div>
     <div id="layout_side_bar">
+        <p id="layout_side_close">
+            <a href="#">&times;</a>
+        </p>
+
         <p>EAO</p>
         <ul>
             <li><a href="https://www.eaobservatory.org/">EAO home</a></li>
@@ -78,6 +85,9 @@
                 <li><a href="/cgi-bin/fblogout.pl">Log out</a></li>
             </ul>
         [% END %]
+    </div>
+    <div id="layout_side_reopen">
+        <a href="#">&rarr;</a>
     </div>
     <div id="layout_content">
         [% content %]
