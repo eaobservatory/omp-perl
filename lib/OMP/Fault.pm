@@ -1633,14 +1633,6 @@ sub isNew {
     return ($date >= $t ? 1 : 0);
 }
 
-sub isSCUBA2Fault {
-    my ($self) = @_;
-
-    my $sys = $self->system();
-
-    return $sys && $sys == $DATA{'JCMT'}->{'SYSTEM'}{'SCUBA-2'};
-}
-
 =item B<subject>
 
 Short description of the fault that can be easily displayed
