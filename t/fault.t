@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 47
+use Test::More tests => 56
     + 2  # General information
     + (9 * 5)  # Mailing lists
     + 23  # Options
@@ -48,22 +48,23 @@ isa_ok($resp, 'OMP::Fault::Response');
 
 # Now file a fault
 my $fault = OMP::Fault->new(
-    category => 'UKIRT',
+    category => 'JCMT',
     fault => $resp,
-    system => OMP::Fault::INSTRUMENT_WFCAM(),
+    system => OMP::Fault::FRONT_END_HARP(),
 );
 ok($fault, 'Fault object created');
 isa_ok($fault, 'OMP::Fault');
-is($fault->systemText, 'Instrument - WFCAM');
+is($fault->systemText, 'Front End - HARP');
+is($fault->systemTextAbbr, 'HARP');
 is($fault->faultCanAssocProjects, 1);
 is($fault->faultCanLoseTime, 1);
 is($fault->faultHasLocation, 0);
 is($fault->faultHasTimeOccurred, 1);
 is($fault->faultIsTelescope, 1);
 is($fault->getCategorySystemLabel, 'System');
-is($fault->getCategoryName, 'UKIRT');
-is($fault->getCategoryFullName, 'UKIRT Faults');
-is($fault->getCategoryEntryNameQualified, 'UKIRT fault');
+is($fault->getCategoryName, 'JCMT');
+is($fault->getCategoryFullName, 'JCMT Faults');
+is($fault->getCategoryEntryNameQualified, 'JCMT fault');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -100,9 +101,11 @@ $fault = OMP::Fault->new(
         text => 'text',
     ),
     system => OMP::Fault::VEHICLE_04(),
+    type => OMP::Fault::VEHICLE_WARNING_LIGHTS(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, '4');
+is($fault->systemTextAbbr, '4');
 is($fault->faultCanAssocProjects, 0);
 is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 0);
@@ -110,7 +113,10 @@ is($fault->faultHasTimeOccurred, 0);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Vehicle');
 is($fault->getCategoryName, 'Vehicle Incident');
+is($fault->getCategoryAbbrName, 'Veh. Inc.');
 is($fault->getCategoryFullName, 'Vehicle Incident Reporting');
+is($fault->typeText, 'Warning lights');
+is($fault->typeTextAbbr, 'Warnings');
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -119,9 +125,11 @@ $fault = OMP::Fault->new(
         text => 'text',
     ),
     system => OMP::Fault::EQUIP_DAMAGE(),
+    type => OMP::Fault::INCIDENT(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, 'Equipment damage');
+is($fault->systemTextAbbr, 'Equipment damage');
 is($fault->faultCanAssocProjects, 0);
 is($fault->faultCanLoseTime, 0);
 is($fault->faultHasLocation, 1);
@@ -129,7 +137,10 @@ is($fault->faultHasTimeOccurred, 0);
 is($fault->faultIsTelescope, 0);
 is($fault->getCategorySystemLabel, 'Severity');
 is($fault->getCategoryName, 'Safety');
+is($fault->getCategoryAbbrName, 'Safety');
 is($fault->getCategoryFullName, 'Safety Reporting');
+is($fault->typeText, 'Incident');
+is($fault->typeTextAbbr, 'Incident');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply({OMP::Fault->faultLocation(undef, include_hidden => 1)}, {

@@ -295,6 +295,9 @@ my %OPTIONS = (
             PC_LINUX() => 'PC/Linux',
             SYSTEMOTHER() => 'Other/Unknown',
         },
+        SYSTEM_ABBR => {
+            SYSTEMOTHER() => 'Other',
+        },
         SYSTEM_HIDDEN => {
             SUN_SOLARIS() => 1,
             ALPHA_OSF() => 1,
@@ -342,6 +345,25 @@ my %OPTIONS = (
             CAROUSEL() => 'Carousel',
             SYSTEMOTHER() => 'Other/Unknown',
         },
+        SYSTEM_ABBR => {
+            BACK_END_DAS() => 'DAS',
+            BACK_END_ACSIS() => 'ACSIS',
+            BACK_END_CBE() => 'CBE',
+            BACK_END_IFD() => 'IFD',
+            BACK_END_VLBI() => 'VLBI',
+            FRONT_END_HARP() => 'HARP',
+            NAMAKANUI() => "N\x{101}makanui",
+            FRONT_END_UU() => "\x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "\x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "\x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => 'Kuntur',
+            FRONT_END_RXA() => 'RxA',
+            FRONT_END_RXB() => 'RxB',
+            FRONT_END_RXW() => 'RxW',
+            FRONT_END_RXH3() => 'RxH3',
+            WATER_VAPOR_RAD() => 'WVM',
+            SYSTEMOTHER() => 'Other',
+        },
         SYSTEM_HIDDEN => {
             BACK_END_DAS() => 1,
             BACK_END_CBE() => 1,
@@ -362,6 +384,9 @@ my %OPTIONS = (
             TYPEOTHER() => 'Other/Unknown',
             HUMAN() => 'Human',
             NETWORK() => 'Network',
+        },
+        TYPE_ABBR => {
+            TYPEOTHER() => 'Other',
         },
     },
     UKIRT => {
@@ -416,6 +441,15 @@ my %OPTIONS = (
             JSA_CADC() => 'JSA/CADC',
             SYSTEMOTHER() => 'Other/Unknown',
         },
+        SYSTEM_ABBR => {
+            FEEDBACK_WEB() => 'Web',
+            DBSERVER() => 'DB',
+            OBSERVINGTOOL() => 'OT',
+            QUERYTOOL() => 'QT',
+            SEQUENCER_QUEUE() => 'Queue',
+            MONITOR_CONSOLE() => 'Monitor',
+            SYSTEMOTHER() => 'Other',
+        },
         TYPE => {
             GUI() => 'GUI',
             EXCEPTION() => 'Exception',
@@ -425,6 +459,9 @@ my %OPTIONS = (
             TYPEOTHER() => 'Other',
             HUMAN() => 'Human',
             NETWORK() => 'Network',
+        },
+        TYPE_ABBR => {
+            FEATURE_REQUEST() => 'Feat. Req.',
         },
     },
     DR => {
@@ -439,6 +476,10 @@ my %OPTIONS = (
             SYSTEMOTHER() => 'Other/Unknown',
             JSAPROC() => 'JSA Processing',
         },
+        SYSTEM_ABBR => {
+            ORAC_DR() => 'ORAC-DR',
+            SYSTEMOTHER() => 'Other',
+        },
         SYSTEM_HIDDEN => {
             JCMT_DR() => 1,
             SURF() => 1,
@@ -449,6 +490,9 @@ my %OPTIONS = (
             FEATURE_REQUEST() => 'Feature Request',
             HUMAN() => 'Human',
             TYPEOTHER() => 'Other',
+        },
+        TYPE_ABBR => {
+            FEATURE_REQUEST() => 'Feat. Req.',
         },
     },
     SAFETY => {
@@ -512,6 +556,7 @@ my %OPTIONS = (
     },
     JCMT_EVENTS => {
         CATEGORY_NAME => 'JCMT Events',
+        CATEGORY_ABBR => 'J. Event',
         CATEGORY_NAME_SUFFIX => undef,
         ENTRY_NAME => 'Event',
         HAS_TIME_OCCURRED => 1,
@@ -542,6 +587,10 @@ my %OPTIONS = (
             WX_STATN() => 'Weather Station',
             SYSTEMOTHER() => 'Other',
         },
+        SYSTEM_ABBR => {
+            BACK_END_VLBI() => 'VLBI',
+            WATER_VAPOR_RAD() => 'WVM',
+        },
         SYSTEM_HIDDEN => {
             FRONT_END_RXA() => 1,
             FRONT_END_RXW() => 1,
@@ -554,6 +603,7 @@ my %OPTIONS = (
     },
     VEHICLE_INCIDENT => {
         CATEGORY_NAME => 'Vehicle Incident',
+        CATEGORY_ABBR => 'Veh. Inc.',
         CATEGORY_NAME_SUFFIX => 'Reporting',
         SYSTEM_LABEL => 'Vehicle',
         VEHICLE => {
@@ -576,6 +626,9 @@ my %OPTIONS = (
             VEHICHLE_LIGHTS() => 'Lights',
             VEHICLE_WARNING_LIGHTS() => 'Warning lights',
             TYPEOTHER() => 'Other',
+        },
+        TYPE_ABBR => {
+            VEHICLE_WARNING_LIGHTS() => 'Warnings',
         },
     },
 );
@@ -724,12 +777,7 @@ sub faultSystems {
 
     return unless exists $OPTIONS{$category};
 
-    my %cat_section = (
-        SAFETY => 'SEVERITY',
-        VEHICLE_INCIDENT => 'VEHICLE',
-    );
-
-    my $section = $cat_section{$category} // 'SYSTEM';
+    my $section = $class->_system_section($category);
 
     my $systems = $OPTIONS{$category}{$section};
 
@@ -1139,6 +1187,20 @@ sub getCategoryName {
     return $self->_getCategoryName($category, 0);
 }
 
+=item B<getCategoryAbbrName>
+
+Get the abbreviated name of the category.
+
+=cut
+
+sub getCategoryAbbrName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return (exists $OPTIONS{$category}{'CATEGORY_ABBR'})
+        ? $OPTIONS{$category}{'CATEGORY_ABBR'}
+        : $self->_getCategoryName($category, 0);
+}
+
 =item B<getCategoryFullName>
 
 Get the full name of the category followed by the suffix, if any,
@@ -1458,6 +1520,20 @@ sub typeText {
     return $OPTIONS{$self->category}{'TYPE'}{$self->type};
 }
 
+=item B<typeTextAbbr>
+
+Return the abbreviated of the current fault type.
+
+=cut
+
+sub typeTextAbbr {
+    my $self = shift;
+    my $type = $self->type;
+    return (exists $OPTIONS{$self->category}{'TYPE_ABBR'}{$type})
+        ? $OPTIONS{$self->category}{'TYPE_ABBR'}{$type}
+        : $OPTIONS{$self->category}{'TYPE'}{$type};
+}
+
 =item B<systemText>
 
 Return the textual description of the current fault system.
@@ -1471,14 +1547,28 @@ sub systemText {
     my $self = shift;
 
     my $category = $self->category;
+    my $section = $self->_system_section($category);
 
-    return $OPTIONS{$category}{'SEVERITY'}{$self->system}
-        if 'SAFETY' eq $category;
+    return $OPTIONS{$category}{$section}{$self->system};
+}
 
-    return $OPTIONS{$category}{'VEHICLE'}{$self->system}
-        if 'VEHICLE_INCIDENT' eq $category;
+=item B<systemTextAbbr>
 
-    return $OPTIONS{$category}{'SYSTEM'}{$self->system};
+Return the abbreviated description of the current fault system.
+
+=cut
+
+sub systemTextAbbr {
+    my $self = shift;
+
+    my $category = $self->category;
+    my $section = $self->_system_section($category);
+    my $abbr = $section . '_ABBR';
+    my $system = $self->system;
+
+    return (exists $OPTIONS{$category}{$abbr}{$system})
+        ? $OPTIONS{$category}{$abbr}{$system}
+        : $OPTIONS{$category}{$section}{$system};
 }
 
 sub location {
@@ -2230,6 +2320,19 @@ sub stringify {
     }
 
     return $output;
+}
+
+# Get the key in %OPTIONS containing the system information.
+sub _system_section {
+    my $class = shift;
+    my $category = shift;
+
+    my %cat_section = (
+        SAFETY => 'SEVERITY',
+        VEHICLE_INCIDENT => 'VEHICLE',
+    );
+
+    return $cat_section{$category} // 'SYSTEM';
 }
 
 sub _invert {
