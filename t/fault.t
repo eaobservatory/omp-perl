@@ -21,6 +21,7 @@
 
 
 use Test::More tests => 47
+    + 2  # General information
     + (9 * 5)  # Mailing lists
     + 23  # Options
     + 15  # Status lists
@@ -223,6 +224,30 @@ is_deeply(OMP::Fault->faultSystems('VEHICLE_INCIDENT'), {
     '11' => 6511,
     '13' => 6513,
     '14' => 6514,
+});
+
+# Test general information.
+is_deeply([sort OMP::Fault->faultCategories], [qw/
+    CSG
+    DR
+    FACILITY
+    JCMT
+    JCMT_EVENTS
+    OMP
+    SAFETY
+    UKIRT
+    VEHICLE_INCIDENT
+/]);
+
+is_deeply(OMP::Fault->faultTypes('JCMT'), {
+    Mechanical => 1013,
+    Electronic => 1014,
+    Hardware => 1005,
+    Software => 1006,
+    Cryogenic => 1015,
+    'Other/Unknown' => -1,
+    Human => 0,
+    Network => 1007,
 });
 
 # Test mail_list method.

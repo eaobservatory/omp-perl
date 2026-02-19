@@ -271,281 +271,6 @@ use constant {
     # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
-my %DATA = (
-    "CSG" => {
-        SYSTEM => {
-            "Sun/Solaris" => SUN_SOLARIS,
-            "Alpha/OSF" => ALPHA_OSF,
-            "PC/Windows" => PC_WINDOWS,
-            "VAX/VMS" => VAX_VMS,
-            "PC/Linux" => PC_LINUX,
-            "Other/Unknown" => SYSTEMOTHER,
-        },
-        SYSTEM_HIDDEN => {
-            SUN_SOLARIS() => 1,
-            ALPHA_OSF() => 1,
-            VAX_VMS() => 1,
-        },
-        TYPE => {
-            Other => TYPEOTHER,
-            Human => HUMAN,
-            Hardware => HARDWARE,
-            Software => SOFTWARE,
-            Network => NETWORK,
-            Printer => PRINTER,
-        },
-    },
-    "JCMT" => {
-        SYSTEM => {
-            Telescope => TELESCOPE,
-            "Back End - DAS" => BACK_END_DAS,
-            "Back End - ACSIS" => BACK_END_ACSIS,
-            "Back End - CBE" => BACK_END_CBE,
-            "Back End - IFD" => BACK_END_IFD,
-            "Back End - VLBI" => BACK_END_VLBI,
-            "Front End - HARP" => FRONT_END_HARP,
-            "Front End - N\x{101}makanui" => NAMAKANUI,
-            "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
-            "Front End - \x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
-            "Front End - \x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
-            "Front End - Kuntur" => FRONT_END_KUNTUR,
-            "Front End - RxA" => FRONT_END_RXA,
-            "Front End - RxB" => FRONT_END_RXB,
-            "Front End - RxW" => FRONT_END_RXW,
-            "Front End - RxH3" => FRONT_END_RXH3,
-            Surface => SURFACE,
-            SCUBA => SCUBA,
-            'SCUBA-2' => SCUBA2,
-            IFS => IFS,
-            "Water Vapor Monitor" => WATER_VAPOR_RAD,
-            "Weather Station" => WX_STATN,
-            "Visitor Instruments" => INSTRUMENT_VISITOR,
-            Instrument => INSTRUMENT_OTHER_UNKNOWN,
-            Computer => COMPUTER,
-            Carousel => CAROUSEL,
-            "Other/Unknown" => SYSTEMOTHER,
-        },
-        SYSTEM_HIDDEN => {
-            BACK_END_DAS() => 1,
-            BACK_END_CBE() => 1,
-            BACK_END_IFD() => 1,
-            FRONT_END_RXA() => 1,
-            FRONT_END_RXB() => 1,
-            FRONT_END_RXW() => 1,
-            IFS() => 1,
-            INSTRUMENT_OTHER_UNKNOWN() => 1,
-            SCUBA() => 1,
-        },
-        TYPE => {
-            Mechanical => MECHANICAL,
-            Electronic => ELECTRONIC,
-            Hardware => HARDWARE,
-            Software => SOFTWARE,
-            Cryogenic => CRYOGENIC,
-            "Other/Unknown" => TYPEOTHER,
-            Human => HUMAN,
-            Network => NETWORK,
-        },
-    },
-    "UKIRT" => {
-        SYSTEM => {
-            Telescope => TELESCOPE,
-            "Computer" => COMPUTER,
-            OT => OT,
-            "OT Libraries" => OT_LIBRARIES,
-            "ORAC-DR" => ORAC_DR,
-            "Query Tool" => QUERYTOOL,
-            "Sequence Console" => SEQUENCER_QUEUE,
-            Translator => TRANSLATOR,
-            "Observing Database" => DBSERVER,
-            "Web feedback system" => OMP_FEEDBACK_SYSTEM,
-            Dome => DOME,
-            Ancillaries => ANCILLARIES,
-            "Instrument - CGS4" => INSTRUMENT_CGS4,
-            "Instrument - UFTI" => INSTRUMENT_UFTI,
-            "Instrument - UIST" => INSTRUMENT_UIST,
-            "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
-            "Instrument - WFCAM" => INSTRUMENT_WFCAM,
-            "Instrument - WFS" => INSTRUMENT_WFS,
-            "Instrument - Visitor" => INSTRUMENT_VISITOR,
-            "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
-            "Other/Unknown" => SYSTEMOTHER,
-        },
-        TYPE => {
-            Mechanical => MECHANICAL,
-            Electronic => ELECTRONIC,
-            Hardware => HARDWARE,
-            "Software" => SOFTWARE,
-            Network => NETWORK,
-            Cryogenic => CRYOGENIC,
-            "Remote Operations" => REMOTE_OP,
-            "Other/Unknown" => TYPEOTHER,
-            Human => HUMAN,
-        },
-    },
-    "OMP" => {
-        SYSTEM => {
-            "Feedback/Web" => FEEDBACK_WEB,
-            DBServer => DBSERVER,
-            ObservingTool => OBSERVINGTOOL,
-            QueryTool => QUERYTOOL,
-            "Sequencer/Queue" => SEQUENCER_QUEUE,
-            Translator => TRANSLATOR,
-            "Monitor/Console" => MONITOR_CONSOLE,
-            "Hedwig" => HEDWIG,
-            "JSA/CADC" => JSA_CADC,
-            "Other/Unknown" => SYSTEMOTHER,
-        },
-        TYPE => {
-            GUI => GUI,
-            Exception => EXCEPTION,
-            Scheduling => SCHEDULING,
-            Bug => BUG,
-            "Feature Request" => FEATURE_REQUEST,
-            Other => TYPEOTHER,
-            Human => HUMAN,
-            Network => NETWORK,
-        },
-    },
-    "DR" => {
-        SYSTEM => {
-            "JCMT-DR" => JCMT_DR,
-            SPECX => SPECX,
-            "AIPS++" => AIPSPLUSPLUS,
-            SURF => SURF,
-            STARLINK => STARLINK,
-            "ORAC-DR/PICARD" => ORAC_DR,
-            SMURF => SMURF,
-            'Other/Unknown' => SYSTEMOTHER,
-            "JSA Processing" => JSAPROC,
-        },
-        SYSTEM_HIDDEN => {
-            JCMT_DR() => 1,
-            SURF() => 1,
-            SPECX() => 1,
-        },
-        TYPE => {
-            Bug => BUG,
-            "Feature Request" => FEATURE_REQUEST,
-            Human => HUMAN,
-            Other => TYPEOTHER,
-        },
-    },
-    'SAFETY' => {
-        'SEVERITY' => {
-            'Severe injury or death' => INJURY_DEATH,
-            'Major injury' => MAJOR_INJURY,
-            'Minor injury' => MINOR_INJURY,
-            'Equipment damage' => EQUIP_DAMAGE,
-            'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
-            'Environmental issue' => ENV_ISSUE,
-            'Environmental incident' => ENV_INCIDENT,
-        },
-        'TYPE' => {
-            'Incident' => INCIDENT,
-            'Near miss' => NEAR_MISS,
-            'Safety concern' => SAFETY_CONCERN,
-            'Safety clarification' => SAFETY_CLARAFICATION_TYPE,
-            'Environment' => ENVIRONMENT,
-        },
-    },
-    'FACILITY' => {
-        'SYSTEM' => {
-            'JCMT' => JCMT,
-            'UKIRT' => UKIRT,
-            'HP' => HP,
-            'Toilet' => TOILET,
-            'Office' => OFFICE,
-            'Library' => LIBRARY,
-            'Computer Room' => COMP_ROOM,
-            'Meeting Room' => MEETING_ROOM,
-            'Laboratory' => LAB,
-            'Workshop' => WORKSHOP,
-            'Vehicle Bay' => VEHICLE_BAY,
-            'Car Park' => CAR_PARK,
-            'Staff Lounge' => STAFF_LOUNGE,
-            'Other' => SYSTEMOTHER,
-        },
-        SYSTEM_HIDDEN => {
-            UKIRT() => 1,
-        },
-        'TYPE' => {
-            'Insect' => INSECT,
-            'Leak' => LEAK,
-            'Plumbing' => PLUMBING,
-            'A/C or dehumidifier' => AC_DEHUMIDIFIER,
-            'Alarm system' => ALARM_SYS,
-            'Electrical' => ELECTRICAL,
-            'Network' => NETWORK,
-            'Computer' => COMPUTER,
-            'Rodent' => RODENT,
-            'Avian' => AVIAN,
-            'Other' => TYPEOTHER,
-        },
-    },
-    'JCMT_EVENTS' => {
-        'SYSTEM' => {
-            'ACSIS' => BACK_END_ACSIS,
-            'VLBI Back End' => BACK_END_VLBI,
-            'Computer' => COMPUTER,
-            'FTS-2' => FTS2,
-            'HARP' => FRONT_END_HARP,
-            'OCS/JOS' => OCS_JOS,
-            'Pointing' => POINTING,
-            'POL-2' => POL2,
-            'Rover' => ROVER,
-            "N\x{101}makanui" => NAMAKANUI,
-            "\x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
-            "\x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
-            "\x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
-            "Kuntur" => FRONT_END_KUNTUR,
-            'RxA' => FRONT_END_RXA,
-            'RxW' => FRONT_END_RXW,
-            'RxH3/Surface' => RXH3_SURFACE,
-            'SCUBA-2' => SCUBA2,
-            'SMU/TMU' => SMU_TMU,
-            'Software-DR' => SOFTWARE_DR,
-            'Telescope' => TELESCOPE,
-            'Water Vapor Monitor' => WATER_VAPOR_RAD,
-            'Weather Station' => WX_STATN,
-            'Other' => SYSTEMOTHER,
-        },
-        SYSTEM_HIDDEN => {
-            FRONT_END_RXA() => 1,
-            FRONT_END_RXW() => 1,
-            ROVER() => 1,
-        },
-        'TYPE' => {
-            'Hardware' => HARDWARE,
-            'Software' => SOFTWARE,
-        },
-    },
-    'VEHICLE_INCIDENT' => {
-        # 'VEHICLE' is same as 'SYSTEM'.
-        'VEHICLE' => {
-            '1' => VEHICLE_01(),
-            '2' => VEHICLE_02(),
-            '3' => VEHICLE_03(),
-            '4' => VEHICLE_04(),
-            '5' => VEHICLE_05(),
-            '6' => VEHICLE_06(),
-            '7' => VEHICLE_07(),
-            '9' => VEHICLE_09(),
-            '10' => VEHICLE_10(),
-            '11' => VEHICLE_11(),
-            '13' => VEHICLE_13(),
-            '14' => VEHICLE_14(),
-        },
-        'TYPE' => {
-            'Engine' => ENGINE(),
-            'Tires' => TIRES(),
-            'Lights' => VEHICHLE_LIGHTS(),
-            'Warning lights' => VEHICLE_WARNING_LIGHTS(),
-            'Other' => TYPEOTHER(),
-        },
-    },
-);
-
 my %LOCATION = (
     'UKIRT' => UKIRT,
     'JCMT' => JCMT,
@@ -559,23 +284,172 @@ my %LOCATION_HIDDEN = (
     JAC() => 1,
 );
 
-# Miscellaneous options for each category
+# Systems, types and miscellaneous options for each category
 my %OPTIONS = (
     CSG => {
+        SYSTEM => {
+            SUN_SOLARIS() => 'Sun/Solaris',
+            ALPHA_OSF() => 'Alpha/OSF',
+            PC_WINDOWS() => 'PC/Windows',
+            VAX_VMS() => 'VAX/VMS',
+            PC_LINUX() => 'PC/Linux',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        SYSTEM_HIDDEN => {
+            SUN_SOLARIS() => 1,
+            ALPHA_OSF() => 1,
+            VAX_VMS() => 1,
+        },
+        TYPE => {
+            TYPEOTHER() => 'Other',
+            HUMAN() => 'Human',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            NETWORK() => 'Network',
+            PRINTER() => 'Printer',
+        },
     },
     JCMT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
+        SYSTEM => {
+            TELESCOPE() => 'Telescope',
+            BACK_END_DAS() => 'Back End - DAS',
+            BACK_END_ACSIS() => 'Back End - ACSIS',
+            BACK_END_CBE() => 'Back End - CBE',
+            BACK_END_IFD() => 'Back End - IFD',
+            BACK_END_VLBI() => 'Back End - VLBI',
+            FRONT_END_HARP() => 'Front End - HARP',
+            NAMAKANUI() => "Front End - N\x{101}makanui",
+            FRONT_END_UU() => "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "Front End - \x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "Front End - \x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => 'Front End - Kuntur',
+            FRONT_END_RXA() => 'Front End - RxA',
+            FRONT_END_RXB() => 'Front End - RxB',
+            FRONT_END_RXW() => 'Front End - RxW',
+            FRONT_END_RXH3() => 'Front End - RxH3',
+            SURFACE() => 'Surface',
+            SCUBA() => 'SCUBA',
+            SCUBA2() => 'SCUBA-2',
+            IFS() => 'IFS',
+            WATER_VAPOR_RAD() => 'Water Vapor Monitor',
+            WX_STATN() => 'Weather Station',
+            INSTRUMENT_VISITOR() => 'Visitor Instruments',
+            INSTRUMENT_OTHER_UNKNOWN() => 'Instrument',
+            COMPUTER() => 'Computer',
+            CAROUSEL() => 'Carousel',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        SYSTEM_HIDDEN => {
+            BACK_END_DAS() => 1,
+            BACK_END_CBE() => 1,
+            BACK_END_IFD() => 1,
+            FRONT_END_RXA() => 1,
+            FRONT_END_RXB() => 1,
+            FRONT_END_RXW() => 1,
+            IFS() => 1,
+            INSTRUMENT_OTHER_UNKNOWN() => 1,
+            SCUBA() => 1,
+        },
+        TYPE => {
+            MECHANICAL() => 'Mechanical',
+            ELECTRONIC() => 'Electronic',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            CRYOGENIC() => 'Cryogenic',
+            TYPEOTHER() => 'Other/Unknown',
+            HUMAN() => 'Human',
+            NETWORK() => 'Network',
+        },
     },
     UKIRT => {
         CAN_LOSE_TIME => 1,
         CAN_ASSOC_PROJECTS => 1,
         IS_TELESCOPE => 1,
+        SYSTEM => {
+            TELESCOPE() => 'Telescope',
+            COMPUTER() => 'Computer',
+            OT() => 'OT',
+            OT_LIBRARIES() => 'OT Libraries',
+            ORAC_DR() => 'ORAC-DR',
+            QUERYTOOL() => 'Query Tool',
+            SEQUENCER_QUEUE() => 'Sequence Console',
+            TRANSLATOR() => 'Translator',
+            DBSERVER() => 'Observing Database',
+            OMP_FEEDBACK_SYSTEM() => 'Web feedback system',
+            DOME() => 'Dome',
+            ANCILLARIES() => 'Ancillaries',
+            INSTRUMENT_CGS4() => 'Instrument - CGS4',
+            INSTRUMENT_UFTI() => 'Instrument - UFTI',
+            INSTRUMENT_UIST() => 'Instrument - UIST',
+            INSTRUMENT_MICHELLE() => 'Instrument - MICHELLE',
+            INSTRUMENT_WFCAM() => 'Instrument - WFCAM',
+            INSTRUMENT_WFS() => 'Instrument - WFS',
+            INSTRUMENT_VISITOR() => 'Instrument - Visitor',
+            INSTRUMENT_OTHER_UNKNOWN() => 'Instrument - Other/Unknown',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        TYPE => {
+            MECHANICAL() => 'Mechanical',
+            ELECTRONIC() => 'Electronic',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            NETWORK() => 'Network',
+            CRYOGENIC() => 'Cryogenic',
+            REMOTE_OP() => 'Remote Operations',
+            TYPEOTHER() => 'Other/Unknown',
+            HUMAN() => 'Human',
+        },
     },
     OMP => {
+        SYSTEM => {
+            FEEDBACK_WEB() => 'Feedback/Web',
+            DBSERVER() => 'DBServer',
+            OBSERVINGTOOL() => 'ObservingTool',
+            QUERYTOOL() => 'QueryTool',
+            SEQUENCER_QUEUE() => 'Sequencer/Queue',
+            TRANSLATOR() => 'Translator',
+            MONITOR_CONSOLE() => 'Monitor/Console',
+            HEDWIG() => 'Hedwig',
+            JSA_CADC() => 'JSA/CADC',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        TYPE => {
+            GUI() => 'GUI',
+            EXCEPTION() => 'Exception',
+            SCHEDULING() => 'Scheduling',
+            BUG() => 'Bug',
+            FEATURE_REQUEST() => 'Feature Request',
+            TYPEOTHER() => 'Other',
+            HUMAN() => 'Human',
+            NETWORK() => 'Network',
+        },
     },
     DR => {
+        SYSTEM => {
+            JCMT_DR() => 'JCMT-DR',
+            SPECX() => 'SPECX',
+            AIPSPLUSPLUS() => 'AIPS++',
+            SURF() => 'SURF',
+            STARLINK() => 'STARLINK',
+            ORAC_DR() => 'ORAC-DR/PICARD',
+            SMURF() => 'SMURF',
+            SYSTEMOTHER() => 'Other/Unknown',
+            JSAPROC() => 'JSA Processing',
+        },
+        SYSTEM_HIDDEN => {
+            JCMT_DR() => 1,
+            SURF() => 1,
+            SPECX() => 1,
+        },
+        TYPE => {
+            BUG() => 'Bug',
+            FEATURE_REQUEST() => 'Feature Request',
+            HUMAN() => 'Human',
+            TYPEOTHER() => 'Other',
+        },
     },
     SAFETY => {
         CATEGORY_NAME => 'Safety',
@@ -583,9 +457,58 @@ my %OPTIONS = (
         HAS_LOCATION => 1,
         SYSTEM_LABEL => 'Severity',
         INITIAL_STATUS => FOLLOW_UP,
+        SEVERITY => {
+            INJURY_DEATH() => 'Severe injury or death',
+            MAJOR_INJURY() => 'Major injury',
+            MINOR_INJURY() => 'Minor injury',
+            EQUIP_DAMAGE() => 'Equipment damage',
+            SAFETY_CLARAFICATION_SEVERITY() => 'Clarification',
+            ENV_ISSUE() => 'Environmental issue',
+            ENV_INCIDENT() => 'Environmental incident',
+        },
+        TYPE => {
+            INCIDENT() => 'Incident',
+            NEAR_MISS() => 'Near miss',
+            SAFETY_CONCERN() => 'Safety concern',
+            SAFETY_CLARAFICATION_TYPE() => 'Safety clarification',
+            ENVIRONMENT() => 'Environment',
+        },
     },
     FACILITY => {
         CATEGORY_NAME => 'Facility',
+        SYSTEM => {
+            JCMT() => 'JCMT',
+            UKIRT() => 'UKIRT',
+            HP() => 'HP',
+            TOILET() => 'Toilet',
+            OFFICE() => 'Office',
+            LIBRARY() => 'Library',
+            COMP_ROOM() => 'Computer Room',
+            MEETING_ROOM() => 'Meeting Room',
+            LAB() => 'Laboratory',
+            WORKSHOP() => 'Workshop',
+            VEHICLE_BAY() => 'Vehicle Bay',
+            CAR_PARK() => 'Car Park',
+            STAFF_LOUNGE() => 'Staff Lounge',
+            SYSTEMOTHER() => 'Other',
+        },
+        SYSTEM_HIDDEN => {
+            UKIRT() => 1,
+        },
+        TYPE => {
+            INSECT() => 'Insect',
+            LEAK() => 'Leak',
+            PLUMBING() => 'Plumbing',
+            AC_DEHUMIDIFIER() => 'A/C or dehumidifier',
+            ALARM_SYS() => 'Alarm system',
+            ELECTRICAL() => 'Electrical',
+            NETWORK() => 'Network',
+            COMPUTER() => 'Computer',
+            RODENT() => 'Rodent',
+            AVIAN() => 'Avian',
+            TYPEOTHER() => 'Other',
+        },
+
     },
     JCMT_EVENTS => {
         CATEGORY_NAME => 'JCMT Events',
@@ -593,11 +516,67 @@ my %OPTIONS = (
         ENTRY_NAME => 'Event',
         HAS_TIME_OCCURRED => 1,
         INITIAL_STATUS => ONGOING,
+        SYSTEM => {
+            BACK_END_ACSIS() => 'ACSIS',
+            BACK_END_VLBI() => 'VLBI Back End',
+            COMPUTER() => 'Computer',
+            FTS2() => 'FTS-2',
+            FRONT_END_HARP() => 'HARP',
+            OCS_JOS() => 'OCS/JOS',
+            POINTING() => 'Pointing',
+            POL2() => 'POL-2',
+            ROVER() => 'Rover',
+            NAMAKANUI() => "N\x{101}makanui",
+            FRONT_END_UU() => "\x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "\x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "\x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => "Kuntur",
+            FRONT_END_RXA() => 'RxA',
+            FRONT_END_RXW() => 'RxW',
+            RXH3_SURFACE() => 'RxH3/Surface',
+            SCUBA2() => 'SCUBA-2',
+            SMU_TMU() => 'SMU/TMU',
+            SOFTWARE_DR() => 'Software-DR',
+            TELESCOPE() => 'Telescope',
+            WATER_VAPOR_RAD() => 'Water Vapor Monitor',
+            WX_STATN() => 'Weather Station',
+            SYSTEMOTHER() => 'Other',
+        },
+        SYSTEM_HIDDEN => {
+            FRONT_END_RXA() => 1,
+            FRONT_END_RXW() => 1,
+            ROVER() => 1,
+        },
+        TYPE => {
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+        },
     },
     VEHICLE_INCIDENT => {
         CATEGORY_NAME => 'Vehicle Incident',
         CATEGORY_NAME_SUFFIX => 'Reporting',
         SYSTEM_LABEL => 'Vehicle',
+        VEHICLE => {
+            VEHICLE_01() => '1',
+            VEHICLE_02() => '2',
+            VEHICLE_03() => '3',
+            VEHICLE_04() => '4',
+            VEHICLE_05() => '5',
+            VEHICLE_06() => '6',
+            VEHICLE_07() => '7',
+            VEHICLE_09() => '9',
+            VEHICLE_10() => '10',
+            VEHICLE_11() => '11',
+            VEHICLE_13() => '13',
+            VEHICLE_14() => '14',
+        },
+        TYPE => {
+            ENGINE() => 'Engine',
+            TIRES() => 'Tires',
+            VEHICHLE_LIGHTS() => 'Lights',
+            VEHICLE_WARNING_LIGHTS() => 'Warning lights',
+            TYPEOTHER() => 'Other',
+        },
     },
 );
 
@@ -671,7 +650,7 @@ my %VEHICLE_INCIDENT_STATUS = (
     %VEHICLE_INCIDENT_STATUS_OPEN,
     %VEHICLE_INCIDENT_STATUS_CLOSED);
 
-# Now invert %DATA, %URGENCY, and %CONDITION
+# Now invert %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
     $INVERSE_URGENCY{$URGENCY{$_}} = $_;
@@ -703,22 +682,6 @@ my %INVERSE_PLACE;
 $INVERSE_PLACE{$LOCATION{$_}} = $_
     for keys %LOCATION;
 
-# Loop over categories
-my %INVERSE;
-for my $cat (keys %DATA) {
-    # Crate new hash for categories
-    $INVERSE{$cat} = {};
-
-    # Loop over systems and types
-    for my $sys (keys %{$DATA{$cat}}) {
-        # Create new hash for systems and types
-        $INVERSE{$cat}{$sys} = {};
-        for my $strings (keys %{$DATA{$cat}{$sys}}) {
-            $INVERSE{$cat}{$sys}{$DATA{$cat}{$sys}{$strings}} = $strings;
-        }
-    }
-}
-
 =head1 METHODS
 
 =head2 Class Methods
@@ -739,7 +702,7 @@ subsystems and fault types change depending on global fault category.
 =cut
 
 sub faultCategories {
-    return keys %DATA;
+    return keys %OPTIONS;
 }
 
 =item B<faultSystems>
@@ -759,7 +722,7 @@ sub faultSystems {
     my $category = uc(shift);
     my %opt = @_;
 
-    return unless exists $DATA{$category};
+    return unless exists $OPTIONS{$category};
 
     my %cat_section = (
         SAFETY => 'SEVERITY',
@@ -768,18 +731,18 @@ sub faultSystems {
 
     my $section = $cat_section{$category} // 'SYSTEM';
 
-    my $systems = $DATA{$category}{$section};
+    my $systems = $OPTIONS{$category}{$section};
 
-    return $systems if $opt{'include_hidden'};
+    return _invert($systems) if $opt{'include_hidden'};
 
-    my $hidden = $DATA{$category}{$section . '_HIDDEN'} // {};
+    my $hidden = $OPTIONS{$category}{$section . '_HIDDEN'} // {};
 
-    return $systems unless defined $hidden;
+    return _invert($systems) unless scalar %$hidden;
 
     my %result = ();
 
     my $only_hidden = $opt{'only_hidden'} // 0;
-    while (my ($name, $code) = each %$systems) {
+    while (my ($code, $name) = each %$systems) {
         $result{$name} = $code unless $only_hidden xor $hidden->{$code};
     }
 
@@ -802,8 +765,8 @@ sub faultTypes {
     my $class = shift;
     my $category = uc(shift);
 
-    if (exists $DATA{$category}) {
-        return $DATA{$category}{TYPE};
+    if (exists $OPTIONS{$category}) {
+        return _invert($OPTIONS{$category}{TYPE});
     }
     else {
         return ();
@@ -1492,7 +1455,7 @@ A fault can not be modified using this method.
 
 sub typeText {
     my $self = shift;
-    return $INVERSE{$self->category}{TYPE}{$self->type};
+    return $OPTIONS{$self->category}{'TYPE'}{$self->type};
 }
 
 =item B<systemText>
@@ -1509,13 +1472,13 @@ sub systemText {
 
     my $category = $self->category;
 
-    return $INVERSE{$category}{'SEVERITY'}{$self->system}
+    return $OPTIONS{$category}{'SEVERITY'}{$self->system}
         if 'SAFETY' eq $category;
 
-    return $INVERSE{$category}{'VEHICLE'}{$self->system}
+    return $OPTIONS{$category}{'VEHICLE'}{$self->system}
         if 'VEHICLE_INCIDENT' eq $category;
 
-    return $INVERSE{$category}{'SYSTEM'}{$self->system};
+    return $OPTIONS{$category}{'SYSTEM'}{$self->system};
 }
 
 sub location {
@@ -2267,6 +2230,15 @@ sub stringify {
     }
 
     return $output;
+}
+
+sub _invert {
+    my $ref = shift;
+    my %result;
+    foreach my $key (keys %$ref) {
+        $result{$ref->{$key}} = $key;
+    }
+    return \%result;
 }
 
 1;
