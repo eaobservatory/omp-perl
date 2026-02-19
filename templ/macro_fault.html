@@ -19,11 +19,11 @@
         [% FOREACH fault IN fault_info.faults %]
             <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]">
                 [% IF fault_info.show_cat %]
-                    <td>[% fault.category | html %]</td>
+                    <td>[% fault.getCategoryAbbrName | html %]</td>
                 [% END %]
                 <td [% IF fault.isUrgent %]class="cell_standout"[% ELSIF fault.isChronic %]class="cell_minor"[% END %]>[% fault.id | html %]</td>
                 <td>
-                    <b><a href="[% fault_info.view_url %][% fault.id | html %]">[% IF fault.subject %][% fault.subject | html %][% ELSE %][no subject][% END %]</a></b>
+                    <b><a href="[% fault_info.view_url %][% fault.id | html %]">[% IF fault.subject %][% fault.subject | abbr_html(35) %][% ELSE %][no subject][% END %]</a></b>
                     [% IF fault_info.show_projects%]
                         [% SET projects = fault.projects %]
                         [% IF ! projects.empty %]
@@ -36,8 +36,8 @@
                     [% END %]
                 </td>
                 <td>[% render_user_name(fault.author) %]</td>
-                <td>[% fault.systemText | html %]</td>
-                <td>[% fault.typeText | html %]</td>
+                <td>[% fault.systemTextAbbr | html %]</td>
+                <td>[% fault.typeTextAbbr | html %]</td>
                 <td>[% IF fault.isNew && fault.isOpen %]New[% ELSE %][% fault.statusText | html %][% END %]</td>
                 [% IF fault_info.show_time_lost %]
                     [% SET time_lost = fault.timelost %]
