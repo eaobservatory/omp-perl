@@ -20,8 +20,8 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 56
-    + 2  # General information
+use Test::More tests => 69
+    + 4  # General information
     + (9 * 5)  # Mailing lists
     + 23  # Options
     + 15  # Status lists
@@ -65,6 +65,12 @@ is($fault->getCategorySystemLabel, 'System');
 is($fault->getCategoryName, 'JCMT');
 is($fault->getCategoryFullName, 'JCMT Faults');
 is($fault->getCategoryEntryNameQualified, 'JCMT fault');
+is($fault->urgency, OMP::Fault::URGENCY_NORMAL());
+is($fault->urgencyText, 'Normal');
+ok(not $fault->isUrgent);
+is($fault->condition, OMP::Fault::CONDITION_NORMAL());
+is($fault->conditionText, 'Normal');
+ok(not $fault->isChronic);
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -102,6 +108,8 @@ $fault = OMP::Fault->new(
     ),
     system => OMP::Fault::VEHICLE_04(),
     type => OMP::Fault::VEHICLE_WARNING_LIGHTS(),
+    urgency => OMP::Fault::URGENCY_URGENT(),
+    condition => OMP::Fault::CONDITION_CHRONIC(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, '4');
@@ -117,6 +125,12 @@ is($fault->getCategoryAbbrName, 'Veh. Inc.');
 is($fault->getCategoryFullName, 'Vehicle Incident Reporting');
 is($fault->typeText, 'Warning lights');
 is($fault->typeTextAbbr, 'Warnings');
+is($fault->urgency, OMP::Fault::URGENCY_URGENT());
+is($fault->urgencyText, 'Urgent');
+ok($fault->isUrgent);
+is($fault->condition, OMP::Fault::CONDITION_CHRONIC());
+is($fault->conditionText, 'Chronic');
+ok($fault->isChronic);
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -126,6 +140,7 @@ $fault = OMP::Fault->new(
     ),
     system => OMP::Fault::EQUIP_DAMAGE(),
     type => OMP::Fault::INCIDENT(),
+    location => OMP::Fault::IN_TRANSIT(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, 'Equipment damage');
@@ -141,9 +156,10 @@ is($fault->getCategoryAbbrName, 'Safety');
 is($fault->getCategoryFullName, 'Safety Reporting');
 is($fault->typeText, 'Incident');
 is($fault->typeTextAbbr, 'Incident');
+is($fault->locationText, 'In transit');
 
 # Test safety fault locations.  By default we should now hide "JAC".
-is_deeply({OMP::Fault->faultLocation(undef, include_hidden => 1)}, {
+is_deeply(OMP::Fault->faultLocation('SAFETY', include_hidden => 1), {
     'In transit' => 4000,
     JAC => 4001,
     HP => 4002,
@@ -152,7 +168,7 @@ is_deeply({OMP::Fault->faultLocation(undef, include_hidden => 1)}, {
     EAO => 4005,
 });
 
-is_deeply({OMP::Fault->faultLocation()}, {
+is_deeply(OMP::Fault->faultLocation('SAFETY'), {
     'In transit' => 4000,
     HP => 4002,
     JCMT => 4003,
@@ -259,6 +275,17 @@ is_deeply(OMP::Fault->faultTypes('JCMT'), {
     'Other/Unknown' => -1,
     Human => 0,
     Network => 1007,
+});
+
+is_deeply(OMP::Fault->faultUrgency(), {
+    Urgent => 0,
+    Normal => 1,
+    Info => 2,
+});
+
+is_deeply(OMP::Fault->faultCondition(), {
+    Chronic => 0,
+    Normal => 1,
 });
 
 # Test mail_list method.

@@ -223,8 +223,8 @@ sub file_fault_form {
     # Location (for "Safety" category).
     my @locations;
     if ($has_location) {
-        my %places = OMP::Fault->faultLocation($category);
-        @locations = map {[$places{$_}, $_]} sort keys %places;
+        my $locations = OMP::Fault->faultLocation($category);
+        @locations = map {[$locations->{$_}, $_]} sort keys %$locations;
     }
 
     # Set defaults.  There's probably a better way of doing what I'm about
@@ -652,14 +652,12 @@ sub parse_file_fault_form {
 
     # Determine urgency and condition
     my @checked = $q->multi_param('condition');
-    my %urgency = OMP::Fault->faultUrgency;
-    my %condition = OMP::Fault->faultCondition;
-    $parsed{urgency} = $urgency{Normal};
-    $parsed{condition} = $condition{Normal};
+    $parsed{urgency} = OMP::Fault::URGENCY_NORMAL();
+    $parsed{condition} = OMP::Fault::CONDITION_NORMAL();
 
     for (@checked) {
-        $parsed{urgency} = $urgency{Urgent} if $_ =~ /urgent/i;
-        $parsed{condition} = $condition{Chronic} if $_ =~ /chronic/i;
+        $parsed{urgency} = OMP::Fault::URGENCY_URGENT() if $_ =~ /urgent/i;
+        $parsed{condition} = OMP::Fault::CONDITION_CHRONIC() if $_ =~ /chronic/i;
     }
 
     # Get the associated projects

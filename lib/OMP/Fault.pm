@@ -272,12 +272,12 @@ use constant {
 };
 
 my %LOCATION = (
-    'UKIRT' => UKIRT,
-    'JCMT' => JCMT,
-    'HP' => HP,
-    'JAC' => JAC,
-    'EAO' => EAO,
-    'In transit' => IN_TRANSIT
+    UKIRT() => 'UKIRT',
+    JCMT() => 'JCMT',
+    HP() => 'HP',
+    JAC() => 'JAC',
+    EAO() => 'EAO',
+    IN_TRANSIT() => 'In transit',
 );
 
 my %LOCATION_HIDDEN = (
@@ -633,16 +633,23 @@ my %OPTIONS = (
     },
 );
 
+use constant URGENCY_URGENT => 0;
+use constant URGENCY_NORMAL => 1;
+use constant URGENCY_INFO => 2;
+
 # Urgency
 my %URGENCY = (
-    Urgent => 0,
-    Normal => 1,
-    Info => 2,
+    URGENCY_URGENT() => 'Urgent',
+    URGENCY_NORMAL() => 'Normal',
+    URGENCY_INFO() => 'Info',
 );
 
+use constant CONDITION_CHRONIC => 0;
+use constant CONDITION_NORMAL => 1;
+
 my %CONDITION = (
-    Chronic => 0,
-    Normal => 1,
+    CONDITION_CHRONIC() => 'Chronic',
+    CONDITION_NORMAL() => 'Normal',
 );
 
 my %STATUS_OPEN = (
@@ -703,17 +710,6 @@ my %VEHICLE_INCIDENT_STATUS = (
     %VEHICLE_INCIDENT_STATUS_OPEN,
     %VEHICLE_INCIDENT_STATUS_CLOSED);
 
-# Now invert %URGENCY, and %CONDITION
-my %INVERSE_URGENCY;
-for (keys %URGENCY) {
-    $INVERSE_URGENCY{$URGENCY{$_}} = $_;
-}
-
-my %INVERSE_CONDITION;
-for (keys %CONDITION) {
-    $INVERSE_CONDITION{$CONDITION{$_}} = $_;
-}
-
 my %INVERSE_STATUS;
 for (keys %STATUS) {
     $INVERSE_STATUS{$STATUS{$_}} = $_;
@@ -730,10 +726,6 @@ for (keys %JCMT_EVENTS_STATUS) {
 for (keys %VEHICLE_INCIDENT_STATUS) {
     $INVERSE_STATUS{$VEHICLE_INCIDENT_STATUS{$_}} = $_;
 }
-
-my %INVERSE_PLACE;
-$INVERSE_PLACE{$LOCATION{$_}} = $_
-    for keys %LOCATION;
 
 =head1 METHODS
 
@@ -886,13 +878,13 @@ sub remoteTypes {
 Return a hash containing the different types of urgency that can
 be associated with fixing a particular fault.
 
-    %urgency = OMP::Fault->faultUrgency();
+    \%urgency = OMP::Fault->faultUrgency();
 
 =cut
 
 sub faultUrgency {
     my $class = shift;
-    return %URGENCY;
+    return _invert(\%URGENCY);
 }
 
 =item B<faultCondition>
@@ -900,13 +892,13 @@ sub faultUrgency {
 Return a hash containing the different types of condition that can
 be associated with a particular fault.
 
-    %condition = OMP::Fault->faultCondition();
+    \%condition = OMP::Fault->faultCondition();
 
 =cut
 
 sub faultCondition {
     my $class = shift;
-    return %CONDITION;
+    return _invert(\%CONDITION);
 }
 
 =back
@@ -1023,7 +1015,7 @@ sub faultStatusClosed {
 
 Return a hash containing locations which can be specified in faults.
 
-    %location = OMP::Fault->faultLocation($category, %options);
+    \%location = OMP::Fault->faultLocation($category, %options);
 
 Options:
 
@@ -1049,15 +1041,15 @@ sub faultLocation {
     $category = uc $category if defined $category;
     my %opt = @_;
 
-    return %LOCATION if $opt{'include_hidden'};
+    return _invert(\%LOCATION) if $opt{'include_hidden'};
 
     my %non_hidden;
 
-    while (my ($name, $code) = each %LOCATION) {
+    while (my ($code, $name) = each %LOCATION) {
         $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
     }
 
-    return %non_hidden;
+    return \%non_hidden;
 }
 
 =item B<faultCanAssocProjects>
@@ -1355,8 +1347,8 @@ sub new {
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
         Location => undef,
-        Urgency => $URGENCY{Normal},
-        Condition => $CONDITION{Normal},
+        Urgency => URGENCY_NORMAL(),
+        Condition => CONDITION_NORMAL(),
         Entity => undef,
         Category => undef,
         Responses => [],
@@ -1581,7 +1573,7 @@ sub location {
 
 sub locationText {
     my $self = shift;
-    return $INVERSE_PLACE{$self->location};
+    return $LOCATION{$self->location};
 }
 
 =item B<statusText>
@@ -1604,7 +1596,7 @@ sub statusText {
 
 sub urgencyText {
     my $self = shift;
-    return $INVERSE_URGENCY{$self->urgency};
+    return $URGENCY{$self->urgency};
 }
 
 =item B<conditionText>
@@ -1613,7 +1605,7 @@ sub urgencyText {
 
 sub conditionText {
     my $self = shift;
-    return $INVERSE_CONDITION{$self->condition};
+    return $CONDITION{$self->condition};
 }
 
 =item B<isUrgent>
@@ -1627,7 +1619,7 @@ True if the fault is urgent.
 sub isUrgent {
     my $self = shift;
     my $urgcode = $self->urgency;
-    return ($urgcode == $URGENCY{Urgent} ? 1 : 0);
+    return ($urgcode == URGENCY_URGENT() ? 1 : 0);
 }
 
 
@@ -1642,7 +1634,7 @@ True if the fault is chronic
 sub isChronic {
     my $self = shift;
     my $concode = $self->condition;
-    return ($concode == $CONDITION{Chronic} ? 1 : 0);
+    return ($concode == CONDITION_CHRONIC() ? 1 : 0);
 }
 
 =item B<isOpen>

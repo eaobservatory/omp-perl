@@ -248,13 +248,11 @@ sub query_fault_output {
 
         # Return urgent or chronic faults only?
         if ($q->param('urgent')) {
-            my %urgency = OMP::Fault->faultUrgency;
-            $hash{'urgency'} = $urgency{'Urgent'};
+            $hash{'urgency'} = OMP::Fault::URGENCY_URGENT();
         }
 
         if ($q->param('chronic')) {
-            my %condition = OMP::Fault->faultCondition;
-            $hash{'condition'} = $condition{'Chronic'};
+            $hash{'condition'} = OMP::Fault::CONDITION_CHRONIC();
         }
 
         if (defined $q->param('status')) {
