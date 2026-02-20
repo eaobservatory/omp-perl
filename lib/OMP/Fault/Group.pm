@@ -238,8 +238,8 @@ sub timelost {
         for my $fault (@faults) {
             my $loss = Time::Seconds->new($fault->timelost * ONE_HOUR);
 
-            if ($fault->typeText =~ /human/i
-                    or $fault->statusText =~ /not a fault/i) {
+            if ($fault->type == OMP::Fault::HUMAN()
+                    or $fault->status == OMP::Fault::NOT_A_FAULT()) {
                 # Fault is non-technical
                 $timelost_nontech += $loss;
             }

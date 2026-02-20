@@ -27,6 +27,7 @@ use Carp;
 use OMP::DateTools;
 use OMP::Display;
 use OMP::Config;
+use OMP::Fault;
 
 =head1 METHODS
 
@@ -90,7 +91,7 @@ sub format_fault {
     my $systemLabel = $fault->getCategorySystemLabel;
 
     # Don't show the status if there is only the initial filing and it is 'Open'
-    my $status = $responses[1] || $fault->statusText !~ /open/i
+    my $status = $responses[1] || $fault->status != OMP::Fault::OPEN()
         ? '<b>Status:</b> ' . $fault->statusText
         : '';
 

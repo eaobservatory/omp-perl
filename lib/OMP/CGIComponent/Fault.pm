@@ -310,10 +310,10 @@ sub file_fault_form {
         }
 
         # Is this fault marked urgent?
-        my $urgent = ($fault->urgencyText =~ /urgent/i ? "urgent" : undef);
+        my $urgent = ($fault->isUrgent ? "urgent" : undef);
 
         # Is this fault marked chronic?
-        my $chronic = ($fault->conditionText =~ /chronic/i ? "chronic" : undef);
+        my $chronic = ($fault->isChronic ? "chronic" : undef);
 
         # Projects associated with this fault
         my @assoc = $fault->projects;
