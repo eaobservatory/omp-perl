@@ -212,7 +212,7 @@ if ($category ne "JCMT_EVENTS") {
 ...Last week faults, still OPEN:
 
 ";
-    my %status_open = OMP::Fault->faultStatusOpen($category);
+    my $status_open = OMP::Fault->faultStatusOpen($category);
     my $previous = $db->queryFaults(
         OMP::Query::Fault->new(HASH => {
             category => $category,
@@ -221,7 +221,7 @@ if ($category ne "JCMT_EVENTS") {
                 max => $startut,
             },
             isfault => {boolean => 1},
-            status => [values %status_open],
+            status => [values %$status_open],
         }),
         no_text => 1, no_projects => 1);
 

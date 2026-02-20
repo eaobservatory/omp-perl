@@ -795,9 +795,9 @@ pairs for use in an HTML selection menu.
 sub get_status_labels {
     my ($self, $fault) = @_;
 
-    my %status = $fault->faultStatus;
+    my $status = $fault->faultStatus;
 
-    return map {[$status{$_}, $_]} sort keys %status;
+    return map {[$status->{$_}, $_]} sort keys %$status;
 }
 
 =back
@@ -823,15 +823,15 @@ sub _get_status_labels_by_name {
 
     $cat = uc $cat;
 
-    my %status;
+    my $status;
     if ($cat =~ /^ANY/) {
-        %status = OMP::Fault->faultStatus;
+        $status = OMP::Fault->faultStatus;
     }
     else {
-        %status = OMP::Fault->faultStatus($cat);
+        $status = OMP::Fault->faultStatus($cat);
     }
 
-    return map {[$status{$_}, $_]} sort keys %status;
+    return map {[$status->{$_}, $_]} sort keys %$status;
 }
 
 =item B<_sort_by_fault_time>

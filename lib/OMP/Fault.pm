@@ -510,6 +510,15 @@ my %OPTIONS = (
             ENV_ISSUE() => 'Environmental issue',
             ENV_INCIDENT() => 'Environmental incident',
         },
+        STATUS_OPEN => {
+            IMMEDIATE_ACTION() => 'Immediate action required',
+            FOLLOW_UP() => 'Follow up required',
+            REFER_TO_SAFETY_COMMITTEE() => 'Refer to safety committee',
+        },
+        STATUS_CLOSED => {
+            NO_ACTION() => 'No further action',
+            CLOSED() => 'Closed',
+        },
         TYPE => {
             INCIDENT() => 'Incident',
             NEAR_MISS() => 'Near miss',
@@ -561,6 +570,13 @@ my %OPTIONS = (
         ENTRY_NAME => 'Event',
         HAS_TIME_OCCURRED => 1,
         INITIAL_STATUS => ONGOING,
+        STATUS_OPEN => {
+            COMMISSIONING() => 'Commissioning',
+            ONGOING() => 'Ongoing',
+        },
+        STATUS_CLOSED => {
+            COMPLETE() => 'Complete',
+        },
         SYSTEM => {
             BACK_END_ACSIS() => 'ACSIS',
             BACK_END_VLBI() => 'VLBI Back End',
@@ -606,6 +622,16 @@ my %OPTIONS = (
         CATEGORY_ABBR => 'Veh. Inc.',
         CATEGORY_NAME_SUFFIX => 'Reporting',
         SYSTEM_LABEL => 'Vehicle',
+        STATUS_OPEN => {
+            OPEN() => 'Open',
+            WILL_BE_FIXED() => 'Open - Will be fixed',
+            KNOWN_FAULT() => 'Known fault',
+        },
+        STATUS_CLOSED => {
+            DUPLICATE() => 'Duplicate',
+            CLOSED() => 'Closed',
+            WON_T_BE_FIXED() => "Won't be fixed",
+        },
         VEHICLE => {
             VEHICLE_01() => '1',
             VEHICLE_02() => '2',
@@ -653,79 +679,18 @@ my %CONDITION = (
 );
 
 my %STATUS_OPEN = (
-    Open => OPEN,
-    'Open - Will be fixed' => WILL_BE_FIXED,
-    'Suspended' => SUSPENDED,
+    OPEN() => 'Open',
+    WILL_BE_FIXED() => 'Open - Will be fixed',
+    SUSPENDED() => 'Suspended',
 );
 
 my %STATUS_CLOSED = (
-    Closed => CLOSED,
-    "Works for me" => WORKS_FOR_ME,
-    "Not a fault" => NOT_A_FAULT,
-    "Won't be fixed" => WON_T_BE_FIXED,
-    Duplicate => DUPLICATE,
+    CLOSED() => 'Closed',
+    WORKS_FOR_ME() => 'Works for me',
+    NOT_A_FAULT() => 'Not a fault',
+    WON_T_BE_FIXED() => "Won't be fixed",
+    DUPLICATE() => 'Duplicate',
 );
-
-my %SAFETY_STATUS_OPEN = (
-    'Immediate action required' => IMMEDIATE_ACTION,
-    'Follow up required' => FOLLOW_UP,
-    'Refer to safety committee' => REFER_TO_SAFETY_COMMITTEE,
-);
-
-my %SAFETY_STATUS_CLOSED = (
-    'No further action' => NO_ACTION,
-    'Closed' => $STATUS_CLOSED{'Closed'}
-);
-
-my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
-
-my %SAFETY_STATUS = (%SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED);
-
-my %JCMT_EVENTS_STATUS_OPEN = (
-    'Commissioning' => COMMISSIONING,
-    'Ongoing' => ONGOING,
-);
-
-my %JCMT_EVENTS_STATUS_CLOSED = (
-    'Complete' => COMPLETE,
-);
-
-my %JCMT_EVENTS_STATUS = (
-    %JCMT_EVENTS_STATUS_OPEN,
-    %JCMT_EVENTS_STATUS_CLOSED);
-
-my %VEHICLE_INCIDENT_STATUS_OPEN = (
-    'Open' => OPEN(),
-    'Open - Will be fixed' => WILL_BE_FIXED(),
-    'Known fault' => KNOWN_FAULT(),
-);
-
-my %VEHICLE_INCIDENT_STATUS_CLOSED = (
-    'Duplicate' => DUPLICATE(),
-    'Closed' => CLOSED(),
-    "Won't be fixed" => WON_T_BE_FIXED(),
-);
-
-my %VEHICLE_INCIDENT_STATUS = (
-    %VEHICLE_INCIDENT_STATUS_OPEN,
-    %VEHICLE_INCIDENT_STATUS_CLOSED);
-
-my %INVERSE_STATUS;
-for (keys %STATUS) {
-    $INVERSE_STATUS{$STATUS{$_}} = $_;
-}
-
-for (keys %SAFETY_STATUS) {
-    $INVERSE_STATUS{$SAFETY_STATUS{$_}} = $_;
-}
-
-for (keys %JCMT_EVENTS_STATUS) {
-    $INVERSE_STATUS{$JCMT_EVENTS_STATUS{$_}} = $_;
-}
-
-for (keys %VEHICLE_INCIDENT_STATUS) {
-    $INVERSE_STATUS{$VEHICLE_INCIDENT_STATUS{$_}} = $_;
-}
 
 =head1 METHODS
 
@@ -916,7 +881,7 @@ the category of the fault object).
 Return a hash containing the different statuses that can be associated
 with a fault.
 
-    %status = OMP::Fault->faultStatus();
+    \%status = OMP::Fault->faultStatus();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -927,29 +892,37 @@ sub faultStatus {
     my $self = shift;
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
+    my @hashes = ();
     if (defined $category) {
-        return %SAFETY_STATUS
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS
-            if $category eq 'VEHICLE_INCIDENT';
+        push @hashes, (exists $OPTIONS{$category}->{'STATUS_OPEN'})
+            ? $OPTIONS{$category}->{'STATUS_OPEN'}
+            : \%STATUS_OPEN;
 
-        return %STATUS;
+        push @hashes, (exists $OPTIONS{$category}->{'STATUS_CLOSED'})
+            ? $OPTIONS{$category}->{'STATUS_CLOSED'}
+            : \%STATUS_CLOSED;
+    }
+    else {
+        push @hashes, \%STATUS_OPEN, \%STATUS_CLOSED;
+        foreach my $cat (keys %OPTIONS) {
+            foreach my $name (qw/STATUS_OPEN STATUS_CLOSED/) {
+                push @hashes, $OPTIONS{$cat}->{$name}
+                    if exists $OPTIONS{$cat}->{$name};
+            }
+        }
     }
 
-    my %combined = (
-        %STATUS, %SAFETY_STATUS,
-        %JCMT_EVENTS_STATUS, %VEHICLE_INCIDENT_STATUS);
+    my %combined = ();
+    %combined = (%combined, %$_) foreach @hashes;
 
-    return %combined;
+    return _invert(\%combined);
 }
 
 =item B<faultStatusOpen>
 
 Return a hash containing the statuses that can represent an open fault.
 
-    %status = OMP::Fault->faultStatusOpen();
+    \%status = OMP::Fault->faultStatusOpen();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -961,28 +934,26 @@ sub faultStatusOpen {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return %SAFETY_STATUS_OPEN
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS_OPEN
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS_OPEN
-            if $category eq 'VEHICLE_INCIDENT';
+        return _invert($OPTIONS{$category}->{'STATUS_OPEN'})
+            if exists $OPTIONS{$category}->{'STATUS_OPEN'};
 
-        return %STATUS_OPEN;
+        return _invert(\%STATUS_OPEN);
     }
 
-    my %combined = (
-        %STATUS_OPEN, %SAFETY_STATUS_OPEN,
-        %JCMT_EVENTS_STATUS_OPEN, %VEHICLE_INCIDENT_STATUS_OPEN);
+    my %combined = %STATUS_OPEN;
+    foreach my $cat (keys %OPTIONS) {
+        %combined = (%combined, %{$OPTIONS{$cat}->{'STATUS_OPEN'}})
+            if exists $OPTIONS{$cat}->{'STATUS_OPEN'};
+    }
 
-    return %combined;
+    return _invert(\%combined);
 }
 
 =item B<faultStatusClosed>
 
 Return a hash containing the statuses that can represent a closed fault.
 
-    %status = OMP::Fault->faultStatusClosed();
+    \%status = OMP::Fault->faultStatusClosed();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -994,21 +965,19 @@ sub faultStatusClosed {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return %SAFETY_STATUS_CLOSED
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS_CLOSED
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS_CLOSED
-            if $category eq 'VEHICLE_INCIDENT';
+        return _invert($OPTIONS{$category}->{'STATUS_CLOSED'})
+            if exists $OPTIONS{$category}->{'STATUS_CLOSED'};
 
-        return %STATUS_CLOSED;
+        return _invert(\%STATUS_CLOSED);
     }
 
-    my %combined = (
-        %STATUS_CLOSED, %SAFETY_STATUS_CLOSED,
-        %JCMT_EVENTS_STATUS_CLOSED, %VEHICLE_INCIDENT_STATUS_CLOSED);
+    my %combined = %STATUS_CLOSED;
+    foreach my $cat (keys %OPTIONS) {
+        %combined = (%combined, %{$OPTIONS{$cat}->{'STATUS_CLOSED'}})
+            if exists $OPTIONS{$cat}->{'STATUS_CLOSED'};
+    }
 
-    return %combined;
+    return _invert(\%combined);
 }
 
 =item B<faultLocation>
@@ -1521,7 +1490,8 @@ Return the abbreviated of the current fault type.
 sub typeTextAbbr {
     my $self = shift;
     my $type = $self->type;
-    return (exists $OPTIONS{$self->category}{'TYPE_ABBR'}{$type})
+    return (exists $OPTIONS{$self->category}{'TYPE_ABBR'}
+            and exists $OPTIONS{$self->category}{'TYPE_ABBR'}{$type})
         ? $OPTIONS{$self->category}{'TYPE_ABBR'}{$type}
         : $OPTIONS{$self->category}{'TYPE'}{$type};
 }
@@ -1558,7 +1528,8 @@ sub systemTextAbbr {
     my $abbr = $section . '_ABBR';
     my $system = $self->system;
 
-    return (exists $OPTIONS{$category}{$abbr}{$system})
+    return (exists $OPTIONS{$category}{$abbr}
+            and exists $OPTIONS{$category}{$abbr}{$system})
         ? $OPTIONS{$category}{$abbr}{$system}
         : $OPTIONS{$category}{$section}{$system};
 }
@@ -1587,7 +1558,21 @@ A fault can not be modified using this method.
 
 sub statusText {
     my $self = shift;
-    return $INVERSE_STATUS{$self->status};
+
+    my $status = $self->status;
+    my $category = $self->category;
+
+    foreach my $name (qw/STATUS_OPEN STATUS_CLOSED/) {
+        return $OPTIONS{$category}->{$name}->{$status}
+            if exists $OPTIONS{$category}->{$name}
+            and exists $OPTIONS{$category}->{$name}->{$status};
+    }
+
+    foreach my $hash (\%STATUS_OPEN, \%STATUS_CLOSED) {
+        return $hash->{$status} if exists $hash->{$status};
+    }
+
+    return 'Unknown';
 }
 
 =item B<urgencyText>

@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 69
+use Test::More tests => 76
     + 4  # General information
     + (9 * 5)  # Mailing lists
     + 23  # Options
@@ -71,6 +71,7 @@ ok(not $fault->isUrgent);
 is($fault->condition, OMP::Fault::CONDITION_NORMAL());
 is($fault->conditionText, 'Normal');
 ok(not $fault->isChronic);
+is($fault->statusText, 'Open');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -83,6 +84,7 @@ my $resp2 = OMP::Fault::Response->new(
 );
 
 $fault->responses($resp2);
+$fault->status(OMP::Fault::CLOSED());
 
 my @resps = $fault->responses;
 is(scalar(@resps), 2, 'Count responses');
@@ -91,6 +93,7 @@ is(scalar(@resps), 2, 'Count responses');
 ok($resps[0]->isfault, 'check first is a fault');
 ok(! $resps[1]->isfault, 'second response is not a fault');
 
+is($fault->statusText, 'Closed');
 
 # Print the stringified fault for info
 # Need to prepend #
@@ -110,6 +113,7 @@ $fault = OMP::Fault->new(
     type => OMP::Fault::VEHICLE_WARNING_LIGHTS(),
     urgency => OMP::Fault::URGENCY_URGENT(),
     condition => OMP::Fault::CONDITION_CHRONIC(),
+    status => OMP::Fault::KNOWN_FAULT(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, '4');
@@ -131,6 +135,7 @@ ok($fault->isUrgent);
 is($fault->condition, OMP::Fault::CONDITION_CHRONIC());
 is($fault->conditionText, 'Chronic');
 ok($fault->isChronic);
+is($fault->statusText, 'Known fault');
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -141,6 +146,7 @@ $fault = OMP::Fault->new(
     system => OMP::Fault::EQUIP_DAMAGE(),
     type => OMP::Fault::INCIDENT(),
     location => OMP::Fault::IN_TRANSIT(),
+    status => OMP::Fault::FOLLOW_UP(),
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->systemText, 'Equipment damage');
@@ -157,6 +163,22 @@ is($fault->getCategoryFullName, 'Safety Reporting');
 is($fault->typeText, 'Incident');
 is($fault->typeTextAbbr, 'Incident');
 is($fault->locationText, 'In transit');
+is($fault->statusText, 'Follow up required');
+
+$fault->status(OMP::Fault::NO_ACTION());
+is($fault->statusText, 'No further action');
+
+$fault = OMP::Fault->new(
+    category => 'JCMT_EVENTS',
+    fault => OMP::Fault::Response->new(
+        author => $author,
+        text => 'text',
+    ),
+    system => OMP::Fault::POINTING(),
+    status => OMP::Fault::COMMISSIONING(),
+);
+isa_ok($fault, 'OMP::Fault');
+is($fault->statusText, 'Commissioning');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply(OMP::Fault->faultLocation('SAFETY', include_hidden => 1), {
@@ -382,7 +404,7 @@ is(OMP::Fault->getCategoryFullName('OMP'), 'OMP Faults');
 is(OMP::Fault->getCategoryFullName('JCMT_EVENTS'), 'JCMT Events');
 
 # Test "status" list methods.
-is_deeply([sort keys %{{OMP::Fault->faultStatus()}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatus()}], [
     'Closed',
     'Commissioning',
     'Complete',
@@ -401,7 +423,7 @@ is_deeply([sort keys %{{OMP::Fault->faultStatus()}}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusOpen()}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusOpen()}], [
     'Commissioning',
     'Follow up required',
     'Immediate action required',
@@ -413,7 +435,7 @@ is_deeply([sort keys %{{OMP::Fault->faultStatusOpen()}}], [
     'Suspended',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusClosed()}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusClosed()}], [
     'Closed',
     'Complete',
     'Duplicate',
@@ -423,7 +445,7 @@ is_deeply([sort keys %{{OMP::Fault->faultStatusClosed()}}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatus('JCMT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatus('JCMT')}], [
     'Closed',
     'Duplicate',
     'Not a fault',
@@ -434,13 +456,13 @@ is_deeply([sort keys %{{OMP::Fault->faultStatus('JCMT')}}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('JCMT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusOpen('JCMT')}], [
     'Open',
     'Open - Will be fixed',
     'Suspended',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('JCMT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusClosed('JCMT')}], [
     'Closed',
     'Duplicate',
     'Not a fault',
@@ -448,7 +470,7 @@ is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('JCMT')}}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatus('SAFETY')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatus('SAFETY')}], [
     'Closed',
     'Follow up required',
     'Immediate action required',
@@ -456,33 +478,33 @@ is_deeply([sort keys %{{OMP::Fault->faultStatus('SAFETY')}}], [
     'Refer to safety committee',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('SAFETY')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusOpen('SAFETY')}], [
     'Follow up required',
     'Immediate action required',
     'Refer to safety committee',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('SAFETY')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusClosed('SAFETY')}], [
     'Closed',
     'No further action',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatus('JCMT_EVENTS')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatus('JCMT_EVENTS')}], [
     'Commissioning',
     'Complete',
     'Ongoing',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('JCMT_EVENTS')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusOpen('JCMT_EVENTS')}], [
     'Commissioning',
     'Ongoing',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('JCMT_EVENTS')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusClosed('JCMT_EVENTS')}], [
     'Complete',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}], [
     'Closed',
     'Duplicate',
     'Known fault',
@@ -491,23 +513,23 @@ is_deeply([sort keys %{{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}}], [
     'Won\'t be fixed',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusOpen('VEHICLE_INCIDENT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusOpen('VEHICLE_INCIDENT')}], [
     'Known fault',
     'Open',
     'Open - Will be fixed',
 ]);
 
-is_deeply([sort keys %{{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}}], [
+is_deeply([sort keys %{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}], [
     'Closed',
     'Duplicate',
     'Won\'t be fixed',
 ]);
 
 # Check that the "isOpen", "faultStatusOpen" and "faultStatusClosed" methods agree.
-my %status = OMP::Fault->faultStatus;
-my %status_open = map {$_ => 1} values %{{OMP::Fault->faultStatusOpen}};
-my %status_closed = map {$_ => 1} values %{{OMP::Fault->faultStatusClosed}};
-while (my ($status_text, $status_value) = each %status) {
+my $status = OMP::Fault->faultStatus;
+my %status_open = map {$_ => 1} values %{OMP::Fault->faultStatusOpen};
+my %status_closed = map {$_ => 1} values %{OMP::Fault->faultStatusClosed};
+while (my ($status_text, $status_value) = each %$status) {
     my $f = OMP::Fault->new(
         category => 'OMP',
         fault => OMP::Fault::Response->new(

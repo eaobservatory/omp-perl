@@ -48,7 +48,7 @@ my %details = (
     subject => 'Subject',
     system => OMP::Fault->faultSystems('JCMT')->{'Back End - ACSIS'},
     type => OMP::Fault->faultTypes('JCMT')->{'Hardware'},
-    status => {OMP::Fault->faultStatus()}->{'Open'},
+    status => OMP::Fault::OPEN(),
 );
 
 my $fault = OMP::Fault->new(
@@ -85,7 +85,7 @@ is_deeply([OMP::Fault::Util->compare(
 my $fault4 = OMP::Fault->new(
     %details,
     type => OMP::Fault->faultTypes('JCMT')->{'Software'},
-    status => {OMP::Fault->faultStatus()}->{'Closed'},
+    status => OMP::Fault::CLOSED(),
     responses => $resp,
 );
 
