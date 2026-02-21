@@ -77,18 +77,17 @@
     [% ELSE %]
         <table cellspacing="0">
             <tr align="center">
-                <td>Enabled(v) / Disabled(x)</td>
-                <td>Project ID</td>
+                <td colspan="2">Project</td>
                 <td>PI</td>
-                <td>PI affiliation</td>
+                <td>PI<br /><abbr title="affiliation">aff.</abbr></td>
                 <td>Support</td>
-                <td># MSBs</td>
+                <td>MSBs</td>
                 <td>Priority</td>
-                <td>Adjusted priority</td>
+                <td><abbr title="Adjusted">Adj.</abbr><br />priority</td>
                 <td>Allocated</td>
-                <td>Completed</td>
-                <td>Instruments</td>
-                <td>Tau range</td>
+                <td><abbr title="Completion">Compl.</abbr></td>
+                <td><abbr title="Instrument">Inst.</abbr></td>
+                <td>Tau</td>
                 <td>Title</td>
             </tr>
             [% SET prev_semester = '' %]
@@ -111,25 +110,18 @@
                     <td>
                         <a href="/cgi-bin/projecthome.pl?project=[% projectid | html %]">[% projectid | html %]</a></td>
                     <td>
-                        <a href="/cgi-bin/userdetails.pl?user=[% project.pi.userid | html %]">[% project.pi.name | html %]</a>
-                        <a href="/cgi-bin/projusers.pl?project=[% projectid | html %]">
-                            [% IF project.contactable(project.pi.userid) %]
-                                <img src="/images/mail.gif" alt="receives email" />
-                            [% ELSE %]
-                                <img src="/images/nomail.gif" alt="ignores email" />
-                            [% END %]
-                        </a>
+                        <a href="/cgi-bin/userdetails.pl?user=[% project.pi.userid | html %]">[% project.pi.name | abbr_html(15) %]</a>
                     </td>
                     <td>
                         [% IF project.pi.affiliation.defined %]
                             [% project.pi.affiliation | html %]
                         [% ELSE %]
-                            &nbsp;
+                            &mdash;
                         [% END %]
                     </td>
                     <td>
                         [% FOREACH support IN project.support %]
-                            <a href="/cgi-bin/userdetails.pl?user=[% support.userid | html %]">[% support.name | html %]</a>[% UNLESS loop.last %],[% END %]
+                            <a href="/cgi-bin/userdetails.pl?user=[% support.userid | html %]">[% support.name | abbr_html(7) %]</a>[% UNLESS loop.last %],[% END %]
                         [% END %]
                     </td>
                     <td align="center">
@@ -162,13 +154,13 @@
                     </td>
                     <td align="center">
                         [% UNLESS taurange_is_default(project.taurange) %]
-                            [% project.taurange | html %]
+                            [% project.taurange | replace(',', ', ') | html %]
                         [% ELSE %]
                             &mdash;
                         [% END %]
                     </td>
                     <td>
-                        [% project.title | html %]
+                        [% project.title | abbr_html(30) %]
                     </td>
                 </tr>
             [% END %]
