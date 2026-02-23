@@ -155,15 +155,15 @@ sub _make_type_or_sys {
     $data = choose_data($chosen, $data)
         or return;
 
-    my @key = sort keys %{$data};
+    my @key = sort {$data->{$a} cmp $data->{$b}} keys %$data;
 
     my $max_key = max map {defined $_ && length $_} @key;
     my $max_val = max map {defined $_ && length $_} values %{$data};
-    my $format = "  %-${max_key}s : %${max_val}s\n";
+    my $format = "  %-${max_val}s : %${max_key}s\n";
 
     my $out = '';
     for my $k (@key) {
-        $out .= sprintf $format, $k, $data->{$k};
+        $out .= sprintf $format, $data->{$k}, $k;
     }
 
     return $out;

@@ -46,8 +46,8 @@ my $resp = OMP::Fault::Response->new(
 my %details = (
     category => 'JCMT',
     subject => 'Subject',
-    system => OMP::Fault->faultSystems('JCMT')->{'Back End - ACSIS'},
-    type => OMP::Fault->faultTypes('JCMT')->{'Hardware'},
+    system => OMP::Fault::BACK_END_ACSIS(),
+    type => OMP::Fault::HARDWARE(),
     status => OMP::Fault::OPEN(),
 );
 

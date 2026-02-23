@@ -221,7 +221,7 @@ if ($category ne "JCMT_EVENTS") {
                 max => $startut,
             },
             isfault => {boolean => 1},
-            status => [values %$status_open],
+            status => [keys %$status_open],
         }),
         no_text => 1, no_projects => 1);
 

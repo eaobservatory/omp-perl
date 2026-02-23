@@ -182,97 +182,97 @@ is($fault->statusText, 'Commissioning');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply(OMP::Fault->faultLocation('SAFETY', include_hidden => 1), {
-    'In transit' => 4000,
-    JAC => 4001,
-    HP => 4002,
-    JCMT => 4003,
-    UKIRT => 4004,
-    EAO => 4005,
+    4000 => 'In transit',
+    4001 => 'JAC',
+    4002 => 'HP',
+    4003 => 'JCMT',
+    4004 => 'UKIRT',
+    4005 => 'EAO',
 });
 
 is_deeply(OMP::Fault->faultLocation('SAFETY'), {
-    'In transit' => 4000,
-    HP => 4002,
-    JCMT => 4003,
-    UKIRT => 4004,
-    EAO => 4005,
+    4000 => 'In transit',
+    4002 => 'HP',
+    4003 => 'JCMT',
+    4004 => 'UKIRT',
+    4005 => 'EAO',
 });
 
 # Test fault systems.
 is_deeply(OMP::Fault->faultSystems('JCMT', include_hidden => 1), {
-    Telescope => 1016,
-    'Back End - DAS' => 1044,
-    'Back End - ACSIS' => 1045,
-    'Back End - CBE' => 1046,
-    'Back End - IFD' => 1047,
-    'Back End - VLBI' => 1071,
-    "Front End - N\x{101}makanui" => 2008,
-    "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => 2010,
-    "Front End - \x{2bb}\x{100}weoweo" => 2011,
-    "Front End - \x{2bb}Ala\x{2bb}ihi" => 2012,
-    "Front End - Kuntur" => 2013,
-    'Front End - HARP' => 2001,
-    'Front End - RxA' => 1048,
-    'Front End - RxB' => 1049,
-    'Front End - RxW' => 1050,
-    'Front End - RxH3' => 1054,
-    Surface => 1055,
-    SCUBA   => 1051,
-    'SCUBA-2' => 1065,
-    IFS => 1053,
-    'Water Vapor Monitor' => 1052,
-    'Weather Station' => 2009,
-    'Visitor Instruments' => 1042,
-    Instrument => 1043,
-    Computer => 1011,
-    Carousel => 1012,
-    'Other/Unknown' => -1,
+    1016 => 'Telescope',
+    1044 => 'Back End - DAS',
+    1045 => 'Back End - ACSIS',
+    1046 => 'Back End - CBE',
+    1047 => 'Back End - IFD',
+    1071 => 'Back End - VLBI',
+    2008 => "Front End - N\x{101}makanui",
+    2010 => "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}",
+    2011 => "Front End - \x{2bb}\x{100}weoweo",
+    2012 => "Front End - \x{2bb}Ala\x{2bb}ihi",
+    2013 => "Front End - Kuntur",
+    2001 => 'Front End - HARP',
+    1048 => 'Front End - RxA',
+    1049 => 'Front End - RxB',
+    1050 => 'Front End - RxW',
+    1054 => 'Front End - RxH3',
+    1055 => 'Surface',
+    1051 => 'SCUBA' ,
+    1065 => 'SCUBA-2',
+    1053 => 'IFS',
+    1052 => 'Water Vapor Monitor',
+    2009 => 'Weather Station',
+    1042 => 'Visitor Instruments',
+    1043 => 'Instrument',
+    1011 => 'Computer',
+    1012 => 'Carousel',
+    -1 => 'Other/Unknown',
 });
 
 is_deeply(OMP::Fault->faultSystems('JCMT'), {
-    Telescope => 1016,
-    'Back End - ACSIS' => 1045,
-    'Back End - VLBI' => 1071,
-    "Front End - N\x{101}makanui" => 2008,
-    "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => 2010,
-    "Front End - \x{2bb}\x{100}weoweo" => 2011,
-    "Front End - \x{2bb}Ala\x{2bb}ihi" => 2012,
-    "Front End - Kuntur" => 2013,
-    'Front End - HARP' => 2001,
-    'Front End - RxH3' => 1054,
-    Surface => 1055,
-    'SCUBA-2' => 1065,
-    'Water Vapor Monitor' => 1052,
-    'Weather Station' => 2009,
-    'Visitor Instruments' => 1042,
-    Computer => 1011,
-    Carousel => 1012,
-    'Other/Unknown' => -1,
+    1016 => 'Telescope',
+    1045 => 'Back End - ACSIS',
+    1071 => 'Back End - VLBI',
+    2008 => "Front End - N\x{101}makanui",
+    2010 => "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}",
+    2011 => "Front End - \x{2bb}\x{100}weoweo",
+    2012 => "Front End - \x{2bb}Ala\x{2bb}ihi",
+    2013 => "Front End - Kuntur",
+    2001 => 'Front End - HARP',
+    1054 => 'Front End - RxH3',
+    1055 => 'Surface',
+    1065 => 'SCUBA-2',
+    1052 => 'Water Vapor Monitor',
+    2009 => 'Weather Station',
+    1042 => 'Visitor Instruments',
+    1011 => 'Computer',
+    1012 => 'Carousel',
+    -1 => 'Other/Unknown',
 });
 
 is_deeply(OMP::Fault->faultSystems('SAFETY'), {
-    'Severe injury or death' => 3004,
-    'Major injury' => 3003,
-    'Minor injury' => 3002,
-    'Equipment damage' => 3001,
-    'Clarification' => 3000,
-    'Environmental issue' => 3005,
-    'Environmental incident' => 3006,
+    3004 => 'Severe injury or death',
+    3003 => 'Major injury',
+    3002 => 'Minor injury',
+    3001 => 'Equipment damage',
+    3000 => 'Clarification',
+    3005 => 'Environmental issue',
+    3006 => 'Environmental incident',
 });
 
 is_deeply(OMP::Fault->faultSystems('VEHICLE_INCIDENT'), {
-    '1'  => 6501,
-    '2'  => 6502,
-    '3'  => 6503,
-    '4'  => 6504,
-    '5'  => 6505,
-    '6'  => 6506,
-    '7'  => 6507,
-    '9'  => 6509,
-    '10' => 6510,
-    '11' => 6511,
-    '13' => 6513,
-    '14' => 6514,
+    6501 => '1',
+    6502 => '2',
+    6503 => '3',
+    6504 => '4',
+    6505 => '5',
+    6506 => '6',
+    6507 => '7',
+    6509 => '9',
+    6510 => '10',
+    6511 => '11',
+    6513 => '13',
+    6514 => '14',
 });
 
 # Test general information.
@@ -289,25 +289,25 @@ is_deeply([sort OMP::Fault->faultCategories], [qw/
 /]);
 
 is_deeply(OMP::Fault->faultTypes('JCMT'), {
-    Mechanical => 1013,
-    Electronic => 1014,
-    Hardware => 1005,
-    Software => 1006,
-    Cryogenic => 1015,
-    'Other/Unknown' => -1,
-    Human => 0,
-    Network => 1007,
+    1013 => 'Mechanical',
+    1014 => 'Electronic',
+    1005 => 'Hardware',
+    1006 => 'Software',
+    1015 => 'Cryogenic',
+    -1 => 'Other/Unknown',
+    0 => 'Human',
+    1007 => 'Network',
 });
 
 is_deeply(OMP::Fault->faultUrgency(), {
-    Urgent => 0,
-    Normal => 1,
-    Info => 2,
+    0 => 'Urgent',
+    1 => 'Normal',
+    2 => 'Info',
 });
 
 is_deeply(OMP::Fault->faultCondition(), {
-    Chronic => 0,
-    Normal => 1,
+    0 => 'Chronic',
+    1 => 'Normal',
 });
 
 # Test mail_list method.
@@ -404,7 +404,7 @@ is(OMP::Fault->getCategoryFullName('OMP'), 'OMP Faults');
 is(OMP::Fault->getCategoryFullName('JCMT_EVENTS'), 'JCMT Events');
 
 # Test "status" list methods.
-is_deeply([sort keys %{OMP::Fault->faultStatus()}], [
+is_deeply([sort values %{OMP::Fault->faultStatus()}], [
     'Closed',
     'Commissioning',
     'Complete',
@@ -423,7 +423,7 @@ is_deeply([sort keys %{OMP::Fault->faultStatus()}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusOpen()}], [
+is_deeply([sort values %{OMP::Fault->faultStatusOpen()}], [
     'Commissioning',
     'Follow up required',
     'Immediate action required',
@@ -435,7 +435,7 @@ is_deeply([sort keys %{OMP::Fault->faultStatusOpen()}], [
     'Suspended',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusClosed()}], [
+is_deeply([sort values %{OMP::Fault->faultStatusClosed()}], [
     'Closed',
     'Complete',
     'Duplicate',
@@ -445,7 +445,7 @@ is_deeply([sort keys %{OMP::Fault->faultStatusClosed()}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatus('JCMT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatus('JCMT')}], [
     'Closed',
     'Duplicate',
     'Not a fault',
@@ -456,13 +456,13 @@ is_deeply([sort keys %{OMP::Fault->faultStatus('JCMT')}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusOpen('JCMT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusOpen('JCMT')}], [
     'Open',
     'Open - Will be fixed',
     'Suspended',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusClosed('JCMT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusClosed('JCMT')}], [
     'Closed',
     'Duplicate',
     'Not a fault',
@@ -470,7 +470,7 @@ is_deeply([sort keys %{OMP::Fault->faultStatusClosed('JCMT')}], [
     'Works for me',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatus('SAFETY')}], [
+is_deeply([sort values %{OMP::Fault->faultStatus('SAFETY')}], [
     'Closed',
     'Follow up required',
     'Immediate action required',
@@ -478,33 +478,33 @@ is_deeply([sort keys %{OMP::Fault->faultStatus('SAFETY')}], [
     'Refer to safety committee',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusOpen('SAFETY')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusOpen('SAFETY')}], [
     'Follow up required',
     'Immediate action required',
     'Refer to safety committee',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusClosed('SAFETY')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusClosed('SAFETY')}], [
     'Closed',
     'No further action',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatus('JCMT_EVENTS')}], [
+is_deeply([sort values %{OMP::Fault->faultStatus('JCMT_EVENTS')}], [
     'Commissioning',
     'Complete',
     'Ongoing',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusOpen('JCMT_EVENTS')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusOpen('JCMT_EVENTS')}], [
     'Commissioning',
     'Ongoing',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusClosed('JCMT_EVENTS')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusClosed('JCMT_EVENTS')}], [
     'Complete',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}], [
     'Closed',
     'Duplicate',
     'Known fault',
@@ -513,13 +513,13 @@ is_deeply([sort keys %{OMP::Fault->faultStatus('VEHICLE_INCIDENT')}], [
     'Won\'t be fixed',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusOpen('VEHICLE_INCIDENT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusOpen('VEHICLE_INCIDENT')}], [
     'Known fault',
     'Open',
     'Open - Will be fixed',
 ]);
 
-is_deeply([sort keys %{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}], [
+is_deeply([sort values %{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}], [
     'Closed',
     'Duplicate',
     'Won\'t be fixed',
@@ -527,9 +527,9 @@ is_deeply([sort keys %{OMP::Fault->faultStatusClosed('VEHICLE_INCIDENT')}], [
 
 # Check that the "isOpen", "faultStatusOpen" and "faultStatusClosed" methods agree.
 my $status = OMP::Fault->faultStatus;
-my %status_open = map {$_ => 1} values %{OMP::Fault->faultStatusOpen};
-my %status_closed = map {$_ => 1} values %{OMP::Fault->faultStatusClosed};
-while (my ($status_text, $status_value) = each %$status) {
+my %status_open = map {$_ => 1} keys %{OMP::Fault->faultStatusOpen};
+my %status_closed = map {$_ => 1} keys %{OMP::Fault->faultStatusClosed};
+while (my ($status_value, $status_text) = each %$status) {
     my $f = OMP::Fault->new(
         category => 'OMP',
         fault => OMP::Fault::Response->new(

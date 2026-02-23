@@ -114,17 +114,21 @@ sub query_fault_form {
     my @types;
 
     if (! $hidefields) {
+        my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
+            ? (sub {$a->[1] <=> $b->[1]})
+            : (sub {$a->[1] cmp $b->[1]});
+
         my $systems = OMP::Fault->faultSystems($category);
-        @systems = map {[$systems->{$_}, $_]} sort keys %$systems;
+        @systems = sort $sort map {[$_, $systems->{$_}]} keys %$systems;
 
         my $hidden_systems = OMP::Fault->faultSystems($category, only_hidden => 1);
         if (scalar %$hidden_systems) {
             push @systems, [];
-            push @systems, [$hidden_systems->{$_}, $_] foreach sort keys $hidden_systems;
+            push @systems, sort $sort map {[$_, $hidden_systems->{$_}]} keys $hidden_systems;
         }
 
         my $types = OMP::Fault->faultTypes($category);
-        @types = map {[$types->{$_}, $_]} sort keys %$types;
+        @types = sort {$a->[1] cmp $b->[1]} map {[$_, $types->{$_}]} keys %$types;
     }
 
     my @status = (
@@ -207,16 +211,16 @@ sub file_fault_form {
         my $systems = OMP::Fault->faultSystems($category);
 
         my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
-            ? (sub {$a <=> $b})
-            : (sub {$a cmp $b});
+            ? (sub {$a->[1] <=> $b->[1]})
+            : (sub {$a->[1] cmp $b->[1]});
 
-        @systems = map {[$systems->{$_}, $_]}
-            sort $sort
+        @systems = sort $sort
+            map {[$_, $systems->{$_}]}
             keys %$systems;
     }
 
     my $types = OMP::Fault->faultTypes($category);
-    my @types = map {[$types->{$_}, $_]} sort keys %$types;
+    my @types = sort {$a->[1] cmp $b->[1]} map {[$_, $types->{$_}]} keys %$types;
 
     my @statuses = _get_status_labels_by_name($category);
 
@@ -224,7 +228,8 @@ sub file_fault_form {
     my @locations;
     if ($has_location) {
         my $locations = OMP::Fault->faultLocation($category);
-        @locations = map {[$locations->{$_}, $_]} sort keys %$locations;
+        @locations = sort {$a->[1] cmp $b->[1]}
+            map {[$_, $locations->{$_}]} keys %$locations;
     }
 
     # Set defaults.  There's probably a better way of doing what I'm about
@@ -797,7 +802,7 @@ sub get_status_labels {
 
     my $status = $fault->faultStatus;
 
-    return map {[$status->{$_}, $_]} sort keys %$status;
+    return sort {$a->[1] cmp $b->[1]} map {[$_, $status->{$_}]} keys %$status;
 }
 
 =back
@@ -831,7 +836,7 @@ sub _get_status_labels_by_name {
         $status = OMP::Fault->faultStatus($cat);
     }
 
-    return map {[$status->{$_}, $_]} sort keys %$status;
+    return sort {$a->[1] cmp $b->[1]} map {[$_, $status->{$_}]} keys %$status;
 }
 
 =item B<_sort_by_fault_time>

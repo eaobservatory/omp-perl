@@ -533,7 +533,8 @@ sub timeLostStats {
     my %faults = $self->_getSystems(0);
 
     # Calculate and store totals for each system
-    map {$faults{$_->category}{$_->systemText} += $_->timelost} $self->faults;
+    $faults{$_->category}{$_->systemText} += $_->timelost
+        foreach $self->faults;
 
     return %faults;
 }
@@ -567,9 +568,8 @@ sub numFaultStats {
         : grep {$_->timelost > 0} $self->faults);
 
     # Calculate and store totals for each system
-    map {
-        $faults{$_->category}{$_->systemText} ++
-    } @faults;
+    $faults{$_->category}{$_->systemText} ++
+        foreach @faults;
 
     return %faults;
 }
@@ -749,7 +749,7 @@ sub _getSystems {
     my %systems;
     for my $category (@categories) {
         my $sysref = OMP::Fault->faultSystems($category, include_hidden => 1);
-        map {$systems{$category}{$_} = $default} keys %$sysref;
+        map {$systems{$category}{$_} = $default} values %$sysref;
     }
 
     return %systems;

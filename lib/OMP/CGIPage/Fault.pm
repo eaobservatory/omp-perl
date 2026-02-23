@@ -263,12 +263,12 @@ sub query_fault_output {
             elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
                 my $statuses = OMP::Fault->faultStatusClosed(@cat_not_any);
-                $hash{'status'} = [values %$statuses];
+                $hash{'status'} = [keys %$statuses];
             }
             elsif ($status eq "all_open") {
                 # Do a query on all open statuses
                 my $statuses = OMP::Fault->faultStatusOpen(@cat_not_any);
-                $hash{'status'} = [values $statuses];
+                $hash{'status'} = [keys $statuses];
             }
             elsif ($status eq 'non_duplicate') {
                 $hash{'EXPR__STAT'} = {not => {status => OMP::Fault::DUPLICATE}};

@@ -738,17 +738,20 @@ sub faultSystems {
 
     my $systems = $OPTIONS{$category}{$section};
 
-    return _invert($systems) if $opt{'include_hidden'};
+    return $systems if $opt{'include_hidden'};
 
+    my $only_hidden = $opt{'only_hidden'} // 0;
     my $hidden = $OPTIONS{$category}{$section . '_HIDDEN'} // {};
 
-    return _invert($systems) unless scalar %$hidden;
+    unless (scalar %$hidden) {
+        return {} if $only_hidden;
+        return $systems;
+    }
 
     my %result = ();
 
-    my $only_hidden = $opt{'only_hidden'} // 0;
     while (my ($code, $name) = each %$systems) {
-        $result{$name} = $code unless $only_hidden xor $hidden->{$code};
+        $result{$code} = $name unless $only_hidden xor $hidden->{$code};
     }
 
     return \%result;
@@ -757,10 +760,10 @@ sub faultSystems {
 =item B<faultTypes>
 
 For a specific fault category (eg JCMT or UKIRT) return a hash
-containing the allowed fault types (as keys) and the constants
+containing the allowed fault types (as values) and the constants
 required to identify those types in the database.
 
-    %types = OMP::Fault->faultTypes("JCMT");
+    \%types = OMP::Fault->faultTypes('JCMT');
 
 Returns empty list if the fault category is not recognized.
 
@@ -771,7 +774,7 @@ sub faultTypes {
     my $category = uc(shift);
 
     if (exists $OPTIONS{$category}) {
-        return _invert($OPTIONS{$category}{TYPE});
+        return $OPTIONS{$category}{'TYPE'};
     }
     else {
         return ();
@@ -849,7 +852,7 @@ be associated with fixing a particular fault.
 
 sub faultUrgency {
     my $class = shift;
-    return _invert(\%URGENCY);
+    return \%URGENCY;
 }
 
 =item B<faultCondition>
@@ -863,7 +866,7 @@ be associated with a particular fault.
 
 sub faultCondition {
     my $class = shift;
-    return _invert(\%CONDITION);
+    return \%CONDITION;
 }
 
 =back
@@ -915,7 +918,7 @@ sub faultStatus {
     my %combined = ();
     %combined = (%combined, %$_) foreach @hashes;
 
-    return _invert(\%combined);
+    return \%combined;
 }
 
 =item B<faultStatusOpen>
@@ -934,10 +937,10 @@ sub faultStatusOpen {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return _invert($OPTIONS{$category}->{'STATUS_OPEN'})
+        return $OPTIONS{$category}->{'STATUS_OPEN'}
             if exists $OPTIONS{$category}->{'STATUS_OPEN'};
 
-        return _invert(\%STATUS_OPEN);
+        return \%STATUS_OPEN;
     }
 
     my %combined = %STATUS_OPEN;
@@ -946,7 +949,7 @@ sub faultStatusOpen {
             if exists $OPTIONS{$cat}->{'STATUS_OPEN'};
     }
 
-    return _invert(\%combined);
+    return \%combined;
 }
 
 =item B<faultStatusClosed>
@@ -965,10 +968,10 @@ sub faultStatusClosed {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return _invert($OPTIONS{$category}->{'STATUS_CLOSED'})
+        return $OPTIONS{$category}->{'STATUS_CLOSED'}
             if exists $OPTIONS{$category}->{'STATUS_CLOSED'};
 
-        return _invert(\%STATUS_CLOSED);
+        return \%STATUS_CLOSED;
     }
 
     my %combined = %STATUS_CLOSED;
@@ -977,7 +980,7 @@ sub faultStatusClosed {
             if exists $OPTIONS{$cat}->{'STATUS_CLOSED'};
     }
 
-    return _invert(\%combined);
+    return \%combined;
 }
 
 =item B<faultLocation>
@@ -1010,12 +1013,12 @@ sub faultLocation {
     $category = uc $category if defined $category;
     my %opt = @_;
 
-    return _invert(\%LOCATION) if $opt{'include_hidden'};
+    return \%LOCATION if $opt{'include_hidden'};
 
     my %non_hidden;
 
     while (my ($code, $name) = each %LOCATION) {
-        $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
+        $non_hidden{$code} = $name unless $LOCATION_HIDDEN{$code};
     }
 
     return \%non_hidden;
@@ -2310,15 +2313,6 @@ sub _system_section {
     );
 
     return $cat_section{$category} // 'SYSTEM';
-}
-
-sub _invert {
-    my $ref = shift;
-    my %result;
-    foreach my $key (keys %$ref) {
-        $result{$ref->{$key}} = $key;
-    }
-    return \%result;
 }
 
 1;
