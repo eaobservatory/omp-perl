@@ -9,6 +9,9 @@
             <td><b>Filed by</b></td>
             <td><b>[% fault_info.system_label | html %]</b></td>
             <td><b>Type</b></td>
+            [% IF fault_info.show_location %]
+                <td><b>Location</b></td>
+            [% END %]
             <td><b>Status</b></td>
             [% IF fault_info.show_time_lost %]
                 <td align="center"><b>Loss</b></td>
@@ -38,6 +41,9 @@
                 <td>[% render_user_name(fault.author) %]</td>
                 <td>[% fault.systemTextAbbr | html %]</td>
                 <td>[% fault.typeTextAbbr | html %]</td>
+                [% IF fault_info.show_location %]
+                    <td>[% fault.locationText | html %]</td>
+                [% END %]
                 <td>[% IF fault.isNew && fault.isOpen %]New[% ELSE %][% fault.statusText | html %][% END %]</td>
                 [% IF fault_info.show_time_lost %]
                     [% SET time_lost = fault.timelost %]

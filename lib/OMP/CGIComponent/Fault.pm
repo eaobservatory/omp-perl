@@ -112,6 +112,8 @@ sub query_fault_form {
 
     my @systems;
     my @types;
+    my @locations;
+    my $has_location = 0;
 
     if (! $hidefields) {
         my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
@@ -129,6 +131,13 @@ sub query_fault_form {
 
         my $types = OMP::Fault->faultTypes($category);
         @types = sort {$a->[1] cmp $b->[1]} map {[$_, $types->{$_}]} keys %$types;
+
+        $has_location = OMP::Fault->faultHasLocation($category);
+        if ($has_location) {
+            my $locations = OMP::Fault->faultLocation($category);
+            @locations = sort {$a->[1] cmp $b->[1]}
+                map {[$_, $locations->{$_}]} keys %$locations;
+        }
     }
 
     my @status = (
@@ -160,6 +169,8 @@ sub query_fault_form {
         entry_name => OMP::Fault->getCategoryEntryName($category),
         systems => \@systems,
         types => \@types,
+        has_location => $has_location,
+        locations => \@locations,
         statuses => \@status,
         values => {
             action => (scalar $q->param('action') // 'activity'),
@@ -167,7 +178,7 @@ sub query_fault_form {
             timezone => (scalar $q->param('timezone') // 'HST'),
             text_search => (scalar $q->param('text_search') // 'both'),
             map {$_ => scalar $q->param($_)}
-                qw/userid mindate maxdate days system type status
+                qw/userid mindate maxdate days system type status location
                 timelost show_affected urgent chronic summary
                 text text_boolean/,
         },
@@ -600,6 +611,9 @@ sub show_faults {
 
     return {
         show_cat => ($category eq 'ANYCAT'),
+        show_location => (
+            ($category ne 'ANYCAT')
+            and OMP::Fault->faultHasLocation($category)),
         show_time_lost => ($stats->timelost > 0),
         show_projects => $args{'show_affected'},
         faults => \@faults,

@@ -255,6 +255,13 @@ sub query_fault_output {
             $hash{'condition'} = OMP::Fault::CONDITION_CHRONIC();
         }
 
+        if ((! $hidefields) and OMP::Fault->faultHasLocation($category)) {
+            my $location = $q->param('location');
+            if ((defined $location) and ($location !~ /any/)) {
+                $hash{'location'} = $location;
+            }
+        }
+
         if (defined $q->param('status')) {
             my $status = $q->param('status');
             my @cat_not_any = ($category eq 'ANYCAT') ? () : ($category);
