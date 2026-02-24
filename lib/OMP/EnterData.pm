@@ -1468,13 +1468,17 @@ sub transform_value {
                 }
             }
             elsif ($column eq 'lststart' or $column eq 'lstend') {
-                # Convert LSTSTART and LSTEND to decimal hours
-                my $ha = Astro::Coords::Angle::Hour->new($val, units => 'sex');
-                $values->{$column} = $ha->hours;
+                # Convert LSTSTART and LSTEND to decimal hours.
+                # Use "eval" block in case of invalid values.
+                $values->{$column} = eval {
+                    my $ha = Astro::Coords::Angle::Hour->new($val, units => 'sex');
+                    $ha->hours;
+                };
 
                 $log->trace(sprintf
                     "Converted time [%s] to [%s] for column [%s]",
-                    $val, $values->{$column}, $column);
+                    $val, $values->{$column}, $column)
+                    if defined $values->{$column};
             }
         }
     }
