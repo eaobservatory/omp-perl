@@ -457,7 +457,7 @@ A {
   color: #ffffff;
 }
 
-.obslog-good, .obslog-bad, .obslog-questionable, .obslog-junk, .obslog-rejected {
+.obslog-good, .obslog-bad, .obslog-questionable, .obslog-junk, .obslog-rejected, .obslog-problem {
   background-color: transparent;
 }
 
@@ -479,6 +479,10 @@ A {
 
 .obslog-rejected {
   color: #00f;
+}
+
+.obslog-problem {
+    color: #aaa;
 }
 
 .msb-comment-nightrep {

@@ -369,8 +369,9 @@
                 <td>
                     Color legend:
                     [% FOREACH status IN obs_summary.statuses %]
-                        <span class="[% obs_summary.status_class.item(status.0) %]">[% status.1 %]</span>[% IF ! loop.last %],[% END %]
+                        <span class="[% obs_summary.status_class.item(status.0) %]">[% status.1 %]</span>,
                     [% END %]
+                    <span class="obslog-problem">Problem</span>
                 </td>
             </tr>
         </table>
@@ -442,12 +443,12 @@
                                 </td>
                             </tr>
                         [% END %]
-                        [% SET status = obs.status %]
-                        [% SET css_status = status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0 %]
-                        [% SET label_status = status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0 %]
                         [% SET subsystems = obs.scalar.subsystems_tiny %]
                         [% SET comments = obs.scalar.comments %]
-                        [% SET num_rows = subsystems.size + comments.size %]
+                        [% SET status = obs.status %]
+                        [% SET css_status = (comments.empty && obs.ingestion_errors.defined) ? 'obslog-problem' : (status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0) %]
+                        [% SET label_status = (comments.empty && obs.ingestion_errors.defined) ? 'Problem' : (status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0) %]
+                        [% SET num_rows = subsystems.size + comments.size + (obs.ingestion_errors.defined ? 1 : 0) %]
                         [% FOREACH ss IN subsystems %]
                             [% SET row_first = loop.first %]
                             [% SET ssnightlog = ss.scalar.nightlog() %]
@@ -490,6 +491,9 @@
                                 [% END %]
                             </tr>
                         [% END %]
+                        [% IF obs.ingestion_errors.defined %]
+                            [% render_ingestion_errors(obs_summary, obs.ingestion_errors, num_columns - 3, rowclass, css_status) %]
+                        [% END %]
                         [% IF ! comments.empty %]
                             [% render_observation_log_comments(obs_summary, comments, num_columns - 3, rowclass) %]
                         [% END %]
@@ -499,6 +503,13 @@
             </table>
         [% END %]
     [% END %]
+[% END -%]
+[% MACRO render_ingestion_errors(obs_summary, ingestion_errors, num_columns, rowclass, cellclass) BLOCK %]
+    <tr class="[% rowclass %]">
+        <td class="[% cellclass %]" colspan="[% num_columns %]">
+            <b>Problem(s) detected:</b> [% ingestion_errors | html %]
+        </td>
+    </tr>
 [% END -%]
 [% MACRO render_observation_log_comments(obs_summary, obs_comments, num_columns, rowclass) BLOCK %]
     [% FOREACH comment IN obs_comments %]

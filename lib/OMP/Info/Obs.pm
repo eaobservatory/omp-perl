@@ -643,6 +643,7 @@ __PACKAGE__->CreateAccessors(
     isGenCal => '$',
     calType => '$',
     subsystem_idkey => '$',
+    ingestion_errors => '$',
 );
 
 =head2 Accessor Methods
@@ -2077,6 +2078,26 @@ sub _populate_basic_from_generic {
     $self->sideband_mode($generic->{'SIDEBAND_MODE'}) if exists $generic->{'SIDEBAND_MODE'};
 }
 
+=item B<_populate_extra_from_hdrhash>
+
+Populate extra parts of the object using information from a hash
+of additional headers which Astro::FITS::HdrTrans will not be translating
+(e.g. JCMT database-specific values).
+
+    $obs->_populate_extra_from_hdrhash(\%header);
+
+=cut
+
+
+sub _populate_extra_from_hdrhash {
+    my $self = shift;
+    my $header = shift;
+
+    $self->ingestion_errors($header->{'INGESTION_ERRORS'})
+        if exists $header->{'INGESTION_ERRORS'}
+        and defined $header->{'INGESTION_ERRORS'};
+}
+
 =item B<_populate>
 
 Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
@@ -2105,6 +2126,8 @@ sub _populate {
     return unless keys %generic_header;
 
     $self->_populate_basic_from_generic(\%generic_header);
+
+    $self->_populate_extra_from_hdrhash($header);
 
     # The default calibration is simply the project ID. This will
     # ensure that all calibrations associated with a project
