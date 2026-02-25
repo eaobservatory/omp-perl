@@ -1059,6 +1059,8 @@ An optional parameter may be supplied containing a hash of options. These are:
 Add comments to the nightlog string, a boolean. Defaults
 to false (0).
 
+Also includes ingestion errors ("problem(s) detected) if enabled.
+
 =item display
 
 Type of display to show, a string either being 'long' or
@@ -1557,6 +1559,14 @@ sub nightlog {
     }
 
     if ($comments) {
+        my $ingestion_errors = $self->ingestion_errors;
+        if (defined $ingestion_errors) {
+            my $note = sprintf "\n Problem(s) detected: %s", $ingestion_errors;
+            foreach my $entry (qw/_STRING _STRING_LONG/) {
+                $return{$entry} .= $note if exists $return{$entry};
+            }
+        }
+
         foreach my $comment ($self->comments) {
             if (defined($comment)) {
                 if (exists($return{'_STRING'})) {
