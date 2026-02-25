@@ -309,7 +309,7 @@ sub edit_details {
 
         if ($q->param("cadcuser")) {
             # we were given a value
-            if ($q->param("cadcuser") =~ /^(\w+)$/a) {
+            if ($q->param("cadcuser") =~ /^([-_A-Za-z0-9@.]+)$/a) {
                 $from_form{cadcuser} = $1;
             }
             else {
