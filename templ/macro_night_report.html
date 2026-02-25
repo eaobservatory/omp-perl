@@ -386,7 +386,13 @@
             <table class="sum_table" border="0">
                 <tr class="sum_other">
                     [% FOREACH column_name IN column_order %]
-                        <td>[% column_name | html %]</td>
+                        <td>
+                            [% IF instblock.heading.exists('_NAME_ABBR') && instblock.heading._NAME_ABBR.exists(column_name) %]
+                                <abbr title="[% column_name | html %]">[% instblock.heading._NAME_ABBR.$column_name | html %]</abbr>
+                            [% ELSE %]
+                                [% column_name | html %]
+                            [% END %]
+                        </td>
                     [% END %]
                     <td>Status</td>
                 </tr>

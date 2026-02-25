@@ -1076,7 +1076,8 @@ which gives a one-line summary of the observation, and a
 for the corresponding _STRING value.
 
 There may also be {_STRING_LONG} and {_STRING_HEADER_LONG} keys that give
-multiple-line summaries of the observations.
+multiple-line summaries of the observations and a {_NAME_ABBR} key
+giving a hash of header name abbreviations.
 
 =cut
 
@@ -1163,6 +1164,10 @@ sub nightlog {
                 "Source", "Filter", "Tau225", "Seeing",
                 "Pol In?", "FTS In?", "Shift"
             ];
+            $return{'_NAME_ABBR'} = {
+                'Pol In?' => 'Pol?',
+                'FTS In?' => 'FTS?',
+            };
             @short_val = map $return{$_}, @{$return{'_ORDER'}};
             $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
             $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %6s  %6s  %7s %7s %-7s";
@@ -1289,6 +1294,14 @@ sub nightlog {
             "Transition", "Frequency", "Velocity", "Velsys",
             "Bandwidth Mode", "Shift"
         ];
+
+        $return{'_NAME_ABBR'} = {
+            Subsystem => 'SS',
+            Spectrum => 'Spec.',
+            'Bandwidth Mode' => 'BW Mode',
+            Frequency => 'Freq.',
+            Velocity => 'Vel.',
+        };
 
         $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
         $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3.3s    %7s %12s %12s %-7s",
