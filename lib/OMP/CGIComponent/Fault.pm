@@ -392,6 +392,7 @@ sub file_fault_form {
         has_time_occurred => OMP::Fault->faultHasTimeOccurred($category),
         has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
         entry_name => OMP::Fault->getCategoryEntryName($category),
+        category_is_telescope => OMP::Fault->faultIsTelescope($category),
         system_label => $sys_label,
         system_description => $sys_text,
         systems => \@systems,

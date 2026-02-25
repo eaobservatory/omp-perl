@@ -133,9 +133,11 @@
             <td align="right"><b>Subject:</b></td>
             <td><input type="text" name="subject" size="60" maxlength="128" value="[% values.subject | html %]" /></td>
         </tr>
-        <tr>
-            <td colspan="2"><small>Please remember to identify the instrument being used and the data frame number if either are relevant.</small></td>
-        </tr>
+        [% IF category_is_telescope %]
+            <tr>
+                <td colspan="2"><small>Please remember to identify the instrument being used and the observation number if either is relevant.</small></td>
+            </tr>
+        [% END %]
         <tr>
             <td colspan="2" align="right">
                 <textarea name="message" rows="20" cols="78">[% values.message | html %]</textarea>
