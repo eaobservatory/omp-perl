@@ -498,6 +498,7 @@ my %OPTIONS = (
     SAFETY => {
         CATEGORY_NAME => 'Safety',
         CATEGORY_NAME_SUFFIX => 'Reporting',
+        ENTRY_NAME => 'Report',
         HAS_LOCATION => 1,
         SYSTEM_LABEL => 'Severity',
         INITIAL_STATUS => FOLLOW_UP,
