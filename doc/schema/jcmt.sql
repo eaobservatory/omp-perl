@@ -194,6 +194,7 @@ CREATE TABLE `COMMON` (
   `roofstst` varchar(70) DEFAULT NULL,
   `roofsten` varchar(70) DEFAULT NULL,
   `grid_cnt` int(11) DEFAULT NULL,
+  `ingestion_errors` varchar(70) DEFAULT NULL,
   PRIMARY KEY (`obsid`),
   KEY `idx_jcmt_COMMON_proj` (`project`),
   KEY `idx_jcmt_COMMON_inst` (`instrume`),

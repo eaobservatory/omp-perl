@@ -436,6 +436,10 @@ sub insert_observation {
 
     $self->{'_cache_touched'}->{$_} = 1 foreach @file;
 
+    # Start empty list of non-fatal ingestion errors to record in COMMON.
+    # Keys are error "names", use hash for uniqueness.
+    my %errors = ();
+
     # Extract information from the OMP::Info::Obs object.
     my @subsystems;
     my ($common_hdrs, $common_files);
@@ -537,11 +541,17 @@ sub insert_observation {
                 && ! $self->skip_calc_radec('headers' => $common_hdrs)) {
 
             unless ($self->calc_radec($common_hdrs, $common_files)) {
-                $log->debug("problem while finding bounds; skipping");
+                $log->debug("problem while finding bounds");
 
-                throw OMP::Error('could not find bounds');
+                $errors{'bounds'} = 1;
             }
         }
+
+        # If there are errors logged, combine them into a "ingestion_errors" header.
+        # Otherwise set to undef to clear any previous errors from the database.
+        $common_hdrs->{'ingestion_errors'} = (scalar %errors)
+            ? (join ' ', sort keys %errors)
+            : undef;
 
         my $vals_common = $self->get_insert_values(
             $table_common, $columns->{$table_common}, $common_hdrs, %common_arg);
