@@ -91,6 +91,8 @@ use Scalar::Util qw/looks_like_number/;
 
 use OMP::Fault;
 
+binmode STDOUT, ':utf8';
+
 my ($match_any, $match_word, $match_start, $match_end) = (1);
 my ($category, $system, $type, $help, $hidden);
 GetOptions(

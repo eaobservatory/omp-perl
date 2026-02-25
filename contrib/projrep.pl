@@ -21,6 +21,8 @@ use OMP::DB::Project;
 use strict;
 use Getopt::Long;
 
+binmode STDOUT, ':utf8';
+
 # Options
 my ($help, $man, $tel, $ut, $days);
 my $status = GetOptions(

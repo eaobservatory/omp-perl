@@ -32,6 +32,8 @@ use OMP::DB::Backend;
 use OMP::DB::Fault;
 use OMP::Query::Fault;
 
+binmode STDOUT, ':utf8';
+
 my $dbb = OMP::DB::Backend->new;
 my $db = OMP::DB::Fault->new(DB => $dbb);
 

@@ -48,6 +48,8 @@ use OMP::DB::Sched;
 use OMP::DateTools;
 use OMP::DB::Backend;
 
+binmode STDOUT, ':utf8';
+
 my ($tel, $semester, $help);
 my $status = GetOptions(
     'semester=s' => \$semester,
