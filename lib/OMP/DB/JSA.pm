@@ -40,8 +40,7 @@ use OMP::Constants qw /:status/;
 $OMP::Config::DEBUG = 0;
 
 my %_config = (
-    'db-config' => '/jac_sw/etc/enterdata/enterdata.cfg',
-
+    'db-config' => undef,
     'name' => __PACKAGE__,
 );
 
@@ -57,8 +56,7 @@ Make a C<OMP::DB::JSA> object.  It takes a hash of parameters ...
 
 =item db-config
 
-Pass file name with database log in information in "ini" format;
-default is /jac_sw/etc/enterdata/enterdata.cfg.
+Pass file name with database log in information in "ini" format.
 
 =item name
 
@@ -83,6 +81,9 @@ sub new {
     foreach my $k (keys %_config) {
         $obj->{$k} = exists $arg{$k} ? $arg{$k} : $_config{$k};
     }
+
+    throw OMP::Error 'OMP::DB::JSA: db-config not specified'
+        unless defined $obj->{'db-config'};
 
     $obj = bless $obj, $class;
     $obj->use_transaction(1);
