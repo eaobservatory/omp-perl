@@ -977,8 +977,10 @@ sub projectStatsSimple {
             && ! $isgap;
 
         # if the observation is not a gap and is bad charge it to overhead. What about junk?
-        if (! $isgap
-                && ($obs->status == OMP__OBS_BAD || $obs->status == OMP__OBS_JUNK)) {
+        if ((not $isgap) and (
+                $obs->status == OMP__OBS_BAD
+                or $obs->status == OMP__OBS_JUNK
+                or (defined $obs->ingestion_errors))) {
             print STDERR "Observation from project $projectid is marked BAD, adding to $badproj\n"
                 if $DEBUG;
             $projectid_orig = $projectid;
