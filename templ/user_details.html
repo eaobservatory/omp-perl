@@ -91,7 +91,7 @@
                     [% IF capacity.support %]&check;[% ELSE %]&nbsp;[% END %]
                 </td>
                 <td>
-                    [% project.title | html %]
+                    [% project.title | abbr_html(50) %]
                 </td>
             </tr>
         [% END %]
@@ -117,7 +117,7 @@
                 <tr>
                     <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.faultid | uri %]">[% fault.faultid | html %]</a></td>
                     <td>[% category %]</td>
-                    <td>[% fault.subject | html %]</td>
+                    <td>[% fault.subject | abbr_html(60) %]</td>
                 </tr>
             [% END %]
         [% END %]
