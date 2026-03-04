@@ -275,12 +275,16 @@ else {
 }
 
 # CONTENTCOLOUR controls the colour of the text comments and entries
-# for an observation. It assumes that OBS comments status is an integer
-# starting at 0 (Good)
+# for an observation.
 my $HEADERCOLOUR = 'midnightblue';
-#                      good    questionable   bad     rejected     junk
-my @CONTENTCOLOUR = ('#000000', '#ff7e00', '#ff3333', '#0000ff', '#ff00ff');
-my $PROBLEMCOLOUR = '#888888';
+my %CONTENTCOLOUR = (
+    OMP__OBS_GOOD() => '#000000',
+    OMP__OBS_QUESTIONABLE() => '#ff7e00',
+    OMP__OBS_BAD() => '#ff3333',
+    OMP__OBS_REJECTED() => '#0000ff',
+    OMP__OBS_JUNK() => '#ff00ff',
+    OMP__OBS_PROBLEM() => '#888888',
+);
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
@@ -493,11 +497,7 @@ sub new_instrument {
                 display => 'long',
                 comments => 1,
             );
-            my @comments = $obs->comments;
-            my $status = 0;
-            if (defined $comments[($#comments)]) {
-                $status = $comments[($#comments)]->status;
-            }
+            my $status = $obs->status;
 
             # Draw the header, if necessary.
             if (! $header_printed && exists $nightlog{'_STRING_HEADER'}) {
@@ -669,9 +669,7 @@ sub new_instrument {
                 ? $BACKGROUND1
                 : $BACKGROUND2;
 
-            my $fgcolour = ((defined $obs->ingestion_errors) and not scalar @comments)
-                ? $PROBLEMCOLOUR
-                : $CONTENTCOLOUR[$status];
+            my $fgcolour = $CONTENTCOLOUR{$status};
 
             $nbContent->tag(
                 'configure', $otag,
@@ -1899,7 +1897,7 @@ sub populate_shiftlog_widget {
             ? $BACKGROUND1
             : $BACKGROUND2;
 
-        my $fgcolour = $CONTENTCOLOUR[0];
+        my $fgcolour = $CONTENTCOLOUR{OMP__OBS_GOOD()};
 
         $shiftcommentText->tag('configure', $ctag, -background => $bgcolour,);
 

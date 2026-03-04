@@ -67,15 +67,26 @@ my @DATA = (
     [OMP__OBS_BAD(), {
         name => 'Bad',
         class => 'obslog-bad',
+        exclude_time => 1,
     }],
     [OMP__OBS_JUNK(), {
         name => 'Junk',
         class => 'obslog-junk',
+        exclude_time => 1,
+        is_junk => 1,
     }],
     [OMP__OBS_REJECTED(), {
         name => "Rejected",
-        class => 'obslog-rejected'
+        class => 'obslog-rejected',
+        exclude_time => 1,
     }],
+    [OMP__OBS_PROBLEM(), {
+        name => 'Problem',
+        class => 'obslog-problem',
+        user => 0,
+        exclude_time => 1,
+        is_junk => 1,
+    }]
 );
 
 # Construct original listings for compatibility.
@@ -866,6 +877,30 @@ sub hdrhash {
     return $hdr;
 }
 
+=item B<status>
+
+Get or set the status of the observation.
+
+If the status has not been set, it is determined automatically:
+
+=over 4
+
+=item *
+
+"Problem" if there are ingestion errors.
+
+=item *
+
+The status of the last comment, if there are any.
+
+=item *
+
+"Good" otherwise.
+
+=back
+
+=cut
+
 sub status {
     my $self = shift;
     if (@_) {
@@ -878,17 +913,85 @@ sub status {
     }
     unless (exists($self->{status})) {
         # Fallback in case the accessor hasn't been used.
-        # Grab the status from the comments. If no comments
+        # Check for ingestion errors, otherwise
+        # grab the status from the comments. If no comments
         # exist, then set the status as being good.
-        my @comments = $self->comments;
-        if (defined($comments[0])) {
-            $self->{status} = $comments[$#comments]->status;
+        if (defined $self->ingestion_errors) {
+            $self->{'status'} = OMP__OBS_PROBLEM;
         }
         else {
-            $self->{status} = OMP__OBS_GOOD;
+            my @comments = $self->comments;
+            if (defined($comments[0])) {
+                $self->{status} = $comments[$#comments]->status;
+            }
+            else {
+                $self->{status} = OMP__OBS_GOOD;
+            }
         }
     }
     return $self->{status};
+}
+
+=item B<statusExcludeTime>
+
+Should the observation be excluded from time accounting based on status?
+
+    $excl = $obs->statusExcludeTime();
+
+    $excl = OMP::Info::Obs->statusExcludeTime($status);
+
+=cut
+
+sub statusExcludeTime {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    foreach (@DATA) {
+        return (exists $_->[1]->{'exclude_time'}) ? $_->[1]->{'exclude_time'} : 0
+            if $_->[0] == $status;
+    }
+
+    return undef;
+}
+
+=item B<statusIsJunk>
+
+Is the status junk, or junk-like (e.g. "Problem")?
+
+    $excl = $obs->statusIsJunk();
+
+    $excl = OMP::Info::Obs->statusIsJunk($status);
+
+=cut
+
+sub statusIsJunk {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    foreach (@DATA) {
+        return (exists $_->[1]->{'is_junk'}) ? $_->[1]->{'is_junk'} : 0
+            if $_->[0] == $status;
+    }
+
+    return undef;
+}
+
+=item B<statusIsGood>
+
+Is the status good?
+
+    $excl = $obs->statusIsGood();
+
+    $excl = OMP::Info::Obs->statusIsGood($status);
+
+=cut
+
+sub statusIsGood {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    # Currently there is only one good status, so check for it directly.
+    return ($status == OMP__OBS_GOOD()) ? 1 : 0;
 }
 
 sub removefits {
@@ -1916,12 +2019,23 @@ sub cleaned_msbtitle {
 
 Get an array of pairs of status value and label, in order.
 
+Non-user-settable status can be included with the C<allow_non_user> option:
+
+    @options = $obs->get_status_options(allow_non_user => 1);
+
 =cut
 
 sub get_status_options {
     my $self = shift;
+    my %opt = @_;
 
-    return map {[$_->[0], $_->[1]->{'name'}]} @DATA;
+    my $non_user = (exists $opt{'allow_non_user'}) ? $opt{'allow_non_user'} : 0;
+
+    return map {
+        [$_->[0], $_->[1]->{'name'}]
+    } grep {
+        $non_user or (not exists $_->[1]->{'user'}) or $_->[1]->{'user'}
+    } @DATA;
 }
 
 =back

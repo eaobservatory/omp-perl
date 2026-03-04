@@ -59,7 +59,7 @@ my @msb = qw/
 
 my @obs = qw/
     OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
-    OMP__OBS_REJECTED OMP__OBS_JUNK
+    OMP__OBS_REJECTED OMP__OBS_JUNK OMP__OBS_PROBLEM
 /;
 
 my @timegap = qw/
@@ -513,6 +513,15 @@ science archive.
 =cut
 
 use constant OMP__OBS_JUNK => 4;
+
+=item OMP__OBS_PROBLEM
+
+An observation with ingestion errors recorded.  Should not be
+stored in the database but intsead inferred by OMP::Info::Obs.
+
+=cut
+
+use constant OMP__OBS_PROBLEM => -1;
 
 =back
 

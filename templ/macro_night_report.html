@@ -369,9 +369,8 @@
                 <td>
                     Color legend:
                     [% FOREACH status IN obs_summary.statuses %]
-                        <span class="[% obs_summary.status_class.item(status.0) %]">[% status.1 %]</span>,
+                        <span class="[% obs_summary.status_class.item(status.0) %]">[% status.1 %]</span>[% IF ! loop.last %],[% END %]
                     [% END %]
-                    <span class="obslog-problem">Problem</span>
                 </td>
             </tr>
         </table>
@@ -452,8 +451,8 @@
                         [% SET subsystems = obs.scalar.subsystems_tiny %]
                         [% SET comments = obs.scalar.comments %]
                         [% SET status = obs.status %]
-                        [% SET css_status = (comments.empty && obs.ingestion_errors.defined) ? 'obslog-problem' : (status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0) %]
-                        [% SET label_status = (comments.empty && obs.ingestion_errors.defined) ? 'Problem' : (status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0) %]
+                        [% SET css_status = (status.defined ? obs_summary.status_class.$status : obs_summary.status_class.0) %]
+                        [% SET label_status = (status.defined ? obs_summary.status_label.$status : obs_summary.status_label.0) %]
                         [% SET num_rows = subsystems.size + comments.size + (obs.ingestion_errors.defined ? 1 : 0) %]
                         [% FOREACH ss IN subsystems %]
                             [% SET row_first = loop.first %]

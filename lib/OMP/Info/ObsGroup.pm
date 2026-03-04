@@ -576,7 +576,7 @@ sub filter {
     my %calinst;        # List of all calibration instruments
 
     for my $obs ($self->obs) {
-        next unless $incjunk or $obs->status() != OMP__OBS_JUNK;
+        next unless $incjunk or not $obs->statusIsJunk;
 
         my $obsmode = $obs->mode || $obs->type;
 
@@ -977,10 +977,7 @@ sub projectStatsSimple {
             && ! $isgap;
 
         # if the observation is not a gap and is bad charge it to overhead. What about junk?
-        if ((not $isgap) and (
-                $obs->status == OMP__OBS_BAD
-                or $obs->status == OMP__OBS_JUNK
-                or (defined $obs->ingestion_errors))) {
+        if ((not $isgap) and $obs->statusExcludeTime) {
             print STDERR "Observation from project $projectid is marked BAD, adding to $badproj\n"
                 if $DEBUG;
             $projectid_orig = $projectid;
