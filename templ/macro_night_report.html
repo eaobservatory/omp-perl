@@ -482,9 +482,7 @@
                                         [% label_status | html %]
                                         <br />
                                         <a class="link_dark_small" href="[% comment_url(ut=entry.obsut, runnr=obs.runnr, inst=obs.instrument, oid=obs.obsid) %]">comment</a>
-                                        [% IF obs.previews.defined && ! obs.previews.empty %]
-                                            <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">WORF</a>
-                                        [% END %]
+                                        <a class="link_dark_small" href="[% worf_url(ut=obs.startobs.ymd('-'), runnr=obs.runnr, inst=obs.instrument, telescope='JCMT') %]">[% IF obs.previews.defined && ! obs.previews.empty %]WORF[% ELSE %](WORF)[% END %]</a>
                                         [% IF itclink.defined %]
                                             [% SET link = itclink.scalar.observation_itc_link(obs) %]
                                             [% IF link %]
