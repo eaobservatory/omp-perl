@@ -20,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 76
+use Test::More tests => 82
     + 4  # General information
     + (9 * 5)  # Mailing lists
     + 23  # Options
@@ -72,6 +72,7 @@ is($fault->condition, OMP::Fault::CONDITION_NORMAL());
 is($fault->conditionText, 'Normal');
 ok(not $fault->isChronic);
 is($fault->statusText, 'Open');
+is($fault->statusText(include_new => 1), 'New');
 
 # Now respond
 my $author2 = OMP::User->new(
@@ -94,6 +95,7 @@ ok($resps[0]->isfault, 'check first is a fault');
 ok(! $resps[1]->isfault, 'second response is not a fault');
 
 is($fault->statusText, 'Closed');
+is($fault->statusText(include_new => 1), 'Closed');
 
 # Print the stringified fault for info
 # Need to prepend #
@@ -136,6 +138,7 @@ is($fault->condition, OMP::Fault::CONDITION_CHRONIC());
 is($fault->conditionText, 'Chronic');
 ok($fault->isChronic);
 is($fault->statusText, 'Known fault');
+is($fault->statusText(include_new => 1), 'Known fault');
 
 $fault = OMP::Fault->new(
     category => 'SAFETY',
@@ -164,9 +167,11 @@ is($fault->typeText, 'Incident');
 is($fault->typeTextAbbr, 'Incident');
 is($fault->locationText, 'In transit');
 is($fault->statusText, 'Follow up required');
+is($fault->statusText(include_new => 1), 'Follow up required');
 
 $fault->status(OMP::Fault::NO_ACTION());
 is($fault->statusText, 'No further action');
+is($fault->statusText(include_new => 1), 'No further action');
 
 $fault = OMP::Fault->new(
     category => 'JCMT_EVENTS',
@@ -179,6 +184,7 @@ $fault = OMP::Fault->new(
 );
 isa_ok($fault, 'OMP::Fault');
 is($fault->statusText, 'Commissioning');
+is($fault->statusText(include_new => 1), 'Commissioning');
 
 # Test safety fault locations.  By default we should now hide "JAC".
 is_deeply(OMP::Fault->faultLocation('SAFETY', include_hidden => 1), {

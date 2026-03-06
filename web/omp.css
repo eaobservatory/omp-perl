@@ -845,3 +845,33 @@ fieldset legend {
     color: #444;
     margin-left: 1ex;
 }
+
+th.sortable, th.sorted_asc, th.sorted_desc, td.sortable, td.sorted_asc, td.sorted_desc {
+    cursor: pointer;
+}
+
+th.sortable, td.sortable {
+    position: relative;
+    z-index: 1;
+}
+
+th.sortable::before, td.sortable::before {
+    content: '\25A0';
+    color: #888;
+    font-size: 25%;
+    vertical-align: top;
+}
+
+th.sorted_asc::before, td.sorted_asc::before {
+    content: '\25B2';
+    color: #888;
+    font-size: 25%;
+    vertical-align: top;
+}
+
+th.sorted_desc::before, td.sorted_desc::before {
+    content: '\25BC';
+    color: #888;
+    font-size: 25%;
+    vertical-align: top;
+}

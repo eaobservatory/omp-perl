@@ -1,26 +1,29 @@
 [% MACRO render_fault_table(fault_info) BLOCK %]
-    <table width="100%" cellspacing="0">
+    <table width="100%" cellspacing="0" class="sortable">
+        <thead>
         <tr>
             [% IF fault_info.show_cat %]
-                <td><b>Category</b></td>
+                <td class="sortable" data-sortkey="category"><b>Category</b></td>
             [% END %]
-            <td><b>ID</b></td>
-            <td><b>Subject</b></td>
-            <td><b>Filed by</b></td>
-            <td><b>[% fault_info.system_label | html %]</b></td>
-            <td><b>Type</b></td>
+            <td class="sortable sortreverse" data-sortkey="id"><b>ID</b></td>
+            <td class="sortable" data-sortkey="subject"><b>Subject</b></td>
+            <td class="sortable" data-sortkey="author"><b>Filed by</b></td>
+            <td class="sortable" data-sortkey="system"><b>[% fault_info.system_label | html %]</b></td>
+            <td class="sortable" data-sortkey="type"><b>Type</b></td>
             [% IF fault_info.show_location %]
-                <td><b>Location</b></td>
+                <td class="sortable" data-sortkey="location"><b>Location</b></td>
             [% END %]
-            <td><b>Status</b></td>
+            <td class="sortable" data-sortkey="status"><b>Status</b></td>
             [% IF fault_info.show_time_lost %]
-                <td align="center"><b>Loss</b></td>
+                <td class="sortable sortreverse" data-sortkey="loss" align="center"><b>Loss</b></td>
             [% END %]
-            <td align="center"><b>Replies</b></td>
+            <td class="sortable sortreverse" data-sortkey="replies" align="center"><b>Replies</b></td>
         </tr>
-
+        </thead>
+        <tbody>
         [% FOREACH fault IN fault_info.faults %]
-            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]">
+            [% sortinfo = {category => fault.getCategoryName, id => fault.id, subject => fault.subject, author => fault.author.name, system => fault.systemTextAbbr, type => fault.typeTextAbbr, loss => fault.timelost, replies => fault.scalar.responses.size, location => fault.locationText, status => fault.statusText('include_new', 1)} %]
+            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]" data-sortinfo="[% sortinfo.json | html %]">
                 [% IF fault_info.show_cat %]
                     <td>[% fault.getCategoryAbbrName | html %]</td>
                 [% END %]
@@ -44,7 +47,7 @@
                 [% IF fault_info.show_location %]
                     <td>[% fault.locationText | html %]</td>
                 [% END %]
-                <td>[% IF fault.isNew && fault.isOpen %]New[% ELSE %][% fault.statusText | html %][% END %]</td>
+                <td>[% fault.statusText('include_new', 1) | html %]</td>
                 [% IF fault_info.show_time_lost %]
                     [% SET time_lost = fault.timelost %]
                     <td align="center">
@@ -58,6 +61,7 @@
                 <td align="center">[% fault.scalar.responses.size - 1 | html %]</td>
             </tr>
         [% END %]
+        </tbody>
     </table>
 [% END -%]
 [% MACRO render_fault_thread(fault_info) BLOCK %]

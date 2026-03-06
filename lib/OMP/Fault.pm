@@ -1556,15 +1556,38 @@ sub locationText {
 Return the textual description of the current fault status.
 A fault can not be modified using this method.
 
-    $status = $fault->statusText();
+    $status = $fault->statusText(%options);
+
+Options include:
+
+=over 4
+
+=item include_new
+
+Return 'New' if C<isNew> returns true and the status is
+OPEN or WILL_BE_FIXED.  (We do not use C<isOpen> here so as
+not to hide other special status names, such as those in
+the safety category.)
+
+=back
 
 =cut
 
 sub statusText {
     my $self = shift;
+    my %opts = @_;
 
     my $status = $self->status;
     my $category = $self->category;
+
+    if ($opts{'include_new'}) {
+        return 'New' if $self->isNew and scalar grep {
+            $status == $_
+        } (
+            OPEN(),
+            WILL_BE_FIXED(),
+        );
+    }
 
     foreach my $name (qw/STATUS_OPEN STATUS_CLOSED/) {
         return $OPTIONS{$category}->{$name}->{$status}
