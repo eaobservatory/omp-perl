@@ -1,5 +1,5 @@
 [% MACRO render_fault_table(fault_info) BLOCK %]
-    <table width="100%" cellspacing="0" class="sortable">
+    <table width="100%" cellspacing="0" class="sortable zebra">
         <thead>
         <tr>
             [% IF fault_info.show_cat %]
@@ -23,7 +23,7 @@
         <tbody>
         [% FOREACH fault IN fault_info.faults %]
             [% sortinfo = {category => fault.getCategoryName, id => fault.id, subject => fault.subject, author => fault.author.name, system => fault.systemTextAbbr, type => fault.typeTextAbbr, loss => fault.timelost, replies => fault.scalar.responses.size, location => fault.locationText, status => fault.statusText('include_new', 1)} %]
-            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]" data-sortinfo="[% sortinfo.json | html %]">
+            <tr data-sortinfo="[% sortinfo.json | html %]">
                 [% IF fault_info.show_cat %]
                     <td>[% fault.getCategoryAbbrName | html %]</td>
                 [% END %]

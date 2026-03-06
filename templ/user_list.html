@@ -22,14 +22,17 @@
         <input type="text" name="user_filter" />
     </p>
 
-    <table id="user_table" border="0" cellspacing="0" cellpadding="4" width="1000">
-        <tr class="row_shaded">
+    <table id="user_table" class="zebra" border="0" cellspacing="0" cellpadding="4" width="1000">
+        <thead>
+        <tr>
             <th>OMP user ID</th>
             <th>Name</th>
             <th>Email</th>
             <th>CADC user ID</th>
             <th>Update</th>
         </tr>
+        </thead>
+        <tbody>
         [% SET letter = letters.0 %]
         [% INCLUDE letter_row %]
         [% FOREACH user = users %]
@@ -38,7 +41,7 @@
                 [% SET letter = user_letter %]
                 [% INCLUDE letter_row %]
             [% END %]
-            <tr class="[% loop.odd ? 'row_shaded' : 'row_clear' %]" data-query="[% user.name.lower _ ' ' _ user.userid.lower _ ' ' _ user.email.lower | html %]">
+            <tr data-query="[% user.name.lower _ ' ' _ user.userid.lower _ ' ' _ user.email.lower | html %]">
                 <td>[% user.userid | html %]</td>
                 <td><a href="/cgi-bin/userdetails.pl?user=[% user.userid | uri %]">[% user.name | html %]</a></td>
                 <td>[% user.email | html %]</td>
@@ -46,6 +49,7 @@
                 <td><a href="/cgi-bin/update_user.pl?user=[% user.userid | uri %]">Update</a></td>
             </tr>
         [% END %]
+        </tbody>
 </table>
 [% END %]
 [% END %]

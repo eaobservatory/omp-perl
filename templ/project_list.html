@@ -75,7 +75,8 @@
             No projects matching your query.
         </p>
     [% ELSE %]
-        <table cellspacing="0">
+        <table class="zebra" cellspacing="0">
+            <thead>
             <tr align="center">
                 <td colspan="2">Project</td>
                 <td>PI</td>
@@ -90,6 +91,8 @@
                 <td>Tau</td>
                 <td>Title</td>
             </tr>
+            </thead>
+            <tbody>
             [% SET prev_semester = '' %]
             [% SET prev_country = '' %]
             [% FOREACH project IN results %]
@@ -97,13 +100,13 @@
                     [% IF (prev_semester != project.semester_ori) || (prev_country != project.country) %]
                         [% SET prev_semester = project.semester_ori %]
                         [% SET prev_country = project.country %]
-                        <tr bgcolor="#c2c5ef">
+                        <tr style="background: #c2c5ef;">
                             <td colspan="13">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</td>
                         </tr>
                     [% END %]
                 [% END %]
                 [% SET projectid = project.projectid %]
-                <tr class="[% project.state ? (loop.odd ? 'row_shaded' : 'row_clear') : 'row_disabled' %]" valign="top">
+                <tr [% IF ! project.state %]class="row_disabled"[% END %] valign="top">
                     <td align="center" valign="top">
                         <img src="/images/[% project.state ? 'tick-green-24.png' : 'cross-red-24.png' %]" width="23" height="24" />
                     </td>
@@ -164,6 +167,7 @@
                     </td>
                 </tr>
             [% END %]
+            </tbody>
         </table>
     [% END %]
 [% END %]

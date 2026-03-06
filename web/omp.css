@@ -500,7 +500,7 @@ span.sidemain      { color:#cccccc; font-size:11px; font-family:arial,sans-serif
 
 .index-title {
   font-weight: bold;
-  background-color: #808080;
+  background-color: #808080 !important;
   color: #fff;
 }
 
@@ -525,17 +525,22 @@ a.index-title-link:hover   { color: #9ff; }
   background-color: #bcbee3;
 }
 
-.row_clear {
-  background-color: #ffffff;
+table.zebra tbody tr:nth-child(odd) {
+    background-color: #dddddd;
 }
 
-.row_shaded {
-  background-color: #dddddd;
+table.zebra tbody tr:nth-child(even) {
+    background-color: #ffffff;
 }
 
-.row_disabled {
-  background-color: #cbcbcd;
-  color: #949494;
+table.zebra .row_disabled:nth-child(odd) {
+  background-color: #999999 !important;
+  color: #444444;
+}
+
+table.zebra .row_disabled:nth-child(even) {
+  background-color: #aaaaaa !important;
+  color: #444444;
 }
 
 table.bordered {
