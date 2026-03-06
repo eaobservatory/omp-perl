@@ -1,3 +1,4 @@
+[% USE scalar -%]
 [% WRAPPER "layout.html" %]
 <h1>List Projects</h1>
 
@@ -75,6 +76,22 @@
             No projects matching your query.
         </p>
     [% ELSE %]
+        [% IF show_headings %]
+            <p>
+                <a name="top"></a>
+                [% SET prev_semester = '' %]
+                [% SET prev_country = '' %]
+                [% FOREACH project IN results %]
+                    [% IF (prev_semester != project.semester_ori) || (prev_country != project.scalar.country) %]
+                        [% IF ! loop.first %]|[% END %]
+                        [% SET prev_semester = project.semester_ori %]
+                        [% SET prev_country = project.scalar.country %]
+                        <a href="#[% prev_semester _ '_' _ prev_country | html %]">[% prev_semester | html %]&nbsp;[% prev_country | html %]</a>
+                    [% END %]
+                [% END %]
+            </p>
+        [% END %]
+
         <table class="zebra" cellspacing="0">
             <thead>
             <tr align="center">
@@ -99,9 +116,13 @@
                 [% IF show_headings %]
                     [% IF (prev_semester != project.semester_ori) || (prev_country != project.country) %]
                         [% SET prev_semester = project.semester_ori %]
-                        [% SET prev_country = project.country %]
-                        <tr style="background: #c2c5ef;">
-                            <td colspan="13">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</td>
+                        [% SET prev_country = project.scalar.country %]
+                        <tr class="index-title">
+                            <td colspan="13">
+                                <a name="[% prev_semester _ '_' _ prev_country | html %]">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</a>
+
+                                <i>(<a class="index-title-link" href="#top">top</a>)</i>
+                            </td>
                         </tr>
                     [% END %]
                 [% END %]
@@ -131,7 +152,7 @@
                         [% project_msbcount.$projectid.active || '0' %]/[% project_msbcount.$projectid.total || '0' %]
                     </td>
                     <td align="center">
-                        [% project.tagpriority | html %]
+                        [% project.scalar.tagpriority | html %]
                     </td>
                     <td align="center">
                         [% IF project.tagadjustment(project.primaryqueue) %]

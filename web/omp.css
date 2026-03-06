@@ -500,8 +500,12 @@ span.sidemain      { color:#cccccc; font-size:11px; font-family:arial,sans-serif
 
 .index-title {
   font-weight: bold;
-  background-color: #808080 !important;
+  background-color: #8080cc !important;
   color: #fff;
+}
+
+.index-title td, .index-title th {
+    padding: 4px;
 }
 
 a.index-title-link:link    { color: #fff; }
