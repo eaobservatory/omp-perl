@@ -77,7 +77,7 @@
         </p>
     [% ELSE %]
         [% IF show_headings %]
-            <p>
+            <p class="index-title-key">
                 <a name="top"></a>
                 [% SET prev_semester = '' %]
                 [% SET prev_country = '' %]
@@ -92,21 +92,21 @@
             </p>
         [% END %]
 
-        <table class="zebra" cellspacing="0">
+        <table class="zebra sortable" cellspacing="0">
             <thead>
             <tr align="center">
-                <td colspan="2">Project</td>
-                <td>PI</td>
-                <td>PI<br /><abbr title="affiliation">aff.</abbr></td>
-                <td>Support</td>
-                <td>MSBs</td>
-                <td>Priority</td>
-                <td><abbr title="Adjusted">Adj.</abbr><br />priority</td>
-                <td>Allocated</td>
-                <td><abbr title="Completion">Compl.</abbr></td>
-                <td><abbr title="Instrument">Inst.</abbr></td>
-                <td>Tau</td>
-                <td>Title</td>
+                <td colspan="2" class="sortable[% IF values.order == 'projectid' %] sortedalready[% END %]" data-sortkey="projectid">Project</td>
+                <td class="sortable" data-sortkey="pi">PI</td>
+                <td class="sortable" data-sortkey="piaff">PI<br /><abbr title="affiliation">aff.</abbr></td>
+                <td class="sortable" data-sortkey="support">Support</td>
+                <td class="sortable sortreverse" data-sortkey="msbs">MSBs</td>
+                <td class="sortable[% IF values.order == 'priority' %] sortedalready[% END %]" data-sortkey="prior">Priority</td>
+                <td class="sortable[% IF values.order == 'adj-priority' %] sortedalready[% END %]" data-sortkey="adjprior"><abbr title="Adjusted">Adj.</abbr><br />priority</td>
+                <td class="sortable sortreverse" data-sortkey="alloc">Allocated</td>
+                <td class="sortable sortreverse" data-sortkey="comp"><abbr title="Completion">Compl.</abbr></td>
+                <td class="sortable" data-sortkey="inst"><abbr title="Instrument">Inst.</abbr></td>
+                <td class="sortable" data-sortkey="tau">Tau</td>
+                <td class="sortable" data-sortkey="title">Title</td>
             </tr>
             </thead>
             <tbody>
@@ -127,7 +127,8 @@
                     [% END %]
                 [% END %]
                 [% SET projectid = project.projectid %]
-                <tr [% IF ! project.state %]class="row_disabled"[% END %] valign="top">
+                [% sortinfo = {projectid => projectid, pi => project.pi.name, piaff => project.pi.affiliation, support => project.support.first.name, msbs => 0 + project_msbcount.$projectid.active, prior => project.scalar.tagpriority, adjprior => project.tagpriority + (project.tagadjustment(project.primaryqueue) ? project.tagadjustment(project.primaryqueue) : 0), alloc => 0 + project.allocated.seconds, comp => project.percentComplete, inst => (project_instruments.$projectid.defined ?  project_instruments.$projectid.join(' ') : undef), tau => 0 + project.taurange.min, title => project.title} %]
+                <tr [% IF ! project.state %]class="row_disabled"[% END %] valign="top" data-sortinfo="[% sortinfo.json | html %]">
                     <td align="center" valign="top">
                         <img src="/images/[% project.state ? 'tick-green-24.png' : 'cross-red-24.png' %]" width="23" height="24" />
                     </td>

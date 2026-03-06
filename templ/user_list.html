@@ -11,24 +11,24 @@
     </p>
 [% ELSE %]
     <p>
+        Filter:
+        <input type="text" name="user_filter" />
+    </p>
+
+    <p class="index-title-key">
         <a name="top"></a>
         [% FOREACH letter = letters %]
            <a href="#[% letter %]">[% letter %]</a> [% IF ! loop.last %]|[% END %]
         [% END %]
     </p>
 
-    <p>
-        Filter:
-        <input type="text" name="user_filter" />
-    </p>
-
-    <table id="user_table" class="zebra" border="0" cellspacing="0" cellpadding="4" width="1000">
+    <table id="user_table" class="zebra sortable" border="0" cellspacing="0" cellpadding="4" width="1000">
         <thead>
         <tr>
-            <th>OMP user ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>CADC user ID</th>
+            <th class="sortable sortedalready" data-sortkey="id">OMP user ID</th>
+            <th class="sortable" data-sortkey="name">Name</th>
+            <th class="sortable" data-sortkey="email">Email</th>
+            <th class="sortable" data-sortkey="cadc">CADC user ID</th>
             <th>Update</th>
         </tr>
         </thead>
@@ -41,7 +41,8 @@
                 [% SET letter = user_letter %]
                 [% INCLUDE letter_row %]
             [% END %]
-            <tr data-query="[% user.name.lower _ ' ' _ user.userid.lower _ ' ' _ user.email.lower | html %]">
+            [% sortinfo = {id => user.userid, name => user.name, email => user.email, cadc => user.cadcuser} %]
+            <tr data-query="[% user.name.lower _ ' ' _ user.userid.lower _ ' ' _ user.email.lower | html %]" data-sortinfo="[% sortinfo.json | html %]">
                 <td>[% user.userid | html %]</td>
                 <td><a href="/cgi-bin/userdetails.pl?user=[% user.userid | uri %]">[% user.name | html %]</a></td>
                 <td>[% user.email | html %]</td>

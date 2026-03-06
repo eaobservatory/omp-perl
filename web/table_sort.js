@@ -12,6 +12,9 @@ $(document).ready(function () {
 
             last_sorted_by = sort_key;
 
+            table.prev('.index-title-key').css('visibility', 'hidden');
+            table_body.children('tr.index-title').remove();
+
             table_body.children('tr').each(function () {
                 arr.push({row: this, value: $(this).data('sortinfo')[sort_key]});
             });
