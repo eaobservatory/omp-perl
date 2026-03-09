@@ -100,7 +100,7 @@ my @pubfiles = qw/
     selectize.css selectize.js
     select_userid.js
     sched_nav.js
-    submit_on_change.js
+    side_menu.js submit_on_change.js
     table_sort.js table_filter.js
     time_accounting.js time_set_now.js
     user_list.js
