@@ -51,7 +51,11 @@
     [% END %]
     <tr>
         <td><b>Queue:</b></td>
-        <td>[% project.country | html %]</td>
+        <td>
+            [% FOREACH country IN project.country %]
+                [% country | html %][% IF ! loop.last %],[% END %]
+            [% END %]
+        </td>
     </tr>
     <tr>
         <td><b>Semester:</b></td>

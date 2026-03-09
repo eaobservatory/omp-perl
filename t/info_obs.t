@@ -19,10 +19,15 @@
 
 use strict;
 
-use Test::More tests => 34;
+use Test::More tests => 1
+    + 22  # Single-subsystem observation
+    + 21  # Dual-subsystem observation
+    + 14;  # Class information methods.
 use Test::Number::Delta;
 
 use JAC::Setup qw/hdrtrans/;
+
+use OMP::Constants qw/:obs/;
 
 use_ok('OMP::Info::Obs');
 
@@ -88,6 +93,13 @@ is($subsys->waveband->species, 'CO');
 is($subsys->obsid, 'acsis_00020_20240130T052632');
 is_deeply([$subsys->obsidss], ['acsis_00020_20240130T052632_1']);
 
+is($obs->status, OMP__OBS_GOOD());
+is($obs->ingestion_errors, undef);
+is($obs->statusIsGood, 1);
+is($obs->statusIsJunk, 0);
+is($obs->statusExcludeTime, 0);
+
+
 # A dual-subsystem observation.
 $obs = OMP::Info::Obs->new(
     hdrhash => {
@@ -95,6 +107,7 @@ $obs = OMP::Info::Obs->new(
         'DATE-END' => '2025-03-09T06:24:11',
         'DATE-OBS' => '2025-03-09T06:21:00',
         'INSTRUME' => 'UU',
+        'INGESTION_ERRORS' => 'test',
         'MAX_SUBSCAN' => 1,
         'MSBID' => 'CAL',
         'MSBTID' => undef,
@@ -160,3 +173,43 @@ isa_ok($subsys->waveband, 'Astro::WaveBand');
 is($subsys->waveband->species, 'No Line');
 is($subsys->obsid, 'acsis_00013_20250309T062100');
 is_deeply([$subsys->obsidss], ['acsis_00013_20250309T062100_2']);
+
+is($obs->status, OMP__OBS_PROBLEM());
+is($obs->ingestion_errors, 'test');
+is($obs->statusIsGood, 0);
+is($obs->statusIsJunk, 1);
+is($obs->statusExcludeTime, 1);
+
+
+# Test class information methods.
+is_deeply([OMP::Info::Obs->get_status_options], [
+    [0, 'Good'],
+    [1, 'Questionable'],
+    [2, 'Bad'],
+    [4, 'Junk'],
+    [3, 'Rejected'],
+]);
+
+is_deeply([OMP::Info::Obs->get_status_options(allow_non_user => 1)], [
+    [0, 'Good'],
+    [1, 'Questionable'],
+    [2, 'Bad'],
+    [4, 'Junk'],
+    [3, 'Rejected'],
+    [-1, 'Problem'],
+]);
+
+is(OMP::Info::Obs->statusExcludeTime(OMP__OBS_GOOD), 0);
+is(OMP::Info::Obs->statusExcludeTime(OMP__OBS_BAD), 1);
+is(OMP::Info::Obs->statusExcludeTime(OMP__OBS_JUNK), 1);
+is(OMP::Info::Obs->statusExcludeTime(OMP__OBS_PROBLEM), 1);
+is(OMP::Info::Obs->statusExcludeTime(999), undef);
+
+is(OMP::Info::Obs->statusIsJunk(OMP__OBS_GOOD), 0);
+is(OMP::Info::Obs->statusIsJunk(OMP__OBS_BAD), 0);
+is(OMP::Info::Obs->statusIsJunk(OMP__OBS_JUNK), 1);
+is(OMP::Info::Obs->statusIsJunk(OMP__OBS_PROBLEM), 1);
+is(OMP::Info::Obs->statusIsJunk(999), undef);
+
+is(OMP::Info::Obs->statusIsGood(OMP__OBS_GOOD), 1);
+is(OMP::Info::Obs->statusIsGood(OMP__OBS_BAD), 0);

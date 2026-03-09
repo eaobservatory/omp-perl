@@ -5,8 +5,6 @@ $(document).ready(function () {
         var rows = $('table#user_table').find('tr');
         if (filter === '') {
             rows.show();
-            rows.not('.index-title').filter(':nth-child(even)').attr('class', 'row_clear');
-            rows.not('.index-title').filter(':nth-child(odd)').attr('class', 'row_shaded');
         } else {
             var i = 0;
             rows.not(':first').each(function () {
@@ -18,7 +16,6 @@ $(document).ready(function () {
                         row.hide();
                     } else {
                         row.show();
-                        row.attr('class', (i ++ % 2) ? 'row_shaded' : 'row_clear');
                     }
                 }
             });

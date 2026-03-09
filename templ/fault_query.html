@@ -152,6 +152,17 @@
                             [% END %]
                         [% END %]
                     </select>
+                    [% IF form_info.has_location %]
+                    &nbsp;
+                    <b>Location:</b>
+                        <select name="location">
+                            <option [% IF ! form_info.values.location.defined %]selected="selected"[% END %] value="any">Any</option>
+                            <hr />
+                            [% FOREACH location IN form_info.locations %]
+                                <option [% IF form_info.values.location == location.0 %]selected="selected"[% END %] value="[% location.0 %]">[% location.1 | html %]</option>
+                            [% END %]
+                        </select>
+                    [% END %]
                 </td>
             <tr>
                 <td>

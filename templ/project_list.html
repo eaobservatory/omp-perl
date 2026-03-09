@@ -1,3 +1,4 @@
+[% USE scalar -%]
 [% WRAPPER "layout.html" %]
 <h1>List Projects</h1>
 
@@ -75,68 +76,84 @@
             No projects matching your query.
         </p>
     [% ELSE %]
-        <table cellspacing="0">
+        [% IF show_headings %]
+            <p class="index-title-key">
+                <a name="top"></a>
+                [% SET prev_semester = '' %]
+                [% SET prev_country = '' %]
+                [% FOREACH project IN results %]
+                    [% IF (prev_semester != project.semester_ori) || (prev_country != project.scalar.country) %]
+                        [% IF ! loop.first %]|[% END %]
+                        [% SET prev_semester = project.semester_ori %]
+                        [% SET prev_country = project.scalar.country %]
+                        <a href="#[% prev_semester _ '_' _ prev_country | html %]">[% prev_semester | html %]&nbsp;[% prev_country | html %]</a>
+                    [% END %]
+                [% END %]
+            </p>
+        [% END %]
+
+        <table class="zebra sortable" cellspacing="0">
+            <thead>
             <tr align="center">
-                <td>Enabled(v) / Disabled(x)</td>
-                <td>Project ID</td>
-                <td>PI</td>
-                <td>PI affiliation</td>
-                <td>Support</td>
-                <td># MSBs</td>
-                <td>Priority</td>
-                <td>Adjusted priority</td>
-                <td>Allocated</td>
-                <td>Completed</td>
-                <td>Instruments</td>
-                <td>Tau range</td>
-                <td>Title</td>
+                <td colspan="2" class="sortable[% IF values.order == 'projectid' %] sortedalready[% END %]" data-sortkey="projectid">Project</td>
+                <td class="sortable" data-sortkey="pi">PI</td>
+                <td class="sortable" data-sortkey="piaff">PI<br /><abbr title="affiliation">aff.</abbr></td>
+                <td class="sortable" data-sortkey="support">Support</td>
+                <td class="sortable sortreverse" data-sortkey="msbs">MSBs</td>
+                <td class="sortable[% IF values.order == 'priority' %] sortedalready[% END %]" data-sortkey="prior">Priority</td>
+                <td class="sortable[% IF values.order == 'adj-priority' %] sortedalready[% END %]" data-sortkey="adjprior"><abbr title="Adjusted">Adj.</abbr><br />priority</td>
+                <td class="sortable sortreverse" data-sortkey="alloc">Allocated</td>
+                <td class="sortable sortreverse" data-sortkey="comp"><abbr title="Completion">Compl.</abbr></td>
+                <td class="sortable" data-sortkey="inst"><abbr title="Instrument">Inst.</abbr></td>
+                <td class="sortable" data-sortkey="tau">Tau</td>
+                <td class="sortable" data-sortkey="title">Title</td>
             </tr>
+            </thead>
+            <tbody>
             [% SET prev_semester = '' %]
             [% SET prev_country = '' %]
             [% FOREACH project IN results %]
                 [% IF show_headings %]
                     [% IF (prev_semester != project.semester_ori) || (prev_country != project.country) %]
                         [% SET prev_semester = project.semester_ori %]
-                        [% SET prev_country = project.country %]
-                        <tr bgcolor="#c2c5ef">
-                            <td colspan="13">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</td>
+                        [% SET prev_country = project.scalar.country %]
+                        <tr class="index-title">
+                            <td colspan="13">
+                                <a name="[% prev_semester _ '_' _ prev_country | html %]">Semester: [% prev_semester | html %], Queue: [% prev_country | html %]</a>
+
+                                <i>(<a class="index-title-link" href="#top">top</a>)</i>
+                            </td>
                         </tr>
                     [% END %]
                 [% END %]
                 [% SET projectid = project.projectid %]
-                <tr class="[% project.state ? (loop.odd ? 'row_shaded' : 'row_clear') : 'row_disabled' %]" valign="top">
+                [% sortinfo = {projectid => projectid, pi => project.pi.name, piaff => project.pi.affiliation, support => project.support.first.name, msbs => 0 + project_msbcount.$projectid.active, prior => project.scalar.tagpriority, adjprior => project.tagpriority + (project.tagadjustment(project.primaryqueue) ? project.tagadjustment(project.primaryqueue) : 0), alloc => 0 + project.allocated.seconds, comp => project.percentComplete, inst => (project_instruments.$projectid.defined ?  project_instruments.$projectid.join(' ') : undef), tau => 0 + project.taurange.min, title => project.title} %]
+                <tr [% IF ! project.state %]class="row_disabled"[% END %] valign="top" data-sortinfo="[% sortinfo.json | html %]">
                     <td align="center" valign="top">
                         <img src="/images/[% project.state ? 'tick-green-24.png' : 'cross-red-24.png' %]" width="23" height="24" />
                     </td>
                     <td>
                         <a href="/cgi-bin/projecthome.pl?project=[% projectid | html %]">[% projectid | html %]</a></td>
                     <td>
-                        <a href="/cgi-bin/userdetails.pl?user=[% project.pi.userid | html %]">[% project.pi.name | html %]</a>
-                        <a href="/cgi-bin/projusers.pl?project=[% projectid | html %]">
-                            [% IF project.contactable(project.pi.userid) %]
-                                <img src="/images/mail.gif" alt="receives email" />
-                            [% ELSE %]
-                                <img src="/images/nomail.gif" alt="ignores email" />
-                            [% END %]
-                        </a>
+                        <a href="/cgi-bin/userdetails.pl?user=[% project.pi.userid | html %]">[% project.pi.name | abbr_html(15) %]</a>
                     </td>
                     <td>
                         [% IF project.pi.affiliation.defined %]
                             [% project.pi.affiliation | html %]
                         [% ELSE %]
-                            &nbsp;
+                            &mdash;
                         [% END %]
                     </td>
                     <td>
                         [% FOREACH support IN project.support %]
-                            <a href="/cgi-bin/userdetails.pl?user=[% support.userid | html %]">[% support.name | html %]</a>[% UNLESS loop.last %],[% END %]
+                            <a href="/cgi-bin/userdetails.pl?user=[% support.userid | html %]">[% support.name | abbr_html(7) %]</a>[% UNLESS loop.last %],[% END %]
                         [% END %]
                     </td>
                     <td align="center">
                         [% project_msbcount.$projectid.active || '0' %]/[% project_msbcount.$projectid.total || '0' %]
                     </td>
                     <td align="center">
-                        [% project.tagpriority | html %]
+                        [% project.scalar.tagpriority | html %]
                     </td>
                     <td align="center">
                         [% IF project.tagadjustment(project.primaryqueue) %]
@@ -162,16 +179,17 @@
                     </td>
                     <td align="center">
                         [% UNLESS taurange_is_default(project.taurange) %]
-                            [% project.taurange | html %]
+                            [% project.taurange | replace(',', ', ') | html %]
                         [% ELSE %]
                             &mdash;
                         [% END %]
                     </td>
                     <td>
-                        [% project.title | html %]
+                        [% project.title | abbr_html(30) %]
                     </td>
                 </tr>
             [% END %]
+            </tbody>
         </table>
     [% END %]
 [% END %]

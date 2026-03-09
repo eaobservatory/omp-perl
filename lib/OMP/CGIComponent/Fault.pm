@@ -112,19 +112,32 @@ sub query_fault_form {
 
     my @systems;
     my @types;
+    my @locations;
+    my $has_location = 0;
 
     if (! $hidefields) {
+        my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
+            ? (sub {$a->[1] <=> $b->[1]})
+            : (sub {$a->[1] cmp $b->[1]});
+
         my $systems = OMP::Fault->faultSystems($category);
-        @systems = map {[$systems->{$_}, $_]} sort keys %$systems;
+        @systems = sort $sort map {[$_, $systems->{$_}]} keys %$systems;
 
         my $hidden_systems = OMP::Fault->faultSystems($category, only_hidden => 1);
         if (scalar %$hidden_systems) {
             push @systems, [];
-            push @systems, [$hidden_systems->{$_}, $_] foreach sort keys $hidden_systems;
+            push @systems, sort $sort map {[$_, $hidden_systems->{$_}]} keys $hidden_systems;
         }
 
         my $types = OMP::Fault->faultTypes($category);
-        @types = map {[$types->{$_}, $_]} sort keys %$types;
+        @types = sort {$a->[1] cmp $b->[1]} map {[$_, $types->{$_}]} keys %$types;
+
+        $has_location = OMP::Fault->faultHasLocation($category);
+        if ($has_location) {
+            my $locations = OMP::Fault->faultLocation($category);
+            @locations = sort {$a->[1] cmp $b->[1]}
+                map {[$_, $locations->{$_}]} keys %$locations;
+        }
     }
 
     my @status = (
@@ -156,6 +169,8 @@ sub query_fault_form {
         entry_name => OMP::Fault->getCategoryEntryName($category),
         systems => \@systems,
         types => \@types,
+        has_location => $has_location,
+        locations => \@locations,
         statuses => \@status,
         values => {
             action => (scalar $q->param('action') // 'activity'),
@@ -163,7 +178,7 @@ sub query_fault_form {
             timezone => (scalar $q->param('timezone') // 'HST'),
             text_search => (scalar $q->param('text_search') // 'both'),
             map {$_ => scalar $q->param($_)}
-                qw/userid mindate maxdate days system type status
+                qw/userid mindate maxdate days system type status location
                 timelost show_affected urgent chronic summary
                 text text_boolean/,
         },
@@ -207,24 +222,25 @@ sub file_fault_form {
         my $systems = OMP::Fault->faultSystems($category);
 
         my $sort = (OMP::Fault->getCategorySystemLabel($category) eq 'Vehicle')
-            ? (sub {$a <=> $b})
-            : (sub {$a cmp $b});
+            ? (sub {$a->[1] <=> $b->[1]})
+            : (sub {$a->[1] cmp $b->[1]});
 
-        @systems = map {[$systems->{$_}, $_]}
-            sort $sort
+        @systems = sort $sort
+            map {[$_, $systems->{$_}]}
             keys %$systems;
     }
 
     my $types = OMP::Fault->faultTypes($category);
-    my @types = map {[$types->{$_}, $_]} sort keys %$types;
+    my @types = sort {$a->[1] cmp $b->[1]} map {[$_, $types->{$_}]} keys %$types;
 
     my @statuses = _get_status_labels_by_name($category);
 
     # Location (for "Safety" category).
     my @locations;
     if ($has_location) {
-        my %places = OMP::Fault->faultLocation($category);
-        @locations = map {[$places{$_}, $_]} sort keys %places;
+        my $locations = OMP::Fault->faultLocation($category);
+        @locations = sort {$a->[1] cmp $b->[1]}
+            map {[$_, $locations->{$_}]} keys %$locations;
     }
 
     # Set defaults.  There's probably a better way of doing what I'm about
@@ -310,10 +326,10 @@ sub file_fault_form {
         }
 
         # Is this fault marked urgent?
-        my $urgent = ($fault->urgencyText =~ /urgent/i ? "urgent" : undef);
+        my $urgent = ($fault->isUrgent ? "urgent" : undef);
 
         # Is this fault marked chronic?
-        my $chronic = ($fault->conditionText =~ /chronic/i ? "chronic" : undef);
+        my $chronic = ($fault->isChronic ? "chronic" : undef);
 
         # Projects associated with this fault
         my @assoc = $fault->projects;
@@ -376,6 +392,7 @@ sub file_fault_form {
         has_time_occurred => OMP::Fault->faultHasTimeOccurred($category),
         has_project_assoc => OMP::Fault->faultCanAssocProjects($category),
         entry_name => OMP::Fault->getCategoryEntryName($category),
+        category_is_telescope => OMP::Fault->faultIsTelescope($category),
         system_label => $sys_label,
         system_description => $sys_text,
         systems => \@systems,
@@ -595,6 +612,9 @@ sub show_faults {
 
     return {
         show_cat => ($category eq 'ANYCAT'),
+        show_location => (
+            ($category ne 'ANYCAT')
+            and OMP::Fault->faultHasLocation($category)),
         show_time_lost => ($stats->timelost > 0),
         show_projects => $args{'show_affected'},
         faults => \@faults,
@@ -652,14 +672,12 @@ sub parse_file_fault_form {
 
     # Determine urgency and condition
     my @checked = $q->multi_param('condition');
-    my %urgency = OMP::Fault->faultUrgency;
-    my %condition = OMP::Fault->faultCondition;
-    $parsed{urgency} = $urgency{Normal};
-    $parsed{condition} = $condition{Normal};
+    $parsed{urgency} = OMP::Fault::URGENCY_NORMAL();
+    $parsed{condition} = OMP::Fault::CONDITION_NORMAL();
 
     for (@checked) {
-        $parsed{urgency} = $urgency{Urgent} if $_ =~ /urgent/i;
-        $parsed{condition} = $condition{Chronic} if $_ =~ /chronic/i;
+        $parsed{urgency} = OMP::Fault::URGENCY_URGENT() if $_ =~ /urgent/i;
+        $parsed{condition} = OMP::Fault::CONDITION_CHRONIC() if $_ =~ /chronic/i;
     }
 
     # Get the associated projects
@@ -797,9 +815,9 @@ pairs for use in an HTML selection menu.
 sub get_status_labels {
     my ($self, $fault) = @_;
 
-    my %status = $fault->faultStatus;
+    my $status = $fault->faultStatus;
 
-    return map {[$status{$_}, $_]} sort keys %status;
+    return sort {$a->[1] cmp $b->[1]} map {[$_, $status->{$_}]} keys %$status;
 }
 
 =back
@@ -825,15 +843,15 @@ sub _get_status_labels_by_name {
 
     $cat = uc $cat;
 
-    my %status;
+    my $status;
     if ($cat =~ /^ANY/) {
-        %status = OMP::Fault->faultStatus;
+        $status = OMP::Fault->faultStatus;
     }
     else {
-        %status = OMP::Fault->faultStatus($cat);
+        $status = OMP::Fault->faultStatus($cat);
     }
 
-    return map {[$status{$_}, $_]} sort keys %status;
+    return sort {$a->[1] cmp $b->[1]} map {[$_, $status->{$_}]} keys %$status;
 }
 
 =item B<_sort_by_fault_time>

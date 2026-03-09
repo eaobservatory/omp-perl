@@ -197,7 +197,7 @@ my ($help, $man, $version);
 
 # Look in database by default.
 $opt{'database'} = 1;
-my $status = GetOptions(
+GetOptions(
     "ut=s" => \$opt{ut},
     "tel=s" => \$opt{tel},
 
@@ -275,11 +275,16 @@ else {
 }
 
 # CONTENTCOLOUR controls the colour of the text comments and entries
-# for an observation. It assumes that OBS comments status is an integer
-# starting at 0 (Good)
+# for an observation.
 my $HEADERCOLOUR = 'midnightblue';
-#                      good    questionable   bad     rejected     junk
-my @CONTENTCOLOUR = ('#000000', '#ff7e00', '#ff3333', '#0000ff', '#ff00ff');
+my %CONTENTCOLOUR = (
+    OMP__OBS_GOOD() => '#000000',
+    OMP__OBS_QUESTIONABLE() => '#ff7e00',
+    OMP__OBS_BAD() => '#ff3333',
+    OMP__OBS_REJECTED() => '#0000ff',
+    OMP__OBS_JUNK() => '#ff00ff',
+    OMP__OBS_PROBLEM() => '#888888',
+);
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
@@ -492,11 +497,7 @@ sub new_instrument {
                 display => 'long',
                 comments => 1,
             );
-            my @comments = $obs->comments;
-            my $status = 0;
-            if (defined $comments[($#comments)]) {
-                $status = $comments[($#comments)]->status;
-            }
+            my $status = $obs->status;
 
             # Draw the header, if necessary.
             if (! $header_printed && exists $nightlog{'_STRING_HEADER'}) {
@@ -664,30 +665,18 @@ sub new_instrument {
             $nbContent->tag('add', $otag, $start, 'insert');
 
             # Configure the new tag.
-            my $bgcolour;
-            if ($counter % 2) {
-                $bgcolour = $BACKGROUND1;
-            }
-            else {
-                $bgcolour = $BACKGROUND2;
-            }
+            my $bgcolour = ($counter % 2)
+                ? $BACKGROUND1
+                : $BACKGROUND2;
 
-            if ($counter % 2) {
-                $nbContent->tag(
-                    'configure', $otag,
-                    -foreground => $CONTENTCOLOUR[$status],
-                    -background => $bgcolour,
-                    -font => $LISTFONT,
-                );
-            }
-            else {
-                $nbContent->tag(
-                    'configure', $otag,
-                    -foreground => $CONTENTCOLOUR[$status],
-                    -background => $bgcolour,
-                    -font => $LISTFONT,
-                );
-            }
+            my $fgcolour = $CONTENTCOLOUR{$status};
+
+            $nbContent->tag(
+                'configure', $otag,
+                -foreground => $fgcolour,
+                -background => $bgcolour,
+                -font => $LISTFONT,
+            );
 
             # Bind the tag to double-left-click
             $nbContent->tag('bind', $otag,
@@ -697,9 +686,9 @@ sub new_instrument {
             bind_mouse_highlight(
                 $nbContent, $otag,
                 'bg-hi' => $HIGHLIGHTBACKGROUND,
-                'fg-hi' => $CONTENTCOLOUR[$status],
+                'fg-hi' => $fgcolour,
                 'bg' => $bgcolour,
-                'fg' => $CONTENTCOLOUR[$status],
+                'fg' => $fgcolour,
             );
 
             # And increment the counter.
@@ -1904,13 +1893,12 @@ sub populate_shiftlog_widget {
         $shiftcommentText->tag('add', $ctag, $start, 'insert');
 
         # Configure the new tag.
-        my $bgcolour;
-        if ($counter % 2) {
-            $bgcolour = $BACKGROUND1;
-        }
-        else {
-            $bgcolour = $BACKGROUND2;
-        }
+        my $bgcolour = ($counter % 2)
+            ? $BACKGROUND1
+            : $BACKGROUND2;
+
+        my $fgcolour = $CONTENTCOLOUR{OMP__OBS_GOOD()};
+
         $shiftcommentText->tag('configure', $ctag, -background => $bgcolour,);
 
         if ((uc $user->userid) eq (uc $c->author->userid)) {
@@ -1925,7 +1913,7 @@ sub populate_shiftlog_widget {
                     shift->tag(
                         'configure', $ctag,
                         -background => $HIGHLIGHTBACKGROUND,
-                        -foreground => $CONTENTCOLOUR[0],
+                        -foreground => $fgcolour,
                         -relief => 'raised',
                         -borderwidth => 1,
                     );
@@ -1937,7 +1925,7 @@ sub populate_shiftlog_widget {
                     shift->tag(
                         'configure', $ctag,
                         -background => $bgcolour,
-                        -foreground => $CONTENTCOLOUR[0],
+                        -foreground => $fgcolour,
                         -relief => 'flat',
                     );
                 });

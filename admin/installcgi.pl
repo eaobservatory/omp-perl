@@ -101,7 +101,8 @@ my @pubfiles = qw/
     select_userid.js
     sched_nav.js
     submit_on_change.js
-    table_filter.js time_accounting.js time_set_now.js
+    table_sort.js table_filter.js
+    time_accounting.js time_set_now.js
     user_list.js
 /;
 

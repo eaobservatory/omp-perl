@@ -218,7 +218,7 @@ sub list_projects {
 
     return {
         %{$comp->list_projects_form(telescope => $telescope)},
-        %{$comp->proj_sum_table(\@sorted, ($order ne 'priority'))},
+        %{$comp->proj_sum_table(\@sorted, ($order eq 'projectid'))},
         values => {
             semester => $semester,
             state => $state,

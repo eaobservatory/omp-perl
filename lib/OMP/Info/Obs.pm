@@ -67,15 +67,26 @@ my @DATA = (
     [OMP__OBS_BAD(), {
         name => 'Bad',
         class => 'obslog-bad',
+        exclude_time => 1,
     }],
     [OMP__OBS_JUNK(), {
         name => 'Junk',
         class => 'obslog-junk',
+        exclude_time => 1,
+        is_junk => 1,
     }],
     [OMP__OBS_REJECTED(), {
         name => "Rejected",
-        class => 'obslog-rejected'
+        class => 'obslog-rejected',
+        exclude_time => 1,
     }],
+    [OMP__OBS_PROBLEM(), {
+        name => 'Problem',
+        class => 'obslog-problem',
+        user => 0,
+        exclude_time => 1,
+        is_junk => 1,
+    }]
 );
 
 # Construct original listings for compatibility.
@@ -643,6 +654,7 @@ __PACKAGE__->CreateAccessors(
     isGenCal => '$',
     calType => '$',
     subsystem_idkey => '$',
+    ingestion_errors => '$',
 );
 
 =head2 Accessor Methods
@@ -865,6 +877,30 @@ sub hdrhash {
     return $hdr;
 }
 
+=item B<status>
+
+Get or set the status of the observation.
+
+If the status has not been set, it is determined automatically:
+
+=over 4
+
+=item *
+
+"Problem" if there are ingestion errors.
+
+=item *
+
+The status of the last comment, if there are any.
+
+=item *
+
+"Good" otherwise.
+
+=back
+
+=cut
+
 sub status {
     my $self = shift;
     if (@_) {
@@ -877,17 +913,85 @@ sub status {
     }
     unless (exists($self->{status})) {
         # Fallback in case the accessor hasn't been used.
-        # Grab the status from the comments. If no comments
+        # Check for ingestion errors, otherwise
+        # grab the status from the comments. If no comments
         # exist, then set the status as being good.
-        my @comments = $self->comments;
-        if (defined($comments[0])) {
-            $self->{status} = $comments[$#comments]->status;
+        if (defined $self->ingestion_errors) {
+            $self->{'status'} = OMP__OBS_PROBLEM;
         }
         else {
-            $self->{status} = OMP__OBS_GOOD;
+            my @comments = $self->comments;
+            if (defined($comments[0])) {
+                $self->{status} = $comments[$#comments]->status;
+            }
+            else {
+                $self->{status} = OMP__OBS_GOOD;
+            }
         }
     }
     return $self->{status};
+}
+
+=item B<statusExcludeTime>
+
+Should the observation be excluded from time accounting based on status?
+
+    $excl = $obs->statusExcludeTime();
+
+    $excl = OMP::Info::Obs->statusExcludeTime($status);
+
+=cut
+
+sub statusExcludeTime {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    foreach (@DATA) {
+        return (exists $_->[1]->{'exclude_time'}) ? $_->[1]->{'exclude_time'} : 0
+            if $_->[0] == $status;
+    }
+
+    return undef;
+}
+
+=item B<statusIsJunk>
+
+Is the status junk, or junk-like (e.g. "Problem")?
+
+    $excl = $obs->statusIsJunk();
+
+    $excl = OMP::Info::Obs->statusIsJunk($status);
+
+=cut
+
+sub statusIsJunk {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    foreach (@DATA) {
+        return (exists $_->[1]->{'is_junk'}) ? $_->[1]->{'is_junk'} : 0
+            if $_->[0] == $status;
+    }
+
+    return undef;
+}
+
+=item B<statusIsGood>
+
+Is the status good?
+
+    $excl = $obs->statusIsGood();
+
+    $excl = OMP::Info::Obs->statusIsGood($status);
+
+=cut
+
+sub statusIsGood {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    # Currently there is only one good status, so check for it directly.
+    return ($status == OMP__OBS_GOOD()) ? 1 : 0;
 }
 
 sub removefits {
@@ -1058,6 +1162,8 @@ An optional parameter may be supplied containing a hash of options. These are:
 Add comments to the nightlog string, a boolean. Defaults
 to false (0).
 
+Also includes ingestion errors ("problem(s) detected) if enabled.
+
 =item display
 
 Type of display to show, a string either being 'long' or
@@ -1073,7 +1179,8 @@ which gives a one-line summary of the observation, and a
 for the corresponding _STRING value.
 
 There may also be {_STRING_LONG} and {_STRING_HEADER_LONG} keys that give
-multiple-line summaries of the observations.
+multiple-line summaries of the observations and a {_NAME_ABBR} key
+giving a hash of header name abbreviations.
 
 =cut
 
@@ -1160,6 +1267,10 @@ sub nightlog {
                 "Source", "Filter", "Tau225", "Seeing",
                 "Pol In?", "FTS In?", "Shift"
             ];
+            $return{'_NAME_ABBR'} = {
+                'Pol In?' => 'Pol?',
+                'FTS In?' => 'FTS?',
+            };
             @short_val = map $return{$_}, @{$return{'_ORDER'}};
             $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s %-7s";
             $short_form_head = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s %6s %6s  %6s  %7s %7s %-7s";
@@ -1286,6 +1397,14 @@ sub nightlog {
             "Transition", "Frequency", "Velocity", "Velsys",
             "Bandwidth Mode", "Shift"
         ];
+
+        $return{'_NAME_ABBR'} = {
+            Subsystem => 'SS',
+            Spectrum => 'Spec.',
+            'Bandwidth Mode' => 'BW Mode',
+            Frequency => 'Freq.',
+            Velocity => 'Vel.',
+        };
 
         $return{'_STRING_HEADER'} = "Run  UT                    Mode     Project          Source  SS Spec  Rest Freq   Vel/Velsys      BW Mode Shift  ";
         $return{'_STRING'} = sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s %3.3s    %7s %12s %12s %-7s",
@@ -1556,6 +1675,14 @@ sub nightlog {
     }
 
     if ($comments) {
+        my $ingestion_errors = $self->ingestion_errors;
+        if (defined $ingestion_errors) {
+            my $note = sprintf "\n Problem(s) detected: %s", $ingestion_errors;
+            foreach my $entry (qw/_STRING _STRING_LONG/) {
+                $return{$entry} .= $note if exists $return{$entry};
+            }
+        }
+
         foreach my $comment ($self->comments) {
             if (defined($comment)) {
                 if (exists($return{'_STRING'})) {
@@ -1892,12 +2019,23 @@ sub cleaned_msbtitle {
 
 Get an array of pairs of status value and label, in order.
 
+Non-user-settable status can be included with the C<allow_non_user> option:
+
+    @options = $obs->get_status_options(allow_non_user => 1);
+
 =cut
 
 sub get_status_options {
     my $self = shift;
+    my %opt = @_;
 
-    return map {[$_->[0], $_->[1]->{'name'}]} @DATA;
+    my $non_user = (exists $opt{'allow_non_user'}) ? $opt{'allow_non_user'} : 0;
+
+    return map {
+        [$_->[0], $_->[1]->{'name'}]
+    } grep {
+        $non_user or (not exists $_->[1]->{'user'}) or $_->[1]->{'user'}
+    } @DATA;
 }
 
 =back
@@ -2077,6 +2215,26 @@ sub _populate_basic_from_generic {
     $self->sideband_mode($generic->{'SIDEBAND_MODE'}) if exists $generic->{'SIDEBAND_MODE'};
 }
 
+=item B<_populate_extra_from_hdrhash>
+
+Populate extra parts of the object using information from a hash
+of additional headers which Astro::FITS::HdrTrans will not be translating
+(e.g. JCMT database-specific values).
+
+    $obs->_populate_extra_from_hdrhash(\%header);
+
+=cut
+
+
+sub _populate_extra_from_hdrhash {
+    my $self = shift;
+    my $header = shift;
+
+    $self->ingestion_errors($header->{'INGESTION_ERRORS'})
+        if exists $header->{'INGESTION_ERRORS'}
+        and defined $header->{'INGESTION_ERRORS'};
+}
+
 =item B<_populate>
 
 Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
@@ -2105,6 +2263,8 @@ sub _populate {
     return unless keys %generic_header;
 
     $self->_populate_basic_from_generic(\%generic_header);
+
+    $self->_populate_extra_from_hdrhash($header);
 
     # The default calibration is simply the project ID. This will
     # ensure that all calibrations associated with a project

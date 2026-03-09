@@ -51,7 +51,6 @@ use JSA::WriteList qw/write_list/;
 use OMP::DB::JSA::TableTransfer;
 use JCMT::DataVerify;
 
-use OMP::DB::Backend::Archive;
 use OMP::DateTools;
 use OMP::General;
 use OMP::Util::FITS;
@@ -255,6 +254,14 @@ Options:
 
 =over 4
 
+=item db
+
+C<OMP::DB::Backend::Archive> object.
+
+=item db-config
+
+Path to database log in information file, to pass to OMP::DB::JSA->new.
+
 =item calc_radec
 
 Calculate observation bounds.
@@ -303,6 +310,7 @@ sub prepare_and_insert {
 
     my $dry_run = $arg{'dry_run'};
     my $skip_state = $arg{'skip_state'};
+    my $db = $arg{'db'};
 
     my $mdb = undef;
     if ($arg{'from_mongodb'}) {
@@ -311,12 +319,16 @@ sub prepare_and_insert {
     }
 
     my %update_args = map {$_ => $arg{$_}} qw/
+        db-config
         calc_radec
         overwrite
         process_simulation
-        update_only_inbeam update_only_obstime/;
+        update_only_inbeam update_only_obstime
+    /;
 
-    my %obs_args = ();
+    my %obs_args = map {$_ => $arg{$_}} qw/
+        db-config
+    /;
 
     my $date = undef;
     if (exists $arg{'date'}) {
@@ -360,7 +372,6 @@ sub prepare_and_insert {
     # The %columns hash will contain a key for each table, each key's value
     # being an anonymous hash containing the column information.
 
-    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     my %columns = map {$_ => $self->get_columns($_, $dbh)}
@@ -402,8 +413,12 @@ sub insert_observation {
 
     my $log = Log::Log4perl->get_logger('');
 
-    my ($db, $observation, $columns, $file_wcs, $file_md5, $file_size, $overwrite, $dry_run, $skip_state) =
-       map {$arg{$_}} qw/db observation columns file_wcs file_md5 file_size overwrite dry_run skip_state/;
+    my ($db, $db_config, $observation, $columns,
+        $file_wcs, $file_md5, $file_size, $overwrite, $dry_run, $skip_state,
+    ) = map {$arg{$_}} qw/
+        db db-config observation columns
+        file_wcs file_md5 file_size overwrite dry_run skip_state
+    /;
 
     my $dbh  = $db->handle();
     my %common_arg = map {$_ => $arg{$_}} qw/update_only_inbeam update_only_obstime/;
@@ -420,6 +435,10 @@ sub insert_observation {
     }
 
     $self->{'_cache_touched'}->{$_} = 1 foreach @file;
+
+    # Start empty list of non-fatal ingestion errors to record in COMMON.
+    # Keys are error "names", use hash for uniqueness.
+    my %errors = ();
 
     # Extract information from the OMP::Info::Obs object.
     my @subsystems;
@@ -495,7 +514,7 @@ sub insert_observation {
     if (! $arg{'process_simulation'} && $self->is_simulation($common_hdrs)) {
         $log->debug("simulation data; skipping" );
 
-        $self->_get_xfer_unconnected_dbh()->put_state(
+        $self->_get_xfer_unconnected_dbh(undef, $db_config)->put_state(
                 state => 'simulation', files => \@file,
                 dry_run => $dry_run)
             unless $skip_state;
@@ -522,11 +541,17 @@ sub insert_observation {
                 && ! $self->skip_calc_radec('headers' => $common_hdrs)) {
 
             unless ($self->calc_radec($common_hdrs, $common_files)) {
-                $log->debug("problem while finding bounds; skipping");
+                $log->debug("problem while finding bounds");
 
-                throw OMP::Error('could not find bounds');
+                $errors{'bounds'} = 1;
             }
         }
+
+        # If there are errors logged, combine them into a "ingestion_errors" header.
+        # Otherwise set to undef to clear any previous errors from the database.
+        $common_hdrs->{'ingestion_errors'} = (scalar %errors)
+            ? (join ' ', sort keys %errors)
+            : undef;
 
         my $vals_common = $self->get_insert_values(
             $table_common, $columns->{$table_common}, $common_hdrs, %common_arg);
@@ -621,6 +646,7 @@ sub insert_observation {
                 $self->_change_FILES(
                     headers        => $subsys_hdrs,
                     db             => $db,
+                    'db-config'    => $db_config,
                     table          => $table_files,
                     table_columns  => $columns->{$table_files},
                     dry_run        => $dry_run,
@@ -638,7 +664,7 @@ sub insert_observation {
         $log->error('error inserting obs set: ' . $text) if $text;
         $text = 'unknown error' unless $text;
 
-        $self->_get_xfer_unconnected_dbh()->put_state(
+        $self->_get_xfer_unconnected_dbh(undef, $db_config)->put_state(
                 state => 'error', files => \@file,
                 comment => $text, dry_run => $dry_run)
             unless $skip_state;
@@ -682,6 +708,7 @@ sub _get_observations {
     my $skip_state = $args{'skip_state'};
     my $mdb = $args{'mongodb'};
     my $no_file_extra = $args{'no_file_extra_info'};
+    my $db_config = $args{'db-config'};
 
     my $log = Log::Log4perl->get_logger('');
 
@@ -691,7 +718,8 @@ sub _get_observations {
     my %size;
 
     unless (defined $mdb) {
-        my $xfer = $self->_get_xfer_unconnected_dbh();
+        my $xfer = $self->_get_xfer_unconnected_dbh(undef, $db_config)
+            unless $skip_state;
 
         my @file;
 
@@ -1468,13 +1496,17 @@ sub transform_value {
                 }
             }
             elsif ($column eq 'lststart' or $column eq 'lstend') {
-                # Convert LSTSTART and LSTEND to decimal hours
-                my $ha = Astro::Coords::Angle::Hour->new($val, units => 'sex');
-                $values->{$column} = $ha->hours;
+                # Convert LSTSTART and LSTEND to decimal hours.
+                # Use "eval" block in case of invalid values.
+                $values->{$column} = eval {
+                    my $ha = Astro::Coords::Angle::Hour->new($val, units => 'sex');
+                    $ha->hours;
+                };
 
                 $log->trace(sprintf
                     "Converted time [%s] to [%s] for column [%s]",
-                    $val, $values->{$column}, $column);
+                    $val, $values->{$column}, $column)
+                    if defined $values->{$column};
             }
         }
     }
@@ -2044,8 +2076,8 @@ sub _change_FILES {
 
     my $log = Log::Log4perl->get_logger('');
 
-    my ($headers, $db, $table, $table_columns, $dry_run, $skip_state) =
-        @arg{qw/headers db table table_columns dry_run skip_state/};
+    my ($headers, $db, $db_config, $table, $table_columns, $dry_run, $skip_state) =
+        @arg{qw/headers db db-config table table_columns dry_run skip_state/};
 
     throw OMP::Error('_change_FILES: columns not defined')
         unless defined $table_columns;
@@ -2092,7 +2124,7 @@ sub _change_FILES {
     }
 
     if ((not $skip_state) and $files and scalar @{$files}) {
-        my $xfer = $self->_get_xfer_unconnected_dbh();
+        my $xfer = $self->_get_xfer_unconnected_dbh(undef, $db_config);
         $xfer->put_state(
             state => 'ingested', files => $files,
             dry_run => $dry_run);
@@ -2348,17 +2380,19 @@ a cached object is returned.
     my %xfer;
 
     sub _get_xfer_unconnected_dbh {
-        my ($self, $name) = @_;
+        my ($self, $name, $db_config) = @_;
 
         $name ||= 'xfer-new-dbh';
 
         return $xfer{$name} if exists $xfer{$name};
 
-        my $db = OMP::DB::JSA->new(name => $name);
-        $db->use_transaction(0);
+        my $jdb = OMP::DB::JSA->new(
+            name => $name,
+            'db-config' => $db_config);
+        $jdb->use_transaction(0);
 
         return $xfer{$name} = OMP::DB::JSA::TableTransfer->new(
-            db => $db, transactions => 0);
+            db => $jdb, transactions => 0);
     }
 }
 
@@ -2381,8 +2415,11 @@ sub calcbounds_find_files {
 
     my @file;
     unless ($opt{'avoid-db'}) {
-        @file = $self->calcbounds_files_from_db(date => $date, obs_types => $opt{'obs_types'})
-            or $log->info('Did not find any file paths in database.');
+        @file = $self->calcbounds_files_from_db(
+            date => $date,
+            obs_types => $opt{'obs_types'},
+            'db-config' => $opt{'db-config'},
+        ) or $log->info('Did not find any file paths in database.');
     }
     else {
         $log->error_die('No date given to find files.')
@@ -2429,6 +2466,7 @@ sub calcbounds_files_from_db {
     my $self = shift;
     my %opt = @_;
 
+    my $db_config = $opt{'db-config'};
     my $date = $opt{'date'};
     my $obs_types = $opt{'obs_types'};
 
@@ -2449,7 +2487,7 @@ sub calcbounds_files_from_db {
           AND ( c.obsra IS NULL and c.obsdec IS NULL )',
         join(',', ('?') x scalar @$obs_types));
 
-    my $jdb = OMP::DB::JSA->new();
+    my $jdb = OMP::DB::JSA->new('db-config' => $db_config);
     my $tmp = $jdb->run_select_sql(
         sql    => $sql,
         values => [$pattern, $date, @$obs_types]);
@@ -2471,6 +2509,8 @@ sub calcbounds_update_bound_cols {
     my $skip_state = $arg{'skip_state'};
     my $skip_state_found = $arg{'skip_state_found'};
     my $obs_types = $arg{'obs_types'};
+    my $db = $arg{'db'};
+    my $db_config = $arg{'db-config'};
 
     my $log = Log::Log4perl->get_logger('');
 
@@ -2484,6 +2524,7 @@ sub calcbounds_update_bound_cols {
        $process_obs_re = qr{\b( $process_obs_re )}xi;
 
     my ($obs_list, undef, undef, undef) = $self->_get_observations(
+            'db-config' => $db_config,
             dry_run => $dry_run,
             skip_state => ($skip_state or $skip_state_found),
             monbodb => undef,
@@ -2499,7 +2540,6 @@ sub calcbounds_update_bound_cols {
         # ";" is to indicate to Perl that "{" starts a BLOCK not an EXPR.
         map {; "obsra$_" , "obsdec$_"} ('', qw/tl bl tr br/);
 
-    my $db = OMP::DB::Backend::Archive->new();
     my $dbh = $db->handle_checked();
 
     for my $obs (@{$obs_list}) {
@@ -2546,7 +2586,7 @@ sub calcbounds_update_bound_cols {
 
             unless ($skip_state) {
                 $log->debug('Setting file paths with error state');
-                my $xfer = $self->_get_xfer_unconnected_dbh();
+                my $xfer = $self->_get_xfer_unconnected_dbh(undef, $db_config);
                 $xfer->put_state(
                         state => 'error', files => \@file_id,
                         comment => 'bound calc',

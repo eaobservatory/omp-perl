@@ -63,6 +63,8 @@ use OMP::Query::Project;
 use OMP::Query::TimeAcct;
 use OMP::DB::ProjAffiliation qw/%AFFILIATION_NAMES/;
 
+binmode(STDOUT, ':utf8');
+
 my ($telescope, $semester, $store_to_database, $query_by_date);
 my $status = GetOptions(
     'telescope=s' => \$telescope,

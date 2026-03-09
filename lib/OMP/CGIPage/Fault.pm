@@ -248,13 +248,18 @@ sub query_fault_output {
 
         # Return urgent or chronic faults only?
         if ($q->param('urgent')) {
-            my %urgency = OMP::Fault->faultUrgency;
-            $hash{'urgency'} = $urgency{'Urgent'};
+            $hash{'urgency'} = OMP::Fault::URGENCY_URGENT();
         }
 
         if ($q->param('chronic')) {
-            my %condition = OMP::Fault->faultCondition;
-            $hash{'condition'} = $condition{'Chronic'};
+            $hash{'condition'} = OMP::Fault::CONDITION_CHRONIC();
+        }
+
+        if ((! $hidefields) and OMP::Fault->faultHasLocation($category)) {
+            my $location = $q->param('location');
+            if ((defined $location) and ($location !~ /any/)) {
+                $hash{'location'} = $location;
+            }
         }
 
         if (defined $q->param('status')) {
@@ -264,13 +269,13 @@ sub query_fault_output {
             }
             elsif ($status eq "all_closed") {
                 # Do query on all closed statuses
-                my %status = OMP::Fault->faultStatusClosed(@cat_not_any);
-                $hash{'status'} = [values %status];
+                my $statuses = OMP::Fault->faultStatusClosed(@cat_not_any);
+                $hash{'status'} = [keys %$statuses];
             }
             elsif ($status eq "all_open") {
                 # Do a query on all open statuses
-                my %status = OMP::Fault->faultStatusOpen(@cat_not_any);
-                $hash{'status'} = [values %status];
+                my $statuses = OMP::Fault->faultStatusOpen(@cat_not_any);
+                $hash{'status'} = [keys $statuses];
             }
             elsif ($status eq 'non_duplicate') {
                 $hash{'EXPR__STAT'} = {not => {status => OMP::Fault::DUPLICATE}};

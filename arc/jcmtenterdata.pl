@@ -148,6 +148,10 @@ Does not apply in bounds calculation mode.
 
 Set STARLINK_DIR to the specified value.  [Default: /star]
 
+=item B<-dev>
+
+Use "dev" database.
+
 =back
 
 =head1 NOTES
@@ -169,8 +173,6 @@ use lib OMPLIB;
 BEGIN {
     $ENV{'OMP_CFG_DIR'} = File::Spec->catdir(OMPLIB, '../cfg')
         unless exists $ENV{'OMP_CFG_DIR'};
-
-    $ENV{'OMP_SITE_CONFIG'} = '/jac_sw/etc/enterdata/enterdata.cfg';
 }
 
 use JAC::Setup qw/jsa dataverify hdrtrans/;
@@ -200,7 +202,7 @@ do {
     my $n_err = 0;
 
     my ($dry_run, $verbose, $calcbounds) = (0) x 3;
-    my ($obstime, $inbeam, $skip_state, $skip_extra, $skip_db_path, $logfile, $wait);
+    my ($obstime, $inbeam, $skip_state, $skip_extra, $skip_db_path, $logfile, $wait, $use_dev_db);
     my ($help, $acsis, $rxh3, $scuba2, $file_src, $mongo_src, $simulation, $overwrite, $debugfile);
     my $starlink_dir = '/star';
 
@@ -225,6 +227,7 @@ do {
         'calcbounds'     => \$calcbounds,
         'overwrite!'     => \$overwrite,
         'debugfile=s'    => \$debugfile,
+        'dev!'           => \$use_dev_db,
 
         'force-disk!'    => \$skip_db_path,
 
@@ -235,6 +238,12 @@ do {
     or pod2usage('-exitval' => 2, '-verbose' => 1);
 
     pod2usage('-exitval' => 1, '-verbose' => 2) if $help;
+
+    my $db_config = $use_dev_db
+        ? '/jac_sw/etc/enterdata/enterdata-dev.cfg'
+        : '/jac_sw/etc/enterdata/enterdata.cfg';
+
+    $ENV{'OMP_SITE_CONFIG'} = $db_config;
 
     OMP::LogSetup::logfile(make_logfile(
         defined $logfile ? $logfile : 'jcmtenterdata.log'));
@@ -313,12 +322,17 @@ do {
         die 'Overwrite mode should not be used for incremental entry';
     }
 
+    # Prepare database object.
+    my $db = OMP::DB::Backend::Archive->new();
+
     unless ($calcbounds) {
         # Original "enter data" mode.
 
         $fileutil->recent_files(1);
 
         my %enter_options = (
+            'db-config' => $db_config,
+            db => $db,
             dry_run => $dry_run,
             skip_state => $skip_state,
             no_file_extra_info => $skip_extra,
@@ -393,6 +407,7 @@ do {
             foreach my $enter (values %insts) {
                 unless (defined $files) {
                     $files = $enter->calcbounds_find_files(
+                        'db-config'   => $db_config,
                         'avoid-db'    => $skip_db_path,
                         'date'        => $date,
                         obs_types => \@obs_types);
@@ -405,8 +420,11 @@ do {
                 $extra_options{'date'} = $date if defined $date;
 
                 $n_err += $enter->calcbounds_update_bound_cols(
+                    'db-config' => $db_config,
+                    db => $db,
                     obs_types => \@obs_types,
-                    dry_run => $dry_run, skip_state => $skip_state,
+                    dry_run => $dry_run,
+                    skip_state => $skip_state,
 
                     # If we don't specify "avoid-db", calcbounds_find_files
                     # will only have searched the database, so there's no

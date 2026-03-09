@@ -24,7 +24,7 @@ use Test::More tests => 2
     + 3
     + 10 # bands
     + 18
-    + 36 # project extract
+    + 37 # project extract
     + 5 # project extract fail
     + 1 # fault extract
     + 1 # fault extract fail
@@ -258,6 +258,7 @@ my %extract = (
     'E21AZ001' => 'EAO Chinese supplemental project E21AZ001',
     'M21BF001' => 'EAO I.F. queue project M21BF001',
     'E25BR001' => 'EAO Thailand supplemental project E25BR001',
+    'F26AP001' => 'EAO supplemental rolling project F26AP001',
     'm03au05fb' => 'a fallback project: m03au05fb',
     'm03ad07a' => 'A JCMT DDT project m03ad07a',
     'm03bu135d' => 'A fallback project m03bu135d of a different type',

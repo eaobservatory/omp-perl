@@ -75,6 +75,13 @@
 
 <h2>Comments</h2>
 
+[% IF observation.ingestion_errors.defined %]
+    <p>
+        <b>Problem(s) detected:</b>
+        [% observation.ingestion_errors | html %]
+    </p>
+[% END %]
+
 [% SET comments = observation.scalar.comments %]
 [% IF ! comments.empty %]
     <table class="bordered topalign">

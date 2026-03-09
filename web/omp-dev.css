@@ -3,7 +3,7 @@ div#layout_top_bar {
     outline: 20px solid #880000 !important;
 }
 
-div#layout_side_bar {
+div#layout_side_bar, div#layout_side_control, div#layout_side_reopen {
     background: #ff0000 !important;
 }
 

@@ -10,7 +10,7 @@
         </tr>
         <tr>
             <td><b>Time allocated:</b> [% project.allocated.pretty_print | html %]</td>
-            <td><b>Queue:</b> [% project.country | html %]</td>
+            <td><b>Queue:</b> [% FOREACH country IN project.country %][% country | html %][% IF ! loop.last %], [% END %][% END %]</td>
         </tr>
         <tr>
             <td><b>Time remaining:</b> [% project.allRemaining.pretty_print | html %]</td>

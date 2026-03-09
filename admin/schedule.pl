@@ -1,4 +1,4 @@
-#!/local/perl/bin/perl -X
+#!/local/perl/bin/perl
 
 =head1 NAME
 
@@ -47,6 +47,8 @@ use OMP::Util::Client;
 use OMP::DB::Sched;
 use OMP::DateTools;
 use OMP::DB::Backend;
+
+binmode STDOUT, ':utf8';
 
 my ($tel, $semester, $help);
 my $status = GetOptions(

@@ -271,15 +271,32 @@ use constant {
     # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
-my %DATA = (
-    "CSG" => {
+my %LOCATION = (
+    UKIRT() => 'UKIRT',
+    JCMT() => 'JCMT',
+    HP() => 'HP',
+    JAC() => 'JAC',
+    EAO() => 'EAO',
+    IN_TRANSIT() => 'In transit',
+);
+
+my %LOCATION_HIDDEN = (
+    JAC() => 1,
+);
+
+# Systems, types and miscellaneous options for each category
+my %OPTIONS = (
+    CSG => {
         SYSTEM => {
-            "Sun/Solaris" => SUN_SOLARIS,
-            "Alpha/OSF" => ALPHA_OSF,
-            "PC/Windows" => PC_WINDOWS,
-            "VAX/VMS" => VAX_VMS,
-            "PC/Linux" => PC_LINUX,
-            "Other/Unknown" => SYSTEMOTHER,
+            SUN_SOLARIS() => 'Sun/Solaris',
+            ALPHA_OSF() => 'Alpha/OSF',
+            PC_WINDOWS() => 'PC/Windows',
+            VAX_VMS() => 'VAX/VMS',
+            PC_LINUX() => 'PC/Linux',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        SYSTEM_ABBR => {
+            SYSTEMOTHER() => 'Other',
         },
         SYSTEM_HIDDEN => {
             SUN_SOLARIS() => 1,
@@ -287,43 +304,65 @@ my %DATA = (
             VAX_VMS() => 1,
         },
         TYPE => {
-            Other => TYPEOTHER,
-            Human => HUMAN,
-            Hardware => HARDWARE,
-            Software => SOFTWARE,
-            Network => NETWORK,
-            Printer => PRINTER,
+            TYPEOTHER() => 'Other',
+            HUMAN() => 'Human',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            NETWORK() => 'Network',
+            PRINTER() => 'Printer',
         },
     },
-    "JCMT" => {
+    JCMT => {
+        CAN_LOSE_TIME => 1,
+        CAN_ASSOC_PROJECTS => 1,
+        IS_TELESCOPE => 1,
         SYSTEM => {
-            Telescope => TELESCOPE,
-            "Back End - DAS" => BACK_END_DAS,
-            "Back End - ACSIS" => BACK_END_ACSIS,
-            "Back End - CBE" => BACK_END_CBE,
-            "Back End - IFD" => BACK_END_IFD,
-            "Back End - VLBI" => BACK_END_VLBI,
-            "Front End - HARP" => FRONT_END_HARP,
-            "Front End - N\x{101}makanui" => NAMAKANUI,
-            "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
-            "Front End - \x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
-            "Front End - \x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
-            "Front End - Kuntur" => FRONT_END_KUNTUR,
-            "Front End - RxA" => FRONT_END_RXA,
-            "Front End - RxB" => FRONT_END_RXB,
-            "Front End - RxW" => FRONT_END_RXW,
-            "Front End - RxH3" => FRONT_END_RXH3,
-            Surface => SURFACE,
-            SCUBA => SCUBA,
-            'SCUBA-2' => SCUBA2,
-            IFS => IFS,
-            "Water Vapor Monitor" => WATER_VAPOR_RAD,
-            "Weather Station" => WX_STATN,
-            "Visitor Instruments" => INSTRUMENT_VISITOR,
-            Instrument => INSTRUMENT_OTHER_UNKNOWN,
-            Computer => COMPUTER,
-            Carousel => CAROUSEL,
-            "Other/Unknown" => SYSTEMOTHER,
+            TELESCOPE() => 'Telescope',
+            BACK_END_DAS() => 'Back End - DAS',
+            BACK_END_ACSIS() => 'Back End - ACSIS',
+            BACK_END_CBE() => 'Back End - CBE',
+            BACK_END_IFD() => 'Back End - IFD',
+            BACK_END_VLBI() => 'Back End - VLBI',
+            FRONT_END_HARP() => 'Front End - HARP',
+            NAMAKANUI() => "Front End - N\x{101}makanui",
+            FRONT_END_UU() => "Front End - \x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "Front End - \x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "Front End - \x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => 'Front End - Kuntur',
+            FRONT_END_RXA() => 'Front End - RxA',
+            FRONT_END_RXB() => 'Front End - RxB',
+            FRONT_END_RXW() => 'Front End - RxW',
+            FRONT_END_RXH3() => 'Front End - RxH3',
+            SURFACE() => 'Surface',
+            SCUBA() => 'SCUBA',
+            SCUBA2() => 'SCUBA-2',
+            IFS() => 'IFS',
+            WATER_VAPOR_RAD() => 'Water Vapor Monitor',
+            WX_STATN() => 'Weather Station',
+            INSTRUMENT_VISITOR() => 'Visitor Instruments',
+            INSTRUMENT_OTHER_UNKNOWN() => 'Instrument',
+            COMPUTER() => 'Computer',
+            CAROUSEL() => 'Carousel',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        SYSTEM_ABBR => {
+            BACK_END_DAS() => 'DAS',
+            BACK_END_ACSIS() => 'ACSIS',
+            BACK_END_CBE() => 'CBE',
+            BACK_END_IFD() => 'IFD',
+            BACK_END_VLBI() => 'VLBI',
+            FRONT_END_HARP() => 'HARP',
+            NAMAKANUI() => "N\x{101}makanui",
+            FRONT_END_UU() => "\x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "\x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "\x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => 'Kuntur',
+            FRONT_END_RXA() => 'RxA',
+            FRONT_END_RXB() => 'RxB',
+            FRONT_END_RXW() => 'RxW',
+            FRONT_END_RXH3() => 'RxH3',
+            WATER_VAPOR_RAD() => 'WVM',
+            SYSTEMOTHER() => 'Other',
         },
         SYSTEM_HIDDEN => {
             BACK_END_DAS() => 1,
@@ -337,87 +376,109 @@ my %DATA = (
             SCUBA() => 1,
         },
         TYPE => {
-            Mechanical => MECHANICAL,
-            Electronic => ELECTRONIC,
-            Hardware => HARDWARE,
-            Software => SOFTWARE,
-            Cryogenic => CRYOGENIC,
-            "Other/Unknown" => TYPEOTHER,
-            Human => HUMAN,
-            Network => NETWORK,
+            MECHANICAL() => 'Mechanical',
+            ELECTRONIC() => 'Electronic',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            CRYOGENIC() => 'Cryogenic',
+            TYPEOTHER() => 'Other/Unknown',
+            HUMAN() => 'Human',
+            NETWORK() => 'Network',
+        },
+        TYPE_ABBR => {
+            TYPEOTHER() => 'Other',
         },
     },
-    "UKIRT" => {
+    UKIRT => {
+        CAN_LOSE_TIME => 1,
+        CAN_ASSOC_PROJECTS => 1,
+        IS_TELESCOPE => 1,
         SYSTEM => {
-            Telescope => TELESCOPE,
-            "Computer" => COMPUTER,
-            OT => OT,
-            "OT Libraries" => OT_LIBRARIES,
-            "ORAC-DR" => ORAC_DR,
-            "Query Tool" => QUERYTOOL,
-            "Sequence Console" => SEQUENCER_QUEUE,
-            Translator => TRANSLATOR,
-            "Observing Database" => DBSERVER,
-            "Web feedback system" => OMP_FEEDBACK_SYSTEM,
-            Dome => DOME,
-            Ancillaries => ANCILLARIES,
-            "Instrument - CGS4" => INSTRUMENT_CGS4,
-            "Instrument - UFTI" => INSTRUMENT_UFTI,
-            "Instrument - UIST" => INSTRUMENT_UIST,
-            "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
-            "Instrument - WFCAM" => INSTRUMENT_WFCAM,
-            "Instrument - WFS" => INSTRUMENT_WFS,
-            "Instrument - Visitor" => INSTRUMENT_VISITOR,
-            "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
-            "Other/Unknown" => SYSTEMOTHER,
+            TELESCOPE() => 'Telescope',
+            COMPUTER() => 'Computer',
+            OT() => 'OT',
+            OT_LIBRARIES() => 'OT Libraries',
+            ORAC_DR() => 'ORAC-DR',
+            QUERYTOOL() => 'Query Tool',
+            SEQUENCER_QUEUE() => 'Sequence Console',
+            TRANSLATOR() => 'Translator',
+            DBSERVER() => 'Observing Database',
+            OMP_FEEDBACK_SYSTEM() => 'Web feedback system',
+            DOME() => 'Dome',
+            ANCILLARIES() => 'Ancillaries',
+            INSTRUMENT_CGS4() => 'Instrument - CGS4',
+            INSTRUMENT_UFTI() => 'Instrument - UFTI',
+            INSTRUMENT_UIST() => 'Instrument - UIST',
+            INSTRUMENT_MICHELLE() => 'Instrument - MICHELLE',
+            INSTRUMENT_WFCAM() => 'Instrument - WFCAM',
+            INSTRUMENT_WFS() => 'Instrument - WFS',
+            INSTRUMENT_VISITOR() => 'Instrument - Visitor',
+            INSTRUMENT_OTHER_UNKNOWN() => 'Instrument - Other/Unknown',
+            SYSTEMOTHER() => 'Other/Unknown',
         },
         TYPE => {
-            Mechanical => MECHANICAL,
-            Electronic => ELECTRONIC,
-            Hardware => HARDWARE,
-            "Software" => SOFTWARE,
-            Network => NETWORK,
-            Cryogenic => CRYOGENIC,
-            "Remote Operations" => REMOTE_OP,
-            "Other/Unknown" => TYPEOTHER,
-            Human => HUMAN,
+            MECHANICAL() => 'Mechanical',
+            ELECTRONIC() => 'Electronic',
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
+            NETWORK() => 'Network',
+            CRYOGENIC() => 'Cryogenic',
+            REMOTE_OP() => 'Remote Operations',
+            TYPEOTHER() => 'Other/Unknown',
+            HUMAN() => 'Human',
         },
     },
-    "OMP" => {
+    OMP => {
         SYSTEM => {
-            "Feedback/Web" => FEEDBACK_WEB,
-            DBServer => DBSERVER,
-            ObservingTool => OBSERVINGTOOL,
-            QueryTool => QUERYTOOL,
-            "Sequencer/Queue" => SEQUENCER_QUEUE,
-            Translator => TRANSLATOR,
-            "Monitor/Console" => MONITOR_CONSOLE,
-            "Hedwig" => HEDWIG,
-            "JSA/CADC" => JSA_CADC,
-            "Other/Unknown" => SYSTEMOTHER,
+            FEEDBACK_WEB() => 'Feedback/Web',
+            DBSERVER() => 'DBServer',
+            OBSERVINGTOOL() => 'ObservingTool',
+            QUERYTOOL() => 'QueryTool',
+            SEQUENCER_QUEUE() => 'Sequencer/Queue',
+            TRANSLATOR() => 'Translator',
+            MONITOR_CONSOLE() => 'Monitor/Console',
+            HEDWIG() => 'Hedwig',
+            JSA_CADC() => 'JSA/CADC',
+            SYSTEMOTHER() => 'Other/Unknown',
+        },
+        SYSTEM_ABBR => {
+            FEEDBACK_WEB() => 'Web',
+            DBSERVER() => 'DB',
+            OBSERVINGTOOL() => 'OT',
+            QUERYTOOL() => 'QT',
+            SEQUENCER_QUEUE() => 'Queue',
+            MONITOR_CONSOLE() => 'Monitor',
+            SYSTEMOTHER() => 'Other',
         },
         TYPE => {
-            GUI => GUI,
-            Exception => EXCEPTION,
-            Scheduling => SCHEDULING,
-            Bug => BUG,
-            "Feature Request" => FEATURE_REQUEST,
-            Other => TYPEOTHER,
-            Human => HUMAN,
-            Network => NETWORK,
+            GUI() => 'GUI',
+            EXCEPTION() => 'Exception',
+            SCHEDULING() => 'Scheduling',
+            BUG() => 'Bug',
+            FEATURE_REQUEST() => 'Feature Request',
+            TYPEOTHER() => 'Other',
+            HUMAN() => 'Human',
+            NETWORK() => 'Network',
+        },
+        TYPE_ABBR => {
+            FEATURE_REQUEST() => 'Feat. Req.',
         },
     },
-    "DR" => {
+    DR => {
         SYSTEM => {
-            "JCMT-DR" => JCMT_DR,
-            SPECX => SPECX,
-            "AIPS++" => AIPSPLUSPLUS,
-            SURF => SURF,
-            STARLINK => STARLINK,
-            "ORAC-DR/PICARD" => ORAC_DR,
-            SMURF => SMURF,
-            'Other/Unknown' => SYSTEMOTHER,
-            "JSA Processing" => JSAPROC,
+            JCMT_DR() => 'JCMT-DR',
+            SPECX() => 'SPECX',
+            AIPSPLUSPLUS() => 'AIPS++',
+            SURF() => 'SURF',
+            STARLINK() => 'STARLINK',
+            ORAC_DR() => 'ORAC-DR/PICARD',
+            SMURF() => 'SMURF',
+            SYSTEMOTHER() => 'Other/Unknown',
+            JSAPROC() => 'JSA Processing',
+        },
+        SYSTEM_ABBR => {
+            ORAC_DR() => 'ORAC-DR',
+            SYSTEMOTHER() => 'Other',
         },
         SYSTEM_HIDDEN => {
             JCMT_DR() => 1,
@@ -425,299 +486,212 @@ my %DATA = (
             SPECX() => 1,
         },
         TYPE => {
-            Bug => BUG,
-            "Feature Request" => FEATURE_REQUEST,
-            Human => HUMAN,
-            Other => TYPEOTHER,
+            BUG() => 'Bug',
+            FEATURE_REQUEST() => 'Feature Request',
+            HUMAN() => 'Human',
+            TYPEOTHER() => 'Other',
+        },
+        TYPE_ABBR => {
+            FEATURE_REQUEST() => 'Feat. Req.',
         },
     },
-    'SAFETY' => {
-        'SEVERITY' => {
-            'Severe injury or death' => INJURY_DEATH,
-            'Major injury' => MAJOR_INJURY,
-            'Minor injury' => MINOR_INJURY,
-            'Equipment damage' => EQUIP_DAMAGE,
-            'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
-            'Environmental issue' => ENV_ISSUE,
-            'Environmental incident' => ENV_INCIDENT,
+    SAFETY => {
+        CATEGORY_NAME => 'Safety',
+        CATEGORY_NAME_SUFFIX => 'Reporting',
+        ENTRY_NAME => 'Report',
+        HAS_LOCATION => 1,
+        SYSTEM_LABEL => 'Severity',
+        INITIAL_STATUS => FOLLOW_UP,
+        SEVERITY => {
+            INJURY_DEATH() => 'Severe injury or death',
+            MAJOR_INJURY() => 'Major injury',
+            MINOR_INJURY() => 'Minor injury',
+            EQUIP_DAMAGE() => 'Equipment damage',
+            SAFETY_CLARAFICATION_SEVERITY() => 'Clarification',
+            ENV_ISSUE() => 'Environmental issue',
+            ENV_INCIDENT() => 'Environmental incident',
         },
-        'TYPE' => {
-            'Incident' => INCIDENT,
-            'Near miss' => NEAR_MISS,
-            'Safety concern' => SAFETY_CONCERN,
-            'Safety clarification' => SAFETY_CLARAFICATION_TYPE,
-            'Environment' => ENVIRONMENT,
+        STATUS_OPEN => {
+            IMMEDIATE_ACTION() => 'Immediate action required',
+            FOLLOW_UP() => 'Follow up required',
+            REFER_TO_SAFETY_COMMITTEE() => 'Refer to safety committee',
+        },
+        STATUS_CLOSED => {
+            NO_ACTION() => 'No further action',
+            CLOSED() => 'Closed',
+        },
+        TYPE => {
+            INCIDENT() => 'Incident',
+            NEAR_MISS() => 'Near miss',
+            SAFETY_CONCERN() => 'Safety concern',
+            SAFETY_CLARAFICATION_TYPE() => 'Safety clarification',
+            ENVIRONMENT() => 'Environment',
         },
     },
-    'FACILITY' => {
-        'SYSTEM' => {
-            'JCMT' => JCMT,
-            'UKIRT' => UKIRT,
-            'HP' => HP,
-            'Toilet' => TOILET,
-            'Office' => OFFICE,
-            'Library' => LIBRARY,
-            'Computer Room' => COMP_ROOM,
-            'Meeting Room' => MEETING_ROOM,
-            'Laboratory' => LAB,
-            'Workshop' => WORKSHOP,
-            'Vehicle Bay' => VEHICLE_BAY,
-            'Car Park' => CAR_PARK,
-            'Staff Lounge' => STAFF_LOUNGE,
-            'Other' => SYSTEMOTHER,
+    FACILITY => {
+        CATEGORY_NAME => 'Facility',
+        SYSTEM => {
+            JCMT() => 'JCMT',
+            UKIRT() => 'UKIRT',
+            HP() => 'HP',
+            TOILET() => 'Toilet',
+            OFFICE() => 'Office',
+            LIBRARY() => 'Library',
+            COMP_ROOM() => 'Computer Room',
+            MEETING_ROOM() => 'Meeting Room',
+            LAB() => 'Laboratory',
+            WORKSHOP() => 'Workshop',
+            VEHICLE_BAY() => 'Vehicle Bay',
+            CAR_PARK() => 'Car Park',
+            STAFF_LOUNGE() => 'Staff Lounge',
+            SYSTEMOTHER() => 'Other',
         },
         SYSTEM_HIDDEN => {
             UKIRT() => 1,
         },
-        'TYPE' => {
-            'Insect' => INSECT,
-            'Leak' => LEAK,
-            'Plumbing' => PLUMBING,
-            'A/C or dehumidifier' => AC_DEHUMIDIFIER,
-            'Alarm system' => ALARM_SYS,
-            'Electrical' => ELECTRICAL,
-            'Network' => NETWORK,
-            'Computer' => COMPUTER,
-            'Rodent' => RODENT,
-            'Avian' => AVIAN,
-            'Other' => TYPEOTHER,
+        TYPE => {
+            INSECT() => 'Insect',
+            LEAK() => 'Leak',
+            PLUMBING() => 'Plumbing',
+            AC_DEHUMIDIFIER() => 'A/C or dehumidifier',
+            ALARM_SYS() => 'Alarm system',
+            ELECTRICAL() => 'Electrical',
+            NETWORK() => 'Network',
+            COMPUTER() => 'Computer',
+            RODENT() => 'Rodent',
+            AVIAN() => 'Avian',
+            TYPEOTHER() => 'Other',
         },
+
     },
-    'JCMT_EVENTS' => {
-        'SYSTEM' => {
-            'ACSIS' => BACK_END_ACSIS,
-            'VLBI Back End' => BACK_END_VLBI,
-            'Computer' => COMPUTER,
-            'FTS-2' => FTS2,
-            'HARP' => FRONT_END_HARP,
-            'OCS/JOS' => OCS_JOS,
-            'Pointing' => POINTING,
-            'POL-2' => POL2,
-            'Rover' => ROVER,
-            "N\x{101}makanui" => NAMAKANUI,
-            "\x{2bb}\x{16a}\x{2bb}\x{16b}" => FRONT_END_UU,
-            "\x{2bb}\x{100}weoweo" => FRONT_END_AWEOWEO,
-            "\x{2bb}Ala\x{2bb}ihi" => FRONT_END_ALAIHI,
-            "Kuntur" => FRONT_END_KUNTUR,
-            'RxA' => FRONT_END_RXA,
-            'RxW' => FRONT_END_RXW,
-            'RxH3/Surface' => RXH3_SURFACE,
-            'SCUBA-2' => SCUBA2,
-            'SMU/TMU' => SMU_TMU,
-            'Software-DR' => SOFTWARE_DR,
-            'Telescope' => TELESCOPE,
-            'Water Vapor Monitor' => WATER_VAPOR_RAD,
-            'Weather Station' => WX_STATN,
-            'Other' => SYSTEMOTHER,
+    JCMT_EVENTS => {
+        CATEGORY_NAME => 'JCMT Events',
+        CATEGORY_ABBR => 'J. Event',
+        CATEGORY_NAME_SUFFIX => undef,
+        ENTRY_NAME => 'Event',
+        HAS_TIME_OCCURRED => 1,
+        INITIAL_STATUS => ONGOING,
+        STATUS_OPEN => {
+            COMMISSIONING() => 'Commissioning',
+            ONGOING() => 'Ongoing',
+        },
+        STATUS_CLOSED => {
+            COMPLETE() => 'Complete',
+        },
+        SYSTEM => {
+            BACK_END_ACSIS() => 'ACSIS',
+            BACK_END_VLBI() => 'VLBI Back End',
+            COMPUTER() => 'Computer',
+            FTS2() => 'FTS-2',
+            FRONT_END_HARP() => 'HARP',
+            OCS_JOS() => 'OCS/JOS',
+            POINTING() => 'Pointing',
+            POL2() => 'POL-2',
+            ROVER() => 'Rover',
+            NAMAKANUI() => "N\x{101}makanui",
+            FRONT_END_UU() => "\x{2bb}\x{16a}\x{2bb}\x{16b}",
+            FRONT_END_AWEOWEO() => "\x{2bb}\x{100}weoweo",
+            FRONT_END_ALAIHI() => "\x{2bb}Ala\x{2bb}ihi",
+            FRONT_END_KUNTUR() => "Kuntur",
+            FRONT_END_RXA() => 'RxA',
+            FRONT_END_RXW() => 'RxW',
+            RXH3_SURFACE() => 'RxH3/Surface',
+            SCUBA2() => 'SCUBA-2',
+            SMU_TMU() => 'SMU/TMU',
+            SOFTWARE_DR() => 'Software-DR',
+            TELESCOPE() => 'Telescope',
+            WATER_VAPOR_RAD() => 'Water Vapor Monitor',
+            WX_STATN() => 'Weather Station',
+            SYSTEMOTHER() => 'Other',
+        },
+        SYSTEM_ABBR => {
+            BACK_END_VLBI() => 'VLBI',
+            WATER_VAPOR_RAD() => 'WVM',
         },
         SYSTEM_HIDDEN => {
             FRONT_END_RXA() => 1,
             FRONT_END_RXW() => 1,
             ROVER() => 1,
         },
-        'TYPE' => {
-            'Hardware' => HARDWARE,
-            'Software' => SOFTWARE,
+        TYPE => {
+            HARDWARE() => 'Hardware',
+            SOFTWARE() => 'Software',
         },
-    },
-    'VEHICLE_INCIDENT' => {
-        # 'VEHICLE' is same as 'SYSTEM'.
-        'VEHICLE' => {
-            '1' => VEHICLE_01(),
-            '2' => VEHICLE_02(),
-            '3' => VEHICLE_03(),
-            '4' => VEHICLE_04(),
-            '5' => VEHICLE_05(),
-            '6' => VEHICLE_06(),
-            '7' => VEHICLE_07(),
-            '9' => VEHICLE_09(),
-            '10' => VEHICLE_10(),
-            '11' => VEHICLE_11(),
-            '13' => VEHICLE_13(),
-            '14' => VEHICLE_14(),
-        },
-        'TYPE' => {
-            'Engine' => ENGINE(),
-            'Tires' => TIRES(),
-            'Lights' => VEHICHLE_LIGHTS(),
-            'Warning lights' => VEHICLE_WARNING_LIGHTS(),
-            'Other' => TYPEOTHER(),
-        },
-    },
-);
-
-my %LOCATION = (
-    'UKIRT' => UKIRT,
-    'JCMT' => JCMT,
-    'HP' => HP,
-    'JAC' => JAC,
-    'EAO' => EAO,
-    'In transit' => IN_TRANSIT
-);
-
-my %LOCATION_HIDDEN = (
-    JAC() => 1,
-);
-
-# Miscellaneous options for each category
-my %OPTIONS = (
-    CSG => {
-    },
-    JCMT => {
-        CAN_LOSE_TIME => 1,
-        CAN_ASSOC_PROJECTS => 1,
-        IS_TELESCOPE => 1,
-    },
-    UKIRT => {
-        CAN_LOSE_TIME => 1,
-        CAN_ASSOC_PROJECTS => 1,
-        IS_TELESCOPE => 1,
-    },
-    OMP => {
-    },
-    DR => {
-    },
-    SAFETY => {
-        CATEGORY_NAME => 'Safety',
-        CATEGORY_NAME_SUFFIX => 'Reporting',
-        HAS_LOCATION => 1,
-        SYSTEM_LABEL => 'Severity',
-        INITIAL_STATUS => FOLLOW_UP,
-    },
-    FACILITY => {
-        CATEGORY_NAME => 'Facility',
-    },
-    JCMT_EVENTS => {
-        CATEGORY_NAME => 'JCMT Events',
-        CATEGORY_NAME_SUFFIX => undef,
-        ENTRY_NAME => 'Event',
-        HAS_TIME_OCCURRED => 1,
-        INITIAL_STATUS => ONGOING,
     },
     VEHICLE_INCIDENT => {
         CATEGORY_NAME => 'Vehicle Incident',
+        CATEGORY_ABBR => 'Veh. Inc.',
         CATEGORY_NAME_SUFFIX => 'Reporting',
         SYSTEM_LABEL => 'Vehicle',
+        STATUS_OPEN => {
+            OPEN() => 'Open',
+            WILL_BE_FIXED() => 'Open - Will be fixed',
+            KNOWN_FAULT() => 'Known fault',
+        },
+        STATUS_CLOSED => {
+            DUPLICATE() => 'Duplicate',
+            CLOSED() => 'Closed',
+            WON_T_BE_FIXED() => "Won't be fixed",
+        },
+        VEHICLE => {
+            VEHICLE_01() => '1',
+            VEHICLE_02() => '2',
+            VEHICLE_03() => '3',
+            VEHICLE_04() => '4',
+            VEHICLE_05() => '5',
+            VEHICLE_06() => '6',
+            VEHICLE_07() => '7',
+            VEHICLE_09() => '9',
+            VEHICLE_10() => '10',
+            VEHICLE_11() => '11',
+            VEHICLE_13() => '13',
+            VEHICLE_14() => '14',
+        },
+        TYPE => {
+            ENGINE() => 'Engine',
+            TIRES() => 'Tires',
+            VEHICHLE_LIGHTS() => 'Lights',
+            VEHICLE_WARNING_LIGHTS() => 'Warning lights',
+            TYPEOTHER() => 'Other',
+        },
+        TYPE_ABBR => {
+            VEHICLE_WARNING_LIGHTS() => 'Warnings',
+        },
     },
 );
 
+use constant URGENCY_URGENT => 0;
+use constant URGENCY_NORMAL => 1;
+use constant URGENCY_INFO => 2;
+
 # Urgency
 my %URGENCY = (
-    Urgent => 0,
-    Normal => 1,
-    Info => 2,
+    URGENCY_URGENT() => 'Urgent',
+    URGENCY_NORMAL() => 'Normal',
+    URGENCY_INFO() => 'Info',
 );
 
+use constant CONDITION_CHRONIC => 0;
+use constant CONDITION_NORMAL => 1;
+
 my %CONDITION = (
-    Chronic => 0,
-    Normal => 1,
+    CONDITION_CHRONIC() => 'Chronic',
+    CONDITION_NORMAL() => 'Normal',
 );
 
 my %STATUS_OPEN = (
-    Open => OPEN,
-    'Open - Will be fixed' => WILL_BE_FIXED,
-    'Suspended' => SUSPENDED,
+    OPEN() => 'Open',
+    WILL_BE_FIXED() => 'Open - Will be fixed',
+    SUSPENDED() => 'Suspended',
 );
 
 my %STATUS_CLOSED = (
-    Closed => CLOSED,
-    "Works for me" => WORKS_FOR_ME,
-    "Not a fault" => NOT_A_FAULT,
-    "Won't be fixed" => WON_T_BE_FIXED,
-    Duplicate => DUPLICATE,
+    CLOSED() => 'Closed',
+    WORKS_FOR_ME() => 'Works for me',
+    NOT_A_FAULT() => 'Not a fault',
+    WON_T_BE_FIXED() => "Won't be fixed",
+    DUPLICATE() => 'Duplicate',
 );
-
-my %SAFETY_STATUS_OPEN = (
-    'Immediate action required' => IMMEDIATE_ACTION,
-    'Follow up required' => FOLLOW_UP,
-    'Refer to safety committee' => REFER_TO_SAFETY_COMMITTEE,
-);
-
-my %SAFETY_STATUS_CLOSED = (
-    'No further action' => NO_ACTION,
-    'Closed' => $STATUS_CLOSED{'Closed'}
-);
-
-my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
-
-my %SAFETY_STATUS = (%SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED);
-
-my %JCMT_EVENTS_STATUS_OPEN = (
-    'Commissioning' => COMMISSIONING,
-    'Ongoing' => ONGOING,
-);
-
-my %JCMT_EVENTS_STATUS_CLOSED = (
-    'Complete' => COMPLETE,
-);
-
-my %JCMT_EVENTS_STATUS = (
-    %JCMT_EVENTS_STATUS_OPEN,
-    %JCMT_EVENTS_STATUS_CLOSED);
-
-my %VEHICLE_INCIDENT_STATUS_OPEN = (
-    'Open' => OPEN(),
-    'Open - Will be fixed' => WILL_BE_FIXED(),
-    'Known fault' => KNOWN_FAULT(),
-);
-
-my %VEHICLE_INCIDENT_STATUS_CLOSED = (
-    'Duplicate' => DUPLICATE(),
-    'Closed' => CLOSED(),
-    "Won't be fixed" => WON_T_BE_FIXED(),
-);
-
-my %VEHICLE_INCIDENT_STATUS = (
-    %VEHICLE_INCIDENT_STATUS_OPEN,
-    %VEHICLE_INCIDENT_STATUS_CLOSED);
-
-# Now invert %DATA, %URGENCY, and %CONDITION
-my %INVERSE_URGENCY;
-for (keys %URGENCY) {
-    $INVERSE_URGENCY{$URGENCY{$_}} = $_;
-}
-
-my %INVERSE_CONDITION;
-for (keys %CONDITION) {
-    $INVERSE_CONDITION{$CONDITION{$_}} = $_;
-}
-
-my %INVERSE_STATUS;
-for (keys %STATUS) {
-    $INVERSE_STATUS{$STATUS{$_}} = $_;
-}
-
-for (keys %SAFETY_STATUS) {
-    $INVERSE_STATUS{$SAFETY_STATUS{$_}} = $_;
-}
-
-for (keys %JCMT_EVENTS_STATUS) {
-    $INVERSE_STATUS{$JCMT_EVENTS_STATUS{$_}} = $_;
-}
-
-for (keys %VEHICLE_INCIDENT_STATUS) {
-    $INVERSE_STATUS{$VEHICLE_INCIDENT_STATUS{$_}} = $_;
-}
-
-my %INVERSE_PLACE;
-$INVERSE_PLACE{$LOCATION{$_}} = $_
-    for keys %LOCATION;
-
-# Loop over categories
-my %INVERSE;
-for my $cat (keys %DATA) {
-    # Crate new hash for categories
-    $INVERSE{$cat} = {};
-
-    # Loop over systems and types
-    for my $sys (keys %{$DATA{$cat}}) {
-        # Create new hash for systems and types
-        $INVERSE{$cat}{$sys} = {};
-        for my $strings (keys %{$DATA{$cat}{$sys}}) {
-            $INVERSE{$cat}{$sys}{$DATA{$cat}{$sys}{$strings}} = $strings;
-        }
-    }
-}
 
 =head1 METHODS
 
@@ -739,7 +713,7 @@ subsystems and fault types change depending on global fault category.
 =cut
 
 sub faultCategories {
-    return keys %DATA;
+    return keys %OPTIONS;
 }
 
 =item B<faultSystems>
@@ -759,28 +733,26 @@ sub faultSystems {
     my $category = uc(shift);
     my %opt = @_;
 
-    return unless exists $DATA{$category};
+    return unless exists $OPTIONS{$category};
 
-    my %cat_section = (
-        SAFETY => 'SEVERITY',
-        VEHICLE_INCIDENT => 'VEHICLE',
-    );
+    my $section = $class->_system_section($category);
 
-    my $section = $cat_section{$category} // 'SYSTEM';
-
-    my $systems = $DATA{$category}{$section};
+    my $systems = $OPTIONS{$category}{$section};
 
     return $systems if $opt{'include_hidden'};
 
-    my $hidden = $DATA{$category}{$section . '_HIDDEN'} // {};
+    my $only_hidden = $opt{'only_hidden'} // 0;
+    my $hidden = $OPTIONS{$category}{$section . '_HIDDEN'} // {};
 
-    return $systems unless defined $hidden;
+    unless (scalar %$hidden) {
+        return {} if $only_hidden;
+        return $systems;
+    }
 
     my %result = ();
 
-    my $only_hidden = $opt{'only_hidden'} // 0;
-    while (my ($name, $code) = each %$systems) {
-        $result{$name} = $code unless $only_hidden xor $hidden->{$code};
+    while (my ($code, $name) = each %$systems) {
+        $result{$code} = $name unless $only_hidden xor $hidden->{$code};
     }
 
     return \%result;
@@ -789,10 +761,10 @@ sub faultSystems {
 =item B<faultTypes>
 
 For a specific fault category (eg JCMT or UKIRT) return a hash
-containing the allowed fault types (as keys) and the constants
+containing the allowed fault types (as values) and the constants
 required to identify those types in the database.
 
-    %types = OMP::Fault->faultTypes("JCMT");
+    \%types = OMP::Fault->faultTypes('JCMT');
 
 Returns empty list if the fault category is not recognized.
 
@@ -802,8 +774,8 @@ sub faultTypes {
     my $class = shift;
     my $category = uc(shift);
 
-    if (exists $DATA{$category}) {
-        return $DATA{$category}{TYPE};
+    if (exists $OPTIONS{$category}) {
+        return $OPTIONS{$category}{'TYPE'};
     }
     else {
         return ();
@@ -875,13 +847,13 @@ sub remoteTypes {
 Return a hash containing the different types of urgency that can
 be associated with fixing a particular fault.
 
-    %urgency = OMP::Fault->faultUrgency();
+    \%urgency = OMP::Fault->faultUrgency();
 
 =cut
 
 sub faultUrgency {
     my $class = shift;
-    return %URGENCY;
+    return \%URGENCY;
 }
 
 =item B<faultCondition>
@@ -889,13 +861,13 @@ sub faultUrgency {
 Return a hash containing the different types of condition that can
 be associated with a particular fault.
 
-    %condition = OMP::Fault->faultCondition();
+    \%condition = OMP::Fault->faultCondition();
 
 =cut
 
 sub faultCondition {
     my $class = shift;
-    return %CONDITION;
+    return \%CONDITION;
 }
 
 =back
@@ -913,7 +885,7 @@ the category of the fault object).
 Return a hash containing the different statuses that can be associated
 with a fault.
 
-    %status = OMP::Fault->faultStatus();
+    \%status = OMP::Fault->faultStatus();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -924,29 +896,37 @@ sub faultStatus {
     my $self = shift;
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
+    my @hashes = ();
     if (defined $category) {
-        return %SAFETY_STATUS
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS
-            if $category eq 'VEHICLE_INCIDENT';
+        push @hashes, (exists $OPTIONS{$category}->{'STATUS_OPEN'})
+            ? $OPTIONS{$category}->{'STATUS_OPEN'}
+            : \%STATUS_OPEN;
 
-        return %STATUS;
+        push @hashes, (exists $OPTIONS{$category}->{'STATUS_CLOSED'})
+            ? $OPTIONS{$category}->{'STATUS_CLOSED'}
+            : \%STATUS_CLOSED;
+    }
+    else {
+        push @hashes, \%STATUS_OPEN, \%STATUS_CLOSED;
+        foreach my $cat (keys %OPTIONS) {
+            foreach my $name (qw/STATUS_OPEN STATUS_CLOSED/) {
+                push @hashes, $OPTIONS{$cat}->{$name}
+                    if exists $OPTIONS{$cat}->{$name};
+            }
+        }
     }
 
-    my %combined = (
-        %STATUS, %SAFETY_STATUS,
-        %JCMT_EVENTS_STATUS, %VEHICLE_INCIDENT_STATUS);
+    my %combined = ();
+    %combined = (%combined, %$_) foreach @hashes;
 
-    return %combined;
+    return \%combined;
 }
 
 =item B<faultStatusOpen>
 
 Return a hash containing the statuses that can represent an open fault.
 
-    %status = OMP::Fault->faultStatusOpen();
+    \%status = OMP::Fault->faultStatusOpen();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -958,28 +938,26 @@ sub faultStatusOpen {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return %SAFETY_STATUS_OPEN
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS_OPEN
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS_OPEN
-            if $category eq 'VEHICLE_INCIDENT';
+        return $OPTIONS{$category}->{'STATUS_OPEN'}
+            if exists $OPTIONS{$category}->{'STATUS_OPEN'};
 
-        return %STATUS_OPEN;
+        return \%STATUS_OPEN;
     }
 
-    my %combined = (
-        %STATUS_OPEN, %SAFETY_STATUS_OPEN,
-        %JCMT_EVENTS_STATUS_OPEN, %VEHICLE_INCIDENT_STATUS_OPEN);
+    my %combined = %STATUS_OPEN;
+    foreach my $cat (keys %OPTIONS) {
+        %combined = (%combined, %{$OPTIONS{$cat}->{'STATUS_OPEN'}})
+            if exists $OPTIONS{$cat}->{'STATUS_OPEN'};
+    }
 
-    return %combined;
+    return \%combined;
 }
 
 =item B<faultStatusClosed>
 
 Return a hash containing the statuses that can represent a closed fault.
 
-    %status = OMP::Fault->faultStatusClosed();
+    \%status = OMP::Fault->faultStatusClosed();
 
 B<Note:> if called as a class method without specifying a category,
 returns a combined set of statuses from all categories.
@@ -991,28 +969,26 @@ sub faultStatusClosed {
     my $category = (ref $self) ? $self->category : (@_ ? uc shift : undef);
 
     if (defined $category) {
-        return %SAFETY_STATUS_CLOSED
-            if $category eq 'SAFETY';
-        return %JCMT_EVENTS_STATUS_CLOSED
-            if $category eq 'JCMT_EVENTS';
-        return %VEHICLE_INCIDENT_STATUS_CLOSED
-            if $category eq 'VEHICLE_INCIDENT';
+        return $OPTIONS{$category}->{'STATUS_CLOSED'}
+            if exists $OPTIONS{$category}->{'STATUS_CLOSED'};
 
-        return %STATUS_CLOSED;
+        return \%STATUS_CLOSED;
     }
 
-    my %combined = (
-        %STATUS_CLOSED, %SAFETY_STATUS_CLOSED,
-        %JCMT_EVENTS_STATUS_CLOSED, %VEHICLE_INCIDENT_STATUS_CLOSED);
+    my %combined = %STATUS_CLOSED;
+    foreach my $cat (keys %OPTIONS) {
+        %combined = (%combined, %{$OPTIONS{$cat}->{'STATUS_CLOSED'}})
+            if exists $OPTIONS{$cat}->{'STATUS_CLOSED'};
+    }
 
-    return %combined;
+    return \%combined;
 }
 
 =item B<faultLocation>
 
 Return a hash containing locations which can be specified in faults.
 
-    %location = OMP::Fault->faultLocation($category, %options);
+    \%location = OMP::Fault->faultLocation($category, %options);
 
 Options:
 
@@ -1038,15 +1014,15 @@ sub faultLocation {
     $category = uc $category if defined $category;
     my %opt = @_;
 
-    return %LOCATION if $opt{'include_hidden'};
+    return \%LOCATION if $opt{'include_hidden'};
 
     my %non_hidden;
 
-    while (my ($name, $code) = each %LOCATION) {
-        $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
+    while (my ($code, $name) = each %LOCATION) {
+        $non_hidden{$code} = $name unless $LOCATION_HIDDEN{$code};
     }
 
-    return %non_hidden;
+    return \%non_hidden;
 }
 
 =item B<faultCanAssocProjects>
@@ -1174,6 +1150,20 @@ sub getCategoryName {
     my $self = shift;
     my $category = (ref $self) ? $self->category : uc shift;
     return $self->_getCategoryName($category, 0);
+}
+
+=item B<getCategoryAbbrName>
+
+Get the abbreviated name of the category.
+
+=cut
+
+sub getCategoryAbbrName {
+    my $self = shift;
+    my $category = (ref $self) ? $self->category : uc shift;
+    return (exists $OPTIONS{$category}{'CATEGORY_ABBR'})
+        ? $OPTIONS{$category}{'CATEGORY_ABBR'}
+        : $self->_getCategoryName($category, 0);
 }
 
 =item B<getCategoryFullName>
@@ -1330,8 +1320,8 @@ sub new {
         Type => TYPEOTHER,
         System => SYSTEMOTHER,
         Location => undef,
-        Urgency => $URGENCY{Normal},
-        Condition => $CONDITION{Normal},
+        Urgency => URGENCY_NORMAL(),
+        Condition => CONDITION_NORMAL(),
         Entity => undef,
         Category => undef,
         Responses => [],
@@ -1492,7 +1482,22 @@ A fault can not be modified using this method.
 
 sub typeText {
     my $self = shift;
-    return $INVERSE{$self->category}{TYPE}{$self->type};
+    return $OPTIONS{$self->category}{'TYPE'}{$self->type};
+}
+
+=item B<typeTextAbbr>
+
+Return the abbreviated of the current fault type.
+
+=cut
+
+sub typeTextAbbr {
+    my $self = shift;
+    my $type = $self->type;
+    return (exists $OPTIONS{$self->category}{'TYPE_ABBR'}
+            and exists $OPTIONS{$self->category}{'TYPE_ABBR'}{$type})
+        ? $OPTIONS{$self->category}{'TYPE_ABBR'}{$type}
+        : $OPTIONS{$self->category}{'TYPE'}{$type};
 }
 
 =item B<systemText>
@@ -1508,14 +1513,29 @@ sub systemText {
     my $self = shift;
 
     my $category = $self->category;
+    my $section = $self->_system_section($category);
 
-    return $INVERSE{$category}{'SEVERITY'}{$self->system}
-        if 'SAFETY' eq $category;
+    return $OPTIONS{$category}{$section}{$self->system};
+}
 
-    return $INVERSE{$category}{'VEHICLE'}{$self->system}
-        if 'VEHICLE_INCIDENT' eq $category;
+=item B<systemTextAbbr>
 
-    return $INVERSE{$category}{'SYSTEM'}{$self->system};
+Return the abbreviated description of the current fault system.
+
+=cut
+
+sub systemTextAbbr {
+    my $self = shift;
+
+    my $category = $self->category;
+    my $section = $self->_system_section($category);
+    my $abbr = $section . '_ABBR';
+    my $system = $self->system;
+
+    return (exists $OPTIONS{$category}{$abbr}
+            and exists $OPTIONS{$category}{$abbr}{$system})
+        ? $OPTIONS{$category}{$abbr}{$system}
+        : $OPTIONS{$category}{$section}{$system};
 }
 
 sub location {
@@ -1528,7 +1548,7 @@ sub location {
 
 sub locationText {
     my $self = shift;
-    return $INVERSE_PLACE{$self->location};
+    return $LOCATION{$self->location};
 }
 
 =item B<statusText>
@@ -1536,13 +1556,50 @@ sub locationText {
 Return the textual description of the current fault status.
 A fault can not be modified using this method.
 
-    $status = $fault->statusText();
+    $status = $fault->statusText(%options);
+
+Options include:
+
+=over 4
+
+=item include_new
+
+Return 'New' if C<isNew> returns true and the status is
+OPEN or WILL_BE_FIXED.  (We do not use C<isOpen> here so as
+not to hide other special status names, such as those in
+the safety category.)
+
+=back
 
 =cut
 
 sub statusText {
     my $self = shift;
-    return $INVERSE_STATUS{$self->status};
+    my %opts = @_;
+
+    my $status = $self->status;
+    my $category = $self->category;
+
+    if ($opts{'include_new'}) {
+        return 'New' if $self->isNew and scalar grep {
+            $status == $_
+        } (
+            OPEN(),
+            WILL_BE_FIXED(),
+        );
+    }
+
+    foreach my $name (qw/STATUS_OPEN STATUS_CLOSED/) {
+        return $OPTIONS{$category}->{$name}->{$status}
+            if exists $OPTIONS{$category}->{$name}
+            and exists $OPTIONS{$category}->{$name}->{$status};
+    }
+
+    foreach my $hash (\%STATUS_OPEN, \%STATUS_CLOSED) {
+        return $hash->{$status} if exists $hash->{$status};
+    }
+
+    return 'Unknown';
 }
 
 =item B<urgencyText>
@@ -1551,7 +1608,7 @@ sub statusText {
 
 sub urgencyText {
     my $self = shift;
-    return $INVERSE_URGENCY{$self->urgency};
+    return $URGENCY{$self->urgency};
 }
 
 =item B<conditionText>
@@ -1560,7 +1617,7 @@ sub urgencyText {
 
 sub conditionText {
     my $self = shift;
-    return $INVERSE_CONDITION{$self->condition};
+    return $CONDITION{$self->condition};
 }
 
 =item B<isUrgent>
@@ -1574,7 +1631,7 @@ True if the fault is urgent.
 sub isUrgent {
     my $self = shift;
     my $urgcode = $self->urgency;
-    return ($urgcode == $URGENCY{Urgent} ? 1 : 0);
+    return ($urgcode == URGENCY_URGENT() ? 1 : 0);
 }
 
 
@@ -1589,7 +1646,7 @@ True if the fault is chronic
 sub isChronic {
     my $self = shift;
     my $concode = $self->condition;
-    return ($concode == $CONDITION{Chronic} ? 1 : 0);
+    return ($concode == CONDITION_CHRONIC() ? 1 : 0);
 }
 
 =item B<isOpen>
@@ -1631,14 +1688,6 @@ sub isNew {
 
     $t -= 129600;  # 36 hours ago
     return ($date >= $t ? 1 : 0);
-}
-
-sub isSCUBA2Fault {
-    my ($self) = @_;
-
-    my $sys = $self->system();
-
-    return $sys && $sys == $DATA{'JCMT'}->{'SYSTEM'}{'SCUBA-2'};
 }
 
 =item B<subject>
@@ -2275,6 +2324,19 @@ sub stringify {
     }
 
     return $output;
+}
+
+# Get the key in %OPTIONS containing the system information.
+sub _system_section {
+    my $class = shift;
+    my $category = shift;
+
+    my %cat_section = (
+        SAFETY => 'SEVERITY',
+        VEHICLE_INCIDENT => 'VEHICLE',
+    );
+
+    return $cat_section{$category} // 'SYSTEM';
 }
 
 1;
