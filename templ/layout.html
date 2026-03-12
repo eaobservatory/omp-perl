@@ -72,6 +72,19 @@
                             </form>
                         </li>
                     [% END %]
+                    [% IF side_bar.options.exists('observation_id_panel') %]
+                        <li>&nbsp;</li>
+                        <li>
+                            <form method="get" action="/cgi-bin/staffworf.pl" enctype="multipart/form-data">
+                                Observation ID
+                                <input type="hidden" name="telescope" value="[% side_bar.options.observation_id_panel.telescope %]" />
+                                <br />
+                                <input type="text" name="obsid" size="12" maxlength="40" />
+                                <br />
+                                <input type="submit" name="" value="View observation" />
+                            </form>
+                        </li>
+                    [% END %]
                 </ul>
             [% END %]
         [% END %]
