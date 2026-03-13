@@ -13,14 +13,18 @@
         Order:
         <select name="order" class="submit_on_change">
             [% FOREACH order IN feedback.orders %]
-                <option [% IF order == feedback.selected_order %]selected="selected"[% END %] value="[% order %]">[% order %]</option>
+                <option [% IF order.0 == feedback.selected_order %]selected="selected"[% END %] value="[% order.0 %]">[% order.1 %]</option>
             [% END %]
         </select>
         &nbsp;&nbsp;&nbsp;
         Show:
         <select name="status" class="submit_on_change">
             [% FOREACH status IN feedback.statuses %]
-                <option [% IF feedback.selected_status.defined ? (status.0 == feedback.selected_status) : loop.first %] selected="selected"[% END %] value="[% status.0 %]">[% status.1 %]</option>
+                <option [% IF status.0 == feedback.selected_status %] selected="selected"[% END %] value="status:[% status.0 %]">[% status.1 %]</option>
+            [% END %]
+            <hr />
+            [% FOREACH type IN feedback.types %]
+                <option [% IF type.0 == feedback.selected_type %] selected="selected"[% END %] value="type:[% type.0 %]">[% type.1 %]</option>
             [% END %]
         </select>
         &nbsp;&nbsp;

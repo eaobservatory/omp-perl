@@ -25,6 +25,7 @@ use Carp;
 use OMP::Constants qw/:fb/;
 use OMP::Error qw/:try/;
 use OMP::DB::Feedback;
+use OMP::Info::Comment;
 use OMP::NetTools;
 
 use base qw/OMP::CGIComponent/;
@@ -47,36 +48,47 @@ sub fb_entries {
 
     my $q = $self->cgi;
 
-    my $status = [OMP__FB_IMPORTANT];
+    my $selected_order = (scalar $q->param('order')) // 'ascending';
 
-    my $selected_status = $q->param("status");
-    if (defined $selected_status) {
-        my %status;
-        $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
-        $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
-        $status{&OMP__FB_SUPPORT} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT];
-        $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
+    # Split the combined "status" parameter into status and type.
+    my $status_type = $q->param('status');
+    my $selected_status = ($status_type =~ /^status:(\d+)$/aa) ? $1 : undef;
+    my $selected_type = ($status_type =~ /^type:(\d+)$/aa) ? $1 : undef;
 
-        $status = $status{$selected_status};
+    my %options = (
+        order => $selected_order,
+    );
+
+    if (defined $selected_type) {
+        # In principle we should constrain "status" here to exclude
+        # OMP__FB_DELETE, but it appears this value has never been used.
+        $options{'msgtype'} = $selected_type;
+        $options{'status'} = undef;  # Remove 'getComments' default constraint.
+    }
+    else {
+        # Status values are listed in descending priority order, so go through
+        # the list, accumulating status values to include, until we find that specified.
+        my @status;
+        foreach my $info (@{OMP::Info::Comment->get_fb_status_options}) {
+            push @status, $info->[0];
+            last if (not defined $selected_status)
+                or ($selected_status == $info->[0]);
+        }
+        $options{'status'} = \@status;
     }
 
-    my $order = (scalar $q->param("order")) // 'ascending';
-
     my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->database);
-    my $comments = $fdb->getComments(status => $status, order => $order);
+    my $comments = $fdb->getComments(%options);
 
     return {
         comments => $comments,
-        orders => [qw/ascending descending/],
-        statuses => [
-            [OMP__FB_IMPORTANT() => 'important'],
-            [OMP__FB_INFO() => 'info'],
-            [OMP__FB_SUPPORT() => 'support'],
-            [OMP__FB_HIDDEN() => 'hidden'],
-        ],
+        orders => [map {[(lc $_) => $_]} qw/Ascending Descending/],
+        statuses => OMP::Info::Comment->get_fb_status_options,
+        types => OMP::Info::Comment->get_fb_type_options,
+        selected_order => $selected_order,
         selected_status => $selected_status,
-        selected_order => $order,
-        };
+        selected_type => $selected_type,
+    };
 }
 
 =item B<submit_fb_comment>
