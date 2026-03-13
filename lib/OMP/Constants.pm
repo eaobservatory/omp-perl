@@ -294,7 +294,7 @@ has been enabled.
 
 =cut
 
-use constant OMP__FB_MSG_PROJECT_ENABLED => 77;
+use constant OMP__FB_MSG_PROJECT_ENABLED => 78;
 
 =item B<OMP__FB_MSG_SP_DELETED>
 
