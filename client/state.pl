@@ -103,7 +103,7 @@ if ($enable and $disable) {
 # Connect to the database
 my $dbconnection = OMP::DB::Backend->new();
 
-OMP::Password->get_verified_auth($dbconnection, 'staff');
+my $auth = OMP::Password->get_verified_auth($dbconnection, 'staff');
 
 print "\n";
 
@@ -123,13 +123,13 @@ for my $id (split(',', $idstr)) {
             print "Enabling project " . $proj->projectid . "... ";
 
             # Set state to enabled
-            $projdb->enableProject();
+            $projdb->enableProject(author => $auth->user);
         }
         else {
             print "Disabling project " . $proj->projectid . "... ";
 
             # Set state to enabled
-            $projdb->disableProject();
+            $projdb->disableProject(author => $auth->user);
         }
 
         print "done.\n";

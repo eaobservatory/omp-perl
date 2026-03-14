@@ -254,6 +254,7 @@ state to 0 (disabled).
 
 sub disableProject {
     my $self = shift;
+    my %opt = @_;
 
     # First thing to do is to retrieve the table row
     # for this project
@@ -272,6 +273,7 @@ sub disableProject {
     # Notify the feedback system
     my $projectid = $self->projectid;
     $self->_notify_feedback_system(
+        author => $opt{'author'},
         subject => "[$projectid] Project disabled",
         text => "<p>Project <b>$projectid</b> disabled</p>",
         preformatted => 1,
@@ -294,6 +296,7 @@ setting the project state to 1 (enabled).
 
 sub enableProject {
     my $self = shift;
+    my %opt = @_;
 
     # First thing to do is to retrieve the table row
     # for this project
@@ -312,6 +315,7 @@ sub enableProject {
     # Notify the feedback system
     my $projectid = $self->projectid;
     $self->_notify_feedback_system(
+        author => $opt{'author'},
         subject => "[$projectid] Project enabled",
         text => "<p>Project <b>$projectid</b> enabled</p>",
         preformatted => 1,
