@@ -44,7 +44,7 @@ my @fb = qw/
     OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
     OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
     OMP__FB_MSG_PROJECT_ENABLED OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT
-    OMP__FB_MSG_MSB_UNREMOVED
+    OMP__FB_MSG_MSB_UNREMOVED OMP__FB_MSG_PROJECT_ALTERED
 /;
 
 my @done = qw/
@@ -162,6 +162,9 @@ use constant OMP__SPEMPTY => -11;
 
 This constant contains the definition of info feedback status.
 
+Info messages are mailed to the project PI.  (In the past this was
+used to notify of a new project password being issued.)
+
 =cut
 
 use constant OMP__FB_INFO => 1;
@@ -169,6 +172,8 @@ use constant OMP__FB_INFO => 1;
 =item B<OMP__FB_IMPORTANT>
 
 This constant contains the definition of important feedback status.
+
+Important messages are mailed to all project contacts.
 
 =cut
 
@@ -193,6 +198,9 @@ use constant OMP__FB_DELETE => -1;
 =item B<OMP__FB_SUPPORT>
 
 This constant contatins the definition of a support feedback status.
+
+Support messages are emailed to the project support scientists.
+(This is used to notify of data download requests.)
 
 =cut
 
@@ -358,6 +366,15 @@ has been removed.
 =cut
 
 use constant OMP__FB_MSG_MSB_UNREMOVED => 80;
+
+=item B<OMP__FB_MSG_PROJECT_ALTERED>
+
+This constant contains the definition of a feedback comment informing users that a project
+has been altered.
+
+=cut
+
+use constant OMP__FB_MSG_PROJECT_ALTERED => 81;
 
 =back
 

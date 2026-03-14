@@ -108,6 +108,9 @@ my @DATA_FB_TYPE = (
     [OMP__FB_MSG_PROJECT_DISABLED(), {
         name => 'Project disabled',
     }],
+    [OMP__FB_MSG_PROJECT_ALTERED(), {
+        name => 'Project altered',
+    }],
     [OMP__FB_MSG_SP_DELETED(), {
         name => 'Program deleted',
     }],

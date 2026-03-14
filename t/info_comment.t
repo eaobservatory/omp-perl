@@ -49,6 +49,7 @@ is_deeply(OMP::Info::Comment->get_fb_type_options, [
     [68, 'Password issued'],
     [78, 'Project enabled'],
     [77, 'Project disabled'],
+    [81, 'Project altered'],
     [73, 'Program deleted'],
     [69, 'Program retrieved'],
     [70, 'Program submitted'],
