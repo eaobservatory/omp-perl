@@ -842,7 +842,7 @@ sub doneMSB {
                 shifttype => $shifttype,
             );
 
-            $acctdb->incPending($acct);
+            $acctdb->incPending($acct, $author);
             OMP::General->log_message("Incremented time on project");
         }
     }

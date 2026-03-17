@@ -277,7 +277,7 @@ if ($DEBUG) {
 unless ($DEBUG) {
     # Store time accounts
     my $acctdb = OMP::DB::TimeAcct->new(DB => $dbconnection);
-    $acctdb->setTimeSpent(@taccts);
+    $acctdb->setTimeSpent($auth->user, @taccts);
 
     print "Stored time accounts.\n";
 
