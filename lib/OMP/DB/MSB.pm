@@ -998,6 +998,8 @@ sub undoMSB {
                 . "observations for MSB with checksum"
                 . " $checksum",
             msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
+            status => OMP__FB_HIDDEN,
+            author => $comment->author,
         );
     }
 
@@ -1046,6 +1048,8 @@ sub unremoveMSB {
                 . "observations for MSB with checksum"
                 . " $checksum",
             msgtype => OMP__FB_MSG_MSB_UNREMOVED,
+            status => OMP__FB_HIDDEN,
+            author => $comment->author,
         );
     }
 
@@ -1060,7 +1064,7 @@ Mark the specified MSB as having been completely observed. The number
 of repeats remaining is set to the magic value indicating it has
 been removed (see C<OMP::MSB::REMOVED>).
 
-    $db->doneMSB($checksum);
+    $db->doneMSB($checksum, %opts);
 
 The MSB is located using the Project identifier (stored in the object)
 and the checksum.  If an MSB can not be located it is likely that the
@@ -1077,14 +1081,30 @@ with observing.
 Invokes the C<hasBeenCompletelyObserved> method on the relevant MSB
 object.
 
+Options:
+
+=over 4
+
+=item user
+
+C<OMP::User> object representing person performing this action.
+
+=back
+
 =cut
 
 sub alldoneMSB {
     my $self = shift;
     my $checksum = shift;
+    my %args = @_;
+
+    my $user = (exists $args{'user'}) ? $args{'user'} : undef;
+    throw OMP::Error::BadArgs('alldoneMSB: user must be OMP::User instance')
+        if (defined $user) and not eval {$user->isa('OMP::User')};
 
     my $comment = OMP::Info::Comment->new(
         text => 'MSB removed from consideration',
+        author => $user,
         status => OMP__DONE_REMOVED);
 
     # Connect to the DB (and lock it out)
@@ -1107,6 +1127,8 @@ sub alldoneMSB {
             subject => "MSB All Observed",
             text => "Marked MSB with checksum" . " $checksum as completely done",
             msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
+            status => OMP__FB_HIDDEN,
+            author => $user,
         );
     }
 

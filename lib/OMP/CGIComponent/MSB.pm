@@ -158,7 +158,10 @@ sub msb_action {
         try {
             my $checksum = $q->param('checksum');
 
-            $msbdb->alldoneMSB($checksum);
+            $msbdb->alldoneMSB(
+                $checksum,
+                user => $self->auth->user,
+            );
 
             push @messages, "MSB removed from consideration.";
         }
@@ -181,6 +184,7 @@ sub msb_action {
 
             # Prepare comment object.
             my $comment = OMP::Info::Comment->new(
+                author => $self->auth->user,
                 text => "MSB done status reversed.",
                 status => OMP__DONE_UNDONE,
                 tid => (scalar $q->param('transaction')),
@@ -208,6 +212,7 @@ sub msb_action {
             my $checksum = $q->param('checksum');
 
             my $comment = OMP::Info::Comment->new(
+                author => $self->auth->user,
                 text => "MSB removed status reversed.",
                 status => OMP__DONE_UNREMOVED,
             );
