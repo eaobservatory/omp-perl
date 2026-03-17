@@ -1045,10 +1045,10 @@ sub add_fb_comment {
     $fdb->addComment(
         {
             subject => "Data requested",
-            author => undef,
+            author => $user,
             program => $0,
             sourceinfo => $host,
-            status => OMP__FB_SUPPORT,
+            status => OMP__FB_HIDDEN,
             text => "<p>Data have been requested $userinfo for project $projectid from UT $utstr</p><p>Project PI: $pi $text</p>",
             preformatted => 1,
             msgtype => OMP__FB_MSG_DATA_REQUESTED,
