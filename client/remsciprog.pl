@@ -71,7 +71,7 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 my $dbb = OMP::DB::Backend->new();
-OMP::Password->get_verified_auth($dbb, 'staff');
+my $auth = OMP::Password->get_verified_auth($dbb, 'staff');
 
 # Ask for the project id
 my $term = Term::ReadLine->new('Rem Sci Prog');
@@ -92,7 +92,7 @@ print join("\n", $sp->summary), "\n";
 my $confirm = $term->readline('Confirm removal? [y/n] ');
 
 if ($confirm =~ /^[yY]/) {
-    $db->removeSciProg();
+    $db->removeSciProg(user => $auth->user);
 }
 else {
     print "Removal aborted\n";

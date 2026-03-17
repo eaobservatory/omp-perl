@@ -224,6 +224,10 @@ sub storeSciProg {
     return undef unless exists $args{SciProg};
     return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
+    my $user = (exists $args{'User'}) ? $args{'User'} : undef;
+    throw OMP::Error::BadArgs('storeSciProg: User must be OMP::User instance')
+        if (defined $user) and not eval {$user->isa('OMP::User')};
+
     # Verify constraints since it is much better to tell people on submission
     # than to spend hours debugging query problems.  Do not perform this check
     # if the "NoConstraintCheck" option is given.
@@ -253,7 +257,7 @@ sub storeSciProg {
         $args{FreezeTimeStamp},
         $args{Force},
         $args{NoCache},
-        ((exists $args{'User'}) ? $args{'User'} : undef))
+        $user)
         or throw OMP::Error::SpStoreFail(
         "Error storing science program into database\n");
 
@@ -276,19 +280,14 @@ sub storeSciProg {
 
     # And file with feedback system unless told otherwise
     unless ($args{NoFeedback}) {
-        # Add a little note indicating the user name if given.
-        my $note = (exists $args{'User'})
-            ? ('[by user ' . $args{'User'}->userid . ']')
-            : '';
-
         $self->_notify_feedback_system(
             subject => "Science program submitted",
-            text => "<p>Science program submitted for project <b>"
-                . $self->projectid
-                . "</b> $note\n</p>",
-            preformatted => 1,
+            text => "Science program submitted for project "
+                . $self->projectid,
+            preformatted => 0,
             status => OMP__FB_HIDDEN,
             msgtype => OMP__FB_MSG_SP_SUBMITTED,
+            author => $user,
         );
     }
 
@@ -344,11 +343,11 @@ sub fetchSciProg {
 
     my $sp = $self->_really_fetch_sciprog(raw => $opt{'raw'});
 
-    my $note = (exists $opt{'user'})
-        ? ('[by user ' . $opt{'user'}->userid . ']')
-        : undef;
+    my $user = (exists $opt{'user'}) ? $opt{'user'} : undef;
+    throw OMP::Error::BadArgs('fetchSciProg: User must be OMP::User instance')
+        if (defined $user) and not eval {$user->isa('OMP::User')};
 
-    $self->_clear_counter_add_feedback_post_fetch($sp, $note)
+    $self->_clear_counter_add_feedback_post_fetch($sp, $user)
         unless $internal
         or $opt{'raw'};
 
@@ -359,14 +358,27 @@ sub fetchSciProg {
 
 Remove the science program from the database.
 
-    $db->removeSciProg();
+    $db->removeSciProg(%opts);
 
-Hopefully this is intentional.
+Options:
+
+=over 4
+
+=item user
+
+C<OMP::User> object representing person performing this action.
+
+=back
 
 =cut
 
 sub removeSciProg {
     my $self = shift;
+    my %args = @_;
+
+    my $user = (exists $args{'user'}) ? $args{'user'} : undef;
+    throw OMP::Error::BadArgs('removeSciProg: user must be OMP::User instance')
+        if (defined $user) and not eval {$user->isa('OMP::User')};
 
     # Before we do anything else we connect to the database
     # begin a transaction and lock out the tables.
@@ -385,11 +397,13 @@ sub removeSciProg {
 
     $self->_notify_feedback_system(
         subject => "Science program deleted",
-        text => "<p>Science program for project <b>"
+        text => "Science program for project "
             . $self->projectid
-            . "</b> deleted</p>",
-        preformatted => 1,
+            . " deleted",
+        preformatted => 0,
         msgtype => OMP__FB_MSG_SP_DELETED,
+        status => OMP__FB_HIDDEN,
+        author => $user,
     );
 
     OMP::General->log_message(
@@ -1873,12 +1887,12 @@ science program is fetched for non-internal use (as in C<fetchSciProg>).
 
     $db->_clear_counter_add_feedback_post_fetch($sciprog);
 
-It takes an optional string argument to append to feedback.
+It takes an optional C<OMP::User> argument to use as feedback author.
 
 =cut
 
 sub _clear_counter_add_feedback_post_fetch {
-    my ($self, $sciprog, $note) = @_;
+    my ($self, $sciprog, $user) = @_;
 
     # remove any obs labels here since the OT does not use them
     # and it is best that they are regenerated on submission
@@ -1890,14 +1904,14 @@ sub _clear_counter_add_feedback_post_fetch {
         $msb->_clear_obs_counter;
     }
 
-    $note = '' unless defined $note;
     $self->_notify_feedback_system(
         subject => "Science program retrieved",
-        text => "<p>Science program retrieved for project <b>"
-            . $self->projectid
-            . "</b> $note</p>",
-        preformatted => 1,
+        text => "Science program retrieved for project "
+            . $self->projectid,
+        preformatted => 0,
+        status => OMP__FB_HIDDEN,
         msgtype => OMP__FB_MSG_SP_RETRIEVED,
+        author => $user,
     );
 
     return;
