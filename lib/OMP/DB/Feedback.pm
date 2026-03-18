@@ -429,7 +429,10 @@ sub _mail_comment {
         ? (sprintf '[%s] %s', $projectid, $comment->{'subject'})
         : $comment->{'subject'};
 
-    my $from = defined $comment->{'author'}
+    # Only send "from" the author if this is a "comment", otherwise send
+    # from the OMP itself.
+    my $from = (($comment->{'msgtype'} == OMP__FB_MSG_COMMENT())
+            and (defined $comment->{'author'}))
         ? $comment->{'author'}
         : OMP::User->get_flex();
 
