@@ -1013,16 +1013,15 @@ have been packaged.
 
     $pkg->add_fb_comment(undef, $user);
 
-An optional argument can be used to supply additional text.
+An optional argument can be used to supply the download method.
 
-    $pkg->add_fb_comment("(via CADC)", $user);
+    $pkg->add_fb_comment('via CADC', $user);
 
 =cut
 
 sub add_fb_comment {
     my $self = shift;
     my $text = shift;
-    $text = '' unless defined $text;
     my $user = shift;
 
     my $projectid = $self->projectid();
@@ -1037,10 +1036,6 @@ sub add_fb_comment {
 
     my $userinfo = (defined $user) ? ('by ' . $user->name) : '';
 
-    # Get project PI name for inclusion in feedback message
-    my $project = OMP::DB::Project->new(DB => $self->db, ProjectID => $projectid)->projectDetails();
-    my $pi = $project->pi;
-
     my $fdb = OMP::DB::Feedback->new(ProjectID => $projectid, DB => $self->db);
     $fdb->addComment(
         {
@@ -1049,8 +1044,11 @@ sub add_fb_comment {
             program => $0,
             sourceinfo => $host,
             status => OMP__FB_HIDDEN,
-            text => "<p>Data have been requested $userinfo for project $projectid from UT $utstr</p><p>Project PI: $pi $text</p>",
-            preformatted => 1,
+            text => (join "\n",
+                "Data have been requested $userinfo for project $projectid",
+                "UT date: $utstr" . ((defined $text) ? " ($text)" : ""),
+            ),
+            preformatted => 0,
             msgtype => OMP__FB_MSG_DATA_REQUESTED,
         });
 }
