@@ -560,7 +560,7 @@ sub store_time_accounting {
 
     unless (scalar @errors) {
         my $db = OMP::DB::TimeAcct->new(DB => $self->database);
-        $db->setTimeSpent(@acct);
+        $db->setTimeSpent($self->auth->user, @acct);
 
         # Include the skipped entries in the night report.
         push @acct, @skipped;

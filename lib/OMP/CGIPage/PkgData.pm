@@ -200,7 +200,7 @@ sub _package_data_cadc {
 
     # Write a feedback message even though we can not be sure the person
     # will click on the link
-    $pkg->add_fb_comment("(via CADC)", $self->auth->user);
+    $pkg->add_fb_comment('via CADC', $self->auth->user);
 
     # Get the obsGrp
     my $obsgrp = $pkg->obsGrp;

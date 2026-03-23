@@ -5,6 +5,7 @@ $(document).ready(function () {
 
         var tableid = filter.data('table');
         var table = $('table#' + tableid);
+        var table_body = table.find('tbody').first();
 
         var parameter = filter.data('parameter');
 
@@ -17,7 +18,7 @@ $(document).ready(function () {
                 }
             });
 
-            table.find('tr').each(function () {
+            table_body.find('tr').each(function () {
                 var row = $(this);
                 var parameters = row.data(parameter);
                 if (parameters !== undefined) {

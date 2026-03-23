@@ -60,19 +60,23 @@
         <label><input type="checkbox" data-capacity="support" checked="checked">Support</label>
     </p>
 
-    <table class="bordered" id="project_capacity">
+    <table class="bordered sortable" id="project_capacity">
+        <thead>
         <tr>
-            <th>Project</th>
-            <th>Email</th>
-            <th>OMP<br />access</th>
-            <th>Capacity</th>
-            <th>Support</th>
-            <th>Title</th>
+            <th class="sortable" data-sortkey="id">Project</th>
+            <th class="sortable sortreverse" data-sortkey="email">Email</th>
+            <th class="sortable sortreverse" data-sortkey="access">OMP<br />access</th>
+            <th class="sortable sortreverse" data-sortkey="capacity">Capacity</th>
+            <th class="sortable sortreverse" data-sortkey="support">Support</th>
+            <th class="sortable" data-sortkey="title">Title</th>
         </tr>
+        </thead>
+        <tbody>
         [% FOREACH project_info = project_capacities %]
             [% SET project = project_info.project %]
             [% SET capacity = project_info.capacity %]
-            <tr data-capacity="[% capacity.json | html %]">
+            [% sortinfo = {id => project.projectid, email => (project.contactable(user.userid) ? 1 : 0), access => (project.omp_access(user.userid) ? 1 : 0), capacity => (capacity.pi ? 2 : (capacity.coi ? 1 : 0)), support => (capacity.support ? 1 : 0), title => project.title} %]
+            <tr data-capacity="[% capacity.json | html %]" data-sortinfo="[% sortinfo.json | html %]">
                 <td><a href="/cgi-bin/projecthome.pl?project=[% project.projectid | uri %]">[% project.projectid | html %]</a></td>
                 <td align="center"><a href="/cgi-bin/projusers.pl?project=[% project.projectid | uri %]">
                     [% IF project.contactable(user.userid) %]
@@ -95,6 +99,7 @@
                 </td>
             </tr>
         [% END %]
+        </tbody>
     </table>
 [% END %]
 
@@ -105,22 +110,27 @@
         User-associated faults for the past 2 weeks:
     </p>
 
-    <table class="bordered">
+    <table class="bordered sortable">
+        <thead>
         <tr>
-            <th>Fault ID</th>
-            <th>Category</th>
-            <th>Subject</th>
+            <th class="sortable" data-sortkey="id">Fault ID</th>
+            <th class="sortable" data-sortkey="category">Category</th>
+            <th class="sortable" data-sortkey="subject">Subject</th>
         </tr>
+        </thead>
+        <tbody>
         [% FOREACH category = faults.keys.sort %]
             [% SET category_faults = faults.$category %]
             [% FOREACH fault = category_faults %]
-                <tr>
+                [% sortinfo = {category => fault.getCategoryName, id => fault.faultid, subject => fault.subject} %]
+                <tr data-sortinfo="[% sortinfo.json | html %]">
                     <td><a href="/cgi-bin/viewfault.pl?fault=[% fault.faultid | uri %]">[% fault.faultid | html %]</a></td>
-                    <td>[% category %]</td>
+                    <td>[% fault.getCategoryAbbrName %]</td>
                     <td>[% fault.subject | abbr_html(60) %]</td>
                 </tr>
             [% END %]
         [% END %]
+        </tbody>
     </table>
 [% END %]
 [% END %]

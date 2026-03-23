@@ -11,7 +11,7 @@ use OMP::DB::Project;
 use OMP::Password;
 
 my $dbb = OMP::DB::Backend->new;
-OMP::Password->get_verified_auth($dbb, 'staff');
+my $auth = OMP::Password->get_verified_auth($dbb, 'staff');
 
 # Connect to the database and create a proj db object
 my $db = OMP::DB::Project->new(DB => $dbb);
@@ -25,5 +25,5 @@ while (<>) {
     next unless length($line) > 0;
 
     $db->projectid($line);
-    $db->disableProject();
+    $db->disableProject(author => $auth->user);
 }

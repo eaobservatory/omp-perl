@@ -9,7 +9,7 @@ OMP::DB::TimeAcct - Manipulate the time accounting database
     $acctdb = OMP::DB::TimeAcct->new(DB => $dbconnection);
 
     @time = $acctdb->getTimeSpent();
-    $acctdb->setTimeSpent(@time);
+    $acctdb->setTimeSpent($user, @time);
 
 =head1 DESCRIPTION
 
@@ -174,8 +174,10 @@ sub queryTimeSpent {
 
 Takes a list of C<OMP::Project::TimeAcct> objects and
 inserts the relevant information into the database.
+The first argument should be an C<OMP::User> instance
+representing the person confirming the time allocation.
 
-    $db->setTimeSpent(@acct);
+    $db->setTimeSpent($user, @acct);
 
 Recalculates the total time spent on a project and updates
 the project table. Also sends a message to the feedback system.
@@ -184,7 +186,12 @@ the project table. Also sends a message to the feedback system.
 
 sub setTimeSpent {
     my $self = shift;
+    my $user = shift;
     my @acct = @_;
+
+    throw OMP::Error::BadArgs('setTimeSpent first argument must be an OMP::User')
+        if (defined $user)
+        and not UNIVERSAL::isa($user, 'OMP::User');
 
     # Connect to the DB (and lock it out)
     $self->_db_begin_trans;
@@ -245,19 +252,19 @@ sub setTimeSpent {
                     && $project->{$ut}{pending} > 0) {
                 # pending
                 my $time = $project->{$ut}{'pending'};
-                $subject = "[$projectid] Adjust time awaiting confirmation for UT $ut";
+                $subject = "Adjust time awaiting confirmation for UT $ut";
                 $text = "The amount of time awaiting confirmation for UT $ut is now $time seconds";
             }
             elsif (exists $project->{$ut}{confirmed}
                     && $project->{$ut}{confirmed} > 0) {
                 # confirmed
                 my $time = $project->{$ut}{'confirmed'};
-                $subject = "[$projectid] Time spent on project $projectid now confirmed for UT $ut";
+                $subject = "Time spent on project $projectid now confirmed for UT $ut";
                 $text = "Confirmed that $time seconds was assigned to project $projectid for UT date $ut";
             }
             else {
                 # both zero
-                $subject = "[$projectid] No time spent on project for UT $ut";
+                $subject = "No time spent on project for UT $ut";
                 $text = "The time assigned to project $projectid for UT date $ut has been reset to zero seconds";
             }
 
@@ -265,6 +272,7 @@ sub setTimeSpent {
                 subject => $subject,
                 text => $text,
                 msgtype => OMP__FB_MSG_TIME_ADJUST_CONFIRM,
+                author => $user,
             );
         }
     }
@@ -285,6 +293,7 @@ C<OMP::Project::TimeAcct> object.
 sub incPending {
     my $self = shift;
     my $pending = shift;
+    my $user = shift;
 
     # Connect to the DB (and lock it out)
     $self->_db_begin_trans;
@@ -303,7 +312,7 @@ sub incPending {
 
     # and store it [this method does the locking but we need to
     # make sure we do not get out of sync]
-    $self->setTimeSpent($pending);
+    $self->setTimeSpent($user, $pending);
 
     # Disconnect
     $self->_dbunlock;

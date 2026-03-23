@@ -82,7 +82,10 @@ sub display_page {
         $worfimage = "fbworfimage.pl?project=${projectid}&telescope=${telescope}&ut=${utdate_ymd}&";
     }
     else {
-        $self->_sidebar_night($telescope, $utdate);
+        $self->_sidebar_night(
+            $telescope, $utdate, observation_id_panel => {
+                telescope => $telescope,
+            });
 
         $worfimage = "staffworfimage.pl?telescope=${telescope}&ut=${utdate_ymd}&";
     }

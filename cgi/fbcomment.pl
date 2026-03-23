@@ -20,4 +20,5 @@ OMP::CGIPage::Feedback->new(cgi => CGI->new())->write_page(
     'project',
     title => 'Add comment',
     template => 'project_comment.html',
+    javascript => ['form_submit_timeout.js'],
 );

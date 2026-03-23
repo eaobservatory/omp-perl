@@ -35,6 +35,7 @@ use warnings;
 use strict;
 use Carp;
 
+use OMP::Constants qw/:fb/;
 use OMP::Display;
 use OMP::Error;
 use Time::Piece qw/:override/;
@@ -45,6 +46,88 @@ use base qw/OMP::Info/;
 
 # Overloading
 use overload '""' => "stringify";
+
+# Feedback message status, in descending priority order.
+# (Excluding OMP__FB_DELETE.)
+my @DATA_FB_STATUS = (
+    [OMP__FB_IMPORTANT(), {
+        name => 'Important',
+    }],
+    [OMP__FB_INFO(), {
+        name => 'Info',
+    }],
+    [OMP__FB_SUPPORT(), {
+        name => 'Support',
+    }],
+    [OMP__FB_HIDDEN(), {
+        name => 'Hidden',
+    }],
+);
+
+# Feedback message types.
+my @DATA_FB_TYPE = (
+    [OMP__FB_MSG_COMMENT(), {
+        name => 'Comment',
+    }],
+#   [OMP__FB_MSG_DATA_OBTAINED(), {
+#       # Never used?
+#       name => 'Data obtained',
+#   }],
+    [OMP__FB_MSG_DATA_REQUESTED(), {
+        name => 'Data requested',
+    }],
+    [OMP__FB_MSG_FIRST_ACCEPTED_MSB_ON_NIGHT(), {
+        name => 'First MSB of night accepted',
+    }],
+    [OMP__FB_MSG_MSB_OBSERVED(), {
+        name => 'MSB observed',
+    }],
+    [OMP__FB_MSG_MSB_UNOBSERVED(), {
+        name => 'MSB undone',
+    }],
+    [OMP__FB_MSG_MSB_ALL_OBSERVED(), {
+        name => 'MSB removed',
+    }],
+    [OMP__FB_MSG_MSB_UNREMOVED(), {
+        name => 'MSB unremoved',
+    }],
+#   [OMP__FB_MSG_MSB_SUMMARY(), {
+#       # Never used?
+#       name => 'MSB summary',
+#   }],
+    [OMP__FB_MSG_MSB_SUSPENDED(), {
+        # (Not used for JCMT)
+        name => 'MSB suspended',
+    }],
+    [OMP__FB_MSG_PASSWD_ISSUED(), {
+        name => 'Password issued',
+    }],
+    [OMP__FB_MSG_PROJECT_ENABLED(), {
+        name => 'Project enabled',
+    }],
+    [OMP__FB_MSG_PROJECT_DISABLED(), {
+        name => 'Project disabled',
+    }],
+    [OMP__FB_MSG_PROJECT_ALTERED(), {
+        name => 'Project altered',
+    }],
+    [OMP__FB_MSG_SP_DELETED(), {
+        name => 'Program deleted',
+    }],
+    [OMP__FB_MSG_SP_RETRIEVED(), {
+        name => 'Program retrieved',
+    }],
+    [OMP__FB_MSG_SP_SUBMITTED(), {
+        name => 'Program submitted',
+    }],
+    [OMP__FB_MSG_TIME_ADJUST_CONFIRM(), {
+        name => 'Time adjusted',
+    }],
+#   [OMP__FB_MSG_TIME_NONE_SPENT(), {
+#       # Never used?
+#       name => 'No time spent',
+#   }],
+);
 
 =head1 METHODS
 
@@ -172,6 +255,40 @@ sub date {
     return $self->_date;
 }
 
+=item B<typeText>
+
+Get description of the type of this message, or of the given type number.
+
+=cut
+
+sub typeText {
+    my $self = shift;
+    my $type = (ref $self) ? $self->type : (@_ ? shift : undef);
+
+    foreach (@DATA_FB_TYPE) {
+        return $_->[1]->{'name'} if $_->[0] == $type;
+    }
+
+    return undef;
+}
+
+=item B<statusText>
+
+Get description of the status of this message, or of the given status number.
+
+=cut
+
+sub statusText {
+    my $self = shift;
+    my $status = (ref $self) ? $self->status : (@_ ? shift : undef);
+
+    foreach (@DATA_FB_STATUS) {
+        return $_->[1]->{'name'} if $_->[0] == $status;
+    }
+
+    return undef;
+}
+
 =back
 
 =head2 General Methods
@@ -244,6 +361,42 @@ sub summary {
     else {
         throw OMP::Error::FatalError("Unknown format: $format");
     }
+}
+
+=back
+
+=head2 Class Methods
+
+=over 4
+
+=item B<get_fb_status_options>
+
+Get an array of pairs of feedback status value and label, in priority order.
+
+=cut
+
+sub get_fb_status_options {
+    my $class = shift;
+    my %opt = @_;
+
+    return [map {
+        [$_->[0], $_->[1]->{'name'}]
+    } @DATA_FB_STATUS];
+}
+
+=item B<get_fb_type_options>
+
+Get an array of pairs of feedback message type value and label, in order.
+
+=cut
+
+sub get_fb_type_options {
+    my $class = shift;
+    my %opt = @_;
+
+    return [map {
+        [$_->[0], $_->[1]->{'name'}]
+    } @DATA_FB_TYPE];
 }
 
 1;
