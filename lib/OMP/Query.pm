@@ -36,9 +36,6 @@ use Time::Seconds;
 
 our $VERSION = '2.000';
 
-# Default number of results to return from a query
-our $DEFAULT_RESULT_COUNT = 500;
-
 # Hash of column names which are also MySQL reserved words - these must
 # be quoted in SQL queries.
 our %RESERVED_WORDS = map {$_ => 1} qw/condition group/;
@@ -102,6 +99,7 @@ sub new {
         QHash => {},
         Constraints => undef,
         GivenHash => $givenhash,
+        MaxCount => undef,
     };
 
     # and create the object
@@ -125,14 +123,18 @@ are deemed to be private and do not form part of the publi interface.
 =item B<maxCount>
 
 Return (or set) the maximum number of rows that are to be returned
-by the query. In general this number must be used after the SQL
-query has been executed.
+by the query.  This constraint is only in effect if implemented by
+the C<OMP::DB> class performing the query.  In can be applied
+after the SQL query has been executed or included in the SQL itself.
 
     $max = $query->maxCount;
     $query->maxCount($max);
 
-If the value is undefined or negative all results are returned. If the
-supplied value is zero a default value is used instead.
+If the value is negative all results are returned. If the
+supplied value is undefined or zero a default value is used instead,
+if defined by a subclass C<_defaultMaxCount> method.
+
+Returns C<undef> for no limit, otherwise maximum number of results.
 
 =cut
 
@@ -140,17 +142,24 @@ sub maxCount {
     my $self = shift;
     if (@_) {
         my $max = shift;
-        if (defined $max and $max >= 0) {
-            $self->{MaxCount} = $max;
-        }
+        $self->{'MaxCount'} = $max;
     }
-    my $current = $self->{MaxCount};
+
+    my $current = $self->{'MaxCount'};
+
     if (! defined $current || $current == 0) {
-        return $DEFAULT_RESULT_COUNT;
+        return $self->_defaultMaxCount;
     }
-    else {
-        return $current;
+    elsif ($current < 0) {
+        return undef;
     }
+
+    return $current;
+}
+
+# Default number of results to return from a query
+sub _defaultMaxCount {
+    return undef;
 }
 
 =item B<_parser>

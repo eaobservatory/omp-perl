@@ -832,6 +832,11 @@ sub _post_process_hash {
     delete $href->{_attr};
 }
 
+# Default number of results to return from a query
+sub _defaultMaxCount {
+    return 500;
+}
+
 1;
 
 __END__
