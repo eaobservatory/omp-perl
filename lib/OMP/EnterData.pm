@@ -32,6 +32,7 @@ use warnings;
 
 use Data::Dumper;
 use File::Basename;
+use File::Spec;
 use File::Temp;
 use List::MoreUtils qw/any all/;
 use List::Util qw/min max minstr maxstr/;
@@ -543,7 +544,14 @@ sub insert_observation {
             unless ($self->calc_radec($common_hdrs, $common_files)) {
                 $log->debug("problem while finding bounds");
 
-                $errors{'bounds'} = 1;
+                # Attempt to diagnose what the bound problem was, otherwise
+                # just say "bounds".  However note that bounds are calculated
+                # from the first subsystem, so this is the only one we inspect.
+                my $reason = 'bounds';
+
+                $reason = 'blank' if $self->all_data_blank($common_files);
+
+                $errors{$reason} = 1;
             }
         }
 
@@ -2067,6 +2075,37 @@ sub calc_radec {
 
     $headerref->{'obsra'}  = $result{'REFLON'};
     $headerref->{'obsdec'} = $result{'REFLAT'};
+
+    return 1;
+}
+
+# Determine whether all given files have blank data arrays.
+sub all_data_blank {
+    my ($self, $filenames) = @_;
+
+    my $log = Log::Log4perl->get_logger('');
+
+    my $kappa_dir = $ENV{'KAPPA_DIR'};
+    die 'KAPPA_DIR not set' unless defined $kappa_dir;
+    die 'KAPPA_DIR does not exist' unless -d $kappa_dir;
+    my $stats = File::Spec->catfile($kappa_dir, 'stats');
+
+    foreach my $file (@$filenames) {
+        $log->info(sprintf
+            "Checking stats for file %s",
+            $file);
+
+        my $values = try_star_command(
+            command => [
+                $stats,
+                (sprintf 'ndf=%s', $file),
+            ],
+            values => [qw/NUMGOOD/]);
+
+        if (defined $values) {
+            return 0 if $values->{'NUMGOOD'};
+        }
+    }
 
     return 1;
 }
