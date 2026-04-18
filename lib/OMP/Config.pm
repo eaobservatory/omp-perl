@@ -13,7 +13,7 @@ OMP::Config - parse and supply information from OMP configuration files
     $url = OMP::Config->getData('omp');
     $dbserver = OMP::Config->getData('database.server');
 
-    $datadir = OMP::Config->getdata(
+    $datadir = OMP::Config->getData(
         'datadir',
         telescope => 'JCMT',
         instrument => 'SCUBA',
@@ -321,7 +321,7 @@ sub getData {
 Retrieve the data associated with the first of the supplied keys
 which exists.
 
-    $value = OMP::Config->getDataSearch($key, $alternate_key);
+    $value = OMP::Config->getDataSearch(@keys);
 
 An exception is thrown if none of the keys given exist.
 
@@ -347,6 +347,57 @@ sub getDataSearch {
     throw OMP::Error::BadCfgKey(
         'None of the keys [' . (join ', ', @keys)
         . '] could be found in OMP config system');
+}
+
+=item B<getDataSearchSuffixes>
+
+Construct keys by adding zero or more of the given suffixes, in any order,
+separated by underscores, to the given base key, retrieving the value with
+the most specific (most suffixes) key.
+
+    $value = OMP::Config->getDataSearchSuffixes($base_key, @suffixes);
+
+An exception is thrown if no matching key can be found.  If multiple
+equally specific keys are present an arbitrary value may be returned.
+
+=cut
+
+sub getDataSearchSuffixes {
+    my $self = shift;
+    my $base_key = shift;
+    my @suffixes = @_;
+
+    return $self->getDataSearch(map {
+        join '_', $base_key, @$_
+    } @{_search_suffix_combinations(\@suffixes)});
+}
+
+sub _search_suffix_combinations {
+    my $suffixes = shift;
+    return [((-1 < $#$suffixes) ? (
+        map {@{_search_suffix_orders($_)}}
+        sort {$#$b <=> $#$a}
+        @{_search_suffix_subsets(0, $suffixes)}
+    ) : ()), []];
+}
+
+sub _search_suffix_subsets {
+    my $from = shift;
+    my $suffixes = shift;
+    return [$suffixes, (1 > $#$suffixes) ? () : map {
+        my @xs = @$suffixes;
+        my $x = splice @xs, $_, 1;
+        @{_search_suffix_subsets($_, \@xs)};
+    } reverse ($from .. $#$suffixes)];
+}
+
+sub _search_suffix_orders {
+    my $suffixes = shift;
+    return (1 > $#$suffixes) ? [$suffixes] : [map {
+        my @xs = @$suffixes;
+        my $x = splice @xs, $_, 1;
+        map {[$x, @$_]} @{_search_suffix_orders(\@xs)};
+    } (0 .. $#$suffixes)];
 }
 
 =item B<inferTelescope>
