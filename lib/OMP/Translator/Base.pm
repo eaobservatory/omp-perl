@@ -53,6 +53,7 @@ sub new {
     my $self = bless {
         debug => 0,
         verbose => 0,
+        config_suffixes => [],
     }, $class;
 
     return $self;
@@ -370,6 +371,31 @@ sub _fix_wplate_recurse {
     }
 
     return;
+}
+
+=item B<config_suffixes>
+
+List of configuration key suffixes.  To be applied when looking up
+certain parameters using C<OMP::Config-E<gt>getDataSearchSuffixes>.
+
+    $value = OMP::Config->getDataSearchSuffixes(
+        'section.key', $translator->config_suffixes);
+
+If called with one or more values, these are I<appended> to to
+current list of suffixes.
+
+    $translator->config_suffixes($instrument_name, $planet_name);
+
+=cut
+
+sub config_suffixes {
+    my $self = shift;
+
+    if (@_) {
+        push @{$self->{'config_suffixes'}}, @_;
+    }
+
+    return @{$self->{'config_suffixes'}};
 }
 
 1;
