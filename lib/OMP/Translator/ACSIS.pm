@@ -4384,20 +4384,11 @@ sub calc_jos_times {
     my $jos = shift;
     my %info = @_;
 
-    # Some parameters may be modified for specific named sources?
-    my $config_suffix = undef;
-    if ($info{'coords'}->type eq 'PLANET') {
-        $config_suffix = $info{'coords'}->planet();
-    }
-
     # N_CALSAMPLES depends entirely on the step time and the time from
     # the config file. Number of cal samples. This is hard-wired in
     # seconds but in units of STEP_TIME
-    my $caltime = OMP::Config->getDataSearch(
-        (defined $config_suffix
-            ? 'acsis_translator.cal_time_' . $config_suffix
-            : ()),
-        'acsis_translator.cal_time');
+    my $caltime = OMP::Config->getDataSearchSuffixes(
+        'acsis_translator.cal_time', $self->config_suffixes);
 
     # if caltime is less than step time (eg scan) we still need to do at
     # least 1 cal
@@ -4423,11 +4414,8 @@ sub calc_jos_times {
     }
     else {
         # Now specify the maximum time between cals in steps
-        $calgap = OMP::Config->getDataSearch(
-            (defined $config_suffix
-                ? 'acsis_translator.time_between_cal_' . $config_suffix
-                : ()),
-            'acsis_translator.time_between_cal');
+        $calgap = OMP::Config->getDataSearchSuffixes(
+            'acsis_translator.time_between_cal', $self->config_suffixes);
 
         # Now calculate the maximum time between refs in steps
         $refgap = OMP::Config->getData(

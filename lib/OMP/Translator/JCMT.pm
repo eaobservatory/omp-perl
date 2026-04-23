@@ -217,6 +217,11 @@ sub translate {
             next;
         }
 
+        # Set initial configuration key suffixes.
+        $self->set_config_suffixes($obs);
+        $self->output('Configuration suffixes: '
+            . (join ' ', $self->config_suffixes) . "\n");
+
         # We may want to know if we have just followed a particular
         # observation
         $obs->{prev_obs_type} = $prev_obs_type;

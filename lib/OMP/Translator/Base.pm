@@ -398,6 +398,26 @@ sub config_suffixes {
     return @{$self->{'config_suffixes'}};
 }
 
+=item B<set_config_suffixes>
+
+Add initial configuration key suffixes (using C<config_suffixes>)
+based on the given observation hashref.
+
+    $trans->set_config_suffixes(\%info);
+
+Subclasses should override to add extra information as needed.
+
+=cut
+
+sub set_config_suffixes {
+    my $self = shift;
+    my $info = shift;
+
+    if ($info->{'coords'}->type eq 'PLANET') {
+        $self->config_suffixes(lc $info->{'coords'}->planet());
+    }
+}
+
 1;
 
 __END__
