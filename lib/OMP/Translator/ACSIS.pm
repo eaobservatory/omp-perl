@@ -876,17 +876,17 @@ sub frontend_config {
 
             $sideband_flip = $iffreq;
 
-            my @if_freq_limit = ();
+            my $if_freq_limit = undef;
             try {
-                @if_freq_limit = OMP::Config->getData(
-                    'acsis_translator.if_freq_limit_' . $instrument_name);
+                $if_freq_limit = OMP::Config->getDataSearchSuffixes(
+                    'acsis_translator.if_freq_limit', $self->config_suffixes);
             }
             catch OMP::Error::BadCfgKey with {
                 # Do nothing.
             };
 
-            if (@if_freq_limit) {
-                my ($if_freq_low, $if_freq_high) = @if_freq_limit;
+            if ($if_freq_limit) {
+                my ($if_freq_low, $if_freq_high) = @$if_freq_limit;
 
                 # See what the frequency range will be once flipped -- actual
                 # flip performed later once we have checked that the subsystems
@@ -5155,6 +5155,23 @@ SCUBA2 in this case.
 
 sub backend {
     return "ACSIS";
+}
+
+=item B<set_config_suffixes>
+
+Add initial configuration key suffixes (using C<config_suffixes>)
+based on the given observation hashref.  Overrides the base
+class method to add the instrument name (lower case OCS frontend name).
+
+=cut
+
+sub set_config_suffixes {
+    my $self = shift;
+    my $info = shift;
+
+    $self->SUPER::set_config_suffixes($info);
+
+    $self->config_suffixes(lc $self->ocs_frontend($info->{'instrument'}));
 }
 
 1;
