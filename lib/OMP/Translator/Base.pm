@@ -382,7 +382,7 @@ certain parameters using C<OMP::Config-E<gt>getDataSearchSuffixes>.
         'section.key', $translator->config_suffixes);
 
 If called with one or more values, these are I<appended> to to
-current list of suffixes.
+current list of suffixes, omitting repeated values.
 
     $translator->config_suffixes($instrument_name, $planet_name);
 
@@ -392,7 +392,10 @@ sub config_suffixes {
     my $self = shift;
 
     if (@_) {
-        push @{$self->{'config_suffixes'}}, @_;
+        foreach my $suffix (@_) {
+            push @{$self->{'config_suffixes'}}, $suffix
+                unless grep {$_ eq $suffix} @{$self->{'config_suffixes'}};
+        }
     }
 
     return @{$self->{'config_suffixes'}};
