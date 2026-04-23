@@ -699,10 +699,7 @@ sub tcs_base {
             "Overriding target velocity with (vel,vdef,vfr) = (",
             join(",", @vover), ")\n");
         for my $t (keys %tags) {
-            my $c = $tags{$t}{coords};
-            if ($c->can("set_vel_pars")) {
-                $c->set_vel_pars(@vover);
-            }
+            $self->set_coord_vel_pars($tags{$t}{'coords'}, @vover);
         }
     }
 
@@ -2244,6 +2241,40 @@ Convert airmass back to elevation (degrees).
 sub airmass_to_el {
     my $am = shift;
     return Math::Trig::rad2deg(Math::Trig::acosec($am));
+}
+
+=item B<set_coord_vel_pars>
+
+Set the velocity parameters in an C<Astro::Coords> object.  Ideally we
+would just be able to use the object's C<set_vel_pars> method, but this
+does not handle redshift correctly.
+
+    $trans->set_coord_vel_pars($coords, $vel, $vdef, $vfr);
+
+=cut
+
+sub set_coord_vel_pars {
+    my $self = shift;
+    my $coord = shift;
+    my ($rv, $vdefn, $vframe) = @_;
+
+    # If the object doesn't support velocity parameters,
+    # don't try to set them, or a redshift value.
+    return unless $coord->can('set_vel_pars');
+
+    unless ('redshift' eq lc $vdefn) {
+        # Not a redshift, so just pass the parameters to the object.
+        $coord->set_vel_pars($rv, $vdefn, $vframe);
+    }
+    else {
+        # Astro::Coords does not seem to let us set a redshift except in
+        # the constructor, so we will have to use the internal method for now.
+        $coord->_set_redshift($rv);
+
+        # Astro::Coords also sets frame "HEL(IOCENTRIC)" for redshift, so to
+        # preserve the previous translator behavior, override this for now.
+        $coord->_set_vframe($vframe) unless $vframe =~ /^hel/;
+    }
 }
 
 1;

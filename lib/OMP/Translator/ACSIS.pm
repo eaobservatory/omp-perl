@@ -383,12 +383,10 @@ sub fixup_historical_problems {
     my $vdef = $freq->{velocityDefinition};
     my $vel = $freq->{velocity};
 
-    $info->{coords}->set_vel_pars($vel, $vdef, $vfr)
-        if $info->{coords}->can("set_vel_pars");
+    $self->set_coord_vel_pars($info->{'coords'}, $vel, $vdef, $vfr);
 
     for my $t (keys %{$info->{coordtags}}) {
-        $info->{coordtags}->{$t}->{coords}->set_vel_pars($vel, $vdef, $vfr)
-            if $info->{coordtags}->{$t}->{coords}->can("set_vel_pars");
+        $self->set_coord_vel_pars($info->{'coordtags'}->{$t}->{'coords'}, $vel, $vdef, $vfr);
     }
 
     return;
