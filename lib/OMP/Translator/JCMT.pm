@@ -156,12 +156,11 @@ sub translate {
     my @unrolled = map {Storable::dclone($_)} $msb->unroll_obs;
 
     # we need to know how many science observations are in this observation
-    # Disable verbose mode so that we do not see information twice
-    my $verbcur = $self->verbose;
-    $self->verbose(0);
-
     my %obstypes = (science => 0);
     for my $obs (@unrolled) {
+        # Disable verbose mode so that we do not see information twice
+        local $self->{'verbose'} = 0;
+
         # Translate observing mode information to internal form
         # Wasteful to call this twice but the second call is mainly
         # there to report the information in verbose mode
@@ -170,9 +169,6 @@ sub translate {
         # count each type
         $obstypes{$obs->{obs_type}} ++;
     }
-
-    # reset verbose mode
-    $self->verbose($verbcur);
 
     # Now report useful information
     $self->output("Number of configurations: " . @unrolled . "\n",
