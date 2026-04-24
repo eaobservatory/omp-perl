@@ -182,6 +182,9 @@ sub translate {
     my @configs;
     my $prev_obs_type;
     for my $obs (@unrolled) {
+        # Clear internal state before processing each observation.
+        $self->clear;
+
         # Translate observing mode information to internal form
         # Repeat here so that information is properly reported in the
         # stream of information associated with this observation.
@@ -1159,9 +1162,7 @@ sub secondary_mirror {
         # do only one step per chop
 
         # Let's say this is maximum time between chops in seconds
-        my $tmax_per_chop = OMP::Config->getData(
-            $self->cfgkey . '.max_time_between_chops'
-            . ($info{continuumMode} ? "_cont" : ""));
+        my $tmax_per_chop = $self->get_config_value('max_time_between_chops');
 
         # Now calculate the number of steps in that time period
         my $maxsteps = int($tmax_per_chop / $rts);

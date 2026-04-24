@@ -29,6 +29,7 @@ use 5.006;
 use strict;
 use warnings;
 
+use OMP::Config;
 use OMP::Constants qw/:msb/;
 use OMP::General;
 
@@ -64,6 +65,20 @@ sub new {
 =head2 General Methods
 
 =over 4
+
+=item B<clear>
+
+Clear persistent per-observation information from translator object.  This
+should be called where the same translator object is being used for multiple
+observations to avoid information leaking between them.
+
+=cut
+
+sub clear {
+    my $self = shift;
+
+    $self->{'config_suffixes'} = [];
+}
 
 =item B<PosAngRot>
 
@@ -419,6 +434,32 @@ sub set_config_suffixes {
     if ($info->{'coords'}->type eq 'PLANET') {
         $self->config_suffixes(lc $info->{'coords'}->planet());
     }
+
+    $self->config_suffixes('cont') if $info->{'continuumMode'};
+}
+
+=item B<get_config_value>
+
+Convenience method to add C<cfgkey> and config. suffixes and then
+look up a configuration value.
+
+    $value = $trans->get_config_value($key);
+
+This should be equivalent to:
+
+    $value = OMP::Config->getDataSearchSuffixes(
+        $trans->cfgkey . '.' . $key,
+        $trans->config_suffixes);
+
+=cut
+
+sub get_config_value {
+    my $self = shift;
+    my $key = shift;
+
+    return OMP::Config->getDataSearchSuffixes(
+        $self->cfgkey . '.' . $key,
+        $self->config_suffixes);
 }
 
 1;

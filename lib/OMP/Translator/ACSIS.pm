@@ -502,17 +502,6 @@ sub handle_special_modes {
             $scaleMode = "planet";    # Allowed: unity, planet, nyquist
         }
 
-        # should we be in continuum mode or spectral line mode.
-        # Cont mode can be used for both but spec mode is useless in continuum
-        $info->{continuumMode} = 1;    # default to yes
-        try {
-            $info->{continuumMode} =
-                OMP::Config->getData('acsis_translator.cont_pointing');
-        }
-        otherwise {
-            # use default
-        };
-
         # Now we need to determine the scaleFactor for the jiggle. This has been
         # specified above. Options are:
         #   unity  : scale factor is 1. Only used for HARP jiggle patterns
@@ -577,17 +566,6 @@ sub handle_special_modes {
 
         # this is configured as an AB nod
         $info->{nodSetDefinition} = "AB";
-
-        # should we be in continuum mode or spectral line mode.
-        # Cont mode can be used for both but spec mode is useless in continuum
-        $info->{continuumMode} = 1;  # default to yes
-        try {
-            $info->{continuumMode} = OMP::Config->getData(
-                'acsis_translator.cont_focus');
-        }
-        otherwise {
-            # use default
-        };
 
         # read integration time from config system, else default to 2.0 seconds
         # note that we are not technically jiggling.
@@ -878,8 +856,7 @@ sub frontend_config {
 
             my $if_freq_limit = undef;
             try {
-                $if_freq_limit = OMP::Config->getDataSearchSuffixes(
-                    'acsis_translator.if_freq_limit', $self->config_suffixes);
+                $if_freq_limit = $self->get_config_value('if_freq_limit');
             }
             catch OMP::Error::BadCfgKey with {
                 # Do nothing.
@@ -1518,9 +1495,7 @@ sub jos_config {
         my $total_jos_mult = ceil($nrepeats / $nod_set_size);
 
         # now get the max time between nods
-        my $max_t_nod = OMP::Config->getData(
-            'acsis_translator.max_time_between_nods'
-            . ($info{continuumMode} ? "_cont" : ""));
+        my $max_t_nod = $self->get_config_value('max_time_between_nods');
 
         # and convert that to the max number of jiggle repeats per nod
         my $max_jos_mult = max(1, int($max_t_nod / $timePerJig));
@@ -1588,9 +1563,7 @@ sub jos_config {
         my $total_jos_mult = ceil($stepsPerCycle / $nod_set_size);
 
         # Max time between nods
-        my $max_t_nod = OMP::Config->getData(
-            'acsis_translator.max_time_between_nods'
-            . ($info{continuumMode} ? "_cont" : ""));
+        my $max_t_nod = $self->get_config_value('max_time_between_nods');
 
         # converted to steps
         my $max_steps_nod = ceil($max_t_nod / $jos->step_time);
@@ -4132,9 +4105,7 @@ sub step_time {
         my $jig = $self->get_jiggle($cfg);
 
         # Need the time between refs
-        my $refgap = OMP::Config->getData(
-            'acsis_translator.time_between_ref'
-            . ($info{continuumMode} ? "_cont" : ""));
+        my $refgap = $self->get_config_value('time_between_ref');
 
         # Calculate the maximum amount of time we can spend per jiggle point in that period
         my $max_time = $refgap / $jig->npts;
@@ -4276,10 +4247,14 @@ sub step_time {
         $step = $self->step_time_reduce($time_per_nod, $max_time, $min_time);
     }
     elsif ($info{observing_mode} =~ /grid_chop/) {
-        # in continuum mode we simply chop at the requested rate
+        # the largest value we can use is given by max_time_between_chops
+        # although in practice we decide to use a smaller number to generate spectra
+        # at a reasonable rate
+        my $max_time_per_chop = $self->get_config_value('max_time_between_chops');
+
         if ($info{continuumMode}) {
-            $step = OMP::Config->getData(
-                'acsis_translator.max_time_between_chops_cont');
+            # in continuum mode we simply chop at the requested rate
+            $step = $max_time_per_chop;
         }
         else {
             # we can chop slowly but we have a lower limit
@@ -4289,12 +4264,6 @@ sub step_time {
             # step time must be reduced by the nod set size
             my $time_per_nod =
                 $info{secsPerCycle} / $self->get_nod_set_size(%info);
-
-            # the largest value we can use is given by max_time_between_chops
-            # although in practice we decide to use a smaller number to generate spectra
-            # at a reasonable rate
-            my $max_time_per_chop = OMP::Config->getData(
-                "acsis_translator.max_time_between_chops");
 
             # Calculate the step time
             $step = $self->step_time_reduce(
@@ -4387,8 +4356,7 @@ sub calc_jos_times {
     # N_CALSAMPLES depends entirely on the step time and the time from
     # the config file. Number of cal samples. This is hard-wired in
     # seconds but in units of STEP_TIME
-    my $caltime = OMP::Config->getDataSearchSuffixes(
-        'acsis_translator.cal_time', $self->config_suffixes);
+    my $caltime = $self->get_config_value('cal_time');
 
     # if caltime is less than step time (eg scan) we still need to do at
     # least 1 cal
@@ -4414,14 +4382,10 @@ sub calc_jos_times {
     }
     else {
         # Now specify the maximum time between cals in steps
-        $calgap = OMP::Config->getDataSearchSuffixes(
-            'acsis_translator.time_between_cal', $self->config_suffixes);
+        $calgap = $self->get_config_value('time_between_cal');
 
         # Now calculate the maximum time between refs in steps
-        $refgap = OMP::Config->getData(
-            'acsis_translator.time_between_ref'
-            . ($info{continuumMode} ? "_cont" : ""));
-
+        $refgap = $self->get_config_value('time_between_ref');
     }
 
     my $cal_step_gap = OMP::General::nint($calgap / $jos->step_time);
@@ -5168,6 +5132,18 @@ class method to add the instrument name (lower case OCS frontend name).
 sub set_config_suffixes {
     my $self = shift;
     my $info = shift;
+
+    # Determine whether to use continuum mode ("cont" suffix") before
+    # calling the superclass so that it can include this.
+    # (Cont. mode can be used for both but spec. mode is useless in continuum.)
+    if ($info->{'obs_type'} eq 'pointing') {
+        $info->{'continuumMode'} = OMP::Config->getData(
+            'acsis_translator.cont_pointing');
+    }
+    elsif ($info->{'obs_type'} eq 'focus') {
+        $info->{'continuumMode'} = OMP::Config->getData(
+            'acsis_translator.cont_focus');
+    }
 
     $self->SUPER::set_config_suffixes($info);
 
