@@ -346,7 +346,7 @@ sub translate {
             $translator->debug($opts{'debug'});
 
             # enable verbose logging
-            $translator->verbose($verbose) if $translator->can("verbose");
+            $translator->verbose($verbose);
 
             # and register filehandles
             $translator->outhdl(@handles) if $translator->can("outhdl");

@@ -324,23 +324,6 @@ sub translate {
     return @configs;
 }
 
-=item B<debug>
-
-Method to enable and disable debugging state.
-
-    $translator->debug(1);
-
-=cut
-
-sub debug {
-    my $self = shift;
-    if (@_) {
-        my $state = shift;
-        $self->{'debug'} = ($state ? 1 : 0);
-    }
-    return $self->{'debug'};
-}
-
 =item B<outhdl>
 
 Output file handles to use for verbose messages.
@@ -363,23 +346,6 @@ sub outhdl {
         }
     }
     return $self->{'handle'};
-}
-
-=item B<verbose>
-
-Method to enable and disable verbosity state.
-
-    $translator->verbose(1);
-
-=cut
-
-sub verbose {
-    my $self = shift;
-    if (@_) {
-        my $state = shift;
-        $self->{'verbose'} = ($state ? 1 : 0);
-    }
-    return $self->{'verbose'};
 }
 
 =item B<output>
