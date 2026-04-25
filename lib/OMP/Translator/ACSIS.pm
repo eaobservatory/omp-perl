@@ -441,16 +441,8 @@ sub handle_special_modes {
         # this is configured as an AB nod
         $info->{nodSetDefinition} = "ABBA";
 
-        # read integration time from config system, else default to 2.0 seconds
-        my $pointing_secs = 2.0;
-        try {
-            $pointing_secs = OMP::Config->getData(
-                'acsis_translator.secs_per_jiggle_pointing');
-        }
-        otherwise {
-            # no problem, use default
-        };
-        $info->{secsPerJiggle} = $pointing_secs;
+        # read integration time from config system
+        $info->{'secsPerJiggle'} = $self->get_config_value('secs_per_jiggle_pointing');
 
         $info->{'jigglePattern'} = $self->get_config_value('pointing_pattern');
         $info->{'jiggleSystem'} = $self->get_config_value('pointing_jigsys');
@@ -540,17 +532,9 @@ sub handle_special_modes {
         # this is configured as an AB nod
         $info->{nodSetDefinition} = "AB";
 
-        # read integration time from config system, else default to 2.0 seconds
+        # read integration time from config system.
         # note that we are not technically jiggling.
-        my $focus_secs = 2.0;
-        try {
-            $focus_secs = OMP::Config->getData(
-                'acsis_translator.secs_per_jiggle_focus');
-        }
-        otherwise {
-            # no problem, use default
-        };
-        $info->{secsPerCycle} = $focus_secs;
+        $info->{'secsPerCycle'} = $self->get_config_value('secs_per_jiggle_focus');
 
         # if this is harp then we want the K-mirror to be aligned in the same way it is aligned
         # for POINTING observations (since you point and then focus and you do not want the thing to
