@@ -452,32 +452,14 @@ sub handle_special_modes {
         };
         $info->{secsPerJiggle} = $pointing_secs;
 
+        $info->{'jigglePattern'} = $self->get_config_value('pointing_pattern');
+        $info->{'jiggleSystem'} = $self->get_config_value('pointing_jigsys');
+
         my $scaleMode;
         if ($frontend =~ /^HARP/) {
             # HARP needs to use single receptor pointing until we sort out relative
             # calibrations. Set disableNonTracking to false and HARP5 jiggle pattern.
             $info->{disableNonTracking} = 0;  # Only use 1 receptor if true
-
-            my $jigsys = "AZEL";
-            try {
-                $jigsys = OMP::Config->getData(
-                    'acsis_translator.harp_pointing_jigsys');
-            }
-            otherwise {
-                # no problem, use default
-            };
-            $info->{jiggleSystem} = $jigsys;
-
-            # Allow the HARP jiggle pattern to be overridden for commissioning
-            # HARP5 and 5x5 are the obvious ones. 5pt or HARP4 are plausible.
-            $info->{jigglePattern} = 'HARP5';
-            try {
-                $info->{jigglePattern} = OMP::Config->getData(
-                    'acsis_translator.harp_pointing_pattern');
-            }
-            otherwise {
-                # use default
-            };
 
             # For HARP jiggle pattern use "unity" here
             # For other patterns, be careful. If you are disabling non tracking
@@ -490,15 +472,6 @@ sub handle_special_modes {
         }
         else {
             $info->{disableNonTracking} = 0;  # If true, Only use 1 receptor
-            $info->{jiggleSystem} = 'AZEL';
-            $info->{jigglePattern} = '5pt';  # or 5x5
-            try {
-                $info->{jigglePattern} = OMP::Config->getData(
-                    'acsis_translator.pointing_pattern');
-            }
-            otherwise {
-                # use default
-            };
             $scaleMode = "planet";    # Allowed: unity, planet, nyquist
         }
 
@@ -583,15 +556,7 @@ sub handle_special_modes {
         # for POINTING observations (since you point and then focus and you do not want the thing to
         # flip between the two if at all possible
         if ($frontend =~ /^HARP/) {
-            my $staresys = "AZEL";
-            try {
-                $staresys = OMP::Config->getData(
-                    'acsis_translator.harp_pointing_jigsys');
-            }
-            otherwise {
-                # no problem, use default
-            };
-            $info->{stareSystem} = $staresys;
+            $info->{'stareSystem'} = $self->get_config_value('pointing_jigsys');
         }
 
         $self->output(
