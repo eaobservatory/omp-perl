@@ -472,18 +472,14 @@ Array Tests are converted to a special noise observation.
 sub handle_special_modes {
     my $self = shift;
     my $info = shift;
-    my $has_fts = scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}};
-    my $has_pol = scalar grep {$_ =~ /^pol/} @{$info->{'inbeam'}};
 
     # The trick is to fill in the blanks
 
     # POINTING and FOCUS
     if ($info->{obs_type} =~ /pointing|focus/) {
         # Get the integration time in seconds
-        my $exptime = OMP::Config->getData(
-            $self->cfgkey . "." . $info->{obs_type}
-            . "_integration"
-            . ($has_fts ? '_fts' : ''));
+        my $exptime = $self->get_config_value(
+            $info->{'obs_type'} . '_integration');
 
         $self->output(
             "Determining " . uc($info->{obs_type}) . " parameters...\n",
@@ -539,49 +535,20 @@ sub handle_special_modes {
                 SCAN_DY => "scan_dy",
             );
 
-            my $key = ".scan_" . $smode . "_";
-            my $prefix = $has_fts ? 'fts' : ($has_pol ? 'pol' : undef);
+            my $key = 'scan_' . $smode;
 
             foreach my $param (keys %scan_parameters) {
-                my $name = $scan_parameters{$param};
-                $info->{$param} = OMP::Config->getData(
-                    $self->cfgkey . $key . $name);
-
-                next unless defined $prefix;
-
-                my $override = eval {
-                    OMP::Config->getData(
-                        $self->cfgkey . '.' . $prefix
-                        . '_' . substr($key, 1) . $name);
-                };
-
-                next unless defined $override;
-
-                $self->output('        Overriding ' . $param . ' parameter for ' . $prefix . ".\n");
-                $info->{$param} = $override;
+                $info->{$param} = $self->get_config_value(
+                    $key . '_' . $scan_parameters{$param});
             }
 
-            for my $extras (qw/TURN_RADIUS ACCEL XSTART YSTART VX VY/) {
-                my $cfgitem = lc($extras);
+            for my $extra (qw/TURN_RADIUS ACCEL XSTART YSTART VX VY/) {
                 my $cfgvalue = eval {
-                    OMP::Config->getData($self->cfgkey . $key . $cfgitem);
+                    $self->get_config_value($key . '_' . lc $extra);
                 };
 
-                $info->{"SCAN_$extras"} = $cfgvalue
+                $info->{"SCAN_$extra"} = $cfgvalue
                     if (defined $cfgvalue && length($cfgvalue));
-
-                next unless defined $prefix;
-
-                my $override = eval {
-                    OMP::Config->getData(
-                        $self->cfgkey . '.' . $prefix
-                        . '_' . substr($key, 1) . $cfgitem);
-                };
-
-                next unless defined $override;
-
-                $self->output('        Overriding ' . $extras . ' extra parameter for ' . $prefix . ".\n");
-                $info->{'SCAN_' . $extras} = $override;
             }
 
             $info->{SCAN_SYSTEM} = "FPLANE";
@@ -848,16 +815,12 @@ sub jos_config {
     # and store it
     $jos->recipe($recipe);
 
-    # Time between darks depends on observing mode (but not _pol, _blackbody)
-    my $obsmode_strip = $info{observing_mode};
-    $obsmode_strip =~ s/_.*$//;
-    my $tbdark = OMP::Config->getData(
-        "scuba2_translator.time_between_dark_" . $obsmode_strip) / $eff_step_time;
+    # Time between darks depends on mapping mode
+    my $tbdark = $self->get_config_value('time_between_dark') / $eff_step_time;
 
     $jos->steps_btwn_dark($tbdark);
 
-    my $tbflat = OMP::Config->getData(
-        "scuba2_translator.time_between_flat_" . $obsmode_strip) / $eff_step_time;
+    my $tbflat = $self->get_config_value('time_between_flat') / $eff_step_time;
 
     $jos->steps_btwn_flat($tbflat);
 
@@ -1934,6 +1897,30 @@ sub determine_inbeam {
     push @inbeam, $self->SUPER::determine_inbeam(%info);
 
     return @inbeam;
+}
+
+=item B<set_config_suffixes>
+
+Add initial configuration key suffixes (using C<config_suffixes>)
+based on the given observation hashref.  Overrides the base
+class method to add the mapping mode and "fts" or "pol" if either
+of these are in the beam.
+
+=cut
+
+sub set_config_suffixes {
+    my $self = shift;
+    my $info = shift;
+
+    $self->SUPER::set_config_suffixes($info);
+
+    my $inbeam = $info->{'inbeam'};
+
+    $self->config_suffixes(
+        $info->{'mapping_mode'},
+        ((grep {/fts2/} @$inbeam) ? ('fts') : ()),
+        ((grep {/pol/} @$inbeam) ? ('pol') : ()),
+    );
 }
 
 1;
