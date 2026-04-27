@@ -280,7 +280,7 @@ sub fixup_historical_problems {
 
     if ($info->{'PROJECTID'} =~ /^(?:JCMT)?CAL$/i
             and 'UU' eq uc $info->{'instrument'}) {
-        my $synth_status = _get_lo2_synth_status();
+        my $synth_status = $self->_get_lo2_synth_status();
         my $obs_type = uc $info->{'obs_type'};
 
         # Change Uu 6GHz IF standards to 5GHz to avoid bad LO2. (If using 2x chained mode.)
@@ -736,19 +736,21 @@ sub frontend_config {
         my $iffreq_conf = $inst->if_center_freq * 1.0E9;  # from GHz
 
         if ($iffreq_conf != $iffreq) {
-            my $message = 'The instrument IF frequency specified in '
-                . 'the instrument XML ('
-                . $iffreq_conf
-                . ') does not match the IF frequency given in the observation ('
-                . $iffreq . ').';
+            my $message = sprintf 'The instrument IF frequency specified in'
+                . ' the instrument XML (%.6f GHz)'
+                . ' does not match the IF frequency given in the'
+                . ' observation (%.6f GHz).',
+                $iffreq_conf / 1.0E9,
+                $iffreq / 1.0E9;
 
-            if (OMP::Config->getData('acsis_translator.ignore_if_freq_mismatch')) {
+            if (OMP::Config->getData($self->cfgkey . '.ignore_if_freq_mismatch')) {
                 $self->output('WARNING: ' . $message . "\n");
             }
             else {
-                throw OMP::Error::FatalError($message
-                    . ' You can force the translation of the observation by enabling '
-                    . 'ignore_if_freq_mismatch in the acsis_translator settings.');
+                throw OMP::Error::FatalError(sprintf '%s'
+                    . ' You can force the translation of the observation by enabling'
+                    . ' ignore_if_freq_mismatch in the %s settings.',
+                    $message, $self->cfgkey);
             }
         }
     };
@@ -1301,7 +1303,7 @@ sub jos_config {
 
         if ($info{observing_mode} =~ /^stare/) {
             # need JOS_MIN since we have multiple offsets
-            my $integ = OMP::Config->getData('acsis_translator.skydip_integ');
+            my $integ = OMP::Config->getData($self->cfgkey . '.skydip_integ');
             $jos->jos_min(POSIX::ceil($integ / $jos->step_time));
 
             $self->output("\tSteps per discrete elevation: " . $jos->jos_min() . "\n");
@@ -1601,7 +1603,7 @@ sub jos_config {
         # if the step time means that we can not get round the pattern in this
         # time we have no choice but to change that time
         my $max_time_on = max(
-            OMP::Config->getData('acsis_translator.freqsw_max_seq_length'),
+            OMP::Config->getData($self->cfgkey . '.freqsw_max_seq_length'),
             $pattern_length);
 
         # Number of cycles required to observe for the requested total time.
@@ -1651,7 +1653,7 @@ sub jos_config {
         # required
         my $jos_min;
         if ($self->is_pol_spin(%info)) {
-            $jos_min = OMP::Config->getData('acsis_translator.steps_per_cycle_pol');
+            $jos_min = OMP::Config->getData($self->cfgkey . '.steps_per_cycle_pol');
             $max_time_on = $jos_min * $self->step_time($cfg, %info);
         }
 
@@ -1840,7 +1842,7 @@ sub correlator {
     # get the hardware map
     my $hw_map = $self->hardware_map;
 
-    my $synth_status = _get_lo2_synth_status();
+    my $synth_status = $self->_get_lo2_synth_status();
 
     # Now get the receptors of interest for this observation
     my $frontend = $cfg->frontend;
@@ -2180,10 +2182,11 @@ sub correlator {
 }
 
 sub _get_lo2_synth_status {
+    my $self = shift;
     return {
         map {
             my @status =
-                OMP::Config->getData('acsis_translator.lo2_synth_status_' . $_);
+                OMP::Config->getData($self->cfgkey . '.lo2_synth_status_' . $_);
             throw OMP::Error::FatalError(
                 'Wrong number of elements in lo2_synth_status config parameter')
                 unless 4 == scalar @status;
@@ -2239,7 +2242,7 @@ sub create_image_subsystems {
 
     return unless $frontend->sb_mode() eq '2SB';
 
-    return unless OMP::Config->getData('acsis_translator.auto_image_subsys_2sb');
+    return unless OMP::Config->getData($self->cfgkey . '.auto_image_subsys_2sb');
 
     my $subsystems = $info{'freqconfig'}->{'subsystems'};
     my $n_subsys = scalar @$subsystems;
@@ -3686,7 +3689,7 @@ sub bandwidth_mode {
     # A subsystem is a dupe if the IF, overlap, channels and  bandwidth are the same
     my %dupe_ss;
     my $allow_duplicate = OMP::Config->getData(
-        'acsis_translator.allow_duplicate_subsystem');
+        $self->cfgkey . '.allow_duplicate_subsystem');
 
     # loop over each subsystem
     my $spectrum_id = 0;
@@ -4035,12 +4038,13 @@ sub step_time {
         if ($self->is_pol_spin(%info)) {
             # we are spinning a polarimeter
             $step = OMP::Config->getData(
-                'acsis_translator.step_time_grid_pssw_pol');
+                $self->cfgkey . '.step_time_grid_pssw_pol');
         }
         else {
             # Choose a fixed time that will enable us to get a reasonable number of
             # spectra out rather than a single spectrum for the entire "time_between_ref" period.
-            $step = OMP::Config->getData('acsis_translator.step_time_grid_pssw');
+            $step = OMP::Config->getData(
+                $self->cfgkey . '.step_time_grid_pssw');
         }
     }
     elsif ($info{observing_mode} =~ /jiggle_pssw/) {
@@ -4073,14 +4077,15 @@ sub step_time {
 
         # Get the time between chops
         my $time_between_chops = OMP::Config->getData(
-            'acsis_translator.max_time_between_chops');
+            $self->cfgkey . '.max_time_between_chops');
 
         # and the time between
         my $time_between_nods = OMP::Config->getData(
-            'acsis_translator.max_time_between_nods');
+            $self->cfgkey . '.max_time_between_nods');
 
         # Minimum step time is read from the config
-        my $min_time = OMP::Config->getData('acsis_translator.step_time');
+        my $min_time = OMP::Config->getData(
+            $self->cfgkey . '.step_time');
 
         # or the requirement that the time between nods can fit the pattern
         # Need to know the number of jiggle points
@@ -4207,7 +4212,7 @@ sub step_time {
         }
         else {
             # we can chop slowly but we have a lower limit
-            my $min_step = OMP::Config->getData('acsis_translator.step_time');
+            my $min_step = OMP::Config->getData($self->cfgkey . '.step_time');
 
             # The required integration time is split over the nod set so our
             # step time must be reduced by the nod set size
@@ -4220,11 +4225,11 @@ sub step_time {
         }
     }
     elsif ($info{observing_mode} =~ /freqsw/) {
-        $step = OMP::Config->getData('acsis_translator.step_time_fast_freqsw');
+        $step = OMP::Config->getData($self->cfgkey . '.step_time_fast_freqsw');
     }
     else {
         # eg jiggle/chop continuum mode
-        $step = OMP::Config->getData('acsis_translator.step_time');
+        $step = OMP::Config->getData($self->cfgkey . '.step_time');
     }
 
     throw OMP::Error::TranslateFail(
@@ -4321,7 +4326,7 @@ sub calc_jos_times {
     }
     elsif ($self->is_pol_step_integ(%info)) {
         # Use special ref for pol
-        $refgap = OMP::Config->getData('acsis_translator.time_between_ref_pol');
+        $refgap = OMP::Config->getData($self->cfgkey . '.time_between_ref_pol');
 
         # for step and integrate we want to cal every 4 positions
         # 4 position on+off. This assumes that people are sensible in the ordering
@@ -5087,11 +5092,11 @@ sub set_config_suffixes {
     # (Cont. mode can be used for both but spec. mode is useless in continuum.)
     if ($info->{'obs_type'} eq 'pointing') {
         $info->{'continuumMode'} = OMP::Config->getData(
-            'acsis_translator.cont_pointing');
+            $self->cfgkey . '.cont_pointing');
     }
     elsif ($info->{'obs_type'} eq 'focus') {
         $info->{'continuumMode'} = OMP::Config->getData(
-            'acsis_translator.cont_focus');
+            $self->cfgkey . '.cont_focus');
     }
 
     $self->SUPER::set_config_suffixes($info);
