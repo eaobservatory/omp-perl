@@ -420,13 +420,7 @@ Construct new headers object.
 sub _get_hdr_object {
     my $self = shift;
 
-    my $hdrobj = $self->hdrpkg()->new(translator => $self);
-
-    # Set verbosity level and handles
-    $hdrobj->VERBOSE($self->verbose);
-    $hdrobj->HANDLES($self->outhdl);
-
-    return $hdrobj;
+    return $self->hdrpkg()->new(translator => $self);
 }
 
 =back

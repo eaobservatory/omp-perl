@@ -150,12 +150,12 @@ Uses the base class for the user supplied value.
 =cut
 
 sub getDRRecipe {
-    my $class = shift;
+    my $self = shift;
     my $cfg = shift;
     my %info = @_;
 
     # See if the base class knows better
-    my $recipe = $class->SUPER::getDRRecipe($cfg, %info);
+    my $recipe = $self->SUPER::getDRRecipe($cfg, %info);
     return $recipe if defined $recipe;
 
     # Get the observation type and the mapping mode
@@ -203,10 +203,8 @@ sub getDRRecipe {
                     && defined $info{'data_reduction'}->{'stare'}) {
                 $recipe = $info{'data_reduction'}->{'stare'};
 
-                if ($class->VERBOSE) {
-                    print {$class->HANDLES}
-                        "Using FTS-2 DR recipe $recipe provided by user\n";
-                }
+                $self->translator->output(
+                    "Using FTS-2 DR recipe $recipe provided by user\n");
 
                 return $recipe;
             }
@@ -234,9 +232,7 @@ sub getDRRecipe {
             . " when calculating DR recipe");
     }
 
-    if ($class->VERBOSE) {
-        print {$class->HANDLES} "Using DR recipe $recipe determined from context\n";
-    }
+    $self->translator->output("Using DR recipe $recipe determined from context\n");
 
     return $recipe;
 }

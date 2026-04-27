@@ -68,8 +68,6 @@ sub new {
         and eval {$translator->isa('OMP::Translator::JCMT')};
 
     my $self = bless {
-        verbose => 0,
-        handle => \*STDOUT,
         translator => $translator,
     }, $class;
 
@@ -80,39 +78,7 @@ sub new {
 
 =head2 Helper Methods
 
-Set global variables to control verbosity and other generic items.
-
 =over 4
-
-=item B<VERBOSE>
-
-Enable or disable verbose mode.
-
-    $verbose = $hdrobj->VERBOSE;
-    $hdrobj->VERBOSE(1);
-
-=cut
-
-sub VERBOSE {
-    my $self = shift;
-    if (@_) {$self->{'verbose'} = shift;}
-    return $self->{'verbose'};
-}
-
-=item B<HANDLES>
-
-Output handle for verbose messages. Defaults to STDOUT.
-
-    $handle = $hdrobj->HANDLES;
-    $hdrobj->HANDLES($handles);
-
-=cut
-
-sub HANDLES {
-    my $self = shift;
-    if (@_) {$self->{'handle'} = shift;}
-    return $self->{'handle'};
-}
 
 =item B<default_project>
 
@@ -205,7 +171,7 @@ a science observation.
 =cut
 
 sub getProject {
-    my $class = shift;
+    my $self = shift;
     my $cfg = shift;
     my %info = @_;
 
@@ -213,7 +179,7 @@ sub getProject {
         'jcmt_translator.force_non_sci_jcmtcal');
 
     my $obs_type = lc($info{obs_type});
-    my $standard = $class->getStandard($cfg, %info);
+    my $standard = $self->getStandard($cfg, %info);
 
     my %type_non_std = map {$_ => 1} qw/science raw/;
 
@@ -221,11 +187,9 @@ sub getProject {
             $standard
             || (not exists $type_non_std{$obs_type})
             || $info{autoTarget})) {
-        if ($class->VERBOSE) {
-            # only warn if we are called from outside this package
-            if (! $class->islocal(caller)) {
-                print {$class->HANDLES} "Using calibration project ID\n";
-            }
+        # only warn if we are called from outside this package
+        unless ($self->islocal(caller)) {
+            $self->translator->output("Using calibration project ID\n");
         }
         return "JCMTCAL";
     }
@@ -240,12 +204,10 @@ sub getProject {
     }
     else {
         my $sem = OMP::DateTools->determine_semester(tel => 'JCMT');
-        my $pid = "M$sem" . $class->default_project();
-        if ($class->VERBOSE) {
-            # only warn if we are called from outside this package
-            if (! $class->islocal(caller)) {
-                print {$class->HANDLES} "!!! No Project ID assigned. Inserting E&C code: $pid !!!\n";
-            }
+        my $pid = "M$sem" . $self->default_project();
+        # only warn if we are called from outside this package
+        unless ($self->islocal(caller)) {
+            $self->translator->output("!!! No Project ID assigned. Inserting E&C code: $pid !!!\n");
         }
         return $pid;
     }
@@ -353,7 +315,7 @@ Subclasses can additionally determine defaults if this method returns undef.
 =cut
 
 sub getDRRecipe {
-    my $class = shift;
+    my $self = shift;
     my $cfg = shift;
     my %info = @_;
 
@@ -386,9 +348,7 @@ sub getDRRecipe {
                 # recipe is REDUCE_SCIENCE. So this clause is really an ACSIS clause.
                 $found .= "_CONTINUUM" if $found eq 'REDUCE_SCIENCE';
             }
-            if ($class->VERBOSE) {
-                print {$class->HANDLES} "Using DR recipe $found provided by user\n";
-            }
+            $self->translator->output("Using DR recipe $found provided by user\n");
             return $found;
         }
     }

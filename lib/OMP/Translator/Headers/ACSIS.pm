@@ -67,12 +67,12 @@ Uses the base class for the user supplied value.
 =cut
 
 sub getDRRecipe {
-    my $class = shift;
+    my $self = shift;
     my $cfg = shift;
     my %info = @_;
 
     # See if the base class knows better
-    my $recipe = $class->SUPER::getDRRecipe($cfg, %info);
+    my $recipe = $self->SUPER::getDRRecipe($cfg, %info);
     return $recipe if defined $recipe;
 
     # if there was no DR component we have to guess
@@ -94,9 +94,7 @@ sub getDRRecipe {
         }
     }
 
-    if ($class->VERBOSE) {
-        print {$class->HANDLES} "Using DR recipe $recipe determined from context\n";
-    }
+    $self->translator->output("Using DR recipe $recipe determined from context\n");
 
     return $recipe;
 }
