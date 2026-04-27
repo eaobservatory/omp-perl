@@ -39,6 +39,7 @@ use Data::Dumper;
 use Unicode::Normalize qw/normalize/;
 use OMP::Config;
 use OMP::DateTools;
+use OMP::Error;
 
 =head1 METHODS
 
@@ -50,21 +51,32 @@ use OMP::DateTools;
 
 Create new header object.
 
-    $hdrobj = $class->new;
+    $hdrobj = $class->new(translator => $translator);
 
 =cut
 
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
+    my %opt = @_;
+
+    # Ensure that a translator object was specified.
+    my $translator = $opt{'translator'};
+    throw OMP::Error::FatalError(
+            'translator not specified or is not an OMP::Translator::JCMT')
+        unless defined $translator
+        and eval {$translator->isa('OMP::Translator::JCMT')};
 
     my $self = bless {
         verbose => 0,
         handle => \*STDOUT,
+        translator => $translator,
     }, $class;
 
     return $self;
 }
+
+=back
 
 =head2 Helper Methods
 
@@ -164,6 +176,18 @@ sub fitsSafeString {
     }
 
     return $value;
+}
+
+=item B<translator>
+
+The object performing the current translation.  (Should have been
+specified when constructing this object.)
+
+=cut
+
+sub translator {
+    my $self = shift;
+    return $self->{'translator'};
 }
 
 =back

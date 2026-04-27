@@ -251,8 +251,11 @@ again.
 =cut
 
 sub getFTSCenterPosition {
-    return sprintf '%f',
-        OMP::Config->getData('scuba2_translator.fts_centre_position');
+    my $self = shift;
+    my $cfg = shift;
+
+    return sprintf '%f', OMP::Config->getData(
+        $self->translator->cfgkey . '.fts_centre_position');
 }
 
 1;
