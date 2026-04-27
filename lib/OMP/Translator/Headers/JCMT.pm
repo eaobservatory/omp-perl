@@ -237,7 +237,7 @@ sub getMSBTitle {
     my $cfg = shift;
     my %info = @_;
     my $title = $info{'MSBTITLE'};
-    return undef unless defined $title;
+    return 'Untitled MSB' unless defined $title;
     return $class->fitsSafeString($title);
 }
 
