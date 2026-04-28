@@ -29,7 +29,6 @@ use Net::Domain;
 use File::Spec;
 use File::Basename;
 use Astro::Coords::Offset;
-use IO::Tee;
 use Storable;
 use Math::Trig ();
 
@@ -89,7 +88,6 @@ sub new {
 
     $self->{'transdir'} = OMP::Config->getData('jcmt_translator.transdir');
     $self->{'wiredir'} = undef;
-    $self->{'handle'} = \*STDOUT;
 
     return $self;
 }
@@ -319,51 +317,6 @@ sub translate {
 
     # return the config objects
     return @configs;
-}
-
-=item B<outhdl>
-
-Output file handles to use for verbose messages.
-Defaults to STDOUT.
-
-    $translator->outhdl(\*STDOUT, $fh);
-
-Pass in undef to reset to STDOUT.
-
-=cut
-
-sub outhdl {
-    my $self = shift;
-    if (@_) {
-        unless (defined $_[0]) {
-            $self->{'handle'} = \*STDOUT;
-        }
-        else {
-            $self->{'handle'} = IO::Tee->new(@_);
-        }
-    }
-    return $self->{'handle'};
-}
-
-=item B<output>
-
-Output a message to the default file handle if we are in verbose mode.
-
-    $trans->output(@messages);
-
-A newline will not be added if one is missing from the supplied message.
-
-=cut
-
-sub output {
-    my $self = shift;
-    return unless $self->verbose;
-
-    my $outhdl = $self->outhdl;
-    for my $msg (@_) {
-        print {$outhdl} $msg;
-    }
-    return;
 }
 
 =item B<transdir>

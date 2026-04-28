@@ -349,7 +349,7 @@ sub translate {
             $translator->verbose($verbose);
 
             # and register filehandles
-            $translator->outhdl(@handles) if $translator->can("outhdl");
+            $translator->outhdl(@handles);
 
             if (defined $logh) {
                 print $logh "---------------------------------------------\n";
@@ -444,7 +444,7 @@ sub translate {
     if ($opts{asdata}) {
         # disable the loggin
         for (@configs) {
-            $_->outhdl(undef) if $_->can("outhdl");
+            $_->outhdl(undef);
         }
 
         if (wantarray) {
@@ -468,7 +468,7 @@ sub translate {
 
         # clear logging
         for (@configs) {
-            $_->outhdl(undef) if $_->can("outhdl");
+            $_->outhdl(undef);
         }
 
         # return
