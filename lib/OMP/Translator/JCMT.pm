@@ -2,12 +2,13 @@ package OMP::Translator::JCMT;
 
 =head1 NAME
 
-OMP::Translator::JCMT - Base class for JCMT configure XML translations
+OMP::Translator::JCMT - Base class for JCMT configuration XML translators
 
 =head1 SYNOPSIS
 
-    use OMP::Translator::JCMT;
-    $config = OMP::Translator::JCMT->new->translate($sp);
+    use parent qw/OMP::Translator::JCMT/;
+
+    @configs = $translator->translate($msb, ...);
 
 =head1 DESCRIPTION
 
@@ -2247,7 +2248,8 @@ __END__
 
 =head1 NOTES
 
-Usually called indirectly from L<OMP::Translator|OMP::Translator>.
+The C<translate> method is usually called by C<OMP::Translator-E<gt>translate>
+via an instrument-specific subclass.
 
 =head1 CONFIGURATION XML
 

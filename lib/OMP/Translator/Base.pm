@@ -2,26 +2,17 @@ package OMP::Translator::Base;
 
 =head1 NAME
 
-OMP::Translator::Base - translate science program to sequence
+OMP::Translator::Base - Base class for instrument-specific translators
 
 =head1 SYNOPSIS
 
-**  need update
-
-    use OMP::Translator::Base;
+    use parent qw/OMP::Translator::Base/;
 
 =head1 DESCRIPTION
 
-**  need update
-
-This class converts a science program object (an C<OMP::SciProg>)
-into a sequence understood by the data acquisition system.
-
-For ACSIS and SCUBA-2, XML configuration files are generated.
-
-The actual translation is done in a subclass. The top level class
-determines the correct class to use for the MSB and delegates the
-translation of each observation within the MSB to that class.
+This is the base class for instrument-specific translation classes.  It
+provides the constructor method, basic accessor methods and some general
+utility methods.
 
 =cut
 

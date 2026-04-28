@@ -2,12 +2,13 @@ package OMP::Translator::ACSIS;
 
 =head1 NAME
 
-OMP::Translator::ACSIS - translate ACSIS heterodyne observations to Configure XML
+OMP::Translator::ACSIS - Translate ACSIS observations to Configure XML
 
 =head1 SYNOPSIS
 
     use OMP::Translator::ACSIS;
-    $config = OMP::Translator::ACSIS->new->translate($sp);
+
+    @configs = OMP::Translator::ACSIS->new->translate($msb, ...);
 
 =head1 DESCRIPTION
 
@@ -5109,15 +5110,6 @@ sub set_config_suffixes {
 __END__
 
 =back
-
-=head1 NOTES
-
-Usually called indirectly from L<OMP::Translator|OMP::Translator>.
-
-=head1 CONFIGURATION XML
-
-The format of the configuration XML is outlined in JAC document
-OCS/ICD/001.
 
 =head1 AUTHOR
 

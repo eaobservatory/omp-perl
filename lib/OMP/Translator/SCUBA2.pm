@@ -2,12 +2,13 @@ package OMP::Translator::SCUBA2;
 
 =head1 NAME
 
-OMP::Translator::SCUBA2 - translate SCUBA2 observations to configure XML
+OMP::Translator::SCUBA2 - Translate SCUBA2 observations to configure XML
 
 =head1 SYNOPSIS
 
     use OMP::Translator::SCUBA2;
-    $config = OMP::Translator::SCUBA2->new->translate($sp);
+
+    @configs = OMP::Translator::SCUBA2->new->translate($msb, ...);
 
 =head1 DESCRIPTION
 
@@ -1928,11 +1929,6 @@ sub set_config_suffixes {
 __END__
 
 =back
-
-=head1 CONFIGURATION XML
-
-The format of the configuration XML is outlined in JAC document
-OCS/ICD/001.
 
 =head1 AUTHOR
 
