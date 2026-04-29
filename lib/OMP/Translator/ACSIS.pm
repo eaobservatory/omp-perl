@@ -498,13 +498,6 @@ sub handle_special_modes {
         $self->output("\tOptimizing for "
             . ($info->{continuumMode} ? "continuum" : "spectral line")
             . " mode\n");
-
-        # Kill baseline removal
-        if (exists $info->{data_reduction}) {
-            my %dr = %{$info->{data_reduction}};
-            delete $dr{baseline};
-            $info->{data_reduction} = \%dr;
-        }
     }
     elsif ($info->{obs_type} eq 'focus') {
         # Focus is a 60 arcsec AZ chop observation
@@ -535,13 +528,6 @@ sub handle_special_modes {
             "\tOptimizing for "
                 . ($info->{continuumMode} ? "continuum" : "spectral line")
                 . " mode\n");
-
-        # Kill baseline removal
-        if (exists $info->{data_reduction}) {
-            my %dr = %{$info->{data_reduction}};
-            delete $dr{baseline};
-            $info->{data_reduction} = \%dr;
-        }
     }
     elsif ($info->{mapping_mode} eq 'jiggle' && $frontend =~ /^HARP/) {
         # If HARP is the jiggle pattern then we need to set scaleFactor to 1
@@ -2338,49 +2324,6 @@ sub spw_list {
     # Get the frequency information for each subsystem
     my $freq = $info->{'freqconfig'}->{subsystems};
 
-    # Default baseline fitting mode will probably depend on observing mode
-    my $defaultPoly = 1;
-
-    # Get the DR information
-    my %dr;
-    %dr = %{$info->{'data_reduction'}} if exists $info->{'data_reduction'};
-    if (! keys %dr) {
-        %dr = (
-            window_type => 'truncate',
-            fit_polynomial_order => $defaultPoly,
-        ); # defaults
-    }
-    else {
-        $dr{window_type} ||= 'truncate';
-        $dr{fit_polynomial_order} ||= $defaultPoly;
-
-        # default to number if DEFAULT.
-        $dr{fit_polynomial_order} = $defaultPoly
-            unless $dr{fit_polynomial_order} =~ /\d/;
-    }
-
-    # Figure out the baseline fitting. We either have no baseline,
-    # fractional baseline or manual baseline
-    # Baselines are an array of interval objects
-    # empty array is fine
-    my $frac; # fraction of bandwidth to use for baseline (depends on subsystem)
-    my @baselines;
-    if (exists $dr{baseline} && defined $dr{baseline}) {
-        if (ref($dr{baseline})) {
-            # array of OMP::Range objects
-            @baselines = map {
-                JAC::OCS::Config::Interval->new(
-                    Min => $_->min,
-                    Max => $_->max,
-                    Units => $_->units);
-            } @{$dr{baseline}};
-        }
-        else {
-            # scalar fraction implies two baseline regions
-            $frac = $dr{baseline};
-        }
-    }
-
     # The LO2 settings indexed by spectral window. We should consider simply adding
     # this to the SpectralWindow object as an accessor or in conjunction with f_park
     # derive it on demand.
@@ -2402,10 +2345,6 @@ sub spw_list {
 
         $spw->rest_freq_ref($ss->{rest_freq_ref});
         $spw->fe_sideband($fe_sign);
-        $spw->baseline_fit(
-            function => "polynomial",
-            degree => $dr{fit_polynomial_order})
-            if exists $dr{fit_polynomial_order};
 
         # Create an array of IF objects suitable for use in the spectral
         # window object(s). The ref channel and the if freq are per-sideband
@@ -2416,45 +2355,6 @@ sub spw_list {
                 channel_width => $ss->{channwidth},
                 ref_channel => $ss->{if_ref_channel}->[$_])
         } (0 .. ($ss->{nsubbands} - 1));
-
-        # Counting for hybridized spectra still assumes the original number
-        # of channels in the units. We assume that the fraction specified
-        # is a fraction of the hybrid baseline but we need to correct
-        # for the overlap when calculating the actual position of the baseline
-        if (defined $frac) {
-            # get the full number of channels
-            my $nchan_full = $ss->{nchannels_full};
-
-            # Get the hybridized number of channels
-            my $nchan_hyb = $ss->{channels};
-            my $nchan_bl = int($nchan_hyb * $frac / 2);
-
-            # number of channels chopped from each end
-            my $nchop = int(($nchan_full - $nchan_hyb) / 2);
-
-            # Include a small offset from the very end channel of the spectrum
-            # and convert to channels
-            my $edge_frac = 0.01;
-            my $nedge = int($nchan_hyb * $edge_frac);
-
-            # Calculate total offset
-            my $offset = $nchop + $nedge;
-
-            @baselines = (
-                JAC::OCS::Config::Interval->new(
-                    Units => 'pixel',
-                    Min => $offset,
-                    Max => ($nchan_bl + $offset),
-                ),
-                JAC::OCS::Config::Interval->new(
-                    Units => 'pixel',
-                    Min => ($nchan_full - $offset - $nchan_bl),
-                    Max => ($nchan_full - $offset),
-                ),
-            );
-        }
-
-        $spw->baseline_region(@baselines) if @baselines;
 
         # Line region for pointing and focus
         # This will be ignored in subbands
@@ -2485,7 +2385,7 @@ sub spw_list {
                 $sp->fe_sideband($fe_sign);
                 $sp->align_shift($ss->{align_shift}->[$i]);
                 $sp->rest_freq_ref($ss->{rest_freq_ref});
-                $sp->window($dr{window_type});
+                $spw->window('truncate');
                 my $id = "SPW" . $spwcount . "." . $sbcount;
                 $hybrid{$id} = $sp;
                 $lo2spw{$id} = $ss->{lo2}->[$i];
