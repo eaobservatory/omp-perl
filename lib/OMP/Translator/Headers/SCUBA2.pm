@@ -7,7 +7,7 @@ OMP::Translator::Headers::SCUBA2 - Derived header configuration for SCUBA-2
 =head1 SYNOPSIS
 
     use OMP::Translator::Headers::SCUBA2;
-    $msbid = OMP::Translator::Headers::SCUBA2->getMSBID($cfg, %info);
+    $msbid = OMP::Translator::Headers::SCUBA2->getMSBID($cfg, \%info);
 
 =head1 DESCRIPTION
 
@@ -23,7 +23,7 @@ namespace. They are all given the observation summary hash as argument
 and the current Config object, and they return the value that should
 be used in the header.
 
-    $value = OMP::Translator::Headers::SCUBA2->getProject($cfg, %info);
+    $value = OMP::Translator::Headers::SCUBA2->getProject($cfg, \%info);
 
 An empty string will be recognized as a true UNDEF header value. Returning
 undef is an error.
@@ -58,7 +58,7 @@ In most cases the default translations or entries in the header files are
 correct but in a few cases some final mode-dependent tweaking may be
 necessary.
 
-    $class->override_headers($hdrcfg, %info);
+    $class->override_headers($hdrcfg, \%info);
 
 This method is called after headers have been excluded and after
 translator callbacks have been run. Unlike the translation methods
@@ -77,12 +77,12 @@ not be available (but they are required by CADC even so).
 sub override_headers {
     my $self = shift;
     my $hdr = shift;
-    my %info = @_;
+    my $info = shift;
 
     # For the special case of a DARK-NOISE we set the OBJECT
     # to DARK. Otherwise we can't tell a default dark from
     # a useful dark.
-    if ($info{obs_type} =~ /noise/i && $info{noiseSource} =~ /dark/i) {
+    if ($info->{'obs_type'} =~ /noise/i && $info->{'noiseSource'} =~ /dark/i) {
         # Get object and set value. Should have an undef source already
         my $item = $hdr->item("OBJECT");
         if (defined $item->source) {
@@ -116,7 +116,7 @@ sub override_headers {
 
     # In stare mode, we can't get the MAP_X and MAP_Y headers from the normal
     # place (SCAN_PARAM).
-    if ($info{'mapping_mode'} eq 'stare') {
+    if ($info->{'mapping_mode'} eq 'stare') {
         my %map_xy = (
             MAP_X => {param => 'DEM_OFFSET.DC1', mult => 206264.8062},
             MAP_Y => {param => 'DEM_OFFSET.DC2', mult => 206264.8062},
@@ -152,17 +152,17 @@ Uses the base class for the user supplied value.
 sub getDRRecipe {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # See if the base class knows better
-    my $recipe = $self->SUPER::getDRRecipe($cfg, %info);
+    my $recipe = $self->SUPER::getDRRecipe($cfg, $info);
     return $recipe if defined $recipe;
 
     # Get the observation type and the mapping mode
-    my $obstype = $info{obs_type};
-    my $mapmode = $info{mapping_mode};
-    my $has_fts = scalar grep {$_ eq 'fts2'} @{$info{'inbeam'}};
-    my $has_pol = scalar grep {$_ =~ /^pol/} @{$info{'inbeam'}};
+    my $obstype = $info->{'obs_type'};
+    my $mapmode = $info->{'mapping_mode'};
+    my $has_fts = scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}};
+    my $has_pol = scalar grep {$_ =~ /^pol/} @{$info->{'inbeam'}};
 
     # if there was no DR component we have to guess
     if ($obstype eq 'pointing') {
@@ -187,7 +187,7 @@ sub getDRRecipe {
         $recipe = 'REDUCE_NOISE';
     }
     elsif ($mapmode eq 'scan') {
-        if (ref $info{'inbeam'} and $has_pol) {
+        if (ref $info->{'inbeam'} and $has_pol) {
             $recipe = "REDUCE_POL_SCAN";
         }
         else {
@@ -195,13 +195,13 @@ sub getDRRecipe {
         }
     }
     elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
-        if (ref $info{'inbeam'} and $has_fts) {
+        if (ref $info->{'inbeam'} and $has_fts) {
             # The superclass fails to find the FTS-2 recipes because
             # the mode doesn't match.
-            if (exists $info{'data_reduction'}
-                    && exists $info{'data_reduction'}->{'stare'}
-                    && defined $info{'data_reduction'}->{'stare'}) {
-                $recipe = $info{'data_reduction'}->{'stare'};
+            if (exists $info->{'data_reduction'}
+                    && exists $info->{'data_reduction'}->{'stare'}
+                    && defined $info->{'data_reduction'}->{'stare'}) {
+                $recipe = $info->{'data_reduction'}->{'stare'};
 
                 $self->translator->output(
                     "Using FTS-2 DR recipe $recipe provided by user\n");
@@ -210,8 +210,8 @@ sub getDRRecipe {
             }
 
             # Check whether this is a ZPD measurement.
-            if ((exists $info{'SpecialMode'})
-                    and ($info{'SpecialMode'} eq 'ZPD')) {
+            if ((exists $info->{'SpecialMode'})
+                    and ($info->{'SpecialMode'} eq 'ZPD')) {
                 $recipe = "REDUCE_FTS_ZPD";
             }
             else {
@@ -219,7 +219,7 @@ sub getDRRecipe {
                 $recipe = "REDUCE_FTS_SCAN";
             }
         }
-        elsif (ref $info{'inbeam'} and $has_pol) {
+        elsif (ref $info->{'inbeam'} and $has_pol) {
             $recipe = "REDUCE_POL_STARE";
         }
         else {

@@ -7,7 +7,7 @@ OMP::Translator::Headers::ACSIS - Derived header configuration for SCUBA-2
 =head1 SYNOPSIS
 
     use OMP::Translator::Headers::ACSIS;
-    $msbid = OMP::Translator::Headers::ACSIS->getMSBID($cfg, %info);
+    $msbid = OMP::Translator::Headers::ACSIS->getMSBID($cfg, \%info);
 
 =head1 DESCRIPTION
 
@@ -23,7 +23,7 @@ namespace. They are all given the observation summary hash as argument
 and the current Config object, and they return the value that should
 be used in the header.
 
-    $value = OMP::Translator::Headers::ACSIS->getProject($cfg, %info);
+    $value = OMP::Translator::Headers::ACSIS->getProject($cfg, \%info);
 
 An empty string will be recognized as a true UNDEF header value. Returning
 undef is an error.
@@ -69,24 +69,24 @@ Uses the base class for the user supplied value.
 sub getDRRecipe {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # See if the base class knows better
-    my $recipe = $self->SUPER::getDRRecipe($cfg, %info);
+    my $recipe = $self->SUPER::getDRRecipe($cfg, $info);
     return $recipe if defined $recipe;
 
     # if there was no DR component we have to guess
-    if ($info{MODE} =~ /Pointing/) {
+    if ($info->{'MODE'} =~ /Pointing/) {
         $recipe = 'REDUCE_POINTING';
     }
-    elsif ($info{MODE} =~ /Focus/) {
+    elsif ($info->{'MODE'} =~ /Focus/) {
         $recipe = 'REDUCE_FOCUS';
     }
-    elsif ($info{MODE} =~ /Skydip/) {
+    elsif ($info->{'MODE'} =~ /Skydip/) {
         $recipe = 'REDUCE_SKYDIP';
     }
     else {
-        if ($info{continuumMode}) {
+        if ($info->{'continuumMode'}) {
             $recipe = 'REDUCE_SCIENCE_CONTINUUM';
         }
         else {

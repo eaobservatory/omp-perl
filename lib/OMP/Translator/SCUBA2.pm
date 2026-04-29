@@ -280,7 +280,7 @@ sub translate_scan_pattern_lut {
 
 Work out the name of the header exclusion file.
 
-    $xfile = $trans->header_exclusion_file(%info);
+    $xfile = $trans->header_exclusion_file(\%info);
 
 Does not check to see if the file is present.
 
@@ -291,23 +291,23 @@ compared to the underlying scan or stare.
 
 sub header_exclusion_file {
     my $self = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $root;
-    if ($self->is_private_sequence(%info)) {
+    if ($self->is_private_sequence($info)) {
         # flatfield and array tests (and some noise) do not use
         # the rest of the observing system so the exclusion files
         # are the same
         $root = "flatfield";
     }
-    elsif ($info{obs_type} =~ /focus|skydip/) {
-        $root = $info{obs_type} . "_" . $info{mapping_mode};
+    elsif ($info->{'obs_type'} =~ /focus|skydip/) {
+        $root = $info->{'obs_type'} . '_' . $info->{'mapping_mode'};
     }
     else {
         # A pointing is just the mapping mode
         # A noise will just be the stare mode since dark and blackbody
         # have been filtered out previously.
-        $root = $info{mapping_mode};
+        $root = $info->{'mapping_mode'};
     }
 
     my $xfile = File::Spec->catfile(
@@ -321,7 +321,7 @@ sub header_exclusion_file {
 Given a particular scan area and frontend, determine which angles can be given
 to the TCS.
 
-    ($system, @angles) = $trans->determine_scan_angles($pattern, %info);
+    ($system, @angles) = $trans->determine_scan_angles($pattern, \%info);
 
 Angles are simple numbers in degrees. Not objects. Returns empty
 list if the pattern is not BOUSTROPHEDON or RASTER.
@@ -333,10 +333,10 @@ The scanning system is determined by this routine.
 sub determine_scan_angles {
     my $self = shift;
     my $pattern = shift;
-    my %info = @_;
+    my $info = shift;
 
     # only calculate angles for bous or raster
-    return ($info{SCAN_SYSTEM},) unless $pattern =~ /BOUS|RASTER/i;
+    return ($info->{'SCAN_SYSTEM'},) unless $pattern =~ /BOUS|RASTER/i;
 
     # SCUBA-2 currently needs to be 26.6 deg in NASMYTH.
     my $basepa = 26.6;
@@ -351,7 +351,7 @@ Returns true if the sequence only requires the instrument itself
 to be involved. If true, the telescope, SMU and RTS are not involved
 and so do not generate configuration XML.
 
-    $trans->is_private_sequence(%info);
+    $trans->is_private_sequence(\%info);
 
 For SCUBA-2 returns true for observations in the dark, using the blackbody,
 or a setup at the current telescope location, false otherwise.
@@ -360,27 +360,28 @@ or a setup at the current telescope location, false otherwise.
 
 sub is_private_sequence {
     my $self = shift;
-    my %info = @_;
-    if ($self->is_dark_or_blackbody(%info)) {
+    my $info = shift;
+
+    if ($self->is_dark_or_blackbody($info)) {
         return 1;
     }
 
     # if this is a setup observation and we have been told to use the current
     # Azimuth then we can just treat this as a private sequence. We do not really
     # need the telescope in setup observations
-    if ($info{obs_type} =~ /^setup/i && $info{currentAz}) {
+    if ($info->{'obs_type'} =~ /^setup/i and $info->{'currentAz'}) {
         return 1;
     }
 
     return 0;
 }
 
-=item B<is_with_rts_only>
+=item B<is_only_with_rts>
 
 Returns true if the observation is a sequence that just involves the
 instrument and the RTS.
 
-    $trans->is_with_rts_only(%info);
+    $trans->is_with_rts_only(\%info);
 
 Similar to is_private_sequence except the RTS can be included (but
 not the telescope). Used to determine whether tasks other than the
@@ -394,14 +395,14 @@ Returns false if only the instrument is required.
 
 sub is_only_with_rts {
     my $self = shift;
-    my %info = @_;
+    my $info = shift;
 
     # so we only return true if we are a dark-noise/blackbody or
     # flatfield-dark/blackbody that should use the RTS
-    if ($self->is_dark_or_blackbody(%info)) {
+    if ($self->is_dark_or_blackbody($info)) {
         # so now query the config system to see how to handle this
-        my $key = $info{obs_type};
-        if ($info{obs_type} =~ /^flatfield/) {
+        my $key = $info->{'obs_type'};
+        if ($info->{'obs_type'} =~ /^flatfield/) {
             $key = "flatfield";
         }
         $key .= "_use_rts";
@@ -417,40 +418,26 @@ sub is_only_with_rts {
 Returns true if this is an observation that is in the dark or
 uses a blackbody source but does not involve another component.
 
-    $trans->is_dark_or_blackbody(%info);
+    $trans->is_dark_or_blackbody(\%info);
 
 =cut
 
 sub is_dark_or_blackbody {
     my $self = shift;
-    my %info = @_;
-    if ($info{obs_type} =~ /^flatfield/) {
-        if ($info{flatSource} =~ /^(dark|blackbody)$/i) {
+    my $info = shift;
+
+    if ($info->{'obs_type'} =~ /^flatfield/) {
+        if ($info->{'flatSource'} =~ /^(dark|blackbody)$/i) {
             return 1;
         }
     }
-    elsif ($info{obs_type} eq 'noise') {
-        if ($info{noiseSource} =~ /^(dark|blackbody)$/i) {
+    elsif ($info->{'obs_type'} eq 'noise') {
+        if ($info->{'noiseSource'} =~ /^(dark|blackbody)$/i) {
             return 1;
         }
     }
 
     return 0;
-}
-
-=item B<get_tracking_receptor_filter_params>
-
-Get tracking subarray filtering parameters.
-
-    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
-
-=cut
-
-sub get_tracking_receptor_filter_params {
-    my $self = shift;
-    my $cfg = shift;
-    my %info = @_;
-    return ();
 }
 
 =item B<handle_special_modes>
@@ -708,14 +695,14 @@ These routine configure the specific C<JAC::OCS::Config> objects.
 
 Configure the SCUBA-2 specific instrument XML.
 
-    $trans->frontend_config($cfg, %$obs);
+    $trans->frontend_config($cfg, \%info);
 
 =cut
 
 sub frontend_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $sc = JAC::OCS::Config::SCUBA2->new();
 
@@ -731,7 +718,7 @@ This method does nothing for SCUBA-2.
 sub backend_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 }
 
 =item B<jos_config>
@@ -739,19 +726,19 @@ sub backend_config {
 The JOS configurations for SCUBA-2 have little in common with the
 ACSIS versions so this is an independent implementation.
 
-    $trans->jos_config($cfg, %info);
+    $trans->jos_config($cfg, \%info);
 
 =cut
 
 sub jos_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $jos = JAC::OCS::Config::JOS->new();
 
     # Basics
-    $jos->step_time($self->step_time($cfg, %info));
+    $jos->step_time($self->step_time($cfg, $info));
     $jos->start_index(1);
 
     # Calculate the effective step time
@@ -773,9 +760,9 @@ sub jos_config {
     #   scuba2_constantVelocity (for FTS-2 or POL-2)
     #   scuba2_zpd (for FTS-2)
 
-    my $recipe = $info{obs_type};
-    if ($info{obs_type} eq 'science') {
-        if ($info{observing_mode} eq 'stare_fts2') {
+    my $recipe = $info->{'obs_type'};
+    if ($info->{'obs_type'} eq 'science') {
+        if ($info->{'observing_mode'} eq 'stare_fts2') {
             my $fts2 = $cfg->fts2();
             OMP::Error::FatalError->throw(
                 "Could not determine observing recipe for FTS-2 observation because the FTS-2 configuration object was not present")
@@ -796,17 +783,17 @@ sub jos_config {
                     "Could not determine observing recipe for FTS-2 observation because the scan mode $scan_mode was not recognised");
             }
         }
-        elsif ($info{observing_mode} eq 'stare_spin_pol') {
+        elsif ($info->{'observing_mode'} eq 'stare_spin_pol') {
             $recipe = 'constantVelocity';
         }
-        elsif ($info{'observing_mode'} eq 'scan_spin_pol') {
+        elsif ($info->{'observing_mode'} eq 'scan_spin_pol') {
             $recipe = 'scan';
         }
         else {
-            $recipe = $info{observing_mode};
+            $recipe = $info->{'observing_mode'};
         }
     }
-    elsif ($info{obs_type} eq 'setup') {
+    elsif ($info->{'obs_type'} eq 'setup') {
         $recipe = "setup_subarrays";
     }
 
@@ -831,7 +818,7 @@ sub jos_config {
     $jos->n_darksamples(OMP::General::nint($darklen / $eff_step_time));
 
     # Flat ramp
-    if ($info{obs_type} !~ /^skydip/) {
+    if ($info->{'obs_type'} !~ /^skydip/) {
         my $flatramplen = OMP::Config->getData($self->cfgkey . ".flatramp_time");
         $jos->n_flatsamples(OMP::General::nint($flatramplen / $eff_step_time));
     }
@@ -851,10 +838,10 @@ sub jos_config {
     $self->output("\tFlat ramp duration: " . $jos->n_flatsamples() . " steps\n")
         if $jos->n_flatsamples;
 
-    if ($info{obs_type} =~ /^skydip/) {
+    if ($info->{'obs_type'} =~ /^skydip/) {
         $self->output("Skydip JOS parameters:\n");
 
-        if ($info{observing_mode} =~ /^stare/) {
+        if ($info->{'observing_mode'} =~ /^stare/) {
             # need JOS_MIN since we have multiple offsets
             my $integ = OMP::Config->getData($self->cfgkey . '.skydip_integ');
             $jos->jos_min(POSIX::ceil($integ / $eff_step_time));
@@ -871,22 +858,22 @@ sub jos_config {
             $self->output("\tContinuous scanning skydip\n");
         }
     }
-    elsif ($info{obs_type} =~ /^setup/) {
+    elsif ($info->{'obs_type'} =~ /^setup/) {
         $self->output("Setup JOS parameters:\n");
     }
-    elsif ($info{obs_type} =~ /^flatfield/) {
+    elsif ($info->{'obs_type'} =~ /^flatfield/) {
         # This is the integration time directly from the config file
         # and directly corresponds to JOS_MIN
-        my $inttime = $info{secsPerCycle};
+        my $inttime = $info->{'secsPerCycle'};
         my $nsteps = OMP::General::nint($inttime / $eff_step_time);
 
         $jos->jos_min($nsteps);
 
-        $self->output("\tFlatfield source: $info{flatSource}\n");
+        $self->output("\tFlatfield source: " . $info->{'flatSource'} . "\n");
     }
-    elsif ($info{obs_type} eq 'noise') {
+    elsif ($info->{'obs_type'} eq 'noise') {
         # Requested duration of noise observation
-        my $inttime = $info{secsPerCycle};
+        my $inttime = $info->{'secsPerCycle'};
 
         # convert total integration time to steps
         my $nsteps = $inttime / $eff_step_time;
@@ -898,8 +885,8 @@ sub jos_config {
         $jos->num_cycles($num_cycles);
 
         $self->output(
-            ucfirst($info{obs_type}) . " JOS parameters:\n",
-            "\tNoise source: $info{noiseSource}\n",
+            ucfirst($info->{'obs_type'}) . " JOS parameters:\n",
+            "\tNoise source: " . $info->{'noiseSource'} . "\n",
             "\tRequested integration time: $inttime secs\n",
             "\tNumber of cycles calculated: $num_cycles\n",
             "\tActual integration time: " . ($jos_min * $num_cycles * $eff_step_time) . " secs\n");
@@ -907,7 +894,7 @@ sub jos_config {
         # Set the duration
         $jos->jos_min($jos_min);
     }
-    elsif ($info{observing_mode} eq 'stare_fts2') {
+    elsif ($info->{'observing_mode'} eq 'stare_fts2') {
         # Handle FTS-2 before stare/dream as it is a special case
         # of stare.  Probably clearer to have a separate block rather than
         # having the stare/dream case also deal with FTS-2.
@@ -989,7 +976,7 @@ sub jos_config {
             "Could not determine cycle time for FTS-2 observation, probably because the scan mode '$scan_mode' was not recognised")
             unless defined $inttime;
 
-        my $sample_time = $info{'sampleTime'};
+        my $sample_time = $info->{'sampleTime'};
         throw OMP::Error::FatalError(
             "Could not determine observing time for FTS-2 observation because there was no sampleTime parameter")
             unless defined $sample_time;
@@ -1045,8 +1032,8 @@ sub jos_config {
             "\tActual total time: " . ($jos_min * $num_cycles * $eff_step_time) . " secs\n");
 
     }
-    elsif ($info{mapping_mode} eq 'stare'
-            || $info{mapping_mode} eq 'dream') {
+    elsif ($info->{'mapping_mode'} eq 'stare'
+            || $info->{'mapping_mode'} eq 'dream') {
         # STARE and DREAM have the same calculations because the
         # array is fully sampled at 850 microns so the exposure
         # time per pixel is the same even though the SMU is moving.
@@ -1054,14 +1041,14 @@ sub jos_config {
         # is secsPerCycle (for historical reasons) for STARE and
         # sampleTime for DREAM.
         my $inttime;
-        for my $key (qw/ secsPerCycle sampleTime/) {
-            if (exists $info{$key}) {
-                $inttime = $info{$key};
+        foreach my $key (qw/secsPerCycle sampleTime/) {
+            if (exists $info->{$key}) {
+                $inttime = $info->{$key};
                 last;
             }
         }
         OMP::Error::FatalError->throw(
-            "Could not determine integration time for $info{mapping_mode} observation")
+            'Could not determine integration time for ' . $info->{'mapping_mode'} . ' observation')
             unless defined $inttime;
 
         # Need an obsArea for number of microsteps
@@ -1092,7 +1079,7 @@ sub jos_config {
         $jos->num_cycles($num_cycles);
 
         $self->output(
-            uc($info{mapping_mode}) . " JOS parameters:\n",
+            uc($info->{'mapping_mode'}) . " JOS parameters:\n",
             "\tRequested integration time per pixel: $inttime secs\n",
             "\tNumber of steps per microstep/offset: $jos_min\n",
             "\tNumber of cycles calculated: $num_cycles\n",
@@ -1100,7 +1087,7 @@ sub jos_config {
                 . ($jos_min * $num_cycles * $nms * $eff_step_time)
                 . " secs\n");
     }
-    elsif ($info{mapping_mode} eq 'scan') {
+    elsif ($info->{'mapping_mode'} eq 'scan') {
         # The aim here is to use the minimum number of sequences
         # to get the correct map area. For "point source" it is easy
         # because we assume that the time requested is the length
@@ -1123,16 +1110,16 @@ sub jos_config {
         # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.
         my %mapping_info = ($obsArea->scan, $obsArea->maparea);
         my $duration_per_area;
-        if ($info{scanPattern} =~ /liss|pong/i) {
+        if ($info->{'scanPattern'} =~ /liss|pong/i) {
             $duration_per_area = JCMT::TCS::Pong::get_pong_dur(%mapping_info);
         }
-        elsif ($info{scanPattern} =~ /bous/i) {
+        elsif ($info->{'scanPattern'} =~ /bous/i) {
             my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
             my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
 
             $duration_per_area = ($maparea / $pixarea) * $eff_step_time;
         }
-        elsif ($info{scanPattern} =~ /ell/i) {
+        elsif ($info->{'scanPattern'} =~ /ell/i) {
             my $rx = $mapping_info{WIDTH};
             my $ry = $mapping_info{HEIGHT};
 
@@ -1142,7 +1129,7 @@ sub jos_config {
 
             $duration_per_area = $perimeter / $mapping_info{VELOCITY};
         }
-        elsif ($info{scanPattern} =~ /daisy/i) {
+        elsif ($info->{'scanPattern'} =~ /daisy/i) {
          # Originally from Per Friberg, committed Wed Feb 10 15:32:12 2010 -1000
             my $r0 = ($mapping_info{WIDTH} + $mapping_info{HEIGHT}) / 4;
 
@@ -1168,22 +1155,22 @@ sub jos_config {
         }
         else {
             throw OMP::Error::FatalError(
-                "Unrecognized scan pattern: $info{scanPattern}");
+                'Unrecognized scan pattern: ' . $info->{'scanPattern'});
         }
 
         $self->output(
             "\tEstimated time to cover the map area once: $duration_per_area sec\n");
 
         my $nsteps;
-        if (exists $info{sampleTime} && defined $info{sampleTime}) {
+        if (exists $info->{'sampleTime'} && defined $info->{'sampleTime'}) {
             # Specify the length of the sequence
-            $nsteps = $info{sampleTime} / $eff_step_time;
+            $nsteps = $info->{'sampleTime'} / $eff_step_time;
             $self->output(
                 "\tScan map executing for a specific time. Not map coverage\n",
-                "\tTotal duration requested for scan map: $info{sampleTime} secs.\n");
+                "\tTotal duration requested for scan map: " . $info->{'sampleTime'} . " secs.\n");
         }
         else {
-            my $nrepeats = ($info{nintegrations} ? $info{nintegrations} : 1);
+            my $nrepeats = ($info->{'nintegrations'} ? $info->{'nintegrations'} : 1);
 
             $self->output(
                 "\tNumber of repeats of map area requested: $nrepeats\n");
@@ -1212,7 +1199,7 @@ sub jos_config {
         try {
             my $max_cycle_steps = OMP::Config->getData(
                 $self->cfgkey . '.scan_max_cycle_duration_'
-                . lc($info{scanPattern})) / $eff_step_time;
+                . lc($info->{'scanPattern'})) / $eff_step_time;
 
             $self->output("\tMax cycle steps: $max_cycle_steps\n");
             $jos_max = min($jos_max, $max_cycle_steps);
@@ -1228,9 +1215,9 @@ sub jos_config {
         my $num_cycles;
         my $jos_min;
         my $tot_time;
-        if ($info{obs_type} =~ /point|focus/i) {
+        if ($info->{'obs_type'} =~ /point|focus/i) {
             my $minlen = OMP::Config->getData(
-                $self->cfgkey . "." . $info{obs_type} . "_min_cycle_duration");
+                $self->cfgkey . "." . $info->{'obs_type'} . "_min_cycle_duration");
 
             $num_cycles = POSIX::ceil($nsteps / $steps_per_pass);
 
@@ -1293,7 +1280,7 @@ sub jos_config {
         # will try to get clever and multiply up the NUM_CYCLES
         # For focus we definitely do not want darks between the focus positions though.
         $jos->steps_btwn_dark($jos_min)
-            unless $info{obs_type} =~ /focus/;
+            unless $info->{'obs_type'} =~ /focus/;
 
         $tot_time = $num_cycles * $jos_min * $eff_step_time;
         $jos->jos_min($jos_min);
@@ -1306,13 +1293,13 @@ sub jos_config {
     }
 
     # Non science observing types
-    if ($info{obs_type} =~ /focus/) {
-        $jos->num_focus_steps($info{focusPoints});
+    if ($info->{'obs_type'} =~ /focus/) {
+        $jos->num_focus_steps($info->{'focusPoints'});
 
         # Focus step is missing from OT at the moment.
-        my $stepsize = $info{focusStep};
+        my $stepsize = $info->{'focusStep'};
         unless (defined $stepsize) {
-            if ($info{focusAxis} =~ /z/i) {
+            if ($info->{'focusAxis'} =~ /z/i) {
                 $stepsize = 0.3;
             }
             else {
@@ -1320,7 +1307,7 @@ sub jos_config {
             }
         }
         $jos->focus_step($stepsize);
-        $jos->focus_axis($info{focusAxis});
+        $jos->focus_axis($info->{'focusAxis'});
     }
 
     # Craig requested that the translator inform the JOS how many
@@ -1352,15 +1339,6 @@ sub jos_config {
     $cfg->jos($jos);
 }
 
-=item B<rotator_config>
-
-There is no rotator for SCUBA-2.
-
-=cut
-
-sub rotator_config {
-}
-
 =item B<fts2_config>
 
 Reads the information from OMP::MSB (which should be in a simple hash form from
@@ -1374,17 +1352,17 @@ the SCUBA-2 and TCS configurations accordingly.
 sub fts2_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
-    if ($info{'MODE'} eq 'SpIterPointingObs'
-            or $info{'MODE'} eq 'SpIterFocusObs') {
+    if ($info->{'MODE'} eq 'SpIterPointingObs'
+            or $info->{'MODE'} eq 'SpIterFocusObs') {
         # If this is a pointing or focus, check if FTS-2 is in the beam.
-        if (grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+        if (grep {$_ eq 'fts2'} @{$info->{'inbeam'}}) {
             $self->output("FTS-2 pointing/focus observation\n");
 
             my $port = OMP::Config->getData(
                 $self->cfgkey . '.fts_'
-                    . (($info{'MODE'} eq 'SpIterFocusObs') ? 'focus' : 'pointing')
+                    . (($info->{'MODE'} eq 'SpIterFocusObs') ? 'focus' : 'pointing')
                     . '_port');
             $self->fts2_tcs_config($cfg, $port);
             $self->fts2_scuba2_config($cfg, $port, '');
@@ -1393,7 +1371,7 @@ sub fts2_config {
         # Return now as we do not need to configure FTS-2 itself.
         return;
     }
-    elsif ($info{'MODE'} ne 'SpIterFTS2Obs') {
+    elsif ($info->{'MODE'} ne 'SpIterFTS2Obs') {
         # Return now if this is not an FTS-2 observation.
         return;
     }
@@ -1402,12 +1380,12 @@ sub fts2_config {
 
     my $fts2 = JAC::OCS::Config::FTS2->new();
 
-    my $mode = $info{'SpecialMode'};
+    my $mode = $info->{'SpecialMode'};
     my $centre = OMP::Config->getData($self->cfgkey . '.fts_centre_position');
 
     # OT includes sampleTime for the FTS-2 observation but it's not
     # part of the FTS2_CONFIG.
-    # my $samptime = $info{'sampleTime'};
+    # my $samptime = $info->{'sampleTime'};
 
     # Mapping from standard mode names to config file parameter keys:
     my %standardmodes = (
@@ -1464,13 +1442,13 @@ sub fts2_config {
         # With this mode selected the OT allows the resolution and scan-speed
         # to be configured.  (It greys these options out in the other modes.)
 
-        my $speed = $info{'ScanSpeed'};
+        my $speed = $info->{'ScanSpeed'};
         throw OMP::Error::TranslateFail('Excessive scan speed: ' . $speed)
             if $speed > OMP::Config->getData($self->cfgkey . '.fts_variable_maxspeed');
         throw OMP::Error::TranslateFail('Scan speed too low: ' . $speed)
             if $speed <= 0.0;
 
-        my $resolution = $info{'resolution'};
+        my $resolution = $info->{'resolution'};
         throw OMP::Error::TranslateFail('Resolution zero or negative')
             if $resolution <= 0.0;
 
@@ -1489,7 +1467,7 @@ sub fts2_config {
         # In this mode the OT allows the scan length, origin
         # and step distance (all in mm) to be specified.
 
-        my $step_dist = $info{'StepDistance'};
+        my $step_dist = $info->{'StepDistance'};
         throw OMP::Error::TranslateFail('FTS-2 step distance zero or negative')
             if $step_dist <= 0.0;
 
@@ -1498,12 +1476,12 @@ sub fts2_config {
         my $max_offset = OMP::Config->getData(
             $self->cfgkey . '.fts_variable_maxlength') / 2.0;
 
-        my $scan_origin= $info{'ScanOrigin'};
+        my $scan_origin= $info->{'ScanOrigin'};
         throw OMP::Error::TranslateFail(
             "FTS-2 step origin ($scan_origin mm) out of range (+/- $max_offset mm)")
             if $scan_origin < - $max_offset || $scan_origin > $max_offset;
 
-        my $scan_length = $info{'ScanLength'};
+        my $scan_length = $info->{'ScanLength'};
 
         # Calculate the end position to check whether it is in range.
         my $scan_end = $scan_origin + $scan_length;
@@ -1523,8 +1501,8 @@ sub fts2_config {
 
     # Configure shutters based on port selection.
 
-    my $dual = $info{'isDualPort'};    # Boolean
-    my $port = $info{'TrackingPort'};  # Name: 8D or 8C.
+    my $dual = $info->{'isDualPort'};    # Boolean
+    my $port = $info->{'TrackingPort'};  # Name: 8D or 8C.
 
     if ($dual) {
         # Open both shutters.
@@ -1672,17 +1650,17 @@ sub fts2_scuba2_config {
 Returns true if we need to use a particular sub array for this
 observation.
 
-    $need = $trans->need_offset_tracking($cfg, %info);
+    $need = $trans->need_offset_tracking($cfg, \%info);
 
 =cut
 
 sub need_offset_tracking {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # Never offset track for noise, skydip, flatfield or setup
-    if ($info{obs_type} =~ /noise|skydip|flat|setup/i) {
+    if ($info->{'obs_type'} =~ /noise|skydip|flat|setup/i) {
         return 0;
     }
 
@@ -1695,7 +1673,7 @@ sub need_offset_tracking {
 
 Step time for SCUBA-2 is usually fixed at 200 Hz.
 
-    $rts = $trans->step_time($cfg, %info);
+    $rts = $trans->step_time($cfg, \%info);
 
 Flatfield and Noise can be configured independently.
 
@@ -1704,15 +1682,15 @@ Flatfield and Noise can be configured independently.
 sub step_time {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # Try obs type version first
     my $step;
 
-    if ($info{obs_type} =~ /^(flatfield|noise)$/) {
-        my $q = ($info{is_quick} ? "_quick" : "");
+    if ($info->{'obs_type'} =~ /^(flatfield|noise)$/) {
+        my $q = ($info->{'is_quick'} ? "_quick" : "");
         $step = eval {
-            OMP::Config->getData($self->cfgkey . ".step_time_" . $info{obs_type} . $q);
+            OMP::Config->getData($self->cfgkey . ".step_time_" . $info->{'obs_type'} . $q);
         };
     }
 
@@ -1843,27 +1821,27 @@ sub determine_map_and_switch_mode {
 Decide what should be in the beam. Uses "shutter" for a dark observation.
 Blackbody does not allow FTS.
 
-    @inbeam = $trans->determine_inbeam(%info);
+    \@inbeam = $trans->determine_inbeam(\%info);
 
 =cut
 
 sub determine_inbeam {
     my $self = shift;
-    my %info = @_;
+    my $info = shift;
     my @inbeam;
 
-    if ($info{obs_type} eq 'setup' || $info{obs_type} eq 'array_tests') {
+    if ($info->{'obs_type'} eq 'setup' || $info->{'obs_type'} eq 'array_tests') {
         # Setup always in dark
-        return ("shutter");
+        return ['shutter'];
     }
 
     # see if we have a source in the beam
     my $source;
-    if ($info{obs_type} =~ /^flatfield/) {
-        $source = lc($info{flatSource});
+    if ($info->{'obs_type'} =~ /^flatfield/) {
+        $source = lc $info->{'flatSource'};
     }
-    elsif (exists $info{noiseSource}) {
-        $source = lc($info{noiseSource});
+    elsif (exists $info->{'noiseSource'}) {
+        $source = lc $info->{'noiseSource'};
     }
 
     if (defined $source) {
@@ -1871,33 +1849,33 @@ sub determine_inbeam {
             push @inbeam, "blackbody";
         }
         elsif ($source =~ /dark/i) {
-            return ("shutter");
+            return ['shutter'];
         }
     }
 
     # Detect FTS2 observations.  Also check for blackbody because
     # of the POD comment above.
-    if ($info{'MODE'} eq 'SpIterFTS2Obs'
+    if ($info->{'MODE'} eq 'SpIterFTS2Obs'
             and not(defined $source and $source =~ /blackbody/i)) {
         push @inbeam, 'fts2';
     }
 
     # Read inbeam hash entry for focus and pointing, allowing fts2 and pol2
     # to be in the beam, subject to the constraint mentioned above.
-    if (($info{'MODE'} eq 'SpIterFocusObs' or $info{'MODE'} eq 'SpIterPointingObs')
-            and (defined $info{'inbeam'} and ref $info{'inbeam'})) {
+    if (($info->{'MODE'} eq 'SpIterFocusObs' or $info->{'MODE'} eq 'SpIterPointingObs')
+            and (defined $info->{'inbeam'} and ref $info->{'inbeam'})) {
         push @inbeam, 'fts2'
-            if grep {lc($_) eq 'fts2'} @{$info{'point_focus_inbeam'}}
+            if grep {lc($_) eq 'fts2'} @{$info->{'point_focus_inbeam'}}
             and not(defined $source and $source =~ /blackbody/i);
 
         push @inbeam, 'pol'
-            if grep {lc($_) eq 'pol2'} @{$info{'point_focus_inbeam'}};
+            if grep {lc($_) eq 'pol2'} @{$info->{'point_focus_inbeam'}};
     }
 
     # get base class values
-    push @inbeam, $self->SUPER::determine_inbeam(%info);
+    push @inbeam, @{$self->SUPER::determine_inbeam($info)};
 
-    return @inbeam;
+    return \@inbeam;
 }
 
 =item B<set_config_suffixes>
