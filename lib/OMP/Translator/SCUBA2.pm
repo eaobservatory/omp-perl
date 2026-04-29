@@ -39,7 +39,7 @@ use OMP::MSB;
 
 use OMP::Translator::Headers::SCUBA2;
 
-use base qw/OMP::Translator::JCMT/;
+use parent qw/OMP::Translator::Continuum/;
 
 =head1 METHODS
 
@@ -1698,17 +1698,6 @@ sub step_time {
         unless defined $step;
 
     return $step;
-}
-
-=item B<velOverride>
-
-SCUBA-2 has no requirement for velocity information so return
-empty list.
-
-=cut
-
-sub velOverride {
-    return ();
 }
 
 =item B<backend>

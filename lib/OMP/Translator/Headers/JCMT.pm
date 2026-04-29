@@ -19,16 +19,6 @@ Some header values are determined through the invocation of methods
 specified in the header template XML. These methods are flagged by
 using the DERIVED specifier with a task name of TRANSLATOR.
 
-The following methods are in the OMP::Translator::Headers::JCMT
-namespace. They are all given the observation summary hash as argument
-and the current Config object, and they return the value that should
-be used in the header.
-
-    $value = OMP::Translator::Headers::JCMT->new->getProject($cfg, \%info);
-
-An empty string will be recognized as a true UNDEF header value. Returning
-undef is an error.
-
 =cut
 
 use 5.006;
@@ -159,6 +149,16 @@ sub translator {
 =back
 
 =head2 Translation Methods
+
+The following methods are in the OMP::Translator::Headers::JCMT
+namespace. They are all given the observation summary hash as argument
+and the current Config object, and they return the value that should
+be used in the header.
+
+    $value = OMP::Translator::Headers::JCMT->new->getProject($cfg, \%info);
+
+An empty string will be recognized as a true UNDEF header value. Returning
+undef is an error.
 
 =over 4
 

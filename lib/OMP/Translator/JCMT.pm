@@ -42,7 +42,7 @@ use OMP::General;
 
 use OMP::Translator::Headers::JCMT;
 
-use base qw/OMP::Translator::Base/;
+use parent qw/OMP::Translator::Base/;
 
 # Version number
 our $VERSION = '2.000';
