@@ -2,26 +2,17 @@ package OMP::Translator::Base;
 
 =head1 NAME
 
-OMP::Translator::Base - translate science program to sequence
+OMP::Translator::Base - Base class for instrument-specific translators
 
 =head1 SYNOPSIS
 
-**  need update
-
-    use OMP::Translator::Base;
+    use parent qw/OMP::Translator::Base/;
 
 =head1 DESCRIPTION
 
-**  need update
-
-This class converts a science program object (an C<OMP::SciProg>)
-into a sequence understood by the data acquisition system.
-
-For ACSIS and SCUBA-2, XML configuration files are generated.
-
-The actual translation is done in a subclass. The top level class
-determines the correct class to use for the MSB and delegates the
-translation of each observation within the MSB to that class.
+This is the base class for instrument-specific translation classes.  It
+provides the constructor method, basic accessor methods and some general
+utility methods.
 
 =cut
 
@@ -29,6 +20,9 @@ use 5.006;
 use strict;
 use warnings;
 
+use IO::Tee;
+
+use OMP::Config;
 use OMP::Constants qw/:msb/;
 use OMP::General;
 
@@ -53,6 +47,8 @@ sub new {
     my $self = bless {
         debug => 0,
         verbose => 0,
+        handle => \*STDOUT,
+        config_suffixes => [],
     }, $class;
 
     return $self;
@@ -63,6 +59,99 @@ sub new {
 =head2 General Methods
 
 =over 4
+
+=item B<clear>
+
+Clear persistent per-observation information from translator object.  This
+should be called where the same translator object is being used for multiple
+observations to avoid information leaking between them.
+
+=cut
+
+sub clear {
+    my $self = shift;
+
+    $self->{'config_suffixes'} = [];
+}
+
+=item B<debug>
+
+Method to enable and disable debugging state.
+
+    $translator->debug(1);
+
+=cut
+
+sub debug {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'debug'} = ($state ? 1 : 0);
+    }
+    return $self->{'debug'};
+}
+
+=item B<verbose>
+
+Method to enable and disable verbosity state.
+
+    $translator->verbose(1);
+
+=cut
+
+sub verbose {
+    my $self = shift;
+    if (@_) {
+        my $state = shift;
+        $self->{'verbose'} = ($state ? 1 : 0);
+    }
+    return $self->{'verbose'};
+}
+
+=item B<outhdl>
+
+Output file handles to use for verbose messages.
+Defaults to STDOUT.
+
+    $translator->outhdl(\*STDOUT, $fh);
+
+Pass in undef to reset to STDOUT.
+
+=cut
+
+sub outhdl {
+    my $self = shift;
+    if (@_) {
+        unless (defined $_[0]) {
+            $self->{'handle'} = \*STDOUT;
+        }
+        else {
+            $self->{'handle'} = IO::Tee->new(@_);
+        }
+    }
+    return $self->{'handle'};
+}
+
+=item B<output>
+
+Output a message to the default file handle if we are in verbose mode.
+
+    $trans->output(@messages);
+
+A newline will not be added if one is missing from the supplied message.
+
+=cut
+
+sub output {
+    my $self = shift;
+    return unless $self->verbose;
+
+    my $outhdl = $self->outhdl;
+    for my $msg (@_) {
+        print {$outhdl} $msg;
+    }
+    return;
+}
 
 =item B<PosAngRot>
 
@@ -370,6 +459,80 @@ sub _fix_wplate_recurse {
     }
 
     return;
+}
+
+=item B<config_suffixes>
+
+List of configuration key suffixes.  To be applied when looking up
+certain parameters using C<OMP::Config-E<gt>getDataSearchSuffixes>.
+
+    $value = OMP::Config->getDataSearchSuffixes(
+        'section.key', $translator->config_suffixes);
+
+If called with one or more values, these are I<appended> to to
+current list of suffixes, omitting repeated values.
+
+    $translator->config_suffixes($instrument_name, $planet_name);
+
+=cut
+
+sub config_suffixes {
+    my $self = shift;
+
+    if (@_) {
+        foreach my $suffix (@_) {
+            push @{$self->{'config_suffixes'}}, $suffix
+                unless grep {$_ eq $suffix} @{$self->{'config_suffixes'}};
+        }
+    }
+
+    return @{$self->{'config_suffixes'}};
+}
+
+=item B<set_config_suffixes>
+
+Add initial configuration key suffixes (using C<config_suffixes>)
+based on the given observation hashref.
+
+    $trans->set_config_suffixes(\%info);
+
+Subclasses should override to add extra information as needed.
+
+=cut
+
+sub set_config_suffixes {
+    my $self = shift;
+    my $info = shift;
+
+    if ($info->{'coords'}->type eq 'PLANET') {
+        $self->config_suffixes(lc $info->{'coords'}->planet());
+    }
+
+    $self->config_suffixes('cont') if $info->{'continuumMode'};
+}
+
+=item B<get_config_value>
+
+Convenience method to add C<cfgkey> and config. suffixes and then
+look up a configuration value.
+
+    $value = $trans->get_config_value($key);
+
+This should be equivalent to:
+
+    $value = OMP::Config->getDataSearchSuffixes(
+        $trans->cfgkey . '.' . $key,
+        $trans->config_suffixes);
+
+=cut
+
+sub get_config_value {
+    my $self = shift;
+    my $key = shift;
+
+    return OMP::Config->getDataSearchSuffixes(
+        $self->cfgkey . '.' . $key,
+        $self->config_suffixes);
 }
 
 1;

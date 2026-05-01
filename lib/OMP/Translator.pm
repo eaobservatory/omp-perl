@@ -2,7 +2,7 @@ package OMP::Translator;
 
 =head1 NAME
 
-OMP::Translator - translate science program to sequence
+OMP::Translator - Translate science program to OCS config
 
 =head1 SYNOPSIS
 
@@ -12,14 +12,14 @@ OMP::Translator - translate science program to sequence
 
 =head1 DESCRIPTION
 
-This class converts a science program object (an C<OMP::SciProg>)
-into a sequence understood by the data acquisition system.
+This class converts a science program object (an C<OMP::SciProg>) into
+configuration XML files understood by the observatory control system
+(C<JAC::OCS::Config> files).
 
-For ACSIS and SCUBA-2, XML configuration files are generated.
-
-The actual translation is done in a subclass. The top level class
-determines the correct class to use for the MSB and delegates the
-translation of each observation within the MSB to that class.
+The actual translation is done by instrument-specific classes. This
+class class orchestrates the process, determining the correct class
+to use for each MSB and delegating the translation of each observation
+within the MSB to that class.
 
 =cut
 
@@ -346,10 +346,10 @@ sub translate {
             $translator->debug($opts{'debug'});
 
             # enable verbose logging
-            $translator->verbose($verbose) if $translator->can("verbose");
+            $translator->verbose($verbose);
 
             # and register filehandles
-            $translator->outhdl(@handles) if $translator->can("outhdl");
+            $translator->outhdl(@handles);
 
             if (defined $logh) {
                 print $logh "---------------------------------------------\n";
@@ -444,7 +444,7 @@ sub translate {
     if ($opts{asdata}) {
         # disable the loggin
         for (@configs) {
-            $_->outhdl(undef) if $_->can("outhdl");
+            $_->outhdl(undef);
         }
 
         if (wantarray) {
@@ -468,7 +468,7 @@ sub translate {
 
         # clear logging
         for (@configs) {
-            $_->outhdl(undef) if $_->can("outhdl");
+            $_->outhdl(undef);
         }
 
         # return

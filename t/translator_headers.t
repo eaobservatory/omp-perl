@@ -2,11 +2,15 @@
 
 use strict;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 
+require_ok('OMP::Translator::JCMT');
 require_ok('OMP::Translator::Headers::JCMT');
 
-my $hdr = OMP::Translator::Headers::JCMT->new();
+my $trans = OMP::Translator::JCMT->new();
+isa_ok($trans, 'OMP::Translator::JCMT');
+
+my $hdr = OMP::Translator::Headers::JCMT->new(translator => $trans);
 isa_ok($hdr, 'OMP::Translator::Headers::JCMT');
 
 is($hdr->fitsSafeString(

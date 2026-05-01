@@ -110,8 +110,8 @@ in that directory for more information.
 
 =head3 Translator Test Suite
 
-The F<t-tr> directory contains various MSBs and reference translations to
-OCS config. XML.  Please see the F<Makefile> in that directory for
+The F<omp-perl-t-tr> repository contains various MSBs and reference translations to
+OCS config. XML.  Please see the F<Makefile> in that repository for
 more information.
 
 =head3 Running a Local Web Server

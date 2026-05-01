@@ -86,9 +86,6 @@ our $VERSION = '2.000';
 # Name of the table containing the MSB data
 our $SCITABLE = 'ompsciprog';
 
-# Default number of results to return from a query
-our $DEFAULT_RESULT_COUNT = 10;
-
 # Debug messages
 our $DEBUG = 0;
 
@@ -2768,7 +2765,7 @@ sub _run_query {
         # Slice if necessary
         if (defined $max) {
             $max --;  # convert to index
-            $max = ($max < $#$ref && $max > -1 ? $max : $#$ref);
+            $max = ($max < $#$ref) ? $max : $#$ref;
         }
         else {
             $max = $#$ref;
@@ -3268,8 +3265,7 @@ sub _run_query {
                 $msb->{hamean} = $hamean;
 
                 # Jump out the loop if we have enough matches
-                # A negative $max will never match
-                last if scalar(@observable) == $max;
+                last if (defined $max) and ($max == scalar @observable);
             }
         }
 

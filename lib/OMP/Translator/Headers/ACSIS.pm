@@ -2,31 +2,21 @@ package OMP::Translator::Headers::ACSIS;
 
 =head1 NAME
 
-OMP::Translator::Headers::ACSIS - Derived header configuration for SCUBA-2
+OMP::Translator::Headers::ACSIS - Derived header configuration for ACSIS
 
 =head1 SYNOPSIS
 
     use OMP::Translator::Headers::ACSIS;
-    $msbid = OMP::Translator::Headers::ACSIS->getMSBID($cfg, %info);
+    $msbid = OMP::Translator::Headers::ACSIS->getMSBID($cfg, \%info);
 
 =head1 DESCRIPTION
 
-This class contains ACSIS specific header configurations. Class methods
+This class contains ACSIS specific header configurations. Methods
 are invoked from the JCMT translator.
 
 Some header values are determined through the invocation of methods
 specified in the header template XML. These methods are flagged by
 using the DERIVED specifier with a task name of TRANSLATOR.
-
-The following methods are in the OMP::Translator::Headers::JCMT
-namespace. They are all given the observation summary hash as argument
-and the current Config object, and they return the value that should
-be used in the header.
-
-    $value = OMP::Translator::Headers::ACSIS->getProject($cfg, %info);
-
-An empty string will be recognized as a true UNDEF header value. Returning
-undef is an error.
 
 =cut
 
@@ -34,11 +24,12 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
-use Data::Dumper;
 
-use base qw/OMP::Translator::Headers::JCMT/;
+use parent qw/OMP::Translator::Headers::Heterodyne/;
 
-=head1 HELPER METHODS
+=head1 METHODS
+
+=head2 Helper Methods
 
 =over 4
 
@@ -54,173 +45,19 @@ sub default_project {
 
 =back
 
-=head1 TRANSLATION METHODS
+=head2 Translation Methods
+
+The following methods are in the OMP::Translator::Headers::JCMT
+namespace. They are all given the observation summary hash as argument
+and the current Config object, and they return the value that should
+be used in the header.
+
+    $value = OMP::Translator::Headers::ACSIS->getProject($cfg, \%info);
+
+An empty string will be recognized as a true UNDEF header value. Returning
+undef is an error.
 
 =over 4
-
-=item B<getDRRecipe>
-
-Default recipe can be supplied by the OT user or determined from context.
-
-Uses the base class for the user supplied value.
-
-=cut
-
-sub getDRRecipe {
-    my $class = shift;
-    my $cfg = shift;
-    my %info = @_;
-
-    # See if the base class knows better
-    my $recipe = $class->SUPER::getDRRecipe($cfg, %info);
-    return $recipe if defined $recipe;
-
-    # if there was no DR component we have to guess
-    if ($info{MODE} =~ /Pointing/) {
-        $recipe = 'REDUCE_POINTING';
-    }
-    elsif ($info{MODE} =~ /Focus/) {
-        $recipe = 'REDUCE_FOCUS';
-    }
-    elsif ($info{MODE} =~ /Skydip/) {
-        $recipe = 'REDUCE_SKYDIP';
-    }
-    else {
-        if ($info{continuumMode}) {
-            $recipe = 'REDUCE_SCIENCE_CONTINUUM';
-        }
-        else {
-            $recipe = 'REDUCE_SCIENCE';
-        }
-    }
-
-    if ($class->VERBOSE) {
-        print {$class->HANDLES} "Using DR recipe $recipe determined from context\n";
-    }
-
-    return $recipe;
-}
-
-=item B<getNumMixers>
-
-=cut
-
-sub getNumMixers {
-    my $class = shift;
-    my $cfg = shift;
-
-    # Get the frontend
-    my $fe = $cfg->frontend;
-    throw OMP::Error::TranslateFail("Asked to determine number of mixers but no Frontend has been specified\n")
-        unless defined $fe;
-
-    my %mask = $fe->mask;
-    my $count;
-    for my $state (values %mask) {
-        $count ++ if ($state eq 'ON' || $state eq 'NEED');
-    }
-
-    return $count;
-}
-
-=item B<getReferenceDec>
-
-Reference position as sexagesimal string or offset
-
-=cut
-
-sub getReferenceDec {
-    my $class = shift;
-    my $cfg = shift;
-
-    # Get the TCS
-    my $tcs = $cfg->tcs;
-
-    my %allpos = $tcs->getAllTargetInfo;
-
-    # check if SCIENCE == REFERENCE
-    if (exists $allpos{REFERENCE}) {
-        # Assume that for now since the OT enforces either an absolute position
-        # or one relative to BASE as an offset that if we have an offset people
-        # are offsetting and if we have just coords that we are using that explicitly
-        my $refpos = $allpos{REFERENCE}->coords;
-        my $offset = $allpos{REFERENCE}->offset;
-
-        if (defined $offset) {
-            my @off = $offset->offsets;
-            return "[OFFSET] " . $off[1]->arcsec . " [" . $offset->system . "]";
-        }
-        else {
-            if ($refpos->can("dec2000")) {
-                return "" . $refpos->dec2000;
-            }
-            elsif ($refpos->type eq "AZEL") {
-                return $refpos->el . " (EL)";
-            }
-        }
-    }
-
-    # Want this to be an undef header
-    return "";
-}
-
-=item B<getReferenceRA>
-
-Reference position as sexagesimal string or offset
-
-=cut
-
-sub getReferenceRA {
-    my $class = shift;
-    my $cfg = shift;
-
-    # Get the TCS
-    my $tcs = $cfg->tcs;
-
-    my %allpos = $tcs->getAllTargetInfo;
-
-    # check if SCIENCE == REFERENCE
-    if (exists $allpos{REFERENCE}) {
-        # Assume that for now since the OT enforces either an absolute position
-        # or one relative to BASE as an offset that if we have an offset people
-        # are offsetting and if we have just coords that we are using that explicitly
-        my $refpos = $allpos{REFERENCE}->coords;
-        my $offset = $allpos{REFERENCE}->offset;
-
-        if (defined $offset) {
-            my @off = $offset->offsets;
-            return "[OFFSET] " . $off[0]->arcsec . " [" . $offset->system . "]";
-        }
-        else {
-            if ($refpos->can("ra2000")) {
-                return "" . $refpos->ra2000;
-            }
-            elsif ($refpos->type eq "AZEL") {
-                return $refpos->az . " (AZ)";
-            }
-        }
-    }
-
-    # Want this to be an undef header
-    return "";
-}
-
-=item B<getRefRecep>
-
-Get the reference recptor.
-
-=cut
-
-sub getRefRecep {
-    my $class = shift;
-    my $cfg = shift;
-
-    my $inst = $cfg->instrument_setup;
-    throw OMP::Error::FatalError('Instrument configuration is not available')
-        unless defined $inst;
-
-    return scalar $inst->reference_receptor;
-}
 
 =item B<getRPRecipe>
 
@@ -230,7 +67,7 @@ the recipe This should be stored in the Cfg object.
 =cut
 
 sub getRPRecipe {
-    my $class = shift;
+    my $self = shift;
     my $cfg = shift;
 
     # Get the acsis config

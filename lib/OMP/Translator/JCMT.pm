@@ -2,12 +2,13 @@ package OMP::Translator::JCMT;
 
 =head1 NAME
 
-OMP::Translator::JCMT - Base class for JCMT configure XML translations
+OMP::Translator::JCMT - Base class for JCMT configuration XML translators
 
 =head1 SYNOPSIS
 
-    use OMP::Translator::JCMT;
-    $config = OMP::Translator::JCMT->new->translate($sp);
+    use parent qw/OMP::Translator::JCMT/;
+
+    @configs = $translator->translate($msb, ...);
 
 =head1 DESCRIPTION
 
@@ -27,8 +28,9 @@ use List::Util qw/max/;
 use Net::Domain;
 use File::Spec;
 use File::Basename;
+use Astro::Coords::Angle;
 use Astro::Coords::Offset;
-use IO::Tee;
+use Astro::PAL;
 use Storable;
 use Math::Trig ();
 
@@ -42,7 +44,7 @@ use OMP::General;
 
 use OMP::Translator::Headers::JCMT;
 
-use base qw/OMP::Translator::Base/;
+use parent qw/OMP::Translator::Base/;
 
 # Version number
 our $VERSION = '2.000';
@@ -88,7 +90,6 @@ sub new {
 
     $self->{'transdir'} = OMP::Config->getData('jcmt_translator.transdir');
     $self->{'wiredir'} = undef;
-    $self->{'handle'} = \*STDOUT;
 
     return $self;
 }
@@ -156,23 +157,19 @@ sub translate {
     my @unrolled = map {Storable::dclone($_)} $msb->unroll_obs;
 
     # we need to know how many science observations are in this observation
-    # Disable verbose mode so that we do not see information twice
-    my $verbcur = $self->verbose;
-    $self->verbose(0);
-
     my %obstypes = (science => 0);
-    for my $obs (@unrolled) {
+    for my $info (@unrolled) {
+        # Disable verbose mode so that we do not see information twice
+        local $self->{'verbose'} = 0;
+
         # Translate observing mode information to internal form
         # Wasteful to call this twice but the second call is mainly
         # there to report the information in verbose mode
-        $self->observing_mode($obs);
+        $self->observing_mode($info);
 
         # count each type
-        $obstypes{$obs->{obs_type}} ++;
+        $obstypes{$info->{'obs_type'}} ++;
     }
-
-    # reset verbose mode
-    $self->verbose($verbcur);
 
     # Now report useful information
     $self->output("Number of configurations: " . @unrolled . "\n",
@@ -181,15 +178,18 @@ sub translate {
     # Now loop over each observation and translate it to a config object
     my @configs;
     my $prev_obs_type;
-    for my $obs (@unrolled) {
+    for my $info (@unrolled) {
+        # Clear internal state before processing each observation.
+        $self->clear;
+
         # Translate observing mode information to internal form
         # Repeat here so that information is properly reported in the
         # stream of information associated with this observation.
-        $self->observing_mode($obs);
+        $self->observing_mode($info);
 
         # Use the given config. the case of RawXmlObs and skip further processing.
-        if ($obs->{'MODE'} eq 'SpIterRawXmlObs') {
-            my $ocscfgxml = $obs->{'ocsconfig'};
+        if ($info->{'MODE'} eq 'SpIterRawXmlObs') {
+            my $ocscfgxml = $info->{'ocsconfig'};
             $ocscfgxml =~ s/^\s*//;
             $ocscfgxml =~ s/\s*$//;
             my $cfg = JAC::OCS::Config->new(XML => $ocscfgxml, validation => 0);
@@ -201,14 +201,14 @@ sub translate {
             my $hdrobj = $self->_get_hdr_object;
             while (my ($header, $method) = each %headers) {
                 my $hdr = $cfg->header()->item($header);
-                my $val = $hdrobj->$method($cfg, %$obs);
+                my $val = $hdrobj->$method($cfg, $info);
                 if ((defined $hdr) and (defined $val)) {
                     $hdr->value($val);
                     $hdr->source(undef);
                 }
             }
             if (1) {
-                my $wiring_inst = $self->_read_instrument_config(%$obs);
+                my $wiring_inst = $self->_read_instrument_config($info);
                 my $inst = $cfg->instrument_setup();
                 $inst->pointing($wiring_inst->pointing());
                 $inst->smu_offset($wiring_inst->smu_offset());
@@ -217,33 +217,36 @@ sub translate {
             next;
         }
 
+        # Set initial configuration key suffixes.
+        $self->set_config_suffixes($info);
+        $self->output('Configuration suffixes: '
+            . (join ' ', $self->config_suffixes) . "\n");
+
         # We may want to know if we have just followed a particular
         # observation
-        $obs->{prev_obs_type} = $prev_obs_type;
-        $prev_obs_type = $obs->{obs_type};
+        $info->{'prev_obs_type'} = $prev_obs_type;
+        $prev_obs_type = $info->{'obs_type'};
 
         # if there are any special patch ups call them here
-        $obs->{'ot_version'} = $otver;
-        $self->fixup_historical_problems($obs)
+        $info->{'ot_version'} = $otver;
+        $self->fixup_historical_problems($info)
             if $self->can("fixup_historical_problems");
 
         # We need to patch up POINTING and FOCUS observations so that they have
         # the correct parameters
-        $self->handle_special_modes($obs);
+        $self->handle_special_modes($info);
 
         # Do we need other tasks?
-        my $ispriv = $self->is_private_sequence(%$obs);
-        my $onlyrts;
-        $onlyrts = $self->is_only_with_rts(%$obs)
-            if $self->can("is_only_with_rts");
+        my $ispriv = $self->is_private_sequence($info);
+        my $onlyrts = $self->is_only_with_rts($info);
 
         # Create blank configuration
         my $cfg = JAC::OCS::Config->new;
 
         # This is a JCMT translator (and may not have a telescope config)
-        if ($obs->{telescope} ne "JCMT") {
+        if ($info->{'telescope'} ne 'JCMT') {
             OMP::Error::TranslateFail->throw(
-                "Got into the JCMT translator with telescope '" . $obs->{telescope} . "'");
+                "Got into the JCMT translator with telescope '" . $info->{'telescope'} . "'");
         }
         $cfg->telescope("JCMT");
 
@@ -260,45 +263,47 @@ sub translate {
         );
 
         # Observation summary
-        $self->obs_summary($cfg, %$obs);
+        $self->obs_summary($cfg, $info);
 
         # Instrument config
-        $self->instrument_config($cfg, %$obs);
+        $self->instrument_config($cfg, $info);
 
-        $self->frontend_config($cfg, %$obs);
+        $self->frontend_config($cfg, $info);
 
-        $self->calc_receptor_or_subarray_mask($cfg, %$obs);
+        $self->calc_receptor_or_subarray_mask($cfg, $info);
 
         # configure the basic TCS parameters
-        $self->tcs_config($cfg, %$obs) unless $ispriv;
+        $self->tcs_config($cfg, $info) unless $ispriv;
 
         # call the special routines for this instrument
-        $self->backend_config($cfg, %$obs);
+        $self->backend_config($cfg, $info);
 
         # HEADER_CONFIG
-        $self->header_config($cfg, %$obs);
+        $self->header_config($cfg, $info);
 
         # Polarimeter
-        $self->pol_config($cfg, %$obs) unless $ispriv;
+        $self->pol_config($cfg, $info) unless $ispriv;
 
         # Fourier Transform Spectrometer
-        $self->fts2_config($cfg, %$obs) unless $ispriv;
+        $self->fts2_config($cfg, $info)
+            if $self->can('fts2_config') and not $ispriv;
 
         # RTS
-        $self->rts_config($cfg, %$obs) unless ($ispriv && ! $onlyrts);
+        $self->rts_config($cfg, $info) unless ($ispriv and not $onlyrts);
 
         # JOS Config
-        $self->jos_config($cfg, %$obs);
+        $self->jos_config($cfg, $info);
 
         # Slew and rotator need to wait until we can estimate
         # the duration of the configuration
         unless ($ispriv) {
-            $self->slew_config($cfg, %$obs);
-            $self->rotator_config($cfg, \%obstypes, %$obs);
+            $self->slew_config($cfg, $info);
+            $self->rotator_config($cfg, \%obstypes, $info)
+                if $self->can('rotator_config');
         }
 
         # Simulator
-        $self->simulator_config($cfg, %$obs) if $opts{simulate};
+        $self->simulator_config($cfg, $info) if $opts{'simulate'};
 
         # Store the completed config
         push @configs, $cfg;
@@ -306,7 +311,7 @@ sub translate {
         # For debugging we need to see the unrolled information
         # do it late so that we get to see the acsis backend information
         # as calculated by the translator
-        print Dumper($obs) if $self->debug;
+        print Dumper($info) if $self->debug;
 
         # and also the translated config itself
         print $cfg if $self->debug;
@@ -314,85 +319,6 @@ sub translate {
 
     # return the config objects
     return @configs;
-}
-
-=item B<debug>
-
-Method to enable and disable debugging state.
-
-    $translator->debug(1);
-
-=cut
-
-sub debug {
-    my $self = shift;
-    if (@_) {
-        my $state = shift;
-        $self->{'debug'} = ($state ? 1 : 0);
-    }
-    return $self->{'debug'};
-}
-
-=item B<outhdl>
-
-Output file handles to use for verbose messages.
-Defaults to STDOUT.
-
-    $translator->outhdl(\*STDOUT, $fh);
-
-Pass in undef to reset to STDOUT.
-
-=cut
-
-sub outhdl {
-    my $self = shift;
-    if (@_) {
-        unless (defined $_[0]) {
-            $self->{'handle'} = \*STDOUT;
-        }
-        else {
-            $self->{'handle'} = IO::Tee->new(@_);
-        }
-    }
-    return $self->{'handle'};
-}
-
-=item B<verbose>
-
-Method to enable and disable verbosity state.
-
-    $translator->verbose(1);
-
-=cut
-
-sub verbose {
-    my $self = shift;
-    if (@_) {
-        my $state = shift;
-        $self->{'verbose'} = ($state ? 1 : 0);
-    }
-    return $self->{'verbose'};
-}
-
-=item B<output>
-
-Output a message to the default file handle if we are in verbose mode.
-
-    $trans->output(@messages);
-
-A newline will not be added if one is missing from the supplied message.
-
-=cut
-
-sub output {
-    my $self = shift;
-    return unless $self->verbose;
-
-    my $outhdl = $self->outhdl;
-    for my $msg (@_) {
-        print {$outhdl} $msg;
-    }
-    return;
 }
 
 =item B<transdir>
@@ -450,13 +376,7 @@ Construct new headers object.
 sub _get_hdr_object {
     my $self = shift;
 
-    my $hdrobj = $self->hdrpkg()->new();
-
-    # Set verbosity level and handles
-    $hdrobj->VERBOSE($self->verbose);
-    $hdrobj->HANDLES($self->outhdl);
-
-    return $hdrobj;
+    return $self->hdrpkg()->new(translator => $self);
 }
 
 =back
@@ -471,7 +391,7 @@ These routines configure the specific C<JAC::OCS::Config> objects.
 
 Observation summary.
 
-    $trans->obs_summary($cfg, %info);
+    $trans->obs_summary($cfg, \%info);
 
 where $cfg is the main C<JAC::OCS::Config> object. Stores a
 C<JAC::OCS::Config::ObsSummary> object into the supplied
@@ -482,29 +402,29 @@ configuration.
 sub obs_summary {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $obs = JAC::OCS::Config::ObsSummary->new;
 
-    $obs->mapping_mode($info{mapping_mode});
-    $obs->switching_mode(defined $info{switching_mode}
-        ? $info{switching_mode}
+    $obs->mapping_mode($info->{'mapping_mode'});
+    $obs->switching_mode(defined $info->{'switching_mode'}
+        ? $info->{'switching_mode'}
         : 'none');
-    $obs->type($info{obs_type});
+    $obs->type($info->{'obs_type'});
 
     do {
         my @inbeam = ();
 
-        if (exists $info{inbeam} && defined $info{inbeam}) {
-            push @inbeam, @{$info{inbeam}};
+        if (exists $info->{'inbeam'} && defined $info->{'inbeam'}) {
+            push @inbeam, @{$info->{'inbeam'}};
         }
 
         # Delay adding extra in-beam components until now so that
         # they don't end up being used unexpectedly elsewhere, such
         # as in the observing mode.
 
-        if (exists $info{'extra_inbeam'} and defined $info{'extra_inbeam'}) {
-            my @extra = @{$info{'extra_inbeam'}};
+        if (exists $info->{'extra_inbeam'} and defined $info->{'extra_inbeam'}) {
+            my @extra = @{$info->{'extra_inbeam'}};
 
             if ((grep {$_ eq 'pol2_cal'} @extra)
                 and not(grep {$_ eq 'pol2_cal'} @inbeam))
@@ -527,7 +447,7 @@ sub obs_summary {
 
 TCS configuration.
 
-    $trans->tcs_config($cfg, %info);
+    $trans->tcs_config($cfg, \%info);
 
 where $cfg is the main C<JAC::OCS::Config> object.
 
@@ -536,7 +456,7 @@ where $cfg is the main C<JAC::OCS::Config> object.
 sub tcs_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # Create the template
     my $tcs = JAC::OCS::Config::TCS->new;
@@ -548,13 +468,13 @@ sub tcs_config {
     $tcs->telescope('JCMT');
 
     # First the base position
-    $self->tcs_base($cfg, $tcs, %info);
+    $self->tcs_base($cfg, $tcs, $info);
 
     # observing area
-    $self->observing_area($tcs, %info);
+    $self->observing_area($tcs, $info);
 
     # Then secondary mirror
-    $self->secondary_mirror($tcs, %info);
+    $self->secondary_mirror($tcs, $info);
 
     # Fix up the REFERENCE position for Jiggle/Chop if we have not been given
     # one explicitly. We need to do this until the JOS recipe can be fixed to
@@ -563,7 +483,7 @@ sub tcs_config {
     my %tags = $tcs->getAllTargetInfo;
     if (exists $tags{SCIENCE}
             && ! exists $tags{REFERENCE}
-            && $info{switching_mode} =~ /chop/) {
+            && $info->{'switching_mode'} =~ /chop/) {
         # The REFERENCE should be the chop off position for now
         my $ref = JAC::OCS::Config::TCS::BASE->new;
         $ref->tag("REFERENCE");
@@ -598,7 +518,7 @@ sub tcs_config {
     }
 
     # Calculate the dome mode
-    $self->dome($tcs, %info);
+    $self->dome($tcs, $info);
 
     # Slew and rotator require the duration to be known which can
     # only be calculated when the configuration is complete
@@ -612,7 +532,7 @@ sub tcs_config {
 Calculate the position information (SCIENCE and REFERENCE)
 and store in the TCS object.
 
-    $trans->tcs_base($cfg, $tcs, %info);
+    $trans->tcs_base($cfg, $tcs, \%info);
 
 where $tcs is a C<JAC::OCS::Config::TCS> object.
 
@@ -624,10 +544,10 @@ sub tcs_base {
     my $self = shift;
     my $cfg = shift;
     my $tcs = shift;
-    my %info = @_;
+    my $info = shift;
 
     # Find out if we have to offset to a particular receptor
-    my $instap = $self->tracking_receptor_or_subarray($cfg, %info);
+    my $instap = $self->tracking_receptor_or_subarray($cfg, $info);
 
     $self->output("Tracking: " . (defined $instap ? $instap : "<ORIGIN>") . "\n");
 
@@ -641,68 +561,67 @@ sub tcs_base {
     # we insert a dummy base position that the queue will recognize as a
     # placeholder and replace with a real target (that will usually be the
     # following target in the queue or a blank target).
-    if ($info{obs_type} =~ /setup|skydip|noise/
-            && ($info{coords}->type eq 'CAL'
-                || $info{autoTarget})
-            && ! $info{currentAz}
+    if ($info->{'obs_type'} =~ /setup|skydip|noise/
+            && ($info->{'coords'}->type eq 'CAL'
+                || $info->{'autoTarget'})
+            && ! $info->{'currentAz'}
             ) {
         $tcs->insertDummyFollowingAzTag();
         return;
     }
 
     # if we do not know the position return
-    return if $info{autoTarget};
+    return if $info->{'autoTarget'};
 
     # if we are supposed to do do this observation at the current azimuth
     # no base position is required
-    if ($info{currentAz}) {
+    if ($info->{'currentAz'}) {
         $self->output("Using current azimuth for observation.\n");
         return;
     }
 
     # if this is a flatfield and does not have a BASE position do not worry
     # since we will default to using the current Azimuth in this case.
-    if ($info{obs_type} =~ /flatfield/ && $info{coords}->type eq 'CAL') {
+    if ($info->{'obs_type'} =~ /flatfield/ && $info->{'coords'}->type eq 'CAL') {
         $self->output(
-            "No target supplied for $info{obs_type}. Using current Azimuth.\n");
+            'No target supplied for '
+            . $info->{'obs_type'}
+            . "Using current Azimuth.\n");
         return;
     }
 
     # First get all the coordinate tags (SCIENCE won't be in there)
-    my %tags = %{$info{coordtags}} if defined $info{coordtags};
+    my %tags = %{$info->{'coordtags'}} if defined $info->{'coordtags'};
 
     # check for reference position
     throw OMP::Error::TranslateFail(
         "No reference position defined for position switch observation")
-        if $info{switching_mode} =~ /pssw/ and not exists $tags{REFERENCE};
+        if $info->{'switching_mode'} =~ /pssw/ and not exists $tags{'REFERENCE'};
     throw OMP::Error::TranslateFail(
         "No reference position defined for frequency switch observation (needed for CAL)")
-        if $info{switching_mode} =~ /freqsw/ and not exists $tags{REFERENCE};
+        if $info->{'switching_mode'} =~ /freqsw/ and not exists $tags{'REFERENCE'};
 
     # Mandatory for scan/chop too
     throw OMP::Error::TranslateFail(
         "No reference position defined for scan/chop observation (needed for CAL)")
         if (! exists $tags{REFERENCE}
-        && $info{switching_mode} =~ /chop/
-        && $info{mapping_mode} =~ /^scan/);
+        && $info->{'switching_mode'} =~ /chop/
+        && $info->{'mapping_mode'} =~ /^scan/);
 
     # and augment with the SCIENCE tag
     # we only needs the Astro::Coords object in this case
     # unless we have an offset pixel
     # Note that OFFSETS are only propogated for non-SCIENCE positions
-    $tags{SCIENCE} = {coords => $info{coords}};
+    $tags{'SCIENCE'} = {coords => $info->{'coords'}};
 
     # if we have override velocity information we need to apply it now
-    my @vover = $self->velOverride(%info);
+    my @vover = $self->velOverride($info);
     if (@vover) {
         $self->output(
             "Overriding target velocity with (vel,vdef,vfr) = (",
             join(",", @vover), ")\n");
         for my $t (keys %tags) {
-            my $c = $tags{$t}{coords};
-            if ($c->can("set_vel_pars")) {
-                $c->set_vel_pars(@vover);
-            }
+            $self->set_coord_vel_pars($tags{$t}{'coords'}, @vover);
         }
     }
 
@@ -729,7 +648,7 @@ sub tcs_base {
         }
 
         # The OT can only specify tracking as the TRACKING system
-        if ($info{obs_type} eq 'skydip') {
+        if ($info->{'obs_type'} eq 'skydip') {
             # Skydips must always be in AZEL
             $b->tracking_system('AZEL');
         }
@@ -744,31 +663,69 @@ sub tcs_base {
     # to calculate doppler for the same reference position. Otherwise if the REFERENCE position is a
     # long way from SCIENCE the doppler correction can change such that atmospheric lines appear
     # in the spectrum.
-    if (exists $base{REFERENCE}) {
-        my $ref = $base{REFERENCE};
+    if (exists $base{'REFERENCE'}) {
+        my $ref = $base{'REFERENCE'};
 
         # see if we have any offsets in reference
         unless ($ref->offset) {
             # absolute position, so calculate the TAN offset from SCIENCE
             # currently the offset will always be between J2000 coordinates.
-            my $sci = $base{SCIENCE};
+            my $sci = $base{'SCIENCE'};
             my $scicoords = $sci->coords;
-            my @offsets = $scicoords->distance($ref->coords);
+            my $refcoords = $ref->coords;
 
-            # Now set the coords to SCIENCE and the offset
-            $ref->coords($scicoords);
-            my $off = Astro::Coords::Offset->new(
-                @offsets,
-                system => "J2000",
-                projection => "TAN"
-            );
-            $ref->offset($off);
-            $self->output(
-                "Converting absolute REFERENCE position to offset from SCIENCE of ("
-                . sprintf("%.2f, %.2f",
-                $offsets[0]->arcsec, $offsets[1]->arcsec)
-                . ") arcsec\n"
-            );
+            my $scifixed = 'FIXED' eq $scicoords->type;
+            my $reffixed = 'FIXED' eq $refcoords->type;
+
+            if ($scifixed xor $reffixed) {
+                throw OMP::Error::TranslateFail(
+                    'SCIENCE and REFERENCE are a mixture of FIXED and non-FIXED positions');
+            }
+            elsif ($scifixed and $reffixed) {
+                # Can not use Astro::Coords->distance in this case as it will
+                # convert fixed coordinates to J2000.  Use the same calculation
+                # but in AzEl coordinates.
+                my ($az, $el) = $scicoords->azel;
+                my ($az_off, $el_off) = $refcoords->azel;
+
+                my ($xi, $eta, $j) = Astro::PAL::palDs2tp(
+                    $az_off, $el_off, $az, $el);
+
+                throw OMP::Error::TranslateFail(
+                    'Unable to compute offset to REFERENCE position')
+                    unless $j == 0;
+
+                # TODO: check sign of offset in Az.
+
+                $ref->coords($scicoords);
+                my @offsets = (
+                    Astro::Coords::Angle->new($xi, units => 'rad'),
+                    Astro::Coords::Angle->new($eta, units => 'rad'));
+                $ref->offset(Astro::Coords::Offset->new(
+                    @offsets,
+                    system => 'AZEL',
+                    projection => 'TAN'));
+                $self->output(sprintf
+                    'Converting absolute REFERENCE position to offset from SCIENCE'
+                    . " of (%.2f, %.2f) arcsec AZEL\n",
+                    $offsets[0]->arcsec, $offsets[1]->arcsec);
+            }
+            else {
+                my @offsets = $scicoords->distance($refcoords);
+
+                # Now set the coords to SCIENCE and the offset
+                $ref->coords($scicoords);
+                my $off = Astro::Coords::Offset->new(
+                    @offsets,
+                    system => "J2000",
+                    projection => "TAN"
+                );
+                $ref->offset($off);
+                $self->output(sprintf
+                    'Converting absolute REFERENCE position to offset from SCIENCE'
+                    . " of (%.2f, %.2f) arcsec J2000\n",
+                    $offsets[0]->arcsec, $offsets[1]->arcsec);
+            }
         }
     }
 
@@ -782,7 +739,7 @@ configuration. This is normally needed to correct the gridder so that
 it can define the tangent point correctly (the gridder can not understand
 offsets in any system other than pixel coordinates).
 
-    $offset = $trans->tracking_offset($cfg, %info);
+    $offset = $trans->tracking_offset($cfg, \%info);
 
 Returns an C<Astro::Coords::Offset> object.
 
@@ -791,9 +748,9 @@ Returns an C<Astro::Coords::Offset> object.
 sub tracking_offset {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
-    # Get the tcs_config
+    # Get the tcs config
     my $tcs = $cfg->tcs;
     throw OMP::Error::FatalError('TCS configuration is not available')
         unless defined $tcs;
@@ -816,7 +773,7 @@ sub tracking_offset {
 Calculate the observing area parameters. Critically depends on
 observing mode.
 
-    $trans->observing_area($tcs, %info);
+    $trans->observing_area($tcs, \%info);
 
 First argument is C<JAC::OCS::Config::TCS> object.
 
@@ -825,9 +782,9 @@ First argument is C<JAC::OCS::Config::TCS> object.
 sub observing_area {
     my $self = shift;
     my $tcs = shift;
-    my %info = @_;
+    my $info = shift;
 
-    my $obsmode = $info{mapping_mode};
+    my $obsmode = $info->{'mapping_mode'};
 
     my $oa = JAC::OCS::Config::TCS::obsArea->new();
 
@@ -838,8 +795,8 @@ sub observing_area {
     # offsets have to be in the same frame as the map if we are
     # defining a map area
 
-    if ($info{obs_type} eq 'skydip') {
-        my $isskydip = ($info{obs_type} eq 'skydip');
+    if ($info->{'obs_type'} eq 'skydip') {
+        my $isskydip = ($info->{'obs_type'} eq 'skydip');
 
         # get the elevation range (for skydip)
         my ($maxel, $minel);
@@ -901,20 +858,20 @@ sub observing_area {
         }
         else {
             $self->output(
-                "$info{obs_type} observation at elevation $maxel deg\n");
+                $info->{'obs_type'} . " observation at elevation $maxel deg\n");
         }
 
         # store the elevations
         $oa->skydip(@el);
     }
-    elsif (($info{obs_type} eq 'noise'
-                && $info{noiseSource} =~ /(zenith|sky)/i)
-            || ($info{obs_type} eq 'flatfield'
-                && $info{flatSource} =~ /(zenith|sky)/i)
+    elsif (($info->{'obs_type'} eq 'noise'
+                && $info->{'noiseSource'} =~ /(zenith|sky)/i)
+            || ($info->{'obs_type'} eq 'flatfield'
+                && $info->{'flatSource'} =~ /(zenith|sky)/i)
             ) {
-        my $source = exists $info{noiseSource}
-            ? $info{noiseSource}
-            : $info{flatSource};
+        my $source = exists $info->{'noiseSource'}
+            ? $info->{'noiseSource'}
+            : $info->{'flatSource'};
 
         if ($source =~ /zenith/i) {
             # default elevation for now
@@ -925,27 +882,31 @@ sub observing_area {
         }
         else {
             OMP::Error::FatalError->throw(
-                "Unexpectedly fell off if clause in $info{obs_type}: $source");
+                'Unexpectedly fell off if clause in '
+                . $info->{'obs_type'}
+                . ": $source");
         }
     }
-    elsif ($info{obs_type} eq 'setup') {
+    elsif ($info->{'obs_type'} eq 'setup') {
         # Sky mode is our default state. The queue can change us to a particular azimuth
         $oa->is_sky_mode(1);
     }
     elsif ($obsmode eq 'scan') {
         # Map specification
-        $oa->posang(Astro::Coords::Angle->new($info{MAP_PA}, units => 'deg'));
+        $oa->posang(Astro::Coords::Angle->new($info->{'MAP_PA'}, units => 'deg'));
         $oa->maparea(
-            HEIGHT => $info{MAP_HEIGHT},
-            WIDTH => $info{MAP_WIDTH});
+            HEIGHT => $info->{'MAP_HEIGHT'},
+            WIDTH => $info->{'MAP_WIDTH'});
 
         # Pattern - the actual pattern name will depend on ACSIS vs SCUBA-2
         # since SCUBA-2 will use continuous versions
-        my $pattern = $self->translate_scan_pattern($info{scanPattern});
+        my $pattern = $self->translate_scan_pattern($info->{'scanPattern'});
 
         if ($self->verbose) {
             $self->output(
-                "Scanning area $info{MAP_HEIGHT} x $info{MAP_WIDTH} arcsec at $info{MAP_PA} deg\n",
+                'Scanning area ' . $info->{'MAP_HEIGHT'}
+                . ' x ' . $info->{'MAP_WIDTH'}
+                . ' arcsec at ' . $info->{'MAP_PA'} . " deg\n",
                 "Using scanning pattern '$pattern'\n"
             );
         }
@@ -956,16 +917,16 @@ sub observing_area {
         my @scanpas;
         my $scan_sys;
         if ($pattern !~ /ellipse|daisy/i) {
-            $scan_sys = $info{SCAN_SYSTEM};
-            if (exists $info{SCAN_PA}
-                    && defined $info{SCAN_PA}
-                    && @{$info{SCAN_PA}}) {
-                @scanpas = @{$info{SCAN_PA}};
+            $scan_sys = $info->{'SCAN_SYSTEM'};
+            if (exists $info->{'SCAN_PA'}
+                    && defined $info->{'SCAN_PA'}
+                    && @{$info->{'SCAN_PA'}}) {
+                @scanpas = @{$info->{'SCAN_PA'}};
             }
             else {
                 # Scan angle strategy depends on instrument
                 ($scan_sys, @scanpas) = $self->determine_scan_angles(
-                    $pattern, %info);
+                    $pattern, $info);
 
             }
             # convert from deg to object
@@ -978,14 +939,14 @@ sub observing_area {
             $scan_sys = "AZEL";
         }
 
-        delete $info{SCAN_DY} if $pattern =~ /ellipse/i;
+        delete $info->{'SCAN_DY'} if $pattern =~ /ellipse/i;
 
         # Items that propagate directly from config file
         my %scanextras;
         for my $attr (qw/ VELOCITY DY TURN_RADIUS ACCEL XSTART YSTART VX VY /) {
             my $key = "SCAN_" . $attr;
-            $scanextras{$attr} = $info{$key}
-                if (exists $info{$key} && defined $info{$key});
+            $scanextras{$attr} = $info->{$key}
+                if (exists $info->{$key} && defined $info->{$key});
         }
 
         # Scan specification
@@ -997,32 +958,32 @@ sub observing_area {
         );
 
         # Offset
-        my $offx = ($info{OFFSET_DX} || 0);
-        my $offy = ($info{OFFSET_DY} || 0);
+        my $offx = ($info->{'OFFSET_DX'} || 0);
+        my $offy = ($info->{'OFFSET_DY'} || 0);
 
         # Now rotate to the MAP_PA
         ($offx, $offy) = $self->PosAngRot(
-            $offx, $offy, ($info{OFFSET_PA} - $info{MAP_PA}));
+            $offx, $offy, ($info->{'OFFSET_PA'} - $info->{'MAP_PA'}));
 
         my $off = Astro::Coords::Offset->new(
             $offx, $offy,
             projection => 'TAN',
-            system => ($info{'OFFSET_SYSTEM'} || 'TRACKING'));
+            system => ($info->{'OFFSET_SYSTEM'} || 'TRACKING'));
 
         $oa->offsets($off);
     }
     else {
         # Just insert offsets, either as an offsets array or explicit
         my @offsets;
-        if (exists $info{offsets}) {
-            @offsets = @{$info{offsets}};
+        if (exists $info->{'offsets'}) {
+            @offsets = @{$info->{'offsets'}};
         }
         else {
             @offsets = ({
-                OFFSET_DX => ($info{OFFSET_DX} || 0),
-                OFFSET_DY => ($info{OFFSET_DY} || 0),
-                OFFSET_PA => ($info{OFFSET_PA} || 0),
-                OFFSET_SYSTEM => ($info{'OFFSET_SYSTEM'} || undef),
+                OFFSET_DX => ($info->{'OFFSET_DX'} || 0),
+                OFFSET_DY => ($info->{'OFFSET_DY'} || 0),
+                OFFSET_PA => ($info->{'OFFSET_PA'} || 0),
+                OFFSET_SYSTEM => ($info->{'OFFSET_SYSTEM'} || undef),
             });
         }
 
@@ -1046,12 +1007,12 @@ sub observing_area {
         $oa->offsets(@out);
 
         # Sort out microsteps
-        if (defined $info{ms_pattern}) {
+        if (defined $info->{'ms_pattern'}) {
             # get the coordinates from the config file
             my @msx = OMP::Config->getData(
-                $self->cfgkey . ".ms_" . $info{ms_pattern} . "_x");
+                $self->cfgkey . '.ms_' . $info->{'ms_pattern'} . '_x');
             my @msy = OMP::Config->getData(
-                $self->cfgkey . ".ms_" . $info{ms_pattern} . "_y");
+                $self->cfgkey . '.ms_' . $info->{'ms_pattern'} . '_y');
 
             OMP::Error::FatalError->throw(
                 "Number of coordinates in X differs from Y ("
@@ -1068,7 +1029,8 @@ sub observing_area {
             }
             $oa->microsteps(@ms);
             $self->output(
-                "Microstep pattern '$info{ms_pattern}' : " . @ms . " microsteps\n");
+                'Microstep pattern "' . $info->{'ms_pattern'}
+                . '" : ' . @ms . " microsteps\n");
         }
     }
 
@@ -1081,7 +1043,7 @@ sub observing_area {
 Calculate the secondary mirror parameters. Critically depends on
 switching mode.
 
-    $trans->secondary_mirror($tcs, %info);
+    $trans->secondary_mirror($tcs, \%info);
 
 First argument is C<JAC::OCS::Config::TCS> object.
 
@@ -1090,12 +1052,12 @@ First argument is C<JAC::OCS::Config::TCS> object.
 sub secondary_mirror {
     my $self = shift;
     my $tcs = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $smu = JAC::OCS::Config::TCS::Secondary->new();
 
-    my $obsmode = $info{mapping_mode};
-    my $sw_mode = $info{switching_mode};
+    my $obsmode = $info->{'mapping_mode'};
+    my $sw_mode = $info->{'switching_mode'};
 
     # Default to GROUP mode
     $smu->motion("CONTINUOUS");
@@ -1104,14 +1066,14 @@ sub secondary_mirror {
     if ($sw_mode eq 'chop') {
         throw OMP::Error::TranslateFail(
             "No chop defined for chopped observation!")
-            unless defined $info{CHOP_THROW}
-            && defined $info{CHOP_PA}
-            && defined $info{CHOP_SYSTEM};
+            unless defined $info->{'CHOP_THROW'}
+            && defined $info->{'CHOP_PA'}
+            && defined $info->{'CHOP_SYSTEM'};
 
         $smu->chop(
-            THROW => $info{CHOP_THROW},
-            PA => Astro::Coords::Angle->new($info{CHOP_PA}, units => 'deg'),
-            SYSTEM => $info{CHOP_SYSTEM});
+            THROW => $info->{'CHOP_THROW'},
+            PA => Astro::Coords::Angle->new($info->{'CHOP_PA'}, units => 'deg'),
+            SYSTEM => $info->{'CHOP_SYSTEM'});
     }
 
     # Jiggling
@@ -1119,7 +1081,7 @@ sub secondary_mirror {
     my $jig;
 
     if ($obsmode eq 'jiggle') {
-        $jig = $self->jig_info(%info);
+        $jig = $self->jig_info($info);
 
         # store the object
         $smu->jiggle($jig);
@@ -1144,7 +1106,7 @@ sub secondary_mirror {
     if ($smu->smu_mode() =~ /(jiggle_chop|chop_jiggle)/) {
         # First get the canonical RTS step time. This controls the time spent on each
         # jiggle position.
-        my $rts = $self->step_time($tcs, %info);
+        my $rts = $self->step_time($tcs, $info);
 
         # total number of points in pattern
         my $npts = $jig->npts;
@@ -1157,9 +1119,7 @@ sub secondary_mirror {
         # do only one step per chop
 
         # Let's say this is maximum time between chops in seconds
-        my $tmax_per_chop = OMP::Config->getData(
-            $self->cfgkey . '.max_time_between_chops'
-            . ($info{continuumMode} ? "_cont" : ""));
+        my $tmax_per_chop = $self->get_config_value('max_time_between_chops');
 
         # Now calculate the number of steps in that time period
         my $maxsteps = int($tmax_per_chop / $rts);
@@ -1168,7 +1128,7 @@ sub secondary_mirror {
             throw OMP::Error::TranslateFail(
                 "Maximum chop duration is shorter than RTS step time!\n");
         }
-        elsif ($maxsteps == 1 || $info{separateOffs}) {
+        elsif ($maxsteps == 1 || $info->{'separateOffs'}) {
             # we can only do one step per chop
             $smu->timing(CHOPS_PER_JIG => 1);
 
@@ -1208,7 +1168,7 @@ sub secondary_mirror {
 Calculate the dome mode. Usually this would be BASE (to track the base
 position) but we should see if any of the offsets are excessively large).
 
-    $trans->dome($tcs, %info);
+    $trans->dome($tcs, \%info);
 
 First argument is C<JAC::OCS::Config::TCS> object.
 
@@ -1217,7 +1177,7 @@ First argument is C<JAC::OCS::Config::TCS> object.
 sub dome {
     my $self = shift;
     my $tcs = shift;
-    my %info = @_;
+    my $info = shift;
 
     my $oa = $tcs->getObsArea();
     my $mode = $oa->mode;
@@ -1266,31 +1226,31 @@ sub dome {
 
 Specify the instrument configuration.
 
-    $trans->instrument_config($cfg, %info);
+    $trans->instrument_config($cfg, \%info);
 
 =cut
 
 sub instrument_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
-    my $inst_cfg = $self->_read_instrument_config(%info);
+    my $inst_cfg = $self->_read_instrument_config($info);
 
     # tweak the wavelength
-    $inst_cfg->wavelength($info{wavelength})
-        if defined $info{wavelength};
+    $inst_cfg->wavelength($info->{'wavelength'})
+        if defined $info->{'wavelength'};
 
     $cfg->instrument_setup($inst_cfg);
 }
 
 sub _read_instrument_config {
     my $self = shift;
-    my %info = @_;
+    my $info = shift;
 
     # The instrument config is fixed for a specific instrument
     # and is therefore a "wiring file"
-    my $inst = lc($self->ocs_frontend($info{instrument}));
+    my $inst = lc $self->ocs_frontend($info->{'instrument'});
     throw OMP::Error::FatalError('No instrument defined so cannot configure!')
         unless defined $inst;
 
@@ -1315,7 +1275,7 @@ sub _read_instrument_config {
 Configure the slew parameter. Requires the Config object to be mainly
 complete such that the duration can be requested.
 
-    $trans->slew_config($cfg, %info);
+    $trans->slew_config($cfg, \%info);
 
 Should be called after C<tcs_config>.
 
@@ -1324,7 +1284,7 @@ Should be called after C<tcs_config>.
 sub slew_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # get the tcs
     my $tcs = $cfg->tcs();
@@ -1343,14 +1303,14 @@ sub slew_config {
 Add header items to configuration object. Reads a template header xml
 file. Will replace TRANSLATOR header items with dynamic values.
 
-    $trans->header_config($cfg, %info);
+    $trans->header_config($cfg, \%info);
 
 =cut
 
 sub header_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # work out whether we are looking at headers_acsis or headers_scuba2
     my $be = lc($self->backend);
@@ -1364,7 +1324,7 @@ sub header_config {
 
     # Some observing modes have exclusion files.
     # First build the filename
-    my $xfile = $self->header_exclusion_file(%info);
+    my $xfile = $self->header_exclusion_file($info);
 
     # Read the exclusion file
     my @toexclude = $hdr->read_header_exclusion_file($xfile,
@@ -1374,7 +1334,7 @@ sub header_config {
         map {$self->$_} qw/verbose outhdl/);
 
     # Also process instrument-specific exclusion file.
-    my $inst = lc($self->ocs_frontend($info{instrument}));
+    my $inst = lc $self->ocs_frontend($info->{'instrument'});
     throw OMP::Error::FatalError(
         'No instrument defined - can not check for header exclude file')
         unless defined $inst;
@@ -1403,7 +1363,7 @@ sub header_config {
     for my $i (@items) {
         my $method = $i->method;
         if ($hdrobj->can($method)) {
-            my $val = $hdrobj->$method($cfg, %info);
+            my $val = $hdrobj->$method($cfg, $info);
             if (defined $val) {
                 $i->value($val);
                 $i->source(undef);  # clear derived status
@@ -1424,9 +1384,8 @@ sub header_config {
     # call any overrides (these are required if something needs to happen
     # for a special observing mode but 99% of the times a nice default
     # is fine.
-    if ($hdrobj->can("override_headers")) {
-        $hdrobj->override_headers($hdr, %info);
-    }
+    $hdrobj->override_headers($hdr, $info)
+        if $hdrobj->can('override_headers');
 
     $cfg->header($hdr);
 }
@@ -1435,14 +1394,14 @@ sub header_config {
 
 Configure the RTS
 
-    $trans->rts_config($cfg, %info);
+    $trans->rts_config($cfg, \%info);
 
 =cut
 
 sub rts_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # SCUBA-2 uses a single file
     my $scuba2_re = qr{^scuba-?2$}i;
@@ -1452,7 +1411,7 @@ sub rts_config {
     }
     else {
         # Need observing mode
-        my $obsmode = $info{observing_mode};
+        my $obsmode = $info->{'observing_mode'};
 
         # POL-ness is not relevant
         $obsmode =~ s/_pol//;
@@ -1496,40 +1455,42 @@ sub rts_config {
 
 Configure the polarimeter.
 
-    $trans->pol_config($cfg, %info);
+    $trans->pol_config($cfg, \%info);
 
 =cut
 
 sub pol_config {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # see if we have a polarimeter
-    return unless $info{pol};
+    return unless $info->{'pol'};
     $self->output("Polarimeter observation:\n");
 
-    if ($info{'instrument'} eq 'SCUBA-2') {
+    if ($info->{'instrument'} eq 'SCUBA-2') {
         # Allow stare or scan with POL-2.
         throw OMP::Error::FatalError(
-            "Can only use POL-2 in stare or scan mode not '$info{observing_mode}'\n")
-            unless $info{'observing_mode'} =~ /^stare/
-            or $info{'observing_mode'} =~ /^scan/;
+            'Can only use POL-2 in stare or scan mode not "'
+            . $info->{'observing_mode'} . "\"\n")
+            unless $info->{'observing_mode'} =~ /^stare/
+            or $info->{'observing_mode'} =~ /^scan/;
     }
     else {
         # we currently only support grid/pssw observations
         throw OMP::Error::FatalError(
-            "Can only use ROVER in grid/pssw mode not '$info{observing_mode}'\n")
-            unless $info{'observing_mode'} =~ /^grid_pssw/;
+            'Can only use ROVER in grid/pssw mode not "'
+            . $info->{'observing_mode'} . "\"\n")
+            unless $info->{'observing_mode'} =~ /^grid_pssw/;
     }
 
     # create a blank object
     my $pol = JAC::OCS::Config::POL->new();
 
     # what mode is this?
-    if (exists $info{waveplate}) {
+    if (exists $info->{'waveplate'}) {
         my @pa = map {Astro::Coords::Angle->new($_, units => 'deg')}
-            @{$info{waveplate}};
+            @{$info->{'waveplate'}};
 
         throw OMP::Error::TranslateFail(
             "No angles found for step-and-integrate")
@@ -1545,10 +1506,10 @@ sub pol_config {
         # note that pol_spin
         throw OMP::Error::TranslateFail(
             "There are no waveplates specified but this does not seem to be continuous spin. Please check the OT.")
-            unless $self->is_pol_spin(%info);
+            unless $self->is_pol_spin($info);
 
         # Spin speed depends on the step time
-        my $step_time = $self->step_time($cfg, %info);
+        my $step_time = $self->step_time($cfg, $info);
 
         # number of steps in a cycle controls the spin speed
         my $nsteps = OMP::Config->getData(
@@ -1654,12 +1615,12 @@ sub observing_mode {
     $info->{obs_type} = $obs_type;
     $info->{switching_mode} = $switching_mode;
     $info->{mapping_mode} = $mapping_mode;
-    $info->{inbeam} = [$self->determine_inbeam(%$info)];
+    $info->{inbeam} = $self->determine_inbeam($info);
 
     # Finally, tweak the switching mode if POL is in the beam
     if ($info->{pol} && grep /pol/i, @{$info->{inbeam}}) {
         # tweak switching mode
-        if ($self->is_pol_spin(%$info)) {
+        if ($self->is_pol_spin($info)) {
             if ($switching_mode =~ /^(none|self)$/) {
                 $switching_mode = 'spin';
                 # Also need to write into the hash for POL-2.
@@ -1750,14 +1711,14 @@ sub translate_scan_pattern_lut {
 
 We are a polarimeter step and integrate observation.
 
-    $ispol = $trans->is_pol_step_integ(%info);
+    $ispol = $trans->is_pol_step_integ(\%info);
 
 =cut
 
 sub is_pol_step_integ {
     my $self = shift;
-    my %info = @_;
-    if (exists $info{waveplate} && @{$info{waveplate}}) {
+    my $info = shift;
+    if (exists $info->{'waveplate'} && @{$info->{'waveplate'}}) {
         return 1;
     }
     return;
@@ -1767,14 +1728,14 @@ sub is_pol_step_integ {
 
 Is this a continuously spinning polarimeter observation?
 
-    $spin = $trans->is_pol_spin(%info);
+    $spin = $trans->is_pol_spin(\%info);
 
 =cut
 
 sub is_pol_spin {
     my $self = shift;
-    my %info = @_;
-    if (exists $info{pol_spin} && $info{pol_spin}) {
+    my $info = shift;
+    if (exists $info->{'pol_spin'} && $info->{'pol_spin'}) {
         return 1;
     }
     return;
@@ -1786,19 +1747,20 @@ Determine what should be in the beam for this observation. Base class
 looks at polarimeter settings. Use a subclass to decide on blackbody
 and other issues.
 
-    @inbeam = $trans->determine_inbeam(%info);
+    \@inbeam = $trans->determine_inbeam(\%info);
 
 =cut
 
 sub determine_inbeam {
     my $self = shift;
-    my %info = @_;
-
+    my $info = shift;
     my @inbeam;
-    if ($info{pol}) {
-        push(@inbeam, "pol");
+
+    if ($info->{'pol'}) {
+        push @inbeam, 'pol';
     }
-    return @inbeam;
+
+    return \@inbeam;
 }
 
 =item B<ocs_frontend>
@@ -1896,7 +1858,7 @@ sub calc_jiggle_times {
 Return information relating to the selected jiggle pattern as a
 C<JCMT::SMU::Jiggle> object.
 
-    $jig = $trans->jig_info(%info);
+    $jig = $trans->jig_info(\%info);
 
 Throws an exception if Jiggle mode is defined but the pattern is missing
 or if this method is called without jiggle mode selected.
@@ -1905,14 +1867,14 @@ or if this method is called without jiggle mode selected.
 
 sub jig_info {
     my $self = shift;
-    my %info = @_;
+    my $info = shift;
 
     throw OMP::Error::TranslateFail(
         "Jiggle pattern requested but no jiggle mode selected")
-        unless $info{mapping_mode} =~ /jiggle/;
+        unless $info->{'mapping_mode'} =~ /jiggle/;
 
     throw OMP::Error::TranslateFail("No jiggle pattern specified!")
-        unless exists $info{jigglePattern};
+        unless exists $info->{'jigglePattern'};
 
     # Look up table for patterns
     my %jigfiles = (
@@ -1931,14 +1893,15 @@ sub jig_info {
         '11x11' => 'smu_11x11.dat',
     );
 
-    if (! exists $jigfiles{$info{jigglePattern}}) {
+    if (! exists $jigfiles{$info->{'jigglePattern'}}) {
         throw OMP::Error::TranslateFail(
-            "Jiggle requested but there is no pattern associated with pattern '$info{jigglePattern}'\n");
+            'Jiggle requested but there is no pattern associated with pattern "'
+            . $info->{'jigglePattern'} . '"');
     }
 
     # obtin path to actual file
     my $file = File::Spec->catfile(
-        $self->wiredir, 'smu', $jigfiles{$info{jigglePattern}});
+        $self->wiredir, 'smu', $jigfiles{$info->{'jigglePattern'}});
 
     # Need to read the pattern
     my $jig = JCMT::SMU::Jiggle->new(File => $file);
@@ -1946,11 +1909,11 @@ sub jig_info {
     # set the scale and other parameters
     # Note that the jiggle PA and system depend on whether we are using HARP
     # (or in fact the rotator).
-    my $jscal = (defined $info{scaleFactor} ? $info{scaleFactor} : 1);
+    my $jscal = (defined $info->{'scaleFactor'} ? $info->{'scaleFactor'} : 1);
     $jig->scale($jscal);
 
     # Get the instrument we are using
-    my $inst = lc($self->ocs_frontend($info{instrument}));
+    my $inst = lc $self->ocs_frontend($info->{'instrument'});
     throw OMP::Error::FatalError(
         'No instrument defined - needed to select calculate jiggle !')
         unless defined $inst;
@@ -1963,8 +1926,8 @@ sub jig_info {
         $jsys = "FPLANE";
     }
     else {
-        $jpa = $info{jigglePA} || 0;
-        $jsys = $info{jiggleSystem} || 'TRACKING';
+        $jpa = $info->{'jigglePA'} || 0;
+        $jsys = $info->{'jiggleSystem'} || 'TRACKING';
     }
 
     # and store them
@@ -2012,7 +1975,7 @@ sub get_jiggle {
 
 Returns the Nyquist sampling value for this observation. Defined as lambda/2D
 
-    $ny = $trans->nyquist(%info);
+    $ny = $trans->nyquist(\%info);
 
 Returns an Astro::Coords::Angle object
 
@@ -2020,8 +1983,8 @@ Returns an Astro::Coords::Angle object
 
 sub nyquist {
     my $self = shift;
-    my %info = @_;
-    my $wav = $info{wavelength} * 1E-6;  # microns to metres
+    my $info = shift;
+    my $wav = $info->{'wavelength'} * 1E-6;  # microns to metres
     my $ny = $wav / (2 * DIAM);
     return Astro::Coords::Angle->new($ny, units => 'rad');
 }
@@ -2068,7 +2031,7 @@ Returns the receptor ID that should be aligned with the supplied telescope
 centre. Returns undef if no special receptor should be aligned with
 the tracking centre.
 
-    $recid = $trans->tracking_receptor_or_subarray($cfg, %info);
+    $recid = $trans->tracking_receptor_or_subarray($cfg, \%info);
 
 This knowledge is especially important for single pixel pointing observations
 and stare observartions with HARP where there is no central pixel.
@@ -2085,13 +2048,13 @@ form of a keyword:value pair.
 sub tracking_receptor_or_subarray {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # first check to see if offset is needed
-    return unless $self->need_offset_tracking($cfg, %info);
+    return unless $self->need_offset_tracking($cfg, $info);
 
     # Determine filtering parameters.
-    my %filter = $self->get_tracking_receptor_filter_params($cfg, %info);
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, $info);
 
     # Get the config file options
     my @configs = OMP::Config->getData(
@@ -2115,7 +2078,8 @@ sub tracking_receptor_or_subarray {
 
     # If this is a 5pt pointing or a focus observation we need to choose the reference pixel
     # We have the choice of simply throwing an exception
-    if (($info{obs_type} eq 'pointing') || $info{obs_type} eq 'focus') {
+    if (($info->{'obs_type'} eq 'pointing')
+            or ($info->{'obs_type'} eq 'focus')) {
         return scalar($inst->reference_receptor)
             if defined $inst->reference_receptor;
     }
@@ -2123,6 +2087,21 @@ sub tracking_receptor_or_subarray {
     # Still here? We have the choice of returning undef or choosing the
     # reference receptor. For now the consensus is to return undef.
     return;
+}
+
+=item B<get_tracking_receptor_filter_params>
+
+Get tracking subarray filtering parameters.
+
+    my %filter = $self->get_tracking_receptor_filter_params($cfg, \%info);
+
+=cut
+
+sub get_tracking_receptor_filter_params {
+    my $self = shift;
+    my $cfg = shift;
+    my $info = shift;
+    return ();
 }
 
 =item B<calc_receptor_or_subarray_mask>
@@ -2133,7 +2112,7 @@ configuration. If a tracking receptor or subarray is required the mask
 indicates that this item is NEEDed.  If disableNonTracking is set,
 only the tracking receptor or subarray will be enabled.
 
-    $trans->calc_receptor_or_subarray_mask($cfg, %info);
+    $trans->calc_receptor_or_subarray_mask($cfg, \%info);
 
 The mask is stored in the frontend or SCUBA-2 configuration.
 
@@ -2142,7 +2121,7 @@ The mask is stored in the frontend or SCUBA-2 configuration.
 sub calc_receptor_or_subarray_mask {
     my $self = shift;
     my $cfg = shift;
-    my %info = @_;
+    my $info = shift;
 
     # Need instrument information
     my $inst = $cfg->instrument_setup();
@@ -2170,12 +2149,12 @@ sub calc_receptor_or_subarray_mask {
     }
 
     # If we have a specific tracking receptor in mind, make sure it is working
-    my $instap = $self->tracking_receptor_or_subarray($cfg, %info);
+    my $instap = $self->tracking_receptor_or_subarray($cfg, $info);
     $mask{$instap} = "NEED" if defined $instap;
 
     # if we are ONLY meant to use this tracking receptor then we turn everything
     # else to OFF
-    if (defined $instap && $info{disableNonTracking}) {
+    if (defined $instap && $info->{'disableNonTracking'}) {
         for my $id (keys %receptors) {
             next if $id eq $instap;
             $mask{$id} = "OFF";
@@ -2246,6 +2225,67 @@ sub airmass_to_el {
     return Math::Trig::rad2deg(Math::Trig::acosec($am));
 }
 
+=item B<set_coord_vel_pars>
+
+Set the velocity parameters in an C<Astro::Coords> object.  Ideally we
+would just be able to use the object's C<set_vel_pars> method, but this
+does not handle redshift correctly.
+
+    $trans->set_coord_vel_pars($coords, $vel, $vdef, $vfr);
+
+=cut
+
+sub set_coord_vel_pars {
+    my $self = shift;
+    my $coord = shift;
+    my ($rv, $vdefn, $vframe) = @_;
+
+    # If the object doesn't support velocity parameters,
+    # don't try to set them, or a redshift value.
+    return unless $coord->can('set_vel_pars');
+
+    unless ('redshift' eq lc $vdefn) {
+        # Not a redshift, so just pass the parameters to the object.
+        $coord->set_vel_pars($rv, $vdefn, $vframe);
+    }
+    else {
+        # Astro::Coords does not seem to let us set a redshift except in
+        # the constructor, so we will have to use the internal method for now.
+        $coord->_set_redshift($rv);
+
+        # Astro::Coords also sets frame "HEL(IOCENTRIC)" for redshift, so to
+        # preserve the previous translator behavior, override this for now.
+        $coord->_set_vframe($vframe) unless $vframe =~ /^hel/;
+    }
+}
+
+=item B<is_private_sequence>
+
+Returns true if the sequence only requires the instrument itself
+to be involved. If true, the telescope, SMU and RTS are not involved
+and so do not generate configuration XML.
+
+    $trans->is_private_sequence(\%info);
+
+=cut
+
+sub is_private_sequence {
+    return 0;
+}
+
+=item B<is_only_with_rts>
+
+Returns true if the observation is a sequence that just involves the
+instrument and the RTS.
+
+    $trans->is_with_rts_only(\%info);
+
+=cut
+
+sub is_only_with_rts {
+    return 0;
+}
+
 1;
 
 __END__
@@ -2254,7 +2294,8 @@ __END__
 
 =head1 NOTES
 
-Usually called indirectly from L<OMP::Translator|OMP::Translator>.
+The C<translate> method is usually called by C<OMP::Translator-E<gt>translate>
+via an instrument-specific subclass.
 
 =head1 CONFIGURATION XML
 
