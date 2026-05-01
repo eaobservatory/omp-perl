@@ -28,7 +28,9 @@ use List::Util qw/max/;
 use Net::Domain;
 use File::Spec;
 use File::Basename;
+use Astro::Coords::Angle;
 use Astro::Coords::Offset;
+use Astro::PAL;
 use Storable;
 use Math::Trig ();
 
@@ -670,22 +672,60 @@ sub tcs_base {
             # currently the offset will always be between J2000 coordinates.
             my $sci = $base{'SCIENCE'};
             my $scicoords = $sci->coords;
-            my @offsets = $scicoords->distance($ref->coords);
+            my $refcoords = $ref->coords;
 
-            # Now set the coords to SCIENCE and the offset
-            $ref->coords($scicoords);
-            my $off = Astro::Coords::Offset->new(
-                @offsets,
-                system => "J2000",
-                projection => "TAN"
-            );
-            $ref->offset($off);
-            $self->output(
-                "Converting absolute REFERENCE position to offset from SCIENCE of ("
-                . sprintf("%.2f, %.2f",
-                $offsets[0]->arcsec, $offsets[1]->arcsec)
-                . ") arcsec\n"
-            );
+            my $scifixed = 'FIXED' eq $scicoords->type;
+            my $reffixed = 'FIXED' eq $refcoords->type;
+
+            if ($scifixed xor $reffixed) {
+                throw OMP::Error::TranslateFail(
+                    'SCIENCE and REFERENCE are a mixture of FIXED and non-FIXED positions');
+            }
+            elsif ($scifixed and $reffixed) {
+                # Can not use Astro::Coords->distance in this case as it will
+                # convert fixed coordinates to J2000.  Use the same calculation
+                # but in AzEl coordinates.
+                my ($az, $el) = $scicoords->azel;
+                my ($az_off, $el_off) = $refcoords->azel;
+
+                my ($xi, $eta, $j) = Astro::PAL::palDs2tp(
+                    $az_off, $el_off, $az, $el);
+
+                throw OMP::Error::TranslateFail(
+                    'Unable to compute offset to REFERENCE position')
+                    unless $j == 0;
+
+                # TODO: check sign of offset in Az.
+
+                $ref->coords($scicoords);
+                my @offsets = (
+                    Astro::Coords::Angle->new($xi, units => 'rad'),
+                    Astro::Coords::Angle->new($eta, units => 'rad'));
+                $ref->offset(Astro::Coords::Offset->new(
+                    @offsets,
+                    system => 'AZEL',
+                    projection => 'TAN'));
+                $self->output(sprintf
+                    'Converting absolute REFERENCE position to offset from SCIENCE'
+                    . " of (%.2f, %.2f) arcsec AZEL\n",
+                    $offsets[0]->arcsec, $offsets[1]->arcsec);
+            }
+            else {
+                my @offsets = $scicoords->distance($refcoords);
+
+                # Now set the coords to SCIENCE and the offset
+                $ref->coords($scicoords);
+                my $off = Astro::Coords::Offset->new(
+                    @offsets,
+                    system => "J2000",
+                    projection => "TAN"
+                );
+                $ref->offset($off);
+                $self->output(sprintf
+                    'Converting absolute REFERENCE position to offset from SCIENCE'
+                    . " of (%.2f, %.2f) arcsec J2000\n",
+                    $offsets[0]->arcsec, $offsets[1]->arcsec);
+            }
         }
     }
 
