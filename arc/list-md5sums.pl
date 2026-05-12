@@ -6,7 +6,7 @@ list-md5sums - Generate md5sum check files from md5sum values in files table
 
 =head1 SYNOPSIS
 
-    list-md5sums.pl --utdate 20220808 --backend ACSIS | md5sum -c -
+    list-md5sums.pl --utdate 20220808 --backend ACSIS --obs NUM | md5sum -c -
 
 =head1 DESCRIPTION
 
@@ -40,11 +40,13 @@ use OMP::DB::Backend::Archive;
 my $help;
 my $utdate = undef;
 my $backend = undef;
+my $obsnum = undef;
 
 GetOptions(
     'help' => \$help,
     'utdate=s' => \$utdate,
     'backend=s' => \$backend,
+    'obs=i' => \$obsnum,
 ) or die 'Error parsing arguments';
 
 pod2usage('-exitval' => 1, '-verbose' => 1) if $help;
@@ -63,7 +65,12 @@ my @bind = ($utdate);
 if (defined $backend) {
     $sql .= ' AND c.backend=?';
     push @bind, $backend;
- }
+}
+
+if (defined $obsnum) {
+    $sql .= ' AND c.obsnum=?';
+    push @bind, $obsnum;
+}
 
 my $result = $dbh->selectall_arrayref($sql, {}, @bind)
     or die $dbh->errstr;
