@@ -41,12 +41,14 @@ my $help;
 my $utdate = undef;
 my $backend = undef;
 my $obsnum = undef;
+my $targetdir = undef;
 
 GetOptions(
     'help' => \$help,
     'utdate=s' => \$utdate,
     'backend=s' => \$backend,
     'obs=i' => \$obsnum,
+    'dir=s' => \$targetdir,
 ) or die 'Error parsing arguments';
 
 pod2usage('-exitval' => 1, '-verbose' => 1) if $help;
@@ -79,7 +81,10 @@ foreach my $row (@$result) {
     my ($file, $md5sum) = @$row;
 
     my $dir;
-    if ($file =~ /^a(\d{8})_(\d{5})_(\d{2})_(\d{4})\.sdf$/) {
+    if (defined $targetdir) {
+        $dir = $targetdir;
+    }
+    elsif ($file =~ /^a(\d{8})_(\d{5})_(\d{2})_(\d{4})\.sdf$/) {
         $dir = sprintf '/jcmtdata/raw/acsis/spectra/%s/%s', $1, $2;
 
     }
