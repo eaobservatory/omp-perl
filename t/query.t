@@ -1,7 +1,7 @@
 #!perl
 
 use strict;
-use Test::More tests => 12 + 4 + 4;
+use Test::More tests => 12 + 4 + 4 + 4;
 
 require_ok('OMP::Query');
 require_ok('OMP::Query::MSB');
@@ -151,3 +151,10 @@ $query3->maxCount(-1);
 is($query3->maxCount, undef);  # negative forces undef
 $query3->maxCount(0);
 is($query3->maxCount, 500);  # default
+
+# Check orderBy attribute.
+is_deeply($query2->orderBy, []);
+is($query2->_orderby_tosql, '');
+$query2->orderBy(['alpha', ['beta', 0], ['gamma', 1]]);
+is_deeply($query2->orderBy, ['alpha', ['beta', 0], ['gamma', 1]]);
+is($query2->_orderby_tosql, 'ORDER BY alpha, beta ASC, gamma DESC');
