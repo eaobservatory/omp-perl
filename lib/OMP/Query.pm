@@ -590,6 +590,25 @@ sub _orderby_tosql {
     return 'ORDER BY ' . join ', ', @sql;
 }
 
+=item B<_maxcount_tosql>
+
+Convert the max count to a SQL LIMIT clause.
+
+    $limit = $q->_maxcount_tosql();
+
+Returned SQL segment does include "LIMIT".
+
+=cut
+
+sub _maxcount_tosql {
+    my $self = shift;
+
+    my $max = $self->maxCount;
+
+    return '' unless defined $max;
+
+    return sprintf 'LIMIT %s', $max;
+}
 
 =item B<_convert_to_perl>
 
