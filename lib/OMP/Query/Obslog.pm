@@ -102,23 +102,18 @@ sub sql {
     # time [they are used to calculate source availability]
     # Disabling constraints on queries should be left to this
     # subclass
-    my $subsql = $self->_qhash_tosql();
-
-    # Construct the the where clause. Depends on which
-    # additional queries are defined
-    my @where = grep {$_} ($subsql);
-    my $where = '';
-    $where = " WHERE " . join(" AND ", @where)
-        if @where;
+    my $where = $self->_qhash_tosql();
 
     # Prepare relevance expression if doing a fulltext index search.
     my @rel = $self->_qhash_relevance();
     my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
 
     # Now need to put this SQL into the template query
-    my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
-
-    return "$sql\n";
+    return join ' ',
+        "SELECT *, $rel AS relevance FROM $table",
+        ($where ? "WHERE $where" : ()),
+        $self->_orderby_tosql,
+        $self->_maxcount_tosql;
 }
 
 =item B<_root_element>

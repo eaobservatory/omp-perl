@@ -397,15 +397,13 @@ sub queryComments {
         throw OMP::Error::BadArgs("Must supply either a date or a date range");
     }
 
-    # Send the query off to yet another method.
-    my @results = $self->_fetch_comment_info($query);
-
-    # Create an array of Info::Comment objects from the returned
-    # hash.
-    my @comments = $self->_reorganize_comments(\@results);
+    # Send the query off to yet another method and create an array of
+    # Info::Comment objects from the returned hashes.
+    my $comments = $self->_reorganize_comments(
+        $self->_fetch_comment_info($query));
 
     # And return either the array or a reference to the array.
-    return (wantarray ? @comments : \@comments);
+    return (wantarray ? @$comments : $comments);
 }
 
 =item B<updateObsComment>
@@ -510,14 +508,9 @@ sub updateObsComment {
 Retrieve the information from the observation log table using
 the supplied query.
 
-In scalar context returns the first match via a reference to
-a hash.
+Returns all matches as a list of hash references.
 
-    $results = $db->_fetch_comment_info($query);
-
-In list context returns all matches as a list of hash references.
-
-    @results = $db->_fetch_comment_info($query);
+    \@results = $db->_fetch_comment_info($query);
 
 =cut
 
@@ -531,15 +524,7 @@ sub _fetch_comment_info {
     # Run the query.
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
-    # If they want all the info just return the ref.
-    # Otherwise, return the first entry.
-    if (wantarray) {
-        return @$ref;
-    }
-    else {
-        my $hashref = (defined $ref->[0] ? $ref->[0] : {});
-        return $hashref;
-    }
+    return $ref;
 }
 
 =item B<_reorganize_comments>
@@ -608,7 +593,7 @@ sub _reorganize_comments {
         );
     }
 
-    return @return;
+    return \@return;
 }
 
 =item B<_placeholder_obsid>
