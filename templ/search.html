@@ -1,0 +1,36 @@
+[% USE Dumper -%]
+[% USE scalar -%]
+[% WRAPPER 'layout.html' %]
+<h1>[% title | html %]</h1>
+
+<form method="post" action="/cgi-bin/search.pl" enctype="multipart/form-data">
+    <p>
+        <input type="text" name="q" size="40" maxlength="200" placeholder="[% query_placeholder | html %]" value="[% query | html %]"/>
+        <input type="submit" name="" value="Search" />
+    </p>
+</form>
+
+[% IF ! results.empty %]
+    <dl>
+        [% FOR result IN results %]
+            [% SWITCH result.type %]
+                [% CASE 'obs' %]
+                    <dt><a href="/cgi-bin/nightrep.pl?utdate=[% result.comment.startobs.strftime("%Y-%m-%d") %]&tel=[% telescope | html %]#obsid_[% result.comment.obsid | html %]">Observing log [% result.comment.startobs.strftime("%Y-%m-%d") %] observation [% result.comment.runnr | html %]</a></dt>
+                [% CASE 'obsgap' %]
+                    <dt><a href="/cgi-bin/nightrep.pl?utdate=[% result.comment.startobs.strftime("%Y-%m-%d") %]&tel=[% telescope | html %]#timegapid_[% result.comment.obsid | html %]">Observing log [% result.comment.startobs.strftime("%Y-%m-%d gap %H:%M") %]</a></dt>
+                [% CASE 'shift' %]
+                    <dt><a href="/cgi-bin/shiftlog.pl?utdate=[% result.comment.date.strftime("%Y-%m-%d") %]&amp;telescope=[% telescope | html %]#shiftid_[% result.comment.id %]">Shift log [% result.comment.date.strftime("%Y-%m-%d %H:%M:%S") %]&nbsp;UT</a></dt>
+                [% CASE 'fault' %]
+                    [% SET response = result.fault.scalar.responses.0 %]
+                    <dt><a href="/cgi-bin/viewfault.pl?fault=[% result.fault.id | html %][% IF response.respnum %]#response[% response.respnum | html %][% END %]">[% result.fault.getCategoryEntryNameQualified | html %] [% result.fault.id | html %] [% IF response.respnum %]#[% response.respnum | html %][% END %] &mdash; [% IF result.fault.subject %][% result.fault.subject | html %][% ELSE %][No subject][% END %]</a></dt>
+                [% CASE %]
+                    <dt>Unknown result type</dt>
+            [% END %]
+            <dd>
+                [% result.snippet %]
+                <br />&nbsp;
+            </dd>
+        [% END %]
+    </dl>
+[% END %]
+[% END %]

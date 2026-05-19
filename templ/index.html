@@ -9,6 +9,15 @@
     flexibly-scheduled observing at JCMT.
 </p>
 
+[% IF omp_user.defined && omp_user.is_staff %]
+    <form method="post" action="/cgi-bin/search.pl" enctype="multipart/form-data">
+        <p>
+            <input type="text" name="q" size="40" maxlength="200" placeholder="[% query_placeholder | html %]"/>
+            <input type="submit" name="" value="Go" />
+        </p>
+    </form>
+[% END %]
+
 <ul>
 <li>
 <p>General access</p>
