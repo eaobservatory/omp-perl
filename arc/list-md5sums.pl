@@ -92,7 +92,8 @@ foreach my $row (@$result) {
         $dir = sprintf '/jcmtdata/raw/scuba2/%s/%s/%s', $1, $2, $3;
     }
     else {
-        die 'Unexpected pattern: ' . $file;
+        printf STDERR "Unexpected pattern: %s\n", $file;
+        next;
     }
 
     printf "%s  %s/%s\n", $md5sum, $dir, $file;
