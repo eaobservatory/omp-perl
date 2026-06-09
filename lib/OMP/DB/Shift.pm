@@ -153,11 +153,11 @@ sub getShiftLogs {
             "Must supply one of shiftid, userid, date, or telescope.");
     }
 
-    my @results = $self->_fetch_shiftlog_info($query);
+    my $shiftlogs = $self->_reorganize_shiftlog(
+        $self->_fetch_shiftlog_info($query),
+        not scalar @{$query->orderBy});
 
-    my @shiftlogs = $self->_reorganize_shiftlog(\@results);
-
-    return (wantarray ? @shiftlogs : \@shiftlogs);
+    return (wantarray ? @$shiftlogs : $shiftlogs);
 }
 
 =back
@@ -171,14 +171,9 @@ sub getShiftLogs {
 Retrieve the information from the shift log table using
 the supplied query.
 
-In scalar reference returns the first match via a reference to
-a hash.
+Return all matches as a list of hash references.
 
-    $results = $db->_fetch_shiftlog_info($query);
-
-In list context returns all matches as a list of hash references.
-
-    @results = $db->_fetch_shiftlog_info($query);
+    \@results = $db->_fetch_shiftlog_info($query);
 
 =cut
 
@@ -192,15 +187,7 @@ sub _fetch_shiftlog_info {
     # Run the query.
     my $ref = $self->_db_retrieve_data_ashash($sql);
 
-    # If they want all the info just return the ref.
-    # Otherwise, return the first entry.
-    if (wantarray) {
-        return @$ref;
-    }
-    else {
-        my $hashref = (defined $ref->[0] ? $ref->[0] : {});
-        return $hashref;
-    }
+    return $ref;
 }
 
 =item B<_reorganize_shiftlog>
@@ -215,6 +202,7 @@ convert this output to an array of C<Info::Comment> objects.
 sub _reorganize_shiftlog {
     my $self = shift;
     my $rows = shift;
+    my $sort = shift;
 
     my @return;
 
@@ -240,9 +228,10 @@ sub _reorganize_shiftlog {
     }
 
     # Sort them by date.
-    my @returnarray = sort {$a->date->epoch <=> $b->date->epoch} @return;
+    @return = sort {$a->date->epoch <=> $b->date->epoch} @return
+        if $sort;
 
-    return @returnarray;
+    return \@return;
 }
 
 =item B<_insert_shiftlog>

@@ -62,30 +62,19 @@ sub sql {
 
     my ($table) = @_;
 
-    # Generate the WHERE clause from the query hash
-    # Note that we ignore elevation, airmass and date since
-    # these can not be dealt with in the database at the present
-    # time [they are used to calculate source availability]
-    # Disabling constraints on queries should be left to this
-    # subclass
-    my $subsql = $self->_qhash_tosql();
-    # Construct the the where clause. Depends on which
-    # additional queries are defined
-    my @where = grep {$_} ($subsql);
-    my $where = '';
-    $where = " WHERE " . join(" AND ", @where)
-        if @where;
+    # Generate the WHERE clause from the query hash.
+    my $where = $self->_qhash_tosql();
 
     # Prepare relevance expression if doing a fulltext index search.
     my @rel = $self->_qhash_relevance();
     my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
 
-    # Now need to put this SQL into the template query
-    # This returns a row per response
-    # So will duplicate static fault info
-    my $sql = "(SELECT *, $rel AS relevance FROM $table $where)";
-
-    return "$sql\n";
+    # Now need to put this SQL into the template query.
+    return join ' ',
+        "SELECT *, $rel AS relevance FROM $table",
+        ($where ? "WHERE $where" : ()),
+        $self->_orderby_tosql,
+        $self->_maxcount_tosql;
 }
 
 =back

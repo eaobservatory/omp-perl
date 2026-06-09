@@ -1,7 +1,7 @@
 #!perl
 
 use strict;
-use Test::More tests => 12 + 4 + 4;
+use Test::More tests => 12 + 6 + 6 + 4;
 
 require_ok('OMP::Query');
 require_ok('OMP::Query::MSB');
@@ -135,8 +135,10 @@ isa_ok($qhash->{'nu'}, 'OMP::Query::Like');
 
 # Check behavior of maxCount attribute.
 is($query2->maxCount, undef);  # default (undef)
+is($query2->_maxcount_tosql, '');
 $query2->maxCount(10);
 is($query2->maxCount, 10);
+is($query2->_maxcount_tosql, 'LIMIT 10');
 $query2->maxCount(-1);
 is($query2->maxCount, undef);  # negative forces undef
 $query2->maxCount(0);
@@ -145,9 +147,18 @@ is($query2->maxCount, undef);  # default (undef)
 # Another query class with a default max count.
 my $query3 = OMP::Query::MSB->new(HASH => {});
 is($query3->maxCount, 500);  # default
+is($query3->_maxcount_tosql, 'LIMIT 500');
 $query3->maxCount(10);
 is($query3->maxCount, 10);
 $query3->maxCount(-1);
 is($query3->maxCount, undef);  # negative forces undef
+is($query3->_maxcount_tosql, '');
 $query3->maxCount(0);
 is($query3->maxCount, 500);  # default
+
+# Check orderBy attribute.
+is_deeply($query2->orderBy, []);
+is($query2->_orderby_tosql, '');
+$query2->orderBy(['alpha', ['beta', 0], ['gamma', 1]]);
+is_deeply($query2->orderBy, ['alpha', ['beta', 0], ['gamma', 1]]);
+is($query2->_orderby_tosql, 'ORDER BY alpha, beta ASC, gamma DESC');

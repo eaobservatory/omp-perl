@@ -183,6 +183,14 @@ Do not fetch the list of projects assoicated with each fault.
 
 Do not fetch the full text body of each "response" (including initial filing).
 
+=item matching_responses_only
+
+Only include responses which individually match the query parameters.
+
+=item separate_responses
+
+Return a separate fault object for every response retrieved.
+
 =back
 
 =cut
@@ -475,7 +483,8 @@ Queries must be supplied as C<OMP::Query::Fault> objects.
 
     $faults = $db->_query_faultdb($query, %options);
 
-Faults are returned sorted by fault ID.
+Faults are returned sorted by fault ID unless the "separate_responses"
+option is enabled.
 
 =cut
 
@@ -504,8 +513,10 @@ sub _query_faultdb {
     # matching responses.
     # Use a hash to indicate whether we have already seen a fault
     my %faults;
+    my @faults;
     my @defresponse = ();
     push @defresponse, text => 'NOT RETRIEVED' if $opt{'no_text'};
+    my $separate_responses = $opt{'separate_responses'};
     for my $faultref (@$ref) {
         # First convert dates to date objects
         $faultref->{date} = OMP::DateTools->parse_date($faultref->{date});
@@ -531,12 +542,12 @@ sub _query_faultdb {
 
         # Create a new fault
         # One problem is that a new fault *requires* an initial "response"
-        unless (exists $faults{$id}) {
+        if ($separate_responses or not exists $faults{$id}) {
             # Get the response object
             my $resp = OMP::Fault::Response->new(@defresponse, %$faultref);
 
             # And the fault
-            $faults{$id} = OMP::Fault->new(%$faultref, fault => $resp);
+            my $fault = OMP::Fault->new(%$faultref, fault => $resp);
 
             # Now get the associated projects
             # Note that we are not interested in generating OMP::Project objects
@@ -545,7 +556,16 @@ sub _query_faultdb {
                 my $assocref = $self->_db_retrieve_data_ashash(
                     "SELECT projectid FROM $ASSOCTABLE WHERE faultid = ? ORDER BY projectid ASC",
                     $id);
-                $faults{$id}->projects(map {$_->{'projectid'}} @$assocref);
+                $fault->projects(map {$_->{'projectid'}} @$assocref);
+            }
+
+            unless ($separate_responses) {
+                # Store in the hash by ID to allow responses to be added.
+                $faults{$id} = $fault;
+            }
+            else {
+                # Use a list to preserve sort order.
+                push @faults, $fault;
             }
         }
         else {
@@ -553,6 +573,8 @@ sub _query_faultdb {
             $faults{$id}->respond(OMP::Fault::Response->new(@defresponse, %$faultref));
         }
     }
+
+    return \@faults if $separate_responses;
 
     # Sort the keys by faultid
     # [more efficient than sorting the objects by faultid]

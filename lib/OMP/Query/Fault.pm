@@ -54,6 +54,12 @@ Since this may match partial faults, this filtering is performed in a
 subquery to find matching faults, which is then joined to the fault and
 response tables to retrieve all responses for the matching faults.
 
+B<Note:> the orderBy parameter should not be set unless responses
+are being retrieved separately (C<OMP::DB::Fault-E<gt>_query_faultdb>
+option C<separate_responses>) as we otherwise rely on the default sorting
+of this method to return the responses for each fault in the
+correct order.
+
 Options:
 
 =over 4
@@ -66,8 +72,8 @@ the full text.
 =item matching_responses_only
 
 Prepare a simpler query which returns only those responses which
-match the query parameters.  Relevance information is not computed
-in this case.
+match the query parameters.  The C<orderBy> and C<maxCount>
+attributes are only applied in this mode.
 
 =back
 
@@ -99,21 +105,25 @@ sub sql {
 
     # Construct the the where clause. Depends on which
     # additional queries are defined
-    my $where = $subsql ? "WHERE $subsql " : '';
+    my $where = $subsql ? "WHERE $subsql" : '';
 
     my $select = $options{'no_text'}
         ? 'F.*, R.respid, R.date, R.author, R.isfault, R.respnum, R.flag'
             . ', R.faultdate, R.timelost, R.shifttype, R.remote'
         : 'F.*, R.*';
 
-    my $order = "ORDER BY R.isfault desc, R.date";
+    my $order = 'ORDER BY R.isfault desc, R.date';
 
     if ($options{'matching_responses_only'}) {
-        return "SELECT $select
-            FROM $faulttable F
-            JOIN $resptable R ON F.faultid = R.faultid
-            $where
-            $order";
+        # No need to separate F and R table relevance for this query.
+        my @rel = $self->_qhash_relevance();
+        my $rel = (scalar @rel) ? (join ' + ', @rel) : 0;
+        return join ' ',
+            "SELECT $select, $rel AS relevance FROM $faulttable F",
+            "JOIN $resptable R ON F.faultid = R.faultid",
+            $where,
+            ($self->_orderby_tosql || $order),
+            $self->_maxcount_tosql;
     }
 
     # Reasonable join queries could be for "author", "isfault" or

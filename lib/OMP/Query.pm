@@ -100,6 +100,7 @@ sub new {
         Constraints => undef,
         GivenHash => $givenhash,
         MaxCount => undef,
+        OrderBy => undef,
     };
 
     # and create the object
@@ -107,6 +108,7 @@ sub new {
 
     # Read other hash values if appropriate - use proper accessors here
     $q->maxCount($args{MaxCount}) if exists $args{MaxCount};
+    $q->orderBy($args{'OrderBy'}) if exists $args{'OrderBy'};
 
     return $q;
 }
@@ -124,7 +126,7 @@ are deemed to be private and do not form part of the publi interface.
 
 Return (or set) the maximum number of rows that are to be returned
 by the query.  This constraint is only in effect if implemented by
-the C<OMP::DB> class performing the query.  In can be applied
+the C<OMP::DB> or C<OMP::Query> class performing the query.  In can be applied
 after the SQL query has been executed or included in the SQL itself.
 
     $max = $query->maxCount;
@@ -160,6 +162,46 @@ sub maxCount {
 # Default number of results to return from a query
 sub _defaultMaxCount {
     return undef;
+}
+
+=item B<orderBy>
+
+Return (or set) the columns (etc.) which are to be used to sort
+the results of the query.  This only takes effect if implemented by
+the C<OMP::DB> or C<OMP::Query> class performing the query.
+
+    $query->orderBy([[$param1, $reversed1], [$param2, $reversed2], ... ]);
+
+    $order = $query->orderBy;
+
+Operates on a (reference to an) array of ordering parameters.  Each
+can either be scalar (name of parameter) or a pair giving the name
+and whether the ordering is reversed.  I.e. an array such as:
+
+    ['alpha', ['beta', 0], ['gamma', 1]]
+
+Could generate SQL such as:
+
+    ORDER BY alpha, beta ASC, gamma DESC
+
+=cut
+
+sub orderBy {
+    my $self = shift;
+    if (@_) {
+        my $params = shift;
+        throw OMP::Error::BadArgs(
+            'OrderBy parameter must by an array ref')
+            unless 'ARRAY' eq ref $params;
+
+        $self->{'OrderBy'} = $params;
+    }
+
+    my $params = $self->{'OrderBy'};
+
+    return [] unless defined $params;
+
+    return $params;
 }
 
 =item B<_parser>
@@ -516,6 +558,56 @@ sub _qhash_relevance_recurse {
     }
 
     return @relevance;
+}
+
+=item B<_orderby_tosql>
+
+Convert the order by parameters to a SQL ORDER BY clause.
+
+    $order_by = $q->_orderby_tosql();
+
+Returned SQL segment does include "ORDER BY".
+
+=cut
+
+sub _orderby_tosql {
+    my $self = shift;
+
+    my @sql = ();
+
+    foreach my $param (@{$self->orderBy}) {
+        unless (ref $param) {
+            push @sql, $param;
+        }
+        else {
+            push @sql, sprintf '%s %s',
+                $param->[0], $param->[1] ? 'DESC' : 'ASC';
+        }
+    }
+
+    return '' unless scalar @sql;
+
+    return 'ORDER BY ' . join ', ', @sql;
+}
+
+=item B<_maxcount_tosql>
+
+Convert the max count to a SQL LIMIT clause.
+
+    $limit = $q->_maxcount_tosql();
+
+Returned SQL segment does include "LIMIT".
+
+=cut
+
+sub _maxcount_tosql {
+    my $self = shift;
+
+    my $max = $self->maxCount;
+
+    return '' unless defined $max;
+
+    return sprintf 'LIMIT %s', $max;
 }
 
 =item B<_convert_to_perl>
