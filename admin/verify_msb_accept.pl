@@ -82,7 +82,7 @@ BEGIN {
         unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 use OMP::DB::Archive;
 use OMP::DateTools;

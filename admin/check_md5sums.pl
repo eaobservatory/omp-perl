@@ -30,6 +30,8 @@ use FindBin;
 use Getopt::Long;
 use Pod::Usage;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {

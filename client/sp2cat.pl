@@ -57,6 +57,8 @@ use Pod::Usage;
 use Astro::Catalog;
 use Astro::Catalog::Star;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 # Locate the OMP software through guess work
 use FindBin;
 use lib "$FindBin::RealBin/../lib";

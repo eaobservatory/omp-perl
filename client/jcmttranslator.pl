@@ -109,7 +109,7 @@ BEGIN {
 
 # We need to set the search path for the Queue classes
 # and the OCS Config classes.
-use JAC::Setup qw/ocsq ocscfg/;
+use JAC::Setup qw/hdrtrans ocsq ocscfg/;
 
 use OMP::Config;
 use OMP::Error qw/:try/;

@@ -12,6 +12,8 @@ use Pod::Usage;
 use Text::Wrap qw/wrap/;
 use Time::Moment;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use FindBin;
 
 use constant OMPLIB => "$FindBin::RealBin/../lib";

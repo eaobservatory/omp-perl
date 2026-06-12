@@ -28,6 +28,8 @@ use 5.006;
 use strict;
 use warnings;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use FindBin;
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 

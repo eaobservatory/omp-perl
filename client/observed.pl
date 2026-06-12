@@ -73,7 +73,7 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 use OMP::DB::Archive;
 use OMP::Config;

@@ -68,6 +68,8 @@ use Pod::Usage;
 use List::Util qw/first/;
 use Scalar::Util qw/blessed openhandle/;
 
+use JAC::Setup qw/ocscfg/;
+
 BEGIN {
     use FindBin;
     use constant OMPLIB => "$FindBin::RealBin/../lib";

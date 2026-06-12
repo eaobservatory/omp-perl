@@ -22,6 +22,8 @@ use warnings;
 use Pod::Usage;
 use Getopt::Long;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 

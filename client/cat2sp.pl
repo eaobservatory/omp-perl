@@ -101,6 +101,8 @@ use strict;
 use Pod::Usage;
 use Getopt::Long;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 # Locate the OMP software through guess work
 use FindBin;
 use lib "$FindBin::RealBin/../lib";

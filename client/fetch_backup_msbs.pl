@@ -40,6 +40,8 @@ use Getopt::Long;
 use IO::File;
 use Pod::Usage;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use lib "$FindBin::RealBin/../lib";
 
 use OMP::Config;

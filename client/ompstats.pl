@@ -63,6 +63,8 @@ use Pod::Usage;
 use Getopt::Long;
 use Graphics::PLplot qw/:all/;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use OMP::DB::Backend;
 use OMP::General;
 use OMP::NightRep;

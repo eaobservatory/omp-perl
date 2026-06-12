@@ -71,6 +71,8 @@ use Pod::Usage;
 use Term::ReadLine;
 use Time::Piece;
 
+use JAC::Setup qw/ocscfg/;
+
 # Locate the OMP software through guess work
 use FindBin;
 use lib "$FindBin::RealBin/../lib";

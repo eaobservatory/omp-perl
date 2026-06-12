@@ -40,6 +40,8 @@ use strict;
 use FindBin;
 use File::Spec;
 
+use JAC::Setup qw/hdrtrans ocscfg/;
+
 use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
