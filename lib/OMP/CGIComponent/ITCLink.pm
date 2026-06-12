@@ -312,7 +312,7 @@ sub _encode_query {
 
     my $message = [
         $version,
-        map {$query->{$_}} sort keys $query];
+        map {$query->{$_}} sort keys %$query];
 
     my $mp = Data::MessagePack->new();
     $mp->utf8(1);

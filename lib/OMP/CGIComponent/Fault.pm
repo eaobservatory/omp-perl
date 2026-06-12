@@ -126,7 +126,7 @@ sub query_fault_form {
         my $hidden_systems = OMP::Fault->faultSystems($category, only_hidden => 1);
         if (scalar %$hidden_systems) {
             push @systems, [];
-            push @systems, sort $sort map {[$_, $hidden_systems->{$_}]} keys $hidden_systems;
+            push @systems, sort $sort map {[$_, $hidden_systems->{$_}]} keys %$hidden_systems;
         }
 
         my $types = OMP::Fault->faultTypes($category);
