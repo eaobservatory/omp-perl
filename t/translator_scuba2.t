@@ -21,7 +21,7 @@ use strict;
 use Test::More tests => 2 + (8 * 2);
 use Test::Number::Delta;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 require_ok('OMP::Translator::SCUBA2');
 

@@ -19,7 +19,7 @@ use strict;
 
 use Test::More tests => 4;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 require_ok('OMP::MSBServer');
 

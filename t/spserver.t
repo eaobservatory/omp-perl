@@ -18,7 +18,7 @@
 
 use Test::More tests => 5;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 require_ok('OMP::SpServer');
 

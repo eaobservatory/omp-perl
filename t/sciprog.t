@@ -24,7 +24,7 @@ use strict;
 use Test::More tests => 297;
 use Data::Dumper;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 require_ok('OMP::SciProg');
 

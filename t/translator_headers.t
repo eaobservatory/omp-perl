@@ -2,6 +2,8 @@
 
 use strict;
 
+use JAC::Setup qw/ocscfg/;
+
 use Test::More tests => 9;
 
 require_ok('OMP::Translator::JCMT');

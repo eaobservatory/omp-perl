@@ -18,7 +18,7 @@ use strict;
 
 use Test::More tests => 5;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 
 use_ok('OMP::DB::MSB');
 

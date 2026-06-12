@@ -21,6 +21,8 @@ use strict;
 
 use Test::More tests => 3;
 
+use JAC::Setup qw/ocscfg/;
+
 require_ok('OMP::Translator::ACSIS');
 
 my $translator = OMP::Translator::ACSIS->new;

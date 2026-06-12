@@ -3,7 +3,7 @@
 use strict;
 use Test::More tests => 1 + 4 + 5 * 4;
 
-use JAC::Setup qw/hdrtrans/;
+use JAC::Setup qw/hdrtrans ocscfg/;
 use OMP::DB::MSBDone;
 
 my $db = OMP::DB::MSBDone->new();
