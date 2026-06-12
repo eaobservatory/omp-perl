@@ -61,7 +61,6 @@ use lib OMPLIB;
 
 use Pod::Usage;
 use Getopt::Long;
-use Graphics::PLplot qw/:all/;
 
 use JAC::Setup qw/hdrtrans ocscfg/;
 
@@ -131,6 +130,14 @@ for my $stat (keys %coords) {
 
     # Print name of dat file to STDERR
     print STDERR "Created file $file\n";
+}
+
+eval {
+    require Graphics::PLplot;
+    Graphics::PLplot->import(qw/:all/);
+};
+if ($@) {
+    die "Plotting of results unavailable: $@\n";
 }
 
 # Draw plot
