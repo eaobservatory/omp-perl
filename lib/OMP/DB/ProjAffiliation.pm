@@ -25,6 +25,7 @@ our %AFFILIATION_NAMES = (
     ca => 'Canada',
     xc => 'Canada (national)',
     cn => 'China',
+    de => 'Germany',
     ea => 'EAO',
     in => 'India',
     id => 'Indonesia',
