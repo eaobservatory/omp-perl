@@ -904,6 +904,13 @@ sub RaiseComment {
     my @comments = $obs->comments;
     $status = $obs->status;
 
+    my @status_options = $obs->get_status_options;
+    if (not grep {$status == $_->[0]} @status_options) {
+        # Current value is not a user-selectable value, so restore
+        # the normal default (good).
+        $status = OMP__OBS_GOOD;
+    }
+
     # Get the observation information.
     my %nightlog = $obs->nightlog(
         display => 'long',
@@ -988,7 +995,7 @@ sub RaiseComment {
 
     my $radioFrame = undef;
     my $status_i = 0;
-    foreach ($obs->get_status_options) {
+    foreach (@status_options) {
         my ($status_value, $status_name) = @$_;
         unless ($status_i ++ % 6) {
             my $first_row = not defined $radioFrame;
