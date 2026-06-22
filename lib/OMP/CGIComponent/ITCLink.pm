@@ -57,6 +57,7 @@ our $ITC_HETERODYNE = {
         'if' => undef,
         'mm' => undef,
         'n_pt' => undef,
+        'os' => undef,
         'pos' => undef,
         'pos_type' => undef,
         'res' => undef,
@@ -75,7 +76,7 @@ our $ITC_HETERODYNE = {
     },
     'instruments' => {
         'ALAIHI' => {
-            'if_option' => 0,
+            'if_option' => 1,
             'name' => "\x{2bb}Ala\x{2bb}ihi"
         },
         'AWEOWEO' => {
@@ -96,7 +97,7 @@ our $ITC_HETERODYNE = {
         }
     },
     'mode' => 'rms_el',
-    'version' => 3
+    'version' => 4
 };
 # End of generated ITC definitions.
 
@@ -215,6 +216,7 @@ sub observation_itc_link {
 
         if ($type eq 'raster' or $type eq 'scan') {
             $values{'mm'} = 'raster';
+            $values{'os'} = 'x';
             $values{'basket'} = $Data::MessagePack::Boolean::false;
 
             # Determine whether "along width" or "along height".
