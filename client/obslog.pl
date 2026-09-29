@@ -563,7 +563,7 @@ sub new_instrument {
             if ($checksum && ($is_new_msbtid || $is_new_checksum)) {
                 # Retrieve the MSB title.
                 unless (exists $msbtitles{$checksum}) {
-                    my $title = $msbdb->titleMSB($checksum);
+                    my $title = $obs->msbtitle || $msbdb->titleMSB($checksum);
                     $msbtitles{$checksum} = $title // 'Unknown MSB';
                 }
 
