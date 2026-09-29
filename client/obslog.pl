@@ -491,6 +491,7 @@ sub new_instrument {
     if (defined($obsgrp)) {
         my $counter = 0;
         my ($old_checksum, $old_msbtid) = ('') x 2;
+        my %seen_msbtid = ();  # Whether we have already shown history for TID.
 
         foreach my $obs ($obsgrp->obs) {
             my %nightlog = $obs->nightlog(
@@ -583,12 +584,13 @@ sub new_instrument {
                 my $history;
                 try {
                     $history = $msbdb->historyMSBtid($msbtid)
-                        if $has_msbtid;
+                        if $has_msbtid and not exists $seen_msbtid{$msbtid};
                 }
                 otherwise {
                     my $E = shift;
                     print $E;
                 };
+                undef $seen_msbtid{$msbtid};
 
                 my @comments;
                 if (defined $history) {
