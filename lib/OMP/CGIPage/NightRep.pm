@@ -178,7 +178,7 @@ sub list_observations_txt {
 
     try {
         $comp->obs_table_text(
-            $obsgroup,
+            $utdate, $obsgroup,
             showcomments => 1,
             ascending => 1,
             projectid => $projectid,

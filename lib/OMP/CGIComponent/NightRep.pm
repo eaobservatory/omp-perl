@@ -73,6 +73,7 @@ Boolean on whether or not to print comments [true].
 
 sub obs_table_text {
     my $self = shift;
+    my $utdate = shift;
     my $obsgroup = shift;
     my %options = @_;
 
@@ -91,7 +92,9 @@ sub obs_table_text {
 
     my $nr = OMP::NightRep->new(
         DB => $self->database,
-        telescope => $options{'telescope'});
+        telescope => $options{'telescope'},
+        date => $utdate,
+    );
     my $summary = $nr->get_obs_summary(obsgroup => $obsgroup, %options);
 
     unless (defined $summary) {
