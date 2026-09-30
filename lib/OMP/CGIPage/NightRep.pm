@@ -442,7 +442,8 @@ sub projlog_content {
 
             my $nr = OMP::NightRep->new(
                 DB => $self->database,
-                telescope => $telescope);
+                telescope => $telescope,
+                msbs => $observed);
             $obs_summary = $nr->get_obs_summary(obsgroup => $grp);
         }
     }
