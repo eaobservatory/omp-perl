@@ -1704,6 +1704,7 @@ sub get_obs_summary {
 
     my $old_sum = '';
     my $old_tid = '';
+    my %seen_msbtid = ();  # Whether we have already shown history for TID.
 
     foreach my $obs (@allobs) {
         next
@@ -1769,9 +1770,10 @@ sub get_obs_summary {
             if ($checksum && ($is_new_msbtid || $is_new_checksum)) {
                 # Get any activity associated with this MSB accept.
                 my $history;
-                if ($has_msbtid) {
+                if ($has_msbtid and not exists $seen_msbtid{$msbtid}) {
                     $history = $self->historyMSBtid($msbtid);
                 }
+                undef $seen_msbtid{$msbtid};
 
                 if (defined $history) {
                     my $title = $history->title();
