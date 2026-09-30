@@ -135,18 +135,34 @@ sub list_observations_txt {
 
     my $telescope = $proj->telescope;
 
-    my $query = $self->cgi;
+    my $q = $self->cgi;
 
     my $comp = OMP::CGIComponent::NightRep->new(page => $self);
 
-    print $query->header(-type => 'text/plain', -charset => 'utf-8');
+    print $q->header(-type => 'text/plain', -charset => 'utf-8');
 
     my $obsgroup;
+    my $utdate;
     try {
-        $obsgroup = $comp->cgi_to_obsgroup(
-            projid => $projectid,
+        $utdate = OMP::DateTools->parse_date(scalar $q->param('ut'));
+
+        unless (defined $utdate) {
+            throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
+        }
+
+        my $arcdb = OMP::DB::Archive->new(
+            DB => $self->database_archive,
+            FileUtil => $self->fileutil);
+
+        $obsgroup = OMP::Info::ObsGroup->new(
+            DB => $self->database,
+            ADB => $arcdb,
+            telescope => $telescope,
+            projectid => $projectid,
             inccal => 1,
             timegap => 0,
+            date => $utdate,
+            ignorebad => 1,
         );
     }
     catch OMP::Error with {
