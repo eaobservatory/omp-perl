@@ -490,7 +490,7 @@ sub projlog_content {
 
         weather_plots => [
             grep {$_->[2]}
-            ['wvm', 'WVM graph', $weathercomp->wvm_graph($utdate)],
+            ['opacity', 'Maunakea opacity', $weathercomp->opacity_plot($utdate)],
         ],
 
         itclink => $itclink,

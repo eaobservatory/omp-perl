@@ -79,9 +79,10 @@ sub forecast_plot {
     $gifdate = substr($gifdate, 0, 8);
     $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
     $gifdate = "$1-$2-$3";
+    my $gifdir = "$1/$2";
 
     return 'MKWC forecast',
-        "$forecast_plot_dir/${gifdate}.jpg";
+        "$forecast_plot_dir/${gifdir}/${gifdate}.jpg";
 }
 
 =item B<meteogram_plot>
@@ -103,11 +104,12 @@ sub meteogram_plot {
     $gifdate = substr($gifdate, 0, 8);
     $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
     $gifdate = "$1-$2-$3";
+    my $pngdir = "$1/$2";
 
     my $meteogram_plot_dir = OMP::Config->getData('meteogram-plot-url');
 
     return 'EAO meteogram',
-        "$meteogram_plot_dir/${gifdate}.png";
+        "$meteogram_plot_dir/${pngdir}/${gifdate}.png";
 }
 
 =item B<opacity_plot>
@@ -131,9 +133,10 @@ sub opacity_plot {
     $gifdate = substr($gifdate, 0, 8);
     $gifdate =~ /(\d{4})(\d\d)(\d\d)/a;
     $gifdate = "$1-$2-$3";
+    my $pngdir = "$1/$2";
 
     return 'Maunakea opacity',
-        "$opacity_plot_dir/${gifdate}.png";
+        "$opacity_plot_dir/${pngdir}/${gifdate}.png";
 }
 
 
